@@ -52,7 +52,9 @@ package realm {
 		private var bannerT:Number = 0;
 		private var bossPanel:Sprite;
 		private var bossName:TextField, bossInfo:TextField;
-		private var bossBar:Shape;
+		private var bossBar:Shape, dmgBar:Shape;
+		private var dmgTf:TextField;
+		private var nameTag:TextField;
 		private var fameTf:TextField, killTf:TextField;
 		private var statusTf:TextField;
 		private var pauseLayer:Sprite;
@@ -60,7 +62,8 @@ package realm {
 		private var lastT:int;
 		private var spawnT:Number = 0;
 		private var revealT:Number = 0;
-		private var killsToBoss:int = 40;
+		public var killsToBoss:int = 40;
+		public var bossGoal:int = 40;
 		private var tauntT:Number = 30;
 		private var deathInfo:Object;
 		private var onDeath:Function;
@@ -82,6 +85,9 @@ package realm {
 			floatLayer = new Sprite();
 			floatLayer.mouseEnabled = floatLayer.mouseChildren = false;
 			addChild(floatLayer);
+			nameTag = Ui.text(13, 0xffe36e, true, "center", 140, true);
+			nameTag.text = name;
+			addChild(nameTag);
 
 			statusTf = Ui.text(14, 0xff9a40, true, "center", 200, true);
 			addChild(statusTf);
@@ -135,16 +141,27 @@ package realm {
 		}
 
 		private function buildBossPanel():void {
+			// damage meter, styled like the RotMG/Valor boss leaderboard
 			bossPanel = new Sprite();
-			Ui.panel(bossPanel.graphics, 0, 0, 290, 92, 0x1c1c1c, 0x3a3a3a, 0.82);
-			bossName = Ui.text(22, 0xe03030, true, "center", 290, true);
-			bossName.y = 4;
+			Ui.panel(bossPanel.graphics, 0, 0, 290, 100, 0x2a2a2a, 0x454545, 0.85);
+			bossName = Ui.text(20, 0xc83030, true, "center", 290, true);
+			bossName.y = 2;
 			bossPanel.addChild(bossName);
 			bossBar = new Shape();
-			bossBar.x = 14; bossBar.y = 40;
+			bossBar.x = 12; bossBar.y = 34;
 			bossPanel.addChild(bossBar);
-			bossInfo = Ui.text(14, 0xffffff, true, "left", 262, true);
-			bossInfo.x = 14; bossInfo.y = 60;
+			var icon:Bitmap = new Bitmap(Sprites.get(player.cls.id));
+			icon.scaleX = icon.scaleY = 0.45;
+			icon.x = 10; icon.y = 50;
+			bossPanel.addChild(icon);
+			dmgBar = new Shape();
+			dmgBar.x = 36; dmgBar.y = 54;
+			bossPanel.addChild(dmgBar);
+			dmgTf = Ui.text(14, 0xffffff, true, "left", 244, true);
+			dmgTf.x = 40; dmgTf.y = 52;
+			bossPanel.addChild(dmgTf);
+			bossInfo = Ui.text(11, 0x7fd07f, true, "center", 290, true);
+			bossInfo.y = 78;
 			bossPanel.addChild(bossInfo);
 			bossPanel.x = 10; bossPanel.y = 10;
 			bossPanel.visible = false;
@@ -301,7 +318,7 @@ package realm {
 				showBanner("The Cube Overlord has fallen!", Ui.GOLD, 4);
 				say(SOVEREIGN, "Impossible... my Overlord! You will pay for this!");
 				msg("A white bag has dropped!", 0xffffff);
-				killsToBoss = 60;
+				killsToBoss = bossGoal = 60;
 			} else if (!boss && e.def.drop > 0) {
 				killsToBoss--;
 				if (killsToBoss <= 0) spawnBoss();
@@ -580,13 +597,20 @@ package realm {
 				var g:* = bossBar.graphics;
 				g.clear();
 				g.beginFill(0x111111);
-				g.drawRoundRect(0, 0, 262, 14, 6, 6);
-				g.beginFill(0xd02828);
-				g.drawRoundRect(0, 0, 262 * frac, 14, 6, 6);
+				g.drawRoundRect(0, 0, 266, 10, 4, 4);
+				g.beginFill(0xc82828);
+				g.drawRoundRect(0, 0, 266 * frac, 10, 4, 4);
 				g.endFill();
 				var pct:Number = player.bossDmg / b.maxHp * 100;
-				bossInfo.htmlText = "<font color='#6fd0ff'>" + player.name + "</font>   " + Ui.commas(player.bossDmg) +
-					" (" + pct.toFixed(2) + "%)   <font color='#aaaaaa'>HP " + Math.round(frac * 100) + "%</font>";
+				var dg:* = dmgBar.graphics;
+				dg.clear();
+				dg.beginFill(0x1a1a1a);
+				dg.drawRoundRect(0, 0, 242, 20, 6, 6);
+				dg.beginFill(0x2f8fc8);
+				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
+				dg.endFill();
+				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
+				bossInfo.text = "Boss HP: " + (frac * 100).toFixed(1) + "%";
 			}
 		}
 
@@ -697,7 +721,9 @@ package realm {
 			var p:Player = player;
 			var cx:Number = p.x * TS + ox, cy:Number = p.y * TS + oy;
 			if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0);
-			hpBar(cx - 18, cy + TS * 0.4 + 6, 36, p.hp / p.maxHp);
+			nameTag.x = int(cx - nameTag.width / 2);
+			nameTag.y = int(cy + TS * 0.4 + 1);
+			hpBar(cx - 20, cy + TS * 0.4 + 21, 40, p.hp / p.maxHp);
 		}
 
 		private function statusPip(cx:Number, y:Number, color:uint):void {

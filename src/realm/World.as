@@ -91,7 +91,7 @@ package realm {
 			x = int(cx);
 			for (y = N - 1; y > 0; y--) if (tiles[y * N + x] != WATER) break;
 			spawnX = x + 0.5;
-			spawnY = y - 3 + 0.5;
+			spawnY = y - 6 + 0.5;
 			var px:int = int(spawnX), py:int = int(spawnY);
 			for (var dy:int = -6; dy <= 6; dy++) {
 				for (var dx:int = -6; dx <= 6; dx++) {

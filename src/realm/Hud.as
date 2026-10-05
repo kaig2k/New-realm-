@@ -8,11 +8,15 @@ package realm {
 	import flash.geom.Point;
 	import flash.text.TextField;
 
-	/** The right-hand sidebar, laid out like RotMG: minimap, bars, gear, inventory, potions, loot. */
+	/** The right-hand sidebar, laid out like RotMG / Valor. */
 	public class Hud extends Sprite {
 		public static const W:int = 240;
-		private static const MINI_H:int = 196;
+		private static const MINI_H:int = 176;
 		private static const ZOOMS:Array = [1, 2, 4];
+
+		private static const I_TEMPLE:Array = ["...WW...", "..WWWW..", "WWWWWWWW", ".W.WW.W.", ".W.WW.W.", ".W.WW.W.", "WWWWWWWW", "........"];
+		private static const I_PACK:Array = ["..WWWW..", ".W....W.", "WWWWWWWW", "WWWDDWWW", "WWWWWWWW", "WWWWWWWW", ".WWWWWW.", "........"];
+		private static const I_CHART:Array = ["........", "......W.", "......W.", "...W..W.", "...W..W.", "W..W..W.", "W..W..W.", "WWWWWWWW"];
 
 		private var g:Game;
 		private var mini:BitmapData;
@@ -20,8 +24,7 @@ package realm {
 		private var zoom:int = 1;
 		private var frameN:int = 0;
 		private var nameTf:TextField;
-		private var portrait:Bitmap;
-		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar;
+		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar, bossBar:Bar, maxBar:Bar;
 		private var equip:Vector.<Slot> = new Vector.<Slot>();
 		private var invSlots:Vector.<Slot> = new Vector.<Slot>();
 		private var bagSlots:Vector.<Slot> = new Vector.<Slot>();
@@ -29,12 +32,11 @@ package realm {
 		private var invPage:Sprite, statPage:Sprite;
 		private var statTf:TextField;
 		private var tabs:Array = [];
-		private var bagPanel:Sprite;
-		private var bagTf:TextField;
-		private var hintTf:TextField;
+		private var bagBox:Shape;
 		private var tip:Tooltip;
 		private var hover:Slot;
 		private var lastStats:String = "";
+		private var lastBag:LootBag;
 
 		public function Hud(g:Game) {
 			this.g = g;
@@ -53,109 +55,136 @@ package realm {
 			miniDots = new Shape();
 			miniDots.x = 2;
 			addChild(miniDots);
-			addChild(zoomButton("+", W - 26, 6, 1));
-			addChild(zoomButton("-", W - 26, 30, -1));
+			addChild(zoomButton("+", W - 24, 6, 1));
+			addChild(zoomButton("-", W - 24, 28, -1));
 
-			// --- name row
-			portrait = new Bitmap(Sprites.get(g.player.cls.id));
-			portrait.scaleX = portrait.scaleY = 0.75;
-			portrait.x = 8;
-			portrait.y = MINI_H + 4;
+			// --- name row: portrait, name, nexus button
+			var y:int = MINI_H + 4;
+			var portrait:Bitmap = new Bitmap(Sprites.get(g.player.cls.id));
+			portrait.scaleX = portrait.scaleY = 0.72;
+			portrait.x = 6;
+			portrait.y = y - 2;
 			addChild(portrait);
-			nameTf = Ui.text(22, 0xffffff, true, "left", 0, true);
-			nameTf.x = 46;
-			nameTf.y = MINI_H + 4;
+			nameTf = Ui.text(24, 0xffffff, true, "left", 0, true);
+			nameTf.x = 44;
+			nameTf.y = y - 2;
 			addChild(nameTf);
+			var nexusBtn:Sprite = iconButton(I_TEMPLE, W - 34, y + 2, 0xe8e8e8);
+			nexusBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.nexus(); });
+			addChild(nexusBtn);
 
 			// --- bars
-			var y:int = MINI_H + 40;
-			lvlBar = new Bar(108, 18, 0x9a6a7a, 0x3a2a30, 12);
-			lvlBar.x = 8; lvlBar.y = y;
+			y = MINI_H + 40;
+			lvlBar = new Bar(110, 18, 0x9a7480, 0x2a2224, 11, "", "left");
+			lvlBar.x = 6; lvlBar.y = y;
 			addChild(lvlBar);
-			fameBar = new Bar(108, 18, 0xe07020, 0x4a2a10, 12);
+			fameBar = new Bar(110, 18, 0xe0762a, 0x3a2410, 11, "", "left");
 			fameBar.x = 124; fameBar.y = y;
 			addChild(fameBar);
-			hpBar = new Bar(224, 22, 0xe03434, 0x4a1a1a, 15);
-			hpBar.x = 8; hpBar.y = y + 22;
+			hpBar = new Bar(228, 22, 0xe03838, 0x3a1a1a, 15, "HP");
+			hpBar.x = 6; hpBar.y = y + 22;
 			addChild(hpBar);
-			mpBar = new Bar(224, 22, 0x3c6ee6, 0x1a2a50, 15);
-			mpBar.x = 8; mpBar.y = y + 48;
+			mpBar = new Bar(228, 22, 0x3d6fe8, 0x1a2244, 15, "MP");
+			mpBar.x = 6; mpBar.y = y + 48;
 			addChild(mpBar);
+			bossBar = new Bar(110, 18, 0x9a40c0, 0x2a2a2a, 12, "OV", "left");
+			bossBar.x = 6; bossBar.y = y + 74;
+			addChild(bossBar);
+			maxBar = new Bar(110, 18, 0xd8b030, 0x2a2a2a, 12, "MX", "left");
+			maxBar.x = 124; maxBar.y = y + 74;
+			addChild(maxBar);
 
 			// --- equipment
-			y = MINI_H + 118;
+			y = MINI_H + 138;
 			var eq:Shape = new Shape();
-			Ui.panel(eq.graphics, 6, y, 228, 58, Ui.PANEL_DARK, 0x555555);
+			Ui.panel(eq.graphics, 4, y, 232, 58, 0x262626, 0x4a4a4a);
 			addChild(eq);
 			var kinds:Array = ["weapon", "ability", "armor", "ring"];
 			for (var i:int = 0; i < 4; i++) {
-				equip.push(makeSlot(kinds[i], i, 12 + i * 55, y + 5, false));
+				equip.push(makeSlot(kinds[i], i, 10 + i * 56, y + 5, false));
 				addChild(equip[i]);
 			}
 
-			// --- tabs
-			y += 64;
-			tabs.push(makeTab("Items", 8, y, 0));
-			tabs.push(makeTab("Stats", 70, y, 1));
+			// --- tabs (icon buttons)
+			y += 62;
+			tabs.push(makeTab(I_PACK, 8, y, 0));
+			tabs.push(makeTab(I_CHART, 46, y, 1));
 
 			// --- inventory page
-			y += 26;
+			y += 28;
 			invPage = new Sprite();
 			addChild(invPage);
 			var s:Slot;
 			for (i = 0; i < 8; i++) {
-				s = makeSlot("inv", i, 12 + (i % 4) * 55, y + int(i / 4) * 52, true);
+				s = makeSlot("inv", i, 10 + (i % 4) * 56, y + int(i / 4) * 52, true);
 				invPage.addChild(s);
 				invSlots.push(s);
 			}
 			hpPot = new PotSlot(true);
-			hpPot.x = 12; hpPot.y = y + 106;
+			hpPot.x = 10; hpPot.y = y + 104;
 			hpPot.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.slotClick("pot", 0, false); });
 			invPage.addChild(hpPot);
 			mpPot = new PotSlot(false);
-			mpPot.x = 122; mpPot.y = y + 106;
+			mpPot.x = 122; mpPot.y = y + 104;
 			mpPot.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.slotClick("pot", 1, false); });
 			invPage.addChild(mpPot);
 
 			// --- stats page
 			statPage = new Sprite();
-			Ui.panel(statPage.graphics, 6, y - 2, 228, 144, Ui.PANEL_DARK, 0x555555);
-			statTf = Ui.text(15, 0xdddddd, true, "left", 210);
+			Ui.panel(statPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
+			statTf = Ui.text(15, 0xdddddd, true, "left", 214);
 			statTf.x = 14; statTf.y = y + 2;
 			statPage.addChild(statTf);
 			statPage.visible = false;
 			addChild(statPage);
 
-			// --- loot bag
-			y += 146;
-			bagPanel = new Sprite();
-			Ui.panel(bagPanel.graphics, 6, y, 228, Ui.H - y - 6, 0x2a2420, 0x6a5030);
-			bagTf = Ui.text(12, 0xc8a878, true);
-			bagTf.x = 12; bagTf.y = y + 2;
-			bagPanel.addChild(bagTf);
+			// --- loot bag grid (always shown, like the backpack area)
+			y += 142;
+			bagBox = new Shape();
+			addChild(bagBox);
 			for (i = 0; i < 8; i++) {
-				s = makeSlot("bag", i, 12 + (i % 4) * 55, y + 20 + int(i / 4) * 46, false);
-				s.scaleX = s.scaleY = 0.9;
-				bagPanel.addChild(s);
+				s = makeSlot("bag", i, 12 + (i % 4) * 56, y + 4 + int(i / 4) * 44, false);
+				s.scaleX = s.scaleY = 0.84;
+				addChild(s);
 				bagSlots.push(s);
 			}
-			bagPanel.visible = false;
-			addChild(bagPanel);
-			hintTf = Ui.text(12, 0x8a8a8a, false, "center", W - 20);
-			hintTf.htmlText = "Stand on a loot bag to see its contents\n<font color='#bbbbbb'>R</font> Haven   <font color='#bbbbbb'>I</font> Autofire   <font color='#bbbbbb'>P</font> Pause";
-			hintTf.x = 10; hintTf.y = y + 30;
-			addChild(hintTf);
+			drawBagBox(false, y);
 
 			tip = new Tooltip();
 			addChild(tip);
 		}
 
+		private var bagY:int;
+
+		private function drawBagBox(active:Boolean, y:int = -1):void {
+			if (y >= 0) bagY = y;
+			bagBox.graphics.clear();
+			Ui.panel(bagBox.graphics, 4, bagY, 232, Ui.H - bagY - 4, active ? 0x3a2c20 : 0x2c2c2c, active ? 0x8a6838 : 0x404040);
+			for each (var s:Slot in bagSlots) s.alpha = active ? 1 : 0.45;
+		}
+
+		private function pix(rows:Array, color:uint, scale:int):BitmapData {
+			return Sprites.build(rows, {W: color, D: 0x303030}, scale, 1);
+		}
+
+		private function iconButton(rows:Array, x:int, y:int, color:uint):Sprite {
+			var b:Sprite = new Sprite();
+			var bmp:Bitmap = new Bitmap(pix(rows, color, 3));
+			b.addChild(bmp);
+			b.x = x; b.y = y;
+			b.buttonMode = true;
+			b.mouseChildren = false;
+			b.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { bmp.alpha = 0.7; });
+			b.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { bmp.alpha = 1; });
+			return b;
+		}
+
 		private function zoomButton(label:String, x:int, y:int, dir:int):Sprite {
 			var b:Sprite = new Sprite();
-			Ui.panel(b.graphics, 0, 0, 20, 20, 0x2a2a2a, 0x777777, 0.85);
-			var t:TextField = Ui.text(16, 0xffffff, true, "center", 20);
+			Ui.panel(b.graphics, 0, 0, 18, 18, 0x2a2a2a, 0x777777, 0.85);
+			var t:TextField = Ui.text(15, 0xffffff, true, "center", 18);
 			t.text = label;
-			t.y = -1;
+			t.y = -2;
 			b.addChild(t);
 			b.x = x; b.y = y;
 			b.buttonMode = true;
@@ -167,12 +196,12 @@ package realm {
 			return b;
 		}
 
-		private function makeTab(label:String, x:int, y:int, idx:int):Sprite {
+		private function makeTab(rows:Array, x:int, y:int, idx:int):Sprite {
 			var t:Sprite = new Sprite();
-			var tf:TextField = Ui.text(13, 0xffffff, true, "center", 58);
-			tf.text = label;
-			tf.y = 1;
-			t.addChild(tf);
+			var bmp:Bitmap = new Bitmap(pix(rows, 0xe8e8e8, 2));
+			bmp.x = (32 - bmp.width) / 2;
+			bmp.y = (24 - bmp.height) / 2;
+			t.addChild(bmp);
 			t.x = x; t.y = y;
 			t.buttonMode = true;
 			t.mouseChildren = false;
@@ -184,7 +213,7 @@ package realm {
 
 		private function drawTab(t:Sprite, on:Boolean):void {
 			t.graphics.clear();
-			Ui.panel(t.graphics, 0, 0, 58, 22, on ? 0x5a5a5a : 0x2a2a2a, on ? 0x9a9a9a : 0x4a4a4a);
+			Ui.panel(t.graphics, 0, 0, 32, 24, on ? 0x5a5a5a : 0x2a2a2a, on ? 0x9a9a9a : 0x4a4a4a);
 		}
 
 		private function selectTab(idx:int):void {
@@ -233,12 +262,18 @@ package realm {
 		public function refresh():void {
 			var p:Player = g.player;
 			nameTf.text = p.name;
-			if (p.level >= Player.MAX_LEVEL) lvlBar.set(1, "Lvl " + p.level);
-			else lvlBar.set(p.xp / p.xpNext, "Lvl " + p.level + "   " + p.xp + "/" + p.xpNext);
-			fameBar.set(1, "Fame  " + Ui.commas(p.fame));
+			if (p.level >= Player.MAX_LEVEL) lvlBar.set(1, "Lvl " + p.level, "Max");
+			else lvlBar.set(p.xp / p.xpNext, "Lvl " + p.level, p.xp + "/" + p.xpNext);
+			fameBar.set(1, "Fame", Ui.commas(p.fame));
 			var hb:int = p.bonus("hp"), mb:int = p.bonus("mp");
-			hpBar.set(p.hp / p.maxHp, int(Math.max(0, p.hp)) + "/" + p.maxHp + (hb > 0 ? "  (+" + hb + ")" : ""));
-			mpBar.set(p.mp / p.maxMp, int(p.mp) + "/" + p.maxMp + (mb > 0 ? "  (+" + mb + ")" : ""));
+			hpBar.set(p.hp / p.maxHp, "HP", int(Math.max(0, p.hp)) + "/" + p.maxHp + (hb > 0 ? " <font color='#ffe36e'>(+" + hb + ")</font>" : ""));
+			mpBar.set(p.mp / p.maxMp, "MP", int(p.mp) + "/" + p.maxMp + (mb > 0 ? " <font color='#ffe36e'>(+" + mb + ")</font>" : ""));
+			var done:int = g.bossGoal - g.killsToBoss;
+			if (g.boss) bossBar.set(1, "OV", "Active!");
+			else bossBar.set(done / g.bossGoal, "OV", done + "/" + g.bossGoal);
+			var maxed:int = 0;
+			for each (var st0:String in Data.STATS) if (p.stats[st0] >= p.cls.max[st0]) maxed++;
+			maxBar.set(maxed / 8, "MX", maxed + "/8");
 
 			equip[0].setItem(p.weapon);
 			equip[1].setItem(p.ability);
@@ -260,12 +295,9 @@ package realm {
 			}
 
 			var bag:LootBag = g.nearBag;
-			bagPanel.visible = bag != null;
-			hintTf.visible = bag == null;
-			if (bag) {
-				bagTf.text = bag.spr == "bag_white" ? "White Bag" : bag.spr == "bag_cyan" ? "Cyan Bag" : bag.spr == "bag_purple" ? "Purple Bag" : "Loot Bag";
-				for (i = 0; i < 8; i++) bagSlots[i].setItem(i < bag.items.length ? bag.items[i] : null);
-			}
+			if ((bag != null) != (lastBag != null)) drawBagBox(bag != null);
+			lastBag = bag;
+			for (i = 0; i < 8; i++) bagSlots[i].setItem(bag && i < bag.items.length ? bag.items[i] : null);
 			if (hover && (!hover.item || (hover.kind == "bag" && !bag))) {
 				tip.visible = false;
 				hover = null;
@@ -345,40 +377,55 @@ import realm.Data;
 import realm.Sprites;
 import realm.Ui;
 
+/** RotMG-style bar: short label on the left, value centred (or after the label). */
 class Bar extends Sprite {
 	private var fill:Shape = new Shape();
-	private var tf:TextField;
+	private var labelTf:TextField;
+	private var valueTf:TextField;
 	private var w:int, h:int;
+	private var valueAlign:String;
 	private var lastFrac:Number = -1;
 	private var lastLabel:String = "";
+	private var lastValue:String = "";
 
-	public function Bar(w:int, h:int, color:uint, back:uint, size:int) {
+	public function Bar(w:int, h:int, color:uint, back:uint, size:int, label:String = "", valueAlign:String = "center") {
 		this.w = w;
 		this.h = h;
-		graphics.lineStyle(1, 0x000000);
+		this.valueAlign = valueAlign;
+		graphics.lineStyle(1, 0x111111);
 		graphics.beginFill(back);
 		graphics.drawRoundRect(0, 0, w, h, 6, 6);
 		graphics.endFill();
 		fill.graphics.beginFill(color);
 		fill.graphics.drawRoundRect(1, 1, w - 1, h - 1, 5, 5);
-		fill.graphics.beginFill(0xffffff, 0.12);
+		fill.graphics.beginFill(0xffffff, 0.14);
 		fill.graphics.drawRect(2, 2, w - 4, (h - 2) / 2);
 		fill.graphics.endFill();
 		addChild(fill);
-		tf = Ui.text(size, 0xffffff, true, "center", w, true);
-		tf.y = (h - tf.height) / 2;
-		addChild(tf);
+		labelTf = Ui.text(size, 0xffffff, true, "left", 0, true);
+		labelTf.x = 5;
+		addChild(labelTf);
+		valueTf = Ui.text(size, 0xffffff, true, valueAlign, valueAlign == "center" ? w : 0, true);
+		addChild(valueTf);
 		mouseChildren = false;
+		if (label) set(0, label, "");
 	}
 
-	public function set(frac:Number, label:String):void {
+	public function set(frac:Number, label:String, value:String):void {
 		if (frac < 0) frac = 0;
 		if (frac > 1) frac = 1;
 		if (frac != lastFrac) { fill.scaleX = frac; lastFrac = frac; }
 		if (label != lastLabel) {
-			tf.text = label;
-			tf.y = (h - tf.height) / 2;
+			labelTf.text = label;
+			labelTf.y = (h - labelTf.height) / 2;
 			lastLabel = label;
+			lastValue = "";
+		}
+		if (value != lastValue) {
+			valueTf.htmlText = value;
+			valueTf.y = (h - valueTf.height) / 2;
+			valueTf.x = valueAlign == "center" ? 0 : labelTf.x + labelTf.width + 2;
+			lastValue = value;
 		}
 	}
 }
@@ -395,21 +442,21 @@ class Slot extends Sprite {
 		this.kind = kind;
 		this.idx = idx;
 		graphics.lineStyle(1, 0x1a1a1a);
-		graphics.beginFill(kind == "bag" ? 0x4a3a2c : 0x545454);
+		graphics.beginFill(kind == "bag" ? 0x4a3e34 : 0x545454);
 		graphics.drawRoundRect(0, 0, 48, 48, 10, 10);
 		graphics.endFill();
 		if (numbered) {
-			numTf = Ui.text(22, 0x6a6a6a, true, "center", 48);
+			numTf = Ui.text(24, 0x6e6e6e, true, "center", 48);
 			numTf.text = String(idx + 1);
-			numTf.y = 9;
+			numTf.y = 7;
 			addChild(numTf);
 		}
 		icon.x = 6;
 		icon.y = 6;
 		addChild(icon);
-		tierTf = Ui.text(12, 0xffffff, true, "right", 30, true);
-		tierTf.x = 16;
-		tierTf.y = 29;
+		tierTf = Ui.text(13, 0xffffff, true, "right", 32, true);
+		tierTf.x = 15;
+		tierTf.y = 28;
 		addChild(tierTf);
 		mouseChildren = false;
 		buttonMode = true;
@@ -427,7 +474,7 @@ class Slot extends Sprite {
 		icon.bitmapData = Sprites.icon(it);
 		var label:String = Data.tierLabel(it);
 		tierTf.text = label;
-		tierTf.textColor = label == "UT" ? 0xc070ff : 0xffffff;
+		tierTf.textColor = label == "UT" ? 0xb070ff : 0xffffff;
 	}
 }
 
@@ -439,17 +486,17 @@ class PotSlot extends Sprite {
 	public function PotSlot(health:Boolean) {
 		graphics.lineStyle(1, 0x1a1a1a);
 		graphics.beginFill(0x545454);
-		graphics.drawRoundRect(0, 0, 104, 34, 10, 10);
+		graphics.drawRoundRect(0, 0, 108, 32, 10, 10);
 		graphics.endFill();
 		var ic:Bitmap = new Bitmap(Sprites.icon(Data.makePotion(health ? "hp" : "mp")));
-		ic.scaleX = ic.scaleY = 0.8;
-		ic.x = 22; ic.y = 2;
+		ic.scaleX = ic.scaleY = 0.75;
+		ic.x = 30; ic.y = 2;
 		addChild(ic);
 		tf = Ui.text(18, 0xffffff, true, "left", 0, true);
-		tf.x = 56; tf.y = 4;
+		tf.x = 62; tf.y = 3;
 		addChild(tf);
 		key = Ui.text(11, 0x9a9a9a, true);
-		key.x = 6; key.y = 2;
+		key.x = 6; key.y = 1;
 		addChild(key);
 		buttonMode = true;
 		mouseChildren = false;

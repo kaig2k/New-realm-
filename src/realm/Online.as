@@ -16,7 +16,7 @@ package realm {
 	public class Online {
 		public static const DEFAULT_PORT:int = 2050;
 		/** Must match VERSION in server/server.js. */
-		public static const PROTOCOL:int = 2;
+		public static const PROTOCOL:int = 3;
 
 		private static var socket:Socket;
 		private static var inBuf:ByteArray = new ByteArray();

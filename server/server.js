@@ -19,7 +19,7 @@ const crypto = require('crypto');
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 2;
+const VERSION = 3;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const DATA_DIR = path.join(__dirname, 'data');

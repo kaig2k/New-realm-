@@ -163,12 +163,12 @@ package realm {
 			if (a.p == "aimed") {
 				for (k = 0; k < n; k++) {
 					t = n > 1 ? ang + (k / (n - 1) - 0.5) * a.arc * DEG : ang;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, null, spin));
+					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, a.eff || null, spin));
 				}
 			} else { // ring / spiral
 				for (k = 0; k < n; k++) {
 					t = spins[i] + k * Math.PI * 2 / n;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, null, spin));
+					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, a.eff || null, spin));
 				}
 				spins[i] += (a.rot || 0) * DEG;
 			}

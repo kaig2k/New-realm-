@@ -109,7 +109,7 @@ package realm {
 			nameTag.text = name;
 			addChild(nameTag);
 
-			statusTf = Ui.text(14, 0xff9a40, true, "center", 200, true);
+			statusTf = Ui.text(14, 0xff9a40, true, "center", 320, true);
 			addChild(statusTf);
 
 			chat = Ui.text(15, 0xffffff, false, "left", 620, true);
@@ -287,6 +287,7 @@ package realm {
 		private function enterDungeon(idx:int):void {
 			var th:Object = Data.DUNGEONS[idx];
 			dungeonWorld = new World("dungeon", th.name, th);
+			Sfx.play("portal");
 			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
 			var rooms:Array = dungeonWorld.rooms;
 			for (var r:int = 1; r < rooms.length - 1; r++) {
@@ -324,6 +325,7 @@ package realm {
 				r = realms[i] = new World("realm", realmNames[i]);
 			}
 			switchWorld(r, r.spawnX, r.spawnY);
+			Sfx.play("portal");
 			showBanner(r.name + " Realm", PORTAL_COLORS[i], 3);
 			msg("You have entered the " + r.name + " realm.", Ui.GOLD);
 			taunt(r.boss ? r.boss.def.name + " awaits you, fool!" : "Another fool enters my " + r.name + " realm...");
@@ -378,6 +380,10 @@ package realm {
 			lastT = now;
 			if (dt > 0.05) dt = 0.05;
 
+			if (input.pressed(Keyboard.M)) {
+				Sfx.muted = !Sfx.muted;
+				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
+			}
 			if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) {
 				paused = !paused;
 				pauseLayer.visible = paused;
@@ -519,6 +525,7 @@ package realm {
 					player.bossDmg = 0;
 					var nm:String = world.boss.def.name;
 					showBanner(nm + " has appeared!", 0xff70ff, 3.5);
+					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
 					return;
@@ -553,7 +560,7 @@ package realm {
 						else {
 							var dx:Number = s.x - p.x, dy:Number = s.y - p.y, rr:Number = s.r + Player.R;
 							if (dx * dx + dy * dy < rr * rr && p.invulnT <= 0) {
-								p.takeHit(s.dmg, s.owner, this);
+								p.takeHit(s.dmg, s.owner, this, s.effect);
 								remove = true;
 							}
 						}
@@ -596,6 +603,7 @@ package realm {
 			if (d > e.hp) d = Math.ceil(e.hp);
 			e.hp -= d;
 			e.hitT = 0.08;
+			Sfx.play("hit", 0.6, 0.06);
 			if (e.isBoss) p.bossDmg += d;
 			floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
 			if (effect == "slow") e.slowT = 3;
@@ -666,6 +674,7 @@ package realm {
 
 		private function killEnemy(e:Enemy):void {
 			e.dead = true;
+			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
 			var p:Player = player;
 			p.kills++;
 			p.gainXp(e.def.xp, this);
@@ -713,7 +722,17 @@ package realm {
 			var items:Array = Data.rollLoot(e.def, Math.max(0, Math.min(3, e.zone)), p.cls, p.frt);
 			if (items.length) {
 				while (items.length > LootBag.MAX) items.pop();
-				bags.push(new LootBag(e.x, e.y, items));
+				var bag:LootBag = new LootBag(e.x, e.y, items);
+				bags.push(bag);
+				// Valor-style rare drop alerts
+				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
+					var kind:String = bag.spr == "bag_relic" ? "Ancient Relic" : bag.spr == "bag_legendary" ? "Legendary" : "Fabled";
+					var kc:uint = bag.spr == "bag_relic" ? 0x40e8d8 : bag.spr == "bag_legendary" ? 0xd8e040 : 0xff4a4a;
+					showBanner(kind + " drop!", kc, 3);
+					msg("A " + kind + " bag dropped from " + e.def.name + "!", kc);
+					Sfx.play("rare");
+					burst(e.x, e.y, kc, 30);
+				} else if (bag.spr != "bag_brown") Sfx.play("loot", 0.7);
 			}
 		}
 
@@ -851,6 +870,7 @@ package realm {
 			player.hp = player.maxHp;
 			player.mp = player.maxMp;
 			player.pt = player.maxPt;
+			for (var sk:String in player.status) player.status[sk] = 0;
 			saveCharacter();
 			if (!wasNexus) showBanner("Nexus", 0xffffff, 2);
 			msg("You return to the Nexus. HP and MP restored.", 0xffffff);
@@ -881,6 +901,7 @@ package realm {
 					addGold(value);
 					Save.flush();
 					msg("Sold " + item.name + " for " + value + " gold.", Ui.GOLD);
+					Sfx.play("coin");
 					refreshStation();
 				} else if (shift) {
 					p.inv[idx] = null;
@@ -1027,6 +1048,7 @@ package realm {
 			player.inv[slot] = lg;
 			Save.flush();
 			showBanner("Forged " + lg.name + "!", Data.RARITY_COLORS.lg, 3);
+			Sfx.play("rare");
 			msg("The Sor Forge blazes... you forged " + lg.name + "!", Data.RARITY_COLORS.lg);
 			burst(player.x, player.y, 0xd8e040, 30);
 			saveCharacter();
@@ -1055,6 +1077,7 @@ package realm {
 			addGold(-e.price);
 			Save.flush();
 			msg("Bought " + (item ? item.name : e.name) + ".", Ui.GOLD);
+			Sfx.play("coin");
 			refreshStation();
 		}
 
@@ -1123,12 +1146,16 @@ package realm {
 			killTf.text = Ui.commas(player.kills);
 			goldTf.text = Ui.commas(gold);
 			onraneTf.text = Ui.commas(onrane);
-			statusTf.text = player.burning ? "Burning!" : player.invisT > 0 ? "Invisible" : player.berserkT > 0 ? "Berserk" : "";
+			var stx:String = player.statusText;
+			if (player.burning) stx = "<font color='#ff9a40'>Burning!</font>  " + stx;
+			if (player.invisT > 0) stx = "<font color='#c0a0ff'>Invisible</font>  " + stx;
+			if (player.berserkT > 0) stx = "<font color='#ff5040'>Berserk</font>  " + stx;
+			statusTf.htmlText = stx;
 			promptPanel.visible = nearPortal != null;
 			if (nearPortal) {
 				promptTf.htmlText = portalTitle(nearPortal) + "<font size='13' color='#aaaaaa'>  -  press Enter</font>";
 			}
-			statusTf.x = CX - 100;
+			statusTf.x = CX - 160;
 			statusTf.y = CY - 76;
 
 			var b:Enemy = boss;

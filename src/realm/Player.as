@@ -34,6 +34,11 @@ package realm {
 		public var moving:Boolean = false;
 		public var burning:Boolean = false;
 		public var shotCount:int = 0;
+		/** Status effect timers (Valor/RotMG conditions). */
+		public var status:Object = {slowed: 0, paralyzed: 0, confused: 0, armorbroken: 0, bleeding: 0};
+		public static const STATUS_TIME:Object = {slowed: 3, paralyzed: 1.2, confused: 2.5, armorbroken: 4, bleeding: 3};
+		public static const STATUS_NAMES:Object = {slowed: "Slowed", paralyzed: "Paralyzed", confused: "Confused", armorbroken: "Armor Broken", bleeding: "Bleeding"};
+		public static const STATUS_COLORS:Object = {slowed: 0x6090ff, paralyzed: 0xffe040, confused: 0xd060ff, armorbroken: 0xb0b0b0, bleeding: 0xff3030};
 		/** Saved-character id. */
 		public var id:String;
 		/** Skill tree ranks by skill id, unspent points and progress to the next point. */
@@ -85,7 +90,7 @@ package realm {
 		public function get maxHp():int { return stat("hp"); }
 		public function get maxMp():int { return stat("mp"); }
 		public function get att():int { return stat("att"); }
-		public function get def():int { return stat("def"); }
+		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def"); }
 		public function get spd():int { return stat("spd"); }
 		public function get dex():int { return stat("dex"); }
 		public function get vit():int { return stat("vit"); }
@@ -169,6 +174,7 @@ package realm {
 			if (shootT > 0) shootT -= dt;
 			if (attackT > 0) attackT -= dt;
 			if (abilityT > 0) abilityT -= dt;
+			for (var st:String in status) if (status[st] > 0) status[st] -= dt;
 
 			// --- movement
 			var mx:Number = 0, my:Number = 0;
@@ -177,7 +183,9 @@ package realm {
 			if (inp.isDown(Keyboard.A) || inp.isDown(Keyboard.LEFT)) mx -= 1;
 			if (inp.isDown(Keyboard.D) || inp.isDown(Keyboard.RIGHT)) mx += 1;
 			if (mx != 0 && my != 0) { mx *= 0.7071; my *= 0.7071; }
-			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1);
+			if (status.confused > 0) { mx = -mx; my = -my; }
+			if (status.paralyzed > 0) { mx = 0; my = 0; }
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (status.slowed > 0 ? 0.5 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;
@@ -215,7 +223,7 @@ package realm {
 			if (wantShoot && !w.isSafe(x, y)) {
 				facingLeft = aimX < x;
 				attackT = 0.25;
-				if (shootT <= 0) shoot(g);
+				if (shootT <= 0) { shoot(g); Sfx.play("shoot", 0.5, 0.09); }
 			} else if (mx != 0) {
 				facingLeft = mx < 0;
 			}
@@ -227,8 +235,11 @@ package realm {
 			for (var k:int = 0; k < 8; k++) if (inp.pressed(49 + k)) useItem(k, g);
 			if (inp.pressed(Keyboard.R)) g.nexus();
 
-			// --- regen
-			hp = Math.min(maxHp, hp + (1 + vit * 0.12) * dt);
+			// --- regen (bleeding drains instead)
+			if (status.bleeding > 0) {
+				hp -= 18 * dt;
+				lastHitBy = lastHitBy || "Bleeding";
+			} else hp = Math.min(maxHp, hp + (1 + vit * 0.12) * dt);
 			mp = Math.min(maxMp, mp + (0.5 + wis * 0.06) * dt);
 			if (pt > maxPt) pt = maxPt;
 		}
@@ -270,6 +281,7 @@ package realm {
 			if (g.world.isSafe(x, y) && cls.id != "priest") return;
 			mp -= ab.cost;
 			abilityT = 0.5;
+			Sfx.play("ability");
 			attackT = 0.3;
 			var pow:Number = ability.power;
 			var i:int, a:Number, dmg:int;
@@ -448,14 +460,31 @@ package realm {
 				hp = maxHp;
 				mp = maxMp;
 				g.floatText(x, y - 1.4, "Level Up!", 0x60ff60);
+				Sfx.play("level");
 				g.msg("You reached level " + level + "!", 0x60ff60);
 				g.burst(x, y, 0x60ff60, 20);
 			}
 			if (level >= MAX_LEVEL) xp = 0;
 		}
 
-		public function takeHit(raw:int, src:String, g:Game):void {
+		/** Text for the active status effects, e.g. "Slowed  Bleeding". */
+		public function get statusText():String {
+			var out:String = "";
+			for (var s:String in STATUS_NAMES) {
+				if (status[s] > 0) out += (out ? "  " : "") + "<font color='" + Ui.hex(STATUS_COLORS[s]) + "'>" + STATUS_NAMES[s] + "</font>";
+			}
+			return out;
+		}
+
+		public function takeHit(raw:int, src:String, g:Game, effect:String = null):void {
 			if (invulnT > 0) return;
+			if (effect && STATUS_TIME[effect] != undefined) {
+				if (status[effect] <= 0) {
+					g.floatText(x, y - 1.5, STATUS_NAMES[effect], STATUS_COLORS[effect]);
+					Sfx.play("status");
+				}
+				status[effect] = STATUS_TIME[effect];
+			}
 			var d:int = Math.max(raw - def, int(raw * 0.15));
 			// Protection absorbs damage first
 			if (pt > 0) {
@@ -471,6 +500,7 @@ package realm {
 			hitT = 0.12;
 			lastHitBy = src;
 			g.floatText(x, y - 1.1, "-" + d, 0xff3030);
+			Sfx.play("hurt", 0.7, 0.08);
 		}
 	}
 }

@@ -364,14 +364,14 @@ package realm {
 			orc: {name: "Orc Warrior", spr: "orc", hp: 260, def: 4, spd: 2.6, xp: 30, ai: "chase", keep: 1, drop: 0.2, col: 0x3a7a3a,
 				attacks: [{p: "aimed", n: 3, arc: 40, spd: 8, life: 0.5, dmg: 30, cd: 0.8, r: 0.18, col: 0xff5050}]},
 			elf: {name: "Dark Elf Archer", spr: "elf", hp: 180, def: 2, spd: 2.0, xp: 30, ai: "orbit", keep: 5, drop: 0.2, col: 0x40204a,
-				attacks: [{p: "aimed", n: 1, spd: 12, life: 0.7, dmg: 28, cd: 1.0, r: 0.14, col: 0xd0a0ff, shape: "arrow"},
+				attacks: [{p: "aimed", n: 1, spd: 12, life: 0.7, dmg: 28, cd: 1.0, r: 0.14, col: 0xd0a0ff, shape: "arrow", eff: "slowed"},
 					{p: "aimed", n: 3, arc: 20, spd: 9, life: 0.8, dmg: 22, cd: 2.5, r: 0.14, col: 0xd0a0ff}]},
 			gazer: {name: "Gazer", spr: "gazer", hp: 320, def: 6, spd: 1.2, xp: 34, ai: "wander", drop: 0.22, col: 0x9040a0,
 				attacks: [{p: "ring", n: 8, rot: 22, spd: 5, life: 1.5, dmg: 24, cd: 1.6, r: 0.18, col: 0xff80ff, shape: "star"}]},
 
 			medusa: {name: "Medusa", spr: "medusa", hp: 900, def: 10, spd: 1.6, xp: 70, ai: "orbit", keep: 5, drop: 0.3, col: 0x40c040,
 				attacks: [{p: "ring", n: 12, rot: 15, spd: 5, life: 1.6, dmg: 45, cd: 2.0, r: 0.2, col: 0x60ff60},
-					{p: "aimed", n: 1, spd: 9, life: 1.0, dmg: 60, cd: 1.2, r: 0.25, col: 0xffff60}]},
+					{p: "aimed", n: 1, spd: 9, life: 1.0, dmg: 60, cd: 1.2, r: 0.25, col: 0xffff60, eff: "paralyzed"}]},
 			djinn: {name: "Djinn", spr: "djinn", hp: 700, def: 8, spd: 2.8, xp: 65, ai: "orbit", keep: 4, drop: 0.3, col: 0x50a0ff,
 				attacks: [{p: "spiral", n: 4, rot: 13, spd: 6, life: 1.4, dmg: 35, cd: 0.18, r: 0.16, col: 0x60c0ff}]},
 			ent: {name: "Ent Ancient", spr: "ent", hp: 1500, def: 20, spd: 0.8, xp: 90, ai: "chase", keep: 2, drop: 0.35, col: 0x3a8a2a,
@@ -408,7 +408,7 @@ package realm {
 			ev_wyrm: {name: "Sylith the Frost Wyrm", spr: "wyrm", hp: 10000, def: 18, spd: 2.0, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x60c8ff,
 				gold: 400, onrane: 4,
 				phases: [
-					[{p: "spiral", n: 5, rot: 9, spd: 6.5, life: 2.0, dmg: 50, cd: 0.16, r: 0.2, col: 0x8ad8ff, shape: "star"}],
+					[{p: "spiral", n: 5, rot: 9, spd: 6.5, life: 2.0, dmg: 50, cd: 0.16, r: 0.2, col: 0x8ad8ff, shape: "star", eff: "slowed"}],
 					[{p: "aimed", n: 9, arc: 90, spd: 7, life: 1.8, dmg: 60, cd: 0.9, r: 0.22, col: 0xe0f4ff, shape: "dart"},
 						{p: "ring", n: 16, rot: 11, spd: 3.5, life: 3.0, dmg: 55, cd: 1.6, r: 0.25, col: 0x40a0ff, shape: "ring"}],
 					[{p: "spiral", n: 8, rot: -7, spd: 5.5, life: 2.4, dmg: 60, cd: 0.14, r: 0.22, col: 0xc0ecff, shape: "star"},
@@ -417,7 +417,7 @@ package realm {
 			ev_king: {name: "The Hollow King", spr: "hollowking", hp: 12000, def: 20, spd: 1.3, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xe8e0c0,
 				gold: 450, onrane: 5,
 				phases: [
-					[{p: "aimed", n: 3, arc: 20, spd: 8, life: 1.6, dmg: 70, cd: 1.0, r: 0.25, col: 0x9aff7a, shape: "star"},
+					[{p: "aimed", n: 3, arc: 20, spd: 8, life: 1.6, dmg: 70, cd: 1.0, r: 0.25, col: 0x9aff7a, shape: "star", eff: "bleeding"},
 						{p: "summon", n: 2, cd: 6, what: "skeleton"}],
 					[{p: "ring", n: 20, rot: 9, spd: 4.5, life: 2.4, dmg: 55, cd: 1.0, r: 0.22, col: 0x6aff4a, shape: "orb"},
 						{p: "aimed", n: 5, arc: 40, spd: 9, life: 1.4, dmg: 70, cd: 1.2, r: 0.22, col: 0xe8e0c0, shape: "dart"}],
@@ -431,17 +431,17 @@ package realm {
 					[{p: "spiral", n: 4, rot: 12, spd: 5.5, life: 3.0, dmg: 60, cd: 0.12, r: 0.22, col: 0xc060ff, shape: "star"},
 						{p: "aimed", n: 3, arc: 18, spd: 10, life: 2.0, dmg: 80, cd: 1.2, r: 0.28, col: 0xffe060, shape: "blade"}],
 					[{p: "ring", n: 32, rot: 5.6, spd: 4.5, life: 3.4, dmg: 65, cd: 1.0, r: 0.25, col: 0xe02040, shape: "ring"},
-						{p: "aimed", n: 7, arc: 60, spd: 8, life: 2.0, dmg: 70, cd: 1.3, r: 0.22, col: 0xffffff, shape: "dart"},
+						{p: "aimed", n: 7, arc: 60, spd: 8, life: 2.0, dmg: 70, cd: 1.3, r: 0.22, col: 0xffffff, shape: "dart", eff: "confused"},
 						{p: "summon", n: 2, cd: 8, what: "shade"}],
 					[{p: "spiral", n: 6, rot: -10, spd: 6, life: 3.0, dmg: 70, cd: 0.1, r: 0.22, col: 0xff40a0, shape: "star"},
-						{p: "aimed", n: 1, spd: 14, life: 1.8, dmg: 130, cd: 0.6, r: 0.32, col: 0xffe060, shape: "blade"},
+						{p: "aimed", n: 1, spd: 14, life: 1.8, dmg: 130, cd: 0.6, r: 0.32, col: 0xffe060, shape: "blade", eff: "armorbroken"},
 						{p: "ring", n: 12, rot: 15, spd: 3, life: 4, dmg: 60, cd: 2.0, r: 0.28, col: 0xa040ff, shape: "orb"}]
 				]},
 			// ---- dungeon bosses
 			warden: {name: "The Crypt Warden", spr: "warden", hp: 9000, def: 18, spd: 1.2, xp: 1200, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0x6ad0ff,
 				gold: 300, onrane: 3, dungeon: true,
 				phases: [
-					[{p: "aimed", n: 5, arc: 50, spd: 7, life: 1.8, dmg: 55, cd: 1.0, r: 0.22, col: 0x6ad0ff, shape: "star"},
+					[{p: "aimed", n: 5, arc: 50, spd: 7, life: 1.8, dmg: 55, cd: 1.0, r: 0.22, col: 0x6ad0ff, shape: "star", eff: "paralyzed"},
 						{p: "summon", n: 2, cd: 7, what: "skeleton"}],
 					[{p: "ring", n: 18, rot: 10, spd: 4.5, life: 2.4, dmg: 55, cd: 1.0, r: 0.22, col: 0x9ae8ff, shape: "orb"},
 						{p: "aimed", n: 1, spd: 12, life: 1.4, dmg: 90, cd: 0.7, r: 0.3, col: 0xffffff, shape: "blade"}],
@@ -456,13 +456,13 @@ package realm {
 					[{p: "spiral", n: 4, rot: -15, spd: 6, life: 2.2, dmg: 60, cd: 0.12, r: 0.22, col: 0xff4010, shape: "star"},
 						{p: "summon", n: 3, cd: 7, what: "imp"}],
 					[{p: "aimed", n: 9, arc: 100, spd: 8, life: 1.6, dmg: 70, cd: 0.8, r: 0.24, col: 0xffb030, shape: "orb"},
-						{p: "ring", n: 24, rot: 7.5, spd: 5, life: 2.4, dmg: 65, cd: 1.2, r: 0.24, col: 0xff3010, shape: "ring"}]
+						{p: "ring", n: 24, rot: 7.5, spd: 5, life: 2.4, dmg: 65, cd: 1.2, r: 0.24, col: 0xff3010, shape: "ring", eff: "bleeding"}]
 				]},
 			seraph: {name: "Tempest Seraph", spr: "seraph", hp: 8500, def: 15, spd: 2.2, xp: 1200, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xf0e040,
 				gold: 300, onrane: 3, dungeon: true,
 				phases: [
 					[{p: "spiral", n: 3, rot: 19, spd: 7, life: 1.8, dmg: 50, cd: 0.12, r: 0.2, col: 0xfff060, shape: "dart"}],
-					[{p: "aimed", n: 1, spd: 15, life: 1.2, dmg: 100, cd: 0.5, r: 0.3, col: 0xffffff, shape: "blade"},
+					[{p: "aimed", n: 1, spd: 15, life: 1.2, dmg: 100, cd: 0.5, r: 0.3, col: 0xffffff, shape: "blade", eff: "paralyzed"},
 						{p: "ring", n: 12, rot: 15, spd: 6, life: 1.8, dmg: 55, cd: 1.3, r: 0.22, col: 0xd0d0ff, shape: "star"}],
 					[{p: "spiral", n: 6, rot: 9, spd: 7, life: 2.0, dmg: 60, cd: 0.11, r: 0.2, col: 0xfff060, shape: "dart"},
 						{p: "summon", n: 2, cd: 8, what: "djinn"}]
@@ -472,7 +472,7 @@ package realm {
 			skeleton: {name: "Bone Soldier", spr: "skeleton", hp: 350, def: 8, spd: 2.4, xp: 15, ai: "chase", keep: 1.5, drop: 0, col: 0xe8e0c0,
 				attacks: [{p: "aimed", n: 1, spd: 10, life: 0.9, dmg: 45, cd: 0.9, r: 0.18, col: 0xe8e0c0, shape: "dart"}]},
 			shade: {name: "Elder's Shade", spr: "shade", hp: 600, def: 10, spd: 3.0, xp: 20, ai: "orbit", keep: 4, drop: 0, col: 0x8040c0,
-				attacks: [{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.2, dmg: 50, cd: 1.1, r: 0.18, col: 0xc080ff, shape: "dart"}]}
+				attacks: [{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.2, dmg: 50, cd: 1.1, r: 0.18, col: 0xc080ff, shape: "dart", eff: "confused"}]}
 		};
 
 		/** Which enemies spawn in each zone: 0 beach, 1 lowlands, 2 midlands, 3 godlands. */

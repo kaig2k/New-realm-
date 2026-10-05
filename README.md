@@ -46,6 +46,7 @@ rebuild that file if you change the fonts, and that needs the Apache Flex SDK's 
 | R | Return to the Nexus (full heal) |
 | Enter | Go through the portal you are standing on |
 | I | Toggle auto-fire |
+| M | Mute / unmute sound |
 | P / Esc | Pause |
 
 To pick up loot, stand on a loot bag and click its items in the sidebar. Click an
@@ -86,6 +87,10 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   Aegis, Swiftness, Leech, Prosperity) in the star tab.
 - **Saved characters**: characters are saved automatically and live until they die. The
   title screen lists them under "Your Characters".
+- **Status effects**: bosses and dungeon enemies can leave you Slowed, Paralyzed, Confused
+  (controls reversed), Armor Broken (0 Defense) or Bleeding (draining HP, no regen).
+- **Sound effects**, all synthesised in code: shots, hits, kills, level-ups, loot, rare-drop
+  chimes, portals and boss spawns. A banner announces Legendary, Relic and Fabled drops.
 - **Boss damage meter** with your damage share and the LG threshold.
 - Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick
   ruins and lava.

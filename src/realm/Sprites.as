@@ -3,6 +3,7 @@ package realm {
 	import flash.display.Shape;
 	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
+	import flash.geom.Point;
 	import flash.geom.Rectangle;
 
 	/**
@@ -161,6 +162,30 @@ package realm {
 		private static const BOSS_SPRITE_QUEEN:Array = [
 			["......YYYY......", "W....YYYYYY....W", "WW...HHHHHH...WW", "WwW..HSSSSH..WwW", "WwwW.HESSEH.WwwW", ".WwwW.SSSS.WwwW.", "..WwwCCCCCCwwW..", "WW.WWCCCCCCWW.WW", "WwWW.CcCCcC.WWwW", ".WwW.CCCCCC.WwW.", "..WW.CCccCC.WW..", "....CCCCCCCC....", "...CCcCCCCcCC...", "...C...CC...C...", "................", "................"],
 			["......YYYY......", ".....YYYYYY.....", "W....HHHHHH....W", "WW...HSSSSH...WW", "WwW..HESSEH..WwW", "WwwW..SSSS..WwwW", ".WwwWCCCCCCWwwW.", "..WWWCCCCCCWWW..", "WWWW.CcCCcC.WWWW", "WwW..CCCCCC..WwW", "..WW.CCccCC.WW..", "....CCCCCCCC....", "...CCcCCCCcCC...", "...C...CC...C...", "................", "................"]];
+		// ================================================================ item icons (8x8: 4 tier designs + a rarity design)
+		private static const ICON_SWORD:Array = [[".......H", "......HB", ".....HBb", "....HBb.", ".GGHBb..", "..GGb...", ".W.G....", "W......."], ["......HH", ".....HBB", "....HBBb", "...HBBb.", ".GHBBb..", ".GGGb...", ".WGG....", "P......."], [".......H", ".....HHB", "....HBBb", "...HBbb.", ".RGBb...", ".GRG....", ".WG.....", "W......."], [".....HHH", "....HBHB", "...HBHBb", "..HBHBb.", "GGBHBb..", ".GGBb...", ".WGG....", "PW......"], ["......RH", ".....HBR", "....HRBb", "...HBRb.", "GgHRBb..", ".GgRb...", ".WgG....", "R......."]];
+		private static const ICON_DAGGER:Array = [[".......H", "......Hb", ".....Hb.", "....Hb..", "..GG....", "..G.....", ".W......", "W......."], ["......HH", ".....HBb", "....HBb.", "...HBb..", ".GGG....", "..G.....", ".W......", "W......."], [".......R", "......HB", ".....HBb", "....HBb.", "..RGb...", "..GG....", ".W.G....", "W......."], ["......HH", ".....HHB", "....HBBb", "...HBb..", "G.GBb...", ".GGG....", ".W.G....", "P......."], ["......RH", ".....RHB", "....RHBb", "...HBb..", "GgRBb...", ".GgG....", ".W.g....", "R......."]];
+		private static const ICON_STAFF:Array = [[".....WW.", "....WWw.", "...W.w..", "...W....", "..W.....", "..W.....", ".W......", "W......."], ["....GRG.", "....RrR.", "....GwG.", "...W....", "..W.....", "..W.....", ".W......", "W......."], ["...G.G..", "...GRG..", "....RG..", "...Wg...", "..W.....", "..W.....", ".W......", "W......."], ["..GRRG..", "..RHRr..", "..GRrG..", "...gG...", "...W....", "..W.....", ".W......", "W......."], [".R.RR.R.", "..RHHR..", ".RHRRrR.", "..RrrR..", "...gG...", "..W.....", ".W......", "R......."]];
+		private static const ICON_WAND:Array = [[".......H", "......B.", ".....W..", "....W...", "...W....", "..W.....", ".w......", "........"], ["......RR", "......RR", ".....G..", "....W...", "...W....", "..W.....", ".w......", "........"], ["....R.R.", ".....RR.", "....RHR.", ".....G..", "....W...", "...W....", "..w.....", ".w......"], [".....RRR", ".....RHR", ".....RRG", "....gG..", "...W....", "..W.....", ".W......", "w......."], ["...R.RR.", "....RHHR", "...RHRrR", ".R..RrR.", "....gG..", "...W....", "..W.....", ".R......"]];
+		private static const ICON_BOW:Array = [["...WW...", "....W.S.", ".....WS.", ".....WS.", ".....WS.", ".....WS.", "....W.S.", "...WW..."], ["..WWW...", "....WWS.", ".....WS.", "..BBBGBB", ".....WS.", ".....WS.", "....WWS.", "..WWW..."], ["..GWW...", "...GWW.S", ".....WWS", "..BBBRBH", ".....WWS", "...GWW.S", "..GWW...", "........"], [".GGW....", "..GWW..S", "....WW.S", ".BBBRRBH", "....WW.S", "..GWW..S", ".GGW....", "........"], [".RRW....", "..RWW..S", "...RWW.S", ".BBRHRBH", "...RWW.S", "..RWW..S", ".RRW....", "........"]];
+		private static const ICON_SPELL:Array = [["..BBBB..", ".BHHHHB.", ".BHRRHB.", ".BHHHHB.", ".BHRRHB.", ".BHHHHB.", "..BBBB..", "........"], [".RBBBBR.", "RBHHHHBR", ".BHRRHB.", ".BRHHRB.", ".BHRRHB.", "RBHHHHBR", ".RBBBBR.", "........"]];
+		private static const ICON_QUIVER:Array = [[".H.H.H..", ".W.W.W..", "BBBBBBB.", "BbbbbbB.", "BBGGGBB.", "BbbbbbB.", "BBBBBBB.", ".BBBBB.."], ["RH.RH.R.", ".W.W.W..", "BBBBBBB.", "BRbbbRB.", "BBGRGBB.", "BRbbbRB.", "BBBBBBB.", ".BBBBB.."]];
+		private static const ICON_SHIELD:Array = [["BBBBBBBB", "BHHHHHHb", "BHGGGGHb", "BHGHHGHb", "BHGGGGHb", ".BHHHHb.", "..BHHb..", "...Bb..."], ["GBBBBBBG", "BHRRRRHb", "BRHGGHRb", "BRGRRGRb", "BRHGGHRb", ".BRRRRb.", "..BHHb..", "...GG..."]];
+		private static const ICON_TOME:Array = [[".BBBBBB.", "BbbbbbbW", "BbGGGbbW", "BbGHGbbW", "BbGGGbbW", "BbbbbbbW", ".BBBBBBW", "........"], [".GBBBBG.", "BbRRRbbW", "BRGHGRbW", "BRHRHRbW", "BRGHGRbW", "BbRRRbbW", ".GBBBBGW", "........"]];
+		private static const ICON_CLOAK:Array = [["..BBBB..", ".BBBBBB.", "BBbGGbBB", "BBbbbbBB", "BBBBBBBB", "BBbBBbBB", "BbBBBBbB", "b.bBBb.b"], ["..BBBB..", ".BRBBRB.", "BBbGGbBB", "BRbbbbRB", "BBBRRBBB", "BBbBBbBB", "BRBBBBRB", "b.bBBb.b"]];
+		private static const ICON_HELM:Array = [["...HH...", "..HBBH..", ".HBBBBb.", "HBBBBBBb", "BBbbbbBb", "BB.bb.Bb", ".B.bb.b.", "........"], ["R..HH..R", "RRHBBHRR", ".HBBBBb.", "HBGGGGBb", "BBbbbbBb", "BBRbbRBb", ".B.bb.b.", "........"]];
+		private static const ICON_SKULL:Array = [["..HHHH..", ".HHHHHHb", "HHRHHRHb", "HHRHHRHb", "HHHHHHHb", ".HHbbHb.", "..H.H.b.", "..HbHb.."], [".RHHHHR.", ".HHHHHHb", "HHRHHRHb", "HRRHHRRb", "HHHHHHHb", ".HHbbHb.", "R.H.H.bR", "..HbHb.."]];
+		private static const ICON_TRAP:Array = [["H..H..H.", ".HBBBBH.", ".BBbbBB.", "HBbGGbBH", "HBbGGbBH", ".BBbbBB.", ".HBBBBH.", "H..H..H."], ["R..R..R.", ".RBBBBR.", ".BBbbBB.", "RBbRRbBR", "RBbRRbBR", ".BBbbBB.", ".RBBBBR.", "R..R..R."]];
+		private static const ICON_ROBE:Array = [[".BB..BB.", "BBBGGBBB", "bBBGGBBb", ".BBGGBB.", ".BBGGBB.", ".BBGGBB.", ".BBGGBB.", ".bBBBBb."], [".BB..BB.", "BBRGGRBB", "bBBGGBBb", ".BRGGRB.", ".BBGGBB.", ".BRGGRB.", ".BBGGBB.", ".bRBBRb."]];
+		private static const ICON_LEATHER:Array = [[".BB..BB.", "BBBbbBBB", "bBBBBBBb", ".BGGGGB.", ".BBbbBB.", ".BBBBBB.", ".bBBBBb.", "........"], [".BB..BB.", "BBRbbRBB", "bBBBBBBb", ".BGRRGB.", ".BBbbBB.", ".BRBBRB.", ".bBBBBb.", "........"]];
+		private static const ICON_HEAVY:Array = [["HH....HH", "BBHBBHBB", "bBBHHBBb", ".BBBBBB.", ".BbBBbB.", ".BBGGBB.", ".bBBBBb.", "........"], ["RH....HR", "BBHBBHBB", "bBRHHRBb", ".BBRRBB.", ".BbBBbB.", ".BBGGBB.", ".bRBBRb.", "........"]];
+		private static const ICON_RING:Array = [["...RR...", "..RHrR..", "..RRrr..", ".G.gg.G.", "G......g", "G......g", ".G....g.", "..GGgg.."], ["..R.R...", ".RRHRR..", "..RrrR..", ".GG..GG.", "G......g", "G......g", ".G....g.", "..GGgg.."]];
+		private static const ICON_POT:Array = [["...WW...", "..GGGG..", "...HG...", "..PHPP..", ".PHPPPp.", ".PPPPPp.", ".PPPPpp.", "..pppp.."]];
+		private static const ICON_STATPOT:Array = [["...WW...", "...GG...", "..GHGG..", ".GPHPPG.", "GPPHPPpG", "GPPPPPpG", ".GPPPpG.", "..GGGG.."]];
+		private static const ICON_SOR:Array = [["...CC...", "..CWCC..", ".CWCCCc.", "CWCCCCcc", ".CCCCcc.", "..CCcc..", "...cc...", "........"]];
+		private static const ICON_TIERS:Array = [{B: 0x9a9aa2, b: 0x5a5a62, H: 0xd8d8e0, G: 0x8a6a3a, g: 0x5a4422, R: 0xa0a0a8, W: 0x8a5a2a, w: 0x5a3a18, P: 0x6a6a72, S: 0xd8d8d8}, {B: 0xb8c8dc, b: 0x6a7a90, H: 0xf0f8ff, G: 0xa8a8b4, g: 0x6a6a78, R: 0x60c0ff, W: 0x7a4a24, w: 0x4a2a10, P: 0x9a9aa8, S: 0xe8e8e8}, {B: 0xd8d8e8, b: 0x8a8aa0, H: 0xffffff, G: 0xf0c030, g: 0xa07810, R: 0xff4040, W: 0x6a3a1a, w: 0x3a2010, P: 0xf0c030, S: 0xf0f0f0}, {B: 0x9ad8f0, b: 0x4a8aa8, H: 0xf0ffff, G: 0x8040c0, g: 0x502080, R: 0x60ffd0, W: 0x3a2a4a, w: 0x201428, P: 0x8040c0, S: 0xf0ffff}];
+		private static const ICON_ABIL:Object = {spell: [0x6a3a8a, 0xe8e0c8], quiver: [0x8a5a2a, 0xc0c0c0], shield: [0x5a6a9a, 0xd8d8e0], tome: [0x9a2a2a, 0xe8e0c8], cloak: [0x4a2a6a, 0xc8c8c8], helm: [0x9a9aa6, 0xe0e0e8], skull: [0x8a8070, 0xe8e0c8], trap: [0x5a5a62, 0xa0a0a8]};
+		private static const ICON_ARMOR:Object = {robe: [0x3a5ab0, 0x6a3a9a, 0xa02a3a, 0x202034], leather: [0x8a5a2a, 0x6a4422, 0x4a5a2a, 0x2a2a2a], heavy: [0x9a9aa6, 0x7a8aa6, 0xc8a040, 0x5a6a8a]};
 		private static const GRAVE:Array = [["..GGGG..", ".GGGGGG.", ".GGDGGg.", ".GDDDGg.", ".GGDGGg.", ".GGDGGg.", ".GGGGGg.", "MMMMMMMM"]];
 
 		// ================================================================ projectiles (point right)
@@ -522,39 +547,82 @@ package realm {
 			var key:String = "icon_" + item.kind + "_" + (item.sub || "") + "_" + item.tier + "_" + (item.rarity || "");
 			var bd:BitmapData = cache[key];
 			if (bd) return bd;
-			var tc:uint = item.rarity ? Data.RARITY_COLORS[item.rarity] : TIER_COLORS[Math.min(item.tier, 8)];
+			var rar:String = item.rarity;
+			var rc:uint = rar ? Data.RARITY_COLORS[rar] : 0;
+			var band:int = Math.max(0, Math.min(3, int((item.tier || 0) / 2)));
 			var rows:Array, pal:Object;
 			switch (item.kind) {
 				case "weapon":
-					rows = item.sub == "staff" ? I_STAFF : item.sub == "bow" ? I_BOW : item.sub == "sword" ? I_SWORD : item.sub == "dagger" ? I_DAGGER : I_WAND;
-					pal = {T: tc, L: tint(tc, 0.6), W: 0x8a5a2a, S: 0xe0e0e0, G: 0xd0a030};
-					break;
-				case "armor":
-					var ac:uint = item.sub == "heavy" ? 0x9090a0 : item.sub == "leather" ? 0x8a5a2a : 0x4050b0;
-					rows = I_ARMOR;
-					pal = {T: tc, A: ac, a: shade(ac, 0.7)};
+					var designs:Array = {sword: ICON_SWORD, dagger: ICON_DAGGER, staff: ICON_STAFF, wand: ICON_WAND, bow: ICON_BOW}[item.sub] || ICON_WAND;
+					rows = designs[rar ? 4 : band];
+					pal = rar ? rarityPal(rc, rar) : ICON_TIERS[band];
 					break;
 				case "ability":
-					var ab:Object = {spell: I_SPELL, quiver: I_QUIVER, shield: I_SHIELD, tome: I_TOME, cloak: I_CLOAK, helm: I_HELM, skull: I_SKULLITEM, trap: I_TRAP};
-					rows = ab[item.sub] || I_TOME;
-					var main:uint = item.sub == "shield" || item.sub == "helm" ? 0x8a8a96 : item.sub == "cloak" ? 0x4a2a6a : item.sub == "trap" ? 0x6a5a3a : 0x8a2a2a;
-					pal = {T: tc, B: item.sub == "spell" ? 0x8a6a40 : 0x5a3a20, A: main, a: shade(main, 0.65), W: 0xf0e8d0};
+					var ad:Array = {spell: ICON_SPELL, quiver: ICON_QUIVER, shield: ICON_SHIELD, tome: ICON_TOME, cloak: ICON_CLOAK,
+						helm: ICON_HELM, skull: ICON_SKULL, trap: ICON_TRAP}[item.sub] || ICON_TOME;
+					rows = ad[rar ? 1 : 0];
+					var ab:Array = ICON_ABIL[item.sub] || [0x8a2a2a, 0xe8e0c8];
+					if (item.sub == "skull") pal = {H: ab[1], b: shade(ab[1], 0.6), B: ab[0], R: band ? ICON_TIERS[band].R : 0x202020};
+					else pal = {B: ab[0], b: shade(ab[0], 0.6), H: ab[1], G: ICON_TIERS[band].G, W: 0xe8e0c8, R: ICON_TIERS[band].R};
+					if (rar) { pal.R = rc; pal.G = 0xf0c030; }
+					break;
+				case "armor":
+					var ad2:Array = {robe: ICON_ROBE, leather: ICON_LEATHER, heavy: ICON_HEAVY}[item.sub] || ICON_ROBE;
+					rows = ad2[rar ? 1 : 0];
+					var ac:uint = (ICON_ARMOR[item.sub] || ICON_ARMOR.robe)[band];
+					pal = {B: ac, b: shade(ac, 0.6), H: shade(ac, 1.5), G: ICON_TIERS[band].G, R: ICON_TIERS[band].R};
+					if (rar) pal = {B: shade(rc, 0.75), b: shade(rc, 0.45), H: shade(rc, 1.2), G: 0xf0c030, R: rc};
 					break;
 				case "ring":
-					rows = I_RING;
-					pal = {T: Data.STAT_COLORS[item.sub], L: 0xffffff, G: item.tier >= 4 ? 0xf0c030 : 0xc0c0c8};
+					var gem:uint = rar ? rc : Data.STAT_COLORS[item.sub];
+					rows = ICON_RING[rar ? 1 : 0];
+					pal = {R: gem, r: shade(gem, 0.6), H: 0xffffff, G: rar || item.tier >= 4 ? 0xf0c030 : 0xc0c0c8, g: rar || item.tier >= 4 ? 0xa07810 : 0x7a7a82};
 					break;
 				case "material":
-					rows = I_SOR;
+					rows = ICON_SOR[0];
 					pal = {C: 0xa060ff, c: 0x6a30c0, W: 0xf0d8ff};
 					break;
+				case "stat":
+					var sc:uint = Data.STAT_COLORS[item.sub] || 0xa040e0;
+					rows = ICON_STATPOT[0];
+					pal = {W: 0x8a5a2a, G: 0xd8d8e0, H: 0xffffff, P: sc, p: shade(sc, 0.6)};
+					break;
 				default:
-					rows = I_POT;
-					pal = {W: 0x8a5a2a, G: 0xc8c8c8, L: 0xffffff, P: item.color || 0xff3030, p: shade(item.color || 0xff3030, 0.65)};
+					var pc:uint = item.color || (item.kind == "mp" ? 0x4060ff : 0xe03030);
+					rows = ICON_POT[0];
+					pal = {W: 0x8a5a2a, G: 0xc8c8d0, H: 0xffffff, P: pc, p: shade(pc, 0.6)};
 			}
 			bd = build(rows, pal, 4, 2);
+			if (rar) bd = glowEdge(bd, rc);
 			cache[key] = bd;
 			return bd;
 		}
+
+		private static function rarityPal(c:uint, rar:String):Object {
+			return {B: rar == "lg" ? 0xf0f0d0 : c, b: shade(c, 0.55), H: 0xffffff, G: 0xf0c030, g: 0xa07810, R: c, r: shade(c, 0.6),
+				W: 0x3a2a3a, w: 0x1a1018, P: c, S: 0xffffff};
+		}
+
+		/** Adds a soft coloured glow around an icon (rare items). */
+		private static function glowEdge(src:BitmapData, col:uint):BitmapData {
+			var w:int = src.width + 4, h:int = src.height + 4;
+			var bd:BitmapData = new BitmapData(w, h, true, 0);
+			bd.copyPixels(src, src.rect, new Point(2, 2));
+			var px:Vector.<uint> = bd.getVector(bd.rect);
+			for (var pass:int = 0; pass < 2; pass++) {
+				var copy:Vector.<uint> = px.concat();
+				var a:uint = pass == 0 ? 0xb0 : 0x50;
+				for (var y:int = 1; y < h - 1; y++) {
+					for (var x:int = 1; x < w - 1; x++) {
+						var i:int = y * w + x;
+						if (copy[i] != 0) continue;
+						if (copy[i - 1] != 0 || copy[i + 1] != 0 || copy[i - w] != 0 || copy[i + w] != 0) px[i] = (a << 24) | col;
+					}
+				}
+			}
+			bd.setVector(bd.rect, px);
+			return bd;
+		}
+
 	}
 }

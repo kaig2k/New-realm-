@@ -620,6 +620,8 @@ class Slot extends Sprite {
 			return;
 		}
 		icon.bitmapData = Sprites.icon(it);
+		icon.x = int((48 - icon.width) / 2);
+		icon.y = int((48 - icon.height) / 2);
 		var label:String = Data.tierLabel(it);
 		tierTf.text = label;
 		tierTf.textColor = Data.tierColor(it);

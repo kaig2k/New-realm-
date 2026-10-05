@@ -513,6 +513,22 @@ package realm {
 		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5}};
 		public static const XP_PER_SKILL_POINT:int = 600;
 
+		/** Daily quests (Valor's daily contracts / battle pass missions); 3 are picked per day. */
+		public static const QUESTS:Array = [
+			{id: "kills", text: "Slay 60 monsters", goal: 60, gold: 300, onrane: 0},
+			{id: "godkills", text: "Slay 25 Godlands monsters", goal: 25, gold: 0, onrane: 3},
+			{id: "events", text: "Defeat 2 realm event bosses", goal: 2, gold: 500, onrane: 2},
+			{id: "dungeon", text: "Clear a dungeon", goal: 1, gold: 200, onrane: 4},
+			{id: "pots", text: "Drink 3 stat potions", goal: 3, gold: 400, onrane: 0},
+			{id: "rare", text: "Find 2 purple-or-better loot bags", goal: 2, gold: 300, onrane: 1},
+			{id: "elder", text: "Defeat the Dark Elder", goal: 1, gold: 1000, onrane: 8}
+		];
+
+		public static function quest(id:String):Object {
+			for each (var q:Object in QUESTS) if (q.id == id) return q;
+			return null;
+		}
+
 		// ---- loot -------------------------------------------------------
 		/** fortune: % loot boost from gear (Valor's Fortune stat). */
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {

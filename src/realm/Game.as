@@ -83,6 +83,10 @@ package realm {
 		private var tauntT:Number = 30;
 		private var deathInfo:Object;
 		private var onDeath:Function;
+		/** Called (by NewRealm) when the player saves and quits to the menu. */
+		public var onQuit:Function;
+		private var quitRequested:Boolean = false;
+		private var pauseButtons:Sprite;
 		private var mtx:Matrix = new Matrix();
 		private var pt:Point = new Point();
 		private var bar:Rectangle = new Rectangle();
@@ -129,24 +133,61 @@ package realm {
 			hud.x = VIEW_W;
 			addChild(hud);
 
+			buildPauseMenu();
+
+			addEventListener(Event.ADDED_TO_STAGE, onAdded);
+		}
+
+		// ------------------------------------------------------------ pause / options
+		public static function opt(name:String):Boolean {
+			var o:Object = Save.data.opt || {};
+			return o[name] !== false;
+		}
+
+		private static function setOpt(name:String, v:Boolean):void {
+			if (!Save.data.opt) Save.data.opt = {};
+			Save.data.opt[name] = v;
+			Save.flush();
+		}
+
+		private function buildPauseMenu():void {
 			pauseLayer = new Sprite();
 			pauseLayer.graphics.beginFill(0x000000, 0.6);
 			pauseLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
 			pauseLayer.graphics.endFill();
-			var pt1:TextField = Ui.text(40, 0xffffff, true, "center", Ui.W, true);
+			Ui.panel(pauseLayer.graphics, Ui.W / 2 - 170, 120, 340, 380, 0x262626, 0x6a6a6a);
+			var pt1:TextField = Ui.text(34, 0xffffff, true, "center", Ui.W, true);
 			pt1.text = "Paused";
-			pt1.y = 240;
+			pt1.y = 132;
 			pauseLayer.addChild(pt1);
-			var pt2:TextField = Ui.text(16, 0xcccccc, false, "center", Ui.W, true);
-			pt2.text = "Press P or Esc to resume";
-			pt2.y = 296;
-			pauseLayer.addChild(pt2);
+			pauseButtons = new Sprite();
+			pauseLayer.addChild(pauseButtons);
 			pauseLayer.visible = false;
-			pauseLayer.mouseEnabled = false;
-			pauseLayer.mouseChildren = false;
 			addChild(pauseLayer);
+			refreshPauseMenu();
+		}
 
-			addEventListener(Event.ADDED_TO_STAGE, onAdded);
+		private function refreshPauseMenu():void {
+			pauseButtons.removeChildren();
+			var rows:Array = [
+				["Resume", function():void { setPaused(false); }],
+				["Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }],
+				["Damage numbers: " + (opt("dmg") ? "On" : "Off"), function():void { setOpt("dmg", !opt("dmg")); refreshPauseMenu(); }],
+				["Particles: " + (opt("parts") ? "On" : "Off"), function():void { setOpt("parts", !opt("parts")); refreshPauseMenu(); }],
+				["Save & Quit to Menu", function():void { saveCharacter(); quitRequested = true; }]
+			];
+			for (var i:int = 0; i < rows.length; i++) {
+				var b:Sprite = Ui.button(rows[i][0], 260, 42, rows[i][1], 17);
+				b.x = Ui.W / 2 - 130;
+				b.y = 196 + i * 56;
+				pauseButtons.addChild(b);
+			}
+		}
+
+		private function setPaused(v:Boolean):void {
+			paused = v;
+			pauseLayer.visible = v;
+			if (v) refreshPauseMenu();
 		}
 
 		private function buildCounters():void {
@@ -226,6 +267,7 @@ package realm {
 			// Valor-style nexus stations: the Sor Forge (east) and the Marketplace (by the spawn)
 			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Sor Forge", 0xc080ff)});
 			stations.push({x: 106.5, y: 111.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f)});
+			stations.push({x: 94.5, y: 111.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080)});
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
@@ -384,10 +426,7 @@ package realm {
 				Sfx.muted = !Sfx.muted;
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
-			if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) {
-				paused = !paused;
-				pauseLayer.visible = paused;
-			}
+			if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
 			if (!paused) update(dt);
 			render();
 			hud.refresh();
@@ -398,6 +437,9 @@ package realm {
 				var info:Object = deathInfo;
 				deathInfo = null;
 				onDeath(info);
+			} else if (quitRequested && onQuit != null) {
+				quitRequested = false;
+				onQuit();
 			}
 		}
 
@@ -605,7 +647,7 @@ package realm {
 			e.hitT = 0.08;
 			Sfx.play("hit", 0.6, 0.06);
 			if (e.isBoss) p.bossDmg += d;
-			floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
+			if (opt("dmg")) floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
 			if (effect == "slow") e.slowT = 3;
 			// Legendary passives (not from passive-spawned shards)
 			if (effect != "shard") {
@@ -676,6 +718,11 @@ package realm {
 			e.dead = true;
 			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
 			var p:Player = player;
+			questEvent("kills");
+			if (world.kind == "realm" && e.zone == 3) questEvent("godkills");
+			if (e.def.final) questEvent("elder");
+			else if (e.def.dungeon) questEvent("dungeon");
+			else if (e.isBoss) questEvent("events");
 			p.kills++;
 			p.gainXp(e.def.xp, this);
 			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
@@ -733,6 +780,7 @@ package realm {
 					Sfx.play("rare");
 					burst(e.x, e.y, kc, 30);
 				} else if (bag.spr != "bag_brown") Sfx.play("loot", 0.7);
+				if (bag.spr != "bag_brown") questEvent("rare");
 			}
 		}
 
@@ -957,8 +1005,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, openStation.kind == "forge" ? 0xc080ff : 0x6fe08f, true, "center", w, true);
-			title.text = openStation.kind == "forge" ? "Sor Forge" : "Marketplace";
+			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080}[openStation.kind], true, "center", w, true);
+			title.text = {forge: "Sor Forge", market: "Marketplace", quests: "Daily Quests"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -987,6 +1035,30 @@ package realm {
 					sp.addChild(none);
 				}
 				y += 56;
+			} else if (openStation.kind == "quests") {
+				info.htmlText = "Complete these missions with any character. New quests every day.";
+				info.y = y;
+				y += info.height + 6;
+				for each (var qs:Object in questState().list) {
+					var q:Object = Data.quest(qs.id);
+					var done:Boolean = qs.progress >= q.goal;
+					var row:TextField = Ui.text(14, done ? 0x9cff7a : 0xffffff, true, "left", 290, true);
+					row.htmlText = q.text + "  <font color='#aaaaaa'>" + qs.progress + "/" + q.goal + "</font>\n<font size='12' color='#ffd75e'>" +
+						(q.gold ? q.gold + " gold  " : "") + (q.onrane ? q.onrane + " onrane" : "") + "</font>";
+					row.x = 16; row.y = y;
+					sp.addChild(row);
+					if (qs.claimed) {
+						var c:TextField = Ui.text(14, 0x888888, true, "center", 110);
+						c.text = "Claimed";
+						c.x = 316; c.y = y + 8;
+						sp.addChild(c);
+					} else if (done) {
+						var cb:Sprite = Ui.button("Claim", 100, 30, claimFn(qs), 15);
+						cb.x = 320; cb.y = y + 4;
+						sp.addChild(cb);
+					}
+					y += 44;
+				}
 			} else {
 				info.htmlText = "You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.  Shift+click inventory items to sell them.";
 				info.y = y;
@@ -1024,6 +1096,59 @@ package realm {
 			b.mouseChildren = false;
 			b.addEventListener(MouseEvent.CLICK, function(ev:*):void { onClick(); });
 			return b;
+		}
+
+		// ------------------------------------------------------------- daily quests
+		private static function today():String {
+			var d:Date = new Date();
+			return d.fullYear + "-" + (d.month + 1) + "-" + d.date;
+		}
+
+		/** Today's 3 quests (picked deterministically from the date), stored account-wide. */
+		public function questState():Object {
+			var st:Object = Save.data.quests;
+			var day:String = today();
+			if (!st || st.day != day) {
+				var seed:int = 0;
+				for (var i:int = 0; i < day.length; i++) seed = (seed * 31 + day.charCodeAt(i)) & 0x7fffffff;
+				var pool:Array = Data.QUESTS.concat();
+				var list:Array = [];
+				for (i = 0; i < 3; i++) {
+					seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+					var q:Object = pool.splice(seed % pool.length, 1)[0];
+					list.push({id: q.id, progress: 0, claimed: false});
+				}
+				st = Save.data.quests = {day: day, list: list};
+			}
+			return st;
+		}
+
+		public function questEvent(id:String, n:int = 1):void {
+			for each (var qs:Object in questState().list) {
+				if (qs.id != id || qs.claimed) continue;
+				var q:Object = Data.quest(id);
+				if (qs.progress >= q.goal) continue;
+				qs.progress = Math.min(q.goal, qs.progress + n);
+				if (qs.progress >= q.goal) {
+					msg("Quest complete: " + q.text + "! Claim it at the Quest Board.", 0x9cff7a);
+					Sfx.play("coin");
+					Save.flush();
+				}
+			}
+		}
+
+		private function claimFn(qs:Object):Function {
+			return function():void {
+				if (qs.claimed) return;
+				var q:Object = Data.quest(qs.id);
+				qs.claimed = true;
+				if (q.gold) addGold(q.gold);
+				if (q.onrane) addOnrane(q.onrane);
+				Save.flush();
+				msg("Quest reward: " + (q.gold ? q.gold + " gold " : "") + (q.onrane ? q.onrane + " onrane" : ""), Ui.GOLD);
+				Sfx.play("rare");
+				refreshStation();
+			};
 		}
 
 		private function forgeFn(slot:int):Function {
@@ -1083,6 +1208,7 @@ package realm {
 
 		// ------------------------------------------------------------- effects
 		public function burst(x:Number, y:Number, color:uint, n:int):void {
+			if (!opt("parts")) return;
 			var bd:BitmapData = Sprites.spark(color);
 			for (var i:int = 0; i < n; i++) {
 				var a:Number = Math.random() * Math.PI * 2;

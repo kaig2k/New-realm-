@@ -42,7 +42,9 @@ package {
 		}
 
 		private function startGame(clsId:String, name:String, saved:Object = null):void {
-			setScreen(new Game(clsId, name, onDeath, saved));
+			var g:Game = new Game(clsId, name, onDeath, saved);
+			g.onQuit = showMenu;
+			setScreen(g);
 		}
 
 		private function onDeath(info:Object):void {

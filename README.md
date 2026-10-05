@@ -47,7 +47,7 @@ rebuild that file if you change the fonts, and that needs the Apache Flex SDK's 
 | Enter | Go through the portal you are standing on |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
-| P / Esc | Pause |
+| P / Esc | Pause menu (options, Save & Quit) |
 
 To pick up loot, stand on a loot bag and click its items in the sidebar. Click an
 inventory item to equip or drink it, and shift+click to drop it.
@@ -91,6 +91,10 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   (controls reversed), Armor Broken (0 Defense) or Bleeding (draining HP, no regen).
 - **Sound effects**, all synthesised in code: shots, hits, kills, level-ups, loot, rare-drop
   chimes, portals and boss spawns. A banner announces Legendary, Relic and Fabled drops.
+- **Daily Quest Board** (Valor's daily contracts): three missions picked by date, such as
+  "Clear a dungeon" or "Defeat 2 realm event bosses", paying gold and Onrane.
+- **Pause menu** with Resume, sound, damage numbers and particle toggles, and Save & Quit
+  to the title screen.
 - **Boss damage meter** with your damage share and the LG threshold.
 - Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick
   ruins and lava.
@@ -111,6 +115,8 @@ src/realm/Tooltip.as     item tooltip
 src/realm/Ui.as          fonts, text, panels and buttons
 src/realm/Menu.as        title / class select
 src/realm/DeathScreen.as death + fame screen
+src/realm/Sfx.as         synthesised sound effects
+src/realm/Save.as        local save data (characters, vault, currencies, options)
 ```
 
 To add a monster, add an entry to `Data.ENEMIES` (and optionally a sprite to

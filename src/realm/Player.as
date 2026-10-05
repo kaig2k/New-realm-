@@ -416,6 +416,7 @@ package realm {
 			var amt:int = (s == "hp" || s == "mp") ? 5 : 1;
 			stats[s] = Math.min(max, stats[s] + amt);
 			potsDrunk++;
+			g.questEvent("pots");
 			g.msg("+" + amt + " " + Data.STAT_NAMES[s] + (stats[s] >= max ? " (MAXED!)" : "") + "   " + maxedCount + "/11", Data.STAT_COLORS[s]);
 			g.floatText(x, y - 1.2, "+" + amt + " " + Data.STAT_NAMES[s], Ui.GOLD);
 			return true;

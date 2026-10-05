@@ -160,6 +160,7 @@ package realm {
 		private static const CHEST:Array = [["........", ".KKKKKK.", "KCCCCCCK", "KCcYYcCK", "KKKKKKKK", "KCCYYCCK", "KCcCCcCK", "KKKKKKKK"]];
 		private static const PORTAL:Array = ["..aaaa..", ".abbbba.", "abccccba", "abcddcba", "abcddcba", "abccccba", ".abbbba.", "..aaaa.."];
 		private static const ANVIL:Array = [["...CC...", "..CWCc..", "........", "KKKKKKK.", "KkkkkkKK", ".KkkkK..", "..KkK...", "KKKKKKK."]];
+		private static const QUESTBOARD:Array = [["WWWWWWWW", "WPPPPPPW", "WPLLLPPW", "WPPPPPPW", "WPLLLLPW", "WPPPPPPW", "WWWWWWWW", ".W....W."]];
 		private static const BAG:Array = [["...KK...", "..K..K..", "..CCCC..", ".CCCCCC.", "CCCDCCCc", "CCCCCCCc", ".cCCCCc.", "........"]];
 		private static const GRAVE:Array = [["..GGGG..", ".GGGGGG.", ".GGDGGg.", ".GDDDGg.", ".GGDGGg.", ".GGDGGg.", ".GGGGGg.", "MMMMMMMM"]];
 
@@ -221,6 +222,7 @@ package realm {
 			skeleton: [HUMANOID, {H: 0xe8e0c8, h: 0xb0a890, S: 0xe8e0c8, E: 0x202020, B: 0xd0c8b0, b: 0x9a9280, A: 0x5a5a5a, L: 0xb0a890, W: 0xa0a0a0}],
 			shade: [HUMANOID, {H: 0x3a1a5a, h: 0x200c34, S: 0x7a5aa8, E: 0xff3060, B: 0x2e1448, b: 0x1a0a2c, A: 0xa060ff, L: 0x100818, W: 0xc080ff}],
 			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf2c9a0, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
+			questboard: [QUESTBOARD, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 6],
 			anvil: [ANVIL, {C: 0xa060ff, W: 0xffffff, c: 0x6a30c0, K: 0x5a5a62, k: 0x3a3a40}, 6],
 			gold: [[I_GOLD], {Y: 0xf0c030, y: 0xb08818, W: 0xfff0a0}, 3],
 			onrane: [[I_ONRANE], {P: 0xc060ff, p: 0x7a28b8, W: 0xf0d0ff}, 3],

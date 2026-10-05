@@ -37,8 +37,8 @@ package realm {
 			title.text = item.name;
 			var label:String = Data.tierLabel(item);
 			tier.text = label;
-			tier.textColor = label == "UT" ? 0xc070ff : 0xffffff;
-			title.textColor = label == "UT" ? 0xd890ff : item.kind == "stat" ? Ui.GOLD : 0xffffff;
+			tier.textColor = Data.tierColor(item);
+			title.textColor = item.rarity ? Data.tierColor(item) : item.kind == "stat" ? Ui.GOLD : 0xffffff;
 			var top:Number = Math.max(icon.y + icon.height, title.y + title.height) + 6;
 			body.htmlText = Data.describe(item);
 			body.y = top + 4;

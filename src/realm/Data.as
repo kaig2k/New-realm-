@@ -1,114 +1,247 @@
 package realm {
-	/** Game balance: classes, enemies, items and loot tables. */
+	/**
+	 * Game balance: classes, enemies, items and loot tables.
+	 * Modelled on the Valor private server: 11 maxable stats (vanilla 8 +
+	 * Might, Luck, Protection), Fortune from gear, and the T / UT / ST /
+	 * FB / LG / AR item tiers.
+	 */
 	public class Data {
-		public static const STATS:Array = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis"];
-		public static const STAT_NAMES:Object = {hp: "Life", mp: "Mana", att: "Attack", def: "Defense", spd: "Speed", dex: "Dexterity", vit: "Vitality", wis: "Wisdom"};
-		public static const STAT_COLORS:Object = {hp: 0xff70b0, mp: 0x5080ff, att: 0xa040e0, def: 0x303030, spd: 0x40c040, dex: 0xff9020, vit: 0xd02020, wis: 0x40e0e0};
+		public static const STATS:Array = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt"];
+		/** Stats that only come from gear. */
+		public static const GEAR_STATS:Array = ["frt"];
+		public static const STAT_NAMES:Object = {hp: "Life", mp: "Mana", att: "Attack", def: "Defense", spd: "Speed", dex: "Dexterity", vit: "Vitality",
+			wis: "Wisdom", mgt: "Might", luc: "Luck", prt: "Protection", frt: "Fortune"};
+		public static const STAT_SHORT:Object = {hp: "HP", mp: "MP", att: "ATT", def: "DEF", spd: "SPD", dex: "DEX", vit: "VIT", wis: "WIS",
+			mgt: "MGT", luc: "LUC", prt: "PRT", frt: "FRT"};
+		public static const STAT_COLORS:Object = {hp: 0xff70b0, mp: 0x5080ff, att: 0xa040e0, def: 0x303030, spd: 0x40c040, dex: 0xff9020, vit: 0xd02020,
+			wis: 0x40e0e0, mgt: 0xff5a2a, luc: 0x3ae07a, prt: 0xe8e8f0, frt: 0xf0c030};
 
+		// base = level 1, l20 = level 20, max = "11/11" caps (numbers from the Valor wiki)
 		public static const CLASSES:Object = {
 			wizard: {
 				id: "wizard", name: "Wizard", weapon: "staff", armor: "robe", abilityType: "spell",
-				desc: "Fragile but deadly. Fires twin bolts and blasts crowds with Spell Bomb.",
-				base: {hp: 100, mp: 100, att: 12, def: 0, spd: 10, dex: 15, vit: 10, wis: 12},
-				grow: {hp: 22, mp: 8, att: 2, def: 0, spd: 1, dex: 2, vit: 1, wis: 1.5},
-				max: {hp: 670, mp: 385, att: 75, def: 25, spd: 50, dex: 75, vit: 40, wis: 60},
-				ability: {name: "Spell Bomb", cost: 30, desc: "Ring of 20 bolts at the cursor."}
+				desc: "Long-range burst damage. Twin bolts and an explosive Spell.",
+				base: {hp: 80, mp: 100, att: 15, def: 0, spd: 10, dex: 20, vit: 12, wis: 12, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 580, mp: 300, att: 45, def: 0, spd: 30, dex: 50, vit: 22, wis: 32, mgt: 12, luc: 2, prt: 4},
+				max: {hp: 630, mp: 385, att: 70, def: 25, spd: 50, dex: 70, vit: 40, wis: 60, mgt: 30, luc: 30, prt: 25},
+				ability: {name: "Spell", cost: 30, desc: "Ring of 20 bolts at the cursor."}
 			},
 			archer: {
 				id: "archer", name: "Archer", weapon: "bow", armor: "leather", abilityType: "quiver",
-				desc: "Piercing arrows hit every foe in a line. Quiver shot slows enemies.",
-				base: {hp: 130, mp: 100, att: 12, def: 0, spd: 12, dex: 12, vit: 12, wis: 10},
-				grow: {hp: 26, mp: 6, att: 2, def: 0.5, spd: 1, dex: 1.5, vit: 1.5, wis: 1},
-				max: {hp: 700, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50},
+				desc: "Piercing arrows from long range. Quiver arrows slow their target.",
+				base: {hp: 130, mp: 100, att: 12, def: 0, spd: 12, dex: 12, vit: 12, wis: 10, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 630, mp: 200, att: 42, def: 0, spd: 32, dex: 32, vit: 22, wis: 30, mgt: 12, luc: 12, prt: 4},
+				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 80, luc: 40, prt: 25},
 				ability: {name: "Quiver", cost: 25, desc: "Huge piercing arrow that slows."}
 			},
 			knight: {
 				id: "knight", name: "Knight", weapon: "sword", armor: "heavy", abilityType: "shield",
-				desc: "Armoured juggernaut. Short-range sword, Shield Bash stuns nearby foes.",
-				base: {hp: 200, mp: 100, att: 15, def: 0, spd: 7, dex: 10, vit: 10, wis: 10},
-				grow: {hp: 30, mp: 5, att: 2, def: 1, spd: 0.8, dex: 1, vit: 2, wis: 0.5},
-				max: {hp: 770, mp: 252, att: 50, def: 40, spd: 50, dex: 50, vit: 75, wis: 50},
-				ability: {name: "Shield Bash", cost: 30, desc: "Stuns enemies near you."}
+				desc: "The tank. Huge HP and Defense; the Shield stuns everything nearby.",
+				base: {hp: 210, mp: 100, att: 15, def: 0, spd: 7, dex: 10, vit: 10, wis: 10, mgt: 5, luc: 2, prt: 4},
+				l20: {hp: 710, mp: 200, att: 45, def: 0, spd: 27, dex: 30, vit: 40, wis: 30, mgt: 5, luc: 2, prt: 14},
+				max: {hp: 950, mp: 252, att: 50, def: 40, spd: 50, dex: 50, vit: 75, wis: 50, mgt: 50, luc: 35, prt: 40},
+				ability: {name: "Shield", cost: 30, desc: "Stuns enemies near you."}
 			},
 			priest: {
 				id: "priest", name: "Priest", weapon: "wand", armor: "robe", abilityType: "tome",
-				desc: "Steady wand fire and the Holy Tome, a big self-heal with a holy burst.",
-				base: {hp: 100, mp: 100, att: 12, def: 0, spd: 12, dex: 12, vit: 10, wis: 15},
-				grow: {hp: 22, mp: 8, att: 1.5, def: 0, spd: 1.5, dex: 1.5, vit: 1, wis: 2},
-				max: {hp: 670, mp: 385, att: 50, def: 25, spd: 55, dex: 55, vit: 40, wis: 75},
-				ability: {name: "Holy Tome", cost: 35, desc: "Heal yourself and burst holy light."}
+				desc: "Support with real damage. The Tome heals and bursts holy light.",
+				base: {hp: 80, mp: 100, att: 15, def: 0, spd: 12, dex: 13, vit: 10, wis: 15, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 580, mp: 300, att: 35, def: 0, spd: 42, dex: 33, vit: 20, wis: 45, mgt: 12, luc: 2, prt: 14},
+				max: {hp: 630, mp: 385, att: 65, def: 25, spd: 55, dex: 65, vit: 40, wis: 75, mgt: 50, luc: 70, prt: 60},
+				ability: {name: "Tome", cost: 35, desc: "Heal yourself and burst holy light."}
+			},
+			rogue: {
+				id: "rogue", name: "Rogue", weapon: "dagger", armor: "leather", abilityType: "cloak",
+				desc: "Fast medium-range daggers. The Cloak turns you invisible.",
+				base: {hp: 110, mp: 100, att: 10, def: 0, spd: 15, dex: 15, vit: 15, wis: 13, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 610, mp: 200, att: 30, def: 0, spd: 45, dex: 45, vit: 25, wis: 33, mgt: 22, luc: 22, prt: 4},
+				max: {hp: 680, mp: 252, att: 55, def: 25, spd: 75, dex: 75, vit: 40, wis: 55, mgt: 60, luc: 75, prt: 25},
+				ability: {name: "Cloak", cost: 30, desc: "Invisible for 3s: enemies lose you."}
+			},
+			warrior: {
+				id: "warrior", name: "Warrior", weapon: "sword", armor: "heavy", abilityType: "helm",
+				desc: "Melee bruiser. The Helm sends you berserk: faster attacks and speed.",
+				base: {hp: 180, mp: 100, att: 15, def: 0, spd: 7, dex: 10, vit: 10, wis: 10, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 680, mp: 200, att: 45, def: 0, spd: 27, dex: 30, vit: 40, wis: 30, mgt: 2, luc: 2, prt: 4},
+				max: {hp: 730, mp: 385, att: 75, def: 25, spd: 50, dex: 50, vit: 75, wis: 50, mgt: 50, luc: 10, prt: 25},
+				ability: {name: "Helm", cost: 35, desc: "Berserk for 5s: +50% fire rate, +speed."}
+			},
+			necromancer: {
+				id: "necromancer", name: "Necromancer", weapon: "staff", armor: "robe", abilityType: "skull",
+				desc: "Dark caster. The Skull blasts an area and drains life from it.",
+				base: {hp: 100, mp: 100, att: 15, def: 0, spd: 12, dex: 12, vit: 10, wis: 15, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 600, mp: 300, att: 45, def: 0, spd: 32, dex: 42, vit: 20, wis: 40, mgt: 12, luc: 12, prt: 4},
+				max: {hp: 650, mp: 385, att: 70, def: 25, spd: 50, dex: 60, vit: 40, wis: 75, mgt: 40, luc: 40, prt: 30},
+				ability: {name: "Skull", cost: 30, desc: "Area blast at the cursor that heals you."}
+			},
+			huntress: {
+				id: "huntress", name: "Huntress", weapon: "bow", armor: "leather", abilityType: "trap",
+				desc: "Archer of the wilds. Traps explode into slowing shards.",
+				base: {hp: 130, mp: 100, att: 12, def: 0, spd: 12, dex: 12, vit: 12, wis: 10, mgt: 2, luc: 2, prt: 4},
+				l20: {hp: 630, mp: 200, att: 42, def: 0, spd: 32, dex: 32, vit: 22, wis: 30, mgt: 12, luc: 12, prt: 4},
+				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 60, luc: 50, prt: 25},
+				ability: {name: "Trap", cost: 25, desc: "Thrown trap bursts into slowing shards."}
 			}
 		};
-		public static const CLASS_ORDER:Array = ["wizard", "archer", "knight", "priest"];
+		public static const CLASS_ORDER:Array = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress"];
+
+		/** Per-level growth, derived from the level 1 and level 20 stat tables. */
+		public static function grow(cls:Object, s:String):Number {
+			return (cls.l20[s] - cls.base[s]) / 19;
+		}
+
+		// ---- item tiers -------------------------------------------------
+		// Tiered items are T0..T7. Special rarities (Valor): UT, ST (set), FB (fabled), LG (legendary), AR (ancient relic).
+		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "ar"];
+		public static const RARITY_NAMES:Object = {ut: "Untiered", st: "Set", fb: "Fabled", lg: "Legendary", ar: "Ancient Relic"};
+		public static const RARITY_COLORS:Object = {ut: 0xb070ff, st: 0xff9a2e, fb: 0xff4a4a, lg: 0xd8e040, ar: 0x40e8d8};
+		/** Effective tier used for item stats. */
+		private static const RARITY_POWER:Object = {ut: 8, st: 8.5, fb: 9.5, lg: 11, ar: 12.5};
 
 		public static const WEAPON_NAMES:Object = {
-			staff: ["Twig Staff", "Ember Staff", "Comet Staff", "Serpent Staff", "Starfall Staff", "Ruin Staff", "Nebula Staff", "Staff of the Void", "Overlord's Scepter"],
-			bow: ["Short Bow", "Twin Bow", "Hunter's Bow", "Gilded Bow", "Thornwood Bow", "Fey Bow", "Bloodstring Bow", "Bow of Distant Stars", "Cubic Longbow"],
-			sword: ["Rusty Sword", "Broad Sword", "Saber", "Long Sword", "Falchion", "Flame Blade", "Crystal Blade", "Sunforged Blade", "Cube Cleaver"],
-			wand: ["Bone Wand", "Ember Wand", "Grave Wand", "Deep Wand", "Shadow Wand", "Warden's Wand", "Penance Wand", "Wand of Radiance", "Wand of Endless Light"]
+			staff: ["Twig Staff", "Ember Staff", "Comet Staff", "Serpent Staff", "Starfall Staff", "Ruin Staff", "Nebula Staff", "Staff of the Void"],
+			bow: ["Short Bow", "Twin Bow", "Hunter's Bow", "Gilded Bow", "Thornwood Bow", "Fey Bow", "Bloodstring Bow", "Bow of Distant Stars"],
+			sword: ["Rusty Sword", "Broad Sword", "Saber", "Long Sword", "Falchion", "Flame Blade", "Crystal Blade", "Sunforged Blade"],
+			wand: ["Bone Wand", "Ember Wand", "Grave Wand", "Deep Wand", "Shadow Wand", "Warden's Wand", "Penance Wand", "Wand of Radiance"],
+			dagger: ["Rusty Dirk", "Iron Dagger", "Steel Dagger", "Silver Dirk", "Viper Fang", "Agate Dagger", "Ghostblade", "Dagger of Dusk"]
 		};
 		public static const ARMOR_NAMES:Object = {
-			robe: ["Cloth Robe", "Apprentice Robe", "Silk Robe", "Mystic Robe", "Star Robe", "Ether Robe", "Archmage Robe", "Robe of the Void", "Overlord's Mantle"],
-			leather: ["Leather Vest", "Studded Vest", "Hunter's Hide", "Ranger Leather", "Drake Hide", "Wyvern Hide", "Hydra Hide", "Leviathan Hide", "Cube Hide"],
-			heavy: ["Chainmail", "Ring Mail", "Scale Armor", "Plate Mail", "Steel Plate", "Mithril Plate", "Dragonscale Plate", "Titan Plate", "Overlord's Bulwark"]
+			robe: ["Cloth Robe", "Apprentice Robe", "Silk Robe", "Mystic Robe", "Star Robe", "Ether Robe", "Archmage Robe", "Robe of the Void"],
+			leather: ["Leather Vest", "Studded Vest", "Hunter's Hide", "Ranger Leather", "Drake Hide", "Wyvern Hide", "Hydra Hide", "Leviathan Hide"],
+			heavy: ["Chainmail", "Ring Mail", "Scale Armor", "Plate Mail", "Steel Plate", "Mithril Plate", "Dragonscale Plate", "Titan Plate"]
 		};
+		public static const ABILITY_NAMES:Object = {
+			spell: ["Spark Spell", "Flare Spell", "Blaze Spell", "Comet Spell", "Starburst Spell", "Nova Spell", "Cataclysm Spell"],
+			quiver: ["Thorn Quiver", "Hunter's Quiver", "Iron Quiver", "Silver Quiver", "Golden Quiver", "Hawk Quiver", "Phoenix Quiver"],
+			shield: ["Wooden Shield", "Buckler", "Kite Shield", "Tower Shield", "Steel Shield", "Mithril Shield", "Dragon Shield"],
+			tome: ["Tome of Mending", "Tome of Renewal", "Tome of Grace", "Tome of Light", "Tome of Dawn", "Tome of Saints", "Tome of Miracles"],
+			cloak: ["Dusky Cloak", "Shadow Cloak", "Night Cloak", "Cloak of Shades", "Wraith Cloak", "Cloak of Silence", "Cloak of the Void"],
+			helm: ["Iron Helm", "Bronze Helm", "Steel Helm", "Horned Helm", "War Helm", "Helm of Rage", "Helm of the Titan"],
+			skull: ["Bone Skull", "Spirit Skull", "Grim Skull", "Wraith Skull", "Lich Skull", "Skull of Ruin", "Skull of the Damned"],
+			trap: ["Snare Trap", "Spike Trap", "Thorn Trap", "Barbed Trap", "Hunter's Trap", "Trap of Vines", "Trap of the Wild"]
+		};
+		/** Nouns used to name special-rarity items. */
+		private static const NOUNS:Object = {staff: "Staff", bow: "Longbow", sword: "Greatsword", wand: "Wand", dagger: "Kris",
+			spell: "Grimoire", quiver: "Quiver", shield: "Aegis", tome: "Codex", cloak: "Shroud", helm: "Crown", skull: "Skull", trap: "Snare",
+			robe: "Vestments", leather: "Hide", heavy: "Plate", ring: "Signet"};
+		private static const UT_PREFIX:Array = ["Cursed", "Ember-Wrought", "Frostbound", "Bloodsworn", "Stormcaller's", "Gravewarden's", "Sunken", "Hollow"];
+		private static const LG_PREFIX:Array = ["Starforged", "Eternal", "Abyssal", "Sovereign", "Radiant", "Phantom", "Verdant", "Celestial"];
+		private static const AR_SUFFIX:Array = ["of the First Light", "of Aeons", "of the Void Tide", "of the Shattered Sun"];
+		public static const FB_SOURCE:String = "Dark Elder's";
+		public static const SET_NAME:String = "Valorous";
 
-		public static function makeWeapon(sub:String, tier:int):Object {
-			var t:int = tier;
-			var w:Object = {kind: "weapon", sub: sub, tier: tier, name: WEAPON_NAMES[sub][tier], shots: 1, arc: 0, parallel: false, pierce: false, rate: 1};
+		/** Legendary / relic passives. */
+		public static const PASSIVES:Object = {
+			lifesteal: {name: "Lifebloom", desc: "Heal 4 HP on every hit."},
+			shards: {name: "Shardstorm", desc: "6% on hit: 8 shards burst from the target (60% damage)."},
+			frost: {name: "Frostbite", desc: "12% on hit: slow the target for 2s."},
+			critical: {name: "Executioner", desc: "+10% critical hit chance."},
+			rampage: {name: "Rampage", desc: "Every 12th shot fires a ring of 10 shots."}
+		};
+		public static const PASSIVE_IDS:Array = ["lifesteal", "shards", "frost", "critical", "rampage"];
+
+		private static function pick(a:Array):* { return a[int(Math.random() * a.length)]; }
+
+		private static function rarityName(sub:String, rarity:String, fallback:String):String {
+			var noun:String = NOUNS[sub] || "Relic";
+			switch (rarity) {
+				case "ut": return pick(UT_PREFIX) + " " + noun;
+				case "st": return SET_NAME + " " + noun;
+				case "fb": return FB_SOURCE + " " + noun;
+				case "lg": return pick(LG_PREFIX) + " " + noun;
+				case "ar": return noun + " " + pick(AR_SUFFIX);
+			}
+			return fallback;
+		}
+
+		/** Extra stats, passives and set tags for special rarities. */
+		private static function enchant(item:Object, rarity:String):Object {
+			if (!rarity) return item;
+			item.rarity = rarity;
+			item.name = rarityName(item.sub, rarity, item.name);
+			var pool:Array = ["att", "dex", "spd", "vit", "wis", "mgt", "luc", "prt"];
+			var n:int = rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : 3;
+			var amt:int = rarity == "ut" ? 5 : rarity == "st" ? 6 : rarity == "fb" ? 8 : rarity == "lg" ? 10 : 15;
+			for (var i:int = 0; i < n; i++) {
+				var s:String = pick(pool);
+				item[s] = (item[s] || 0) + amt + int(Math.random() * 4);
+			}
+			if (rarity == "fb") item.frt = 5;
+			if (rarity == "ar") item.frt = 8;
+			if (rarity == "st") item.set = SET_NAME;
+			if ((rarity == "lg" || rarity == "ar") && item.kind == "weapon") item.passive = pick(PASSIVE_IDS);
+			if (rarity == "ar") item.hp = (item.hp || 0) + 60;
+			return item;
+		}
+
+		/** Bonus for wearing all 4 pieces of a set. */
+		public static const SET_BONUS:Object = {hp: 80, att: 10, def: 10, dex: 10, frt: 10};
+
+		public static function makeWeapon(sub:String, tier:int, rarity:String = null):Object {
+			var t:Number = rarity ? RARITY_POWER[rarity] : tier;
+			var w:Object = {kind: "weapon", sub: sub, tier: rarity ? 8 : tier, name: WEAPON_NAMES[sub][Math.min(tier, 7)], shots: 1, arc: 0, parallel: false, pierce: false, rate: 1};
 			switch (sub) {
 				case "staff":
-					w.dmin = 14 + 7 * t; w.dmax = 22 + 9 * t; w.shots = 2; w.parallel = true;
+					w.dmin = int(14 + 7 * t); w.dmax = int(22 + 9 * t); w.shots = 2; w.parallel = true;
 					w.spd = 13; w.life = 0.6; w.col = 0xd060ff; w.shape = "bolt";
 					break;
 				case "bow":
-					w.dmin = 12 + 6 * t; w.dmax = 22 + 8 * t; w.shots = t < 3 ? 1 : (t < 6 ? 2 : 3); w.arc = 9;
+					w.dmin = int(12 + 6 * t); w.dmax = int(22 + 8 * t); w.shots = t < 3 ? 1 : (t < 6 ? 2 : 3); w.arc = 9;
 					w.spd = 15; w.life = 0.52; w.pierce = true; w.col = 0xffe080; w.shape = "arrow";
 					break;
 				case "sword":
-					w.dmin = 34 + 11 * t; w.dmax = 52 + 15 * t;
+					w.dmin = int(34 + 11 * t); w.dmax = int(52 + 15 * t);
 					w.spd = 11; w.life = 0.34; w.col = 0xd0e8ff; w.shape = "blade";
 					break;
+				case "dagger":
+					w.dmin = int(20 + 8 * t); w.dmax = int(32 + 11 * t); w.rate = 1.15;
+					w.spd = 15; w.life = 0.36; w.col = 0xe8e8f0; w.shape = "knife";
+					break;
 				default:
-					w.dmin = 22 + 8 * t; w.dmax = 36 + 10 * t;
+					w.dmin = int(22 + 8 * t); w.dmax = int(36 + 10 * t);
 					w.spd = 16; w.life = 0.56; w.col = 0xfff0a0; w.shape = "orb";
 			}
-			if (tier >= 8) { // unique drops from the Overlord
-				w.col = 0xff50ff;
-				if (sub == "staff") { w.shots = 3; w.parallel = true; }
-				else if (sub == "bow") { w.shots = 4; w.arc = 10; }
+			if (rarity) {
+				w.col = RARITY_COLORS[rarity];
+				if (sub == "staff") { w.shots = 3; }
+				else if (sub == "bow") { w.shots = rarity == "ar" ? 5 : 4; w.arc = 10; }
 				else if (sub == "sword") { w.shots = 2; w.arc = 12; w.pierce = true; }
+				else if (sub == "dagger") { w.shots = 2; w.arc = 6; }
 				else { w.pierce = true; w.rate = 1.2; }
 			}
-			return w;
+			return enchant(w, rarity);
 		}
 
-		public static const ABILITY_NAMES:Object = {
-			spell: ["Spark Spell", "Flare Spell", "Blaze Spell", "Comet Spell", "Starburst Spell", "Nova Spell", "Cataclysm Spell", "Spell of Ruin", "Overlord's Grimoire"],
-			quiver: ["Thorn Quiver", "Hunter's Quiver", "Iron Quiver", "Silver Quiver", "Golden Quiver", "Hawk Quiver", "Phoenix Quiver", "Quiver of Storms", "Cubic Quiver"],
-			shield: ["Wooden Shield", "Buckler", "Kite Shield", "Tower Shield", "Steel Shield", "Mithril Shield", "Dragon Shield", "Titan Shield", "Overlord's Aegis"],
-			tome: ["Tome of Mending", "Tome of Renewal", "Tome of Grace", "Tome of Light", "Tome of Dawn", "Tome of Saints", "Tome of Miracles", "Tome of Rapture", "Overlord's Codex"]
-		};
+		public static function makeArmor(sub:String, tier:int, rarity:String = null):Object {
+			var t:Number = rarity ? RARITY_POWER[rarity] : tier;
+			var bonus:int = sub == "heavy" ? 3 + 4 * t : sub == "leather" ? 2 + 3 * t : 1 + 2 * t;
+			var a:Object = {kind: "armor", sub: sub, tier: rarity ? 8 : tier, name: ARMOR_NAMES[sub][Math.min(tier, 7)], def: bonus};
+			if (sub == "robe") a.mp = int(10 + 8 * t);
+			if (sub == "leather") a.dex = int(t / 2);
+			if (sub == "heavy") a.prt = int(t / 2);
+			return enchant(a, rarity);
+		}
+
+		public static function makeAbility(sub:String, tier:int, rarity:String = null):Object {
+			var t:Number = rarity ? RARITY_POWER[rarity] : tier;
+			var a:Object = {kind: "ability", sub: sub, tier: rarity ? 8 : tier, name: ABILITY_NAMES[sub][Math.min(tier, 6)], power: 1 + t * 0.18};
+			return enchant(a, rarity);
+		}
+
 		public static const RING_PREFIX:Array = ["Minor", "", "Greater", "Superior", "Paramount", "Exalted"];
 
-		public static function makeAbility(sub:String, tier:int):Object {
-			return {kind: "ability", sub: sub, tier: tier, name: ABILITY_NAMES[sub][tier], power: tier >= 8 ? 2.2 : 1 + tier * 0.18};
-		}
-
-		public static function makeRing(stat:String, tier:int):Object {
-			var r:Object = {kind: "ring", sub: stat, tier: tier};
-			var pre:String = RING_PREFIX[tier];
+		public static function makeRing(stat:String, tier:int, rarity:String = null):Object {
+			var t:int = rarity ? 6 : tier;
+			var r:Object = {kind: "ring", sub: stat, tier: rarity ? 8 : tier};
+			var pre:String = RING_PREFIX[Math.min(t, 5)];
 			r.name = "Ring of " + (pre ? pre + " " : "") + STAT_NAMES[stat];
-			r[stat] = (stat == "hp" || stat == "mp") ? 20 + tier * 20 : 2 + tier * 2;
+			r[stat] = (stat == "hp" || stat == "mp") ? 20 + t * 20 : 2 + t * 2;
+			if (rarity) {
+				r = enchant(r, rarity);
+				r.sub = stat;
+				r.name = rarityName("ring", rarity, r.name);
+			}
 			return r;
-		}
-
-		public static function makeArmor(sub:String, tier:int):Object {
-			var bonus:int = sub == "heavy" ? 3 + 4 * tier : sub == "leather" ? 2 + 3 * tier : 1 + 2 * tier;
-			var a:Object = {kind: "armor", sub: sub, tier: tier, name: ARMOR_NAMES[sub][tier], def: bonus};
-			if (sub == "robe") a.mp = 10 + 8 * tier;
-			if (sub == "leather") a.dex = Math.floor(tier / 2);
-			return a;
 		}
 
 		public static function makePotion(kind:String, stat:String = null):Object {
@@ -117,39 +250,96 @@ package realm {
 			return {kind: "stat", sub: stat, tier: 0, name: "Potion of " + STAT_NAMES[stat], color: STAT_COLORS[stat]};
 		}
 
-		/** "T3", "UT" or "" for consumables. */
+		public static function makeSor():Object {
+			return {kind: "material", sub: "sor", tier: 0, name: "Sor Crystal"};
+		}
+
+		/** Gear for one of a class's 4 slots. */
+		public static function makeForSlot(cls:Object, slot:int, tier:int, rarity:String):Object {
+			switch (slot) {
+				case 0: return makeWeapon(cls.weapon, tier, rarity);
+				case 1: return makeAbility(cls.abilityType, tier, rarity);
+				case 2: return makeArmor(cls.armor, tier, rarity);
+			}
+			return makeRing(randomStat(), Math.min(5, tier), rarity);
+		}
+
+		/** Turn an item into a Legendary of the same kind (Sor Forge). */
+		public static function forgeLegendary(item:Object, cls:Object):Object {
+			switch (item.kind) {
+				case "weapon": return makeWeapon(item.sub, 7, "lg");
+				case "ability": return makeAbility(item.sub, 6, "lg");
+				case "armor": return makeArmor(item.sub, 7, "lg");
+				case "ring": return makeRing(item.sub, 5, "lg");
+			}
+			return item;
+		}
+
+		public static function isGear(item:Object):Boolean {
+			return item && (item.kind == "weapon" || item.kind == "armor" || item.kind == "ability" || item.kind == "ring");
+		}
+
+		/** "T3", "UT", "LG"... or "" for consumables. */
 		public static function tierLabel(item:Object):String {
-			if (!item || item.kind == "hp" || item.kind == "mp" || item.kind == "stat") return "";
-			return item.tier >= 8 ? "UT" : "T" + item.tier;
+			if (!item) return "";
+			if (item.rarity) return String(item.rarity).toUpperCase();
+			if (!isGear(item)) return "";
+			return "T" + item.tier;
+		}
+
+		public static function tierColor(item:Object):uint {
+			if (item && item.rarity) return RARITY_COLORS[item.rarity];
+			return 0xffffff;
+		}
+
+		/** Gold value when selling at the marketplace. */
+		public static function sellValue(item:Object):int {
+			if (!item) return 0;
+			if (item.rarity) return {ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000}[item.rarity];
+			switch (item.kind) {
+				case "stat": return 250;
+				case "material": return 300;
+				case "hp": case "mp": return 20;
+			}
+			return 10 + item.tier * item.tier * 12;
 		}
 
 		/** Tooltip body text (HTML). */
 		public static function describe(item:Object):String {
 			if (!item) return "";
 			var s:String = "";
+			if (item.rarity) s += "<font color='" + Ui.hex(RARITY_COLORS[item.rarity]) + "'>" + RARITY_NAMES[item.rarity] + "</font>\n";
 			switch (item.kind) {
 				case "weapon":
 					s += "Damage: " + item.dmin + "-" + item.dmax + "\n";
 					if (item.shots > 1) s += "Shots: " + item.shots + "\n";
 					s += "Range: " + (item.spd * item.life).toFixed(1) + " tiles\n";
-					if (item.pierce) s += "Shots pierce enemies\n";
+					if (item.pierce) s += "Shots hit multiple targets\n";
 					if (item.rate != 1) s += "Rate of fire: " + Math.round(item.rate * 100) + "%\n";
 					break;
 				case "armor":
-					s += "+" + item.def + " Defense\n";
-					if (item.mp) s += "+" + item.mp + " Max MP\n";
-					if (item.dex) s += "+" + item.dex + " Dexterity\n";
 					break;
 				case "ability":
 					s += "Ability power: " + Math.round(item.power * 100) + "%\n";
 					break;
-				case "ring":
-					s += "+" + item[item.sub] + " " + STAT_NAMES[item.sub] + "\n";
-					break;
 				case "hp": s += "Restores 100 HP\n"; break;
 				case "mp": s += "Restores 100 MP\n"; break;
 				case "stat": s += "Permanently raises " + STAT_NAMES[item.sub] + "\n"; break;
+				case "material": s += "Crafting material for the Sor Forge.\nForge: UT/ST/FB item + Sor Crystal + 100 Onrane = Legendary\n"; break;
 			}
+			if (isGear(item)) {
+				var on:String = "";
+				for each (var k:String in STATS.concat(GEAR_STATS)) {
+					if (item[k]) on += "  +" + item[k] + " " + STAT_NAMES[k] + "\n";
+				}
+				if (on) s += "On equip:\n" + on;
+			}
+			if (item.passive) {
+				var p:Object = PASSIVES[item.passive];
+				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
+			}
+			if (item.set) s += "<font color='#ff9a2e'>" + item.set + " Set (4 pieces): +80 HP, +10 ATT/DEF/DEX, +10 Fortune</font>\n";
+			s += "<font color='#888888'>Sells for " + sellValue(item) + " gold</font>\n";
 			return s;
 		}
 
@@ -193,7 +383,9 @@ package realm {
 			cubelet: {name: "Cubelet", spr: "cubelet", hp: 150, def: 5, spd: 3.2, xp: 10, ai: "chase", keep: 0.5, drop: 0, col: 0x9040e0,
 				attacks: [{p: "aimed", n: 1, spd: 8, life: 1.0, dmg: 30, cd: 0.7, r: 0.15, col: 0xc080ff}]},
 
-			boss: {name: "Cube Overlord", spr: "boss", hp: 15000, def: 25, spd: 1.2, xp: 2500, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x7a30c0,
+			// ---- realm events (Valor-style) -------------------------------------
+			ev_cube: {name: "Cube Overlord", spr: "boss", hp: 11000, def: 22, spd: 1.2, xp: 1500, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x7a30c0,
+				gold: 400, onrane: 4,
 				phases: [
 					[{p: "spiral", n: 4, rot: 11, spd: 5.5, life: 2.4, dmg: 55, cd: 0.14, r: 0.2, col: 0xff40ff},
 						{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.5, dmg: 70, cd: 1.4, r: 0.25, col: 0xf0d040, shape: "blade"}],
@@ -202,7 +394,55 @@ package realm {
 						{p: "summon", n: 2, cd: 6, what: "cubelet"}],
 					[{p: "spiral", n: 6, rot: -9, spd: 6, life: 2.2, dmg: 60, cd: 0.12, r: 0.2, col: 0xffff40},
 						{p: "aimed", n: 7, arc: 70, spd: 8, life: 1.6, dmg: 65, cd: 1.0, r: 0.22, col: 0xff8040}]
-				]}
+				]},
+			ev_titan: {name: "Vorgath the Ember Titan", spr: "titan", hp: 13000, def: 28, spd: 1.0, xp: 1700, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xff7020,
+				gold: 450, onrane: 5,
+				phases: [
+					[{p: "aimed", n: 5, arc: 50, spd: 7, life: 1.8, dmg: 65, cd: 1.1, r: 0.25, col: 0xff7020, shape: "orb"},
+						{p: "ring", n: 12, rot: 15, spd: 4, life: 2.6, dmg: 50, cd: 2.2, r: 0.22, col: 0xffb030, shape: "ring"}],
+					[{p: "spiral", n: 3, rot: 17, spd: 6, life: 2.2, dmg: 60, cd: 0.13, r: 0.22, col: 0xff5020, shape: "star"},
+						{p: "summon", n: 3, cd: 7, what: "imp"}],
+					[{p: "ring", n: 30, rot: 6, spd: 5, life: 2.6, dmg: 70, cd: 0.9, r: 0.25, col: 0xffd040, shape: "orb"},
+						{p: "aimed", n: 3, arc: 16, spd: 11, life: 1.4, dmg: 95, cd: 0.7, r: 0.3, col: 0xff3010, shape: "blade"}]
+				]},
+			ev_wyrm: {name: "Sylith the Frost Wyrm", spr: "wyrm", hp: 10000, def: 18, spd: 2.0, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x60c8ff,
+				gold: 400, onrane: 4,
+				phases: [
+					[{p: "spiral", n: 5, rot: 9, spd: 6.5, life: 2.0, dmg: 50, cd: 0.16, r: 0.2, col: 0x8ad8ff, shape: "star"}],
+					[{p: "aimed", n: 9, arc: 90, spd: 7, life: 1.8, dmg: 60, cd: 0.9, r: 0.22, col: 0xe0f4ff, shape: "dart"},
+						{p: "ring", n: 16, rot: 11, spd: 3.5, life: 3.0, dmg: 55, cd: 1.6, r: 0.25, col: 0x40a0ff, shape: "ring"}],
+					[{p: "spiral", n: 8, rot: -7, spd: 5.5, life: 2.4, dmg: 60, cd: 0.14, r: 0.22, col: 0xc0ecff, shape: "star"},
+						{p: "aimed", n: 1, spd: 13, life: 1.4, dmg: 110, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade"}]
+				]},
+			ev_king: {name: "The Hollow King", spr: "hollowking", hp: 12000, def: 20, spd: 1.3, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xe8e0c0,
+				gold: 450, onrane: 5,
+				phases: [
+					[{p: "aimed", n: 3, arc: 20, spd: 8, life: 1.6, dmg: 70, cd: 1.0, r: 0.25, col: 0x9aff7a, shape: "star"},
+						{p: "summon", n: 2, cd: 6, what: "skeleton"}],
+					[{p: "ring", n: 20, rot: 9, spd: 4.5, life: 2.4, dmg: 55, cd: 1.0, r: 0.22, col: 0x6aff4a, shape: "orb"},
+						{p: "aimed", n: 5, arc: 40, spd: 9, life: 1.4, dmg: 70, cd: 1.2, r: 0.22, col: 0xe8e0c0, shape: "dart"}],
+					[{p: "spiral", n: 4, rot: 14, spd: 6, life: 2.4, dmg: 65, cd: 0.12, r: 0.22, col: 0x9aff7a, shape: "star"},
+						{p: "summon", n: 3, cd: 8, what: "skeleton"}]
+				]},
+			// ---- the realm's overlord, fought in his chamber when the realm closes
+			elder: {name: "Azrakor the Dark Elder", spr: "elder", hp: 32000, def: 30, spd: 1.4, xp: 5000, ai: "boss", r: 0.9, aggro: 20, range: 18, drop: 1, col: 0xa040ff,
+				gold: 1500, onrane: 15, final: true,
+				phases: [
+					[{p: "spiral", n: 4, rot: 12, spd: 5.5, life: 3.0, dmg: 60, cd: 0.12, r: 0.22, col: 0xc060ff, shape: "star"},
+						{p: "aimed", n: 3, arc: 18, spd: 10, life: 2.0, dmg: 80, cd: 1.2, r: 0.28, col: 0xffe060, shape: "blade"}],
+					[{p: "ring", n: 32, rot: 5.6, spd: 4.5, life: 3.4, dmg: 65, cd: 1.0, r: 0.25, col: 0xe02040, shape: "ring"},
+						{p: "aimed", n: 7, arc: 60, spd: 8, life: 2.0, dmg: 70, cd: 1.3, r: 0.22, col: 0xffffff, shape: "dart"},
+						{p: "summon", n: 2, cd: 8, what: "shade"}],
+					[{p: "spiral", n: 6, rot: -10, spd: 6, life: 3.0, dmg: 70, cd: 0.1, r: 0.22, col: 0xff40a0, shape: "star"},
+						{p: "aimed", n: 1, spd: 14, life: 1.8, dmg: 130, cd: 0.6, r: 0.32, col: 0xffe060, shape: "blade"},
+						{p: "ring", n: 12, rot: 15, spd: 3, life: 4, dmg: 60, cd: 2.0, r: 0.28, col: 0xa040ff, shape: "orb"}]
+				]},
+			imp: {name: "Ember Imp", spr: "imp", hp: 300, def: 5, spd: 3.0, xp: 15, ai: "chase", keep: 1, drop: 0, col: 0xff6020,
+				attacks: [{p: "aimed", n: 2, arc: 20, spd: 8, life: 0.9, dmg: 35, cd: 0.8, r: 0.16, col: 0xff8030}]},
+			skeleton: {name: "Bone Soldier", spr: "skeleton", hp: 350, def: 8, spd: 2.4, xp: 15, ai: "chase", keep: 1.5, drop: 0, col: 0xe8e0c0,
+				attacks: [{p: "aimed", n: 1, spd: 10, life: 0.9, dmg: 45, cd: 0.9, r: 0.18, col: 0xe8e0c0, shape: "dart"}]},
+			shade: {name: "Elder's Shade", spr: "shade", hp: 600, def: 10, spd: 3.0, xp: 20, ai: "orbit", keep: 4, drop: 0, col: 0x8040c0,
+				attacks: [{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.2, dmg: 50, cd: 1.1, r: 0.18, col: 0xc080ff, shape: "dart"}]}
 		};
 
 		/** Which enemies spawn in each zone: 0 beach, 1 lowlands, 2 midlands, 3 godlands. */
@@ -212,30 +452,47 @@ package realm {
 			["orc", "elf", "gazer", "orc"],
 			["medusa", "djinn", "ent", "beholder"]
 		];
-		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus"];
+		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus", "Dark Elder's Chamber"];
 		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];
 
+		/** Realm events in the order they can appear; each realm needs EVENTS_PER_REALM of them killed. */
+		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king"];
+		public static const EVENTS_PER_REALM:int = 6;
+		public static const OVERLORD:String = "Azrakor the Dark Elder";
+
 		// ---- loot -------------------------------------------------------
-		public static function rollLoot(def:Object, zone:int, cls:Object):Array {
+		/** fortune: % loot boost from gear (Valor's Fortune stat). */
+		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {
 			var items:Array = [];
+			var boost:Number = 1 + fortune / 100;
+			var slot:int;
+			if (def.final) {
+				// the Dark Elder: fabled gear, a shot at legendaries and relics
+				items.push(makeForSlot(cls, int(Math.random() * 4), 7, "fb"));
+				items.push(makeForSlot(cls, int(Math.random() * 4), 7, "fb"));
+				if (Math.random() < 0.3 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.05 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ar"));
+				items.push(makeSor());
+				items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("stat", randomStat()));
+				return items;
+			}
 			if (def.ai == "boss") {
-				items.push(makeWeapon(cls.weapon, 8));
-				var r2:Number = Math.random();
-				if (r2 < 0.4) items.push(makeArmor(cls.armor, 8));
-				else if (r2 < 0.8) items.push(makeAbility(cls.abilityType, 8));
-				else items.push(makeArmor(cls.armor, 7));
-				items.push(makeRing(randomStat(), 5));
+				// realm event: UT or set piece, sometimes a legendary
+				slot = int(Math.random() * 4);
+				items.push(makeForSlot(cls, slot, 7, Math.random() < 0.4 ? "st" : "ut"));
+				if (Math.random() < 0.08 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.35 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
-				items.push(makePotion("stat", "hp"));
 				items.push(makePotion("hp"));
-				items.push(makePotion("mp"));
 				return items;
 			}
 			if (def.drop <= 0) return items;
 			if (Math.random() < 0.14) items.push(makePotion("hp"));
 			if (Math.random() < 0.09) items.push(makePotion("mp"));
-			if (Math.random() < def.drop) {
+			if (Math.random() < def.drop * boost) {
 				var tier:int = zone * 2 + (Math.random() < 0.35 ? 1 : 0) + (Math.random() < 0.06 ? 1 : 0);
 				if (tier > 7) tier = 7;
 				var roll:Number = Math.random();
@@ -244,8 +501,9 @@ package realm {
 				else if (roll < 0.82) items.push(makeArmor(cls.armor, tier));
 				else items.push(makeRing(randomStat(), Math.min(5, int(tier * 0.7))));
 			}
+			if (zone == 3 && Math.random() < 0.006 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
 			var statChance:Number = zone == 3 ? 0.07 : zone == 2 ? 0.015 : 0;
-			if (Math.random() < statChance) items.push(makePotion("stat", randomStat()));
+			if (Math.random() < statChance * boost) items.push(makePotion("stat", randomStat()));
 			return items;
 		}
 
@@ -253,14 +511,20 @@ package realm {
 			return STATS[int(Math.random() * STATS.length)];
 		}
 
+		/** Bag colour by best item: brown < purple < cyan < white (UT/ST) < red (FB) < gold (LG) < teal (AR). */
 		public static function bagColor(items:Array):String {
-			var best:String = "bag_brown";
+			var rank:int = 0;
 			for each (var it:Object in items) {
-				if (it.tier >= 8) return "bag_white";
-				if (it.tier >= 6) best = "bag_cyan";
-				else if ((it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) && best == "bag_brown") best = "bag_purple";
+				var r:int = 0;
+				if (it.rarity == "ar") r = 6;
+				else if (it.rarity == "lg") r = 5;
+				else if (it.rarity == "fb") r = 4;
+				else if (it.rarity) r = 3;
+				else if (it.tier >= 6 || it.kind == "material") r = 2;
+				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = 1;
+				if (r > rank) rank = r;
 			}
-			return best;
+			return ["bag_brown", "bag_purple", "bag_cyan", "bag_white", "bag_fabled", "bag_legendary", "bag_relic"][rank];
 		}
 	}
 }

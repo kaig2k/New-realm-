@@ -6,11 +6,16 @@ package realm {
 		public static const MAX_LEVEL:int = 20;
 		public static const MAX_POTS:int = 6;
 		public static const R:Number = 0.3;
+		public static const SURGE_MAX:int = 100;
 
 		public var cls:Object;
 		public var name:String;
 		public var x:Number, y:Number;
 		public var hp:Number, mp:Number;
+		/** Valor's Protection shield (white bar under MP); absorbs damage before HP. */
+		public var pt:Number = 0;
+		/** Valor's Surge: +2 per nearby kill, refills PT at 100. */
+		public var surge:int = 0;
 		public var stats:Object = {};
 		public var weapon:Object, ability:Object, armor:Object, ring:Object;
 		public var inv:Array = [null, null, null, null, null, null, null, null];
@@ -21,11 +26,14 @@ package realm {
 		public var facingLeft:Boolean = false;
 		public var autoFire:Boolean = false;
 		public var invulnT:Number = 2;
+		public var invisT:Number = 0;
+		public var berserkT:Number = 0;
 		public var hitT:Number = 0;
 		public var lastHitBy:String = "";
 		public var aimX:Number = 0, aimY:Number = 0;
 		public var moving:Boolean = false;
 		public var burning:Boolean = false;
+		public var shotCount:int = 0;
 
 		private var shootT:Number = 0;
 		private var attackT:Number = 0;
@@ -45,25 +53,52 @@ package realm {
 			ring = null;
 			hp = maxHp;
 			mp = maxMp;
+			pt = maxPt;
 		}
 
-		/** Stat bonus from armour and ring. */
+		/** Number of equipped pieces of the Valorous set. */
+		public function get setPieces():int {
+			var n:int = 0;
+			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it.set) n++;
+			return n;
+		}
+
+		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
 		public function bonus(s:String):int {
 			var b:int = 0;
-			if (armor && armor[s]) b += armor[s];
-			if (ring && ring[s]) b += ring[s];
+			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s]) b += it[s];
+			if (setPieces >= 4 && Data.SET_BONUS[s]) b += Data.SET_BONUS[s];
 			return b;
 		}
 
-		public function get maxHp():int { return int(stats.hp) + bonus("hp"); }
-		public function get maxMp():int { return int(stats.mp) + bonus("mp"); }
-		public function get att():int { return int(stats.att) + bonus("att"); }
-		public function get def():int { return int(stats.def) + bonus("def"); }
-		public function get spd():int { return int(stats.spd) + bonus("spd"); }
-		public function get dex():int { return int(stats.dex) + bonus("dex"); }
-		public function get vit():int { return int(stats.vit) + bonus("vit"); }
-		public function get wis():int { return int(stats.wis) + bonus("wis"); }
+		public function stat(s:String):int { return int(stats[s] || 0) + bonus(s); }
+
+		public function get maxHp():int { return stat("hp"); }
+		public function get maxMp():int { return stat("mp"); }
+		public function get att():int { return stat("att"); }
+		public function get def():int { return stat("def"); }
+		public function get spd():int { return stat("spd"); }
+		public function get dex():int { return stat("dex"); }
+		public function get vit():int { return stat("vit"); }
+		public function get wis():int { return stat("wis"); }
+		public function get mgt():int { return stat("mgt"); }
+		public function get luc():int { return stat("luc"); }
+		public function get prt():int { return stat("prt"); }
+		public function get frt():int { return bonus("frt"); }
+		/** Every +1 Protection gives about +3 PT. */
+		public function get maxPt():int { return prt * 3; }
+		/** Base 5%, +1% per 10 Luck (and +10% from the Executioner passive). */
+		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon.passive == "critical" ? 0.1 : 0); }
+		/** Base x1.5, +0.1 per 10 Might. */
+		public function get critMult():Number { return 1.5 + mgt / 100; }
 		public function get fame():int { return int(totalXp / 8 + kills * 0.5 + bossKills * 150 + potsDrunk * 5); }
+
+		/** Count of the 11 potionable stats that are maxed ("11/11"). */
+		public function get maxedCount():int {
+			var n:int = 0;
+			for each (var s:String in Data.STATS) if (stats[s] >= cls.max[s]) n++;
+			return n;
+		}
 
 		/** Current animation frame bitmap. */
 		public function get sprite():BitmapData {
@@ -74,13 +109,15 @@ package realm {
 		}
 
 		public function get fireRate():Number {
-			return (1.5 + 6.5 * dex / 75) * weapon.rate;
+			return (1.5 + 6.5 * dex / 75) * weapon.rate * (berserkT > 0 ? 1.5 : 1);
 		}
 
 		public function update(dt:Number, g:Game):void {
 			var inp:Input = g.input;
 			var w:World = g.world;
 			if (invulnT > 0) invulnT -= dt;
+			if (invisT > 0) invisT -= dt;
+			if (berserkT > 0) berserkT -= dt;
 			if (hitT > 0) hitT -= dt;
 			if (shootT > 0) shootT -= dt;
 			if (attackT > 0) attackT -= dt;
@@ -93,7 +130,7 @@ package realm {
 			if (inp.isDown(Keyboard.A) || inp.isDown(Keyboard.LEFT)) mx -= 1;
 			if (inp.isDown(Keyboard.D) || inp.isDown(Keyboard.RIGHT)) mx += 1;
 			if (mx != 0 && my != 0) { mx *= 0.7071; my *= 0.7071; }
-			var speed:Number = 4 + 5.6 * (spd / 75);
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;
@@ -146,6 +183,7 @@ package realm {
 			// --- regen
 			hp = Math.min(maxHp, hp + (1 + vit * 0.12) * dt);
 			mp = Math.min(maxMp, mp + (0.5 + wis * 0.06) * dt);
+			if (pt > maxPt) pt = maxPt;
 		}
 
 		private function shoot(g:Game):void {
@@ -168,6 +206,14 @@ package realm {
 				var dmg:int = int((w.dmin + Math.random() * (w.dmax - w.dmin)) * mult);
 				g.addShot(new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25, frames, w.pierce, name, null));
 			}
+			// Rampage passive: every 12th shot also fires a ring
+			if (w.passive == "rampage" && ++shotCount % 12 == 0) {
+				var ring:Vector.<BitmapData> = Sprites.projectile("star", w.col, 3);
+				for (k = 0; k < 10; k++) {
+					var dmg2:int = int((w.dmin + w.dmax) / 2 * mult);
+					g.addShot(new Projectile(x, y, k * Math.PI / 5, w.spd * 0.8, w.life, dmg2, false, 0.25, ring, true, name, null, true));
+				}
+			}
 		}
 
 		private function useAbility(g:Game):void {
@@ -181,11 +227,11 @@ package realm {
 			var pow:Number = ability.power;
 			var i:int, a:Number, dmg:int;
 			var ang:Number = Math.atan2(aimY - y, aimX - x);
-			switch (cls.id) {
-				case "wizard":
-					var dx:Number = aimX - x, dy:Number = aimY - y;
-					var d:Number = Math.sqrt(dx * dx + dy * dy);
-					if (d > 9) { dx *= 9 / d; dy *= 9 / d; }
+			var dx:Number = aimX - x, dy:Number = aimY - y;
+			var d:Number = Math.sqrt(dx * dx + dy * dy);
+			if (d > 9) { dx *= 9 / d; dy *= 9 / d; }
+			switch (cls.abilityType) {
+				case "spell":
 					dmg = (55 + level * 7) * pow;
 					var bolt:Vector.<BitmapData> = Sprites.projectile("bolt", 0xff8040, 4);
 					for (i = 0; i < 20; i++) {
@@ -194,11 +240,11 @@ package realm {
 					}
 					g.burst(x + dx, y + dy, 0xff8040, 16);
 					break;
-				case "archer":
+				case "quiver":
 					dmg = (100 + level * 12) * pow;
 					g.addShot(new Projectile(x, y, ang, 17, 0.75, dmg, false, 0.4, Sprites.projectile("arrow", 0xffff80, 7), true, name, "slow"));
 					break;
-				case "knight":
+				case "shield":
 					var n:int = g.stunAround(x, y, 3.5, 2.5 * Math.sqrt(pow));
 					dmg = (40 + level * 5) * pow;
 					var blade:Vector.<BitmapData> = Sprites.projectile("blade", 0xffffff, 4);
@@ -209,7 +255,7 @@ package realm {
 					g.burst(x, y, 0xffffff, 16);
 					if (n > 0) g.floatText(x, y - 1.2, "Stunned x" + n, 0xffff60);
 					break;
-				case "priest":
+				case "tome":
 					var amount:int = (80 + level * 8) * pow;
 					var heal:int = Math.min(amount, maxHp - int(hp));
 					hp = Math.min(maxHp, hp + amount);
@@ -222,11 +268,32 @@ package realm {
 					}
 					g.burst(x, y, 0xffffa0, 16);
 					break;
+				case "cloak":
+					invisT = 3 * Math.sqrt(pow);
+					g.floatText(x, y - 1.2, "Invisible", 0xc0a0ff);
+					g.burst(x, y, 0x8060c0, 14);
+					break;
+				case "helm":
+					berserkT = 5 * Math.sqrt(pow);
+					g.floatText(x, y - 1.2, "Berserk!", 0xff5040);
+					g.burst(x, y, 0xff4030, 14);
+					break;
+				case "skull":
+					dmg = (70 + level * 8) * pow;
+					var hits:int = g.blastAt(x + dx, y + dy, 3, dmg);
+					var drain:int = Math.min(maxHp - int(hp), 15 * hits + 20);
+					hp = Math.min(maxHp, hp + drain);
+					if (drain > 0) g.floatText(x, y - 1.2, "+" + drain, 0x60ff60);
+					g.burst(x + dx, y + dy, 0xa0ff60, 24);
+					break;
+				case "trap":
+					g.throwTrap(x, y, x + dx, y + dy, int((60 + level * 7) * pow));
+					break;
 			}
 		}
 
 		public function drinkHp(g:Game, fromInv:Boolean = false):Boolean {
-			if (!fromInv && hpPots <= 0) { g.msg("No health potions! Find them in loot bags.", 0xff8080); return false; }
+			if (!fromInv && hpPots <= 0) { g.msg("No health potions! Buy them at the Marketplace.", 0xff8080); return false; }
 			if (hp >= maxHp) { g.msg("HP is already full.", 0xaaaaaa); return false; }
 			if (!fromInv) hpPots--;
 			var before:int = int(hp);
@@ -236,7 +303,7 @@ package realm {
 		}
 
 		public function drinkMp(g:Game, fromInv:Boolean = false):Boolean {
-			if (!fromInv && mpPots <= 0) { g.msg("No magic potions!", 0x8080ff); return false; }
+			if (!fromInv && mpPots <= 0) { g.msg("No magic potions! Buy them at the Marketplace.", 0x8080ff); return false; }
 			if (mp >= maxMp) { g.msg("MP is already full.", 0xaaaaaa); return false; }
 			if (!fromInv) mpPots--;
 			var before:int = int(mp);
@@ -274,10 +341,14 @@ package realm {
 				case "stat":
 					if (drinkStat(item.sub, g)) inv[idx] = null;
 					return;
+				case "material":
+					g.msg("Take Sor Crystals to the Sor Forge in the Nexus.", 0xc080ff);
+					return;
 			}
 			hp = Math.min(hp, maxHp);
 			mp = Math.min(mp, maxMp);
-			g.msg("Equipped " + item.name, 0xffffff);
+			g.msg("Equipped " + item.name, item.rarity ? Data.RARITY_COLORS[item.rarity] : 0xffffff);
+			if (setPieces >= 4) g.msg("Valorous Set bonus active!", 0xff9a2e);
 		}
 
 		public function drinkStat(s:String, g:Game):Boolean {
@@ -286,7 +357,7 @@ package realm {
 			var amt:int = (s == "hp" || s == "mp") ? 5 : 1;
 			stats[s] = Math.min(max, stats[s] + amt);
 			potsDrunk++;
-			g.msg("+" + amt + " " + Data.STAT_NAMES[s] + (stats[s] >= max ? " (MAXED!)" : ""), Data.STAT_COLORS[s]);
+			g.msg("+" + amt + " " + Data.STAT_NAMES[s] + (stats[s] >= max ? " (MAXED!)" : "") + "   " + maxedCount + "/11", Data.STAT_COLORS[s]);
 			g.floatText(x, y - 1.2, "+" + amt + " " + Data.STAT_NAMES[s], Ui.GOLD);
 			return true;
 		}
@@ -295,6 +366,16 @@ package realm {
 		public function freeSlot():int {
 			for (var i:int = 0; i < inv.length; i++) if (!inv[i]) return i;
 			return -1;
+		}
+
+		/** Surge: +2 for each enemy killed near you; at 100 it refills Protection. */
+		public function addSurge(g:Game):void {
+			surge += 2;
+			if (surge >= SURGE_MAX) {
+				surge = 0;
+				pt = maxPt;
+				g.floatText(x, y - 1.4, "Surge!", 0xf0f0ff);
+			}
 		}
 
 		public function gainXp(amount:int, g:Game):void {
@@ -306,7 +387,7 @@ package realm {
 				level++;
 				xpNext = 30 + level * 30;
 				for each (var s:String in Data.STATS) {
-					stats[s] = Math.min(cls.max[s], stats[s] + cls.grow[s] * (0.8 + Math.random() * 0.4));
+					stats[s] = Math.min(cls.max[s], stats[s] + Data.grow(cls, s) * (0.8 + Math.random() * 0.4));
 				}
 				hp = maxHp;
 				mp = maxMp;
@@ -320,6 +401,16 @@ package realm {
 		public function takeHit(raw:int, src:String, g:Game):void {
 			if (invulnT > 0) return;
 			var d:int = Math.max(raw - def, int(raw * 0.15));
+			// Protection absorbs damage first
+			if (pt > 0) {
+				var absorbed:int = Math.min(int(pt), d);
+				pt -= absorbed;
+				d -= absorbed;
+				if (d <= 0) {
+					g.floatText(x, y - 1.1, "-" + absorbed, 0xd8d8e8);
+					return;
+				}
+			}
 			hp -= d;
 			hitT = 0.12;
 			lastHitBy = src;

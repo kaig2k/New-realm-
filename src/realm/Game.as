@@ -4,6 +4,7 @@ package realm {
 	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.MouseEvent;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
@@ -18,7 +19,8 @@ package realm {
 		private static const CX:int = VIEW_W / 2;
 		private static const CY:int = VIEW_H / 2 + 20;
 		private static const MAX_ENEMIES_NEAR:int = 15;
-		public static const SOVEREIGN:String = "Mad Sovereign";
+		public static const SOVEREIGN:String = Data.OVERLORD;
+		public static const LG_THRESHOLD:Number = 5;
 
 		private static const TAUNTS:Array = [
 			"You are but an insect in my realm!",
@@ -36,11 +38,18 @@ package realm {
 		public var parts:Vector.<Particle> = new Vector.<Particle>();
 		public var nearBag:LootBag;
 		public var nexusWorld:World;
+		public var arenaWorld:World;
 		/** Realms reachable from the nexus portals (created on first entry). */
 		public var realms:Array = [null, null, null];
 		public var realmNames:Array = [];
-		private var portals:Array = [];
 		private var nearPortal:Object;
+		private var stations:Array = [];
+		private var nearStation:Object;
+		private var stationPanel:Sprite;
+		private var openStation:Object;
+		private var traps:Array = [];
+		private var goldTf:TextField, onraneTf:TextField;
+		private var thresholdTf:TextField;
 		private var vaultBag:LootBag;
 		private var vaultLabel:TextField;
 		private var promptPanel:Sprite;
@@ -137,15 +146,19 @@ package realm {
 		}
 
 		private function buildCounters():void {
-			var fameIcon:Bitmap = new Bitmap(Sprites.get("fame"));
-			var skull:Bitmap = new Bitmap(Sprites.get("skull"));
-			fameTf = Ui.text(17, 0xffffff, true, "right", 120, true);
-			killTf = Ui.text(17, 0xffffff, true, "right", 120, true);
-			fameTf.x = VIEW_W - 160; fameTf.y = 8;
-			killTf.x = VIEW_W - 160; killTf.y = 32;
-			fameIcon.x = VIEW_W - 36; fameIcon.y = 10;
-			skull.x = VIEW_W - 36; skull.y = 34;
-			addChild(fameTf); addChild(killTf); addChild(fameIcon); addChild(skull);
+			var icons:Array = ["fame", "gold", "onrane", "skull"];
+			var tfs:Array = [];
+			for (var i:int = 0; i < 4; i++) {
+				var col:int = i % 2, row:int = int(i / 2);
+				var tf:TextField = Ui.text(16, 0xffffff, true, "right", 90, true);
+				tf.x = VIEW_W - 250 + col * 122; tf.y = 6 + row * 22;
+				var ic:Bitmap = new Bitmap(Sprites.get(icons[i]));
+				ic.scaleX = ic.scaleY = 0.7;
+				ic.x = tf.x + 92; ic.y = tf.y + 2;
+				addChild(tf); addChild(ic);
+				tfs.push(tf);
+			}
+			fameTf = tfs[0]; goldTf = tfs[1]; onraneTf = tfs[2]; killTf = tfs[3];
 		}
 
 		private function buildBossPanel():void {
@@ -168,9 +181,12 @@ package realm {
 			dmgTf = Ui.text(14, 0xffffff, true, "left", 244, true);
 			dmgTf.x = 40; dmgTf.y = 52;
 			bossPanel.addChild(dmgTf);
-			bossInfo = Ui.text(11, 0x7fd07f, true, "center", 290, true);
-			bossInfo.y = 78;
+			bossInfo = Ui.text(11, 0xaaaaaa, true, "left", 140, true);
+			bossInfo.x = 12; bossInfo.y = 78;
 			bossPanel.addChild(bossInfo);
+			thresholdTf = Ui.text(11, 0x7fd07f, true, "right", 140, true);
+			thresholdTf.x = 138; thresholdTf.y = 78;
+			bossPanel.addChild(thresholdTf);
 			bossPanel.x = 10; bossPanel.y = 10;
 			bossPanel.visible = false;
 			bossPanel.mouseEnabled = bossPanel.mouseChildren = false;
@@ -182,21 +198,18 @@ package realm {
 		public function get bags():Vector.<LootBag> { return world.bags; }
 		public function get boss():Enemy { return world.boss; }
 		public function set boss(e:Enemy):void { world.boss = e; }
-		public function get killsToBoss():int { return world.killsToBoss; }
-		public function set killsToBoss(n:int):void { world.killsToBoss = n; }
-		public function get bossGoal():int { return world.bossGoal; }
-		public function set bossGoal(n:int):void { world.bossGoal = n; }
+		public function get gold():int { return int(Save.data.gold || 0); }
+		public function get onrane():int { return int(Save.data.onrane || 0); }
+		public function addGold(n:int):void { Save.data.gold = gold + n; }
+		public function addOnrane(n:int):void { Save.data.onrane = onrane + n; }
+		public function get nearMarket():Boolean { return nearStation != null && nearStation.kind == "market"; }
 		public function get inNexus():Boolean { return world == nexusWorld; }
 
 		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a];
 
 		private function buildNexus():void {
 			var px:Array = [90.5, 100.5, 110.5];
-			for (var i:int = 0; i < 3; i++) {
-				var lab:TextField = Ui.text(13, 0xffffff, true, "center", 160, true);
-				addChildAt(lab, getChildIndex(floatLayer));
-				portals.push({x: px[i], y: 84.2, idx: i, label: lab});
-			}
+			for (var i:int = 0; i < 3; i++) addPortal(nexusWorld, px[i], 84.2, "realm", i, PORTAL_COLORS[i]);
 			var saved:Array = Save.data.vault as Array;
 			var items:Array = [];
 			if (saved) for each (var it:Object in saved) if (it && items.length < LootBag.MAX) items.push(it);
@@ -204,22 +217,41 @@ package realm {
 			vaultBag.vault = true;
 			vaultBag.refresh();
 			nexusWorld.bags.push(vaultBag);
-			vaultLabel = Ui.text(13, Ui.GOLD, true, "center", 120, true);
-			vaultLabel.text = "Vault";
-			addChildAt(vaultLabel, getChildIndex(floatLayer));
+			vaultLabel = makeLabel("Vault", Ui.GOLD);
+
+			// Valor-style nexus stations: the Sor Forge (east) and the Marketplace (by the spawn)
+			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Sor Forge", 0xc080ff)});
+			stations.push({x: 106.5, y: 111.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f)});
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
 			promptTf = Ui.text(17, 0xffffff, true, "center", 280, true);
 			promptTf.y = 6;
 			promptPanel.addChild(promptTf);
-			var btn:Sprite = Ui.button("Enter", 120, 30, function():void { if (nearPortal) enterPortal(nearPortal.idx); });
+			var btn:Sprite = Ui.button("Enter", 120, 30, function():void { if (nearPortal) usePortal(nearPortal); });
 			btn.x = 80; btn.y = 40;
 			promptPanel.addChild(btn);
 			promptPanel.x = (VIEW_W - 280) / 2;
 			promptPanel.y = VIEW_H - 250;
 			promptPanel.visible = false;
 			addChild(promptPanel);
+
+			stationPanel = new Sprite();
+			stationPanel.visible = false;
+			addChild(stationPanel);
+		}
+
+		private function makeLabel(text:String, color:uint):TextField {
+			var lab:TextField = Ui.text(13, color, true, "center", 160, true);
+			lab.htmlText = text;
+			addChildAt(lab, getChildIndex(floatLayer));
+			return lab;
+		}
+
+		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint):void {
+			var lab:TextField = makeLabel("", 0xffffff);
+			lab.visible = w == world;
+			w.portals.push({x: x, y: y, kind: kind, idx: idx, color: color, label: lab});
 		}
 
 		private function saveVault():void {
@@ -230,8 +262,19 @@ package realm {
 		private function realmStatus(i:int):String {
 			var r:World = realms[i];
 			if (!r) return "New realm";
-			if (r.boss) return "Overlord is awake!";
-			return "Overlord " + (r.bossGoal - r.killsToBoss) + "/" + r.bossGoal;
+			if (r.closed) return "Closed - new realm";
+			if (r.boss) return r.boss.def.name + " is awake!";
+			return "Events " + r.eventsDone + "/" + Data.EVENTS_PER_REALM;
+		}
+
+		private function portalTitle(p:Object):String {
+			if (p.kind == "realm") return realmNames[p.idx] + " Realm";
+			return "Nexus";
+		}
+
+		public function usePortal(p:Object):void {
+			if (p.kind == "realm") enterPortal(p.idx);
+			else nexus();
 		}
 
 		/** Walk through a nexus portal into its realm. */
@@ -247,7 +290,7 @@ package realm {
 			switchWorld(r, r.spawnX, r.spawnY);
 			showBanner(r.name + " Realm", PORTAL_COLORS[i], 3);
 			msg("You have entered the " + r.name + " realm.", Ui.GOLD);
-			taunt(r.boss ? "My Overlord awaits you in the Godlands, fool!" : "Another fool enters my " + r.name + " realm...");
+			taunt(r.boss ? r.boss.def.name + " awaits you, fool!" : "Another fool enters my " + r.name + " realm...");
 		}
 
 		private function switchWorld(w:World, x:Number, y:Number):void {
@@ -265,8 +308,13 @@ package realm {
 			camY = y;
 			world.reveal(x, y, 14);
 			var nx:Boolean = inNexus;
-			for each (var p:Object in portals) p.label.visible = nx;
+			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld]) {
+				if (ow) for each (var p:Object in ow.portals) p.label.visible = ow == world;
+			}
+			for each (var st:Object in stations) st.label.visible = nx;
 			vaultLabel.visible = nx;
+			traps.length = 0;
+			closeStation();
 		}
 
 		private function onAdded(e:Event):void {
@@ -277,7 +325,7 @@ package realm {
 			showBanner("Nexus", 0xffffff, 2.5);
 			msg("Welcome to the Nexus, " + player.name + "!", Ui.GOLD);
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
-			msg("The fountain heals you. The vault (west) keeps items between characters.", 0xcccccc);
+			msg("The fountain heals you. Vault (west) stores items, Sor Forge (east) crafts Legendaries, Marketplace (south) buys and sells.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 		}
 
@@ -324,8 +372,12 @@ package realm {
 			updateBags(dt);
 			updateParticles(dt);
 			updateFloaters(dt);
-			if (!inNexus) updateSpawns(dt);
+			if (world.kind == "realm") {
+				updateSpawns(dt);
+				updateEvents(dt);
+			}
 			updateNexus(dt);
+			updateTraps(dt);
 
 			revealT -= dt;
 			if (revealT <= 0) {
@@ -333,7 +385,7 @@ package realm {
 				world.reveal(player.x, player.y, 14);
 			}
 
-			if (!inNexus) tauntT -= dt;
+			if (world.kind == "realm") tauntT -= dt;
 			if (tauntT <= 0) {
 				tauntT = 50 + Math.random() * 40;
 				taunt(TAUNTS[int(Math.random() * TAUNTS.length)]);
@@ -346,7 +398,7 @@ package realm {
 
 			var z:int = world.zoneAt(player.x, player.y);
 			if (z != lastZone && z >= 0) {
-				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd090ff, 0xffffff, 0xffffff][z], 2.5);
+				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd090ff, 0xffffff, 0xffffff, 0xff5050][z], 2.5);
 				lastZone = z;
 			}
 
@@ -357,18 +409,31 @@ package realm {
 		}
 
 		private function updateNexus(dt:Number):void {
+			// portals (nexus realm portals, or the exit portal in the Dark Elder's chamber)
+			nearPortal = null;
+			for each (var p:Object in world.portals) {
+				var dx:Number = p.x - player.x, dy:Number = p.y - player.y;
+				if (dx * dx + dy * dy < 1.3 * 1.3) nearPortal = p;
+			}
+			if (nearPortal && input.pressed(Keyboard.ENTER)) { usePortal(nearPortal); return; }
+
 			if (inNexus) {
 				// healing fountain
 				if (world.tileAt(player.x, player.y) == World.FOUNTAIN) {
 					player.hp = Math.min(player.maxHp, player.hp + player.maxHp * 0.6 * dt);
 					player.mp = Math.min(player.maxMp, player.mp + player.maxMp * 0.6 * dt);
+					player.pt = player.maxPt;
 				}
-				nearPortal = null;
-				for each (var p:Object in portals) {
-					var dx:Number = p.x - player.x, dy:Number = p.y - player.y;
-					if (dx * dx + dy * dy < 1.3 * 1.3) nearPortal = p;
+				var was:Object = nearStation;
+				nearStation = null;
+				for each (var st:Object in stations) {
+					var sx:Number = st.x - player.x, sy:Number = st.y - player.y;
+					if (sx * sx + sy * sy < 1.7 * 1.7) nearStation = st;
 				}
-				if (nearPortal && input.pressed(Keyboard.ENTER)) enterPortal(nearPortal.idx);
+				if (nearStation != was) {
+					if (nearStation) openStationPanel(nearStation);
+					else closeStation();
+				}
 			} else if (world.closeT > 0) {
 				var before:int = Math.ceil(world.closeT);
 				world.closeT -= dt;
@@ -377,9 +442,51 @@ package realm {
 				if (world.closeT <= 0) {
 					world.closed = true;
 					msg("The " + world.name + " realm has closed.", 0xff8080);
-					nexus();
+					enterArena();
 				}
 			}
+		}
+
+		// ------------------------------------------------------------ realm events
+		private function updateEvents(dt:Number):void {
+			if (world.closeT > 0 || world.closed || world.eventsDone >= Data.EVENTS_PER_REALM) return;
+			if (world.boss) return;
+			world.eventT -= dt;
+			if (world.eventT <= 0) spawnEvent();
+		}
+
+		/** Valor-style realm event: the overlord announces a boss somewhere inland. */
+		private function spawnEvent():void {
+			var id:String = Data.EVENTS[world.nextEvent % Data.EVENTS.length];
+			for (var tries:int = 0; tries < 500; tries++) {
+				var x:Number = World.N / 2 + (Math.random() - 0.5) * 120;
+				var y:Number = World.N / 2 + (Math.random() - 0.5) * 120;
+				var z:int = world.zoneAt(x, y);
+				if ((z == 2 || z == 3) && world.canStand(x, y, 0.6, true)) {
+					world.nextEvent++;
+					world.boss = new Enemy(id, x, y, z);
+					enemies.push(world.boss);
+					player.bossDmg = 0;
+					var nm:String = world.boss.def.name;
+					showBanner(nm + " has appeared!", 0xff70ff, 3.5);
+					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
+					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
+					return;
+				}
+			}
+			world.eventT = 5;
+		}
+
+		/** The realm has closed: the Dark Elder pulls you into his chamber. */
+		private function enterArena():void {
+			arenaWorld = new World("arena", "Dark Elder's Chamber");
+			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
+			player.invulnT = 3;
+			arenaWorld.boss = new Enemy("elder", 100.5, 91.5, World.ARENA_ZONE);
+			arenaWorld.enemies.push(arenaWorld.boss);
+			player.bossDmg = 0;
+			showBanner(Data.OVERLORD, 0xc060ff, 4);
+			say(SOVEREIGN, "So, you slew my champions. Now kneel before the Dark Elder!");
 		}
 
 		private function updateShots(dt:Number):void {
@@ -424,35 +531,124 @@ package realm {
 		}
 
 		private function damageEnemy(e:Enemy, s:Projectile):void {
-			var d:int = Math.max(s.dmg - e.defense, int(s.dmg * 0.15));
+			hurtEnemy(e, s.dmg, s.effect, s.x, s.y);
+		}
+
+		/** Player damage to an enemy: defense, crits (Luck/Might), weapon passives. */
+		public function hurtEnemy(e:Enemy, raw:int, effect:String, hx:Number, hy:Number):void {
+			if (e.dead) return;
+			var p:Player = player;
+			var crit:Boolean = Math.random() < p.critChance;
+			if (crit) raw = int(raw * p.critMult);
+			var d:int = Math.max(raw - e.defense, int(raw * 0.15));
 			if (d > e.hp) d = Math.ceil(e.hp);
 			e.hp -= d;
 			e.hitT = 0.08;
-			if (e.isBoss) player.bossDmg += d;
-			floatText(e.x, e.y - e.r - 0.6, String(d), 0xff4040);
-			if (s.effect == "slow") e.slowT = 3;
-			sparks(s.x, s.y, e.def.col, 2);
+			if (e.isBoss) p.bossDmg += d;
+			floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
+			if (effect == "slow") e.slowT = 3;
+			// Legendary passives (not from passive-spawned shards)
+			if (effect != "shard") {
+				switch (p.weapon.passive) {
+					case "lifesteal":
+						p.hp = Math.min(p.maxHp, p.hp + 4);
+						break;
+					case "frost":
+						if (Math.random() < 0.12) e.slowT = 2;
+						break;
+					case "shards":
+						if (Math.random() < 0.06) {
+							var fr:Vector.<BitmapData> = Sprites.projectile("star", 0xd8e040, 3);
+							for (var k:int = 0; k < 8; k++) {
+								shots.push(new Projectile(e.x, e.y, k * Math.PI / 4, 9, 0.5, int(raw * 0.6), false, 0.25, fr, true, p.name, "shard", true));
+							}
+						}
+						break;
+				}
+			}
+			sparks(hx, hy, e.def.col, 2);
 			if (e.hp <= 0) killEnemy(e);
+		}
+
+		/** Area damage (Necromancer skull). Returns number of enemies hit. */
+		public function blastAt(x:Number, y:Number, radius:Number, dmg:int):int {
+			var n:int = 0;
+			for each (var e:Enemy in enemies.concat()) {
+				var dx:Number = e.x - x, dy:Number = e.y - y;
+				if (!e.dead && dx * dx + dy * dy < radius * radius) {
+					hurtEnemy(e, dmg, null, e.x, e.y);
+					n++;
+				}
+			}
+			return n;
+		}
+
+		/** Huntress trap: lands at the target, arms, then bursts into slowing shards. */
+		public function throwTrap(fx:Number, fy:Number, tx:Number, ty:Number, dmg:int):void {
+			traps.push({x: tx, y: ty, t: 0.5, life: 6, dmg: dmg});
+			burst(tx, ty, 0xc0a060, 8);
+		}
+
+		private function updateTraps(dt:Number):void {
+			for (var i:int = traps.length - 1; i >= 0; i--) {
+				var t:Object = traps[i];
+				t.t -= dt;
+				t.life -= dt;
+				var fire:Boolean = t.life <= 0;
+				if (t.t <= 0 && !fire) {
+					for each (var e:Enemy in enemies) {
+						var dx:Number = e.x - t.x, dy:Number = e.y - t.y;
+						if (dx * dx + dy * dy < 2.2 * 2.2) { fire = true; break; }
+					}
+				}
+				if (fire) {
+					var fr:Vector.<BitmapData> = Sprites.projectile("dart", 0xe0c070, 3);
+					for (var k:int = 0; k < 16; k++) {
+						shots.push(new Projectile(t.x, t.y, k * Math.PI / 8, 8, 0.45, t.dmg, false, 0.25, fr, true, player.name, "slow"));
+					}
+					burst(t.x, t.y, 0xe0c070, 18);
+					traps.splice(i, 1);
+				}
+			}
 		}
 
 		private function killEnemy(e:Enemy):void {
 			e.dead = true;
-			player.kills++;
-			player.gainXp(e.def.xp, this);
+			var p:Player = player;
+			p.kills++;
+			p.gainXp(e.def.xp, this);
 			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
+			var dx:Number = e.x - p.x, dy:Number = e.y - p.y;
+			if (dx * dx + dy * dy < 12 * 12) p.addSurge(this);
+
+			// currencies (account-wide, like Valor's gold and Onrane)
+			var g:int = e.def.gold || int(e.def.xp / 6);
+			if (g > 0) addGold(g);
+			if (e.def.onrane) addOnrane(e.def.onrane);
+			if (e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " onrane", Ui.GOLD);
+
 			if (e.isBoss) {
-				player.bossKills++;
-				boss = null;
-				showBanner("The Cube Overlord has fallen!", Ui.GOLD, 4);
-				say(SOVEREIGN, "Impossible... my Overlord! You will pay for this!");
-				msg("A white bag has dropped! The realm closes in 30 seconds - grab your loot.", 0xffffff);
-				world.closeT = 30;
-				killsToBoss = bossGoal = 60;
-			} else if (!boss && e.def.drop > 0) {
-				killsToBoss--;
-				if (killsToBoss <= 0) spawnBoss();
+				p.bossKills++;
+				world.boss = null;
+				if (e.def.final) {
+					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 5);
+					say(SOVEREIGN, "This... is not... the end...");
+					msg("Fabled loot has dropped! Take the portal back to the Nexus when you're ready.", 0xff6060);
+					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
+				} else {
+					world.eventsDone++;
+					world.eventT = 20 + Math.random() * 10;
+					say(SOVEREIGN, e.def.name + " has been killed! [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "][Realm: " + world.name + "]");
+					if (world.eventsDone >= Data.EVENTS_PER_REALM) {
+						say(SOVEREIGN, "Enough! You have slain my champions. The realm is closing... come to me!");
+						showBanner("The realm is closing!", 0xff5050, 4);
+						world.closeT = 15;
+					}
+				}
+			} else if (world.kind == "realm" && !world.boss && e.def.drop > 0) {
+				world.eventT -= 1.2; // killing speeds up the next event
 			}
-			var items:Array = Data.rollLoot(e.def, Math.max(0, e.zone), player.cls);
+			var items:Array = Data.rollLoot(e.def, Math.max(0, Math.min(3, e.zone)), p.cls, p.frt);
 			if (items.length) {
 				while (items.length > LootBag.MAX) items.pop();
 				bags.push(new LootBag(e.x, e.y, items));
@@ -544,25 +740,11 @@ package realm {
 			return e;
 		}
 
-		private function spawnBoss():void {
-			for (var tries:int = 0; tries < 400; tries++) {
-				var x:Number = World.N / 2 + (Math.random() - 0.5) * 50;
-				var y:Number = World.N / 2 + (Math.random() - 0.5) * 50;
-				if (world.zoneAt(x, y) == 3 && world.canStand(x, y, 0.5, true)) {
-					boss = new Enemy("boss", x, y, 3);
-					enemies.push(boss);
-					player.bossDmg = 0;
-					showBanner("The Cube Overlord has appeared in the Godlands!", 0xff70ff, 4);
-					say(SOVEREIGN, "My Cube Overlord will crush you, insects! Face it in the Godlands!");
-					msg("Find it on the minimap (magenta marker). It guards a white bag.", 0xff70ff);
-					return;
-				}
-			}
-		}
 
 		public function bossPhase(phase:int):void {
-			if (phase == 1) say("Cube Overlord", "You dare wound me? Rise, my cubelets!");
-			else if (phase == 2) say("Cube Overlord", "ENOUGH! Feel the full wrath of the Cube!");
+			var nm:String = world.boss ? world.boss.def.name : "The boss";
+			if (phase == 1) say(nm, "You dare wound me? Feel my power!");
+			else if (phase == 2) say(nm, "ENOUGH! I will end you!");
 		}
 
 		private function die():void {
@@ -572,6 +754,7 @@ package realm {
 			var best:Boolean = fame > (save.bestFame || 0);
 			if (best) save.bestFame = fame;
 			save.deaths = (save.deaths || 0) + 1;
+			save.fame = (save.fame || 0) + fame;
 			if (!save.bestLevel) save.bestLevel = {};
 			if (p.level > (save.bestLevel[p.cls.id] || 0)) save.bestLevel[p.cls.id] = p.level;
 			Save.flush();
@@ -604,6 +787,8 @@ package realm {
 			switchWorld(nexusWorld, nexusWorld.spawnX, nexusWorld.spawnY);
 			player.hp = player.maxHp;
 			player.mp = player.maxMp;
+			player.pt = player.maxPt;
+			Save.flush();
 			if (!wasNexus) showBanner("Nexus", 0xffffff, 2);
 			msg("You return to the Nexus. HP and MP restored.", 0xffffff);
 		}
@@ -627,7 +812,14 @@ package realm {
 			} else if (kind == "inv") {
 				item = p.inv[idx];
 				if (!item) return;
-				if (shift) {
+				if (shift && nearMarket) {
+					var value:int = Data.sellValue(item);
+					p.inv[idx] = null;
+					addGold(value);
+					Save.flush();
+					msg("Sold " + item.name + " for " + value + " gold.", Ui.GOLD);
+					refreshStation();
+				} else if (shift) {
 					p.inv[idx] = null;
 					dropAtPlayer(item);
 				} else {
@@ -650,6 +842,156 @@ package realm {
 			} else {
 				bags.push(new LootBag(player.x, player.y, [item]));
 			}
+		}
+
+		// ------------------------------------------------------------- nexus stations
+		private static const SHOP:Array = [
+			{id: "hp", name: "Health Potion", price: 50},
+			{id: "mp", name: "Magic Potion", price: 50},
+			{id: "stat", name: "Random Stat Potion", price: 450},
+			{id: "sor", name: "Sor Crystal", price: 900},
+			{id: "ut", name: "Mystery UT (your class)", price: 2500}
+		];
+
+		private function openStationPanel(st:Object):void {
+			openStation = st;
+			refreshStation();
+		}
+
+		private function closeStation():void {
+			openStation = null;
+			if (stationPanel) {
+				stationPanel.visible = false;
+				stationPanel.removeChildren();
+			}
+		}
+
+		/** Rebuilds the open station's panel (after buying / forging). */
+		public function refreshStation():void {
+			if (!openStation || !stationPanel) return;
+			var sp:Sprite = stationPanel;
+			sp.removeChildren();
+			sp.graphics.clear();
+			var w:int = 440, y:int = 10;
+			var title:TextField = Ui.text(20, openStation.kind == "forge" ? 0xc080ff : 0x6fe08f, true, "center", w, true);
+			title.text = openStation.kind == "forge" ? "Sor Forge" : "Marketplace";
+			title.y = y;
+			sp.addChild(title);
+			y += 32;
+			var info:TextField = Ui.text(13, 0xcccccc, false, "center", w - 20, true);
+			info.x = 10;
+			sp.addChild(info);
+			var i:int;
+			if (openStation.kind == "forge") {
+				var sors:int = 0;
+				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
+				info.htmlText = "Forge a <font color='#d8e040'><b>Legendary</b></font>: a UT, ST or FB item + 1 Sor Crystal + 100 Onrane\n" +
+					"You have <b>" + sors + "</b> Sor Crystal" + (sors == 1 ? "" : "s") + " and <b>" + onrane + "</b> Onrane. Click an item to forge it.";
+				info.y = y;
+				y += info.height + 8;
+				var n:int = 0;
+				for (i = 0; i < player.inv.length; i++) {
+					var item:Object = player.inv[i];
+					if (!item || !item.rarity || item.rarity == "lg" || item.rarity == "ar") continue;
+					sp.addChild(itemButton(item, 20 + n * 52, y, forgeFn(i)));
+					n++;
+				}
+				if (n == 0) {
+					var none:TextField = Ui.text(13, 0x888888, false, "center", w - 20);
+					none.x = 10; none.y = y + 10;
+					none.text = "No UT, ST or FB items in your inventory.";
+					sp.addChild(none);
+				}
+				y += 56;
+			} else {
+				info.htmlText = "You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.  Shift+click inventory items to sell them.";
+				info.y = y;
+				y += info.height + 8;
+				for (i = 0; i < SHOP.length; i++) {
+					var e:Object = SHOP[i];
+					var b:Sprite = Ui.button(e.name + "  -  " + Ui.commas(e.price) + "g", 205, 30, buyFn(e), 13);
+					b.x = 12 + (i % 2) * 211;
+					b.y = y + int(i / 2) * 36;
+					sp.addChild(b);
+				}
+				y += int((SHOP.length + 1) / 2) * 36 + 4;
+			}
+			Ui.panel(sp.graphics, 0, 0, w, y + 6, 0x222222, 0x6a6a6a, 0.95);
+			sp.x = (VIEW_W - w) / 2;
+			sp.y = 60;
+			sp.visible = true;
+		}
+
+		private function itemButton(item:Object, x:int, y:int, onClick:Function):Sprite {
+			var b:Sprite = new Sprite();
+			b.graphics.lineStyle(1, 0x1a1a1a);
+			b.graphics.beginFill(0x545454);
+			b.graphics.drawRoundRect(0, 0, 48, 48, 10, 10);
+			b.graphics.endFill();
+			var bmp:Bitmap = new Bitmap(Sprites.icon(item));
+			bmp.x = 6; bmp.y = 6;
+			b.addChild(bmp);
+			var tag:TextField = Ui.text(12, Data.tierColor(item), true, "right", 30, true);
+			tag.text = Data.tierLabel(item);
+			tag.x = 15; tag.y = 29;
+			b.addChild(tag);
+			b.x = x; b.y = y;
+			b.buttonMode = true;
+			b.mouseChildren = false;
+			b.addEventListener(MouseEvent.CLICK, function(ev:*):void { onClick(); });
+			return b;
+		}
+
+		private function forgeFn(slot:int):Function {
+			return function():void { forge(slot); };
+		}
+
+		private function buyFn(e:Object):Function {
+			return function():void { buy(e); };
+		}
+
+		/** Sor Forge: UT/ST/FB item + Sor Crystal + 100 Onrane -> Legendary. */
+		private function forge(slot:int):void {
+			var item:Object = player.inv[slot];
+			if (!item) return;
+			var sorSlot:int = -1;
+			for (var i:int = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "material") { sorSlot = i; break; }
+			if (sorSlot < 0) { msg("You need a Sor Crystal (event bosses drop them, or buy one at the Marketplace).", 0xff8080); return; }
+			if (onrane < 100) { msg("You need 100 Onrane (" + onrane + " now). Event bosses drop Onrane.", 0xff8080); return; }
+			addOnrane(-100);
+			player.inv[sorSlot] = null;
+			var lg:Object = Data.forgeLegendary(item, player.cls);
+			player.inv[slot] = lg;
+			Save.flush();
+			showBanner("Forged " + lg.name + "!", Data.RARITY_COLORS.lg, 3);
+			msg("The Sor Forge blazes... you forged " + lg.name + "!", Data.RARITY_COLORS.lg);
+			burst(player.x, player.y, 0xd8e040, 30);
+			refreshStation();
+		}
+
+		private function buy(e:Object):void {
+			if (gold < e.price) { msg("Not enough gold for " + e.name + ".", 0xff8080); return; }
+			var item:Object;
+			switch (e.id) {
+				case "hp":
+					if (player.hpPots < Player.MAX_POTS) { player.hpPots++; break; }
+					item = Data.makePotion("hp"); break;
+				case "mp":
+					if (player.mpPots < Player.MAX_POTS) { player.mpPots++; break; }
+					item = Data.makePotion("mp"); break;
+				case "stat": item = Data.makePotion("stat", Data.randomStat()); break;
+				case "sor": item = Data.makeSor(); break;
+				case "ut": item = Data.makeForSlot(player.cls, int(Math.random() * 4), 7, "ut"); break;
+			}
+			if (item) {
+				var slot:int = player.freeSlot();
+				if (slot < 0) { msg("Inventory full!", 0xff8080); return; }
+				player.inv[slot] = item;
+			}
+			addGold(-e.price);
+			Save.flush();
+			msg("Bought " + (item ? item.name : e.name) + ".", Ui.GOLD);
+			refreshStation();
 		}
 
 		// ------------------------------------------------------------- effects
@@ -715,10 +1057,12 @@ package realm {
 		private function updateOverlays():void {
 			fameTf.text = Ui.commas(player.fame);
 			killTf.text = Ui.commas(player.kills);
-			statusTf.text = player.burning ? "Burning!" : "";
+			goldTf.text = Ui.commas(gold);
+			onraneTf.text = Ui.commas(onrane);
+			statusTf.text = player.burning ? "Burning!" : player.invisT > 0 ? "Invisible" : player.berserkT > 0 ? "Berserk" : "";
 			promptPanel.visible = nearPortal != null;
 			if (nearPortal) {
-				promptTf.htmlText = realmNames[nearPortal.idx] + " Realm<font size='13' color='#aaaaaa'>  -  press Enter</font>";
+				promptTf.htmlText = portalTitle(nearPortal) + "<font size='13' color='#aaaaaa'>  -  press Enter</font>";
 			}
 			statusTf.x = CX - 100;
 			statusTf.y = CY - 76;
@@ -750,6 +1094,9 @@ package realm {
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
 				bossInfo.text = "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				var met:Boolean = pct >= LG_THRESHOLD;
+				thresholdTf.text = "LG: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
+				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
 			}
 		}
 
@@ -774,19 +1121,30 @@ package realm {
 				drawEntity(Sprites.get(b.spr), b.x * TS + ox, b.y * TS + oy, 0);
 			}
 
-			// nexus portals and labels
+			// portals and labels
+			for each (var p:Object in world.portals) {
+				var pcx:Number = p.x * TS + ox, pcy:Number = p.y * TS + oy;
+				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
+				var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
+				var lab:TextField = p.label;
+				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>" : "Nexus";
+				lab.x = int(pcx - lab.width / 2);
+				lab.y = int(ptop - lab.height - 2);
+			}
 			if (inNexus) {
-				for each (var p:Object in portals) {
-					var pcx:Number = p.x * TS + ox, pcy:Number = p.y * TS + oy;
-					var pbd:BitmapData = Sprites.portal(PORTAL_COLORS[p.idx], int(time * 8));
-					var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
-					var lab:TextField = p.label;
-					lab.htmlText = realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>";
-					lab.x = int(pcx - lab.width / 2);
-					lab.y = int(ptop - lab.height - 2);
-				}
 				vaultLabel.x = int(vaultBag.x * TS + ox - vaultLabel.width / 2);
 				vaultLabel.y = int(vaultBag.y * TS + oy - 58);
+				for each (var st:Object in stations) {
+					var stop:Number = drawEntity(Sprites.get(st.spr), st.x * TS + ox, st.y * TS + oy, 0);
+					st.label.x = int(st.x * TS + ox - st.label.width / 2);
+					st.label.y = int(stop - st.label.height);
+				}
+			}
+			var trapIcon:BitmapData = Sprites.icon({kind: "ability", sub: "trap", tier: 0});
+			for each (var tr:Object in traps) {
+				pt.x = int(tr.x * TS + ox - trapIcon.width / 2);
+				pt.y = int(tr.y * TS + oy - trapIcon.height / 2);
+				canvas.copyPixels(trapIcon, trapIcon.rect, pt, null, null, true);
 			}
 
 			// y-sorted: world objects, enemies, player

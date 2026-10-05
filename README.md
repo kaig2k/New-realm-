@@ -53,34 +53,34 @@ inventory item to equip or drink it, and shift+click to drop it.
 
 ## Features
 
-- **4 classes**: Wizard (twin-bolt staff, Spell Bomb), Archer (piercing arrows, slowing
-  Quiver), Knight (sword, stunning Shield Bash) and Priest (wand, Holy Tome heal).
-- **The Nexus hub.** Every character starts in the Nexus: a walled stone hall with red
-  carpets, braziers and a healing fountain. Three portals along the north wall each lead
-  to their own realm, and their labels show the realm's Overlord progress. Press R (or
-  the temple button) to return from anywhere. The **vault** chest on the west side stores
-  up to 8 items that carry over between characters: shift+click an inventory item while
-  standing at the vault to deposit it, and click a vault item to take it out. After you
-  kill a realm's Cube Overlord, that realm closes 30 seconds later and its portal opens
-  a fresh realm.
-- **Procedurally generated island realms.** Difficulty rises as you head inland:
-  Shore → Lowlands → Midlands → Godlands. Brick ruins are scattered inland, and the
-  Godlands ruins have lava rivers that burn you. You start in the Safe Haven, where
-  enemies and their bullets can't reach you.
-- **14 monster types** with different movement (chase, orbit, wander, charge) and bullet
-  patterns (aimed spreads, rings, spirals).
-- **Cube Overlord boss.** It appears in the Godlands after enough kills, fights in three
-  phases (spirals, rings with summoned cubelets, an enraged bullet storm), and drops
-  a white bag with UT gear.
-- **Loot**: T0–T7 weapons, abilities and armour, rings (T0–T5) and UT items. Bag colour shows rarity
-  (brown → purple → cyan → white). There are also health/magic potions and stat potions
-  that permanently raise stats up to each class's max.
-- **Levels 1–20** with per-class stat growth, RotMG-style defence and dexterity formulas.
-- **Permadeath and fame.** When you die, the death screen shows who killed you and the
-  fame you earned. Your best fame and best level per class are saved.
-- **RotMG-style HUD**: fog-of-war minimap with zoom, Lvl/Fame/HP/MP bars, 4 equipment
-  slots (weapon, ability, armour, ring), Items/Stats tabs, potion counters, loot bag panel,
-  item tooltips, a boss damage tracker, and a chat log with taunts from the Mad Sovereign.
+The game is modelled closely on **Valor**, the RotMG private server. Its systems come from
+the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel art are original.
+
+- **8 classes with Valor's stat tables**: Wizard (Spell), Archer (Quiver), Knight (Shield),
+  Priest (Tome), Rogue (Cloak, invisibility), Warrior (Helm, berserk), Necromancer (Skull,
+  life-draining blast) and Huntress (Trap).
+- **11 maxable stats ("11/11")**: the vanilla 8 plus Valor's **Might** (crit damage, +0.1x per
+  10), **Luck** (crit chance, +1% per 10) and **Protection**. Gear can also add **Fortune**
+  (+1% loot chance per point).
+- **PT and SG bars**: Protection fills a white **PT** shield (about 3 PT per point) that
+  absorbs damage before HP. **Surge** gains +2 for each kill near you and refills PT at 100.
+- **Valor item tiers**: T0-T7, then **UT**, **ST** (set items; 4 pieces give a set bonus),
+  **FB** (Fabled), **LG** (Legendary, with passives such as Lifebloom, Shardstorm,
+  Frostbite, Executioner and Rampage) and **AR** (Ancient Relic). Each has its own coloured
+  tag and loot bag.
+- **Currencies**: account-wide **Gold** and **Onrane**, plus account Fame.
+- **The Nexus**: realm portals, a healing fountain, the vault, the **Sor Forge** (a UT, ST
+  or FB item + a Sor Crystal + 100 Onrane = a Legendary) and the **Marketplace** (buy
+  potions, stat potions, Sor Crystals and mystery UTs, and shift+click items to sell them).
+- **Realm events**: the realm's overlord, *Azrakor the Dark Elder*, keeps summoning event
+  bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King) and announces each kill in
+  chat as `[3/6][Realm: Medusa]`. Clear all 6 events and the realm closes. You're pulled
+  into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
+  for Fabled, Legendary and Relic loot.
+- **Boss damage meter** with your damage share and the LG threshold.
+- Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick
+  ruins and lava.
+- Permadeath. Fame from a dead character is added to your account.
 
 ## Code layout
 

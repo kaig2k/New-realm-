@@ -87,11 +87,11 @@ package realm {
 			g.lineStyle();
 		}
 
-		public static function button(label:String, w:int, h:int, onClick:Function):Sprite {
+		public static function button(label:String, w:int, h:int, onClick:Function, size:int = 18):Sprite {
 			var b:Sprite = new Sprite();
 			var bg:Shape = new Shape();
 			b.addChild(bg);
-			var tf:TextField = text(18, 0xffffff, true, "center", w, true);
+			var tf:TextField = text(size, 0xffffff, true, "center", w, true);
 			tf.text = label;
 			tf.y = (h - tf.height) / 2;
 			b.addChild(tf);

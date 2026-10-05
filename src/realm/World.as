@@ -13,12 +13,13 @@ package realm {
 		public static const PX:int = 8;
 
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
-		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12;
+		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12, ARENA:int = 13, BLOODSTONE:int = 14;
+		public static const ARENA_ZONE:int = 6;
 		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier"];
 		public static const NEXUS_ZONE:int = 5;
 
 		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
-			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8];
+			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -45,6 +46,12 @@ package realm {
 		public var bossGoal:int = 40;
 		public var closeT:Number = 0;
 		public var closed:Boolean = false;
+		// realm events (Valor): announced bosses; clear them all to face the Dark Elder
+		public var eventsDone:int = 0;
+		public var eventT:Number = 25;
+		public var nextEvent:int = 0;
+		/** Portals standing in this world: {x, y, kind, idx, color, label}. */
+		public var portals:Array = [];
 
 		private var noise:Vector.<Number>;
 		private var noiseW:int;
@@ -54,6 +61,7 @@ package realm {
 			this.kind = kind;
 			this.name = name;
 			if (kind == "nexus") generateNexus();
+			else if (kind == "arena") generateArena();
 			else generate();
 			render();
 			seen = new BitmapData(N, N, true, 0);
@@ -161,6 +169,27 @@ package realm {
 			spawnY = 110.5;
 		}
 
+		/** The Dark Elder's chamber: white patterned floor ringed by red striped stone. */
+		private function generateArena():void {
+			var x:int, y:int, i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			var x0:int = 84, x1:int = 116, y0:int = 82, y1:int = 118;
+			for (y = y0; y <= y1; y++) {
+				for (x = x0; x <= x1; x++) {
+					i = y * N + x;
+					zones[i] = ARENA_ZONE;
+					var edge:int = Math.min(Math.min(x - x0, x1 - x), Math.min(y - y0, y1 - y));
+					tiles[i] = edge == 0 ? WALL : edge <= 3 ? BLOODSTONE : ARENA;
+				}
+			}
+			// a band of bloodstone across the hall, like a throne-room runner
+			for (y = 97; y <= 99; y++) for (x = x0 + 1; x < x1; x++) tiles[y * N + x] = BLOODSTONE;
+			for each (var pp:Array in [[91, 90], [109, 90], [91, 108], [109, 108]]) tiles[pp[1] * N + pp[0]] = WALL;
+			for each (var lp:Array in [[88, 86], [112, 86], [88, 114], [112, 114]]) objs[lp[1] * N + lp[0]] = 7;
+			spawnX = 100.5;
+			spawnY = 113.5;
+		}
+
 		/** Brick ruins in the midlands and godlands; godland ruins have lava rivers. */
 		private function makeRuins():void {
 			for (var k:int = 0; k < 26; k++) {
@@ -249,6 +278,16 @@ package realm {
 						case FOUNTAIN:
 							c = r < 0.06 ? 0xb0e8ff : (gx * 3 + gy * 5) % 9 == 0 ? 0x5aa8f0 : 0x3a86d4;
 							break;
+						case ARENA:
+							var ac:String = String(PLAZA_PAT[y]).charAt(x);
+							c = ac == "L" ? 0xe4e4e4 : ac == "M" ? 0xd0d0d0 : 0xbebebe;
+							if (r < 0.05) c = 0xdadada;
+							break;
+						case BLOODSTONE:
+							var bs:int = (gx + gy) & 3;
+							c = bs == 0 ? 0x7a1010 : bs == 1 ? 0xc02a2a : 0xa01c1c;
+							if (r < 0.06) c = 0xd04040;
+							break;
 						case LAVA:
 							var ls:int = (gx + gy) & 3;
 							c = ls == 0 ? 0x8a1a0e : ls == 1 ? 0xe04a22 : 0xc0301a;
@@ -291,6 +330,7 @@ package realm {
 			else if (t == WATER) { col = 0x7aa0e0; dark = 0x2b4ea0; }
 			else if (t == CARPET) { col = 0xd8a830; dark = 0x8a6a18; }
 			else if (t == FOUNTAIN) { col = 0xd0d0d8; dark = 0x8a8a92; }
+			else if (t == ARENA) { col = 0x9a9a9a; dark = 0x6a6a6a; }
 			else return;
 			var px:int = x * PX, py:int = y * PX;
 			var same:Function = function(nt:int):Boolean {
@@ -350,7 +390,8 @@ package realm {
 		}
 
 		public function isSafe(x:Number, y:Number):Boolean {
-			return zoneAt(x, y) >= 4;
+			var z:int = zoneAt(x, y);
+			return z == 4 || z == NEXUS_ZONE;
 		}
 
 		/** True if a body of half-size r fits at (x, y). Enemies may not enter the safe haven. */

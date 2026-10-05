@@ -73,20 +73,21 @@ package realm {
 
 			for (var i:int = 0; i < Data.CLASS_ORDER.length; i++) {
 				var card:Sprite = makeCard(Data.CLASSES[Data.CLASS_ORDER[i]], save);
-				card.x = (Ui.W - 4 * 230 - 3 * 18) / 2 + i * 248;
-				card.y = 214;
+				card.x = (Ui.W - 4 * 240 - 3 * 14) / 2 + (i % 4) * 254;
+				card.y = 210 + int(i / 4) * 160;
 				addChild(card);
 			}
 
 			var help:TextField = Ui.text(14, 0xcccccc, false, "center", Ui.W, true);
 			help.htmlText = "<b>WASD</b> move   <b>Mouse</b> aim + shoot   <b>Space</b> ability   <b>F / G</b> health / magic potion   " +
 				"<b>1-8</b> use item   <b>R</b> return to Nexus   <b>I</b> auto-fire   <b>P</b> pause\n" +
-				"You start in the Nexus: step into a portal to enter a realm. Slay enough monsters and the Cube Overlord appears.";
-			help.y = 546;
+				"Start in the Nexus, step into a realm portal, clear the realm events, then face the Dark Elder in his chamber.";
+			help.y = 538;
 			addChild(help);
 
 			var stats:TextField = Ui.text(15, 0xff9a40, true, "center", Ui.W, true);
-			stats.text = "Best fame: " + Ui.commas(save.bestFame || 0) + "      Heroes lost: " + (save.deaths || 0);
+			stats.text = "Account fame: " + Ui.commas(save.fame || 0) + "      Gold: " + Ui.commas(save.gold || 0) +
+				"      Onrane: " + Ui.commas(save.onrane || 0) + "      Best fame: " + Ui.commas(save.bestFame || 0) + "      Heroes lost: " + (save.deaths || 0);
 			stats.y = 600;
 			addChild(stats);
 
@@ -99,37 +100,36 @@ package realm {
 
 		private function makeCard(cls:Object, save:Object):Sprite {
 			var c:Sprite = new Sprite();
-			var w:int = 230, h:int = 316;
+			var w:int = 240, h:int = 150;
 			var draw:Function = function(hover:Boolean):void {
 				c.graphics.clear();
 				Ui.panel(c.graphics, 0, 0, w, h, hover ? 0x3e3e3e : 0x262626, hover ? Ui.GOLD : 0x5a5a5a, 0.94);
 				c.graphics.beginFill(0x000000, 0.25);
-				c.graphics.drawRoundRect(14, 14, w - 28, 110, 10, 10);
+				c.graphics.drawRoundRect(8, 8, 78, 78, 10, 10);
 				c.graphics.endFill();
 			};
 			draw(false);
 			var spr:Bitmap = new Bitmap(Sprites.get(cls.id));
-			spr.scaleX = spr.scaleY = 2;
-			spr.x = (w - spr.width) / 2;
-			spr.y = 20;
+			spr.scaleX = spr.scaleY = 1.5;
+			spr.x = 47 - spr.width / 2;
+			spr.y = 47 - spr.height / 2;
 			c.addChild(spr);
-			var name:TextField = Ui.text(24, 0xffffff, true, "center", w, true);
+			var name:TextField = Ui.text(21, 0xffffff, true, "left", 0, true);
 			name.text = cls.name;
-			name.y = 128;
+			name.x = 94; name.y = 8;
 			c.addChild(name);
-			var desc:TextField = Ui.text(13, 0xcccccc, false, "center", w - 24);
-			desc.text = cls.desc;
-			desc.x = 12;
-			desc.y = 162;
-			c.addChild(desc);
-			var info:TextField = Ui.text(13, 0xaaaaaa, false, "center", w - 24);
 			var best:int = save.bestLevel ? int(save.bestLevel[cls.id] || 0) : 0;
-			info.htmlText = "<b>HP</b> " + cls.base.hp + "   <b>ATT</b> " + cls.base.att + "   <b>DEX</b> " + cls.base.dex + "\n" +
-				"<font color='#ffd75e'><b>" + cls.ability.name + "</b></font>: " + cls.ability.desc +
-				(best > 0 ? "\n<font color='#80ff80'>Best level: " + best + "</font>" : "");
-			info.x = 12;
-			info.y = 226;
+			var info:TextField = Ui.text(12, 0xaaaaaa, false, "left", w - 100);
+			info.htmlText = "<font color='#ffd75e'><b>" + cls.ability.name + "</b></font>  " + cls.ability.desc + "\n" +
+				"HP " + cls.base.hp + "  ATT " + cls.base.att + "  DEX " + cls.base.dex +
+				(best > 0 ? "\n<font color='#80ff80'>Best level " + best + "</font>" : "");
+			info.x = 94; info.y = 36;
 			c.addChild(info);
+			var desc:TextField = Ui.text(12, 0xcccccc, false, "left", w - 20);
+			desc.text = cls.desc;
+			desc.x = 10;
+			desc.y = 96;
+			c.addChild(desc);
 
 			c.buttonMode = true;
 			c.mouseChildren = false;

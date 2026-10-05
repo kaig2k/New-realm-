@@ -24,7 +24,7 @@ package realm {
 		private var zoom:int = 1;
 		private var frameN:int = 0;
 		private var nameTf:TextField;
-		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar, bossBar:Bar, maxBar:Bar;
+		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar, ptBar:Bar, sgBar:Bar;
 		private var equip:Vector.<Slot> = new Vector.<Slot>();
 		private var invSlots:Vector.<Slot> = new Vector.<Slot>();
 		private var bagSlots:Vector.<Slot> = new Vector.<Slot>();
@@ -87,12 +87,13 @@ package realm {
 			mpBar = new Bar(228, 22, 0x3d6fe8, 0x1a2244, 15, "MP");
 			mpBar.x = 6; mpBar.y = y + 48;
 			addChild(mpBar);
-			bossBar = new Bar(110, 18, 0x9a40c0, 0x2a2a2a, 12, "OV", "left");
-			bossBar.x = 6; bossBar.y = y + 74;
-			addChild(bossBar);
-			maxBar = new Bar(110, 18, 0xd8b030, 0x2a2a2a, 12, "MX", "left");
-			maxBar.x = 124; maxBar.y = y + 74;
-			addChild(maxBar);
+			// Valor's Protection (PT) and Surge (SG) bars
+			ptBar = new Bar(110, 18, 0xe8e8f0, 0x2a2a2a, 12, "PT", "left", 0x222222);
+			ptBar.x = 6; ptBar.y = y + 74;
+			addChild(ptBar);
+			sgBar = new Bar(110, 18, 0xd8b030, 0x2a2a2a, 12, "SG", "left");
+			sgBar.x = 124; sgBar.y = y + 74;
+			addChild(sgBar);
 
 			// --- equipment
 			y = MINI_H + 138;
@@ -132,7 +133,7 @@ package realm {
 			// --- stats page
 			statPage = new Sprite();
 			Ui.panel(statPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
-			statTf = Ui.text(15, 0xdddddd, true, "left", 214);
+			statTf = Ui.text(13, 0xdddddd, true, "left", 214);
 			statTf.x = 14; statTf.y = y + 2;
 			statPage.addChild(statTf);
 			statPage.visible = false;
@@ -251,7 +252,7 @@ package realm {
 
 		private function showTip(s:Slot):void {
 			if (!s || !s.item) { tip.visible = false; return; }
-			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up") : s.kind == "inv" ? "Click to use or equip. Shift+click to drop." : "Equipped";
+			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Shift+click to drop.") : "Equipped";
 			tip.show(s.item, hint);
 			var lp:Point = globalToLocal(s.localToGlobal(new Point(0, 0)));
 			tip.x = lp.x - tip.width - 8;
@@ -268,13 +269,8 @@ package realm {
 			var hb:int = p.bonus("hp"), mb:int = p.bonus("mp");
 			hpBar.set(p.hp / p.maxHp, "HP", int(Math.max(0, p.hp)) + "/" + p.maxHp + (hb > 0 ? " <font color='#ffe36e'>(+" + hb + ")</font>" : ""));
 			mpBar.set(p.mp / p.maxMp, "MP", int(p.mp) + "/" + p.maxMp + (mb > 0 ? " <font color='#ffe36e'>(+" + mb + ")</font>" : ""));
-			var done:int = g.bossGoal - g.killsToBoss;
-			if (g.inNexus) bossBar.set(0, "OV", "-");
-			else if (g.boss) bossBar.set(1, "OV", "Active!");
-			else bossBar.set(done / g.bossGoal, "OV", done + "/" + g.bossGoal);
-			var maxed:int = 0;
-			for each (var st0:String in Data.STATS) if (p.stats[st0] >= p.cls.max[st0]) maxed++;
-			maxBar.set(maxed / 8, "MX", maxed + "/8");
+			ptBar.set(p.maxPt > 0 ? p.pt / p.maxPt : 0, "PT", int(p.pt) + "/" + p.maxPt);
+			sgBar.set(p.surge / Player.SURGE_MAX, "SG", p.surge + "/" + Player.SURGE_MAX);
 
 			equip[0].setItem(p.weapon);
 			equip[1].setItem(p.ability);
@@ -286,9 +282,12 @@ package realm {
 			mpPot.setCount(p.mpPots, "G");
 
 			if (statPage.visible) {
-				var st:String = statLine("ATT", "att") + statLine("DEF", "def") + statLine("SPD", "spd") +
-					statLine("DEX", "dex") + statLine("VIT", "vit") + statLine("WIS", "wis") +
-					"<font color='#999999' size='13'>Kills " + p.kills + "    Overlords " + p.bossKills + "</font>";
+				var st:String = "<font color='#ffd75e'>Maxed " + p.maxedCount + "/11</font>\n" +
+					statLine("att") + statLine("def") + "\n" + statLine("spd") + statLine("dex") + "\n" +
+					statLine("vit") + statLine("wis") + "\n" + statLine("mgt") + statLine("luc") + "\n" +
+					statLine("prt") + "<font color='#9a9a9a'>FRT</font> " + p.frt + "\n" +
+					"<font color='#aaaaaa' size='12'>Crit " + Math.round(p.critChance * 100) + "%  x" + p.critMult.toFixed(2) +
+					(p.setPieces >= 4 ? "   <font color='#ff9a2e'>Set bonus</font>" : "") + "</font>";
 				if (st != lastStats) {
 					lastStats = st;
 					statTf.htmlText = st;
@@ -307,15 +306,14 @@ package realm {
 			if (++frameN % 4 == 0) drawMinimap();
 		}
 
-		private function statLine(label:String, key:String):String {
+		private function statLine(key:String):String {
 			var p:Player = g.player;
-			var base:int = int(p.stats[key]);
 			var b:int = p.bonus(key);
 			var maxed:Boolean = p.stats[key] >= p.cls.max[key];
-			var c:String = maxed ? "#ffd75e" : "#ffffff";
-			return "<font color='#9a9a9a'>" + label + "</font>  <font color='" + c + "'>" + (base + b) + "</font>" +
-				(b > 0 ? " <font color='#6fd06f'>(+" + b + ")</font>" : "") +
-				(maxed ? " <font color='#ffd75e' size='11'>MAX</font>" : "") + "\n";
+			var v:String = String(p.stat(key));
+			while (v.length < 4) v += " ";
+			return "<font color='#9a9a9a'>" + Data.STAT_SHORT[key] + "</font> <font color='" + (maxed ? "#ffd75e" : "#ffffff") + "'>" + p.stat(key) + "</font>" +
+				(b > 0 ? "<font color='#6fd06f'>+" + b + "</font>" : "") + "      ";
 		}
 
 		private function drawMinimap():void {
@@ -389,7 +387,7 @@ class Bar extends Sprite {
 	private var lastLabel:String = "";
 	private var lastValue:String = "";
 
-	public function Bar(w:int, h:int, color:uint, back:uint, size:int, label:String = "", valueAlign:String = "center") {
+	public function Bar(w:int, h:int, color:uint, back:uint, size:int, label:String = "", valueAlign:String = "center", textColor:uint = 0xffffff) {
 		this.w = w;
 		this.h = h;
 		this.valueAlign = valueAlign;
@@ -475,7 +473,7 @@ class Slot extends Sprite {
 		icon.bitmapData = Sprites.icon(it);
 		var label:String = Data.tierLabel(it);
 		tierTf.text = label;
-		tierTf.textColor = label == "UT" ? 0xb070ff : 0xffffff;
+		tierTf.textColor = Data.tierColor(it);
 	}
 }
 

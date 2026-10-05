@@ -437,6 +437,36 @@ package realm {
 						{p: "aimed", n: 1, spd: 14, life: 1.8, dmg: 130, cd: 0.6, r: 0.32, col: 0xffe060, shape: "blade"},
 						{p: "ring", n: 12, rot: 15, spd: 3, life: 4, dmg: 60, cd: 2.0, r: 0.28, col: 0xa040ff, shape: "orb"}]
 				]},
+			// ---- dungeon bosses
+			warden: {name: "The Crypt Warden", spr: "warden", hp: 9000, def: 18, spd: 1.2, xp: 1200, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0x6ad0ff,
+				gold: 300, onrane: 3, dungeon: true,
+				phases: [
+					[{p: "aimed", n: 5, arc: 50, spd: 7, life: 1.8, dmg: 55, cd: 1.0, r: 0.22, col: 0x6ad0ff, shape: "star"},
+						{p: "summon", n: 2, cd: 7, what: "skeleton"}],
+					[{p: "ring", n: 18, rot: 10, spd: 4.5, life: 2.4, dmg: 55, cd: 1.0, r: 0.22, col: 0x9ae8ff, shape: "orb"},
+						{p: "aimed", n: 1, spd: 12, life: 1.4, dmg: 90, cd: 0.7, r: 0.3, col: 0xffffff, shape: "blade"}],
+					[{p: "spiral", n: 5, rot: 12, spd: 6, life: 2.2, dmg: 60, cd: 0.13, r: 0.22, col: 0x6ad0ff, shape: "star"},
+						{p: "summon", n: 2, cd: 8, what: "shade"}]
+				]},
+			pyrelord: {name: "Pyrelord Ignaar", spr: "pyrelord", hp: 10000, def: 22, spd: 1.0, xp: 1300, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xff5020,
+				gold: 320, onrane: 3, dungeon: true,
+				phases: [
+					[{p: "ring", n: 14, rot: 13, spd: 4, life: 2.6, dmg: 55, cd: 1.6, r: 0.24, col: 0xff7020, shape: "ring"},
+						{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.5, dmg: 70, cd: 0.9, r: 0.24, col: 0xffd040, shape: "orb"}],
+					[{p: "spiral", n: 4, rot: -15, spd: 6, life: 2.2, dmg: 60, cd: 0.12, r: 0.22, col: 0xff4010, shape: "star"},
+						{p: "summon", n: 3, cd: 7, what: "imp"}],
+					[{p: "aimed", n: 9, arc: 100, spd: 8, life: 1.6, dmg: 70, cd: 0.8, r: 0.24, col: 0xffb030, shape: "orb"},
+						{p: "ring", n: 24, rot: 7.5, spd: 5, life: 2.4, dmg: 65, cd: 1.2, r: 0.24, col: 0xff3010, shape: "ring"}]
+				]},
+			seraph: {name: "Tempest Seraph", spr: "seraph", hp: 8500, def: 15, spd: 2.2, xp: 1200, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xf0e040,
+				gold: 300, onrane: 3, dungeon: true,
+				phases: [
+					[{p: "spiral", n: 3, rot: 19, spd: 7, life: 1.8, dmg: 50, cd: 0.12, r: 0.2, col: 0xfff060, shape: "dart"}],
+					[{p: "aimed", n: 1, spd: 15, life: 1.2, dmg: 100, cd: 0.5, r: 0.3, col: 0xffffff, shape: "blade"},
+						{p: "ring", n: 12, rot: 15, spd: 6, life: 1.8, dmg: 55, cd: 1.3, r: 0.22, col: 0xd0d0ff, shape: "star"}],
+					[{p: "spiral", n: 6, rot: 9, spd: 7, life: 2.0, dmg: 60, cd: 0.11, r: 0.2, col: 0xfff060, shape: "dart"},
+						{p: "summon", n: 2, cd: 8, what: "djinn"}]
+				]},
 			imp: {name: "Ember Imp", spr: "imp", hp: 300, def: 5, spd: 3.0, xp: 15, ai: "chase", keep: 1, drop: 0, col: 0xff6020,
 				attacks: [{p: "aimed", n: 2, arc: 20, spd: 8, life: 0.9, dmg: 35, cd: 0.8, r: 0.16, col: 0xff8030}]},
 			skeleton: {name: "Bone Soldier", spr: "skeleton", hp: 350, def: 8, spd: 2.4, xp: 15, ai: "chase", keep: 1.5, drop: 0, col: 0xe8e0c0,
@@ -452,13 +482,36 @@ package realm {
 			["orc", "elf", "gazer", "orc"],
 			["medusa", "djinn", "ent", "beholder"]
 		];
-		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus", "Dark Elder's Chamber"];
+		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus", "Dark Elder's Chamber", "Dungeon"];
 		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];
 
 		/** Realm events in the order they can appear; each realm needs EVENTS_PER_REALM of them killed. */
 		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king"];
 		public static const EVENTS_PER_REALM:int = 6;
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
+
+		/** Dungeons dropped by realm events (Valor-style): floor tile, minions and boss. */
+		public static const DUNGEONS:Array = [
+			{name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
+			{name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
+			{name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"}
+		];
+		public static const DUNGEON_DROP_CHANCE:Number = 0.7;
+
+		/** Skill tree (Valor "Ascension"): unlocked at level 20 with 11/11 stats. */
+		public static const SKILLS:Array = [
+			{id: "brutality", name: "Brutality", desc: "+5% damage", max: 5},
+			{id: "precision", name: "Precision", desc: "+2% crit chance", max: 5},
+			{id: "ferocity", name: "Ferocity", desc: "+0.1x crit damage", max: 5},
+			{id: "vigor", name: "Vigor", desc: "+40 max HP", max: 5},
+			{id: "bulwark", name: "Bulwark", desc: "+4 Defense", max: 5},
+			{id: "aegis", name: "Aegis", desc: "+5 Protection", max: 5},
+			{id: "swiftness", name: "Swiftness", desc: "+4 Speed", max: 5},
+			{id: "leech", name: "Leech", desc: "+1 HP per hit", max: 5},
+			{id: "fortune", name: "Prosperity", desc: "+5 Fortune", max: 5}
+		];
+		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5}};
+		public static const XP_PER_SKILL_POINT:int = 600;
 
 		// ---- loot -------------------------------------------------------
 		/** fortune: % loot boost from gear (Valor's Fortune stat). */
@@ -474,6 +527,14 @@ package realm {
 				if (Math.random() < 0.05 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ar"));
 				items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("stat", randomStat()));
+				return items;
+			}
+			if (def.dungeon) {
+				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
+				if (Math.random() < 0.1 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.3 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				return items;

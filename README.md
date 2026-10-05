@@ -77,6 +77,15 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   chat as `[3/6][Realm: Medusa]`. Clear all 6 events and the realm closes. You're pulled
   into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
   for Fabled, Legendary and Relic loot.
+- **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of three
+  dungeons: the Sunken Crypt, the Ember Depths (lava pools) or the Storm Spire. Each is a
+  chain of monster rooms with a boss at the end (the Crypt Warden, Pyrelord Ignaar or the
+  Tempest Seraph).
+- **Skill tree (Valor's Ascension)**: at level 20 with 11/11 stats, every 600 XP gives a
+  skill point. Spend points on 9 nodes (Brutality, Precision, Ferocity, Vigor, Bulwark,
+  Aegis, Swiftness, Leech, Prosperity) in the star tab.
+- **Saved characters**: characters are saved automatically and live until they die. The
+  title screen lists them under "Your Characters".
 - **Boss damage meter** with your damage share and the LG threshold.
 - Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick
   ruins and lava.

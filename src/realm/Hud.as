@@ -16,6 +16,7 @@ package realm {
 
 		private static const I_TEMPLE:Array = ["...WW...", "..WWWW..", "WWWWWWWW", ".W.WW.W.", ".W.WW.W.", ".W.WW.W.", "WWWWWWWW", "........"];
 		private static const I_PACK:Array = ["..WWWW..", ".W....W.", "WWWWWWWW", "WWWDDWWW", "WWWWWWWW", "WWWWWWWW", ".WWWWWW.", "........"];
+		private static const I_STAR:Array = ["...W....", "...W....", ".WWWWW..", "..WWW...", "..W.W...", ".W...W..", "........", "........"];
 		private static const I_CHART:Array = ["........", "......W.", "......W.", "...W..W.", "...W..W.", "W..W..W.", "W..W..W.", "WWWWWWWW"];
 
 		private var g:Game;
@@ -29,7 +30,10 @@ package realm {
 		private var invSlots:Vector.<Slot> = new Vector.<Slot>();
 		private var bagSlots:Vector.<Slot> = new Vector.<Slot>();
 		private var hpPot:PotSlot, mpPot:PotSlot;
-		private var invPage:Sprite, statPage:Sprite;
+		private var invPage:Sprite, statPage:Sprite, skillPage:Sprite;
+		private var skillTf:TextField;
+		private var skillRows:Array = [];
+		private var lastSkills:String = "";
 		private var statTf:TextField;
 		private var tabs:Array = [];
 		private var bagBox:Shape;
@@ -110,6 +114,7 @@ package realm {
 			y += 62;
 			tabs.push(makeTab(I_PACK, 8, y, 0));
 			tabs.push(makeTab(I_CHART, 46, y, 1));
+			tabs.push(makeTab(I_STAR, 84, y, 2));
 
 			// --- inventory page
 			y += 28;
@@ -138,6 +143,24 @@ package realm {
 			statPage.addChild(statTf);
 			statPage.visible = false;
 			addChild(statPage);
+
+			// --- skill tree page (Valor Ascension)
+			skillPage = new Sprite();
+			Ui.panel(skillPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
+			skillTf = Ui.text(11, 0x80e0ff, true, "left", 220);
+			skillTf.x = 10; skillTf.y = y;
+			skillPage.addChild(skillTf);
+			for (i = 0; i < Data.SKILLS.length; i++) {
+				var row:TextField = Ui.text(11, 0xdddddd, false, "left", 200);
+				row.x = 10; row.y = y + 14 + i * 13;
+				skillPage.addChild(row);
+				var plus:Sprite = skillButton(Data.SKILLS[i].id);
+				plus.x = 214; plus.y = y + 16 + i * 13;
+				skillPage.addChild(plus);
+				skillRows.push(row);
+			}
+			skillPage.visible = false;
+			addChild(skillPage);
 
 			// --- loot bag grid (always shown, like the backpack area)
 			y += 142;
@@ -197,6 +220,35 @@ package realm {
 			return b;
 		}
 
+		private function skillButton(id:String):Sprite {
+			var b:Sprite = new Sprite();
+			Ui.panel(b.graphics, 0, 0, 14, 12, 0x3a5a3a, 0x6aa06a);
+			var t:TextField = Ui.text(11, 0xffffff, true, "center", 14);
+			t.text = "+";
+			t.y = -3;
+			b.addChild(t);
+			b.buttonMode = true;
+			b.mouseChildren = false;
+			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.player.spendSkill(id, g); lastSkills = ""; });
+			return b;
+		}
+
+		private function refreshSkills(p:Player):void {
+			var key:String = p.skillPoints + "|" + p.ascXp + "|" + p.ascended + "|" + p.maxedCount;
+			for each (var sk:Object in Data.SKILLS) key += p.rank(sk.id);
+			if (key == lastSkills) return;
+			lastSkills = key;
+			skillTf.text = p.ascended ? "Skill points: " + p.skillPoints + "   next " + p.ascXp + "/" + Data.XP_PER_SKILL_POINT + " XP"
+				: "Locked: needs Lvl 20 and 11/11 (" + p.maxedCount + "/11)";
+			skillTf.textColor = p.ascended ? 0x80e0ff : 0xff8080;
+			for (var i:int = 0; i < Data.SKILLS.length; i++) {
+				var s:Object = Data.SKILLS[i];
+				var r:int = p.rank(s.id);
+				skillRows[i].htmlText = "<b><font color='" + (r >= s.max ? "#ffd75e" : "#ffffff") + "'>" + s.name + "</font></b> " + r + "/" + s.max +
+					"  <font color='#9a9a9a'>" + s.desc + "</font>";
+			}
+		}
+
 		private function makeTab(rows:Array, x:int, y:int, idx:int):Sprite {
 			var t:Sprite = new Sprite();
 			var bmp:Bitmap = new Bitmap(pix(rows, 0xe8e8e8, 2));
@@ -221,6 +273,8 @@ package realm {
 			for (var i:int = 0; i < tabs.length; i++) drawTab(tabs[i], i == idx);
 			invPage.visible = idx == 0;
 			statPage.visible = idx == 1;
+			skillPage.visible = idx == 2;
+			lastSkills = "";
 			lastStats = "";
 		}
 
@@ -281,6 +335,7 @@ package realm {
 			hpPot.setCount(p.hpPots, "F");
 			mpPot.setCount(p.mpPots, "G");
 
+			if (skillPage.visible) refreshSkills(p);
 			if (statPage.visible) {
 				var st:String = "<font color='#ffd75e'>Maxed " + p.maxedCount + "/11</font>\n" +
 					statLine("att") + statLine("def") + "\n" + statLine("spd") + statLine("dex") + "\n" +

@@ -15,6 +15,7 @@ package realm {
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
 		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12, ARENA:int = 13, BLOODSTONE:int = 14;
 		public static const ARENA_ZONE:int = 6;
+		public static const DUNGEON_ZONE:int = 7;
 		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier"];
 		public static const NEXUS_ZONE:int = 5;
 
@@ -50,18 +51,23 @@ package realm {
 		public var eventsDone:int = 0;
 		public var eventT:Number = 25;
 		public var nextEvent:int = 0;
-		/** Portals standing in this world: {x, y, kind, idx, color, label}. */
+		/** Portals standing in this world: {x, y, kind, idx, color, label, life}. */
 		public var portals:Array = [];
+		/** Dungeon rooms {x, y, w, h}; the last one is the boss room. */
+		public var rooms:Array = [];
+		public var theme:Object;
 
 		private var noise:Vector.<Number>;
 		private var noiseW:int;
 		private const CELL:int = 10;
 
-		public function World(kind:String = "realm", name:String = "") {
+		public function World(kind:String = "realm", name:String = "", theme:Object = null) {
 			this.kind = kind;
 			this.name = name;
+			this.theme = theme;
 			if (kind == "nexus") generateNexus();
 			else if (kind == "arena") generateArena();
+			else if (kind == "dungeon") generateDungeon(theme);
 			else generate();
 			render();
 			seen = new BitmapData(N, N, true, 0);
@@ -167,6 +173,70 @@ package realm {
 			for each (var lp:Array in lights) objs[lp[1] * N + lp[0]] = 7;
 			spawnX = 100.5;
 			spawnY = 110.5;
+		}
+
+		/**
+		 * A dungeon: a chain of rooms carved northward from the entrance and joined
+		 * by corridors, with walls around everything and the boss in the last room.
+		 */
+		private function generateDungeon(th:Object):void {
+			var x:int, y:int, i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			var floor:int = th.floor, accent:int = th.accent;
+			var cx:int = 100, cy:int = 175;
+			var count:int = 6 + int(Math.random() * 2);
+			var prev:Object = null;
+			for (var k:int = 0; k < count; k++) {
+				var boss:Boolean = k == count - 1;
+				var w:int = boss ? 17 : 9 + int(Math.random() * 5);
+				var h:int = boss ? 15 : 8 + int(Math.random() * 4);
+				var room:Object = {x: cx, y: cy, w: w, h: h};
+				carve(cx - int(w / 2), cy - int(h / 2), w, h, floor);
+				// accent pattern in the middle of bigger rooms (lava pools, carpets...)
+				if (!boss && k > 0 && Math.random() < 0.6) carve(cx - 1, cy - 1, 3, 3, accent);
+				if (prev) corridor(prev.x, prev.y, cx, cy, floor);
+				rooms.push(room);
+				prev = room;
+				// next room: mostly north, drifting east/west
+				var dir:Number = Math.random();
+				if (dir < 0.25 && cx > 50) cx -= 16 + int(Math.random() * 4);
+				else if (dir < 0.5 && cx < 150) cx += 16 + int(Math.random() * 4);
+				else cy -= 17 + int(Math.random() * 3);
+				if (k == count - 2) { cy -= 4; }
+				if (cy < 25) cy = 25;
+			}
+			// walls wherever floor meets the void
+			for (y = 1; y < N - 1; y++) {
+				for (x = 1; x < N - 1; x++) {
+					i = y * N + x;
+					if (tiles[i] != VOID) continue;
+					for (var dy:int = -1; dy <= 1; dy++) {
+						for (var dx:int = -1; dx <= 1; dx++) {
+							var t:int = tiles[(y + dy) * N + x + dx];
+							if (t != VOID && t != WALL) { tiles[i] = WALL; zones[i] = DUNGEON_ZONE; }
+						}
+					}
+				}
+			}
+			spawnX = rooms[0].x + 0.5;
+			spawnY = rooms[0].y + 2.5;
+		}
+
+		private function carve(x0:int, y0:int, w:int, h:int, t:int):void {
+			for (var y:int = y0; y < y0 + h; y++) {
+				for (var x:int = x0; x < x0 + w; x++) {
+					if (x < 2 || y < 2 || x >= N - 2 || y >= N - 2) continue;
+					tiles[y * N + x] = t;
+					zones[y * N + x] = DUNGEON_ZONE;
+				}
+			}
+		}
+
+		/** L-shaped corridor, 3 tiles wide. */
+		private function corridor(x0:int, y0:int, x1:int, y1:int, t:int):void {
+			var x:int, y:int;
+			for (x = Math.min(x0, x1); x <= Math.max(x0, x1); x++) carve(x - 1, y0 - 1, 3, 3, t);
+			for (y = Math.min(y0, y1); y <= Math.max(y0, y1); y++) carve(x1 - 1, y - 1, 3, 3, t);
 		}
 
 		/** The Dark Elder's chamber: white patterned floor ringed by red striped stone. */

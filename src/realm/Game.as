@@ -39,6 +39,8 @@ package realm {
 		public var nearBag:LootBag;
 		public var nexusWorld:World;
 		public var arenaWorld:World;
+		public var dungeonWorld:World;
+		private var saveT:Number = 20;
 		/** Realms reachable from the nexus portals (created on first entry). */
 		public var realms:Array = [null, null, null];
 		public var realmNames:Array = [];
@@ -86,10 +88,12 @@ package realm {
 		private var bar:Rectangle = new Rectangle();
 		private var drawList:Array = [];
 
-		public function Game(clsId:String, name:String, onDeath:Function) {
+		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
 			this.onDeath = onDeath;
 			world = nexusWorld = new World("nexus", "Nexus");
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
+			if (saved) player.restore(saved);
+			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			var pool:Array = Data.REALM_NAMES.concat();
 			for (var ri:int = 0; ri < 3; ri++) realmNames.push(pool.splice(int(Math.random() * pool.length), 1)[0]);
 			camX = player.x;
@@ -248,10 +252,10 @@ package realm {
 			return lab;
 		}
 
-		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint):void {
+		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint, life:Number = 0):void {
 			var lab:TextField = makeLabel("", 0xffffff);
 			lab.visible = w == world;
-			w.portals.push({x: x, y: y, kind: kind, idx: idx, color: color, label: lab});
+			w.portals.push({x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life});
 		}
 
 		private function saveVault():void {
@@ -269,12 +273,44 @@ package realm {
 
 		private function portalTitle(p:Object):String {
 			if (p.kind == "realm") return realmNames[p.idx] + " Realm";
+			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
 			return "Nexus";
 		}
 
 		public function usePortal(p:Object):void {
 			if (p.kind == "realm") enterPortal(p.idx);
+			else if (p.kind == "dungeon") enterDungeon(p.idx);
 			else nexus();
+		}
+
+		/** Valor-style dungeon: rooms of monsters with a boss at the end. */
+		private function enterDungeon(idx:int):void {
+			var th:Object = Data.DUNGEONS[idx];
+			dungeonWorld = new World("dungeon", th.name, th);
+			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
+			var rooms:Array = dungeonWorld.rooms;
+			for (var r:int = 1; r < rooms.length - 1; r++) {
+				var rm:Object = rooms[r];
+				var n:int = 3 + int(Math.random() * 3);
+				for (var k:int = 0; k < n; k++) {
+					var mx:Number = rm.x + (Math.random() - 0.5) * (rm.w - 3);
+					var my:Number = rm.y + (Math.random() - 0.5) * (rm.h - 3);
+					spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], mx, my, 3);
+				}
+			}
+			var last:Object = rooms[rooms.length - 1];
+			dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, 3);
+			dungeonWorld.enemies.push(dungeonWorld.boss);
+			player.bossDmg = 0;
+			showBanner(th.name, th.color, 3);
+			msg("You enter the " + th.name + ". Its master waits in the last chamber.", th.color);
+			saveCharacter();
+		}
+
+		/** Persist the current character (RotMG keeps characters until they die). */
+		public function saveCharacter():void {
+			if (deathInfo || player.hp <= 0) return;
+			Save.storeChar(player.serialize());
 		}
 
 		/** Walk through a nexus portal into its realm. */
@@ -308,7 +344,7 @@ package realm {
 			camY = y;
 			world.reveal(x, y, 14);
 			var nx:Boolean = inNexus;
-			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld]) {
+			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld, dungeonWorld]) {
 				if (ow) for each (var p:Object in ow.portals) p.label.visible = ow == world;
 			}
 			for each (var st:Object in stations) st.label.visible = nx;
@@ -323,7 +359,8 @@ package realm {
 			lastT = getTimer();
 			addEventListener(Event.ENTER_FRAME, tick);
 			showBanner("Nexus", 0xffffff, 2.5);
-			msg("Welcome to the Nexus, " + player.name + "!", Ui.GOLD);
+			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
+			saveCharacter();
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
 			msg("The fountain heals you. Vault (west) stores items, Sor Forge (east) crafts Legendaries, Marketplace (south) buys and sells.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
@@ -409,6 +446,19 @@ package realm {
 		}
 
 		private function updateNexus(dt:Number):void {
+			// timed portals (dungeon entrances) vanish
+			for (var pi:int = world.portals.length - 1; pi >= 0; pi--) {
+				var tp:Object = world.portals[pi];
+				if (tp.life > 0) {
+					tp.life -= dt;
+					if (tp.life <= 0) {
+						if (tp.label.parent) tp.label.parent.removeChild(tp.label);
+						world.portals.splice(pi, 1);
+					}
+				}
+			}
+			saveT -= dt;
+			if (saveT <= 0) { saveT = 20; saveCharacter(); }
 			// portals (nexus realm portals, or the exit portal in the Dark Elder's chamber)
 			nearPortal = null;
 			for each (var p:Object in world.portals) {
@@ -538,6 +588,8 @@ package realm {
 		public function hurtEnemy(e:Enemy, raw:int, effect:String, hx:Number, hy:Number):void {
 			if (e.dead) return;
 			var p:Player = player;
+			raw = int(raw * p.damageMult);
+			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			var crit:Boolean = Math.random() < p.critChance;
 			if (crit) raw = int(raw * p.critMult);
 			var d:int = Math.max(raw - e.defense, int(raw * 0.15));
@@ -630,7 +682,11 @@ package realm {
 			if (e.isBoss) {
 				p.bossKills++;
 				world.boss = null;
-				if (e.def.final) {
+				if (e.def.dungeon) {
+					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
+					msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);
+					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
+				} else if (e.def.final) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 5);
 					say(SOVEREIGN, "This... is not... the end...");
 					msg("Fabled loot has dropped! Take the portal back to the Nexus when you're ready.", 0xff6060);
@@ -638,6 +694,12 @@ package realm {
 				} else {
 					world.eventsDone++;
 					world.eventT = 20 + Math.random() * 10;
+					// events often leave a dungeon portal behind
+					if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
+						var di:int = int(Math.random() * Data.DUNGEONS.length);
+						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, 90);
+						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (90s)", Data.DUNGEONS[di].color);
+					}
 					say(SOVEREIGN, e.def.name + " has been killed! [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "][Realm: " + world.name + "]");
 					if (world.eventsDone >= Data.EVENTS_PER_REALM) {
 						say(SOVEREIGN, "Enough! You have slain my champions. The realm is closing... come to me!");
@@ -757,6 +819,7 @@ package realm {
 			save.fame = (save.fame || 0) + fame;
 			if (!save.bestLevel) save.bestLevel = {};
 			if (p.level > (save.bestLevel[p.cls.id] || 0)) save.bestLevel[p.cls.id] = p.level;
+			Save.removeChar(p.id);
 			Save.flush();
 			deathInfo = {
 				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best,
@@ -788,7 +851,7 @@ package realm {
 			player.hp = player.maxHp;
 			player.mp = player.maxMp;
 			player.pt = player.maxPt;
-			Save.flush();
+			saveCharacter();
 			if (!wasNexus) showBanner("Nexus", 0xffffff, 2);
 			msg("You return to the Nexus. HP and MP restored.", 0xffffff);
 		}
@@ -966,6 +1029,7 @@ package realm {
 			showBanner("Forged " + lg.name + "!", Data.RARITY_COLORS.lg, 3);
 			msg("The Sor Forge blazes... you forged " + lg.name + "!", Data.RARITY_COLORS.lg);
 			burst(player.x, player.y, 0xd8e040, 30);
+			saveCharacter();
 			refreshStation();
 		}
 
@@ -1127,7 +1191,8 @@ package realm {
 				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
 				var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
 				var lab:TextField = p.label;
-				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>" : "Nexus";
+				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
+					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>" : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);
 			}

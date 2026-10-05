@@ -41,8 +41,8 @@ package {
 			setScreen(new Menu(startGame));
 		}
 
-		private function startGame(clsId:String, name:String):void {
-			setScreen(new Game(clsId, name, onDeath));
+		private function startGame(clsId:String, name:String, saved:Object = null):void {
+			setScreen(new Game(clsId, name, onDeath, saved));
 		}
 
 		private function onDeath(info:Object):void {

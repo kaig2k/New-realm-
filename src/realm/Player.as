@@ -34,6 +34,12 @@ package realm {
 		public var moving:Boolean = false;
 		public var burning:Boolean = false;
 		public var shotCount:int = 0;
+		/** Saved-character id. */
+		public var id:String;
+		/** Skill tree ranks by skill id, unspent points and progress to the next point. */
+		public var skills:Object = {};
+		public var skillPoints:int = 0;
+		public var ascXp:int = 0;
 
 		private var shootT:Number = 0;
 		private var attackT:Number = 0;
@@ -68,6 +74,9 @@ package realm {
 			var b:int = 0;
 			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s]) b += it[s];
 			if (setPieces >= 4 && Data.SET_BONUS[s]) b += Data.SET_BONUS[s];
+			for (var sk:String in Data.SKILL_STATS) {
+				if (skills[sk] && Data.SKILL_STATS[sk][s]) b += skills[sk] * Data.SKILL_STATS[sk][s];
+			}
 			return b;
 		}
 
@@ -88,9 +97,47 @@ package realm {
 		/** Every +1 Protection gives about +3 PT. */
 		public function get maxPt():int { return prt * 3; }
 		/** Base 5%, +1% per 10 Luck (and +10% from the Executioner passive). */
-		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon.passive == "critical" ? 0.1 : 0); }
+		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
 		/** Base x1.5, +0.1 per 10 Might. */
-		public function get critMult():Number { return 1.5 + mgt / 100; }
+		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.1; }
+		public function get damageMult():Number { return 1 + rank("brutality") * 0.05; }
+		public function get leech():int { return rank("leech"); }
+		public function rank(id:String):int { return int(skills[id] || 0); }
+
+		/** Valor's Ascension: level 20 with all 11 stats maxed unlocks the skill tree. */
+		public function get ascended():Boolean { return level >= MAX_LEVEL && maxedCount >= 11; }
+
+		public function spendSkill(id:String, g:Game):void {
+			if (!ascended) { g.msg("The skill tree unlocks at level 20 with 11/11 stats.", 0xaaaaaa); return; }
+			if (skillPoints <= 0) { g.msg("No skill points. Keep earning XP to gain more.", 0xaaaaaa); return; }
+			for each (var sk:Object in Data.SKILLS) {
+				if (sk.id != id) continue;
+				if (rank(id) >= sk.max) { g.msg(sk.name + " is already at max rank.", Ui.GOLD); return; }
+				skills[id] = rank(id) + 1;
+				skillPoints--;
+				g.msg(sk.name + " rank " + skills[id] + "/" + sk.max + " (" + sk.desc + ")", 0x80e0ff);
+			}
+		}
+
+		// ------------------------------------------------------------ save / load
+		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
+			"hpPots", "mpPots", "surge", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+
+		public function serialize():Object {
+			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
+			for each (var f:String in SAVE_FIELDS) o[f] = this[f];
+			return Save.clone(o);
+		}
+
+		public function restore(o:Object):void {
+			o = Save.clone(o);
+			for each (var f:String in SAVE_FIELDS) if (o[f] != undefined) this[f] = o[f];
+			while (inv.length < 8) inv.push(null);
+			for each (var s:String in Data.STATS) if (stats[s] == undefined) stats[s] = cls.base[s];
+			hp = maxHp;
+			mp = maxMp;
+			pt = maxPt;
+		}
 		public function get fame():int { return int(totalXp / 8 + kills * 0.5 + bossKills * 150 + potsDrunk * 5); }
 
 		/** Count of the 11 potionable stats that are maxed ("11/11"). */
@@ -380,6 +427,15 @@ package realm {
 
 		public function gainXp(amount:int, g:Game):void {
 			totalXp += amount;
+			if (ascended) {
+				ascXp += amount;
+				while (ascXp >= Data.XP_PER_SKILL_POINT) {
+					ascXp -= Data.XP_PER_SKILL_POINT;
+					skillPoints++;
+					g.floatText(x, y - 1.4, "+1 Skill Point", 0x80e0ff);
+					g.msg("You earned a skill point! Spend it in the Skills tab.", 0x80e0ff);
+				}
+			}
 			if (level >= MAX_LEVEL) return;
 			xp += amount;
 			while (xp >= xpNext && level < MAX_LEVEL) {

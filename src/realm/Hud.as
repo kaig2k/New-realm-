@@ -8,7 +8,7 @@ package realm {
 	import flash.geom.Point;
 	import flash.text.TextField;
 
-	/** The right-hand sidebar, laid out like RotMG / Valor. */
+	/** The right-hand sidebar, laid out like RotMG. */
 	public class Hud extends Sprite {
 		public static const W:int = 240;
 		private static const MINI_H:int = 176;
@@ -99,11 +99,11 @@ package realm {
 			mpBar = new Bar(228, 22, 0x3d6fe8, 0x1a2244, 15, "MP");
 			mpBar.x = 6; mpBar.y = y + 48;
 			addChild(mpBar);
-			// Valor's Protection (PT) and Surge (SG) bars
-			ptBar = new Bar(110, 18, 0xe8e8f0, 0x2a2a2a, 12, "PT", "left", 0x222222);
+			// Ward (WD, from Warding) and Fervor (FV) bars
+			ptBar = new Bar(110, 18, 0xe8e8f0, 0x2a2a2a, 12, "WD", "left", 0x222222);
 			ptBar.x = 6; ptBar.y = y + 74;
 			addChild(ptBar);
-			sgBar = new Bar(110, 18, 0xd8b030, 0x2a2a2a, 12, "SG", "left");
+			sgBar = new Bar(110, 18, 0xd8b030, 0x2a2a2a, 12, "FV", "left");
 			sgBar.x = 124; sgBar.y = y + 74;
 			addChild(sgBar);
 
@@ -170,7 +170,7 @@ package realm {
 			statPage.visible = false;
 			addChild(statPage);
 
-			// --- skill tree page (Valor Ascension)
+			// --- skill tree page (Awakening)
 			skillPage = new Sprite();
 			Ui.panel(skillPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
 			skillTf = Ui.text(11, 0x80e0ff, true, "left", 220);
@@ -409,8 +409,8 @@ package realm {
 			var hb:int = p.bonus("hp"), mb:int = p.bonus("mp");
 			hpBar.set(p.hp / p.maxHp, "HP", int(Math.max(0, p.hp)) + "/" + p.maxHp + (hb > 0 ? " <font color='#ffe36e'>(+" + hb + ")</font>" : ""));
 			mpBar.set(p.mp / p.maxMp, "MP", int(p.mp) + "/" + p.maxMp + (mb > 0 ? " <font color='#ffe36e'>(+" + mb + ")</font>" : ""));
-			ptBar.set(p.maxPt > 0 ? p.pt / p.maxPt : 0, "PT", int(p.pt) + "/" + p.maxPt);
-			sgBar.set(p.surge / Player.SURGE_MAX, "SG", p.surge + "/" + Player.SURGE_MAX);
+			ptBar.set(p.maxPt > 0 ? p.pt / p.maxPt : 0, "WD", int(p.pt) + "/" + p.maxPt);
+			sgBar.set(p.surge / Player.SURGE_MAX, "FV", p.surge + "/" + Player.SURGE_MAX);
 
 			equip[0].setItem(p.weapon);
 			equip[1].setItem(p.ability);
@@ -432,7 +432,7 @@ package realm {
 				var st:String = "<font color='#ffd75e'>Maxed " + p.maxedCount + "/11</font>\n" +
 					statLine("att") + statLine("def") + "\n" + statLine("spd") + statLine("dex") + "\n" +
 					statLine("vit") + statLine("wis") + "\n" + statLine("mgt") + statLine("luc") + "\n" +
-					statLine("prt") + "<font color='#9a9a9a'>FRT</font> " + p.frt + "\n" +
+					statLine("prt") + "<font color='#9a9a9a'>BNT</font> " + p.frt + "\n" +
 					"<font color='#aaaaaa' size='12'>Crit " + Math.round(p.critChance * 100) + "%  x" + p.critMult.toFixed(2) +
 					(p.setPieces >= 4 ? "   <font color='#4ee08a'>Set bonus</font>" : "") + "</font>";
 				if (st != lastStats) {

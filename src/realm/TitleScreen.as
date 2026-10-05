@@ -44,7 +44,7 @@ package realm {
 			logo.y = 90;
 			addChild(logo);
 			var tag:TextField = Ui.text(19, 0xe8e0ff, true, "center", Ui.W, true);
-			tag.text = "A Realm of the Mad God inspired bullet hell";
+			tag.text = "Fight your way across the realms of " + Data.WORLD_NAME;
 			tag.y = 212;
 			addChild(tag);
 

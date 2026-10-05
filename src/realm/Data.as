@@ -1,8 +1,8 @@
 package realm {
 	/**
 	 * Game balance: classes, enemies, items and loot tables.
-	 * Modelled on the Valor private server: 11 maxable stats (vanilla 8 +
-	 * Might, Luck, Protection), Fortune from gear, and the T0-T7 / RN / BD /
+	 * New Realm's systems: 11 maxable stats (the classic 8 +
+	 * Fury, Focus, Warding), Bounty from gear, and the T0-T7 / RN / BD /
 	 * EL / SF / PR item rarities.
 	 */
 	public class Data {
@@ -10,13 +10,13 @@ package realm {
 		/** Stats that only come from gear. */
 		public static const GEAR_STATS:Array = ["frt"];
 		public static const STAT_NAMES:Object = {hp: "Life", mp: "Mana", att: "Attack", def: "Defense", spd: "Speed", dex: "Dexterity", vit: "Vitality",
-			wis: "Wisdom", mgt: "Might", luc: "Luck", prt: "Protection", frt: "Fortune"};
+			wis: "Wisdom", mgt: "Fury", luc: "Focus", prt: "Warding", frt: "Bounty"};
 		public static const STAT_SHORT:Object = {hp: "HP", mp: "MP", att: "ATT", def: "DEF", spd: "SPD", dex: "DEX", vit: "VIT", wis: "WIS",
-			mgt: "MGT", luc: "LUC", prt: "PRT", frt: "FRT"};
+			mgt: "FUR", luc: "FOC", prt: "WRD", frt: "BNT"};
 		public static const STAT_COLORS:Object = {hp: 0xff70b0, mp: 0x5080ff, att: 0xa040e0, def: 0x303030, spd: 0x40c040, dex: 0xff9020, vit: 0xd02020,
 			wis: 0x40e0e0, mgt: 0xff5a2a, luc: 0x3ae07a, prt: 0xe8e8f0, frt: 0xf0c030};
 
-		// base = level 1, l20 = level 20, max = "11/11" caps (numbers from the Valor wiki)
+		// base = level 1, l20 = level 20, max = "11/11" caps (tuned from RotMG-style class tables)
 		public static const CLASSES:Object = {
 			wizard: {
 				id: "wizard", name: "Wizard", weapon: "staff", armor: "robe", abilityType: "spell",
@@ -131,6 +131,7 @@ package realm {
 		private static const LG_PREFIX:Array = ["Starforged", "Starfall", "Comet-Forged", "Nova", "Sunforged", "Moonforged", "Starlit", "Celestial"];
 		private static const AR_SUFFIX:Array = ["of the First Dawn", "of the Old Realm", "of the Unmade", "of the Primal Flame"];
 		public static const FB_SOURCE:String = "Eldritch";
+		/** Save-file id of the generic set from early versions (shown as "Old Realm"). */
 		public static const SET_NAME:String = "Valorous";
 
 		/** Passives on Starforged and Primordial weapons. */
@@ -177,7 +178,7 @@ package realm {
 			return item;
 		}
 
-		/** Bonus for wearing all 4 pieces of a set (old generic Valorous set). */
+		/** Bonus for wearing all 4 pieces of a set (the generic set from early saves; its saved id is "Valorous"). */
 		public static const SET_BONUS:Object = {hp: 80, att: 10, def: 10, dex: 10, frt: 10};
 
 		/** Class sets: Bonded drops are tagged with the class id and give a class-flavoured 4-piece bonus. */
@@ -193,6 +194,7 @@ package realm {
 		};
 
 		public static function setName(id:String):String {
+			if (id == SET_NAME) return "Old Realm";
 			return SETS[id] ? SETS[id].name : id;
 		}
 
@@ -203,7 +205,7 @@ package realm {
 		public static function setBonusText(id:String):String {
 			var b:Object = setBonus(id), parts:Array = [];
 			for each (var k:String in STATS) if (b[k]) parts.push("+" + b[k] + " " + STAT_SHORT[k]);
-			if (b.frt) parts.push("+" + b.frt + " Fortune");
+			if (b.frt) parts.push("+" + b.frt + " Bounty");
 			return parts.join(", ");
 		}
 
@@ -281,7 +283,7 @@ package realm {
 		}
 
 		public static function makeSor():Object {
-			return {kind: "material", sub: "sor", tier: 0, name: "Sor Crystal"};
+			return {kind: "material", sub: "sor", tier: 0, name: "Star Shard"};
 		}
 
 		/** Gear for one of a class's 4 slots. */
@@ -303,7 +305,7 @@ package realm {
 			return item;
 		}
 
-		/** Turn an item into a Starforged item of the same kind (Sor Forge). */
+		/** Turn an item into a Starforged item of the same kind (Starforge). */
 		public static function forgeLegendary(item:Object, cls:Object):Object {
 			switch (item.kind) {
 				case "weapon": return makeWeapon(item.sub, 7, "lg");
@@ -364,7 +366,7 @@ package realm {
 				case "hp": s += "Restores 100 HP\n"; break;
 				case "mp": s += "Restores 100 MP\n"; break;
 				case "stat": s += "Permanently raises " + STAT_NAMES[item.sub] + "\n"; break;
-				case "material": s += "Crafting material for the Sor Forge.\nForge: Runed, Bonded or Eldritch item + Sor Crystal + 100 Onrane = Starforged\n"; break;
+				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
 			}
 			if (isGear(item)) {
 				var on:String = "";
@@ -424,7 +426,7 @@ package realm {
 			cubelet: {name: "Cubelet", spr: "cubelet", hp: 150, def: 5, spd: 3.2, xp: 10, ai: "chase", keep: 0.5, drop: 0, col: 0x9040e0,
 				attacks: [{p: "aimed", n: 1, spd: 8, life: 1.0, dmg: 30, cd: 0.7, r: 0.15, col: 0xc080ff}]},
 
-			// ---- realm events (Valor-style) -------------------------------------
+			// ---- realm events ---------------------------------------------------
 			ev_cube: {name: "Cube Overlord", spr: "boss", hp: 11000, def: 22, spd: 1.2, xp: 1500, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x7a30c0,
 				gold: 400, onrane: 4,
 				phases: [
@@ -831,7 +833,10 @@ package realm {
 		public static const ZONE_NAMES:Array = ["Beach", "Lowlands", "Midlands", "Highlands", "Godlands", "Nexus", "Dark Elder's Chamber", "Dungeon", "", "Safe Haven"];
 		/** Gear tier dropped by ordinary monsters in each biome. */
 		public static const ZONE_TIER:Array = [0, 2, 3, 5, 6];
-		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];
+		/** The world: the isle of Eldmere. Each realm is one of its regions. */
+		public static const WORLD_NAME:String = "Eldmere";
+		public static const REALM_NAMES:Array = ["Ashveil", "Thornwick", "Glimmerfen", "Duskhollow", "Brineholt", "Stormreach", "Mirewood", "Emberfall",
+			"Frostgate", "Sunspire", "Wraithmoor", "Ironvale", "Starhaven", "Mosscairn", "Grimtide"];
 
 		/** Realm events; each realm needs EVENTS_PER_REALM of them killed. */
 		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
@@ -839,7 +844,7 @@ package realm {
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
 
 		/**
-		 * Dungeons. Event bosses drop the endgame ones (Valor-style); realm monsters drop
+		 * Dungeons. Event bosses drop the endgame ones; realm monsters drop
 		 * their own (`portal` on the enemy). tier: mob strength and loot, 0 (beach) .. 4 (godlands).
 		 */
 		public static const DUNGEONS:Array = [
@@ -864,22 +869,22 @@ package realm {
 		}
 		public static const DUNGEON_DROP_CHANCE:Number = 0.7;
 
-		/** Skill tree (Valor "Ascension"): unlocked at level 20 with 11/11 stats. */
+		/** Skill tree ("Awakening"): unlocked at level 20 with 11/11 stats. */
 		public static const SKILLS:Array = [
 			{id: "brutality", name: "Brutality", desc: "+5% damage", max: 5},
 			{id: "precision", name: "Precision", desc: "+2% crit chance", max: 5},
 			{id: "ferocity", name: "Ferocity", desc: "+0.1x crit damage", max: 5},
 			{id: "vigor", name: "Vigor", desc: "+40 max HP", max: 5},
 			{id: "bulwark", name: "Bulwark", desc: "+4 Defense", max: 5},
-			{id: "aegis", name: "Aegis", desc: "+5 Protection", max: 5},
+			{id: "aegis", name: "Aegis", desc: "+5 Warding", max: 5},
 			{id: "swiftness", name: "Swiftness", desc: "+4 Speed", max: 5},
 			{id: "leech", name: "Leech", desc: "+1 HP per hit", max: 5},
-			{id: "fortune", name: "Prosperity", desc: "+5 Fortune", max: 5}
+			{id: "fortune", name: "Prosperity", desc: "+5 Bounty", max: 5}
 		];
 		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5}};
 		public static const XP_PER_SKILL_POINT:int = 600;
 
-		/** Daily quests (Valor's daily contracts / battle pass missions); 3 are picked per day. */
+		/** Daily quests (daily contracts / battle pass missions); 3 are picked per day. */
 		public static const QUESTS:Array = [
 			{id: "kills", text: "Slay 60 monsters", goal: 60, gold: 300, onrane: 0},
 			{id: "godkills", text: "Slay 25 Godlands monsters", goal: 25, gold: 0, onrane: 3},
@@ -916,7 +921,7 @@ package realm {
 		}
 
 		// ---- loot -------------------------------------------------------
-		/** fortune: % loot boost from gear (Valor's Fortune stat). */
+		/** fortune: % loot boost from gear (Fortune stat). */
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {
 			var items:Array = [];
 			var boost:Number = 1 + fortune / 100;

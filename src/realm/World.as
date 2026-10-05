@@ -54,7 +54,7 @@ package realm {
 		public var bossGoal:int = 40;
 		public var closeT:Number = 0;
 		public var closed:Boolean = false;
-		// realm events (Valor): announced bosses; clear them all to face the Dark Elder
+		// realm events: announced bosses; clear them all to face the Dark Elder
 		public var eventsDone:int = 0;
 		public var eventT:Number = 25;
 		public var nextEvent:int = 0;

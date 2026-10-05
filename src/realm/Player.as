@@ -12,9 +12,9 @@ package realm {
 		public var name:String;
 		public var x:Number, y:Number;
 		public var hp:Number, mp:Number;
-		/** Valor's Protection shield (white bar under MP); absorbs damage before HP. */
+		/** Protection shield (white bar under MP); absorbs damage before HP. */
 		public var pt:Number = 0;
-		/** Valor's Surge: +2 per nearby kill, refills PT at 100. */
+		/** Surge: +2 per nearby kill, refills PT at 100. */
 		public var surge:int = 0;
 		public var stats:Object = {};
 		public var weapon:Object, ability:Object, armor:Object, ring:Object;
@@ -42,7 +42,7 @@ package realm {
 		public var moving:Boolean = false;
 		public var burning:Boolean = false;
 		public var shotCount:int = 0;
-		/** Status effect timers (Valor/RotMG conditions). */
+		/** Status effect timers (RotMG-style conditions). */
 		public var status:Object = {slowed: 0, paralyzed: 0, confused: 0, armorbroken: 0, bleeding: 0};
 		public static const STATUS_TIME:Object = {slowed: 3, paralyzed: 1.2, confused: 2.5, armorbroken: 4, bleeding: 3};
 		public static const STATUS_NAMES:Object = {slowed: "Slowed", paralyzed: "Paralyzed", confused: "Confused", armorbroken: "Armor Broken", bleeding: "Bleeding"};
@@ -126,7 +126,7 @@ package realm {
 		public function get leech():int { return rank("leech"); }
 		public function rank(id:String):int { return int(skills[id] || 0); }
 
-		/** Valor's Ascension: level 20 with all 11 stats maxed unlocks the skill tree. */
+		/** Ascension: level 20 with all 11 stats maxed unlocks the skill tree. */
 		public function get ascended():Boolean { return level >= MAX_LEVEL && maxedCount >= 11; }
 
 		public function spendSkill(id:String, g:Game):void {
@@ -155,6 +155,8 @@ package realm {
 			o = Save.clone(o);
 			for each (var f:String in SAVE_FIELDS) if (o[f] != undefined) this[f] = o[f];
 			while (inv.length < (backpack ? 16 : 8)) inv.push(null);
+			// items saved before the renames keep their old names; refresh them
+			for each (var it:Object in inv) if (it && it.kind == "material") it.name = "Star Shard";
 			for each (var s:String in Data.STATS) if (stats[s] == undefined) stats[s] = cls.base[s];
 			hp = maxHp;
 			mp = maxMp;
@@ -424,7 +426,7 @@ package realm {
 					if (drinkStat(item.sub, g)) inv[idx] = null;
 					return;
 				case "material":
-					g.msg("Take Sor Crystals to the Sor Forge in the Nexus.", 0xc080ff);
+					g.msg("Take Star Shards to the Starforge in the Nexus.", 0xc080ff);
 					return;
 			}
 			hp = Math.min(hp, maxHp);
@@ -458,7 +460,7 @@ package realm {
 			if (surge >= SURGE_MAX) {
 				surge = 0;
 				pt = maxPt;
-				g.floatText(x, y - 1.4, "Surge!", 0xf0f0ff);
+				g.floatText(x, y - 1.4, "Fervor!", 0xf0f0ff);
 			}
 		}
 

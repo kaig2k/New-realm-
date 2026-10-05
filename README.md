@@ -44,7 +44,7 @@ Press **`** (the key under Esc) or type `/admin` in chat to open the admin menu.
 with ` or Esc. It has five tabs:
 
 - **Player**: max level, max all stats (11/11), god mode, full heal, skill points, max
-  potions, gold / Onrane / account fame, backpack, clear inventory, a level 30 pet.
+  potions, gold / Aether / account fame, backpack, clear inventory, a level 30 pet.
   - **World buttons:** kill all monsters, teleport to the Godlands or the Nexus, finish the
     realm's events (the realm closes and the Dark Elder fight starts), spawn an event now,
     reveal the minimap.
@@ -53,7 +53,7 @@ with ` or Esc. It has five tabs:
 - **Dungeons**: open a portal to any dungeon next to you, or go straight in. Also has the
   Dark Elder's chamber and a realm portal.
 - **Items**: any tier (T0-T7) or rarity (RN, BD, EL, SF, PR) of weapon, ability, armor and
-  ring for your class, a full ST set, potions, Sor Crystals and every stat potion.
+  ring for your class, a full Bonded set, potions, Star Shards and every stat potion.
 
 ## Accounts and saves
 
@@ -64,7 +64,7 @@ last account you used.
 
 There is no server: accounts and saves are stored locally on this computer, in the AIR or
 Flash Player local storage. Each account has its own save (characters, vault, gold,
-Onrane, fame, pets, skins, quests and achievements). Passwords are never stored as
+Aether, fame, pets, skins, quests and achievements). Passwords are never stored as
 plain text, only as salted SHA-256 hashes. Progress saved before accounts existed is moved
 into the first account you create.
 
@@ -96,17 +96,17 @@ into the first account you create.
 
 ## Features
 
-The game is modelled closely on **Valor**, the RotMG private server. Its systems come from
-the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel art are original.
+The game is set on **Eldmere**, an island of realms ruled by Azrakor the Dark Elder. It plays
+like Realm of the Mad God, but its names, systems and pixel art are New Realm's own.
 
-- **8 classes with Valor's stat tables**: Wizard (Spell), Archer (Quiver), Knight (Shield),
+- **8 classes**: Wizard (Spell), Archer (Quiver), Knight (Shield),
   Priest (Tome), Rogue (Cloak, invisibility), Warrior (Helm, berserk), Necromancer (Skull,
   life-draining blast) and Huntress (Trap).
-- **11 maxable stats ("11/11")**: the vanilla 8 plus Valor's **Might** (crit damage, +0.1x per
-  10), **Luck** (crit chance, +1% per 10) and **Protection**. Gear can also add **Fortune**
+- **11 maxable stats ("11/11")**: the classic 8 plus **Fury** (crit damage, +0.1x per
+  10), **Focus** (crit chance, +1% per 10) and **Warding**. Gear can also add **Bounty**
   (+1% loot chance per point).
-- **PT and SG bars**: Protection fills a white **PT** shield (about 3 PT per point) that
-  absorbs damage before HP. **Surge** gains +2 for each kill near you and refills PT at 100.
+- **Ward and Fervor bars**: Warding fills a white **Ward** shield (about 3 per point) that
+  absorbs damage before HP. **Fervor** gains +2 for each kill near you and refills your Ward at 100.
 - **Item tiers and rarities**: tiered gear T0-T7, then New Realm's own rarities, from common
   to rarest. Each has its own colour, tag and loot bag.
 
@@ -117,10 +117,10 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   | **Eldritch** | EL | violet | Dropped by the Dark Elder |
   | **Starforged** | SF | gold | Made at the forge, or very rare drops. Weapons carry passives such as Lifebloom, Shardstorm, Frostbite, Executioner and Rampage |
   | **Primordial** | PR | ember red | The rarest drops |
-- **Currencies**: account-wide **Gold** and **Onrane**, plus account Fame.
-- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the Fame Store, the **Sor Forge** (a Runed, Bonded
-  or Eldritch item + a Sor Crystal + 100 Onrane = a Starforged item) and the **Marketplace** (buy
-  potions, stat potions, Sor Crystals, mystery Runed items and a **Backpack**, and shift+click items to sell them). A
+- **Currencies**: account-wide **Gold** and **Aether**, plus account Fame.
+- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the Fame Store, the **Starforge** (a Runed, Bonded
+  or Eldritch item + a Star Shard + 100 Aether = a Starforged item) and the **Marketplace** (buy
+  potions, stat potions, Star Shards, mystery Runed items and a **Backpack**, and shift+click items to sell them). A
   backpack gives that character 8 more inventory slots. Switch pages with the button by
   the sidebar tabs; keys 1-8 use the page you're on.
 - **Fame Store** (Nexus, north-west): spend account fame on skins, two per class, such as
@@ -136,7 +136,7 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
 - **Realm events**: the realm's overlord, *Azrakor the Dark Elder*, keeps summoning event
   bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King, Gorehorn the Behemoth, the
   Phantom Regent) and announces each kill in
-  chat as `[3/6][Realm: Medusa]`. Clear all 6 events and the realm closes. You're pulled
+  chat as `[3/6][Realm: Ashveil]`. Clear all 6 events and the realm closes. You're pulled
   into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
   for Eldritch, Starforged and Primordial loot. At a third of his health he becomes immune and
   summons four Elder Crystals. Destroy them all to make him vulnerable again.
@@ -145,9 +145,9 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   Forgotten Cellar. Each is a chain of monster rooms with a boss at the end (the Crypt
   Warden, Pyrelord Ignaar, the Tempest Seraph or the Cellar Sorcerer). Most dungeons also
   have a side treasure room with a guarded chest holding a set piece and stat potions.
-- **Chat and Valor-style commands** (Enter): `/glands` teleports you to the Godlands, plus
+- **Chat and commands** (Enter): `/glands` teleports you to the Godlands, plus
   `/nexus`, `/realm`, `/stats` and `/quests`. One-time tips guide new players.
-- **Skill tree (Valor's Ascension)**: at level 20 with 11/11 stats, every 600 XP gives a
+- **Skill tree (Awakening)**: at level 20 with 11/11 stats, every 600 XP gives a
   skill point. Spend points on 9 nodes (Brutality, Precision, Ferocity, Vigor, Bulwark,
   Aegis, Swiftness, Leech, Prosperity) in the star tab.
 - **Saved characters**: characters are saved automatically and live until they die. The
@@ -156,13 +156,13 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   (controls reversed), Armor Broken (0 Defense) or Bleeding (draining HP, no regen).
 - **Sound effects**, all synthesised in code: shots, hits, kills, level-ups, loot, rare-drop
   chimes, portals and boss spawns. A banner announces Eldritch, Starforged and Primordial drops.
-- **Daily Quest Board** (Valor's daily contracts): three missions picked by date, such as
-  "Clear a dungeon" or "Defeat 2 realm event bosses", paying gold and Onrane.
+- **Daily Quest Board**: three missions picked by date, such as
+  "Clear a dungeon" or "Defeat 2 realm event bosses", paying gold and Aether.
 - **Quest arrow** (like RotMG's quest marker): a gold arrow at the edge of the screen points
   to your current objective, with its name and distance. That's the area boss, the nearest
   Elder Crystal while the Dark Elder is immune, or a monster suited to your level.
 - **Achievements**: 16 account-wide goals, such as First Blood, Dungeon Master, Treasure
-  Hunter, Bane of Azrakor and Perfection (11/11). Each pays gold and Onrane once. See them
+  Hunter, Bane of Azrakor and Perfection (11/11). Each pays gold and Aether once. See them
   at the Quest Board, or type `/achievements`.
 - **Screen shake** on heavy hits, explosions and boss deaths.
 - **Pause menu** with Resume, sound, damage numbers, particle and screen shake toggles, and Save & Quit

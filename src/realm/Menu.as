@@ -79,7 +79,7 @@ package realm {
 
 			var stats:TextField = Ui.text(15, 0xff9a40, true, "center", Ui.W, true);
 			stats.text = "Account fame: " + Ui.commas(save.fame || 0) + "      Gold: " + Ui.commas(save.gold || 0) +
-				"      Onrane: " + Ui.commas(save.onrane || 0) + "      Best fame: " + Ui.commas(save.bestFame || 0) + "      Heroes lost: " + (save.deaths || 0);
+				"      Aether: " + Ui.commas(save.onrane || 0) + "      Best fame: " + Ui.commas(save.bestFame || 0) + "      Heroes lost: " + (save.deaths || 0);
 			stats.y = 600;
 			addChild(stats);
 

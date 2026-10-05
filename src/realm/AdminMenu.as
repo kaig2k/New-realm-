@@ -96,7 +96,7 @@ package realm {
 			btn("Max potions (F/G)", col[2], y, w, function():void { p.hpPots = Player.MAX_POTS; p.mpPots = Player.MAX_POTS; });
 			y += 36;
 			btn("+10,000 gold", col[0], y, w, function():void { g.addGold(10000); });
-			btn("+100 Onrane", col[1], y, w, function():void { g.addOnrane(100); });
+			btn("+100 Aether", col[1], y, w, function():void { g.addOnrane(100); });
 			btn("+5,000 account fame", col[2], y, w, function():void { Save.data.fame = int(Save.data.fame || 0) + 5000; Save.flush(); g.msg("+5,000 account fame (Fame Store).", 0xff9a2e); });
 			y += 36;
 			btn("Give backpack", col[0], y, w, function():void { p.backpack = true; while (p.inv.length < 16) p.inv.push(null); });
@@ -190,7 +190,7 @@ package realm {
 			y2 += 22;
 			btn("HP potion", 14, y2, 100, function():void { g.giveItem(Data.makePotion("hp")); });
 			btn("MP potion", 120, y2, 100, function():void { g.giveItem(Data.makePotion("mp")); });
-			btn("Sor Crystal", 226, y2, 100, function():void { g.giveItem(Data.makeSor()); });
+			btn("Star Shard", 226, y2, 100, function():void { g.giveItem(Data.makeSor()); });
 			btn("Bonded set", 332, y2, 100, function():void { for (var s:int = 0; s < 4; s++) g.giveItem(Data.makeForSlot(cls, s, 7, "st")); });
 			btn("Random SF", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
 			y2 += 40;

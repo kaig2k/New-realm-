@@ -225,7 +225,7 @@ package realm {
 			e.stopPropagation();
 		}
 
-		/** Valor-style slash commands; anything else is said in chat. */
+		/** slash commands; anything else is said in chat. */
 		public function runCommand(t:String):void {
 			if (t.charAt(0) != "/") {
 				pushChat("<font color='#ffe36e'><b>&lt;" + player.name + "&gt;</b></font> " + t.replace(/</g, "&lt;"));
@@ -370,7 +370,7 @@ package realm {
 		}
 
 		private function buildBossPanel():void {
-			// damage meter, styled like the RotMG/Valor boss leaderboard
+			// damage meter, styled like the RotMG boss leaderboard
 			bossPanel = new Sprite();
 			Ui.panel(bossPanel.graphics, 0, 0, 290, 100, 0x2a2a2a, 0x454545, 0.85);
 			bossName = Ui.text(20, 0xc83030, true, "center", 290, true);
@@ -427,8 +427,8 @@ package realm {
 			nexusWorld.bags.push(vaultBag);
 			vaultLabel = makeLabel("Vault", Ui.GOLD);
 
-			// Valor-style nexus stations: the Sor Forge (east) and the Marketplace (by the spawn)
-			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Sor Forge", 0xc080ff)});
+			// nexus stations: the Starforge (east) and the Marketplace (by the spawn)
+			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Starforge", 0xc080ff)});
 			stations.push({x: 106.5, y: 111.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f)});
 			stations.push({x: 94.5, y: 111.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080)});
 			stations.push({x: 84.5, y: 93.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e)});
@@ -670,7 +670,7 @@ package realm {
 			}
 		}
 
-		/** Valor-style dungeon: rooms of monsters with a boss at the end. */
+		/** dungeon: rooms of monsters with a boss at the end. */
 		private function enterDungeon(idx:int):void {
 			var th:Object = Data.DUNGEONS[idx];
 			dungeonWorld = new World("dungeon", th.name, th);
@@ -764,7 +764,7 @@ package realm {
 			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
 			saveCharacter();
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
-			msg("The fountain heals you. Vault (west) stores items, Sor Forge (east) crafts Starforged gear, Marketplace (south) buys and sells.", 0xcccccc);
+			msg("The fountain heals you. Vault (west) stores items, Starforge (east) crafts Starforged gear, Marketplace (south) buys and sells.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
 		}
@@ -940,7 +940,7 @@ package realm {
 			if (world.eventT <= 0) spawnEvent();
 		}
 
-		/** Valor-style realm event: the overlord announces a boss somewhere inland. */
+		/** realm event: the overlord announces a boss somewhere inland. */
 		private function spawnEvent():void {
 			// a random event, avoiding the last few seen in this realm
 			if (!world.recentEvents) world.recentEvents = [];
@@ -962,7 +962,7 @@ package realm {
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
-					tip("event", "Event bosses drop Runed and Bonded gear, Sor Crystals and dungeon portals. Kill 6 to face the Dark Elder.");
+					tip("event", "Event bosses drop Runed and Bonded gear, Star Shards and dungeon portals. Kill 6 to face the Dark Elder.");
 					return;
 				}
 			}
@@ -1133,11 +1133,11 @@ package realm {
 			var dx:Number = e.x - p.x, dy:Number = e.y - p.y;
 			if (dx * dx + dy * dy < 12 * 12) p.addSurge(this);
 
-			// currencies (account-wide, like Valor's gold and Onrane)
+			// currencies (account-wide gold and Aether)
 			var g:int = e.def.gold || int(e.def.xp / 6);
 			if (g > 0) addGold(g);
 			if (e.def.onrane) addOnrane(e.def.onrane);
-			if (e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " onrane", Ui.GOLD);
+			if (e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " Aether", Ui.GOLD);
 
 			if (e.def.crystal) {
 				var left:int = crystalsLeft();
@@ -1203,7 +1203,7 @@ package realm {
 				var bag:LootBag = new LootBag(e.x, e.y, items);
 				bags.push(bag);
 				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
-				// Valor-style rare drop alerts
+				// rare drop alerts
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary") questEvent("legendary");
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
 					var kind:String = bag.spr == "bag_relic" ? Data.RARITY_NAMES.ar : bag.spr == "bag_legendary" ? Data.RARITY_NAMES.lg : Data.RARITY_NAMES.fb;
@@ -1408,7 +1408,7 @@ package realm {
 			if (kind == "bag") {
 				if (!nearBag || idx >= nearBag.items.length) return;
 				item = nearBag.items[idx];
-				if (item.kind == "material") tip("sor", "Sor Crystal: bring it with a Runed, Bonded or Eldritch item and 100 Onrane to the Sor Forge to make it Starforged.");
+				if (item.kind == "material") tip("sor", "Star Shard: bring it with a Runed, Bonded or Eldritch item and 100 Aether to the Starforge to make it Starforged.");
 				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) p.hpPots++;
 				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) p.mpPots++;
 				else {
@@ -1528,7 +1528,7 @@ package realm {
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 450},
-			{id: "sor", name: "Sor Crystal", price: 900},
+			{id: "sor", name: "Star Shard", price: 900},
 			{id: "ut", name: "Mystery Runed item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
@@ -1555,7 +1555,7 @@ package realm {
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
 			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e}[openStation.kind], true, "center", w, true);
-			title.text = {forge: "Sor Forge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store"}[openStation.kind];
+			title.text = {forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -1566,8 +1566,8 @@ package realm {
 			if (openStation.kind == "forge") {
 				var sors:int = 0;
 				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
-				info.htmlText = "Forge a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Starforged</b></font> item: Runed, Bonded or Eldritch item + 1 Sor Crystal + 100 Onrane\n" +
-					"You have <b>" + sors + "</b> Sor Crystal" + (sors == 1 ? "" : "s") + " and <b>" + onrane + "</b> Onrane. Click an item to forge it.";
+				info.htmlText = "Forge a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Starforged</b></font> item: Runed, Bonded or Eldritch item + 1 Star Shard + 100 Aether\n" +
+					"You have <b>" + sors + "</b> Star Shard" + (sors == 1 ? "" : "s") + " and <b>" + onrane + "</b> Aether. Click an item to forge it.";
 				info.y = y;
 				y += info.height + 8;
 				var n:int = 0;
@@ -1622,7 +1622,7 @@ package realm {
 					var done:Boolean = qs.progress >= q.goal;
 					var row:TextField = Ui.text(14, done ? 0x9cff7a : 0xffffff, true, "left", 290, true);
 					row.htmlText = q.text + "  <font color='#aaaaaa'>" + qs.progress + "/" + q.goal + "</font>\n<font size='12' color='#ffd75e'>" +
-						(q.gold ? q.gold + " gold  " : "") + (q.onrane ? q.onrane + " onrane" : "") + "</font>";
+						(q.gold ? q.gold + " gold  " : "") + (q.onrane ? q.onrane + " Aether" : "") + "</font>";
 					row.x = 16; row.y = y;
 					sp.addChild(row);
 					if (qs.claimed) {
@@ -1738,7 +1738,7 @@ package realm {
 				if (ach.gold) addGold(ach.gold);
 				if (ach.onrane) addOnrane(ach.onrane);
 				showBanner("Achievement: " + ach.name, 0xffd75e, 3);
-				msg("Achievement unlocked: " + ach.name + " (" + ach.desc + ")  +" + ach.gold + " gold" + (ach.onrane ? " +" + ach.onrane + " onrane" : ""), 0xffd75e);
+				msg("Achievement unlocked: " + ach.name + " (" + ach.desc + ")  +" + ach.gold + " gold" + (ach.onrane ? " +" + ach.onrane + " Aether" : ""), 0xffd75e);
 				Sfx.play("rare", 0.7);
 				Save.flush();
 			}
@@ -1752,7 +1752,7 @@ package realm {
 				if (q.gold) addGold(q.gold);
 				if (q.onrane) addOnrane(q.onrane);
 				Save.flush();
-				msg("Quest reward: " + (q.gold ? q.gold + " gold " : "") + (q.onrane ? q.onrane + " onrane" : ""), Ui.GOLD);
+				msg("Quest reward: " + (q.gold ? q.gold + " gold " : "") + (q.onrane ? q.onrane + " Aether" : ""), Ui.GOLD);
 				Sfx.play("rare");
 				refreshStation();
 			};
@@ -1932,14 +1932,14 @@ package realm {
 			return function():void { buy(e); };
 		}
 
-		/** Sor Forge: Runed/Bonded/Eldritch item + Sor Crystal + 100 Onrane -> Starforged. */
+		/** Starforge: Runed/Bonded/Eldritch item + Star Shard + 100 Aether -> Starforged. */
 		private function forge(slot:int):void {
 			var item:Object = player.inv[slot];
 			if (!item) return;
 			var sorSlot:int = -1;
 			for (var i:int = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "material") { sorSlot = i; break; }
-			if (sorSlot < 0) { msg("You need a Sor Crystal (event bosses drop them, or buy one at the Marketplace).", 0xff8080); return; }
-			if (onrane < 100) { msg("You need 100 Onrane (" + onrane + " now). Event bosses drop Onrane.", 0xff8080); return; }
+			if (sorSlot < 0) { msg("You need a Star Shard (event bosses drop them, or buy one at the Marketplace).", 0xff8080); return; }
+			if (onrane < 100) { msg("You need 100 Aether (" + onrane + " now). Event bosses drop Aether.", 0xff8080); return; }
 			addOnrane(-100);
 			player.inv[sorSlot] = null;
 			var lg:Object = Data.forgeLegendary(item, player.cls);
@@ -1948,7 +1948,7 @@ package realm {
 			Save.flush();
 			showBanner("Forged " + lg.name + "!", Data.RARITY_COLORS.lg, 3);
 			Sfx.play("rare");
-			msg("The Sor Forge blazes... you forged " + lg.name + "!", Data.RARITY_COLORS.lg);
+			msg("The Starforge blazes... you forged " + lg.name + "!", Data.RARITY_COLORS.lg);
 			burst(player.x, player.y, 0xd8e040, 30);
 			saveCharacter();
 			refreshStation();

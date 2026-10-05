@@ -25,6 +25,14 @@ package realm {
 		public var dmgMult:Number = 1;
 		/** You hit it at least once (you only get loot from monsters you fought). */
 		public var playerHit:Boolean = false;
+		/** Network id (online: shared by every player in the world). */
+		public var id:int = 0;
+		/**
+		 * Online, one player's game (the world host) runs the monsters. Everyone
+		 * else gets "remote" copies that just follow the host's updates.
+		 */
+		public var remote:Boolean = false;
+		public var tx:Number, ty:Number;
 
 		private var attacks:Array;
 		private var timers:Array;
@@ -36,7 +44,11 @@ package realm {
 		private var orbitDir:Number;
 		private var blinkT:Number = 2 + Math.random() * 2;
 
+		/** Key into Data.ENEMIES. */
+		public var defId:String;
+
 		public function Enemy(id:String, x:Number, y:Number, zone:int) {
+			defId = id;
 			def = Data.ENEMIES[id];
 			this.x = homeX = x;
 			this.y = homeY = y;
@@ -78,10 +90,12 @@ package realm {
 		public function update(dt:Number, g:Game):void {
 			if (hitT > 0) hitT -= dt;
 			if (slowT > 0) slowT -= dt;
-			var p:Player = g.player;
-			var dx:Number = p.x - x, dy:Number = p.y - y;
-			var dist:Number = Math.sqrt(dx * dx + dy * dy);
-			var aggro:Boolean = dist < (def.aggro || 9) && !g.world.isSafe(p.x, p.y) && p.invisT <= 0;
+			if (remote) { follow(dt, g); return; }
+			// the nearest player it can see (online that includes other players)
+			var p:Object = g.aggroTarget(this);
+			var dx:Number = p ? p.x - x : 0, dy:Number = p ? p.y - y : 0;
+			var dist:Number = p ? Math.sqrt(dx * dx + dy * dy) : 999;
+			var aggro:Boolean = p != null && dist < (def.aggro || 9);
 			facingLeft = aggro ? g.scrX(p.x, p.y) < g.scrX(x, y) : (dirX * g.camCos + dirY * g.camSin) < 0;
 
 			if (stunT > 0) { stunT -= dt; return; }
@@ -165,6 +179,43 @@ package realm {
 			}
 		}
 
+		/** Remote copy: glide toward the host's position. */
+		private function follow(dt:Number, g:Game):void {
+			if (stunT > 0) stunT -= dt;
+			if (isNaN(tx)) { tx = x; ty = y; }
+			var dx:Number = tx - x, dy:Number = ty - y;
+			var d:Number = Math.sqrt(dx * dx + dy * dy);
+			moving = d > 0.02;
+			if (d > 5) { x = tx; y = ty; }
+			else if (moving) {
+				var k:Number = Math.min(1, dt * 10);
+				x += dx * k; y += dy * k;
+				if (Math.abs(dx) > 0.01) facingLeft = (dx * g.camCos + dy * g.camSin) < 0;
+			}
+		}
+
+		public function get phaseIndex():int { return phase; }
+
+		/** A remote copy takes over (its host left): start thinking for itself. */
+		public function takeOver():void {
+			remote = false;
+			if (isBoss) setAttacks(def.phases[phase]);
+		}
+
+		/** Remote copy: show a phase change the host reported. */
+		public function setPhase(ph:int):void {
+			if (!isBoss || ph == phase || !def.phases[ph]) return;
+			phase = ph;
+			setAttacks(def.phases[phase]);
+		}
+
+		/** Replays an attack the host's copy just fired (same bullets for everyone). */
+		public function remoteFire(i:int, ang:Number, spin:Number, ph:int, g:Game):void {
+			var list:Array = isBoss ? def.phases[ph] : def.attacks;
+			if (!list || !list[i]) return;
+			shootAttack(list[i], ang, spin, g);
+		}
+
 		private function wander(dt:Number):void {
 			moveT -= dt;
 			if (moveT <= 0) {
@@ -194,6 +245,15 @@ package realm {
 				for (k = 0; k < n; k++) g.spawnEnemy(a.what, x + Math.random() * 2 - 1, y + Math.random() * 2 - 1, zone);
 				return;
 			}
+			var spin0:Number = spins[i];
+			shootAttack(a, ang, spin0, g);
+			if (a.p != "aimed") spins[i] += (a.rot || 0) * DEG;
+			g.sync.fired(this, i, ang, spin0, phase);
+		}
+
+		private function shootAttack(a:Object, ang:Number, spin0:Number, g:Game):void {
+			var n:int = a.n;
+			var k:int;
 			var shape:String = a.shape || (a.p == "aimed" ? "dart" : a.p == "spiral" ? "star" : "orb");
 			var bd:Vector.<BitmapData> = Sprites.projectile(shape, a.col, a.r <= 0.15 ? 3 : a.r <= 0.2 ? 4 : 5);
 			var spin:Boolean = shape == "star";
@@ -205,10 +265,9 @@ package realm {
 				}
 			} else { // ring / spiral
 				for (k = 0; k < n; k++) {
-					t = spins[i] + k * Math.PI * 2 / n;
+					t = spin0 + k * Math.PI * 2 / n;
 					g.addShot(new Projectile(x, y, t, a.spd, a.life, int(a.dmg * dmgMult), true, a.r, bd, false, def.name, a.eff || null, spin));
 				}
-				spins[i] += (a.rot || 0) * DEG;
 			}
 		}
 	}

@@ -18,7 +18,10 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || '2050', 10);
-const VERSION = 1;
+/** Bump when the game and server stop understanding each other. */
+const VERSION = 2;
+const IDLE_KICK_MS = 45000;
+const MAX_MSGS_PER_SEC = 250;
 const DATA_DIR = path.join(__dirname, 'data');
 const PARTY_MAX = 6;
 const GUILD_MAX = 27;
@@ -68,6 +71,8 @@ const clients = new Map(); // id -> client
 const byName = new Map();  // lowername -> client
 let nextId = 1;
 const parties = new Map(); // party id -> {id, leader, members: Set<client>}
+/** world key -> client whose game runs that world's monsters */
+const hosts = new Map();
 let nextParty = 1;
 
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
@@ -91,6 +96,8 @@ function guildOf(c) { return c.guild ? guilds[c.guild] : null; }
 const handlers = {
   hello(c, m) {
     if (c.authed) return;
+    if (m.ver !== VERSION) return c.fail('Version mismatch: this server runs New Realm network version ' + VERSION +
+      ' and your game uses version ' + m.ver + '. Get the same game build as the host.');
     const name = str(m.name, 12);
     const token = str(m.token, 64);
     if (!/^[A-Za-z0-9]{3,12}$/.test(name)) return c.fail('Invalid name.');
@@ -121,12 +128,14 @@ const handlers = {
 
   enter(c, m) {
     const world = str(m.key, 80);
-    if (c.world) for (const o of inWorld(c.world, c)) o.send({ t: 'leave', id: c.id });
+    leaveWorld(c);
     c.world = world;
     c.x = num(m.x); c.y = num(m.y);
     if (m.profile && typeof m.profile === 'object') c.profile = m.profile;
     if (c.trade) endTrade(c, 'The trade was cancelled.');
-    c.send({ t: 'players', list: inWorld(world, c).map(publicInfo) });
+    // the first player in a world runs its monsters
+    if (!hosts.get(world) || hosts.get(world).world !== world) hosts.set(world, c);
+    c.send({ t: 'players', key: world, host: hosts.get(world).id, list: inWorld(world, c).map(publicInfo) });
     for (const o of inWorld(world, c)) o.send({ t: 'join', p: publicInfo(c) });
     updateGuildMember(c);
     sendParty(c.party);
@@ -357,8 +366,33 @@ const handlers = {
     sendGuild(c.guild);
   },
 
-  ping(c) { c.send({ t: 'pong' }); }
+  /** Monster sync between the world host and the others (see WorldSync.as). */
+  w(c, m) {
+    if (!c.world || !m.d || typeof m.d !== 'object') return;
+    const out = { t: 'w', from: c.id, d: m.d };
+    if (m.to === 'all') { for (const o of inWorld(c.world, c)) o.send(out); return; }
+    const target = m.to === 'host' ? hosts.get(c.world) : clients.get(m.to);
+    if (target && target !== c && target.world === c.world) target.send(out);
+  },
+
+  ping(c, m) { c.send({ t: 'pong', at: m.at }); }
 };
+
+/** Leaving a world: tell the others, and hand its monsters to someone else if we ran them. */
+function leaveWorld(c) {
+  const old = c.world;
+  if (!old) return;
+  c.world = '';
+  const rest = inWorld(old, c);
+  for (const o of rest) o.send({ t: 'leave', id: c.id });
+  if (hosts.get(old) === c) {
+    if (rest.length) {
+      const h = rest[0];
+      hosts.set(old, h);
+      for (const o of rest) o.send({ t: 'host', key: old, id: h.id });
+    } else hosts.delete(old);
+  }
+}
 
 function partner(c) { return c.trade.a === c ? c.trade.b : c.trade.a; }
 
@@ -431,8 +465,13 @@ function attach(c) {
   clients.set(c.id, c);
   c.note = (text, color) => c.send({ t: 'msg', text, color: color || 0xff8080 });
   c.fail = (msg) => { c.send({ t: 'error', msg }); setTimeout(() => c.close(), 100); };
+  c.lastSeen = Date.now();
+  c.budget = MAX_MSGS_PER_SEC;
   c.onLine = (line) => {
     if (!line) return;
+    c.lastSeen = Date.now();
+    if (--c.budget < 0) return; // flooding: drop until the budget refills
+    if (line.length > 65536) return;
     let m;
     try { m = JSON.parse(line); } catch (e) { return; }
     if (!m || typeof m.t !== 'string') return;
@@ -449,7 +488,7 @@ function attach(c) {
     if (byName.get(c.key) === c) byName.delete(c.key);
     if (c.trade) endTrade(c, c.name + ' left.');
     leaveParty(c, true);
-    if (c.world) for (const o of inWorld(c.world, c)) o.send({ t: 'leave', id: c.id });
+    leaveWorld(c);
     if (c.guild) sendGuild(c.guild);
     log(c.name, 'left (' + byName.size + ' online)');
   };
@@ -481,7 +520,7 @@ const server = net.createServer((sock) => {
     if (mode === 'ws') sock.write(wsFrame(data));
     else sock.write(data);
   };
-  c.close = () => sock.end();
+  c.close = (hard) => { if (hard) sock.destroy(); else sock.end(); };
   attach(c);
 
   sock.on('data', (chunk) => {
@@ -545,8 +584,61 @@ function wsFrame(data, op = 2) {
 server.listen(PORT, () => {
   log('New Realm server running on port ' + PORT);
   log('Realms: ' + realms.map(r => r.name).join(', '));
+  log('Type "help" here for server commands (list, say, kick, stop).');
   const addrs = [];
   for (const list of Object.values(os.networkInterfaces())) for (const a of list || []) if (a.family === 'IPv4' && !a.internal) addrs.push(a.address);
   log('Players on this PC connect to:  localhost:' + PORT);
   for (const a of addrs) log('Friends connect to:  ' + a + ':' + PORT + (a.startsWith('100.') ? '   (Tailscale)' : ''));
+});
+
+// ------------------------------------------------------------------ housekeeping
+setInterval(() => {
+  const now = Date.now();
+  for (const c of clients.values()) {
+    c.budget = MAX_MSGS_PER_SEC;
+    if (now - c.lastSeen > IDLE_KICK_MS) { log((c.name || 'connection ' + c.id) + ' timed out'); c.close(true); }
+  }
+}, 1000);
+
+// ------------------------------------------------------------------ console
+const HELP = 'Commands: list | say <message> | kick <name> | realms (new realms) | stop';
+function online() { return [...byName.values()]; }
+function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (data) => {
+  for (const raw of data.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const [cmd, ...rest] = line.split(' ');
+    const arg = rest.join(' ');
+    switch (cmd.toLowerCase()) {
+      case 'help': console.log(HELP); break;
+      case 'list': case 'who': {
+        const list = online();
+        console.log(list.length + ' online' + (list.length ? ': ' + list.map(c => c.name + ' (' + (c.world || '-') + (hosts.get(c.world) === c ? ', host' : '') + ')').join(', ') : ''));
+        break;
+      }
+      case 'say': if (arg) { broadcast('[Server] ' + arg); log('said: ' + arg); } break;
+      case 'kick': {
+        const c = byName.get(arg.toLowerCase());
+        if (!c) { console.log('Nobody called ' + arg + ' is online.'); break; }
+        c.send({ t: 'kicked', msg: 'You were kicked from the server.' });
+        c.close(true);
+        log('kicked ' + c.name);
+        break;
+      }
+      case 'realms':
+        rollRealms();
+        log('New realms: ' + realms.map(r => r.name).join(', ') + ' (players get them when they next log in)');
+        break;
+      case 'stop': case 'exit': case 'quit':
+        broadcast('[Server] The server is shutting down.', 0xff8080);
+        for (const f in saveTimers) clearTimeout(saveTimers[f]);
+        fs.writeFileSync(path.join(DATA_DIR, 'accounts.json'), JSON.stringify(accounts, null, 1));
+        fs.writeFileSync(path.join(DATA_DIR, 'guilds.json'), JSON.stringify(guilds, null, 1));
+        setTimeout(() => process.exit(0), 300);
+        break;
+      default: console.log('Unknown command. ' + HELP);
+    }
+  }
 });

@@ -78,6 +78,12 @@ package realm {
 		 * "dg:index:seed"; worlds nobody else can enter get a unique "solo:" key.
 		 */
 		public var key:String = "";
+		/** Map seed (0 = random). */
+		public var seed:uint = 0;
+		/** Online: monsters by network id. */
+		public var eById:Object = {};
+		/** Online: spawns the world's monsters once we know we're its host. */
+		public var pendingPopulate:Function;
 		/** Seeded generator state: the same seed builds the same map for everyone. */
 		private var seedState:uint = 0;
 
@@ -93,6 +99,7 @@ package realm {
 
 		public function World(kind:String = "realm", name:String = "", theme:Object = null, seed:uint = 0) {
 			seedState = seed;
+			this.seed = seed;
 			this.kind = kind;
 			this.name = name;
 			this.theme = theme;

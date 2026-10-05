@@ -100,51 +100,68 @@ into the first account you create.
 
 ## Playing with friends (multiplayer)
 
-One person runs the server. Everyone else joins it from the title screen.
+One person hosts the server; everyone (the host too) joins it from the title screen.
 
-**1. Host: start the server**
-- Install **Node.js** (the LTS version from https://nodejs.org). You only need to do this once.
-- Double-click **`server.bat`** (or run `./server.sh` on Mac/Linux). Leave the window open
-  while you play.
-- The window shows the addresses to share, for example `Friends connect to: 192.168.1.20:2050`.
-- Accounts and guilds are saved in `server/data/`.
+### Playtest checklist
 
-**2. Let your friends reach it.** Pick one:
-- **Same house / same Wi-Fi:** friends use the `192.168.x.x:2050` address the server shows.
-- **Tailscale (easiest over the internet, no router setup):** you and your friends install
-  Tailscale (https://tailscale.com, free) and sign in. Then share your PC with them from the
-  Tailscale admin page (or have them join your tailnet). Friends use your Tailscale address,
-  e.g. `100.101.102.103:2050`; the server window marks it "(Tailscale)".
-- **Port forwarding:** forward TCP port 2050 on your router to your PC. Allow it through
-  Windows Firewall if asked. Friends use your public IP (search "what is my ip") plus `:2050`.
-- **Always-on:** run `node server/server.js` on any cloud server (a small VPS is enough) and
-  open port 2050.
+**Host, before the session**
+1. Install **Node.js** (LTS, https://nodejs.org). You only need to do this once.
+2. Build the game: `build.bat` then `package.bat`. You get `dist\NewRealm.zip`, a standalone
+   game (no AIR install needed). Send the zip to your friends. **Everyone must use the same
+   build**: the server turns away a mismatched game with a clear message.
+3. Pick how friends will reach you (see below). Tailscale is easiest.
 
-**3. Everyone: join.** Build the game installer with `package.bat` and give it to your
-friends. On the title screen, log in, click **Play Online** and enter the server address.
-The host uses `localhost:2050`.
+**Host, when you play**
+1. Double-click **`server.bat`** and leave the window open. It shows the addresses to share.
+2. Start the game, log in, click **Play Online**, enter `localhost:2050`.
 
-**What's shared online**
-- Players: you see everyone in the same Nexus or realm, moving and shooting.
-- The three realms behind the Nexus portals come from the server, and everyone gets the same map.
-- Public chat with speech bubbles, party chat (`/p`) and guild chat (`/g`).
-- Trading through the server: both players must accept the same offer.
-- Parties (6), and guilds (27) saved on the server.
-- `/join name` takes you to a party or guild member's realm or dungeon (same dungeon layout).
-  Party members are told when you enter a dungeon.
+**Friends**
+1. Unzip `NewRealm.zip` and run `NewRealm.exe`.
+2. Register an account (it's stored on your own PC), click **Play Online** and enter the
+   host's address, e.g. `100.101.102.103:2050`.
 
-**Not shared yet**
-- Monsters, bosses and loot still run in each player's own game. You see your friends and
-  their shots, but you each fight your own copy of the monsters. The next step is to move
-  monsters onto the server so you fight the same ones.
-- Characters and items are still saved on each player's own computer, so a modified game
-  could cheat. That's fine among friends.
+**Reaching the host**
+- **Same Wi-Fi:** use the `192.168.x.x:2050` address the server window shows.
+- **Tailscale (easiest over the internet, no router setup):** everyone installs Tailscale
+  (https://tailscale.com, free). The host shares their PC with the friends from the
+  Tailscale admin page. Friends use the host's `100.x.x.x:2050` address; the server window
+  marks it "(Tailscale)".
+- **Port forwarding:** forward TCP port 2050 on the router to the host PC, allow it through
+  Windows Firewall, and friends use the host's public IP (search "what is my ip") + `:2050`.
+- **Always-on:** run `node server/server.js` on any small cloud server and open port 2050.
 
-Your name on a server is your account name. The first time you join a server, your game
-gets a secret key for that name, so nobody else can use it there.
+**Server window commands:** `list` (who's online and where), `say message` (announce to
+everyone), `kick name`, `realms` (new realms for the next logins), `stop` (saves and shuts
+down). Accounts and guilds are saved in `server/data/`.
 
-Server options: `server.bat 3000` runs it on port 3000 instead of 2050. The server speaks
-plain TCP for the game and WebSocket on the same port, for browser builds.
+### What's shared online
+- **Monsters, bosses and events.** The first player in a realm or dungeon is its *host*:
+  their game runs the monsters and the server streams them to everyone else there. You
+  fight the same monsters, dodge the same bullets and see the same bosses. If the host
+  leaves, someone else takes over automatically. The online line under the gold counter
+  says "(host)" on the player who's running the area.
+- **Kills and loot.** Everyone near a kill shares its XP. Loot drops for each player who hit
+  the monster (RotMG-style: your bags are yours).
+- **Dungeons.** Portals that drop in a realm appear for everyone there and lead to the same
+  dungeon. `/join name` follows a party or guild member wherever they are. When a realm
+  closes, everyone from it goes to the same Citadel and the same Dark Elder fight.
+- **Realms.** The server picks the three realms and everyone gets the same maps.
+- **Players and social.** Positions and shots; public, party (`/p`) and guild (`/g`) chat;
+  trades (both players accept the same offer); parties (6); guilds (27, saved on the server).
+- **Reconnects.** If the connection drops, the game keeps running and reconnects by itself.
+  The online line shows your ping.
+
+### Known limits for the playtest
+- Characters, items and gold are saved on each player's own PC; the server only stores
+  account names and guilds. So a modified game could cheat. That's fine among friends.
+- Each player's monster hits are checked by their own game (no lag when dodging), so a laggy
+  player's view of a monster can be a few tiles behind the host's.
+- Your name on a server is protected by a secret key your game makes the first time you
+  join. If you change PC or wipe your game data, the host can free the name by deleting
+  your entry from `server/data/accounts.json` (with the server stopped).
+
+Server options: `server.bat 3000` runs on port 3000. The server speaks plain TCP for the
+game and WebSocket on the same port (for browser builds).
 
 ## Other players and trading
 
@@ -351,6 +368,7 @@ src/realm/Tooltip.as     item tooltip
 src/realm/Net.as         connection to other players (the seam for the game server)
 src/realm/Online.as      socket connection to a New Realm server
 src/realm/ServerNet.as   online Net: real players, chat, parties, guilds, trades
+src/realm/WorldSync.as   shared monsters online (world host streams monsters to the others)
 server/server.js         the multiplayer server (Node.js, no dependencies)
 src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trade
 src/realm/RemotePlayer.as another player (position smoothing, public profile)

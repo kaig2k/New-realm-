@@ -34,6 +34,12 @@ package realm {
 		/** True when connected to a real server. */
 		public function get online():Boolean { return false; }
 
+		/** Your server id (0 offline). */
+		public function get myId():int { return 0; }
+
+		/** Monster sync message to "host", "all" or a player id in your world (see WorldSync). */
+		public function sendWorld(to:*, d:Object):void {}
+
 		/** You fired your weapon (so others see your shots). */
 		public function shoot(ang:Number):void {}
 

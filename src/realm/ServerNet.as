@@ -1,4 +1,6 @@
 package realm {
+	import flash.utils.getTimer;
+
 	/**
 	 * Net over a real server connection (Online): the other players are real.
 	 * Monsters still run in your own game; the server shares players, chat,
@@ -17,21 +19,33 @@ package realm {
 		private var sentVersion:int = -1;
 		private var sentAccept:Boolean = false;
 		private var guildDone:Function;
+		private var pingT:Number = 2;
+		/** Round trip to the server in ms (-1 until measured). */
+		public var latency:int = -1;
+		private var retryT:Number = 0;
+		private var retries:int = 0;
+		private var reconnecting:Boolean = false;
 
 		public function ServerNet(g:Game) {
 			super(g);
 			Online.onClose = function():void {
-				g.msg("Lost the connection to the server. You're on your own until you log in again.", 0xff8080);
+				g.msg("Lost the connection to the server. Reconnecting...", 0xff8080);
 				if (trade) endTrade("Trade cancelled.");
 				players.length = 0;
 				party.length = 0;
-				myGuild = null;
+				partyInfo = [];
+				// keep playing: this game runs the monsters until we're back
+				g.sync.hostChanged(g.world.key, true);
 				g.socialChanged();
+				retries = 0;
+				retryT = 3;
 			};
 			Online.onMessage = onMessage;
 		}
 
-		private function get myId():int { return Online.welcome ? Online.welcome.id : 0; }
+		override public function get myId():int { return Online.welcome ? Online.welcome.id : 0; }
+
+		override public function sendWorld(to:*, d:Object):void { Online.send({t: "w", to: to, d: d}); }
 
 		override public function enterWorld(w:World):void {
 			if (trade) cancelTrade();
@@ -41,10 +55,14 @@ package realm {
 			Online.send({t: "enter", key: w.key, label: w.name, x: g.player.x, y: g.player.y, profile: g.myProfile()});
 		}
 
+		override public function get online():Boolean { return Online.connected; }
+
 		override public function update(dt:Number):void {
 			for each (var p:RemotePlayer in players) p.update(dt);
 			if (trade) trade.update(dt);
-			if (!Online.connected) return;
+			if (!Online.connected) { tryReconnect(dt); return; }
+			pingT -= dt;
+			if (pingT <= 0) { pingT = 5; Online.send({t: "ping", at: getTimer()}); }
 			sendT -= dt;
 			if (sendT <= 0) {
 				sendT = 0.1;
@@ -61,6 +79,26 @@ package realm {
 				var js:String = JSON.stringify(prof);
 				if (js != lastProfile) { lastProfile = js; Online.send({t: "profile", profile: prof}); }
 			}
+		}
+
+		private function tryReconnect(dt:Number):void {
+			if (reconnecting || retries >= 10 || !Online.address) return;
+			retryT -= dt;
+			if (retryT > 0) return;
+			reconnecting = true;
+			retries++;
+			Online.connect(Online.address, function(err:String):void {
+				reconnecting = false;
+				if (err) {
+					retryT = 5;
+					if (retries >= 10) g.msg("Couldn't reconnect (" + err + "). Save & Quit and join again from the title screen.", 0xff8080);
+					return;
+				}
+				g.msg("Reconnected to " + Online.address + ".", 0x5ae06a);
+				lastX = NaN;
+				lastProfile = "";
+				enterWorld(g.world);
+			});
 		}
 
 		override public function chat(text:String):void { Online.send({t: "chat", text: text}); }
@@ -94,6 +132,13 @@ package realm {
 				case "players":
 					players.length = 0;
 					for each (var info:Object in m.list) arrive(info);
+					if (m.key == worldKey) g.sync.entered(worldKey, m.host == myId);
+					break;
+				case "host":
+					g.sync.hostChanged(m.key, m.id == myId);
+					break;
+				case "w":
+					g.sync.handle(m.from, m.d);
 					break;
 				case "join":
 					arrive(m.p);
@@ -130,6 +175,10 @@ package realm {
 					break;
 				case "kicked":
 					g.msg(m.msg, 0xff8080);
+					retries = 10;
+					break;
+				case "pong":
+					if (m.at != undefined) latency = getTimer() - int(m.at);
 					break;
 
 				// trading
@@ -275,6 +324,6 @@ package realm {
 			return null;
 		}
 
-		override public function get online():Boolean { return true; }
+
 	}
 }

@@ -121,6 +121,8 @@ package realm {
 		private var drawList:Array = [];
 		// other players (through the connection; LocalNet simulates them for now)
 		public var net:Net;
+		/** Shared monsters online (see WorldSync). */
+		public var sync:WorldSync;
 		private var tagLayer:Sprite;
 		private var tags:Array = [];
 		private var bubbles:Array = [];
@@ -130,6 +132,8 @@ package realm {
 		private var requestPopup:Sprite;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
+		private var netTf:TextField;
+		private var netT:Number = 0;
 		private var social:SocialWindow;
 		private var tpT:Number = 0;
 
@@ -190,8 +194,13 @@ package realm {
 			addChild(banner);
 
 			buildCounters();
+			netTf = Ui.text(12, 0x9ad0ff, true, "right", 300, true);
+			netTf.x = VIEW_W - 312; netTf.y = 50;
+			netTf.mouseEnabled = false;
+			addChild(netTf);
 			buildBossPanel();
 			buildNexus();
+			sync = new WorldSync(this);
 			net = Online.connected ? new ServerNet(this) : new LocalNet(this);
 			net.enterWorld(world);
 
@@ -555,10 +564,34 @@ package realm {
 			return lab;
 		}
 
-		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint, life:Number = 0):void {
+		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint, life:Number = 0, seed:uint = 0, share:Boolean = true):void {
 			var lab:TextField = makeLabel("", 0xffffff);
 			lab.visible = w == world;
-			w.portals.push({x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life});
+			if (kind == "dungeon" && !seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
+			var p:Object = {x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life, seed: seed};
+			w.portals.push(p);
+			// dropped dungeon portals are shared: everyone here can enter the same dungeon
+			if (share && kind == "dungeon" && w == world && w.key != "nexus") sync.portal(p);
+		}
+
+		/** The world host dropped a dungeon portal. */
+		public function netPortal(x:Number, y:Number, kind:String, idx:int, color:uint, life:Number, seed:uint):void {
+			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
+			addPortal(world, x, y, kind, idx, color, life, seed, false);
+			msg("A portal to the " + Data.DUNGEONS[idx].name + " has opened!", Data.DUNGEONS[idx].color);
+		}
+
+		/** A realm event appeared on the host's game. */
+		public function eventAppeared(e:Enemy):void {
+			showBanner(e.def.name + " has appeared!", 0xff70ff, 3.5);
+			Sfx.play("boss");
+			player.bossDmg = 0;
+		}
+
+		/** Online: run fn once we know this game runs the world's monsters (offline: now). */
+		private function whenHost(fn:Function):void {
+			if (!net.online || sync.hostKey == world.key) fn();
+			else world.pendingPopulate = fn;
 		}
 
 		private function saveVault():void {
@@ -587,7 +620,7 @@ package realm {
 
 		public function usePortalNow(p:Object):void {
 			if (p.kind == "realm") enterPortal(p.idx);
-			else if (p.kind == "dungeon") enterDungeon(p.idx);
+			else if (p.kind == "dungeon") enterDungeon(p.idx, p.seed);
 			else if (p.kind == "elder") enterArena();
 			else nexusNow();
 		}
@@ -783,6 +816,18 @@ package realm {
 			dungeonWorld.key = "dg:" + idx + ":" + seed;
 			Sfx.play("portal");
 			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
+			var dw:World = dungeonWorld;
+			whenHost(function():void { populateDungeon(dw, th); });
+			player.bossDmg = 0;
+			showBanner(th.name, th.color, 3);
+			if (th.trio) msg("You enter the " + th.name + ". Three kings rest in the last hall. Each one that falls makes the others stronger.", th.color);
+			else if (th.toElder) msg("You storm " + th.name + ". Slay Azrakor's two lieutenants to open the way to his chamber.", th.color);
+			else if (th.guardians) msg("You enter the " + th.name + ". Its master is sealed until both guardians fall.", th.color);
+			else msg("You enter the " + th.name + ". Its master waits in the last chamber.", th.color);
+		}
+
+		private function populateDungeon(dungeonWorld:World, th:Object):void {
+			if (world != dungeonWorld) return;
 			var rooms:Array = dungeonWorld.rooms;
 			for (var r:int = 1; r < rooms.length - 1; r++) {
 				var rm:Object = rooms[r];
@@ -831,12 +876,6 @@ package realm {
 					e.dmgMult = 1 + (th.hard - 1) * 0.6;
 				}
 			}
-			player.bossDmg = 0;
-			showBanner(th.name, th.color, 3);
-			if (th.trio) msg("You enter the " + th.name + ". Three kings rest in the last hall. Each one that falls makes the others stronger.", th.color);
-			else if (th.toElder) msg("You storm " + th.name + ". Slay Azrakor's two lieutenants to open the way to his chamber.", th.color);
-			else if (th.guardians) msg("You enter the " + th.name + ". Its master is sealed until both guardians fall.", th.color);
-			else msg("You enter the " + th.name + ". Its master waits in the last chamber.", th.color);
 			if (th.hard) msg("Elite monsters: everything here is tougher than usual.", 0xff8080);
 			saveCharacter();
 		}
@@ -982,9 +1021,17 @@ package realm {
 			updateBags(dt);
 			updateParticles(dt);
 			updateFloaters(dt);
-			if (world.kind == "realm") {
+			if (world.kind == "realm" && sync.isHost) {
 				updateSpawns(dt);
 				updateEvents(dt);
+			}
+			sync.update(dt);
+			netT -= dt;
+			if (netT <= 0) {
+				netT = 0.5;
+				var sn:ServerNet = net as ServerNet;
+				netTf.htmlText = !sn ? "" : !net.online ? "<font color='#ff8080'>Offline - reconnecting...</font>"
+					: "Online  " + net.players.length + " here" + (sn.latency >= 0 ? "  " + sn.latency + " ms" : "") + (sync.isHost && world.key != "nexus" ? "  (host)" : "");
 			}
 			updateNexus(dt);
 			updateTraps(dt);
@@ -1135,11 +1182,16 @@ package realm {
 		/** The realm has closed: the Dark Elder pulls you into his chamber. */
 		private function enterArena():void {
 			arenaWorld = new World("arena", "Dark Elder's Chamber");
-			arenaWorld.key = soloKey();
+			// everyone coming from the same Citadel shares the chamber
+			arenaWorld.key = net.online && world.kind == "dungeon" ? "arena:" + world.seed : soloKey();
 			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
 			player.invulnT = 3;
-			arenaWorld.boss = new Enemy("elder", 100.5, 91.5, World.ARENA_ZONE);
-			arenaWorld.enemies.push(arenaWorld.boss);
+			var aw:World = arenaWorld;
+			whenHost(function():void {
+				if (world != aw) return;
+				aw.boss = new Enemy("elder", 100.5, 91.5, World.ARENA_ZONE);
+				aw.enemies.push(aw.boss);
+			});
 			player.bossDmg = 0;
 			showBanner(Data.OVERLORD, 0xc060ff, 4);
 			say(SOVEREIGN, "So, you slew my champions. Now kneel before the Dark Elder!");
@@ -1213,6 +1265,7 @@ package realm {
 			e.hitT = 0.08;
 			Sfx.play("hit", 0.6, 0.06);
 			if (e.isBoss) p.bossDmg += d;
+			if (e.remote) sync.hit(e, d, effect == "slow" ? 3 : 0, 0);
 			if (opt("dmg")) floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
 			if (effect == "slow") e.slowT = 3;
 			// Starforged / Primordial passives (not from passive-spawned shards)
@@ -1235,7 +1288,8 @@ package realm {
 				}
 			}
 			sparks(hx, hy, e.def.col, 2);
-			if (e.hp <= 0) killEnemy(e);
+			// remote copies die when the host says so
+			if (e.hp <= 0 && !e.remote) killEnemy(e);
 		}
 
 		/** Area damage (Necromancer skull). Returns number of enemies hit. */
@@ -1281,8 +1335,23 @@ package realm {
 			}
 		}
 
-		private function killEnemy(e:Enemy):void {
+		/** The host says a monster died (online). */
+		public function remoteKill(e:Enemy):void { killEnemy(e, true); }
+		/** Host: another player's hit finished a monster. */
+		public function hostKill(e:Enemy):void { killEnemy(e); }
+
+		/** Remove a monster without killing it (the host despawned it). */
+		public function dropEnemy(e:Enemy):void {
+			var i:int = enemies.indexOf(e);
+			if (i >= 0) { enemies[i] = enemies[enemies.length - 1]; enemies.length--; }
+			if (world.boss == e) world.boss = null;
+		}
+
+		/** remote: the kill came from the world host, so it doesn't roll shared things (portals) again. */
+		private function killEnemy(e:Enemy, remote:Boolean = false):void {
+			if (e.dead) return;
 			e.dead = true;
+			if (!remote) sync.killed(e);
 			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
 			var p:Player = player;
 			// kills by other players: you share the XP if you're close, but loot and credit need a hit of your own
@@ -1344,7 +1413,7 @@ package realm {
 					world.eventsDone++;
 					world.eventT = 20 + Math.random() * 10;
 					// events often leave a dungeon portal behind
-					if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
+					if (!remote && Math.random() < Data.DUNGEON_DROP_CHANCE) {
 						var di:int = int(Math.random() * Data.EVENT_DUNGEONS);
 						if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
 						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, 90);
@@ -1362,7 +1431,7 @@ package realm {
 				world.eventT -= 1.2; // killing speeds up the next event
 			}
 			// RotMG-style: some monsters drop a portal to their own dungeon
-			if (world.kind == "realm" && e.def.portal && Math.random() < e.def.portalChance) {
+			if (!remote && world.kind == "realm" && e.def.portal && Math.random() < e.def.portalChance) {
 				var pi:int = Data.dungeonIndex(e.def.portal);
 				if (pi >= 0) {
 					var dd:Object = Data.DUNGEONS[pi];
@@ -1393,6 +1462,7 @@ package realm {
 		}
 
 		private function removeEnemyAt(i:int):void {
+			sync.removed(enemies[i]);
 			enemies[i] = enemies[enemies.length - 1];
 			enemies.length--;
 		}
@@ -1440,27 +1510,61 @@ package realm {
 			}
 		}
 
+		/** Everyone monsters care about here: you, plus other real players online. */
+		private function playerSpots():Array {
+			var out:Array = [player];
+			if (net.online) for each (var rp:RemotePlayer in net.players) out.push(rp);
+			return out;
+		}
+
+		/** The nearest player a monster can see (others count online). */
+		public function aggroTarget(e:Enemy):Object {
+			var best:Object = null, bd:Number = 1e9;
+			if (player.hp > 0 && player.invisT <= 0 && !world.isSafe(player.x, player.y) && dyingT <= 0) {
+				bd = (player.x - e.x) * (player.x - e.x) + (player.y - e.y) * (player.y - e.y);
+				best = player;
+			}
+			if (net.online) for each (var rp:RemotePlayer in net.players) {
+				if (world.isSafe(rp.x, rp.y)) continue;
+				var d:Number = (rp.x - e.x) * (rp.x - e.x) + (rp.y - e.y) * (rp.y - e.y);
+				if (d < bd) { bd = d; best = rp; }
+			}
+			return best;
+		}
+
 		private function updateSpawns(dt:Number):void {
 			spawnT -= dt;
 			if (spawnT > 0) return;
 			spawnT = 0.6;
-			var near:int = 0;
+			var spots:Array = playerSpots();
+			// monsters too far from everyone despawn
 			for (var i:int = enemies.length - 1; i >= 0; i--) {
 				var e:Enemy = enemies[i];
-				var dx:Number = e.x - player.x, dy:Number = e.y - player.y;
-				var d2:Number = dx * dx + dy * dy;
-				if (!e.isBoss && d2 > 34 * 34) { removeEnemyAt(i); continue; }
-				if (d2 < 24 * 24) near++;
+				if (e.isBoss) continue;
+				var keep:Boolean = false;
+				for each (var sp:Object in spots) {
+					var ddx:Number = e.x - sp.x, ddy:Number = e.y - sp.y;
+					if (ddx * ddx + ddy * ddy < 34 * 34) { keep = true; break; }
+				}
+				if (!keep) removeEnemyAt(i);
+			}
+			// top up around one player at a time
+			var who:Object = spots[int(Math.random() * spots.length)];
+			if (world.isSafe(who.x, who.y)) who = player;
+			var near:int = 0;
+			for each (e in enemies) {
+				var dx:Number = e.x - who.x, dy:Number = e.y - who.y;
+				if (dx * dx + dy * dy < 24 * 24) near++;
 			}
 			// fewer monsters near the shore so new characters aren't swarmed
-			var pz:int = world.zoneAt(player.x, player.y);
+			var pz:int = world.zoneAt(who.x, who.y);
 			var cap:int = pz == 0 ? 8 : pz == 1 ? 11 : pz == 2 ? 13 : pz == 3 ? 14 : MAX_ENEMIES_NEAR;
 			if (near >= cap) return;
 			for (var tries:int = 0; tries < 6; tries++) {
 				var a:Number = Math.random() * Math.PI * 2;
 				var r:Number = 14 + Math.random() * 8;
-				var sx:Number = player.x + Math.cos(a) * r;
-				var sy:Number = player.y + Math.sin(a) * r;
+				var sx:Number = who.x + Math.cos(a) * r;
+				var sy:Number = who.y + Math.sin(a) * r;
 				var z:int = world.zoneAt(sx, sy);
 				if (z < 0 || z > World.GOD_ZONE || !world.canStand(sx, sy, 0.4, true)) continue;
 				var list:Array = Data.ZONE_SPAWNS[z];
@@ -1537,7 +1641,9 @@ package realm {
 
 		/** The realm has closed: storm Azrakor's Citadel, then face him in his chamber. */
 		private function enterCitadel():void {
-			enterDungeon(Data.dungeonIndex("citadel"));
+			// online, everyone in the closing realm goes to the same Citadel
+			var seed:uint = net.online && world.seed ? ((world.seed * 2654435761) & 0x7fffffff) | 1 : 0;
+			enterDungeon(Data.dungeonIndex("citadel"), seed);
 			say(SOVEREIGN, "You have slain my champions. Now come to my Citadel... if you can.");
 		}
 
@@ -1612,6 +1718,7 @@ package realm {
 				var dx:Number = e.x - x, dy:Number = e.y - y;
 				if (dx * dx + dy * dy < radius * radius) {
 					e.stunT = e.isBoss ? secs * 0.4 : secs;
+					if (e.remote) sync.hit(e, 0, 0, secs);
 					n++;
 				}
 			}

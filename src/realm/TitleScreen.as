@@ -105,7 +105,7 @@ package realm {
 				: "Playing offline. Join a server to play with friends.";
 			tf.y = 478;
 			onlineLayer.addChild(tf);
-			var b:Sprite = Online.connected ? Ui.button("Disconnect", 170, 34, function():void { Online.disconnect(); refreshOnline(); }, 15)
+			var b:Sprite = Online.connected ? Ui.button("Disconnect", 170, 34, function():void { Online.signOut(); refreshOnline(); }, 15)
 				: Ui.button("Play Online", 170, 34, showServer, 15);
 			b.x = (Ui.W - 170) / 2;
 			b.y = 506;
@@ -144,7 +144,7 @@ package realm {
 			var b1:Sprite, b2:Sprite;
 			if (Accounts.current) {
 				info.htmlText = "Logged in as <font color='#ffd75e'>" + Accounts.current + "</font>";
-				b1 = Ui.button("Log out", 130, 32, function():void { Online.disconnect(); Accounts.logout(); refreshAccount(); refreshOnline(); }, 15);
+				b1 = Ui.button("Log out", 130, 32, function():void { Online.signOut(); Accounts.logout(); refreshAccount(); refreshOnline(); }, 15);
 				b2 = Ui.button("Password", 130, 32, showChangePassword, 15);
 			} else {
 				info.text = "Not logged in";

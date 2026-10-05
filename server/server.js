@@ -3,9 +3,12 @@
  * New Realm game server.
  *
  * Shares the Nexus and the realms between players: positions, chat, parties,
- * guilds and trades. Monsters still run in each player's own game for now.
+ * guilds and trades. Account saves (characters, vault, gold...) live on the
+ * server, which checks them and carries out trades itself. Monsters run in
+ * one player's game per world (the "world host", see WorldSync.as).
  *
  * Run:  node server/server.js [port]      (default port 2050)
+ * Settings: server/config.json (created on first run).
  *
  * Speaks newline-separated JSON over plain TCP (the AIR game) and over
  * WebSocket on the same port (browser builds / testing). No npm packages needed.
@@ -16,12 +19,34 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { StringDecoder } = require('string_decoder');
+const { Store } = require('./store');
+const { checkSave } = require('./validate');
 
-const PORT = parseInt(process.argv[2] || process.env.PORT || '2050', 10);
+// ------------------------------------------------------------------ config
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+const DEFAULT_CONFIG = {
+  port: 2050,
+  motd: 'Welcome to New Realm!',
+  realmCap: 85,
+  minRealms: 3,
+  maxRealms: 6,
+  admins: [],
+  importLocalSaves: true,
+  viewRange: 32,
+  chatPerTenSeconds: 8
+};
+let config = Object.assign({}, DEFAULT_CONFIG);
+try { Object.assign(config, JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))); }
+catch (e) { try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2)); } catch (e2) {} }
+const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key);
+
+const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 4;
+const VERSION = 5;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
+const MAX_LINE = 1536 * 1024;
 const DATA_DIR = path.join(__dirname, 'data');
 const PARTY_MAX = 6;
 const GUILD_MAX = 27;
@@ -31,40 +56,57 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
   'Frostgate', 'Sunspire', 'Wraithmoor', 'Ironvale', 'Starhaven', 'Mosscairn', 'Grimtide'];
 
 // ------------------------------------------------------------------ storage
-fs.mkdirSync(DATA_DIR, { recursive: true });
-function load(file, fallback) {
-  try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8')); } catch (e) { return fallback; }
-}
-const saveTimers = {};
-function save(file, obj) {
-  clearTimeout(saveTimers[file]);
-  saveTimers[file] = setTimeout(() => {
-    const p = path.join(DATA_DIR, file);
-    fs.writeFileSync(p + '.tmp', JSON.stringify(obj, null, 1));
-    fs.renameSync(p + '.tmp', p);
-  }, 300);
-}
+const store = new Store(DATA_DIR);
+const load = (file, fallback) => store.loadTable(file, fallback);
+const save = (file, obj) => store.saveTable(file, obj);
 /** accounts[lowername] = {name, salt, hash, created} */
 const accounts = load('accounts.json', {});
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
 const guilds = load('guilds.json', {});
+/** bans[lowername] = {until (ms, 0 = forever), reason, by} */
+const bans = load('bans.json', {});
 
 function hashToken(token, salt) {
   return crypto.createHash('sha256').update(salt + ':' + token).digest('hex');
 }
 
 // ------------------------------------------------------------------ realms
-/** The three realms behind the Nexus portals; the seed makes every game build the same map. */
+/**
+ * The realms behind the Nexus portals (up to maxRealms). The seed makes every
+ * game build the same map. A realm holds realmCap players; when the open ones
+ * fill up a new one opens, and a closed realm is replaced by a fresh one.
+ */
 let realms = [];
+function newRealm() {
+  const used = new Set(realms.map(r => r.name));
+  const pool = REALM_NAMES.filter(n => !used.has(n));
+  const name = (pool.length ? pool : REALM_NAMES)[Math.floor(Math.random() * (pool.length || REALM_NAMES.length))];
+  return { name, seed: 1 + Math.floor(Math.random() * 0x7ffffffe), count: 0 };
+}
+const realmKey = (r) => 'realm:' + r.name + ':' + r.seed;
 function rollRealms() {
-  const pool = REALM_NAMES.slice();
   realms = [];
-  for (let i = 0; i < 3; i++) {
-    const name = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-    realms.push({ name, seed: 1 + Math.floor(Math.random() * 0x7ffffffe) });
-  }
+  for (let i = 0; i < config.minRealms; i++) realms.push(newRealm());
 }
 rollRealms();
+
+function realmList() {
+  return realms.map(r => ({ name: r.name, seed: r.seed, count: r.count, cap: config.realmCap }));
+}
+
+let lastRealmJson = '';
+/** Recounts realm populations, opens a new realm when they fill up, and tells the Nexus. */
+function updateRealms() {
+  for (const r of realms) r.count = 0;
+  const byKey = new Map(realms.map(r => [realmKey(r), r]));
+  for (const c of clients.values()) { const r = c.authed && byKey.get(c.world); if (r) r.count++; }
+  const full = realms.every(r => r.count >= config.realmCap * 0.75);
+  if (full && realms.length < config.maxRealms) { const r = newRealm(); realms.push(r); log('Opened a new realm: ' + r.name); }
+  const js = JSON.stringify(realmList());
+  if (js === lastRealmJson) return;
+  lastRealmJson = js;
+  for (const c of clients.values()) if (c.authed) c.send({ t: 'realms', list: realmList() });
+}
 
 // ------------------------------------------------------------------ clients
 const clients = new Map(); // id -> client
@@ -84,6 +126,12 @@ function inWorld(world, except) {
   const out = [];
   for (const c of clients.values()) if (c.authed && c.world === world && c !== except) out.push(c);
   return out;
+}
+
+/** Players near (x, y) in a world: movement and shots only go to those who can see them. */
+function nearby(c) {
+  const r2 = config.viewRange * config.viewRange;
+  return inWorld(c.world, c).filter(o => (o.x - c.x) * (o.x - c.x) + (o.y - c.y) * (o.y - c.y) < r2);
 }
 
 function publicInfo(c) {
@@ -112,6 +160,10 @@ const handlers = {
     } else if (hashToken(token, acc.salt) !== acc.hash) {
       return c.fail('The name "' + acc.name + '" belongs to someone else on this server.');
     }
+    const ban = bans[key];
+    if (ban && (!ban.until || ban.until > Date.now())) {
+      return c.fail('You are banned from this server' + (ban.until ? ' until ' + new Date(ban.until).toUTCString() : '') + (ban.reason ? ': ' + ban.reason : '.'));
+    }
     const old = byName.get(key);
     if (old) { old.send({ t: 'kicked', msg: 'You logged in from somewhere else.' }); old.close(); }
     c.authed = true;
@@ -121,7 +173,10 @@ const handlers = {
     // guild membership lives on the server
     c.guild = null;
     for (const gk in guilds) if (guilds[gk].members[key]) c.guild = gk;
-    c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, realms, online: byName.size });
+    c.meta = { lastSave: Date.now(), lastGodly: 0 };
+    c.chatTimes = [];
+    c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, realms: realmList(), online: byName.size,
+      save: store.getSave(key), allowImport: !!config.importLocalSaves, motd: config.motd, admin: isAdmin(c) });
     sendGuild(c.guild);
     log(c.name, 'joined (' + byName.size + ' online)');
   },
@@ -131,8 +186,10 @@ const handlers = {
     leaveWorld(c);
     c.world = world;
     c.x = num(m.x); c.y = num(m.y);
+    if (m.cid) c.charId = str(m.cid, 64);
     if (m.profile && typeof m.profile === 'object') c.profile = m.profile;
     if (c.trade) endTrade(c, 'The trade was cancelled.');
+    updateRealms();
     // the first player in a world runs its monsters
     if (!hosts.get(world) || hosts.get(world).world !== world) hosts.set(world, c);
     c.send({ t: 'players', key: world, host: hosts.get(world).id, list: inWorld(world, c).map(publicInfo) });
@@ -149,12 +206,12 @@ const handlers = {
   move(c, m) {
     c.x = num(m.x); c.y = num(m.y);
     const msg = { t: 'move', id: c.id, x: c.x, y: c.y, f: m.f ? 1 : 0, a: m.a ? 1 : 0 };
-    for (const o of inWorld(c.world, c)) o.send(msg);
+    for (const o of nearby(c)) o.send(msg);
   },
 
   shoot(c, m) {
     const msg = { t: 'shoot', id: c.id, ang: num(m.ang) };
-    for (const o of inWorld(c.world, c)) o.send(msg);
+    for (const o of nearby(c)) o.send(msg);
   },
 
   profile(c, m) {
@@ -166,20 +223,20 @@ const handlers = {
 
   chat(c, m) {
     const text = str(m.text, 120);
-    if (!text) return;
+    if (!text || !chatAllowed(c)) return;
     for (const o of inWorld(c.world, c)) o.send({ t: 'chat', id: c.id, name: c.name, text });
   },
 
   pchat(c, m) {
     const text = str(m.text, 120);
     const p = parties.get(c.party);
-    if (!text || !p) return;
+    if (!text || !p || !chatAllowed(c)) return;
     for (const o of p.members) if (o !== c) o.send({ t: 'chat', ch: 'party', id: c.id, name: c.name, text });
   },
 
   gchat(c, m) {
     const text = str(m.text, 120);
-    if (!text || !c.guild) return;
+    if (!text || !c.guild || !chatAllowed(c)) return;
     for (const o of byName.values()) if (o !== c && o.guild === c.guild) o.send({ t: 'chat', ch: 'guild', id: c.id, name: c.name, text });
   },
 
@@ -199,10 +256,11 @@ const handlers = {
     o.tradeAsk = 0;
     if (!m.yes) return o.note(c.name + ' declined the trade.', 0xff8080);
     if (o.trade || c.trade) return;
-    const t = { a: o, b: c, acc: new Set() };
+    const t = { a: o, b: c, acc: new Set(), sel: new Map() };
     o.trade = c.trade = t;
-    // the asker gets the answerer's inventory, then sends its own (tradeInv)
-    o.send({ t: 'tradeStart', with: c.id, inv: Array.isArray(m.inv) ? m.inv : [], sendInv: true });
+    // both sides trade from the server's copy of their inventory (saved just before)
+    o.send({ t: 'tradeStart', with: c.id, inv: serverInv(c) || (Array.isArray(m.inv) ? m.inv : []), sendInv: !serverInv(o) });
+    if (serverInv(o)) c.send({ t: 'tradeStart', with: o.id, inv: serverInv(o) });
   },
 
   tradeInv(c, m) {
@@ -215,7 +273,9 @@ const handlers = {
     const t = c.trade;
     if (!t) return;
     t.acc.clear();
-    partner(c).send({ t: 'tradeOffer', sel: Array.isArray(m.sel) ? m.sel : [], want: Array.isArray(m.want) ? m.want : [] });
+    const sel = Array.isArray(m.sel) ? m.sel.slice(0, 16).map(v => v === true) : [];
+    t.sel.set(c, sel);
+    partner(c).send({ t: 'tradeOffer', sel, want: Array.isArray(m.want) ? m.want.slice(0, 16) : [] });
   },
 
   tradeAccept(c) {
@@ -223,12 +283,7 @@ const handlers = {
     if (!t) return;
     t.acc.add(c);
     partner(c).send({ t: 'tradeAccept' });
-    if (t.acc.size === 2) {
-      t.a.send({ t: 'tradeDone' });
-      t.b.send({ t: 'tradeDone' });
-      log('trade', t.a.name, '<->', t.b.name);
-      t.a.trade = t.b.trade = null;
-    }
+    if (t.acc.size === 2) finishTrade(t);
   },
 
   tradeCancel(c) {
@@ -375,7 +430,87 @@ const handlers = {
     if (target && target !== c && target.world === c.world) target.send(out);
   },
 
-  ping(c, m) { c.send({ t: 'pong', at: m.at }); }
+  ping(c, m) { c.send({ t: 'pong', at: m.at }); },
+
+  /** The account's save (characters, vault, gold...). Checked, then stored. */
+  save(c, m) {
+    const prev = store.getSave(c.key);
+    if (!prev && !config.importLocalSaves && !m.fresh) {
+      return c.send({ t: 'saveRejected', reason: 'this server starts everyone fresh', data: null });
+    }
+    const why = checkSave(prev, m.data, c.meta, Date.now());
+    if (why) {
+      log('refused save from ' + c.name + ': ' + why);
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);
+      return c.send({ t: 'saveRejected', reason: why, data: prev });
+    }
+    c.meta.lastSave = Date.now();
+    m.data.tradeSeq = Math.max(m.data.tradeSeq || 0, prev ? prev.tradeSeq || 0 : 0);
+    store.putSave(c.key, m.data);
+  },
+
+  /** A realm closed in someone's game: replace it with a fresh one. */
+  realmClosed(c, m) {
+    const key = str(m.key, 80);
+    const i = realms.findIndex(r => realmKey(r) === key);
+    if (i < 0) return;
+    realms[i] = newRealm();
+    log('Realm ' + key.split(':')[1] + ' closed; opened ' + realms[i].name);
+    lastRealmJson = '';
+    updateRealms();
+  },
+
+  /** Slash commands the server handles: /report for everyone, moderation for admins. */
+  cmd(c, m) {
+    const parts = str(m.text, 200).trim().split(/\s+/);
+    const cmd = (parts[0] || '').toLowerCase();
+    const who = (parts[1] || '').toLowerCase();
+    const rest = parts.slice(2).join(' ');
+    if (cmd === '/report') {
+      if (!who) return c.note('Usage: /report name reason');
+      store.appendLog('reports.log', new Date().toISOString() + ' ' + c.name + ' reported ' + parts[1] + ': ' + rest);
+      for (const a of byName.values()) if (isAdmin(a)) a.note('[Report] ' + c.name + ' reported ' + parts[1] + ': ' + rest, 0xffb040);
+      return c.note('Thanks, your report was sent to the server admins.', 0x80ff80);
+    }
+    if (!isAdmin(c)) return c.note('Only server admins can use ' + cmd + '.');
+    const target = byName.get(who);
+    switch (cmd) {
+      case '/kick':
+        if (!target) return c.note('Nobody called ' + parts[1] + ' is online.');
+        target.send({ t: 'kicked', msg: 'You were kicked by ' + c.name + (rest ? ': ' + rest : '.') });
+        target.close(true);
+        return c.note('Kicked ' + target.name + '.', 0x80ff80);
+      case '/ban': {
+        // /ban name [hours] [reason]
+        if (!who || !accounts[who]) return c.note('No account called ' + parts[1] + '.');
+        const hours = parseFloat(parts[2]);
+        const reason = isNaN(hours) ? rest : parts.slice(3).join(' ');
+        bans[who] = { until: isNaN(hours) ? 0 : Date.now() + hours * 3600000, reason, by: c.name };
+        save('bans.json', bans);
+        if (target) { target.send({ t: 'kicked', msg: 'You were banned' + (reason ? ': ' + reason : '.') }); target.close(true); }
+        log(c.name + ' banned ' + who + (isNaN(hours) ? '' : ' for ' + hours + 'h'));
+        return c.note('Banned ' + parts[1] + (isNaN(hours) ? ' permanently.' : ' for ' + hours + ' hours.'), 0x80ff80);
+      }
+      case '/unban':
+        delete bans[who];
+        save('bans.json', bans);
+        return c.note('Unbanned ' + parts[1] + '.', 0x80ff80);
+      case '/mute': {
+        if (!target) return c.note('Nobody called ' + parts[1] + ' is online.');
+        const mins = parseFloat(parts[2]) || 10;
+        target.mutedUntil = Date.now() + mins * 60000;
+        target.note('You were muted for ' + mins + ' minutes.');
+        return c.note('Muted ' + target.name + ' for ' + mins + ' minutes.', 0x80ff80);
+      }
+      case '/unmute':
+        if (target) target.mutedUntil = 0;
+        return c.note('Unmuted ' + parts[1] + '.', 0x80ff80);
+      case '/announce':
+        broadcast('[Server] ' + parts.slice(1).join(' '));
+        return;
+    }
+    c.note('Unknown command.');
+  }
 };
 
 /** Leaving a world: tell the others, and hand its monsters to someone else if we ran them. */
@@ -392,6 +527,61 @@ function leaveWorld(c) {
       for (const o of rest) o.send({ t: 'host', key: old, id: h.id });
     } else hosts.delete(old);
   }
+}
+
+function chatAllowed(c) {
+  const now = Date.now();
+  if (c.mutedUntil && c.mutedUntil > now) { c.note('You are muted.'); return false; }
+  c.chatTimes = (c.chatTimes || []).filter(t => now - t < 10000);
+  if (c.chatTimes.length >= config.chatPerTenSeconds) { c.note('Slow down! You are sending messages too fast.'); return false; }
+  c.chatTimes.push(now);
+  return true;
+}
+
+/** The server's copy of a player's current character, or null. */
+function serverChar(c) {
+  const sv = store.getSave(c.key);
+  if (!sv || !c.charId) return null;
+  return (sv.chars || []).find(ch => ch && ch.id === c.charId) || null;
+}
+
+function serverInv(c) {
+  const ch = serverChar(c);
+  return ch && Array.isArray(ch.inv) ? ch.inv : null;
+}
+
+/** Both accepted: swap the items in the server's copies, then tell both players their new inventories. */
+function finishTrade(t) {
+  const a = t.a, b = t.b;
+  a.trade = b.trade = null;
+  const ca = serverChar(a), cb = serverChar(b);
+  if (!ca || !cb) {
+    // no server copy (old client or no save yet): let the games swap as before
+    a.send({ t: 'tradeDone' }); b.send({ t: 'tradeDone' });
+    log('trade (unchecked)', a.name, '<->', b.name);
+    return;
+  }
+  const sa = t.sel.get(a) || [], sb = t.sel.get(b) || [];
+  const give = (ch, sel) => { const out = []; for (let i = 0; i < ch.inv.length; i++) if (sel[i] && ch.inv[i]) out.push(ch.inv[i]); return out; };
+  const ga = give(ca, sa), gb = give(cb, sb);
+  const free = (ch, sel) => ch.inv.filter((it, i) => !it || sel[i]).length;
+  if (free(ca, sa) < gb.length || free(cb, sb) < ga.length) {
+    a.send({ t: 'tradeCancel', msg: 'Not enough inventory space.' }); b.send({ t: 'tradeCancel', msg: 'Not enough inventory space.' });
+    return;
+  }
+  const apply = (ch, sel, incoming) => {
+    for (let i = 0; i < ch.inv.length; i++) if (sel[i]) ch.inv[i] = null;
+    for (const it of incoming) { const k = ch.inv.indexOf(null); if (k >= 0) ch.inv[k] = it; }
+  };
+  apply(ca, sa, gb);
+  apply(cb, sb, ga);
+  for (const [cl, ch] of [[a, ca], [b, cb]]) {
+    const sv = store.getSave(cl.key);
+    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    store.putSave(cl.key, sv);
+    cl.send({ t: 'tradeDone', inv: ch.inv, seq: sv.tradeSeq });
+  }
+  log('trade', a.name, '(' + ga.length + ') <->', b.name, '(' + gb.length + ')');
 }
 
 function partner(c) { return c.trade.a === c ? c.trade.b : c.trade.a; }
@@ -471,7 +661,7 @@ function attach(c) {
     if (!line) return;
     c.lastSeen = Date.now();
     if (--c.budget < 0) return; // flooding: drop until the budget refills
-    if (line.length > 65536) return;
+    if (line.length > MAX_LINE) return;
     let m;
     try { m = JSON.parse(line); } catch (e) { return; }
     if (!m || typeof m.t !== 'string') return;
@@ -490,6 +680,8 @@ function attach(c) {
     leaveParty(c, true);
     leaveWorld(c);
     if (c.guild) sendGuild(c.guild);
+    store.release(c.key);
+    updateRealms();
     log(c.name, 'left (' + byName.size + ' online)');
   };
 }
@@ -502,6 +694,7 @@ const server = net.createServer((sock) => {
   let mode = null; // 'tcp' | 'ws'
   let buf = Buffer.alloc(0);
   let text = '';
+  const decoder = new StringDecoder('utf8');
 
   const lines = (chunk) => {
     text += chunk;
@@ -511,7 +704,7 @@ const server = net.createServer((sock) => {
       text = text.slice(i + 1);
       c.onLine(line.trim());
     }
-    if (text.length > 1 << 20) sock.destroy();
+    if (text.length > MAX_LINE * 2) sock.destroy();
   };
 
   c.send = (obj) => {
@@ -545,7 +738,7 @@ const server = net.createServer((sock) => {
       }
     }
     if (mode === 'tcp') {
-      lines(buf.toString('utf8'));
+      lines(decoder.write(buf));
       buf = Buffer.alloc(0);
       return;
     }
@@ -601,7 +794,7 @@ setInterval(() => {
 }, 1000);
 
 // ------------------------------------------------------------------ console
-const HELP = 'Commands: list | say <message> | kick <name> | realms (new realms) | stop';
+const HELP = 'Commands: list | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
 function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
 process.stdin.setEncoding('utf8');
@@ -627,18 +820,43 @@ process.stdin.on('data', (data) => {
         log('kicked ' + c.name);
         break;
       }
+      case 'ban': {
+        const [who, hrs, ...why] = rest;
+        const k = (who || '').toLowerCase();
+        if (!accounts[k]) { console.log('No account called ' + who + '.'); break; }
+        const h = parseFloat(hrs);
+        bans[k] = { until: isNaN(h) ? 0 : Date.now() + h * 3600000, reason: (isNaN(h) ? [hrs].concat(why) : why).filter(Boolean).join(' '), by: 'console' };
+        save('bans.json', bans);
+        const on = byName.get(k);
+        if (on) { on.send({ t: 'kicked', msg: 'You were banned.' }); on.close(true); }
+        log('banned ' + who);
+        break;
+      }
+      case 'unban':
+        delete bans[arg.toLowerCase()];
+        save('bans.json', bans);
+        log('unbanned ' + arg);
+        break;
       case 'realms':
         rollRealms();
+        lastRealmJson = '';
+        updateRealms();
         log('New realms: ' + realms.map(r => r.name).join(', ') + ' (players get them when they next log in)');
         break;
       case 'stop': case 'exit': case 'quit':
         broadcast('[Server] The server is shutting down.', 0xff8080);
-        for (const f in saveTimers) clearTimeout(saveTimers[f]);
-        fs.writeFileSync(path.join(DATA_DIR, 'accounts.json'), JSON.stringify(accounts, null, 1));
-        fs.writeFileSync(path.join(DATA_DIR, 'guilds.json'), JSON.stringify(guilds, null, 1));
-        setTimeout(() => process.exit(0), 300);
+        shutdown();
         break;
       default: console.log('Unknown command. ' + HELP);
     }
   }
 });
+
+function shutdown() {
+  log('Saving and shutting down...');
+  store.flushAll();
+  setTimeout(() => process.exit(0), 300);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+setInterval(updateRealms, 5000);

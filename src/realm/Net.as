@@ -46,6 +46,12 @@ package realm {
 		/** World key ("nexus", "realm:...", "dg:...") a party or guild member is in, or null. */
 		public function worldOf(name:String):String { return null; }
 
+		/** A slash command the server handles (/report, moderation). */
+		public function serverCommand(text:String):void {}
+
+		/** A realm closed in your game (the server replaces it). */
+		public function realmClosed(key:String):void {}
+
 		/** You said something in chat. */
 		public function chat(text:String):void {}
 

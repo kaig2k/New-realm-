@@ -93,7 +93,8 @@ package realm {
 		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
 		public function bonus(s:String):int {
 			var b:int = 0;
-			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s]) b += it[s];
+			// a weapon's "spd" is its bullet speed, not a Speed bonus
+			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s] && !(s == "spd" && it.kind == "weapon")) b += it[s];
 			var set:String = activeSet;
 			if (set && Data.setBonus(set)[s]) b += Data.setBonus(set)[s];
 			for (var sk:String in Data.SKILL_STATS) {

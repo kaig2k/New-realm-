@@ -1,0 +1,22 @@
+# systemd service for the New Realm server (Linux).
+# 1. Change YOURUSER (twice) and the folder below to match your server.
+# 2. sudo cp server/newrealm.service /etc/systemd/system/
+# 3. sudo systemctl daemon-reload && sudo systemctl enable --now newrealm
+# Logs: journalctl -u newrealm -f      Restart: sudo systemctl restart newrealm
+
+[Unit]
+Description=New Realm game server
+After=network.target
+
+[Service]
+Type=simple
+User=YOURUSER
+WorkingDirectory=/home/YOURUSER/New-realm-
+ExecStart=/usr/bin/node server/server.js
+Restart=always
+RestartSec=3
+# give it time to write saves when stopping
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

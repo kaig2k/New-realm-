@@ -52,7 +52,7 @@ package realm {
 			worldKey = w.key;
 			players.length = 0;
 			lastProfile = JSON.stringify(g.myProfile());
-			Online.send({t: "enter", key: w.key, label: w.name, x: g.player.x, y: g.player.y, profile: g.myProfile()});
+			Online.send({t: "enter", key: w.key, label: w.name, cid: g.player.id, x: g.player.x, y: g.player.y, profile: g.myProfile()});
 		}
 
 		override public function get online():Boolean { return Online.connected; }
@@ -99,6 +99,15 @@ package realm {
 				lastProfile = "";
 				enterWorld(g.world);
 			});
+		}
+
+		override public function serverCommand(text:String):void { Online.send({t: "cmd", text: text}); }
+		override public function realmClosed(key:String):void { Online.send({t: "realmClosed", key: key}); }
+
+		/** The server trades from its copy of your inventory, so it gets your latest save first. */
+		private function syncForTrade():void {
+			g.saveCharacter();
+			Online.sendSave();
 		}
 
 		override public function chat(text:String):void { Online.send({t: "chat", text: text}); }
@@ -208,9 +217,18 @@ package realm {
 				case "tradeAccept":
 					if (trade) trade.setTheirAccept(true);
 					break;
+				case "realms":
+					g.realmsUpdated(m.list);
+					break;
 				case "tradeDone":
 					if (!trade) break;
-					trade.execute();
+					if (m.inv) {
+						// the server did the swap on its copy: take its result
+						var inv:Array = g.player.inv;
+						for (var ii:int = 0; ii < inv.length; ii++) inv[ii] = ii < m.inv.length ? m.inv[ii] : null;
+						Save.data.tradeSeq = m.seq;
+						trade.closed = true;
+					} else trade.execute();
 					trade = null;
 					g.tradeEnded("Trade successful!", true);
 					break;
@@ -253,11 +271,13 @@ package realm {
 
 		// ------------------------------------------------------------ trading
 		override public function requestTrade(p:RemotePlayer):void {
+			syncForTrade();
 			Online.send({t: "tradeReq", to: int(p.id)});
 			g.msg("You sent a trade request to " + p.name + ".", 0xc8a0ff);
 		}
 
 		override public function answerTrade(p:RemotePlayer, yes:Boolean):void {
+			if (yes) syncForTrade();
 			Online.send({t: "tradeAns", to: int(p.id), yes: yes, inv: yes ? g.player.inv : null});
 		}
 

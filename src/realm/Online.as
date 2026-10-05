@@ -16,13 +16,16 @@ package realm {
 	public class Online {
 		public static const DEFAULT_PORT:int = 2050;
 		/** Must match VERSION in server/server.js. */
-		public static const PROTOCOL:int = 4;
+		public static const PROTOCOL:int = 5;
 
 		private static var socket:Socket;
 		private static var inBuf:ByteArray = new ByteArray();
 		private static var connectDone:Function;
 		private static var timeout:Timer;
 		private static var queue:Array = [];
+		private static var saveTimer:Timer;
+		/** Called when the server refused our save and sent its own copy back. */
+		public static var onSaveRejected:Function;
 
 		public static var address:String = "";
 		public static var connected:Boolean = false;
@@ -73,6 +76,46 @@ package realm {
 			}
 		}
 
+		/**
+		 * Online, the account's save lives on the server. First visit: bring this
+		 * PC's progress along if the server allows it, otherwise start fresh.
+		 */
+		private static function useServerSave(m:Object):void {
+			Save.onRemoteChange = queueSave;
+			if (m.save) {
+				Save.useRemote(m.save);
+				return;
+			}
+			var start:Object = m.allowImport ? Save.clone(Save.local) : {};
+			delete start.serverTokens;
+			Save.useRemote(start);
+			send({t: "save", data: start, fresh: !m.allowImport});
+		}
+
+		/** Sends the save a moment after the last change (many changes become one upload). */
+		private static function queueSave():void {
+			if (!connected) return;
+			if (!saveTimer) {
+				saveTimer = new Timer(2000, 1);
+				saveTimer.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { sendSave(); });
+			}
+			saveTimer.reset();
+			saveTimer.start();
+		}
+
+		/** Uploads the save right away (before trades, when quitting). */
+		public static function sendSave():void {
+			if (saveTimer) saveTimer.stop();
+			if (connected && Save.isRemote) send({t: "save", data: Save.data});
+		}
+
+		/** Leaving online play: back to this PC's saves. */
+		public static function signOut():void {
+			sendSave();
+			disconnect();
+			Save.useRemote(null);
+		}
+
 		public static function disconnect():void {
 			if (timeout) { timeout.stop(); timeout = null; }
 			if (socket) {
@@ -100,12 +143,13 @@ package realm {
 
 		private static function onConnect(e:Event):void {
 			// every account gets a secret token per server, so nobody else can use its name there
-			var tokens:Object = Save.data.serverTokens || (Save.data.serverTokens = {});
+			var loc:Object = Save.local;
+			var tokens:Object = loc.serverTokens || (loc.serverTokens = {});
 			if (!tokens[address]) {
 				var t:String = "";
 				for (var i:int = 0; i < 32; i++) t += int(Math.random() * 16).toString(16);
 				tokens[address] = t;
-				Save.flush();
+				Save.flushLocal();
 			}
 			send({t: "hello", name: Accounts.current, token: tokens[address], ver: PROTOCOL});
 		}
@@ -142,6 +186,7 @@ package realm {
 				if (m.t == "welcome") {
 					welcome = m;
 					connected = true;
+					useServerSave(m);
 					if (timeout) { timeout.stop(); timeout = null; }
 					Accounts.setSetting("server", address);
 					var cb:Function = connectDone;
@@ -150,6 +195,13 @@ package realm {
 				}
 				return;
 			}
+			if (m.t == "saveRejected") {
+				// the server keeps its own copy; go back to it
+				Save.useRemote(m.data || {});
+				if (onSaveRejected != null) onSaveRejected(m.reason);
+				return;
+			}
+			if (m.t == "realms" && welcome) welcome.realms = m.list;
 			if (_onMessage != null) _onMessage(m);
 			else queue.push(m);
 		}

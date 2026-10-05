@@ -9,13 +9,31 @@ package realm {
 
 		/** Save-file key of the logged-in account (null = the old shared save). */
 		private static var account:String = null;
+		/** Online: the account's save as the server keeps it (null = use this PC's save). */
+		private static var remote:Object = null;
+		/** Called when the online save changed and should be sent to the server. */
+		public static var onRemoteChange:Function;
 
+		/** The save in use: the server's copy when online, otherwise this PC's. */
 		public static function get data():Object {
+			if (remote) return remote;
+			return local;
+		}
+
+		/** This PC's save for the account, even while playing online. */
+		public static function get local():Object {
 			if (!so) {
 				try { so = SharedObject.getLocal(account ? "newrealm_acc_" + account : "newrealm"); } catch (e:Error) { so = null; }
 			}
 			return so ? so.data : fallback;
 		}
+
+		/** Online saves: use the server's copy (or go back to this PC's with null). */
+		public static function useRemote(d:Object):void {
+			remote = d;
+		}
+
+		public static function get isRemote():Boolean { return remote != null; }
 
 		/** Switches to an account's own save file. */
 		public static function useAccount(key:String):void {
@@ -70,6 +88,12 @@ package realm {
 		}
 
 		public static function flush():void {
+			if (remote) { if (onRemoteChange != null) onRemoteChange(); return; }
+			try { if (so) so.flush(); } catch (e:Error) {}
+		}
+
+		/** Saves this PC's copy (settings that never go to the server). */
+		public static function flushLocal():void {
 			try { if (so) so.flush(); } catch (e:Error) {}
 		}
 	}

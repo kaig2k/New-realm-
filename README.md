@@ -220,8 +220,27 @@ One person hosts the server; everyone (the host too) joins it from the title scr
 - **Always-on:** run `node server/server.js` on any small cloud server and open port 2050.
 
 **Server window commands:** `list` (who's online and where), `say message` (announce to
-everyone), `kick name`, `realms` (new realms for the next logins), `stop` (saves and shuts
-down). Accounts and guilds are saved in `server/data/`.
+everyone), `kick name`, `ban name [hours] [reason]`, `unban name`, `realms` (new realms),
+`stop` (saves and shuts down).
+
+Accounts, guilds, bans and every account's save are kept in `server/data/`. Settings are in
+`server/config.json`; add your name to `admins` to get moderator commands and the admin menu
+online.
+
+### Running a public server
+
+See **[DEPLOY.md](DEPLOY.md)** for running the server 24/7 on a rented Linux server: install,
+firewall, systemd service, domain name, settings, moderation and backups.
+
+On a server, your **characters, vault, gold and fame are stored on the server**:
+- They follow your account to any PC.
+- They're kept separate from your offline characters. On a server's first visit your offline
+  progress comes along, unless the server turns that off.
+- The server checks every save and refuses impossible items or currency jumps.
+- Trades are done by the server itself.
+
+Servers run 3-6 realms with up to 85 players each. New realms open as they fill up, and the
+Nexus portals show how many players are in each.
 
 ### What's shared online
 - **Monsters, bosses and events.** The first player in a realm or dungeon is its *host*:
@@ -241,8 +260,9 @@ down). Accounts and guilds are saved in `server/data/`.
   The online line shows your ping.
 
 ### Known limits for the playtest
-- Characters, items and gold are saved on each player's own PC; the server only stores
-  account names and guilds. So a modified game could cheat. That's fine among friends.
+- Combat and loot are still worked out in each player's game. The server refuses impossible
+  saves, but a modified game could still award itself believable loot. Phase 3 (the server
+  running monsters and loot itself) closes that.
 - Each player's monster hits are checked by their own game (no lag when dodging), so a laggy
   player's view of a monster can be a few tiles behind the host's.
 - Your name on a server is protected by a secret key your game makes the first time you

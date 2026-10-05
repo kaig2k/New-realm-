@@ -1,0 +1,123 @@
+# Running a public New Realm server
+
+This guide puts the server on a rented Linux machine (a VPS) so it runs 24/7.
+
+## 1. Rent a server
+
+Any small VPS works: Hetzner, DigitalOcean, Vultr, OVH, AWS Lightsail and so on.
+
+- 1-2 CPU cores and 2 GB of RAM are plenty for a few hundred players.
+- Pick **Ubuntu 24.04** and the location closest to most of your players.
+- Note the server's IP address, and log in with `ssh root@YOUR_IP`.
+
+## 2. Install and start
+
+```
+# a normal user to run the game as
+adduser newrealm
+usermod -aG sudo newrealm
+su - newrealm
+
+# Node.js 22 and git
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs git
+
+# the game
+git clone https://github.com/kaig2k/New-realm-.git
+cd New-realm-
+git checkout claude/rotmg-air-game
+
+# try it (Ctrl+C to stop): this also creates server/config.json
+node server/server.js
+```
+
+## 3. Firewall
+
+```
+sudo ufw allow OpenSSH
+sudo ufw allow 2050/tcp
+sudo ufw enable
+```
+
+Some providers also have a firewall in their web panel. Open TCP 2050 there too.
+
+## 4. Run it as a service (starts on boot, restarts if it crashes)
+
+```
+sed -i 's/YOURUSER/newrealm/g' server/newrealm.service
+sudo cp server/newrealm.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now newrealm
+journalctl -u newrealm -f        # watch the log (Ctrl+C to stop watching)
+```
+
+To update the game later:
+
+```
+cd ~/New-realm-
+git pull
+sudo systemctl restart newrealm
+```
+
+Players also need the matching game build. The server turns away old builds with an
+"update" message.
+
+## 5. A name instead of an IP
+
+Buy a domain and add an **A record**, for example `play` pointing to your server's IP.
+Players then join with `play.yourgame.com:2050`.
+
+## 6. Settings: `server/config.json`
+
+| Setting | What it does |
+| --- | --- |
+| `port` | Port to listen on (2050). |
+| `motd` | Message shown to players when they join. |
+| `realmCap` | Players per realm (85). |
+| `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
+| `admins` | Account names with moderator powers and the in-game admin menu, e.g. `["YourName"]`. |
+| `importLocalSaves` | `true`: a player's first visit brings their offline characters along. **Set `false` for a public server**, so everyone starts fresh and nobody can bring in edited offline saves. |
+| `viewRange` | How far away (in tiles) players see each other move and shoot. |
+| `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
+
+Restart the service after editing: `sudo systemctl restart newrealm`.
+
+## 7. Moderation
+
+- **In game (admins only):**
+  - `/kick name [reason]`
+  - `/ban name [hours] [reason]` (no hours means forever)
+  - `/unban name`
+  - `/mute name [minutes]`
+  - `/unmute name`
+  - `/announce message`
+- **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
+- **Server console** (when running it by hand): `list`, `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
+- **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
+
+## 8. Backups
+
+Everything lives in `server/data/`:
+- `accounts.json`, `guilds.json` and `bans.json`;
+- `saves/` with one file per account.
+
+A nightly backup:
+
+```
+mkdir -p ~/backups
+(crontab -l 2>/dev/null; echo "0 4 * * * tar czf ~/backups/newrealm-\$(date +\%F).tgz -C ~/New-realm-/server data") | crontab -
+```
+
+Copy the backups somewhere off the server now and then (or use your provider's snapshots).
+
+## What this setup does and doesn't protect
+
+- **Saves:** characters, the vault and currencies live on the server. Players can't edit
+  files on their PC to cheat.
+- **Trades:** the server swaps items between its own copies of both inventories, so trades
+  can't be faked or used to duplicate items.
+- **Checks:** the server refuses impossible items (stats beyond what the game can roll),
+  currencies rising too fast, and Godly items appearing faster than their 1 in 5,000 rate.
+- **Not yet covered:** combat and loot are still worked out in the players' games. A
+  determined cheater with a modified game could still give themselves *plausible* loot.
+  Closing that gap is Phase 3: the server runs monsters and loot itself.

@@ -3,3 +3,4 @@ cert.p12
 *.air
 airsdk.txt
 server/data/
+server/config.json

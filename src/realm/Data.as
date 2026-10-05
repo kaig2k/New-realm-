@@ -166,6 +166,8 @@ package realm {
 			var pool:Array = ["att", "dex", "spd", "vit", "wis", "mgt", "luc", "prt"];
 			var n:int = rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : rarity == "gd" ? 4 : 3;
 			var amt:int = rarity == "ut" ? 5 : rarity == "st" ? 6 : rarity == "fb" ? 8 : rarity == "lg" ? 10 : rarity == "gd" ? 18 : 15;
+			// weapons keep their bullet speed in "spd", so they roll Dexterity instead of Speed
+			if (item.kind == "weapon") pool = ["att", "dex", "vit", "wis", "mgt", "luc", "prt"];
 			for (var i:int = 0; i < n; i++) {
 				var s:String = pick(pool);
 				item[s] = (item[s] || 0) + amt + int(Math.random() * 4);
@@ -449,7 +451,7 @@ package realm {
 			if (isGear(item)) {
 				var on:String = "";
 				for each (var k:String in STATS.concat(GEAR_STATS)) {
-					if (item[k]) on += "  +" + item[k] + " " + STAT_NAMES[k] + "\n";
+					if (item[k] && !(k == "spd" && item.kind == "weapon")) on += "  +" + item[k] + " " + STAT_NAMES[k] + "\n";
 				}
 				if (on) s += "On equip:\n" + on;
 			}

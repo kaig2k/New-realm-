@@ -50,7 +50,10 @@ package realm {
 		public var dungeonWorld:World;
 		private var saveT:Number = 20;
 		/** Realms reachable from the nexus portals (created on first entry). */
-		public var realms:Array = [null, null, null];
+		public var realms:Array = [null, null, null, null, null, null];
+		/** Online: players in each realm and the cap. */
+		private var realmCounts:Array = [];
+		private var realmCap:int = 85;
 		public var realmNames:Array = [];
 		/** Realm map seeds from the server (online only). */
 		private var realmSeeds:Array = [];
@@ -154,7 +157,7 @@ package realm {
 			Data.viewerClass = player.cls.id;
 			if (Online.connected) {
 				// the server picks the realms, and their seeds give everyone the same maps
-				for each (var sr:Object in Online.welcome.realms) { realmNames.push(sr.name); realmSeeds.push(uint(sr.seed)); }
+				for each (var sr:Object in Online.welcome.realms) { realmNames.push(sr.name); realmSeeds.push(uint(sr.seed)); realmCounts.push(sr.count || 0); realmCap = sr.cap || 85; }
 			} else {
 				var pool:Array = Data.REALM_NAMES.concat();
 				for (var ri:int = 0; ri < 3; ri++) realmNames.push(pool.splice(int(Math.random() * pool.length), 1)[0]);
@@ -316,6 +319,10 @@ package realm {
 					var tpw:RemotePlayer = net.find(t.split(" ")[1] || "");
 					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
 					break;
+				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
+					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
+					net.serverCommand(t);
+					break;
 				case "/wiki":
 					toggleWiki();
 					break;
@@ -445,7 +452,7 @@ package realm {
 				["Damage numbers: " + onOff("dmg"), toggle("dmg")],
 				["Particles: " + onOff("parts"), toggle("parts")],
 				["Screen shake: " + onOff("shake"), toggle("shake")],
-				["Save & Quit to Menu", function():void { saveCharacter(); quitRequested = true; }]
+				["Save & Quit to Menu", function():void { saveCharacter(); Online.sendSave(); quitRequested = true; }]
 			];
 			var y:int = 76;
 			for (var i:int = 0; i < rows.length; i++) {
@@ -532,11 +539,12 @@ package realm {
 		public function get nearMarket():Boolean { return nearStation != null && nearStation.kind == "market"; }
 		public function get inNexus():Boolean { return world == nexusWorld; }
 
-		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a];
+		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a, 0xffb040, 0xc080ff, 0x40e0e0];
 
 		private function buildNexus():void {
-			var px:Array = [90.5, 100.5, 110.5];
-			for (var i:int = 0; i < 3; i++) addPortal(nexusWorld, px[i], 84.2, "realm", i, PORTAL_COLORS[i]);
+			// online servers can run up to 6 realms at once
+			var px:Array = Online.connected ? [88.5, 93.5, 98.5, 103.5, 108.5, 113.5] : [90.5, 100.5, 110.5];
+			for (var i:int = 0; i < px.length; i++) addPortal(nexusWorld, px[i], 84.2, "realm", i, PORTAL_COLORS[i]);
 			var saved:Array = Save.data.vault as Array;
 			var items:Array = [];
 			if (saved) for each (var it:Object in saved) if (it && items.length < LootBag.MAX) items.push(it);
@@ -621,6 +629,7 @@ package realm {
 		}
 
 		private function realmStatus(i:int):String {
+			if (net && net.online) return (realmCounts[i] || 0) + " / " + realmCap + " players";
 			var r:World = realms[i];
 			if (!r) return "New realm";
 			if (r.closed) return "Closed - new realm";
@@ -650,6 +659,11 @@ package realm {
 
 		// ------------------------------------------------------------- admin menu
 		public function toggleAdmin():void {
+			// online, only the server's admins get the testing tools
+			if (net && net.online && !(Online.welcome && Online.welcome.admin) && !(admin && admin.visible)) {
+				msg("The admin menu is turned off on this server.", 0xff8080);
+				return;
+			}
 			if (!admin) {
 				admin = new AdminMenu(this);
 				admin.x = int((VIEW_W - AdminMenu.W) / 2);
@@ -914,7 +928,34 @@ package realm {
 		}
 
 		/** Walk through a nexus portal into its realm. */
+		/** The server's realm list changed (new realm, one closed, populations). */
+		public function realmsUpdated(list:Array):void {
+			for (var i:int = 0; i < 6; i++) {
+				var r:Object = list[i];
+				if (!r) { realmNames[i] = null; continue; }
+				if (realmNames[i] != r.name || realmSeeds[i] != uint(r.seed)) {
+					// a different realm in this slot: build it fresh next time
+					realmNames[i] = r.name;
+					realmSeeds[i] = uint(r.seed);
+					realms[i] = null;
+				}
+				realmCounts[i] = r.count || 0;
+				realmCap = r.cap || 85;
+			}
+		}
+
+		/** The server refused our save: carry on from its copy. */
+		public function saveRejected(reason:String):void {
+			msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
+			for each (var c:Object in Save.chars) if (c && c.id == player.id) { player.restore(c); hud.refresh(); return; }
+			msg("This character isn't on the server. Save & Quit and pick a character.", 0xff8080);
+		}
+
 		public function enterPortal(i:int):void {
+			if (net.online && realmCounts[i] >= realmCap && world != realms[i]) {
+				msg(realmNames[i] + " is full (" + realmCap + " players). Try another realm.", 0xff8080);
+				return;
+			}
 			var r:World = realms[i];
 			if (!r || r.closed) {
 				if (r && r.closed && !net.online) {
@@ -983,6 +1024,11 @@ package realm {
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 			msg("Click another player to inspect them or trade.", 0xcccccc);
 			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
+			if (net.online) {
+				var self:Game = this;
+				Online.onSaveRejected = function(reason:String):void { self.saveRejected(reason); };
+				if (Online.welcome.motd) msg("[" + Online.address + "] " + Online.welcome.motd, Ui.GOLD);
+			}
 		}
 
 		public function destroy():void {
@@ -1139,6 +1185,7 @@ package realm {
 			// portals (nexus realm portals, or the exit portal in the Dark Elder's chamber)
 			nearPortal = null;
 			for each (var p:Object in world.portals) {
+				if (p.kind == "realm" && !realmNames[p.idx]) continue;
 				var dx:Number = p.x - player.x, dy:Number = p.y - player.y;
 				if (dx * dx + dy * dy < 1.3 * 1.3) nearPortal = p;
 			}
@@ -1171,6 +1218,7 @@ package realm {
 				if (after != before && (after == 10 || after <= 5) && after > 0) msg("Realm closing in " + after + "...", 0xff8080);
 				if (world.closeT <= 0) {
 					world.closed = true;
+					if (net.online) net.realmClosed(world.key);
 					msg("The " + world.name + " realm has closed.", 0xff8080);
 					travel(enterCitadel);
 				}
@@ -2896,6 +2944,7 @@ package realm {
 
 			// portals and labels
 			for each (var p:Object in world.portals) {
+				if (p.kind == "realm" && !realmNames[p.idx]) { p.label.visible = false; continue; }
 				var pcx:Number = scrX(p.x, p.y), pcy:Number = scrY(p.x, p.y);
 				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
 				var ptop:Number = drawEntity(pbd, pcx, pcy, 0);

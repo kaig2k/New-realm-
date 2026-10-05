@@ -11,7 +11,7 @@ package realm {
 	public class Uniques {
 		public static const ALL:Object = {
 			// ---- Captain Saltbeard (Pirate Cove)
-			saltbeard_cutlass: ["Saltbeard's Cutlass", "weapon", "sword", {spd: 4}, {shots: 3, arc: 26, mult: 0.62, col: 0xe0c070}, "Three swings in one. Still smells of rum."],
+			saltbeard_cutlass: ["Saltbeard's Cutlass", "weapon", "sword", {dex: 4}, {shots: 3, arc: 26, mult: 0.62, col: 0xe0c070}, "Three swings in one. Still smells of rum."],
 			parrot_charm: ["Polly's Charm", "ring", "spd", {spd: 6, dex: 6}, null, "The captain's parrot never missed a thing."],
 			powder_keg: ["Powder Keg", "ability", "trap", {att: 4}, {power: 1.7}, "Handle with care. Or don't."],
 			// ---- Mother Mothwing (Forest Maze)
@@ -35,7 +35,7 @@ package realm {
 			magma_plate: ["Magma Plate", "armor", "heavy", {att: 6, hp: 40}, null, "Forged in the Pyrelord's own furnace."],
 			cinder_ring: ["Cinder Ring", "ring", "att", {att: 7, dex: 4}, null, "It never stops smoldering."],
 			// ---- Tempest Seraph (Storm Spire)
-			stormcall_bow: ["Stormcall Bow", "weapon", "bow", {spd: 4}, {shots: 5, arc: 30, mult: 0.55, rate: 1.15, col: 0xfff060}, "Five bolts of lightning per draw."],
+			stormcall_bow: ["Stormcall Bow", "weapon", "bow", {dex: 4}, {shots: 5, arc: 30, mult: 0.55, rate: 1.15, col: 0xfff060}, "Five bolts of lightning per draw."],
 			tempest_quiver: ["Tempest Quiver", "ability", "quiver", {spd: 6}, {power: 1.9}, "The wind itself carries these arrows."],
 			thunderhide: ["Thunderhide", "armor", "leather", {dex: 8, spd: 6}, null, "Crackles when you move."],
 			// ---- The Cellar Sorcerer (Forgotten Cellar)
@@ -113,7 +113,7 @@ package realm {
 			blood_chalice: ["Blood Chalice", "ability", "tome", {hp: 100}, {power: 2.6}, "Drink deep."],
 			vesper_staff: ["Vesper's Staff", "weapon", "staff", {att: 8}, {shots: 5, arc: 40, motion: "wave", passive: "lifesteal", mult: 0.65, col: 0xff3060}, "The Archon's last word."],
 			crimson_crown: ["Crimson Crown", "ring", "att", {att: 12, dex: 8, hp: 60}, null, "Worn by the Conclave's master."],
-			galecaller_bow: ["Galecaller's Bow", "weapon", "bow", {spd: 8}, {shots: 4, arc: 16, rate: 1.3, mult: 0.7, col: 0x80ffff}, "Arrows ride the gale."],
+			galecaller_bow: ["Galecaller's Bow", "weapon", "bow", {dex: 8}, {shots: 4, arc: 16, rate: 1.3, mult: 0.7, col: 0x80ffff}, "Arrows ride the gale."],
 			heart_of_storm: ["Heart of the Storm", "ring", "spd", {spd: 12, dex: 12}, null, "It beats like thunder."],
 			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."]
 		};

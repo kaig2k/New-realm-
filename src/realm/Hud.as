@@ -626,6 +626,12 @@ class Slot extends Sprite {
 	public function setItem(it:Object):void {
 		if (it == item) return;
 		item = it;
+		var bad:Boolean = it && !Data.canUse(it, Data.viewerClass);
+		graphics.clear();
+		graphics.lineStyle(1, 0x1a1a1a);
+		graphics.beginFill(bad ? 0x7a3434 : kind == "bag" ? 0x4a3e34 : 0x545454);
+		graphics.drawRoundRect(0, 0, 48, 48, 10, 10);
+		graphics.endFill();
 		if (numTf) numTf.visible = !it;
 		if (!it) {
 			icon.bitmapData = null;

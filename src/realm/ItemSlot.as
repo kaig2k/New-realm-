@@ -37,6 +37,7 @@ package realm {
 
 		public function setItem(it:Object):void {
 			item = it;
+			drawBack(it && !Data.canUse(it, Data.viewerClass) ? 0x7a3434 : base);
 			buttonMode = it != null;
 			if (!it) {
 				icon.bitmapData = null;
@@ -52,7 +53,7 @@ package realm {
 
 		/** Highlight: 0 = none, otherwise a coloured ring (and a tinted fill when `fill`). */
 		public function mark(color:uint, fill:Boolean = true, dashed:Boolean = false):void {
-			drawBack(color && fill ? Sprites.shade(color, 0.45) : base);
+			drawBack(color && fill ? Sprites.shade(color, 0.45) : item && !Data.canUse(item, Data.viewerClass) ? 0x7a3434 : base);
 			var g:* = ring.graphics;
 			g.clear();
 			if (!color) return;

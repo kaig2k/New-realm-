@@ -138,6 +138,7 @@ package realm {
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
 			if (saved) player.restore(saved);
 			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
+			Data.viewerClass = player.cls.id;
 			var pool:Array = Data.REALM_NAMES.concat();
 			for (var ri:int = 0; ri < 3; ri++) realmNames.push(pool.splice(int(Math.random() * pool.length), 1)[0]);
 			camX = player.x;
@@ -944,6 +945,7 @@ package realm {
 		private function update(dt:Number):void {
 			time += dt;
 			Data.viewerLevel = player.level;
+			Data.viewerClass = player.cls.id;
 			var i:int;
 			player.update(dt, this);
 			net.update(dt);

@@ -457,6 +457,10 @@ package realm {
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
 			}
 			if (item.set) s += "<font color='" + Ui.hex(RARITY_COLORS.st) + "'>" + setName(item.set) + " Set (4 pieces): " + setBonusText(item.set) + "</font>\n";
+			if (isGear(item) && item.kind != "ring") {
+				var ok:Boolean = !viewerClass || canUse(item, viewerClass);
+				s += "<font color='" + (ok ? "#9a9aaa" : "#ff6060") + "'>Usable by: " + usableBy(item).join(", ") + (ok ? "" : " (not your class)") + "</font>\n";
+			}
 			s += "<font color='#888888'>Sells for " + sellValue(item) + " gold</font>\n";
 			return s;
 		}
@@ -1080,16 +1084,46 @@ package realm {
 
 		// ---- loot -------------------------------------------------------
 		/** fortune: % loot boost from gear (Fortune stat). */
+		/**
+		 * Gear drops for every class, like RotMG: half the time it's for your own
+		 * class, otherwise for any class (to trade, store or sell).
+		 */
+		private static function lootClass(cls:Object):Object {
+			if (Math.random() < 0.5) return cls;
+			return CLASSES[CLASS_ORDER[int(Math.random() * CLASS_ORDER.length)]];
+		}
+
+		/** The class of the character looking at tooltips (kept up to date by the game). */
+		public static var viewerClass:String = "";
+
+		/** Class names that can equip an item (every class for rings). */
+		public static function usableBy(item:Object):Array {
+			var out:Array = [];
+			for each (var id:String in CLASS_ORDER) if (canUse(item, id)) out.push(CLASSES[id].name);
+			return out;
+		}
+
+		public static function canUse(item:Object, clsId:String):Boolean {
+			var c:Object = CLASSES[clsId];
+			if (!item || !c) return true;
+			switch (item.kind) {
+				case "weapon": return item.sub == c.weapon;
+				case "ability": return item.sub == c.abilityType;
+				case "armor": return item.sub == c.armor;
+			}
+			return true;
+		}
+
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {
 			var items:Array = [];
 			var boost:Number = 1 + fortune / 100;
 			var slot:int;
 			if (def.final) {
 				// the Dark Elder: fabled gear, a shot at legendaries and relics
-				items.push(makeForSlot(cls, int(Math.random() * 4), 7, "fb"));
-				items.push(makeForSlot(cls, int(Math.random() * 4), 7, "fb"));
-				if (Math.random() < 0.3 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.05 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ar"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
+				if (Math.random() < 0.3 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.05 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
 				items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
@@ -1098,8 +1132,8 @@ package realm {
 			}
 			if (def.treasure) {
 				// treasure room chest: a set piece for your class plus potions
-				items.push(makeForSlot(cls, int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.4 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
+				if (Math.random() < 0.4 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
 				if (Math.random() < 0.25 * boost) items.push(makeSor());
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
@@ -1108,10 +1142,10 @@ package realm {
 			}
 			if (def.dungeon && def.dtier >= 5) {
 				// hard multi-boss dungeons: the best loot outside the Dark Elder
-				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
-				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "ut"));
-				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ar"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "ut"));
+				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
 				if (Math.random() < 0.5 * boost) items.push(makeSor());
 				for (var hp2:int = 0; hp2 < 3; hp2++) items.push(makePotion("stat", randomStat()));
 				return items;
@@ -1121,17 +1155,17 @@ package realm {
 				var dt:int = def.dtier;
 				for (var di:int = 0; di < 2; di++) {
 					slot = int(Math.random() * 4);
-					items.push(slot == 3 ? makeRing(randomStat(), Math.min(5, 2 + dt)) : makeForSlot(cls, slot, 3 + dt + (Math.random() < 0.3 ? 1 : 0), null));
+					items.push(slot == 3 ? makeRing(randomStat(), Math.min(5, 2 + dt)) : makeForSlot(lootClass(cls), slot, 3 + dt + (Math.random() < 0.3 ? 1 : 0), null));
 				}
-				if (Math.random() < (0.08 + dt * 0.07) * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+				if (Math.random() < (0.08 + dt * 0.07) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
 				if (dt >= 1 && Math.random() < 0.5) items.push(makePotion("stat", randomStat()));
 				if (dt >= 2) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
 				return items;
 			}
 			if (def.dungeon) {
-				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
-				if (Math.random() < 0.1 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
+				if (Math.random() < 0.1 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.3 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
@@ -1140,8 +1174,8 @@ package realm {
 			if (def.ai == "boss") {
 				// realm event: Runed or Bonded piece, sometimes Starforged
 				slot = int(Math.random() * 4);
-				items.push(makeForSlot(cls, slot, 7, Math.random() < 0.4 ? "st" : "ut"));
-				if (Math.random() < 0.08 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
+				items.push(makeForSlot(lootClass(cls), slot, 7, Math.random() < 0.4 ? "st" : "ut"));
+				if (Math.random() < 0.08 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.35 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
@@ -1155,12 +1189,13 @@ package realm {
 				var tier:int = ZONE_TIER[Math.min(4, zone)] + (Math.random() < 0.35 ? 1 : 0) + (Math.random() < 0.06 ? 1 : 0);
 				if (tier > 7) tier = 7;
 				var roll:Number = Math.random();
-				if (roll < 0.4) items.push(makeWeapon(cls.weapon, tier, null, "?"));
-				else if (roll < 0.55) items.push(makeAbility(cls.abilityType, Math.min(6, tier)));
-				else if (roll < 0.82) items.push(makeArmor(cls.armor, tier));
+				var lc:Object = lootClass(cls);
+				if (roll < 0.4) items.push(makeWeapon(lc.weapon, tier, null, "?"));
+				else if (roll < 0.55) items.push(makeAbility(lc.abilityType, Math.min(6, tier)));
+				else if (roll < 0.82) items.push(makeArmor(lc.armor, tier));
 				else items.push(makeRing(randomStat(), Math.min(5, int(tier * 0.7))));
 			}
-			if (zone == 4 && Math.random() < 0.006 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+			if (zone == 4 && Math.random() < 0.006 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
 			var statChance:Number = zone == 4 ? 0.07 : zone == 3 ? 0.03 : zone == 2 ? 0.01 : 0;
 			if (Math.random() < statChance * boost) items.push(makePotion("stat", randomStat()));
 			return items;

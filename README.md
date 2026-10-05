@@ -148,6 +148,11 @@ is ready, real players will come in through the same code (see `Net.as` below).
 | Serpent | Shots weave in a wave |
 | Returning | Shots fly out and come back, hitting on both passes |
 
+**Loot for every class:** monsters drop weapons, abilities and armor for every class, not just
+yours. Half of gear drops are for your own class; the rest can be for any class. Gear your
+class can't use has a red slot, and its tooltip says which classes can use it. You can still
+trade it, store it in the vault or sell it.
+
 **Abilities:** ability tooltips explain what the ability does, with its damage, healing and
 duration at your level, and its MP cost.
 

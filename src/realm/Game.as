@@ -117,6 +117,18 @@ package realm {
 		private var pt:Point = new Point();
 		private var bar:Rectangle = new Rectangle();
 		private var drawList:Array = [];
+		// other players (through the connection; LocalNet simulates them for now)
+		public var net:Net;
+		private var tagLayer:Sprite;
+		private var tags:Array = [];
+		private var bubbles:Array = [];
+		private var playerMenu:Sprite;
+		private var tradeWin:TradeWindow;
+		private var inspectWin:InspectWindow;
+		private var requestPopup:Sprite;
+		private var requestFrom:RemotePlayer;
+		private var requestT:Number = 0;
+		private var hoverRemote:RemotePlayer;
 
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
 			this.onDeath = onDeath;
@@ -137,6 +149,9 @@ package realm {
 			floatLayer = new Sprite();
 			floatLayer.mouseEnabled = floatLayer.mouseChildren = false;
 			addChild(floatLayer);
+			tagLayer = new Sprite();
+			tagLayer.mouseEnabled = tagLayer.mouseChildren = false;
+			addChild(tagLayer);
 			questArrow = new Shape();
 			var qg:* = questArrow.graphics;
 			qg.lineStyle(2, 0x2a1a00);
@@ -167,6 +182,8 @@ package realm {
 			buildCounters();
 			buildBossPanel();
 			buildNexus();
+			net = new LocalNet(this);
+			net.enterWorld(world);
 
 			hud = new Hud(this);
 			hud.x = VIEW_W;
@@ -229,12 +246,26 @@ package realm {
 		public function runCommand(t:String):void {
 			if (t.charAt(0) != "/") {
 				pushChat("<font color='#ffe36e'><b>&lt;" + player.name + "&gt;</b></font> " + t.replace(/</g, "&lt;"));
+				net.chat(t);
 				return;
 			}
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /tips  /admin", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /tips  /admin", 0x8fd0ff);
+					break;
+				case "/who":
+					var who:Array = [];
+					for each (var rp:RemotePlayer in net.players) who.push(rp.name);
+					msg(who.length ? "Players here (" + who.length + "): " + who.join(", ") : "Nobody else is here.", 0x8fd0ff);
+					break;
+				case "/trade": case "/tr":
+				case "/inspect": case "/in":
+					var arg:String = t.split(" ")[1] || "";
+					var target:RemotePlayer = arg ? net.find(arg) : null;
+					if (!target) { msg(arg ? "No player called " + arg + " here. Try /who." : "Usage: " + cmd + " <name>", 0xff8080); break; }
+					if (cmd == "/trade" || cmd == "/tr") net.requestTrade(target);
+					else openInspect(target);
 					break;
 				case "/nexus": case "/n":
 					nexus();
@@ -513,7 +544,9 @@ package realm {
 
 		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
 		public function uiCaptured():Boolean {
-			return admin != null && admin.visible && admin.hitTestPoint(stage.mouseX, stage.mouseY, true);
+			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
 		public function adminRefresh():void {
@@ -783,6 +816,10 @@ package realm {
 			vaultLabel.visible = nx;
 			traps.length = 0;
 			closeStation();
+			closePlayerMenu();
+			closeInspect();
+			closeRequest(true);
+			if (net) net.enterWorld(w);
 		}
 
 		private function onAdded(e:Event):void {
@@ -802,6 +839,7 @@ package realm {
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
 			msg("The fountain heals you. Vault (west) stores items, Starforge (east) crafts Starforged gear, Marketplace (south) buys and sells.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
+			msg("Click another player to inspect them or trade.", 0xcccccc);
 			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
 		}
 
@@ -822,6 +860,13 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu)) {
+				if (playerMenu) closePlayerMenu();
+				else if (inspectWin) closeInspect();
+				else closeTrade();
+				input.endFrame();
+			}
+			if (tradeWin) tradeWin.update();
 			if (admin && admin.visible && input.pressed(Keyboard.ESCAPE)) toggleAdmin();
 			else if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
 			if (dyingT > 0) updateDying(dt);
@@ -846,6 +891,8 @@ package realm {
 			time += dt;
 			var i:int;
 			player.update(dt, this);
+			net.update(dt);
+			updatePlayerClicks(dt);
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -1026,7 +1073,7 @@ package realm {
 				s.y += s.vy * dt;
 				s.life -= dt;
 				// glowing trail behind your own shots
-				if (!s.enemy && parts.length < 420 && Math.random() < 0.55 && opt("parts"))
+				if (!s.enemy && !s.bot && parts.length < 420 && Math.random() < 0.55 && opt("parts"))
 					parts.push(new Particle(s.x, s.y, 0, 0, 0.14, Sprites.glow(s.trailCol)));
 				var remove:Boolean = s.life <= 0;
 				if (!remove) {
@@ -1049,7 +1096,8 @@ package realm {
 									if (s.hits[e]) continue;
 									s.hits[e] = true;
 								}
-								damageEnemy(e, s);
+								if (s.bot) botHit(e, s);
+								else damageEnemy(e, s);
 								if (!s.pierce) { remove = true; break; }
 							}
 						}
@@ -1070,6 +1118,7 @@ package realm {
 		public function hurtEnemy(e:Enemy, raw:int, effect:String, hx:Number, hy:Number):void {
 			if (e.dead) return;
 			var p:Player = player;
+			e.playerHit = true;
 			if (e.invuln) {
 				if (opt("dmg") && Math.random() < 0.15) floatText(e.x, e.y - e.r - 0.6, "Immune", 0xff80c0);
 				return;
@@ -1157,24 +1206,29 @@ package realm {
 			e.dead = true;
 			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
 			var p:Player = player;
-			questEvent("kills");
-			if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
-			if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
-			if (e.def.final) { questEvent("elder"); p.elders++; }
-			else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0)) { questEvent("dungeon"); p.dungeons++; }
-			else if (e.isBoss) questEvent("events");
-			p.kills++;
-			p.gainXp(e.def.xp, this);
-			petGainXp(e.isBoss ? 20 : 1);
-			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
+			// kills by other players: you share the XP if you're close, but loot and credit need a hit of your own
+			var mine:Boolean = e.playerHit;
 			var dx:Number = e.x - p.x, dy:Number = e.y - p.y;
+			var near:Boolean = dx * dx + dy * dy < 15 * 15;
+			if (mine) {
+				questEvent("kills");
+				if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
+				if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
+				if (e.def.final) { questEvent("elder"); p.elders++; }
+				else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0)) { questEvent("dungeon"); p.dungeons++; }
+				else if (e.isBoss) questEvent("events");
+				p.kills++;
+				petGainXp(e.isBoss ? 20 : 1);
+			}
+			if (mine || near) p.gainXp(e.def.xp, this);
+			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
 			if (dx * dx + dy * dy < 12 * 12) p.addSurge(this);
 
 			// currencies (account-wide gold and Aether)
-			var g:int = e.def.gold || int(e.def.xp / 6);
+			var g:int = mine ? e.def.gold || int(e.def.xp / 6) : 0;
 			if (g > 0) addGold(g);
-			if (e.def.onrane) addOnrane(e.def.onrane);
-			if (e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " Aether", Ui.GOLD);
+			if (mine && e.def.onrane) addOnrane(e.def.onrane);
+			if (mine && e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " Aether", Ui.GOLD);
 
 			if (e.def.crystal) {
 				var left:int = crystalsLeft();
@@ -1239,7 +1293,7 @@ package realm {
 					tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 				}
 			}
-			var items:Array = Data.rollLoot(e.def, Math.max(0, Math.min(World.GOD_ZONE, e.zone)), p.cls, p.frt);
+			var items:Array = mine ? Data.rollLoot(e.def, Math.max(0, Math.min(World.GOD_ZONE, e.zone)), p.cls, p.frt) : [];
 			if (items.length) {
 				while (items.length > LootBag.MAX) items.pop();
 				var bag:LootBag = new LootBag(e.x, e.y, items);
@@ -1503,6 +1557,7 @@ package realm {
 		}
 
 		public function slotClick(kind:String, idx:int, shift:Boolean):void {
+			if (tradeWin) { msg("Finish or cancel the trade first.", 0xff8080); return; }
 			var p:Player = player;
 			var item:Object;
 			if (kind == "bag") {
@@ -1554,6 +1609,7 @@ package realm {
 
 		/** Drag an item onto the ground (the game view) to drop it, RotMG style. */
 		public function dragToGround(kind:String, idx:int):void {
+			if (tradeWin) { msg("Finish or cancel the trade first.", 0xff8080); return; }
 			var item:Object = itemAt(kind, idx);
 			if (!item) return;
 			if (kind == "inv") {
@@ -1568,6 +1624,7 @@ package realm {
 
 		/** Drag an item from one slot to another: move, swap, equip or put in a bag. */
 		public function dragToSlot(sk:String, si:int, dk:String, di:int):void {
+			if (tradeWin) { msg("Finish or cancel the trade first.", 0xff8080); return; }
 			var p:Player = player;
 			var item:Object = itemAt(sk, si);
 			if (!item || (sk == dk && si == di)) return;
@@ -2388,12 +2445,21 @@ package realm {
 				if (sx < -100 || sy < -100 || sx > VIEW_W + 100 || sy > VIEW_H + 120) continue;
 				drawList.push(drawItem(sy, 0, 0, e, false));
 			}
+			for each (var rp:RemotePlayer in net.players) {
+				var rsx:Number = scrX(rp.x, rp.y), rsy:Number = scrY(rp.x, rp.y);
+				if (rsx < -60 || rsy < -60 || rsx > VIEW_W + 60 || rsy > VIEW_H + 80) continue;
+				var rdi:Object = drawItem(rsy, -2, 0, null, false);
+				rdi.r = rp;
+				drawList.push(rdi);
+			}
 			drawList.push(drawItem(scrY(player.x, player.y), 0, 0, null, true));
 			if (pet) drawList.push(drawItem(scrY(petX, petY), -1, 0, null, false));
 			drawList.sortOn("y", Array.NUMERIC);
 
 			for each (var d:Object in drawList) {
-				if (d.o < 0) {
+				if (d.o == -2) {
+					drawRemote(d.r);
+				} else if (d.o < 0) {
 					drawEntity(Sprites.get("pet_" + pet.species, 0, scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY),
 						petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
 				} else if (d.o) {
@@ -2428,6 +2494,7 @@ package realm {
 			}
 			canvas.unlock();
 			updateQuestArrow();
+			updateTags();
 
 			for each (var f:Floater in floaters) {
 				if (!f.tf.visible) continue;
@@ -2441,7 +2508,7 @@ package realm {
 			var d:Object = drawPool[drawN];
 			if (!d) d = drawPool[drawN] = {};
 			drawN++;
-			d.y = y; d.o = o; d.x = x; d.e = e; d.p = p;
+			d.y = y; d.o = o; d.x = x; d.e = e; d.p = p; d.r = null;
 			return d;
 		}
 
@@ -2501,6 +2568,216 @@ package realm {
 			if (e.invuln) statusPip(cx, top - 6, 0xffff4080);
 			else if (e.stunT > 0) statusPip(cx, top - 6, 0xfff0f040);
 			else if (e.slowT > 0) statusPip(cx, top - 6, 0xff60a0ff);
+		}
+
+		// ------------------------------------------------------------ other players
+		private function drawRemote(rp:RemotePlayer):void {
+			var cx:Number = scrX(rp.x, rp.y), cy:Number = scrY(rp.x, rp.y);
+			if (rp == hoverRemote || (playerMenu && playerMenu.name == rp.id)) drawAura(cx, cy + TS * 0.4, 0xffffff, 0.45);
+			drawEntity(rp.sprite, cx, cy, 0);
+		}
+
+		/** Name tags under other players and chat bubbles over their heads. */
+		private function updateTags():void {
+			var n:int = 0, nb:int = 0;
+			for each (var rp:RemotePlayer in net.players) {
+				var cx:Number = scrX(rp.x, rp.y), cy:Number = scrY(rp.x, rp.y);
+				if (cx < -60 || cy < -60 || cx > VIEW_W + 60 || cy > VIEW_H + 40) continue;
+				var tf:TextField = tags[n];
+				if (!tf) {
+					tf = tags[n] = Ui.text(12, 0xffffff, true, "center", 120, true);
+					tagLayer.addChild(tf);
+				}
+				n++;
+				if (tf.text != rp.name) tf.text = rp.name;
+				tf.textColor = rp == hoverRemote ? Ui.GOLD : 0xe8e8e8;
+				tf.visible = true;
+				tf.x = int(cx - tf.width / 2);
+				tf.y = int(cy + TS * 0.4 + 1);
+				if (rp.bubbleT > 0) {
+					var b:Sprite = bubbles[nb];
+					if (!b) {
+						b = bubbles[nb] = new Sprite();
+						b.addChild(Ui.text(12, 0x202020, true, "center", 170));
+						tagLayer.addChild(b);
+					}
+					nb++;
+					var bt:TextField = TextField(b.getChildAt(0));
+					if (bt.text != rp.bubble) {
+						bt.text = rp.bubble;
+						b.graphics.clear();
+						Ui.panel(b.graphics, -4, -2, bt.width + 8, bt.height + 4, 0xf4f4f0, 0x303030);
+						b.graphics.beginFill(0xf4f4f0);
+						b.graphics.moveTo(bt.width / 2 - 5, bt.height + 1);
+						b.graphics.lineTo(bt.width / 2 + 5, bt.height + 1);
+						b.graphics.lineTo(bt.width / 2, bt.height + 8);
+						b.graphics.endFill();
+					}
+					b.visible = true;
+					b.alpha = Math.min(1, rp.bubbleT * 2);
+					b.x = int(cx - bt.width / 2);
+					b.y = int(cy - TS * 0.6 - bt.height - 10);
+				}
+			}
+			for (; n < tags.length; n++) tags[n].visible = false;
+			for (; nb < bubbles.length; nb++) bubbles[nb].visible = false;
+		}
+
+		private function remoteAt(sx:Number, sy:Number):RemotePlayer {
+			var best:RemotePlayer, bd:Number = 26 * 26;
+			for each (var rp:RemotePlayer in net.players) {
+				var dx:Number = sx - scrX(rp.x, rp.y), dy:Number = sy - (scrY(rp.x, rp.y) - 4);
+				if (dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; best = rp; }
+			}
+			return best;
+		}
+
+		/** Click another player (right-click in combat zones) for their menu. */
+		private function updatePlayerClicks(dt:Number):void {
+			hoverRemote = input.mx < VIEW_W && !uiCaptured() ? remoteAt(input.mx, input.my) : null;
+			if (requestPopup) {
+				requestT -= dt;
+				if (requestT <= 0) closeRequest(true);
+			}
+			if (!input.clicked && !input.rightClicked) return;
+			if (playerMenu && !playerMenu.hitTestPoint(input.mx, input.my, true)) closePlayerMenu();
+			if (hoverRemote && (input.rightClicked || world.isSafe(player.x, player.y))) openPlayerMenu(hoverRemote);
+		}
+
+		private function openPlayerMenu(rp:RemotePlayer):void {
+			closePlayerMenu();
+			var m:Sprite = new Sprite();
+			m.name = rp.id;
+			Ui.panel(m.graphics, 0, 0, 150, 116, 0x1e1e24, 0x8a8a9a, 0.97);
+			var t:TextField = Ui.text(15, Ui.GOLD, true, "center", 150, true);
+			t.text = rp.name;
+			t.y = 6;
+			m.addChild(t);
+			var ins:Sprite = Ui.button("Inspect", 130, 30, function():void { closePlayerMenu(); openInspect(rp); }, 14);
+			ins.x = 10; ins.y = 36;
+			m.addChild(ins);
+			var tr:Sprite = Ui.button("Trade", 130, 30, function():void { closePlayerMenu(); net.requestTrade(rp); }, 14);
+			tr.x = 10; tr.y = 74;
+			m.addChild(tr);
+			m.x = int(Math.min(VIEW_W - 156, input.mx + 8));
+			m.y = int(Math.max(4, Math.min(VIEW_H - 122, input.my - 20)));
+			playerMenu = m;
+			addChild(m);
+			Sfx.play("click", 0.5);
+		}
+
+		private function closePlayerMenu():void {
+			if (playerMenu && playerMenu.parent) removeChild(playerMenu);
+			playerMenu = null;
+		}
+
+		public function openInspect(rp:RemotePlayer):void {
+			closeInspect();
+			var self:Game = this;
+			net.inspect(rp, function(profile:Object):void {
+				closeInspect();
+				inspectWin = new InspectWindow(self, rp, profile);
+				inspectWin.x = int((VIEW_W - InspectWindow.W) / 2);
+				inspectWin.y = 36;
+				addChild(inspectWin);
+			});
+		}
+
+		public function closeInspect():void {
+			if (inspectWin && inspectWin.parent) removeChild(inspectWin);
+			inspectWin = null;
+		}
+
+		/** The connection says another player said something. */
+		public function netSay(rp:RemotePlayer, text:String):void {
+			pushChat("<font color='#ffffff'><b>&lt;" + rp.name + "&gt;</b></font> <font color='#d8d8d8'>" + text.replace(/</g, "&lt;") + "</font>");
+			rp.say(text);
+		}
+
+		public function get tradeAsking():Boolean { return requestPopup != null || tradeWin != null; }
+
+		/** The connection says someone wants to trade with you. */
+		public function tradeRequested(rp:RemotePlayer):void {
+			closeRequest(false);
+			requestFrom = rp;
+			requestT = 20;
+			var w:int = 340;
+			var pop:Sprite = new Sprite();
+			Ui.panel(pop.graphics, 0, 0, w, 92, 0x1e1e24, 0x8a6aff, 0.97);
+			var t:TextField = Ui.text(15, 0xffffff, true, "center", w, true);
+			t.htmlText = "<font color='#d0b8ff'>" + rp.name + "</font> wants to trade with you.";
+			t.y = 10;
+			pop.addChild(t);
+			var yes:Sprite = Ui.button("Accept", 140, 32, function():void { closeRequest(false); net.answerTrade(rp, true); }, 15);
+			yes.x = 22; yes.y = 46;
+			pop.addChild(yes);
+			var no:Sprite = Ui.button("Decline", 140, 32, function():void { closeRequest(true); }, 15);
+			no.x = w - 162; no.y = 46;
+			pop.addChild(no);
+			pop.x = int((VIEW_W - w) / 2);
+			pop.y = 64;
+			requestPopup = pop;
+			addChild(pop);
+			msg(rp.name + " wants to trade with you.", 0xc8a0ff);
+			Sfx.play("trade", 0.6);
+		}
+
+		private function closeRequest(decline:Boolean):void {
+			if (requestPopup && requestPopup.parent) removeChild(requestPopup);
+			requestPopup = null;
+			if (decline && requestFrom) net.answerTrade(requestFrom, false);
+			requestFrom = null;
+		}
+
+		/** The connection opened a trade. */
+		public function openTrade(s:TradeSession):void {
+			closeStation();
+			closePlayerMenu();
+			closeInspect();
+			closeRequest(false);
+			if (tradeWin && tradeWin.parent) removeChild(tradeWin);
+			tradeWin = new TradeWindow(this, s);
+			tradeWin.x = int((VIEW_W - tradeWin.W) / 2);
+			tradeWin.y = int(Math.max(40, (VIEW_H - tradeWin.H) / 2 - 30));
+			addChild(tradeWin);
+			msg("Trading with " + s.partner.name + ".", 0xc8a0ff);
+			Sfx.play("trade", 0.6);
+		}
+
+		public function closeTrade():void {
+			if (net.trade) net.cancelTrade();
+			else tradeEnded(null);
+		}
+
+		/** The trade finished (ok) or was called off. */
+		public function tradeEnded(text:String, ok:Boolean = false):void {
+			if (tradeWin && tradeWin.parent) removeChild(tradeWin);
+			tradeWin = null;
+			if (text) msg(text, ok ? 0x5ae06a : 0xff8080);
+			if (ok) {
+				Sfx.play("trade");
+				saveCharacter();
+				hud.refresh();
+			}
+		}
+
+		/** Another player fires at a monster. */
+		public function botShoot(rp:RemotePlayer, ang:Number):void {
+			var w:Object = rp.profile.equip[0];
+			if (!w || !w.shape) return;
+			var fr:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.sub == "sword" ? 4 : 3);
+			var s:Projectile = new Projectile(rp.x, rp.y, ang, w.spd, w.life, int((w.dmin + w.dmax) / 2 * 0.6), false, 0.25, fr, w.pierce, rp.name, null);
+			s.bot = true;
+			shots.push(s);
+		}
+
+		private function botHit(e:Enemy, s:Projectile):void {
+			if (e.dead || e.invuln) return;
+			var d:int = Math.max(s.dmg - e.defense, int(s.dmg * 0.15));
+			e.hp -= d;
+			e.hitT = 0.08;
+			sparks(s.x, s.y, e.def.col, 1);
+			if (e.hp <= 0) killEnemy(e);
 		}
 
 		private function drawPlayer():void {

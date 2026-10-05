@@ -23,6 +23,8 @@ package realm {
 		public var invuln:Boolean = false;
 		/** Damage multiplier (elite dungeon monsters, enraged kings). */
 		public var dmgMult:Number = 1;
+		/** You hit it at least once (you only get loot from monsters you fought). */
+		public var playerHit:Boolean = false;
 
 		private var attacks:Array;
 		private var timers:Array;

@@ -81,7 +81,8 @@ into the first account you create.
 | 1-8 | Use or equip the item in that inventory slot |
 | R | Return to the Nexus (full heal) |
 | Enter | Go through the portal you are standing on |
-| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/tips`, `/admin` |
+| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/who`, `/trade name`, `/inspect name`, `/tips`, `/admin` |
+| Click a player (Nexus) / right-click (anywhere) | Player menu: Inspect or Trade |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
 | P / Esc | Pause menu (options, Save & Quit) |
@@ -95,6 +96,28 @@ into the first account you create.
 - **Click:** clicking an item still uses or equips it, and clicking a loot bag item picks
   it up.
 - **Shift+click:** sells an item at the Marketplace, and quick-drops it anywhere else.
+
+## Other players and trading
+
+New Realm is being built as a multiplayer game. Other players already walk around the
+Nexus and the realms. For now they are simulated on your computer. When the game server
+is ready, real players will come in through the same code (see `Net.as` below).
+
+- **Inspect:** click a player in the Nexus (or right-click anywhere, or `/inspect name`) to
+  see their class, level, fame, maxed stats and equipment, with item tooltips.
+- **Trade:** choose Trade from the player menu, or type `/trade name`. In the trade window:
+  - Click your own items to offer them (green).
+  - Click the other player's items to ask for them (gold outline).
+  - What they offer turns green.
+  - Any change un-ticks both Accepts. Accept unlocks a moment after the last change, so
+    nothing can be swapped at the last second.
+  - Both players accept, and the items swap.
+- Players sometimes ask to trade with you, and they advertise what they're selling in chat.
+  Simulated traders want a fair deal: they say how much more they want, and value stat
+  potions and Star Shards highly.
+- In the realms other players fight monsters too. You share the XP from kills near you,
+  but loot only drops for monsters you hit yourself.
+- Other players show as yellow dots on the minimap.
 
 ## Features
 
@@ -238,6 +261,11 @@ src/realm/Data.as        classes, enemies, items, loot tables (balance lives her
 src/realm/Sprites.as     text-defined pixel art, bullets, icons
 src/realm/Hud.as         sidebar UI (minimap, bars, gear, inventory, loot bag)
 src/realm/Tooltip.as     item tooltip
+src/realm/Net.as         connection to other players (the seam for the game server)
+src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trade
+src/realm/RemotePlayer.as another player (position smoothing, public profile)
+src/realm/TradeSession.as trade rules (offers, accept lock, space check, swap)
+src/realm/TradeWindow.as trade screen; InspectWindow.as player inspect screen
 src/realm/Ui.as          fonts, text, panels and buttons
 src/realm/TitleScreen.as home screen, log in / register dialogs
 src/realm/Accounts.as    local accounts (salted password hashes)

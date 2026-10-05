@@ -492,6 +492,14 @@ package realm {
 				gr.drawRect(lx - ds / 2, ly - ds / 2, ds, ds);
 				gr.endFill();
 			}
+			// other players are yellow, like RotMG
+			for each (var rp:RemotePlayer in g.net.players) {
+				var rx:Number = ox + rp.x * z, ry:Number = oy + rp.y * z;
+				if (rx < 0 || ry < 0 || rx > mw || ry > mh) continue;
+				gr.beginFill(0xffe040);
+				gr.drawRect(rx - ds / 2, ry - ds / 2, ds, ds);
+				gr.endFill();
+			}
 			if (g.boss) {
 				var bx:Number = Math.max(4, Math.min(mw - 4, ox + g.boss.x * z));
 				var by:Number = Math.max(4, Math.min(mh - 4, oy + g.boss.y * z));

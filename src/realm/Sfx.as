@@ -39,6 +39,11 @@ package realm {
 			buffers.portal = synth(0.45, function(t:Number, p:Number):Number { return sin(t, 200 + 600 * p * p) * 0.3 * Math.sin(p * Math.PI) + noise() * 0.06; });
 			buffers.boss = synth(0.9, function(t:Number, p:Number):Number { return (sin(t, 55) + sin(t, 82) * 0.6 + noise() * 0.2) * 0.4 * (1 - p); });
 			buffers.coin = synth(0.2, function(t:Number, p:Number):Number { return sin(t, p < 0.35 ? 1568 : 2093) * 0.22 * (1 - p); });
+			buffers.click = synth(0.04, function(t:Number, p:Number):Number { return sq(t, 1200) * 0.1 * (1 - p); });
+			buffers.trade = synth(0.5, function(t:Number, p:Number):Number {
+				var f:Number = [784, 988, 1175][int(p * 3)];
+				return (sin(t, f) + sin(t, f * 1.5) * 0.25) * 0.22 * (1 - p * 0.6);
+			});
 			buffers.status = synth(0.2, function(t:Number, p:Number):Number { return sq(t, 220 + 40 * Math.sin(p * 40)) * 0.15 * (1 - p); });
 		}
 

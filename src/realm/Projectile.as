@@ -17,6 +17,8 @@ package realm {
 		public var owner:String;
 		/** Colour of the faint trail behind player shots. */
 		public var trailCol:uint = 0xffffff;
+		/** Fired by another player: hurts monsters but gives you nothing. */
+		public var bot:Boolean = false;
 
 		public function Projectile(x:Number, y:Number, angle:Number, speed:Number, life:Number, dmg:int, enemy:Boolean,
 				r:Number, frames:Vector.<BitmapData>, pierce:Boolean, owner:String, effect:String, spin:Boolean = false) {

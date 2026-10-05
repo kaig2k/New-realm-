@@ -18,6 +18,7 @@ package realm {
 		private static const I_PACK:Array = ["..WWWW..", ".W....W.", "WWWWWWWW", "WWWDDWWW", "WWWWWWWW", "WWWWWWWW", ".WWWWWW.", "........"];
 		private static const I_STAR:Array = ["...W....", "...W....", ".WWWWW..", "..WWW...", "..W.W...", ".W...W..", "........", "........"];
 		private static const I_PEOPLE:Array = ["..W..W..", ".WWWWWW.", "..W..W..", "........", ".WW..WW.", "WWWWWWWW", "WWWWWWWW", "........"];
+		private static const I_BOOK:Array = ["WWW.WWW.", "W.WWW.W.", "W.WWW.W.", "WWWWWWW.", "W.WWW.W.", "W.WWW.W.", "WWW.WWW.", "........"];
 		private static const I_CHART:Array = ["........", "......W.", "......W.", "...W..W.", "...W..W.", "W..W..W.", "W..W..W.", "WWWWWWWW"];
 
 		private var g:Game;
@@ -88,6 +89,9 @@ package realm {
 			var socialBtn:Sprite = iconButton(I_PEOPLE, W - 62, y + 2, 0x9ad0ff);
 			socialBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.toggleSocial(); });
 			addChild(socialBtn);
+			var wikiBtn:Sprite = iconButton(I_BOOK, W - 90, y + 2, 0xffd75e);
+			wikiBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.toggleWiki(); });
+			addChild(wikiBtn);
 
 			// --- bars
 			y = MINI_H + 40;

@@ -85,6 +85,7 @@ into the first account you create.
 | Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/who`, `/trade name`, `/inspect name`, `/tips`, `/admin` |
 | Click a player (Nexus) / right-click (anywhere) | Player menu: Inspect, Trade, party / guild invite, Teleport |
 | L | Party and guild window |
+| K (or the book button) | Boss wiki: every boss, where it is and its unique drops |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
 | P / Esc | Pause menu and settings: volume slider, mute, show players (everyone or party and guild only), player names, chat bubbles, damage numbers, particles, screen shake, Save & Quit |
@@ -113,6 +114,11 @@ into the first account you create.
 **New bosses**
 - Realm events: the Obsidian Colossus, Pyraxis the Phoenix, Mother Hexis and the Reef Kraken.
 - Three new realm finales (below), and six raid bosses.
+
+**Boss wiki.** The book button next to the Nexus button (or K, or `/wiki`) lists every boss
+by category: realm events, dungeons, hard dungeons, finales and raids. Each entry shows
+where to find the boss, its HP and phase count, and its unique drops; hover an item for its
+full stats.
 
 **Unique drops.** About 70 named items, each dropped by **one boss only**. The tooltip shows
 its lore and which boss drops it. Uniques have their own shot patterns: Saltbeard's Cutlass

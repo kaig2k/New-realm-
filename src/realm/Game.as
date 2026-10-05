@@ -141,6 +141,7 @@ package realm {
 		private var netTf:TextField;
 		private var netT:Number = 0;
 		private var social:SocialWindow;
+		private var wiki:WikiWindow;
 		private var tpT:Number = 0;
 
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
@@ -314,6 +315,9 @@ package realm {
 				case "/tp": case "/teleport":
 					var tpw:RemotePlayer = net.find(t.split(" ")[1] || "");
 					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
+					break;
+				case "/wiki":
+					toggleWiki();
 					break;
 				case "/join":
 					joinPlayer(t.split(" ")[1] || "");
@@ -662,7 +666,7 @@ package realm {
 		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social, wiki]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -998,8 +1002,9 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social || wiki)) {
 				if (playerMenu) closePlayerMenu();
+				else if (wiki) toggleWiki();
 				else if (social) toggleSocial();
 				else if (inspectWin) closeInspect();
 				else closeTrade();
@@ -1037,6 +1042,7 @@ package realm {
 			updatePlayerClicks(dt);
 			if (tpT > 0) tpT -= dt;
 			if (input.pressed(Keyboard.L)) toggleSocial();
+			if (input.pressed(Keyboard.K)) toggleWiki();
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -3241,6 +3247,15 @@ package realm {
 				addChild(social);
 			}
 			if (tab >= 0) social.show(tab);
+		}
+
+		/** Book button / K / /wiki: every boss and its drops. */
+		public function toggleWiki():void {
+			if (wiki) { removeChild(wiki); wiki = null; refocus(); return; }
+			wiki = new WikiWindow(this);
+			wiki.x = int((VIEW_W - WikiWindow.W) / 2);
+			wiki.y = 40;
+			addChild(wiki);
 		}
 
 		/** Teleport to a party or guild member in the same world (RotMG style). */

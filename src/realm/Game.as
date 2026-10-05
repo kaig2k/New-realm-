@@ -1988,9 +1988,34 @@ package realm {
 			return pt.y;
 		}
 
+		private var auraShape:Shape = new Shape();
+		private var auraMtx:Matrix = new Matrix();
+
+		private function drawAura(cx:Number, cy:Number, col:uint):void {
+			var pulse:Number = (Math.sin(time * 4) + 1) / 2;
+			var rx:Number = TS * 1.15 + pulse * 6, ry:Number = rx * 0.45;
+			var g:* = auraShape.graphics;
+			g.clear();
+			g.beginFill(col, 0.12 + pulse * 0.1);
+			g.drawEllipse(-rx * 1.25, -ry * 1.25, rx * 2.5, ry * 2.5);
+			g.endFill();
+			g.beginFill(col, 0.22 + pulse * 0.12);
+			g.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+			g.endFill();
+			g.lineStyle(2, col, 0.55 + pulse * 0.3);
+			g.drawEllipse(-rx * 0.8, -ry * 0.8, rx * 1.6, ry * 1.6);
+			auraMtx.tx = cx; auraMtx.ty = cy;
+			canvas.draw(auraShape, auraMtx);
+		}
+
 		private function drawEnemy(e:Enemy, ox:Number, oy:Number):void {
 			var cx:Number = e.x * TS + ox, cy:Number = e.y * TS + oy;
 			var bob:int = e.moving && int(time * 5 + e.homeX) % 2 == 0 ? 2 : 0;
+			if (e.isBoss) {
+				// pulsing aura on the ground and a slow hover
+				drawAura(cx, cy + TS * 0.4, e.invuln ? 0xff4080 : e.enraged ? 0xff2020 : uint(e.def.col));
+				bob = int((Math.sin(time * 2.5 + e.homeX) + 1) * 2.5);
+			}
 			var top:Number = drawEntity(e.sprite, cx, cy, bob);
 			if (e.hp < e.maxHp) {
 				var bw:int = e.isBoss ? 80 : 36;

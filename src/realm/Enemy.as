@@ -1,5 +1,6 @@
 package realm {
 	import flash.display.BitmapData;
+	import flash.utils.getTimer;
 
 	public class Enemy {
 		private static const DEG:Number = Math.PI / 180;
@@ -54,7 +55,16 @@ package realm {
 		public var moving:Boolean = false;
 
 		public function get sprite():BitmapData {
-			return hitT > 0 ? Sprites.hit(def.spr, 0, facingLeft) : Sprites.get(def.spr, 0, facingLeft);
+			// bosses play a 2-frame idle animation; in their last phase they pulse red
+			var frame:int = isBoss ? int(getTimer() / 320 + homeX) % 2 : 0;
+			if (hitT > 0) return Sprites.hit(def.spr, frame, facingLeft);
+			if (enraged && int(getTimer() / 140) % 4 == 0) return Sprites.rage(def.spr, frame, facingLeft);
+			return Sprites.get(def.spr, frame, facingLeft);
+		}
+
+		/** True in a boss's final phase. */
+		public function get enraged():Boolean {
+			return isBoss && phase == 2;
 		}
 
 		public function update(dt:Number, g:Game):void {

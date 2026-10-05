@@ -64,92 +64,7 @@ package realm {
 		private static const ENT:Array = [[".gGGGGg.", "gGGLGGGg", "gGEGGEGg", "gGGGGGGg", ".gGTTGg.", "...TT...", "..tTTt..", ".tT..Tt."]];
 		private static const MEDUSA:Array = [["G.G..G.G", ".gGGGGg.", "gGSSSSGg", ".gSEESg.", "..SSSS..", ".bBBBBb.", "..bBBb..", ".bBBBBb."]];
 		private static const CUBELET:Array = [["........", ".pPPPPp.", ".PQQQQp.", ".PQEEQp.", ".PQEEQp.", ".PQQQQp.", ".pppppp.", "........"]];
-		private static const BOSS:Array = [[
-			"...Y...YY...Y...",
-			"...YY.YYYY.YY...",
-			"...YyYYYYYYyY...",
-			"..pPPPPPPPPPPp..",
-			".pPQQQQQQQQQQPp.",
-			".PQQQQQQQQQQQQp.",
-			".PQQWWWWWWWWQQp.",
-			".PQWWWWEEWWWWQp.",
-			".PQWWWEEEEWWWQp.",
-			".PQWWWWEEWWWWQp.",
-			".PQQWWWWWWWWQQp.",
-			".PQQQQQQQQQQQQp.",
-			".PQQQRRRRRRQQQp.",
-			".pPQQQQQQQQQQPp.",
-			"..pppppppppppp..",
-			"...p..p..p..p..."]];
 
-		private static const TITAN:Array = [[
-			"....rrrrrrrr....",
-			"...rRRRRRRRRr...",
-			"..rRRYRRRRYRRr..",
-			"..rRYYRRRRYYRr..",
-			"..rRRRRRRRRRRr..",
-			".rrRRRWWWWRRRrr.",
-			"rRRrRRRRRRRRrRRr",
-			"rRRrrRYRRYRrrRRr",
-			"rRRr.rRRRRr.rRRr",
-			"rYYr.rRYYRr.rYYr",
-			".rr..rRRRRr..rr.",
-			".....rRRRRr.....",
-			"....rRRrrRRr....",
-			"....rRRr.rRRr...",
-			"...rYYRr.rRYYr..",
-			"...rrrr...rrrr.."]];
-		private static const WYRM:Array = [[
-			"..W..........W..",
-			"..WW........WW..",
-			"...WCCCCCCCCW...",
-			"..CCCCCCCCCCCC..",
-			".CCcCCCCCCCCcCC.",
-			".CcEECCCCCCEEcC.",
-			".CCEECCCCCCEEcC.",
-			".CCCCCCCCCCCCCC.",
-			"..CCCcWWWWcCCC..",
-			"..cCCWcWWcWCCc..",
-			"...cCCCCCCCCc...",
-			"....cCCCCCCc....",
-			"..CC.cCCCCc.CC..",
-			".CCCC.cCCc.CCCC.",
-			"CCCc...cc...cCCC",
-			"Cc............cC"]];
-		private static const HOLLOWKING:Array = [[
-			"....Y..YY..Y....",
-			"....YYYYYYYY....",
-			"....BBBBBBBB....",
-			"...BBBBBBBBBB...",
-			"...BBEEBBEEBB...",
-			"...BBEEBBEEBB...",
-			"....BBBBBBBB....",
-			".....BTBTBB.....",
-			"...PPBBBBBBPP...",
-			"..PPPB.BB.BPPP..",
-			"..PPPBBBBBBPPPG.",
-			"..PPP.B..B.PPGG.",
-			"..PPP.BBBB.PPPG.",
-			"...PP.B..B.PP.G.",
-			".....BB..BB...G.",
-			"....BBB..BBB..G."]];
-		private static const ELDER:Array = [[
-			"......pppp......",
-			".....pPPPPp.....",
-			"....pPPPPPPp....",
-			"...pPPPPPPPPp...",
-			"...pPsSSSSsPp...",
-			"...pPSEESEESp...",
-			"...pPsSSSSsPp...",
-			"..pPPPsSSsPPPp..",
-			".pPPPPPPPPPPPPp.",
-			"pPPGPPPPPPPPGPPp",
-			"pPPGPPPAAPPPGPPp",
-			".pPGPPPAAPPPGPp.",
-			"..pGPPPPPPPPGp..",
-			"...GpPPPPPPpG...",
-			"...G.pP..Pp.G...",
-			"...G.pp..pp.G..."]];
 
 		// ================================================================ world objects
 		private static const TREE:Array = [["..gGGg..", ".gGLGGg.", "gGGLGGGg", "gGGGGLGg", "gGLGGGGg", ".gGGGGg.", "..gggg..", "...TT...", "...TT...", "..tTTt.."]];
@@ -177,6 +92,73 @@ package realm {
 		private static const DEMON:Array = [["H......H", "HH.RR.HH", ".RRRRRR.", ".RYRRYR.", ".RRRRRR.", "RRrRRrRR", ".RRrrRR.", ".RR..RR."]];
 		private static const FAIRY:Array = [["W..CC..W", "WW.CC.WW", "WWCEECWW", "WwCCCCwW", "W.CCCC.W", "..CccC..", "..C..C..", "........"]];
 		private static const BIRD:Array = [["...HH...", "W.HEEH.W", "WWHHHHWW", "WWWBBWWW", "W.BBBB.W", "..BBBB..", "...BB...", "..Y..Y.."]];
+		// ================================================================ bosses (16x16, 2-frame idle)
+		private static const BOSS_ELDER:Array = [
+			["................", ".H............H.", ".HH....PP....HH.", "..hHPPPPPPPPHh..", "...PPPPPPPPPP...", "..PPPKKKKKKPPP..", "..PPKKEKKEKKPP..", "p.PPPKKKKKKPPP.p", "pp.QPPPPPPPPQ.pp", "ppp.QPPPPPPQ.ppp", "pppp.QPOOPQ.pppp", ".ppp.PQOOQP.ppp.", "..pp.PPQQPP.pp..", ".....PPPPPP.....", "....PPPPPPPP....", "...pPPPPPPPPp..."],
+			["................", ".H............H.", ".HH....PP....HH.", "..hHPPPPPPPPHh..", "...PPPPPPPPPP...", "..PPPKKKKKKPPP..", "..PPKKWKKWKKPP..", "pp.PPKKKKKKPP.pp", "ppp.QPPPPPPQ.ppp", "pppp.QPPPPQ.pppp", "ppp..QPOOPQ..ppp", ".pp..PQOOQP..pp.", "..p..PPQQPP..p..", ".....PPPPPP.....", "....PPPPPPPP....", "...pPPPPPPPPp..."]];
+		private static const BOSS_BOSS:Array = [
+			["...Y...YY...Y...", "...YY.YYYY.YY...", "....yYYyyYYy....", "......QQQQ......", "....QQQQQQQQ....", "..QQQQQQQQQQQQ..", "PPQQQQQQQQQQQQpp", "PPPPQQQQQQQQpppp", "PPPPPPQQQQpppppp", "PPPPWWWWWWWWpppp", "PPPWWWEEEEWWWppp", "PPPWWEEKKEEWWppp", "PPPPWWEEEEWWpppp", "PPPPPPWWWWpppppp", "..PPPPPPpppppp..", "....PPPPpppp...."],
+			["................", "...Y...YY...Y...", "...YY.YYYY.YY...", "......QQQQ......", "....QQQQQQQQ....", "..QQQQQQQQQQQQ..", "PPQQQQQQQQQQQQpp", "PPPPQQQQQQQQpppp", "PPPPPPQQQQpppppp", "PPPPWWWWWWWWpppp", "PPPWWEEEEWWWWppp", "PPPWEEKKEEWWWppp", "PPPPWEEEEWWWpppp", "PPPPPPWWWWpppppp", "..PPPPPPpppppp..", "....PPPPpppp...."]];
+		private static const BOSS_TITAN:Array = [
+			["................", ".....RRRRRR.....", "....RrrRRrrR....", "....rYrrrrYr....", "....rrrLLrrr....", ".RRR.rrrrrr.RRR.", "RRrrRRRrrRRRrrRR", "RrLrrrLrrLrrrLrR", "Rrr.rLrrrrLr.rrR", "rLr.rrrLLrrr.rLr", "rrr.rrrrrrrr.rrr", "YYY.Rrr..rrR.YYY", "YY..RrrRRrrR..YY", "....Rr....rR....", "...RRr....rRR...", "...rrr....rrr..."],
+			["................", ".....RRRRRR.....", "....RrrRRrrR....", "....rYrrrrYr....", "....rrrYYrrr....", ".RRR.rrrrrr.RRR.", "RRrrRRRrrRRRrrRR", "RrYrrrYrrYrrrYrR", "Rrr.rYrrrrYr.rrR", "rYr.rrrYYrrr.rYr", "rrr.rrrrrrrr.rrr", "LLL.Rrr..rrR.LLL", "YY..RrrRRrrR..YY", "....Rr....rR....", "...RRr....rRR...", "...rrr....rrr..."]];
+		private static const BOSS_WYRM:Array = [
+			["..........CC....", ".........CCWC...", "........CCEcC...", "WW......cCCCCK..", "WwW......cCC....", "WwwW....CCc.....", ".WwwW..CCc..WWW.", "..WwwWCCCc.WwwW.", "...WwCCCCcWwwW..", "....CCcCCCCwW...", "...CCc.cCCCC....", "..CCc...cCCCc...", "..CCc..cCCCCC...", "...CCcCCCc.cCC..", "....cCCCc....cC.", "..............c."],
+			["..........CC....", ".........CCWC...", "........CCEcC...", "........cCCCCK..", "WW.......cCC....", "WwWW....CCc..WW.", ".WwwW..CCc.WWwW.", "..WwwWCCCcWwwW..", "...WwCCCCcWwW...", "....CCcCCCCwW...", "...CCc.cCCCC....", "..CCc...cCCCc...", "..CCc..cCCCCC...", "...CCcCCCc.cCC..", "....cCCCc....cC.", "..............c."]];
+		private static const BOSS_HOLLOWKING:Array = [
+			["....Y.Y..Y.Y....", "....YYYYYYYY....", "....YGYYYYGY..GW", "....BBBBBBBB..Y.", "...BBBBBBBBBB.Y.", "...BEEBBBBEEB.Y.", "...BBBBTTBBBB.Y.", "....BTBTTBTB..Y.", "PP..PBBBBBBP..Y.", "PPPPPBTBBTBPPPY.", ".PPPPBBBBBBPPPY.", "..PPPPBPPBPPPPY.", "..PPPPPPPPPPPPY.", "...PPPPPPPPPP...", "...PP.PPPP.PP...", "...P..P..P..P..."],
+			["....Y.Y..Y.Y....", "....YYYYYYYY....", "....YGYYYYGY..GW", "....BBBBBBBB..Y.", "...BBBBBBBBBB.Y.", "...BGGBBBBGGB.Y.", "...BBBBTTBBBB.Y.", "....BTBTTBTB..Y.", "PP..PBBBBBBP..Y.", "PPPPPBTBBTBPPPY.", ".PPPPBBBBBBPPPY.", "..PPPPBPPBPPPPY.", "..PPPPPPPPPPPPY.", "...PPPPPPPPPP...", "...PP.PPPP.PP...", "...P..P..P..P..."]];
+		private static const BOSS_BEHEMOTH:Array = [
+			["W..............W", "WW............WW", ".WW..GGGGGG..WW.", "..WGGGGGGGGGGW..", "...GgGGGGGGgG...", "..GGgEgGGgEgGG..", "..GGGgggggGGGG..", ".GGGTGgRRgGTGGG.", "GGGG.TgggT.GGGGG", "GGgGG..gg..GGgGG", "GgggGGGGGGGGgggG", "Ggg.GGgggggG.ggG", "gg..GgggggggG.gg", "....Ggg..ggG....", "...GGg....gGG...", "...ggg....ggg..."],
+			["W..............W", "WW............WW", ".WW..GGGGGG..WW.", "..WGGGGGGGGGGW..", "...GgGGGGGGgG...", "..GGgEgGGgEgGG..", "..GGGgggggGGGG..", ".GGGTGgrrgGTGGG.", "GGGG.TgggT.GGGGG", "GGgGG..gg..GGgGG", "GgggGGGGGGGGgggG", "Ggg.GGgggggG.ggG", "gg..GgggggggG.gg", "....Ggg..ggG....", "..GGg......gGG..", "..ggg......ggg.."]];
+		private static const BOSS_REGENT:Array = [
+			["......YYYY......", ".....YyYYyY.....", "....CCCCCCCC....", "...CQQQQQQQQC...", "..C.QEQQQQEQ.C..", ".CC.QQQQQQQQ.CC.", "CCc..QQQQQQ..cCC", "Cc.cMMMMMMMMc.cC", "c..cMmMMMMmMc..c", "...cMMmMMmMMc...", "...cMMMMMMMMc...", "....MMMMMMMM....", ".....MMMMMM.....", "......MMMM......", ".......MM.......", "......M..M......"],
+			["......YYYY......", ".....YyYYyY.....", "....CCCCCCCC....", "...CQQQQQQQQC...", "..C.QWQQQQWQ.C..", ".CC.QQQQQQQQ.CC.", "CCc..QQQQQQ..cCC", "Cc.cMMMMMMMMc.cC", "c..cMmMMMMmMc..c", "...cMMmMMmMMc...", "...cMMMMMMMMc...", "....MMMMMMMM....", ".....MMMMMM.....", ".....MM..MM.....", "......M..M......", ".......MM......."]];
+		private static const BOSS_SPHINX:Array = [
+			["...BYBYBY.......", "..BYBYBYBY......", "..YSSSSSSB......", "..BSESSESY......", "..YSSSSSSB......", "..BYSSSSYY......", "...BYSSYB.......", "....TTTTTTTTTT..", "...TTTTTTTTTTTT.", "..TTtTTTTTTTTTTt", "..TtTTTTTTTTTTt.", "..TT.TTTTTTTT...", "..TT..TT..TT.TT.", ".TTT.TTT.TTTTTT.", ".ttt.ttt.ttt.ttt", "................"],
+			["...BYBYBY.......", "..BYBYBYBY......", "..YSSSSSSB......", "..BSWSSWSY......", "..YSSSSSSB......", "..BYSSSSYY......", "...BYSSYB.......", "....TTTTTTTTTT..", "...TTTTTTTTTTTT.", "..TTtTTTTTTTTTTt", "..TtTTTTTTTTTTt.", "..TT.TTTTTTTT...", "..TT..TT..TT.TT.", ".TTT.TTT.TTTTTT.", ".ttt.ttt.ttt.ttt", "................"]];
+		private static const BOSS_SUNKEN_LORD:Array = [
+			["..............W.", ".....SSSS....WWW", "....SsSSsS....W.", "....SEsSEs....W.", "....sSSSSs....W.", "..SSSssssSSS..W.", ".SSsSSBSSSsSS.W.", ".SsSSSSSBSSsSSH.", ".Ss.SSBSSSS.sHH.", ".Bs.SSSSBSS..W..", ".ss.SSSSSSS..W..", "....SSs.sSS..W..", "....SSs.sSS..W..", "...SSSs.sSSS.W..", "...sss...sss....", "................"],
+			["..............W.", ".....SSSS....WWW", "....SsSSsS....W.", "....SGsSGs....W.", "....sSSSSs....W.", "..SSSssssSSS..W.", ".SSsSSBSSSsSS.W.", ".SsSSSSSBSSsSSH.", ".Ss.SSBSSSS.sHH.", ".Bs.SSSSBSS..W..", ".ss.SSSSSSS..W..", "....SSs.sSS..W..", "....SSs.sSS..W..", "...SSSs.sSSS.W..", "...sss...sss....", "................"]];
+		private static const BOSS_HERMIT:Array = [
+			[".....SSSSSS.....", "...SSsssssSS....", "..SsSSSSSSsSS...", ".SsSsssssSSsSS..", ".SsSsSSSsSSsSS..", ".SsSsSsSsSSsSS..", ".SsSssSsSSsSS...", ".SSsSSSsSSsSS...", "..SSsssSSsSSCC..", "...SSSSSSSSCECC.", "..CCCSSSSSCCCCCC", ".CCcCC...CcCCcC.", "CCc.Cc..cC.cC.cC", "Cc..c....c..c..c", "c...............", "................"],
+			[".....SSSSSS.....", "...SSsssssSS....", "..SsSSSSSSsSS...", ".SsSsssssSSsSS..", ".SsSsSSSsSSsSS..", ".SsSsSsSsSSsSS..", ".SsSssSsSSsSS...", ".SSsSSSsSSsSS...", "..SSsssSSsSSCC..", "...SSSSSSSSCWCC.", "..CCCSSSSSCCCCCC", ".CCcCC...CcCCcC.", "CCc.Cc..cC.cC.C.", ".Cc.c....c..c.c.", "..c.............", "................"]];
+		private static const BOSS_SHRINE:Array = [
+			["F..............F", "FF....BBBB....FF", "YF...BBBBBB...FY", ".Y..BBBBBBBB..Y.", ".S..BEEBBEEB..S.", ".S..BEEBBEEB..S.", ".S..BBBbbBBB..S.", ".S...BBBBBB...S.", ".S...BTBTBT...S.", ".S....BBBB....S.", "AAAAAAAAAAAAAAAA", "AaaaaaaaaaaaaaaA", "A.RRRRRRRRRRRR.A", "A.R.R.R.R.R.R..A", "AAAAAAAAAAAAAAAA", "aaaaaaaaaaaaaaaa"],
+			[".F............F.", "FF....BBBB....FF", "FY...BBBBBB...YF", ".Y..BBBBBBBB..Y.", ".S..BRRBBRRB..S.", ".S..BRRBBRRB..S.", ".S..BBBbbBBB..S.", ".S...BBBBBB...S.", ".S...BTBTBT...S.", ".S....BBBB....S.", "AAAAAAAAAAAAAAAA", "AaaaaaaaaaaaaaaA", "A.RRRRRRRRRRRR.A", "A.R.R.R.R.R.R..A", "AAAAAAAAAAAAAAAA", "aaaaaaaaaaaaaaaa"]];
+		private static const BOSS_WARDEN:Array = [
+			["......HHHH......", ".....HHHHHH.....", ".....HhHHhH.....", "....HhEhhEhH....", "....HHHHHHHH....", "..AAAMMMMMMAAA..", ".AAMMMMMMMMMM.l.", ".AMmMMmMMmMMm.l.", ".A.MMMmMMmMMMLLL", "...MMMMMMMMMMLLL", "...MmMMMMMMmMLLL", "...MMMMmmMMMM...", "...MM..MM..MM...", "...MM......MM...", "..MMM......MMM..", "..mmm......mmm.."],
+			["......HHHH......", ".....HHHHHH.....", ".....HhHHhH.....", "....HhGhhGhH....", "....HHHHHHHH....", "..AAAMMMMMMAAA..", ".AAMMMMMMMMMM.l.", ".AMmMMmMMmMMm.l.", ".A.MMMmMMmMMMGGG", "...MMMMMMMMMMGGG", "...MmMMMMMMmMGGG", "...MMMMmmMMMM...", "...MM..MM..MM...", "...MM......MM...", "..MMM......MMM..", "..mmm......mmm.."]];
+		private static const BOSS_PYRELORD:Array = [
+			[".......FF.......", "......FFFF......", "..F..FYFFYF..F..", "..FF.FYYYYF.FF..", "...FFYYYYYYFF...", ".F.FYYWYYWYYF.F.", ".FFFYYKWWKYYFFF.", "..FYYYYYYYYYYF..", "F.FYYYKKKKYYYF.F", "FFFYYYYYYYYYYFFF", ".FRFYYYYYYYYFRF.", "..RRFYYYYYYFRR..", "...RRFFYYFFRR...", "....RRFFFFRR....", ".....RRRRRR.....", "......RRRR......"],
+			["......F..F......", ".F...F.FF.F...F.", ".FF..FFYYFF..FF.", "..FF.FYYYYF.FF..", "...FFYYYYYYFF...", ".F.FYYWYYWYYF.F.", ".FFFYYKWWKYYFFF.", "..FYYYYYYYYYYF..", "F.FYYYKKKKYYYF.F", "FFFYYYYYYYYYYFFF", ".FRFYYYYYYYYFRF.", "..RRFYYYYYYFRR..", "...RRFFYYFFRR...", "....RRFFFFRR....", ".....RRRRRR.....", "......RRRR......"]];
+		private static const BOSS_SERAPH:Array = [
+			[".....YYYYYY.....", "....Y..YY..Y....", "W....SSSSSS....W", "WW...SESSES...WW", ".WW..SSSSSS..WW.", "WWWW.GGGGGG.WWWW", ".WWWWGGggGGWWWW.", "..WWWGGGGGGWWW..", "W..WWGgGGgGWW..W", "WW..WGGGGGGW..WW", ".WW..GGggGG..WW.", "..WW.GGGGGG.WW..", "....GGgGGgGG....", "....GGGGGGGG....", "...GGGgGGgGGG...", "...GGGGGGGGGG..."],
+			[".....YYYYYY.....", "....Y..YY..Y....", ".W...SSSSSS...W.", "WWW..SESSES..WWW", ".WW..SSSSSS..WW.", "WWW..GGGGGG..WWW", "WWWWWGGggGGWWWWW", "..WWWGGGGGGWWW..", ".W.WWGgGGgGWW.W.", "WWW.WGGGGGGW.WWW", ".WW..GGggGG..WW.", "..WW.GGGGGG.WW..", "....GGgGGgGG....", "....GGGGGGGG....", "...GGGgGGgGGG...", "...GGGGGGGGGG..."]];
+		private static const BOSS_SORCERER:Array = [
+			[".......HH.......", "......HHHH......", "......HHHH......", ".....HHhhHH.....", "....HHHHHHHH....", "..hHHHHHHHHHHh..", "....SSSSSSSS....", "....SESSSSES....", "....WWWWWWWW....", "...RRWWWWWWRR...", "..RRrWWWWWWrRR..", "..RRRrWOOWrRRR..", "..RRRRROORRRRR..", "...RRRRRRRRRR...", "...RRrRRRRrRR...", "..rrrrrrrrrrrr.."],
+			[".......HH.......", "......HHHH......", "......HHHH......", ".....HHhhHH.....", "....HHHHHHHH....", "..hHHHHHHHHHHh..", "....SSSSSSSS....", "....SESSSSES....", "....WWWWWWWW....", "...RRWWWWWWRR...", "..RRrWWWWWWrRR..", "..RRRrWooWrRRR..", "..RRRRRooRRRRR..", "...RRRRRRRRRR...", "...RRrRRRRrRR...", "..rrrrrrrrrrrr.."]];
+		private static const BOSS_PIRATE_KING:Array = [
+			["....KKKKKKKK....", "..KKKKWKKKKKKK..", ".KKKKKKKKKKKKKK.", "....SSSSSSSS....", "....SEESSEES....", "....SSSSSSSS....", "...BBBSSSSBBB...", "...BBBBBBBBBB...", "..RRBBBBBBBBRR..", ".RRRRBBBBBBRRRR.", "HRRRRRYYYYRRRRRC", ".H.RRRRRRRRRR.CC", "...RRRRRRRRRRC..", "...rrr....rrr...", "...LLL....LLL...", "...LLL....LLL..."],
+			["....KKKKKKKK....", "..KKKKWKKKKKKK..", ".KKKKKKKKKKKKKK.", "....SSSSSSSS....", "....SEESSEES....", "....SSSSSSSS....", "...BBBSSSSBBB...", "...BBBBBBBBBB...", "..RRBBBBBBBBRR..", ".RRRRBBBBBBRRRRC", "HRRRRRYYYYRRRRR.", ".H.RRRRRRRRRR.CC", "...RRRRRRRRRRCC.", "...rrr....rrr...", "...LLL....LLL...", "...LLL....LLL..."]];
+		private static const BOSS_MOTH:Array = [
+			["WW.....AA.....WW", "WwW...A..A...WwW", "WwwW..AAAA..WwwW", "WwOwW.AEEA.WwOwW", "WwwwwWAAAAWwwwwW", ".WwwwwAAAAwwwwW.", "..WWwwAAAAwwWW..", "..WwwwAAAAwwwW..", ".WwOwwAAAAwwOwW.", ".WwwwWAAAAWwwwW.", "..WWW.AAAA.WWW..", "......A..A......", ".....A....A.....", "................", "................", "................"],
+			["................", "WW.....AA.....WW", "WwW...A..A...WwW", "WwOW..AAAA..WOwW", "WwwwW.AEEA.WwwwW", ".WwwwwAAAAwwwwW.", "..WWwwAAAAwwWW..", "..WwwwAAAAwwwW..", ".WwOwwAAAAwwOwW.", ".WwwwWAAAAWwwwW.", ".WwWW.AAAA.WWwW.", "......A..A......", ".....A....A.....", "................", "................", "................"]];
+		private static const BOSS_SERPENT_QUEEN:Array = [
+			[".....Y.Y.Y......", ".....YYYYY......", "....GGGGGGG.....", "....GSESESG.....", "....gSSSSSg.....", "..SS.SSSSS.SS...", ".S..PPPPPPP..S..", ".S..PpPPPpP..S..", "....GGGGGGG.....", ".....GgGgGG.....", "......GGGGGG....", "....GGGGgGGGG...", "..GGGg.....GGG..", ".GGg....GGGGgG..", ".GGGGGGGGgg.....", "..gggggggg......"],
+			[".....Y.Y.Y......", ".....YYYYY......", "....GGGGGGG.....", "....GSYSYSG.....", "....gSSSSSg.....", ".SSS.SSSSS.SSS..", "S...PPPPPPP...S.", "....PpPPPpP.....", "....GGGGGGG.....", ".....GgGgGG.....", "......GGGGGG....", "....GGGGgGGGG...", "..GGGg.....GGG..", ".GGg....GGGGgG..", ".GGGGGGGGgg.....", "..gggggggg......"]];
+		private static const BOSS_BROODMOTHER:Array = [
+			["................", "L..............L", ".L....BBBB....L.", ".L..BBBBBBBB..L.", "..L.BBBBBBBB.L..", "L..LBBRRRRBBL..L", ".L.LBRWRRWRBL.L.", "..LLBBRRRRBBLL..", "....BBBBBBBB....", "..LLbbBBBBbbLL..", ".L..bEEbbEEb..L.", "L..L.bbbbbb.L..L", "..L..L....L..L..", ".L...L....L...L.", "L...L......L...L", "................"],
+			["................", "................", "L.....BBBB.....L", ".L..BBBBBBBB..L.", "..L.BBBBBBBB.L..", "L..LBBRRRRBBL..L", ".L.LBRWRRWRBL.L.", "..LLBBRRRRBBLL..", "....BBBBBBBB....", "..LLbbBBBBbbLL..", ".L..bEEbbEEb..L.", "L..L.bbbbbb.L..L", ".L...L....L...L.", "L....L....L....L", "....L......L....", "................"]];
+		private static const BOSS_LICH_KING:Array = [
+			["....Y.Y..Y.Y....", "....YYYYYYYY....", "....BBBBBBBB....", "...BBBBBBBBBB...", "...BEEBBBBEEB...", "...BBBBBBBBBB...", "....BTBTTBTB....", ".PP.PPPPPPPP.PP.", "PPPPPPPPPPPPPPPP", "Pp.PPPPPPPPPP.pP", "B..PpPPGGPPpP..B", "...PPPGGGGPPP...", "....PPPPPPPP....", ".....PPPPPP.....", "......PPPP......", ".......PP......."],
+			["....Y.Y..Y.Y....", "....YYYYYYYY....", "....BBBBBBBB....", "...BBBBBBBBBB...", "...BRRBBBBRRB...", "...BBBBBBBBBB...", "....BTBTTBTB....", ".PP.PPPPPPPP.PP.", "PPPPPPPPPPPPPPPP", "Pp.PPPPPPPPPP.pP", "B..PpPPGGPPpP..B", "...PPPGGGGPPP...", "....PPPPPPPP....", "......PPPP......", ".......PP.......", "................"]];
+		private static const BOSS_ARCHDEMON:Array = [
+			["H..............H", "HH............HH", ".HH..RRRRRR..HH.", "..HHRRRRRRRRHH..", "W...RYRRRRYR...W", "WW..RRRRRRRR..WW", "WWW.RrrRRrrR.WWW", "WWWWRRRRRRRRWWWW", "WWWWRRRrrRRRWWWW", "WW.RRrRRRRrRR.WW", "W..RRRRRRRRRR..W", "...RRrRRRRrRR...", "....RRRRRRRR....", "....RR.RR.RR....", "...RRR....RRR...", "...rrr....rrr..."],
+			["H..............H", "HH............HH", ".HH..RRRRRR..HH.", "..HHRRRRRRRRHH..", "....RFRRRRFR....", "W...RRRRRRRR...W", "WW..RrrRRrrR..WW", "WWW.RRRRRRRR.WWW", "WWWWRRRrrRRRWWWW", "WWWRRrRRRRrRRWWW", "WW.RRRRRRRRRR.WW", "...RRrRRRRrRR...", "....RRRRRRRR....", "....RR.RR.RR....", "...RRR....RRR...", "...rrr....rrr..."]];
+		private static const BOSS_SPRITE_QUEEN:Array = [
+			["......YYYY......", "W....YYYYYY....W", "WW...HHHHHH...WW", "WwW..HSSSSH..WwW", "WwwW.HESSEH.WwwW", ".WwwW.SSSS.WwwW.", "..WwwCCCCCCwwW..", "WW.WWCCCCCCWW.WW", "WwWW.CcCCcC.WWwW", ".WwW.CCCCCC.WwW.", "..WW.CCccCC.WW..", "....CCCCCCCC....", "...CCcCCCCcCC...", "...C...CC...C...", "................", "................"],
+			["......YYYY......", ".....YYYYYY.....", "W....HHHHHH....W", "WW...HSSSSH...WW", "WwW..HESSEH..WwW", "WwwW..SSSS..WwwW", ".WwwWCCCCCCWwwW.", "..WWWCCCCCCWWW..", "WWWW.CcCCcC.WWWW", "WwW..CCCCCC..WwW", "..WW.CCccCC.WW..", "....CCCCCCCC....", "...CCcCCCCcCC...", "...C...CC...C...", "................", "................"]];
 		private static const GRAVE:Array = [["..GGGG..", ".GGGGGG.", ".GGDGGg.", ".GDDDGg.", ".GGDGGg.", ".GGDGGg.", ".GGGGGg.", "MMMMMMMM"]];
 
 		// ================================================================ projectiles (point right)
@@ -226,16 +208,16 @@ package realm {
 			warrior: [WARRIOR, {Y: 0xf0e0b0, H: 0xc0a060, h: 0x806a30, E: 0x101010, R: 0xb02020, M: 0xc83030, m: 0x802020, S: 0xf5dc72, A: 0xc89030, W: 0xf0f0ff, B: 0x2a1a10}],
 			necromancer: [NECRO, {D: 0x2e2e36, d: 0x18181c, S: 0xd8d0c0, E: 0xff3030, K: 0x9a1a1a, G: 0xe8e0c8, W: 0x5a3a2a, B: 0x101010}],
 			huntress: [HUNTRESS, {R: 0xd04a20, r: 0x8a2a10, S: 0xf5dc72, E: 0x101010, G: 0x4a8a3a, g: 0x2e5a24, L: 0x8a5a2a, W: 0xc08040, B: 0x3a2a14}],
-			titan: [TITAN, {r: 0x2a1610, R: 0x5a3020, Y: 0xff8a20, W: 0xffd040}, 5],
-			wyrm: [WYRM, {C: 0x7ac8f0, c: 0x3a78b0, E: 0x1a2a6a, W: 0xf0f8ff}, 5],
-			hollowking: [HOLLOWKING, {Y: 0xf0c030, B: 0xe8e0c8, E: 0x6aff4a, T: 0x2a2a2a, P: 0x4a1a6a, G: 0x9a7a40}, 5],
-			elder: [ELDER, {p: 0x1e0c30, P: 0x3e1a62, S: 0xb8a8e0, s: 0x8a78b8, E: 0xff3060, G: 0xd8a830, A: 0x60ffe0}, 6],
-			behemoth: [TITAN, {r: 0x1a3a10, R: 0x4a7a2a, Y: 0xc0ff60, W: 0xffffff}, 5],
-			regent: [HOLLOWKING, {Y: 0xd0a0ff, B: 0x9a80c0, E: 0xff60c0, T: 0x201030, P: 0x301050, G: 0xc0a0ff}, 5],
-			sorcerer: [ELDER, {p: 0x0c1a3a, P: 0x1a3a7a, S: 0xd0c0a8, s: 0xa09078, E: 0x60c0ff, G: 0x8a6a40, A: 0xff4040}, 6],
-			warden: [HOLLOWKING, {Y: 0x8ad8ff, B: 0x9ab0c0, E: 0x40e0ff, T: 0x203040, P: 0x1a3a5a, G: 0x6a8aa0}, 5],
-			pyrelord: [TITAN, {r: 0x401008, R: 0x8a2a10, Y: 0xffe040, W: 0xffffff}, 5],
-			seraph: [WYRM, {C: 0xf8f0a0, c: 0xc0a030, E: 0x4060ff, W: 0xffffff}, 5],
+			titan: [BOSS_TITAN, {R: 0x7a4a30, r: 0x3e2418, Y: 0xffd040, L: 0xff5a10}, 5],
+			wyrm: [BOSS_WYRM, {C: 0x7ac8f0, c: 0x3a78b0, W: 0xe8f8ff, w: 0xa8d8f0, E: 0x1a2a6a, K: 0xffffff}, 5],
+			hollowking: [BOSS_HOLLOWKING, {Y: 0xf0c030, G: 0x6aff4a, B: 0xe8e0c8, T: 0x9a9280, E: 0x2a2a2a, P: 0x4a1a6a, W: 0xffffff}, 5],
+			elder: [BOSS_ELDER, {H: 0xd8d0c0, h: 0x8a8070, P: 0x5a2a8a, p: 0x2a0e40, Q: 0xe0b030, K: 0x120818, E: 0xff3040, W: 0xffd0e0, O: 0x60f0ff}, 6],
+			behemoth: [BOSS_BEHEMOTH, {W: 0xe8e0c0, G: 0x5a9a38, g: 0x2e5a1c, E: 0xff3020, T: 0xffffff, R: 0xa02020, r: 0x601010}, 5],
+			regent: [BOSS_REGENT, {Y: 0xf0d060, y: 0xa08020, C: 0x6a2aa8, c: 0x3a1060, Q: 0xd8d0ff, E: 0x6020a0, W: 0xff60c0, M: 0xa890e8, m: 0x7058c0}, 5],
+			sorcerer: [BOSS_SORCERER, {H: 0x2a4ab0, h: 0x14286a, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0x3a5ad0, r: 0x1a2a7a, O: 0x80f0ff, o: 0xffffff}, 5],
+			warden: [BOSS_WARDEN, {H: 0x9ab0c0, h: 0x5a6a7a, E: 0x40e0ff, G: 0xc0ffff, A: 0x203040, M: 0x6a8aa0, m: 0x3a4a5a, L: 0x40c0ff, l: 0xb0b0b0}, 5],
+			pyrelord: [BOSS_PYRELORD, {F: 0xff6010, Y: 0xffc030, W: 0xffffa0, K: 0x3a0800, R: 0xa01808}, 5],
+			seraph: [BOSS_SERAPH, {Y: 0xfff060, W: 0xf8f8ff, S: 0xf5dc72, E: 0x2040a0, G: 0xe8d870, g: 0xb0a040}, 5],
 			imp: [BRUTE, {H: 0xe05020, h: 0x902a10, E: 0xffe040, B: 0x5a2a14, b: 0x3a1a0c, A: 0xff9030, L: 0x2a140a, W: 0xffb040, S: 0xe05020}],
 			skeleton: [HUMANOID, {H: 0xe8e0c8, h: 0xb0a890, S: 0xe8e0c8, E: 0x202020, B: 0xd0c8b0, b: 0x9a9280, A: 0x5a5a5a, L: 0xb0a890, W: 0xa0a0a0}],
 			shade: [HUMANOID, {H: 0x3a1a5a, h: 0x200c34, S: 0x7a5aa8, E: 0xff3060, B: 0x2e1448, b: 0x1a0a2c, A: 0xa060ff, L: 0x100818, W: 0xc080ff}],
@@ -263,7 +245,7 @@ package realm {
 			ent: [ENT, {G: 0x3a9a2a, g: 0x226818, L: 0x5ac040, E: 0xffe040, T: 0x6a4423, t: 0x442a14}, 7],
 			beholder: [BLOB, {B: 0xc02828, b: 0x781414, W: 0xffe8b0, E: 0x101010}, 6],
 			cubelet: [CUBELET, {P: 0x6a28a8, p: 0x3a1060, Q: 0xa050f0, E: 0xff4040}],
-			boss: [BOSS, {Y: 0xf8c828, y: 0xb08810, P: 0x5a1a98, p: 0x2e0a50, Q: 0x8a40d8, W: 0xffffff, E: 0xff2020, R: 0xd02848}, 6],
+			boss: [BOSS_BOSS, {Y: 0xf8c828, y: 0xb08810, Q: 0xa860f0, P: 0x6a28b8, p: 0x3a1068, W: 0xffffff, E: 0xff2040, K: 0x200008}, 5],
 
 			tree: [TREE, {g: 0x2d6b22, G: 0x4a9a36, L: 0x6ec050, T: 0x6b4423, t: 0x442a14}],
 			pine: [PINE, {g: 0x1a4418, G: 0x2a6424, L: 0x3e8434, T: 0x5a3a1c, t: 0x3a2410}],
@@ -283,7 +265,7 @@ package realm {
 			// ---- realm monsters (biome leaders are drawn bigger)
 			pirate_brawler: [BRUTE, {H: 0x2a2a6a, h: 0x1a1a4a, E: 0x101010, B: 0xe0e0e0, b: 0xc02020, A: 0x8a5a2a, L: 0x3a2a14, W: 0xc0c0c0, S: 0xecd070}],
 			pirate_captain: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xecd070, E: 0x101010, B: 0xb02020, b: 0x701010, A: 0xf0c030, L: 0x2a1a10, W: 0xf0c030}, 6],
-			pirate_king: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xd8b088, E: 0xff3030, B: 0x2a2a6a, b: 0x14143a, A: 0xf0c030, L: 0x2a1a10, W: 0xe0e0e0}, 9],
+			pirate_king: [BOSS_PIRATE_KING, {K: 0x1a1a1a, W: 0xffffff, S: 0xf5dc72, E: 0x101010, B: 0x6a3a1a, R: 0x2a2a6a, r: 0x14143a, Y: 0xf0c030, H: 0xc0c0c0, C: 0xe0e0e0, L: 0x3a2a14}, 5],
 			scorpion: [SCORPION, {C: 0xb04020, S: 0xd06030, T: 0x8a2a10, E: 0x101010}],
 			green_slime: [BLOB, {B: 0x40b030, b: 0x207018, W: 0x9aff7a, E: 0x103010}, 6],
 			goblin_chief: [BRUTE, {H: 0x58a030, h: 0x3a7020, E: 0xff3030, B: 0x8a2a2a, b: 0x5a1a1a, A: 0xf0c030, L: 0x3a2814, W: 0xd0d0d0, S: 0x58a030}, 6],
@@ -291,7 +273,7 @@ package realm {
 			orc_king: [BRUTE, {H: 0x2a6a2a, h: 0x1a4a1a, E: 0xffe020, B: 0x8a6a2a, b: 0x5a4418, A: 0xf0c030, L: 0x2a1a10, W: 0xe0e0e0, S: 0x2a6a2a}, 7],
 			spider: [SPIDER, {B: 0x3a2a3a, b: 0xc02020, E: 0xff3030}],
 			spider_queen: [SPIDER, {B: 0x2a1a2a, b: 0xe0c020, E: 0xff3030}, 7],
-			broodmother: [SPIDER, {B: 0x1a101a, b: 0xff3030, E: 0xffe040}, 10],
+			broodmother: [BOSS_BROODMOTHER, {B: 0x5a3050, b: 0x341a30, L: 0x7a5068, R: 0xa01818, W: 0xe8e0c8, E: 0xff3030}, 5],
 			great_snake: [SNAKE, {G: 0x3a8a3a, g: 0x1a5a1a, E: 0xffe020}, 6],
 			harpy: [BIRD, {H: 0xe0c0a0, E: 0xff3030, W: 0x8a6a4a, B: 0x6a4a30, Y: 0xf0c030}],
 			dwarf: [BRUTE, {H: 0xc04a20, h: 0x8a3010, E: 0x101010, B: 0x6a6a72, b: 0x4a4a52, A: 0xf0c030, L: 0x3a2814, W: 0xc0c0c0, S: 0xf0c8a0}],
@@ -302,19 +284,19 @@ package realm {
 			ghost: [GHOST, {W: 0xc8d8f0, w: 0x8aa0c0, E: 0x203060}, 4],
 			demon: [DEMON, {H: 0xe0e0e0, R: 0xd02020, r: 0x8a1010, Y: 0xffe040}, 6],
 			lesser_demon: [DEMON, {H: 0xc0c0c0, R: 0xa02828, r: 0x6a1414, Y: 0xffe040}, 4],
-			archdemon: [DEMON, {H: 0x2a2a2a, R: 0x6a0a2a, r: 0x3a0414, Y: 0xff6020}, 10],
+			archdemon: [BOSS_ARCHDEMON, {H: 0xd0d0d0, R: 0x8a1030, r: 0x4a0818, Y: 0xffe040, F: 0xff6020, W: 0x6a2034}, 5],
 			sprite_god: [FAIRY, {W: 0xc0f0ff, w: 0x80c0e0, C: 0xff80d0, c: 0xc04090, E: 0x101010}, 6],
 			sprite: [FAIRY, {W: 0xe0ffe0, w: 0xa0e0a0, C: 0x80e080, c: 0x40a040, E: 0x101010}, 4],
-			sprite_queen: [FAIRY, {W: 0xfff0a0, w: 0xe0c060, C: 0xff60c0, c: 0xc02080, E: 0x101010}, 10],
+			sprite_queen: [BOSS_SPRITE_QUEEN, {Y: 0xfff0a0, W: 0xc0f0ff, w: 0x80c0e0, H: 0xffc0e0, S: 0xf5dc72, E: 0x101010, C: 0xff60c0, c: 0xc02080}, 5],
 			slime_god: [BLOB, {B: 0x8040c0, b: 0x502080, W: 0xd0a0ff, E: 0x200a30}, 7],
-			moth: [MOTH, {W: 0xe0d8a0, w: 0xa09060, A: 0x6a5030, E: 0xff3030}, 9],
+			moth: [BOSS_MOTH, {W: 0xe0d8a0, w: 0xa09060, O: 0xff8040, A: 0x6a5030, E: 0xff3030}, 5],
 			mothling: [MOTH, {W: 0xc8c090, w: 0x8a8050, A: 0x5a4428, E: 0xff3030}, 4],
-			serpent_queen: [MEDUSA, {G: 0x2a9a6a, g: 0x1a6a4a, S: 0xa0e0c0, E: 0xffe020, B: 0x6a2a8a, b: 0x401a5a}, 9],
-			lich_king: [MAGE, {H: 0x1a1a3a, h: 0x0a0a20, S: 0xe8e0c8, E: 0xff3030, B: 0x2a1a3a, b: 0x140a20, L: 0x0a0a14, W: 0xc0c0d0, G: 0xff4060}, 10],
-			sphinx: [TITAN, {r: 0x6a5020, R: 0xc8a050, Y: 0x40c0ff, W: 0xfff0b0}, 5],
-			sunken_lord: [HOLLOWKING, {Y: 0x6a8aa0, B: 0x4a5a6a, E: 0x60e0ff, T: 0x1a2a3a, P: 0x2a4a6a, G: 0x8aa0b0}, 5],
-			hermit: [WYRM, {C: 0x2a9a8a, c: 0x1a5a50, E: 0xe0ff80, W: 0xc0fff0}, 5],
-			shrine: [BOSS, {Y: 0xe8e0c8, y: 0xa09880, P: 0x5a1a1a, p: 0x2e0a0a, Q: 0x8a2a2a, W: 0xffffff, E: 0xff2020, R: 0xd02848}, 6],
+			serpent_queen: [BOSS_SERPENT_QUEEN, {Y: 0xf0c030, G: 0x2a9a6a, g: 0x14583c, S: 0xa0e0c0, E: 0x101010, P: 0x6a2a8a, p: 0x401a5a}, 5],
+			lich_king: [BOSS_LICH_KING, {Y: 0xc0c0d0, B: 0xe8e0c8, E: 0x60e0ff, R: 0xff4060, T: 0x6a6a6a, P: 0x46306a, p: 0x281a40, G: 0x40ff90}, 5],
+			sphinx: [BOSS_SPHINX, {B: 0x2a5ad0, Y: 0xf0c030, S: 0xe8c070, E: 0x2040c0, W: 0x40e0ff, T: 0xd8b060, t: 0x9a7a38}, 5],
+			sunken_lord: [BOSS_SUNKEN_LORD, {S: 0x6a8aa0, s: 0x3a5060, B: 0xd0d8c0, E: 0x60e0ff, G: 0xd0ffff, W: 0xc8a040, H: 0x8a6a2a}, 5],
+			hermit: [BOSS_HERMIT, {S: 0xe8d8b0, s: 0xa08a60, C: 0x2a9a8a, c: 0x14584e, E: 0xe0ff80, W: 0xffffff}, 5],
+			shrine: [BOSS_SHRINE, {F: 0xff8a20, Y: 0xffe040, B: 0xe8e0c8, b: 0x8a8070, E: 0x200808, R: 0xff2020, T: 0x5a5040, S: 0x6a6a72, A: 0x8a8a92, a: 0x4a4a52}, 5],
 			chest: [CHEST, {K: 0x4a2a10, C: 0x9a6a3a, c: 0x7a4a24, Y: 0xf0c030}, 6],
 			bag_brown: [BAG, {K: 0x502a10, C: 0x9a6a3a, c: 0x6a4420, D: 0x5a3a1a}],
 			bag_purple: [BAG, {K: 0x401060, C: 0xb050e0, c: 0x7a2aa8, D: 0x6a2090}],
@@ -374,6 +356,17 @@ package realm {
 			for (k in base[1]) pal[k] = base[1][k];
 			for (k in f.skin.pal) pal[k] = f.skin.pal[k];
 			return DEFS[name] = [base[0], pal, base[2]];
+		}
+
+		/** Red-hot tint used while a boss is enraged. */
+		public static function rage(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
+			var key:String = name + ":" + frame + (flip ? "f" : "") + ":rage";
+			var bd:BitmapData = cache[key];
+			if (bd) return bd;
+			bd = get(name, frame, flip).clone();
+			bd.colorTransform(bd.rect, new ColorTransform(1, 0.55, 0.55, 1, 70, 0, 0, 0));
+			cache[key] = bd;
+			return bd;
 		}
 
 		public static function hit(name:String, frame:int = 0, flip:Boolean = false):BitmapData {

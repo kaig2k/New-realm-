@@ -45,6 +45,7 @@ rebuild that file if you change the fonts, and that needs the Apache Flex SDK's 
 | 1-8 | Use or equip the item in that inventory slot |
 | R | Return to the Nexus (full heal) |
 | Enter | Go through the portal you are standing on |
+| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/tips` |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
 | P / Esc | Pause menu (options, Save & Quit) |
@@ -74,14 +75,17 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   or FB item + a Sor Crystal + 100 Onrane = a Legendary) and the **Marketplace** (buy
   potions, stat potions, Sor Crystals and mystery UTs, and shift+click items to sell them).
 - **Realm events**: the realm's overlord, *Azrakor the Dark Elder*, keeps summoning event
-  bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King) and announces each kill in
+  bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King, Gorehorn the Behemoth, the
+  Phantom Regent) and announces each kill in
   chat as `[3/6][Realm: Medusa]`. Clear all 6 events and the realm closes. You're pulled
   into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
   for Fabled, Legendary and Relic loot.
-- **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of three
-  dungeons: the Sunken Crypt, the Ember Depths (lava pools) or the Storm Spire. Each is a
-  chain of monster rooms with a boss at the end (the Crypt Warden, Pyrelord Ignaar or the
-  Tempest Seraph).
+- **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of four
+  dungeons: the Sunken Crypt, the Ember Depths (lava pools), the Storm Spire or the
+  Forgotten Cellar. Each is a chain of monster rooms with a boss at the end (the Crypt
+  Warden, Pyrelord Ignaar, the Tempest Seraph or the Cellar Sorcerer).
+- **Chat and Valor-style commands** (Enter): `/glands` teleports you to the Godlands, plus
+  `/nexus`, `/realm`, `/stats` and `/quests`. One-time tips guide new players.
 - **Skill tree (Valor's Ascension)**: at level 20 with 11/11 stats, every 600 XP gives a
   skill point. Spend points on 9 nodes (Brutality, Precision, Ferocity, Vigor, Bulwark,
   Aegis, Swiftness, Leech, Prosperity) in the star tab.

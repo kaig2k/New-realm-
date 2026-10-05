@@ -5,6 +5,7 @@ package realm {
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.events.KeyboardEvent;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
@@ -87,6 +88,9 @@ package realm {
 		public var onQuit:Function;
 		private var quitRequested:Boolean = false;
 		private var pauseButtons:Sprite;
+		private var chatInput:TextField;
+		private var drawPool:Array = [];
+		private var drawN:int = 0;
 		private var mtx:Matrix = new Matrix();
 		private var pt:Point = new Point();
 		private var bar:Rectangle = new Rectangle();
@@ -133,9 +137,116 @@ package realm {
 			hud.x = VIEW_W;
 			addChild(hud);
 
+			buildChatInput();
 			buildPauseMenu();
 
 			addEventListener(Event.ADDED_TO_STAGE, onAdded);
+		}
+
+		// ------------------------------------------------------------ chat & commands
+		private function buildChatInput():void {
+			chatInput = Ui.text(15, 0xffffff, false, "left", 520);
+			chatInput.autoSize = "none";
+			chatInput.height = 24;
+			chatInput.type = "input";
+			chatInput.selectable = true;
+			chatInput.mouseEnabled = true;
+			chatInput.background = true;
+			chatInput.backgroundColor = 0x1a1a1a;
+			chatInput.border = true;
+			chatInput.borderColor = 0x6a6a6a;
+			chatInput.maxChars = 80;
+			chatInput.x = 8;
+			chatInput.y = VIEW_H - 30;
+			chatInput.visible = false;
+			chatInput.addEventListener(KeyboardEvent.KEY_DOWN, onChatKey);
+			addChild(chatInput);
+		}
+
+		private function openChat():void {
+			if (chatInput.visible) return;
+			chatInput.text = "";
+			chatInput.visible = true;
+			input.blocked = true;
+			stage.focus = chatInput;
+			chat.y = VIEW_H - chat.height - 36;
+		}
+
+		private function closeChat():void {
+			chatInput.visible = false;
+			input.blocked = false;
+			stage.focus = stage;
+			chat.y = VIEW_H - chat.height - 6;
+		}
+
+		private function onChatKey(e:KeyboardEvent):void {
+			if (e.keyCode == Keyboard.ENTER) {
+				var t:String = chatInput.text.replace(/^\s+|\s+$/g, "");
+				closeChat();
+				if (t) runCommand(t);
+			} else if (e.keyCode == Keyboard.ESCAPE) {
+				closeChat();
+			}
+			e.stopPropagation();
+		}
+
+		/** Valor-style slash commands; anything else is said in chat. */
+		public function runCommand(t:String):void {
+			if (t.charAt(0) != "/") {
+				pushChat("<font color='#ffe36e'><b>&lt;" + player.name + "&gt;</b></font> " + t.replace(/</g, "&lt;"));
+				return;
+			}
+			var cmd:String = t.split(" ")[0].toLowerCase();
+			switch (cmd) {
+				case "/help":
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /tips", 0x8fd0ff);
+					break;
+				case "/nexus": case "/n":
+					nexus();
+					break;
+				case "/realm":
+					enterPortal(int(Math.random() * 3));
+					break;
+				case "/glands":
+					if (world.kind != "realm") { msg("/glands only works inside a realm.", 0xff8080); break; }
+					for (var i:int = 0; i < 600; i++) {
+						var x:Number = 30 + Math.random() * 140, y:Number = 30 + Math.random() * 140;
+						if (world.zoneAt(x, y) == 3 && world.canStand(x, y, 0.5, false)) {
+							player.x = x; player.y = y; player.invulnT = 1.5;
+							msg("Teleported to the Godlands.", 0xd090ff);
+							Sfx.play("portal");
+							return;
+						}
+					}
+					msg("Couldn't find a spot in the Godlands.", 0xff8080);
+					break;
+				case "/stats":
+					msg("Level " + player.level + ", " + player.maxedCount + "/11 maxed, fame " + player.fame + ", kills " + player.kills +
+						", crit " + Math.round(player.critChance * 100) + "% x" + player.critMult.toFixed(2), 0x8fd0ff);
+					break;
+				case "/quests":
+					for each (var qs:Object in questState().list) {
+						var q:Object = Data.quest(qs.id);
+						msg(q.text + "  " + qs.progress + "/" + q.goal + (qs.claimed ? "  (claimed)" : ""), 0x9cff7a);
+					}
+					break;
+				case "/tips":
+					Save.data.tips = {};
+					Save.flush();
+					msg("Tips will be shown again.", 0x8fd0ff);
+					break;
+				default:
+					msg("Unknown command " + cmd + ". Type /help.", 0xff8080);
+			}
+		}
+
+		/** One-time hint for new players. */
+		public function tip(id:String, text:String):void {
+			if (!Save.data.tips) Save.data.tips = {};
+			if (Save.data.tips[id]) return;
+			Save.data.tips[id] = true;
+			Save.flush();
+			msg("[Tip] " + text, 0x8fd0ff);
 		}
 
 		// ------------------------------------------------------------ pause / options
@@ -370,6 +481,7 @@ package realm {
 			Sfx.play("portal");
 			showBanner(r.name + " Realm", PORTAL_COLORS[i], 3);
 			msg("You have entered the " + r.name + " realm.", Ui.GOLD);
+			tip("realm", "Hold the left mouse button to shoot and dodge the bullets. Better loot lies inland; /glands jumps to the Godlands.");
 			taunt(r.boss ? r.boss.def.name + " awaits you, fool!" : "Another fool enters my " + r.name + " realm...");
 		}
 
@@ -408,6 +520,7 @@ package realm {
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
 			msg("The fountain heals you. Vault (west) stores items, Sor Forge (east) crafts Legendaries, Marketplace (south) buys and sells.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
+			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
 		}
 
 		public function destroy():void {
@@ -513,7 +626,10 @@ package realm {
 				var dx:Number = p.x - player.x, dy:Number = p.y - player.y;
 				if (dx * dx + dy * dy < 1.3 * 1.3) nearPortal = p;
 			}
-			if (nearPortal && input.pressed(Keyboard.ENTER)) { usePortal(nearPortal); return; }
+			if (input.pressed(Keyboard.ENTER)) {
+				if (nearPortal) { usePortal(nearPortal); return; }
+				openChat();
+			}
 
 			if (inNexus) {
 				// healing fountain
@@ -570,6 +686,7 @@ package realm {
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
+					tip("event", "Event bosses drop UT/Set gear, Sor Crystals and dungeon portals. Kill 6 to face the Dark Elder.");
 					return;
 				}
 			}
@@ -755,6 +872,7 @@ package realm {
 						var di:int = int(Math.random() * Data.DUNGEONS.length);
 						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, 90);
 						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (90s)", Data.DUNGEONS[di].color);
+						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 					}
 					say(SOVEREIGN, e.def.name + " has been killed! [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "][Realm: " + world.name + "]");
 					if (world.eventsDone >= Data.EVENTS_PER_REALM) {
@@ -771,6 +889,7 @@ package realm {
 				while (items.length > LootBag.MAX) items.pop();
 				var bag:LootBag = new LootBag(e.x, e.y, items);
 				bags.push(bag);
+				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
 				// Valor-style rare drop alerts
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
 					var kind:String = bag.spr == "bag_relic" ? "Ancient Relic" : bag.spr == "bag_legendary" ? "Legendary" : "Fabled";
@@ -930,6 +1049,7 @@ package realm {
 			if (kind == "bag") {
 				if (!nearBag || idx >= nearBag.items.length) return;
 				item = nearBag.items[idx];
+				if (item.kind == "material") tip("sor", "Sor Crystal: bring it with a UT/ST/FB item and 100 Onrane to the Sor Forge to make a Legendary.");
 				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) p.hpPots++;
 				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) p.mpPots++;
 				else {
@@ -1367,20 +1487,21 @@ package realm {
 
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
+			drawN = 0;
 			var tx0:int = int(camX - CX / TS) - 1, tx1:int = int(camX + (VIEW_W - CX) / TS) + 1;
 			var ty0:int = int(camY - CY / TS) - 1, ty1:int = int(camY + (VIEW_H - CY) / TS) + 3;
 			for (var ty:int = ty0; ty <= ty1; ty++) {
 				for (var tx:int = tx0; tx <= tx1; tx++) {
 					var o:int = world.objAt(tx, ty);
-					if (o > 0) drawList.push({y: ty + 0.9, o: o, x: tx});
+					if (o > 0) drawList.push(drawItem(ty + 0.9, o, tx, null, false));
 				}
 			}
 			for each (var e:Enemy in enemies) {
 				var sx:Number = e.x * TS + ox, sy:Number = e.y * TS + oy;
 				if (sx < -100 || sy < -100 || sx > VIEW_W + 100 || sy > VIEW_H + 120) continue;
-				drawList.push({y: e.y, e: e});
+				drawList.push(drawItem(e.y, 0, 0, e, false));
 			}
-			drawList.push({y: player.y, p: true});
+			drawList.push(drawItem(player.y, 0, 0, null, true));
 			drawList.sortOn("y", Array.NUMERIC);
 
 			for each (var d:Object in drawList) {
@@ -1420,6 +1541,15 @@ package realm {
 				f.tf.x = f.x * TS + ox - f.tf.width / 2;
 				f.tf.y = f.y * TS + oy - f.tf.height / 2;
 			}
+		}
+
+		/** Reuses draw-list entries between frames instead of allocating new objects. */
+		private function drawItem(y:Number, o:int, x:int, e:Enemy, p:Boolean):Object {
+			var d:Object = drawPool[drawN];
+			if (!d) d = drawPool[drawN] = {};
+			drawN++;
+			d.y = y; d.o = o; d.x = x; d.e = e; d.p = p;
+			return d;
 		}
 
 		/** Draws a sprite standing at (cx, cy) with its drop shadow; returns the sprite top. */

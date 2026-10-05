@@ -28,8 +28,11 @@ package realm {
 			stage.removeEventListener(Event.DEACTIVATE, onDeactivate);
 		}
 
-		public function isDown(code:uint):Boolean { return down[code] == true; }
-		public function pressed(code:uint):Boolean { return hit[code] == true; }
+		/** While typing in chat the game ignores keys. */
+		public var blocked:Boolean = false;
+
+		public function isDown(code:uint):Boolean { return !blocked && down[code] == true; }
+		public function pressed(code:uint):Boolean { return !blocked && hit[code] == true; }
 		public function get mx():Number { return stage.mouseX; }
 		public function get my():Number { return stage.mouseY; }
 

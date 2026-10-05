@@ -458,6 +458,36 @@ package realm {
 					[{p: "aimed", n: 9, arc: 100, spd: 8, life: 1.6, dmg: 70, cd: 0.8, r: 0.24, col: 0xffb030, shape: "orb"},
 						{p: "ring", n: 24, rot: 7.5, spd: 5, life: 2.4, dmg: 65, cd: 1.2, r: 0.24, col: 0xff3010, shape: "ring", eff: "bleeding"}]
 				]},
+			// ---- more realm events
+			ev_behemoth: {name: "Gorehorn the Behemoth", spr: "behemoth", hp: 14000, def: 30, spd: 1.6, xp: 1700, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x6ac040,
+				gold: 450, onrane: 5,
+				phases: [
+					[{p: "aimed", n: 7, arc: 70, spd: 7, life: 1.6, dmg: 70, cd: 1.2, r: 0.26, col: 0x9aff5a, shape: "orb", eff: "bleeding"}],
+					[{p: "ring", n: 20, rot: 9, spd: 5, life: 2.2, dmg: 60, cd: 0.9, r: 0.24, col: 0x6ac040, shape: "ring"},
+						{p: "summon", n: 3, cd: 7, what: "orc"}],
+					[{p: "spiral", n: 4, rot: 21, spd: 7, life: 2.0, dmg: 65, cd: 0.1, r: 0.22, col: 0xc0ff60, shape: "star"},
+						{p: "aimed", n: 3, arc: 30, spd: 10, life: 1.4, dmg: 90, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade", eff: "armorbroken"}]
+				]},
+			ev_regent: {name: "The Phantom Regent", spr: "regent", hp: 11000, def: 18, spd: 2.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xb070ff,
+				gold: 420, onrane: 5,
+				phases: [
+					[{p: "spiral", n: 6, rot: 8, spd: 5, life: 2.6, dmg: 50, cd: 0.15, r: 0.2, col: 0xc090ff, shape: "star"},
+						{p: "aimed", n: 1, spd: 11, life: 1.4, dmg: 80, cd: 0.9, r: 0.26, col: 0xffffff, shape: "dart", eff: "confused"}],
+					[{p: "summon", n: 3, cd: 6, what: "shade"},
+						{p: "ring", n: 16, rot: 11, spd: 4, life: 2.8, dmg: 60, cd: 1.3, r: 0.24, col: 0x8040c0, shape: "orb"}],
+					[{p: "spiral", n: 8, rot: -6, spd: 6, life: 2.4, dmg: 60, cd: 0.12, r: 0.2, col: 0xe0b0ff, shape: "star"},
+						{p: "aimed", n: 5, arc: 40, spd: 9, life: 1.6, dmg: 75, cd: 1.0, r: 0.24, col: 0xff60c0, shape: "blade", eff: "slowed"}]
+				]},
+			sorcerer: {name: "The Cellar Sorcerer", spr: "sorcerer", hp: 9500, def: 16, spd: 1.8, xp: 1300, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0x60a0ff,
+				gold: 320, onrane: 3, dungeon: true,
+				phases: [
+					[{p: "aimed", n: 3, arc: 12, spd: 10, life: 1.4, dmg: 45, cd: 0.35, r: 0.2, col: 0x4080ff, shape: "orb"},
+						{p: "aimed", n: 5, arc: 60, spd: 7, life: 1.6, dmg: 55, cd: 1.4, r: 0.22, col: 0xffffff, shape: "dart", eff: "confused"}],
+					[{p: "ring", n: 14, rot: 13, spd: 5, life: 2.2, dmg: 50, cd: 0.8, r: 0.22, col: 0xff4040, shape: "orb"},
+						{p: "summon", n: 2, cd: 7, what: "hobbit"}],
+					[{p: "aimed", n: 3, arc: 10, spd: 12, life: 1.4, dmg: 120, cd: 0.9, r: 0.3, col: 0x2040c0, shape: "blade"},
+						{p: "spiral", n: 4, rot: 16, spd: 6, life: 2.2, dmg: 55, cd: 0.14, r: 0.2, col: 0x80c0ff, shape: "star", eff: "paralyzed"}]
+				]},
 			seraph: {name: "Tempest Seraph", spr: "seraph", hp: 8500, def: 15, spd: 2.2, xp: 1200, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xf0e040,
 				gold: 300, onrane: 3, dungeon: true,
 				phases: [
@@ -486,7 +516,7 @@ package realm {
 		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];
 
 		/** Realm events in the order they can appear; each realm needs EVENTS_PER_REALM of them killed. */
-		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king"];
+		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent"];
 		public static const EVENTS_PER_REALM:int = 6;
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
 
@@ -494,7 +524,8 @@ package realm {
 		public static const DUNGEONS:Array = [
 			{name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
 			{name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
-			{name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"}
+			{name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
+			{name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"}
 		];
 		public static const DUNGEON_DROP_CHANCE:Number = 0.7;
 

@@ -6,6 +6,7 @@ scaled 5x with thin outlines and drop shadows, textured tiles, and rotated proje
 
 ![screenshot](docs/screenshot.png)
 ![nexus](docs/nexus.png)
+![realm map](docs/realm-map.png)
 
 ## Play it
 
@@ -125,10 +126,35 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
 - **Pause menu** with Resume, sound, damage numbers, particle and screen shake toggles, and Save & Quit
   to the title screen.
 - **Boss damage meter** with your damage share and the LG threshold.
-- Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick
-  ruins and lava. Each zone has five monster types, such as Sea Slimes, Dire Wolves,
-  Stone Golems and teleporting Liches. Fewer, smaller packs spawn near the shore so new
-  characters can level up.
+- **RotMG-style realms**: a big procedurally generated island (320x320 tiles) with five
+  biomes from the coast inwards: **Beach → Lowlands → Midlands → Highlands → Godlands**.
+  There are cobblestone roads running inland with bridges over rivers, lakes, shallows,
+  forests in the Midlands, rocky Highlands, and brick and lava ruins.
+- **More monsters**: 7-9 types per biome, including leaders drawn bigger than normal
+  monsters:
+  - Beach: Pirates, Pirate Brawlers, the Pirate Captain, Sand Scorpions.
+  - Lowlands: Big Green Slimes, the Goblin Chieftain, the Bandit Leader.
+  - Midlands: Forest Spiders, the Spider Queen, Swamp Serpents, the Orc King.
+  - Highlands: Harpies, Dwarves and the Dwarf King, Ogres, Minotaurs.
+  - Godlands: Ghost Gods, White Demons, Sprite Gods, Slime Gods, plus the classic Godlands
+    monsters.
+- **Monster dungeons**: like RotMG, monsters can drop a portal (open for 60 seconds) to
+  their own dungeon:
+
+  | Dropped by | Dungeon | Boss |
+  | --- | --- | --- |
+  | Pirates | Pirate Cove | Captain Saltbeard |
+  | Big Green Slimes | Forest Maze | Mother Mothwing |
+  | Snakes | Snake Pit | Ssythra the Serpent Queen |
+  | Spiders | Spider Den | Arachnia the Broodmother |
+  | Ghost Gods / Liches | Undead Lair | Septorius the Lich King |
+  | White Demons | Abyss of Demons | Malgoroth the Archdemon |
+  | Sprite Gods | Sprite World | Lumina the Sprite Queen |
+
+  Leaders such as the Pirate Captain and Spider Queen drop their portal far more often.
+  Low-level dungeons drop good tiered gear and sometimes a UT.
+- **10 realm events**, picked at random, now including Nekhret the Sand Sphinx, the Lord of the
+  Sunken Lands, the Tide Hermit and the Skull Shrine.
 - Permadeath. Fame from a dead character is added to your account. Like RotMG, the death
   screen lists **fame bonuses**:
   - Ancestor: the first hero of a class to die.

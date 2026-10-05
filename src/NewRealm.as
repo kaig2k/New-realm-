@@ -7,6 +7,8 @@ package {
 	import realm.DeathScreen;
 	import realm.Game;
 	import realm.Menu;
+	import realm.Accounts;
+	import realm.TitleScreen;
 	import realm.Ui;
 
 	[SWF(width="1100", height="640", frameRate="60", backgroundColor="#000000")]
@@ -24,7 +26,8 @@ package {
 			stage.align = "";
 			stage.frameRate = 60;
 			stage.quality = StageQuality.HIGH;
-			Ui.loadFonts(showMenu);
+			Accounts.autoLogin();
+			Ui.loadFonts(showTitle);
 		}
 
 		private function setScreen(s:Sprite):void {
@@ -37,8 +40,13 @@ package {
 			stage.focus = stage;
 		}
 
+		/** Home screen: PLAY (after logging in) leads to character select. */
+		private function showTitle():void {
+			setScreen(new TitleScreen(showMenu));
+		}
+
 		private function showMenu():void {
-			setScreen(new Menu(startGame));
+			setScreen(new Menu(startGame, showTitle));
 		}
 
 		private function startGame(clsId:String, name:String, saved:Object = null):void {

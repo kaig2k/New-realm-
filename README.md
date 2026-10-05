@@ -38,6 +38,19 @@ precompiled into `assets/fonts/RealmFonts.swf` and loaded at startup. You only n
 rebuild that file if you change the fonts, and that needs the Apache Flex SDK's `mxmlc`
 (see `assets/fonts/RealmFonts.as`).
 
+## Accounts and saves
+
+The game opens on a home screen. The first time you play it asks you to **create an
+account** (username and password). PLAY then takes you to character select. The top-right
+box lets you log out, switch accounts or change your password, and the game remembers the
+last account you used.
+
+There is no server: accounts and saves are stored locally on this computer, in the AIR or
+Flash Player local storage. Each account has its own save (characters, vault, gold,
+Onrane, fame, pets, skins, quests and achievements). Passwords are never stored as
+plain text, only as salted SHA-256 hashes. Progress saved before accounts existed is moved
+into the first account you create.
+
 ## Controls
 
 | Key | Action |
@@ -181,7 +194,9 @@ src/realm/Sprites.as     text-defined pixel art, bullets, icons
 src/realm/Hud.as         sidebar UI (minimap, bars, gear, inventory, loot bag)
 src/realm/Tooltip.as     item tooltip
 src/realm/Ui.as          fonts, text, panels and buttons
-src/realm/Menu.as        title / class select
+src/realm/TitleScreen.as home screen, log in / register dialogs
+src/realm/Accounts.as    local accounts (salted password hashes)
+src/realm/Menu.as        character / class select
 src/realm/DeathScreen.as death + fame screen
 src/realm/Sfx.as         synthesised sound effects
 src/realm/Save.as        local save data (characters, vault, currencies, options)

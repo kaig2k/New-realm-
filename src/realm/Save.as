@@ -7,11 +7,36 @@ package realm {
 		private static var so:SharedObject;
 		private static var fallback:Object = {};
 
+		/** Save-file key of the logged-in account (null = the old shared save). */
+		private static var account:String = null;
+
 		public static function get data():Object {
 			if (!so) {
-				try { so = SharedObject.getLocal("newrealm"); } catch (e:Error) { so = null; }
+				try { so = SharedObject.getLocal(account ? "newrealm_acc_" + account : "newrealm"); } catch (e:Error) { so = null; }
 			}
 			return so ? so.data : fallback;
+		}
+
+		/** Switches to an account's own save file. */
+		public static function useAccount(key:String):void {
+			flush();
+			account = key;
+			so = null;
+			fallback = {};
+		}
+
+		/** Moves progress from before accounts existed into the first account created. */
+		public static function importLegacy():void {
+			var old:SharedObject;
+			try { old = SharedObject.getLocal("newrealm"); } catch (e:Error) { return; }
+			if (!old || old.data.migrated) return;
+			var d:Object = data;
+			for (var k:String in old.data) d[k] = clone(old.data[k]);
+			old.data.migrated = true;
+			try { old.flush(); } catch (e2:Error) {}
+			delete d.migrated;
+			d.importedLegacy = true;
+			flush();
 		}
 
 		/** Deep copy (AMF round trip), so saved data never aliases live game objects. */

@@ -14,27 +14,15 @@ package realm {
 		private static const NAMES:Array = ["Ezra", "Vex", "Lyra", "Thorn", "Kael", "Mira", "Orin", "Sable", "Rook", "Nyx", "Bram", "Iris"];
 
 		private var onPick:Function;
-		private var bg:BitmapData;
-		private var world:World;
-		private var camX:Number, camY:Number;
-		private var mtx:Matrix = new Matrix();
+		private var onBack:Function;
 		private var nameField:TextField;
 		private var classLayer:Sprite;
 		private var charLayer:Sprite;
 
-		public function Menu(onPick:Function) {
+		public function Menu(onPick:Function, onBack:Function = null) {
 			this.onPick = onPick;
-			world = new World();
-			camX = world.spawnX;
-			camY = world.spawnY - 10;
-			bg = new BitmapData(Ui.W, Ui.H, false, 0);
-			addChild(new Bitmap(bg));
-			var shade:Shape = new Shape();
-			shade.graphics.beginFill(0x000000, 0.55);
-			shade.graphics.drawRect(0, 0, Ui.W, Ui.H);
-			shade.graphics.endFill();
-			addChild(shade);
-			drawBackground();
+			this.onBack = onBack;
+			addChild(new Backdrop(0.55));
 
 			var title:TextField = Ui.text(68, Ui.GOLD, true, "center", Ui.W, true);
 			title.text = "NEW REALM";
@@ -67,7 +55,7 @@ package realm {
 			nameField.mouseEnabled = true;
 			nameField.maxChars = 12;
 			nameField.restrict = "A-Za-z0-9";
-			nameField.text = save.name || NAMES[int(Math.random() * NAMES.length)];
+			nameField.text = save.name || Accounts.current || NAMES[int(Math.random() * NAMES.length)];
 			classLayer.addChild(nameField);
 
 			var pick:TextField = Ui.text(18, 0xffffff, true, "center", Ui.W, true);
@@ -101,11 +89,16 @@ package realm {
 			gy.x = Ui.W - 150; gy.y = 20;
 			addChild(gy);
 
-			addEventListener(Event.ENTER_FRAME, animate);
-			addEventListener(Event.REMOVED_FROM_STAGE, function(e:Event):void {
-				removeEventListener(Event.ENTER_FRAME, animate);
-				bg.dispose();
-			});
+			// account bar: who is logged in, and a way back to the home screen
+			var acc:TextField = Ui.text(15, 0xd8d0ff, true, "left", 400, true);
+			acc.htmlText = "Account: <font color='#ffd75e'>" + (Accounts.current || "Guest") + "</font>";
+			acc.x = 20; acc.y = 26;
+			addChild(acc);
+			if (onBack != null) {
+				var home:Sprite = Ui.button("Home", 100, 32, function():void { onBack(); }, 15);
+				home.x = 20; home.y = 52;
+				addChild(home);
+			}
 		}
 
 		/** "Your Characters": continue a living character, or make a new one. */
@@ -263,20 +256,6 @@ package realm {
 			addChild(graveLayer);
 		}
 
-		private function drawBackground():void {
-			bg.lock();
-			mtx.a = mtx.d = Game.TS / World.PX;
-			mtx.tx = Math.round(Ui.W / 2 - camX * Game.TS);
-			mtx.ty = Math.round(Ui.H / 2 - camY * Game.TS);
-			bg.draw(world.bitmap, mtx, null, null, null, false);
-			bg.unlock();
-		}
 
-		private function animate(e:Event):void {
-			camY -= 0.02;
-			camX += 0.008;
-			if (camY < 30) camY = world.spawnY - 10;
-			drawBackground();
-		}
 	}
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<application xmlns="http://ns.adobe.com/air/application/32.0">
+	<id>com.newrealm.game</id>
+	<filename>NewRealm</filename>
+	<name>New Realm</name>
+	<versionNumber>1.0.0</versionNumber>
+	<description>A bullet-hell adventure inspired by Realm of the Mad God.</description>
+	<initialWindow>
+		<content>NewRealm.swf</content>
+		<title>New Realm</title>
+		<systemChrome>standard</systemChrome>
+		<transparent>false</transparent>
+		<visible>true</visible>
+		<resizable>true</resizable>
+		<minimizable>true</minimizable>
+		<maximizable>true</maximizable>
+		<width>800</width>
+		<height>600</height>
+		<minSize>400 300</minSize>
+		<renderMode>auto</renderMode>
+	</initialWindow>
+	<supportedProfiles>desktop extendedDesktop</supportedProfiles>
+</application>

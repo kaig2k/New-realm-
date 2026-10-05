@@ -206,6 +206,13 @@ package realm {
 			if (inp.isDown(Keyboard.A) || inp.isDown(Keyboard.LEFT)) mx -= 1;
 			if (inp.isDown(Keyboard.D) || inp.isDown(Keyboard.RIGHT)) mx += 1;
 			if (mx != 0 && my != 0) { mx *= 0.7071; my *= 0.7071; }
+			// movement is relative to the (possibly rotated) screen
+			if (g.camAngle != 0 && (mx != 0 || my != 0)) {
+				var ca:Number = Math.cos(g.camAngle), sa:Number = Math.sin(g.camAngle);
+				var rmx:Number = mx * ca - my * sa;
+				my = mx * sa + my * ca;
+				mx = rmx;
+			}
 			if (status.confused > 0) { mx = -mx; my = -my; }
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
 			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (status.slowed > 0 ? 0.5 : 1);
@@ -234,8 +241,8 @@ package realm {
 			}
 
 			// --- aim
-			aimX = g.screenToWorldX(inp.mx);
-			aimY = g.screenToWorldY(inp.my);
+			aimX = g.screenToWorldX(inp.mx, inp.my);
+			aimY = g.screenToWorldY(inp.my, inp.mx);
 
 			// --- shooting
 			if (inp.pressed(Keyboard.I)) {
@@ -244,7 +251,7 @@ package realm {
 			}
 			var wantShoot:Boolean = autoFire || (inp.mouseDown && inp.mx < Game.VIEW_W && !g.uiCaptured());
 			if (wantShoot && !w.isSafe(x, y)) {
-				facingLeft = aimX < x;
+				facingLeft = inp.mx < g.scrX(x, y);
 				attackT = 0.25;
 				if (shootT <= 0) { shoot(g); Sfx.play("shoot", 0.5, 0.09); }
 			} else if (mx != 0) {

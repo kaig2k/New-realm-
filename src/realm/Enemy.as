@@ -80,7 +80,7 @@ package realm {
 			var dx:Number = p.x - x, dy:Number = p.y - y;
 			var dist:Number = Math.sqrt(dx * dx + dy * dy);
 			var aggro:Boolean = dist < (def.aggro || 9) && !g.world.isSafe(p.x, p.y) && p.invisT <= 0;
-			facingLeft = aggro ? dx < 0 : dirX < 0;
+			facingLeft = aggro ? g.scrX(p.x, p.y) < g.scrX(x, y) : (dirX * g.camCos + dirY * g.camSin) < 0;
 
 			if (stunT > 0) { stunT -= dt; return; }
 

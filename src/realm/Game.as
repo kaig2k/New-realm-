@@ -534,7 +534,7 @@ package realm {
 
 		/** Spawns a monster or boss a few tiles in front of you, toward the mouse. */
 		public function adminSpawn(id:String, boss:Boolean):void {
-			var aim:Number = Math.atan2(input.my - CY, input.mx - CX);
+			var aim:Number = Math.atan2(screenToWorldY(input.my, input.mx) - player.y, screenToWorldX(input.mx, input.my) - player.x);
 			// toward the mouse first, then further out and in other directions (safe zones block monsters)
 			for (var tries:int = 0; tries < 120; tries++) {
 				var a:Number = aim + (tries < 10 ? 0 : (Math.random() - 0.5) * Math.PI * 2);
@@ -888,6 +888,7 @@ package realm {
 			}
 
 			// the camera glides after the player instead of snapping
+			updateCameraRotation(dt);
 			var ck:Number = Math.min(1, dt * 12);
 			camX += (player.x - camX) * ck;
 			camY += (player.y - camY) * ck;
@@ -2197,8 +2198,41 @@ package realm {
 		}
 
 		// ------------------------------------------------------------- render
-		public function screenToWorldX(sx:Number):Number { return camX + (sx - CX) / TS; }
-		public function screenToWorldY(sy:Number):Number { return camY + (sy - CY) / TS; }
+		// camera rotation (Q / E rotate, Z snaps back to 0 degrees)
+		public var camAngle:Number = 0;
+		public function get camCos():Number { return rc; }
+		public function get camSin():Number { return rs; }
+		private var camZeroing:Boolean = false;
+		private var rc:Number = 1, rs:Number = 0, shx:Number = 0, shy:Number = 0;
+		/** Camera position used for drawing (pixel-snapped when the view isn't rotated). */
+		private var viewX:Number = 0, viewY:Number = 0;
+
+		/** World tile coordinates -> screen pixels (rotated around the camera). */
+		public function scrX(x:Number, y:Number):Number { return CX + shx + TS * ((x - viewX) * rc + (y - viewY) * rs); }
+		public function scrY(x:Number, y:Number):Number { return CY + shy + TS * ((y - viewY) * rc - (x - viewX) * rs); }
+
+		public function screenToWorldX(sx:Number, sy:Number = NaN):Number {
+			if (isNaN(sy)) sy = input ? input.my : CY;
+			var dx:Number = (sx - CX) / TS, dy:Number = (sy - CY) / TS;
+			return viewX + dx * rc - dy * rs;
+		}
+		public function screenToWorldY(sy:Number, sx:Number = NaN):Number {
+			if (isNaN(sx)) sx = input ? input.mx : CX;
+			var dx:Number = (sx - CX) / TS, dy:Number = (sy - CY) / TS;
+			return viewY + dx * rs + dy * rc;
+		}
+
+		private function updateCameraRotation(dt:Number):void {
+			if (input.isDown(Keyboard.Q)) { camAngle -= dt * 2.2; camZeroing = false; }
+			if (input.isDown(Keyboard.E)) { camAngle += dt * 2.2; camZeroing = false; }
+			if (input.pressed(Keyboard.Z)) camZeroing = true;
+			if (camZeroing) {
+				while (camAngle > Math.PI) camAngle -= Math.PI * 2;
+				while (camAngle < -Math.PI) camAngle += Math.PI * 2;
+				camAngle *= Math.max(0, 1 - dt * 10);
+				if (Math.abs(camAngle) < 0.002) { camAngle = 0; camZeroing = false; }
+			}
+		}
 
 		/** Picks the objective: the area boss (or its crystals), else a monster suited to your level. */
 		private function pickQuest():Enemy {
@@ -2236,7 +2270,7 @@ package realm {
 			return best;
 		}
 
-		private function updateQuestArrow(ox:Number, oy:Number):void {
+		private function updateQuestArrow():void {
 			questT -= 1 / 30;
 			if (questT <= 0 || !questTarget || questTarget.dead) {
 				questT = 0.5;
@@ -2245,7 +2279,7 @@ package realm {
 			var q:Enemy = questTarget;
 			questArrow.visible = questTf.visible = q != null && !q.dead && !paused;
 			if (!questArrow.visible) return;
-			var sx:Number = q.x * TS + ox, sy:Number = q.y * TS + oy;
+			var sx:Number = scrX(q.x, q.y), sy:Number = scrY(q.x, q.y);
 			var m:Number = 34;
 			if (sx > m && sx < VIEW_W - m && sy > m + 40 && sy < VIEW_H - m) {
 				// on screen: bob above the target, pointing down
@@ -2271,26 +2305,32 @@ package realm {
 		}
 
 		private function render():void {
-			var ox:Number = Math.round(CX - camX * TS);
-			var oy:Number = Math.round(CY - camY * TS);
+			rc = Math.cos(camAngle);
+			rs = Math.sin(camAngle);
+			shx = shy = 0;
 			if (shakeT > 0 && !paused) {
 				shakeT -= 1 / 30;
 				var sa:Number = shakeAmp * Math.min(1, shakeT * 4);
-				ox += Math.round((Math.random() * 2 - 1) * sa);
-				oy += Math.round((Math.random() * 2 - 1) * sa);
+				shx = Math.round((Math.random() * 2 - 1) * sa);
+				shy = Math.round((Math.random() * 2 - 1) * sa);
 			}
+			// keep the unrotated view pixel-aligned
+			viewX = camAngle == 0 ? Math.round(camX * TS) / TS : camX;
+			viewY = camAngle == 0 ? Math.round(camY * TS) / TS : camY;
 			canvas.lock();
 			canvas.fillRect(canvas.rect, 0xff101820);
-			mtx.a = mtx.d = TS / World.PX;
-			mtx.tx = ox;
-			mtx.ty = oy;
+			mtx.identity();
+			mtx.scale(TS / World.PX, TS / World.PX);
+			mtx.translate(-viewX * TS, -viewY * TS);
+			if (camAngle != 0) mtx.rotate(-camAngle);
+			mtx.translate(CX + shx, CY + shy);
 			canvas.draw(world.bitmap, mtx, null, null, null, false);
 
 			var bd:BitmapData;
 			// loot bags lie on the ground
 			for each (var b:LootBag in bags) {
 				if (b.life < 8 && int(b.life * 4) % 2 == 0) continue;
-				var bx:Number = b.x * TS + ox, by:Number = b.y * TS + oy;
+				var bx:Number = scrX(b.x, b.y), by:Number = scrY(b.x, b.y);
 				// rare bags glow; new bags bounce as they land
 				if (!b.vault && b.spr != "bag_brown") drawAura(bx, by + TS * 0.4, BAG_GLOW[b.spr] || 0xffffff, 0.45);
 				var hop:int = b.age < 0.5 ? int(Math.abs(Math.sin(b.age * 19)) * 22 * (1 - b.age / 0.5)) : 0;
@@ -2299,7 +2339,7 @@ package realm {
 
 			// portals and labels
 			for each (var p:Object in world.portals) {
-				var pcx:Number = p.x * TS + ox, pcy:Number = p.y * TS + oy;
+				var pcx:Number = scrX(p.x, p.y), pcy:Number = scrY(p.x, p.y);
 				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
 				var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
 				var lab:TextField = p.label;
@@ -2310,81 +2350,89 @@ package realm {
 				lab.y = int(ptop - lab.height - 2);
 			}
 			if (inNexus) {
-				vaultLabel.x = int(vaultBag.x * TS + ox - vaultLabel.width / 2);
-				vaultLabel.y = int(vaultBag.y * TS + oy - 58);
+				vaultLabel.x = int(scrX(vaultBag.x, vaultBag.y) - vaultLabel.width / 2);
+				vaultLabel.y = int(scrY(vaultBag.x, vaultBag.y) - 58);
 				for each (var st:Object in stations) {
-					var stop:Number = drawEntity(Sprites.get(st.spr), st.x * TS + ox, st.y * TS + oy, 0);
-					st.label.x = int(st.x * TS + ox - st.label.width / 2);
+					var stx:Number = scrX(st.x, st.y);
+					var stop:Number = drawEntity(Sprites.get(st.spr), stx, scrY(st.x, st.y), 0);
+					st.label.x = int(stx - st.label.width / 2);
 					st.label.y = int(stop - st.label.height);
 				}
 			}
 			var trapIcon:BitmapData = Sprites.icon({kind: "ability", sub: "trap", tier: 0});
 			for each (var tr:Object in traps) {
-				pt.x = int(tr.x * TS + ox - trapIcon.width / 2);
-				pt.y = int(tr.y * TS + oy - trapIcon.height / 2);
+				pt.x = int(scrX(tr.x, tr.y) - trapIcon.width / 2);
+				pt.y = int(scrY(tr.x, tr.y) - trapIcon.height / 2);
 				canvas.copyPixels(trapIcon, trapIcon.rect, pt, null, null, true);
 			}
 
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
 			drawN = 0;
-			var tx0:int = int(camX - CX / TS) - 1, tx1:int = int(camX + (VIEW_W - CX) / TS) + 1;
-			var ty0:int = int(camY - CY / TS) - 1, ty1:int = int(camY + (VIEW_H - CY) / TS) + 3;
+			var reach:int = int(Math.sqrt(VIEW_W * VIEW_W + VIEW_H * VIEW_H) / 2 / TS) + 3;
+			var tx0:int = int(viewX) - reach, tx1:int = int(viewX) + reach;
+			var ty0:int = int(viewY) - reach, ty1:int = int(viewY) + reach;
 			for (var ty:int = ty0; ty <= ty1; ty++) {
 				for (var tx:int = tx0; tx <= tx1; tx++) {
 					var o:int = world.objAt(tx, ty);
-					if (o > 0) drawList.push(drawItem(ty + 0.9, o, tx, null, false));
+					if (o <= 0) continue;
+					var osx:Number = scrX(tx + 0.5, ty + 0.5), osy:Number = scrY(tx + 0.5, ty + 0.5);
+					if (osx < -80 || osy < -40 || osx > VIEW_W + 80 || osy > VIEW_H + 160) continue;
+					var di:Object = drawItem(osy + TS * 0.4, o, tx, null, false);
+					di.t = ty;
+					drawList.push(di);
 				}
 			}
 			for each (var e:Enemy in enemies) {
-				var sx:Number = e.x * TS + ox, sy:Number = e.y * TS + oy;
+				var sx:Number = scrX(e.x, e.y), sy:Number = scrY(e.x, e.y);
 				if (sx < -100 || sy < -100 || sx > VIEW_W + 100 || sy > VIEW_H + 120) continue;
-				drawList.push(drawItem(e.y, 0, 0, e, false));
+				drawList.push(drawItem(sy, 0, 0, e, false));
 			}
-			drawList.push(drawItem(player.y, 0, 0, null, true));
-			if (pet) drawList.push(drawItem(petY, -1, 0, null, false));
+			drawList.push(drawItem(scrY(player.x, player.y), 0, 0, null, true));
+			if (pet) drawList.push(drawItem(scrY(petX, petY), -1, 0, null, false));
 			drawList.sortOn("y", Array.NUMERIC);
 
 			for each (var d:Object in drawList) {
 				if (d.o < 0) {
-					drawEntity(Sprites.get("pet_" + pet.species, 0, petX > player.x), petX * TS + ox, petY * TS + oy,
+					drawEntity(Sprites.get("pet_" + pet.species, 0, scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY),
 						petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
 				} else if (d.o) {
 					bd = Sprites.get(World.OBJ_NAMES[d.o]);
-					var baseY:Number = (d.y + 0.1) * TS + oy;
+					var ocx:Number = scrX(d.x + 0.5, d.t + 0.5);
+					var baseY:Number = scrY(d.x + 0.5, d.t + 0.5) + TS / 2;
 					var sh:BitmapData = Sprites.shadow(TS);
-					pt.x = int(d.x * TS + ox);
+					pt.x = int(ocx - TS / 2);
 					pt.y = int(baseY - sh.height * 0.7);
 					canvas.copyPixels(sh, sh.rect, pt, null, null, true);
-					pt.x = int(d.x * TS + ox + TS / 2 - bd.width / 2);
+					pt.x = int(ocx - bd.width / 2);
 					pt.y = int(baseY - bd.height);
 					canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 				} else if (d.e) {
-					drawEnemy(d.e, ox, oy);
+					drawEnemy(d.e);
 				} else {
-					drawPlayer(ox, oy);
+					drawPlayer();
 				}
 			}
 
 			for each (var s:Projectile in shots) {
-				bd = s.frame(time);
-				pt.x = int(s.x * TS + ox - bd.width / 2);
-				pt.y = int(s.y * TS + oy - bd.height / 2);
+				bd = s.frame(time, camAngle);
+				pt.x = int(scrX(s.x, s.y) - bd.width / 2);
+				pt.y = int(scrY(s.x, s.y) - bd.height / 2);
 				if (pt.x < -bd.width || pt.y < -bd.height || pt.x > VIEW_W || pt.y > VIEW_H) continue;
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
 			for each (var q:Particle in parts) {
-				pt.x = q.x * TS + ox - 3;
-				pt.y = q.y * TS + oy - 3;
+				pt.x = scrX(q.x, q.y) - 3;
+				pt.y = scrY(q.x, q.y) - 3;
 				canvas.copyPixels(q.bd, q.bd.rect, pt, null, null, true);
 			}
 			canvas.unlock();
-			updateQuestArrow(ox, oy);
+			updateQuestArrow();
 
 			for each (var f:Floater in floaters) {
 				if (!f.tf.visible) continue;
-				f.tf.x = f.x * TS + ox - f.tf.width / 2;
-				f.tf.y = f.y * TS + oy - f.tf.height / 2;
+				f.tf.x = scrX(f.x, f.y) - f.tf.width / 2;
+				f.tf.y = scrY(f.x, f.y) - f.tf.height / 2;
 			}
 		}
 
@@ -2433,8 +2481,8 @@ package realm {
 			canvas.draw(auraShape, auraMtx);
 		}
 
-		private function drawEnemy(e:Enemy, ox:Number, oy:Number):void {
-			var cx:Number = e.x * TS + ox, cy:Number = e.y * TS + oy;
+		private function drawEnemy(e:Enemy):void {
+			var cx:Number = scrX(e.x, e.y), cy:Number = scrY(e.x, e.y);
 			// fliers hover, walkers bob as they move and "breathe" when idle
 			var bob:int;
 			if (e.def.fly) bob = int((Math.sin(time * 3 + e.homeX) + 1) * 3);
@@ -2455,9 +2503,9 @@ package realm {
 			else if (e.slowT > 0) statusPip(cx, top - 6, 0xff60a0ff);
 		}
 
-		private function drawPlayer(ox:Number, oy:Number):void {
+		private function drawPlayer():void {
 			var p:Player = player;
-			var cx:Number = p.x * TS + ox, cy:Number = p.y * TS + oy;
+			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
 			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0);
 			nameTag.x = int(cx - nameTag.width / 2);

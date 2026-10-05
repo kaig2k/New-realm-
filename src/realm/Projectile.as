@@ -42,8 +42,9 @@ package realm {
 			if (pierce) hits = new Dictionary(true);
 		}
 
-		public function frame(time:Number):BitmapData {
-			return frames[spin ? int(time * 40) % Sprites.ROT_FRAMES : Sprites.frameFor(angle)];
+		/** Sprite frame; `view` is the camera rotation so bullets point the right way on screen. */
+		public function frame(time:Number, view:Number = 0):BitmapData {
+			return frames[spin ? int(time * 40) % Sprites.ROT_FRAMES : Sprites.frameFor(angle - view)];
 		}
 	}
 }

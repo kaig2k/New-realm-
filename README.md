@@ -73,6 +73,8 @@ into the first account you create.
 | Key | Action |
 | --- | --- |
 | WASD / arrows | Move |
+| Q / E | Rotate the camera |
+| Z | Snap the camera back to 0 degrees |
 | Mouse | Aim; hold left button to shoot |
 | Space | Class ability (aimed at cursor) |
 | F / G | Drink health / magic potion |

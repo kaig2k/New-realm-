@@ -1,7 +1,10 @@
 # New Realm
 
 A top-down bullet-hell adventure inspired by *Realm of the Mad God*, written in pure
-ActionScript 3 for **Adobe AIR**. No external assets: all of the pixel art is generated in code.
+ActionScript 3 for **Adobe AIR**. All of the pixel art is generated in code: 8x8 sprites
+scaled 5x with thin outlines and drop shadows, textured tiles, and rotated projectiles.
+
+![screenshot](docs/screenshot.png)
 
 ## Play it
 
@@ -22,6 +25,11 @@ double-click, run `package.sh` / `package.bat`. It builds a captive-runtime bund
 `dist/NewRealm` and creates a self-signed certificate the first time.
 
 After changing the code, rebuild with `build.sh` / `build.bat` (uses `amxmlc`).
+
+The UI font is Source Sans Pro (SIL Open Font License, see `assets/fonts/`). It is
+precompiled into `assets/fonts/RealmFonts.swf` and loaded at startup. You only need to
+rebuild that file if you change the fonts, and that needs the Apache Flex SDK's `mxmlc`
+(see `assets/fonts/RealmFonts.as`).
 The source also compiles with the Apache Flex SDK's `mxmlc`, and the SWF runs in
 Flash Player or Ruffle.
 
@@ -46,20 +54,23 @@ inventory item to equip or drink it, and shift+click to drop it.
 - **4 classes**: Wizard (twin-bolt staff, Spell Bomb), Archer (piercing arrows, slowing
   Quiver), Knight (sword, stunning Shield Bash) and Priest (wand, Holy Tome heal).
 - **A procedurally generated island realm.** Difficulty rises as you head inland:
-  Shore → Lowlands → Midlands → Godlands. You start in the Safe Haven, where
+  Shore → Lowlands → Midlands → Godlands. Brick ruins are scattered inland, and the
+  Godlands ruins have lava rivers that burn you. You start in the Safe Haven, where
   enemies and their bullets can't reach you.
 - **14 monster types** with different movement (chase, orbit, wander, charge) and bullet
   patterns (aimed spreads, rings, spirals).
 - **Cube Overlord boss.** It appears in the Godlands after enough kills, fights in three
   phases (spirals, rings with summoned cubelets, an enraged bullet storm), and drops
   a white bag with UT gear.
-- **Loot**: T0–T7 weapons and armour plus UT items. Bag colour shows rarity
+- **Loot**: T0–T7 weapons, abilities and armour, rings (T0–T5) and UT items. Bag colour shows rarity
   (brown → purple → cyan → white). There are also health/magic potions and stat potions
   that permanently raise stats up to each class's max.
 - **Levels 1–20** with per-class stat growth, RotMG-style defence and dexterity formulas.
 - **Permadeath and fame.** When you die, the death screen shows who killed you and the
   fame you earned. Your best fame and best level per class are saved.
-- Minimap, damage numbers, chat log with taunts from the Mad Sovereign.
+- **RotMG-style HUD**: fog-of-war minimap with zoom, Lvl/Fame/HP/MP bars, 4 equipment
+  slots (weapon, ability, armour, ring), Items/Stats tabs, potion counters, loot bag panel,
+  item tooltips, a boss damage tracker, and a chat log with taunts from the Mad Sovereign.
 
 ## Code layout
 
@@ -71,7 +82,9 @@ src/realm/Player.as      movement, shooting, abilities, levelling, items
 src/realm/Enemy.as       AI and bullet patterns
 src/realm/Data.as        classes, enemies, items, loot tables (balance lives here)
 src/realm/Sprites.as     text-defined pixel art, bullets, icons
-src/realm/Hud.as         sidebar UI (minimap, bars, stats, inventory, loot bag)
+src/realm/Hud.as         sidebar UI (minimap, bars, gear, inventory, loot bag)
+src/realm/Tooltip.as     item tooltip
+src/realm/Ui.as          fonts, text, panels and buttons
 src/realm/Menu.as        title / class select
 src/realm/DeathScreen.as death + fame screen
 ```

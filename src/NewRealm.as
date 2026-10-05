@@ -1,14 +1,15 @@
 package {
 	import flash.display.Sprite;
-	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
+	import flash.display.StageQuality;
 	import flash.events.Event;
 
 	import realm.DeathScreen;
 	import realm.Game;
 	import realm.Menu;
+	import realm.Ui;
 
-	[SWF(width="800", height="600", frameRate="60", backgroundColor="#000000")]
+	[SWF(width="1100", height="640", frameRate="60", backgroundColor="#000000")]
 	public class NewRealm extends Sprite {
 		private var screen:Sprite;
 
@@ -22,7 +23,8 @@ package {
 			stage.scaleMode = StageScaleMode.SHOW_ALL;
 			stage.align = "";
 			stage.frameRate = 60;
-			showMenu();
+			stage.quality = StageQuality.HIGH;
+			Ui.loadFonts(showMenu);
 		}
 
 		private function setScreen(s:Sprite):void {
@@ -39,8 +41,8 @@ package {
 			setScreen(new Menu(startGame));
 		}
 
-		private function startGame(clsId:String):void {
-			setScreen(new Game(clsId, onDeath));
+		private function startGame(clsId:String, name:String):void {
+			setScreen(new Game(clsId, name, onDeath));
 		}
 
 		private function onDeath(info:Object):void {

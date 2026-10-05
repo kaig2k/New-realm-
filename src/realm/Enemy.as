@@ -48,8 +48,10 @@ package realm {
 			}
 		}
 
+		public var moving:Boolean = false;
+
 		public function get sprite():BitmapData {
-			return hitT > 0 ? Sprites.hit(def.spr, facingLeft) : Sprites.get(def.spr, facingLeft);
+			return hitT > 0 ? Sprites.hit(def.spr, 0, facingLeft) : Sprites.get(def.spr, 0, facingLeft);
 		}
 
 		public function update(dt:Number, g:Game):void {
@@ -139,6 +141,7 @@ package realm {
 		}
 
 		private function move(mx:Number, my:Number, w:World):void {
+			moving = mx * mx + my * my > 0.000001;
 			var nx:Number = x + mx, ny:Number = y + my;
 			var rr:Number = Math.min(r, 0.4);
 			if (w.canStand(nx, y, rr, true)) x = nx; else { dirX = -dirX; orbitDir = -orbitDir; }
@@ -153,17 +156,19 @@ package realm {
 				for (k = 0; k < n; k++) g.spawnEnemy(a.what, x + Math.random() * 2 - 1, y + Math.random() * 2 - 1, zone);
 				return;
 			}
-			var bd:BitmapData = Sprites.bullet(a.col, int(a.r * Game.TS));
+			var shape:String = a.shape || (a.p == "aimed" ? "dart" : a.p == "spiral" ? "star" : "orb");
+			var bd:Vector.<BitmapData> = Sprites.projectile(shape, a.col, a.r <= 0.15 ? 3 : a.r <= 0.2 ? 4 : 5);
+			var spin:Boolean = shape == "star";
 			var t:Number;
 			if (a.p == "aimed") {
 				for (k = 0; k < n; k++) {
 					t = n > 1 ? ang + (k / (n - 1) - 0.5) * a.arc * DEG : ang;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, null));
+					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, null, spin));
 				}
 			} else { // ring / spiral
 				for (k = 0; k < n; k++) {
 					t = spins[i] + k * Math.PI * 2 / n;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, null));
+					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, null, spin));
 				}
 				spins[i] += (a.rot || 0) * DEG;
 			}

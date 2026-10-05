@@ -1,123 +1,164 @@
 package realm {
 	import flash.display.Bitmap;
+	import flash.display.BitmapData;
+	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.geom.Matrix;
 	import flash.text.TextField;
+	import flash.text.TextFieldType;
 
-	/** Title screen with class selection. */
+	/** Title screen: scrolling realm backdrop, hero name and class selection. */
 	public class Menu extends Sprite {
+		private static const NAMES:Array = ["Ezra", "Vex", "Lyra", "Thorn", "Kael", "Mira", "Orin", "Sable", "Rook", "Nyx", "Bram", "Iris"];
+
 		private var onPick:Function;
-		private var drift:Array = [];
+		private var bg:BitmapData;
+		private var world:World;
+		private var camX:Number, camY:Number;
+		private var mtx:Matrix = new Matrix();
+		private var nameField:TextField;
 
 		public function Menu(onPick:Function) {
 			this.onPick = onPick;
-			graphics.beginFill(0x12101c);
-			graphics.drawRect(0, 0, 800, 600);
-			graphics.endFill();
+			world = new World();
+			camX = world.spawnX;
+			camY = world.spawnY - 10;
+			bg = new BitmapData(Ui.W, Ui.H, false, 0);
+			addChild(new Bitmap(bg));
+			var shade:Shape = new Shape();
+			shade.graphics.beginFill(0x000000, 0.55);
+			shade.graphics.drawRect(0, 0, Ui.W, Ui.H);
+			shade.graphics.endFill();
+			addChild(shade);
+			drawBackground();
 
-			// drifting background critters
-			var bgIds:Array = ["pirate", "snake", "goblin", "orc", "medusa", "djinn", "beholder", "ent", "gazer", "cubelet", "crab", "elf"];
-			for (var i:int = 0; i < 14; i++) {
-				var b:Bitmap = new Bitmap(Sprites.get(bgIds[i % bgIds.length]));
-				b.alpha = 0.18;
-				b.x = Math.random() * 800;
-				b.y = Math.random() * 600;
-				addChild(b);
-				drift.push({b: b, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30});
-			}
-
-			var title:TextField = Ui.text(56, 0xffd75e, true, "center", 800, true);
+			var title:TextField = Ui.text(68, Ui.GOLD, true, "center", Ui.W, true);
 			title.text = "NEW REALM";
-			title.y = 26;
+			title.y = 18;
 			addChild(title);
-			var sub:TextField = Ui.text(14, 0xc8b8ff, false, "center", 800, true);
+			var sub:TextField = Ui.text(17, 0xd8d0ff, false, "center", Ui.W, true);
 			sub.text = "A bullet-hell adventure inspired by Realm of the Mad God";
 			sub.y = 100;
 			addChild(sub);
 
-			var pick:TextField = Ui.text(16, 0xffffff, true, "center", 800, true);
+			// hero name
+			var save:Object = Save.data;
+			var nl:TextField = Ui.text(15, 0xbbbbbb, true, "right", 200, true);
+			nl.text = "Hero name";
+			nl.x = Ui.W / 2 - 316;
+			nl.y = 142;
+			addChild(nl);
+			var nameBox:Shape = new Shape();
+			Ui.panel(nameBox.graphics, Ui.W / 2 - 104, 136, 208, 32, 0x1c1c1c, 0x6a6a6a);
+			addChild(nameBox);
+			nameField = Ui.text(18, 0xffffff, true, "center", 196);
+			nameField.autoSize = "none";
+			nameField.height = 28;
+			nameField.x = Ui.W / 2 - 98;
+			nameField.y = 138;
+			nameField.type = TextFieldType.INPUT;
+			nameField.selectable = true;
+			nameField.mouseEnabled = true;
+			nameField.maxChars = 12;
+			nameField.restrict = "A-Za-z0-9";
+			nameField.text = save.name || NAMES[int(Math.random() * NAMES.length)];
+			addChild(nameField);
+
+			var pick:TextField = Ui.text(18, 0xffffff, true, "center", Ui.W, true);
 			pick.text = "Choose your class";
-			pick.y = 140;
+			pick.y = 180;
 			addChild(pick);
 
-			var save:Object = Save.data;
-			for (i = 0; i < Data.CLASS_ORDER.length; i++) {
+			for (var i:int = 0; i < Data.CLASS_ORDER.length; i++) {
 				var card:Sprite = makeCard(Data.CLASSES[Data.CLASS_ORDER[i]], save);
-				card.x = 22 + i * 192;
-				card.y = 172;
+				card.x = (Ui.W - 4 * 230 - 3 * 18) / 2 + i * 248;
+				card.y = 214;
 				addChild(card);
 			}
 
-			var help:TextField = Ui.text(12, 0xbbbbbb, false, "center", 800, true);
-			help.htmlText = "<b>WASD</b> move   <b>Mouse</b> aim + shoot   <b>Space</b> ability   <b>F / G</b> drink HP / MP potion\n" +
-				"<b>1-8</b> use inventory   <b>R</b> return to Safe Haven   <b>I</b> toggle auto-fire   <b>P</b> pause\n" +
-				"Walk over loot bags and click their items in the sidebar. Slay enough monsters and the Cube Overlord appears.";
-			help.y = 470;
+			var help:TextField = Ui.text(14, 0xcccccc, false, "center", Ui.W, true);
+			help.htmlText = "<b>WASD</b> move   <b>Mouse</b> aim + shoot   <b>Space</b> ability   <b>F / G</b> health / magic potion   " +
+				"<b>1-8</b> use item   <b>R</b> return to Haven   <b>I</b> auto-fire   <b>P</b> pause\n" +
+				"Stand on loot bags and click their items in the sidebar. Slay enough monsters and the Cube Overlord appears.";
+			help.y = 546;
 			addChild(help);
 
-			var stats:TextField = Ui.text(13, 0xffa040, true, "center", 800, true);
-			stats.text = "Best fame: " + (save.bestFame || 0) + "     Characters lost: " + (save.deaths || 0);
-			stats.y = 548;
+			var stats:TextField = Ui.text(15, 0xff9a40, true, "center", Ui.W, true);
+			stats.text = "Best fame: " + Ui.commas(save.bestFame || 0) + "      Heroes lost: " + (save.deaths || 0);
+			stats.y = 600;
 			addChild(stats);
 
 			addEventListener(Event.ENTER_FRAME, animate);
 			addEventListener(Event.REMOVED_FROM_STAGE, function(e:Event):void {
 				removeEventListener(Event.ENTER_FRAME, animate);
+				bg.dispose();
 			});
 		}
 
 		private function makeCard(cls:Object, save:Object):Sprite {
 			var c:Sprite = new Sprite();
-			var w:int = 180, h:int = 280;
+			var w:int = 230, h:int = 316;
 			var draw:Function = function(hover:Boolean):void {
 				c.graphics.clear();
-				c.graphics.lineStyle(2, hover ? 0xffd75e : 0x5a5070);
-				c.graphics.beginFill(hover ? 0x3a3150 : 0x241f33, 0.95);
-				c.graphics.drawRoundRect(0, 0, w, h, 14, 14);
+				Ui.panel(c.graphics, 0, 0, w, h, hover ? 0x3e3e3e : 0x262626, hover ? Ui.GOLD : 0x5a5a5a, 0.94);
+				c.graphics.beginFill(0x000000, 0.25);
+				c.graphics.drawRoundRect(14, 14, w - 28, 110, 10, 10);
 				c.graphics.endFill();
 			};
 			draw(false);
 			var spr:Bitmap = new Bitmap(Sprites.get(cls.id));
 			spr.scaleX = spr.scaleY = 2;
 			spr.x = (w - spr.width) / 2;
-			spr.y = 8;
+			spr.y = 20;
 			c.addChild(spr);
-			var name:TextField = Ui.text(18, 0xffffff, true, "center", w);
+			var name:TextField = Ui.text(24, 0xffffff, true, "center", w, true);
 			name.text = cls.name;
-			name.y = 92;
+			name.y = 128;
 			c.addChild(name);
-			var desc:TextField = Ui.text(11, 0xcccccc, false, "center", w - 16);
+			var desc:TextField = Ui.text(13, 0xcccccc, false, "center", w - 24);
 			desc.text = cls.desc;
-			desc.x = 8;
-			desc.y = 118;
+			desc.x = 12;
+			desc.y = 162;
 			c.addChild(desc);
-			var info:TextField = Ui.text(11, 0xaaaaaa, false, "center", w - 16);
+			var info:TextField = Ui.text(13, 0xaaaaaa, false, "center", w - 24);
 			var best:int = save.bestLevel ? int(save.bestLevel[cls.id] || 0) : 0;
-			info.htmlText = "HP " + cls.base.hp + "  ATT " + cls.base.att + "  DEX " + cls.base.dex + "\n" +
-				"<font color='#ffd75e'>" + cls.ability.name + "</font>: " + cls.ability.desc +
+			info.htmlText = "<b>HP</b> " + cls.base.hp + "   <b>ATT</b> " + cls.base.att + "   <b>DEX</b> " + cls.base.dex + "\n" +
+				"<font color='#ffd75e'><b>" + cls.ability.name + "</b></font>: " + cls.ability.desc +
 				(best > 0 ? "\n<font color='#80ff80'>Best level: " + best + "</font>" : "");
-			info.x = 8;
-			info.y = 186;
+			info.x = 12;
+			info.y = 226;
 			c.addChild(info);
 
 			c.buttonMode = true;
 			c.mouseChildren = false;
 			c.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { draw(true); });
 			c.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { draw(false); });
-			c.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { onPick(cls.id); });
+			c.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void {
+				var n:String = nameField.text.replace(/[^A-Za-z0-9]/g, "");
+				if (!n) n = NAMES[int(Math.random() * NAMES.length)];
+				Save.data.name = n;
+				Save.flush();
+				onPick(cls.id, n);
+			});
 			return c;
 		}
 
+		private function drawBackground():void {
+			bg.lock();
+			mtx.a = mtx.d = Game.TS / World.PX;
+			mtx.tx = Math.round(Ui.W / 2 - camX * Game.TS);
+			mtx.ty = Math.round(Ui.H / 2 - camY * Game.TS);
+			bg.draw(world.bitmap, mtx, null, null, null, false);
+			bg.unlock();
+		}
+
 		private function animate(e:Event):void {
-			for each (var d:Object in drift) {
-				d.b.x += d.vx / 60;
-				d.b.y += d.vy / 60;
-				if (d.b.x < -40) d.b.x = 800;
-				if (d.b.x > 800) d.b.x = -40;
-				if (d.b.y < -40) d.b.y = 600;
-				if (d.b.y > 600) d.b.y = -40;
-			}
+			camY -= 0.02;
+			camX += 0.008;
+			if (camY < 30) camY = world.spawnY - 10;
+			drawBackground();
 		}
 	}
 }

@@ -14,9 +14,9 @@
 		<resizable>true</resizable>
 		<minimizable>true</minimizable>
 		<maximizable>true</maximizable>
-		<width>800</width>
-		<height>600</height>
-		<minSize>400 300</minSize>
+		<width>1100</width>
+		<height>640</height>
+		<minSize>550 320</minSize>
 		<renderMode>auto</renderMode>
 	</initialWindow>
 	<supportedProfiles>desktop extendedDesktop</supportedProfiles>

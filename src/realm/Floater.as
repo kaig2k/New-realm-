@@ -7,7 +7,7 @@ package realm {
 		public var x:Number, y:Number, life:Number;
 
 		public function Floater() {
-			tf = Ui.text(14, 0xffffff, true, "left", 0, true);
+			tf = Ui.text(17, 0xffffff, true, "left", 0, true);
 		}
 
 		public function set(x:Number, y:Number, text:String, color:uint):void {

@@ -456,6 +456,7 @@ package realm {
 				var p:Object = PASSIVES[item.passive];
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
 			}
+			if (item.uid) s += Uniques.describe(item);
 			if (item.set) s += "<font color='" + Ui.hex(RARITY_COLORS.st) + "'>" + setName(item.set) + " Set (4 pieces): " + setBonusText(item.set) + "</font>\n";
 			if (isGear(item) && item.kind != "ring") {
 				var ok:Boolean = !viewerClass || canUse(item, viewerClass);
@@ -1003,24 +1004,24 @@ package realm {
 		 * their own (`portal` on the enemy). tier: mob strength and loot, 0 (beach) .. 4 (godlands).
 		 */
 		public static const DUNGEONS:Array = [
-			{id: "crypt", name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
-			{id: "depths", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
-			{id: "spire", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
-			{id: "cellar", name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
-			{id: "pirate_cove", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
-			{id: "forest_maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
-			{id: "snake_pit", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
-			{id: "spider_den", name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
-			{id: "undead_lair", name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
-			{id: "abyss", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
+			{id: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
+			{id: "depths", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
+			{id: "spire", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
+			{id: "cellar", layout: "grid", dark: true, name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
+			{id: "pirate_cove", layout: "cave", hazard: "water", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
+			{id: "forest_maze", layout: "maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
+			{id: "snake_pit", layout: "ring", hazard: "water", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
+			{id: "spider_den", layout: "maze", dark: true, name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
+			{id: "undead_lair", layout: "grid", dark: true, name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
+			{id: "abyss", layout: "islands", hazard: "lava", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
 			// ---- hard multi-boss dungeons: elite monsters (hard = health/damage multiplier)
-			{id: "tomb", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
+			{id: "tomb", layout: "grid", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
 				mobs: ["scorpion", "great_snake", "lesser_demon", "ghost"], trio: ["sun_king", "moon_queen", "star_prince"]},
-			{id: "sanctum", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
+			{id: "sanctum", layout: "ring", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
 				mobs: ["sprite", "ghost", "lich", "djinn"], guardians: ["frost_warden", "flame_warden"], boss: "shattered_seraph"},
 			{id: "citadel", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
-			{id: "sprite_world", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
+			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
 		/** The first 4 dungeons are the ones realm events drop. */
 		public static const EVENT_DUNGEONS:int = 4;
@@ -1114,11 +1115,29 @@ package realm {
 			return true;
 		}
 
+		/** A boss's own unique items: each one rolls separately. */
+		private static function rollUniques(def:Object, items:Array, boost:Number):void {
+			if (!def.uniques) return;
+			var c:Number = def.uchance || (def.raid ? 0.3 : def.final || def.finale ? 0.25 : def.dtier >= 5 ? 0.2 : def.dungeon ? 0.16 : 0.12);
+			for each (var id:String in def.uniques) if (Math.random() < c * boost) items.push(Uniques.make(id));
+		}
+
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {
 			var items:Array = [];
 			var boost:Number = 1 + fortune / 100;
 			var slot:int;
-			if (def.final) {
+			rollUniques(def, items, boost);
+			if (def.raid) {
+				// raid bosses: the best loot in the game
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "fb" : "st"));
+				if (Math.random() < 0.15 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.03 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.2 * boost) items.push(makeSor());
+				items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("stat", randomStat()));
+				return items;
+			}
+			if (def.final || def.finale) {
 				// the Dark Elder: fabled gear, a shot at legendaries and relics
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
@@ -1133,7 +1152,6 @@ package realm {
 			if (def.treasure) {
 				// treasure room chest: a set piece for your class plus potions
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.4 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
 				if (Math.random() < 0.06 * boost) items.push(makeSor());
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
@@ -1142,8 +1160,8 @@ package realm {
 			}
 			if (def.dungeon && def.dtier >= 5) {
 				// hard multi-boss dungeons: the best loot outside the Dark Elder
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "ut"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "st"));
 				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
 				if (Math.random() < 0.15 * boost) items.push(makeSor());
@@ -1157,14 +1175,13 @@ package realm {
 					slot = int(Math.random() * 4);
 					items.push(slot == 3 ? makeRing(randomStat(), Math.min(5, 2 + dt)) : makeForSlot(lootClass(cls), slot, 3 + dt + (Math.random() < 0.3 ? 1 : 0), null));
 				}
-				if (Math.random() < (0.08 + dt * 0.07) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
 				if (dt >= 1 && Math.random() < 0.5) items.push(makePotion("stat", randomStat()));
 				if (dt >= 2) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
 				return items;
 			}
 			if (def.dungeon) {
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
 				if (Math.random() < 0.1 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.06 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
@@ -1174,7 +1191,7 @@ package realm {
 			if (def.ai == "boss") {
 				// realm event: Runed or Bonded piece, sometimes Starforged
 				slot = int(Math.random() * 4);
-				items.push(makeForSlot(lootClass(cls), slot, 7, Math.random() < 0.4 ? "st" : "ut"));
+				items.push(makeForSlot(lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.25 ? "st" : null));
 				if (Math.random() < 0.08 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.05 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
@@ -1195,7 +1212,6 @@ package realm {
 				else if (roll < 0.82) items.push(makeArmor(lc.armor, tier));
 				else items.push(makeRing(randomStat(), Math.min(5, int(tier * 0.7))));
 			}
-			if (zone == 4 && Math.random() < 0.006 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
 			var statChance:Number = zone == 4 ? 0.07 : zone == 3 ? 0.03 : zone == 2 ? 0.01 : 0;
 			if (Math.random() < statChance * boost) items.push(makePotion("stat", randomStat()));
 			return items;

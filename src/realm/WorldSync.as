@@ -212,15 +212,21 @@ package realm {
 					var all:Array = [];
 					for each (e in w.enemies) if (!e.dead && e.id) all.push(entry(e, w));
 					send(from, {t: "espawn", l: all, n: 0});
-					send(from, {t: "wstate", ev: w.eventsDone, ct: r2(w.closeT)});
+					send(from, {t: "wstate", ev: w.eventsDone, ct: r2(w.closeT), rs: w.raidStage});
+					break;
+				case "rstage":
+					if (isHost || !w.raid) return;
+					w.raidStage = d.n;
+					g.raidStageBanner(d.n);
 					break;
 				case "wstate":
 					if (isHost) return;
 					w.eventsDone = d.ev;
+					if (d.rs != undefined) w.raidStage = d.rs;
 					if (d.ct > 0 && w.closeT <= 0) w.closeT = d.ct;
 					break;
 				case "portal":
-					if (isHost) return;
+					if (isHost && d.k != "raid") return;
 					g.netPortal(d.x, d.y, d.k, d.i, d.c, d.l, uint(d.s));
 					break;
 			}

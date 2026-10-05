@@ -73,6 +73,7 @@ into the first account you create.
 | Key | Action |
 | --- | --- |
 | WASD / arrows | Move |
+| Mouse wheel / - and = | Zoom the view out and in |
 | Q / E | Rotate the camera |
 | Z | Snap the camera back to 0 degrees |
 | Mouse | Aim; hold left button to shoot |
@@ -97,6 +98,54 @@ into the first account you create.
 - **Click:** clicking an item still uses or equips it, and clicking a loot bag item picks
   it up.
 - **Shift+click:** sells an item at the Marketplace, and quick-drops it anywhere else.
+
+## Bosses, raids and loot
+
+**Boss fights.** Every boss now runs a scripted fight with 2-4 phases.
+- Each phase has its own lines, movement (orbiting, charging, teleporting, holding the
+  centre) and attacks.
+- Many phases open with a few seconds of shield while the boss powers up.
+- Patterns include flowers, walls with a gap to slip through, telegraphed ground blasts
+  (a circle fills up, then explodes), meteor rain, weaving, returning, accelerating,
+  homing and splitting shots, and multi-wave bursts.
+- Some phases rotate between attack sets.
+
+**New bosses**
+- Realm events: the Obsidian Colossus, Pyraxis the Phoenix, Mother Hexis and the Reef Kraken.
+- Three new realm finales (below), and six raid bosses.
+
+**Unique drops.** About 70 named items, each dropped by **one boss only**. The tooltip shows
+its lore and which boss drops it. Uniques have their own shot patterns: Saltbeard's Cutlass
+swings three blades, the Fang of Ssythra weaves like a snake, the Cryptkeeper's Blade
+returns to you. Runed items no longer drop from random monsters. Star Shards are much rarer.
+
+**Realm finales.** When a realm closes, it sends everyone to one of four finales, picked per
+realm (online, the same one for everyone from that realm):
+- Azrakor's Citadel, then the Dark Elder;
+- the Drowned Throne (Nerezza, the Tide Empress);
+- the Clockwork Foundry (Gearmind Omega);
+- the Void Rift (Vael'thrax the Void Dragon).
+
+**Raids.** The **Raid Table** in the Nexus (east, below the Starforge) opens a raid portal
+for 60 Aether. Everyone in the Nexus sees it, and the portal lasts 2 minutes. A raid is three
+boss stages in a row:
+- **The Crimson Conclave:** two Zealots, then Matron Sanguine, then Archon Vesper.
+- **Heart of the Storm:** three Thunder Sentinels, then Galecaller Ysra, then Tempestus.
+
+Raid bosses drop the best loot and their own uniques.
+
+**Dungeons.** Each dungeon now has its own layout and atmosphere:
+
+| Layout | What it's like | Dungeons |
+| --- | --- | --- |
+| Caverns | Winding caves | Sunken Crypt, Ember Depths, Pirate Cove, Drowned Throne |
+| Labyrinth | A real maze | Forest Maze, Spider Den |
+| Pillared halls | Grid of halls | Forgotten Cellar, Undead Lair, Tomb, Clockwork Foundry |
+| Floating islands | Narrow bridges over an abyss | Storm Spire, Abyss of Demons, Sprite World, Void Rift |
+| Ring | Chambers around a central sanctum | Snake Pit, Shattered Sanctum |
+
+Some dungeons also have lava pools, flooded rooms or darkness (you only see a pool of light
+around yourself).
 
 ## Playing with friends (multiplayer)
 
@@ -369,6 +418,8 @@ src/realm/Net.as         connection to other players (the seam for the game serv
 src/realm/Online.as      socket connection to a New Realm server
 src/realm/ServerNet.as   online Net: real players, chat, parties, guilds, trades
 src/realm/WorldSync.as   shared monsters online (world host streams monsters to the others)
+src/realm/Bosses.as      every boss fight script, new bosses, raids and realm finales
+src/realm/Uniques.as     unique items and which boss drops each one
 server/server.js         the multiplayer server (Node.js, no dependencies)
 src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trade
 src/realm/RemotePlayer.as another player (position smoothing, public profile)

@@ -349,6 +349,12 @@ package realm {
 		};
 
 		// ================================================================ API
+		/** Registers `name` as `base`'s design with a new palette (new bosses reuse boss art). */
+		public static function recolor(name:String, base:String, pal:Object, scale:int = 0):void {
+			var d:Array = DEFS[base];
+			if (d) DEFS[name] = [d[0], pal, scale || d[2]];
+		}
+
 		/** Animation frame `frame` of a sprite (0 stand, 1 walk, 2 attack). */
 		public static function get(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var d:Array = DEFS[name] || skinDef(name) || DEFS["cubelet"];

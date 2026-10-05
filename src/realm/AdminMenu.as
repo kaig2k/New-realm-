@@ -151,17 +151,26 @@ package realm {
 		// ------------------------------------------------------------ dungeons
 		private function buildDungeons():void {
 			label("Open a portal next to you, or jump straight in.", 14, 0);
-			var y:int = 24;
+			var y0:int = 22;
 			for (var i:int = 0; i < Data.DUNGEONS.length; i++) {
 				var d:Object = Data.DUNGEONS[i];
-				label("<font color='" + Ui.hex(d.color) + "'>" + d.name + "</font>  <font size='11' color='#888888'>" + bossNames(d) + "</font>", 14, y + 4, 0xffffff, 300);
-				btn("Portal", 330, y, 90, portalFn(i), 12, 24);
-				btn("Enter", 426, y, 90, enterFn(i), 12, 24);
-				y += 27;
+				var col:int = i % 2, row:int = int(i / 2);
+				var x:int = 14 + col * 262, y:int = y0 + row * 26;
+				label("<font color='" + Ui.hex(d.color) + "'>" + d.name + "</font>", x, y + 4, 0xffffff, 150);
+				btn("Portal", x + 146, y, 54, portalFn(i), 11, 22);
+				btn("Enter", x + 204, y, 50, enterFn(i), 11, 22);
 			}
-			y += 8;
-			btn("Dark Elder's Chamber", 14, y, 200, function():void { g.adminEnterArena(); });
-			btn("Realm portal", 220, y, 140, function():void { g.adminRealmPortal(); });
+			var yy:int = y0 + Math.ceil(Data.DUNGEONS.length / 2) * 26 + 8;
+			for (var r:int = 0; r < Bosses.RAIDS.length; r++) {
+				btn("Raid: " + Bosses.RAIDS[r].name, 14 + r * 262, yy, 254, raidFn(r), 12, 26);
+			}
+			yy += 32;
+			btn("Dark Elder's Chamber", 14, yy, 200, function():void { g.adminEnterArena(); });
+			btn("Realm portal", 220, yy, 140, function():void { g.adminRealmPortal(); });
+		}
+
+		private function raidFn(i:int):Function {
+			return function():void { g.adminEnterRaid(i); g.toggleAdmin(); };
 		}
 
 		private function bossNames(d:Object):String {
@@ -200,6 +209,12 @@ package realm {
 			btn("Star Shard", 226, y2, 100, function():void { g.giveItem(Data.makeSor()); });
 			btn("Bonded set", 332, y2, 100, function():void { for (var s:int = 0; s < 4; s++) g.giveItem(Data.makeForSlot(cls, s, 7, "st")); });
 			btn("Random SF", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
+			y2 += 34;
+			btn("Random unique", 14, y2, 150, function():void {
+				var ids:Array = [];
+				for (var u:String in Uniques.ALL) ids.push(u);
+				g.giveItem(Uniques.make(ids[int(Math.random() * ids.length)]));
+			});
 			y2 += 40;
 			label("Stat potions", 14, y2, 0xffd75e);
 			y2 += 22;

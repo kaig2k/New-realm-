@@ -84,6 +84,10 @@ package realm {
 		public var eById:Object = {};
 		/** Online: spawns the world's monsters once we know we're its host. */
 		public var pendingPopulate:Function;
+		/** Raid arenas: the raid, its current stage and the countdown to the next. */
+		public var raid:Object;
+		public var raidStage:int = -1;
+		public var raidT:Number = 0;
 		/** Seeded generator state: the same seed builds the same map for everyone. */
 		private var seedState:uint = 0;
 
@@ -325,6 +329,50 @@ package realm {
 			var x:int, y:int, i:int;
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
 			var floor:int = th.floor, accent:int = th.accent;
+			// each dungeon has its own layout style
+			switch (th.layout) {
+				case "cave": layoutCave(th, floor, accent); break;
+				case "grid": layoutGrid(th, floor, accent); break;
+				case "islands": layoutIslands(th, floor, accent); break;
+				case "ring": layoutRing(th, floor, accent); break;
+				case "maze": layoutMaze(th, floor, accent); break;
+				default: layoutRooms(th, floor, accent);
+			}
+			if (th.hazard) addHazards(th.hazard);
+			// a hidden treasure room off one of the middle rooms
+			for (var tries:int = 0; tries < 12 && !treasure; tries++) {
+				var base:Object = rooms[1 + int(rnd() * (rooms.length - 2))];
+				var side:int = rnd() < 0.5 ? -1 : 1;
+				var tx:int = base.x + side * (int(base.w / 2) + 8), ty:int = base.y;
+				var free:Boolean = tx > 12 && tx < N - 12;
+				for each (var o:Object in rooms) {
+					if (Math.abs(o.x - tx) < o.w / 2 + 6 && Math.abs(o.y - ty) < o.h / 2 + 6) free = false;
+				}
+				if (!free) continue;
+				carve(tx - 3, ty - 3, 7, 7, floor);
+				carve(tx - 1, ty - 1, 3, 3, CARPET);
+				corridor(base.x, base.y, tx, ty, floor);
+				treasure = {x: tx, y: ty, w: 7, h: 7};
+			}
+			// walls wherever floor meets the void (islands float over the abyss instead)
+			if (th.layout != "islands") for (y = 1; y < N - 1; y++) {
+				for (x = 1; x < N - 1; x++) {
+					i = y * N + x;
+					if (tiles[i] != VOID) continue;
+					for (var dy:int = -1; dy <= 1; dy++) {
+						for (var dx:int = -1; dx <= 1; dx++) {
+							var t:int = tiles[(y + dy) * N + x + dx];
+							if (t != VOID && t != WALL) { tiles[i] = WALL; zones[i] = DUNGEON_ZONE; }
+						}
+					}
+				}
+			}
+			spawnX = rooms[0].x + 0.5;
+			spawnY = rooms[0].y + 0.5 + Math.max(0, Math.min(2, int(rooms[0].h / 2) - 1));
+		}
+
+		/** Classic: a chain of rectangular rooms joined by corridors. */
+		private function layoutRooms(th:Object, floor:int, accent:int):void {
 			var cx:int = 100, cy:int = 175;
 			var count:int = th.small ? 4 + int(rnd() * 2) : 6 + int(rnd() * 2);
 			var prev:Object = null;
@@ -347,36 +395,216 @@ package realm {
 				if (k == count - 2) { cy -= 4; }
 				if (cy < 25) cy = 25;
 			}
-			// a hidden treasure room off one of the middle rooms
-			for (var tries:int = 0; tries < 12 && !treasure; tries++) {
-				var base:Object = rooms[1 + int(rnd() * (rooms.length - 2))];
-				var side:int = rnd() < 0.5 ? -1 : 1;
-				var tx:int = base.x + side * (int(base.w / 2) + 8), ty:int = base.y;
-				var free:Boolean = tx > 12 && tx < N - 12;
-				for each (var o:Object in rooms) {
-					if (Math.abs(o.x - tx) < o.w / 2 + 6 && Math.abs(o.y - ty) < o.h / 2 + 6) free = false;
-				}
-				if (!free) continue;
-				carve(tx - 3, ty - 3, 7, 7, floor);
-				carve(tx - 1, ty - 1, 3, 3, CARPET);
-				corridor(base.x, base.y, tx, ty, floor);
-				treasure = {x: tx, y: ty, w: 7, h: 7};
+		}
+
+		/** Caverns: lumpy round chambers joined by winding tunnels. */
+		private function layoutCave(th:Object, floor:int, accent:int):void {
+			var cx:int = 100, cy:int = 178;
+			var count:int = th.small ? 4 + int(rnd() * 2) : 6 + int(rnd() * 2);
+			var prev:Object = null;
+			for (var k:int = 0; k < count; k++) {
+				var boss:Boolean = k == count - 1;
+				var r:Number = boss ? 9 : 5 + rnd() * 2.5;
+				blob(cx, cy, r, floor);
+				if (!boss && k > 0 && rnd() < 0.5) blob(cx + int(rnd() * 4) - 2, cy + int(rnd() * 4) - 2, 1.6, accent);
+				if (prev) tunnel(prev.x, prev.y, cx, cy, floor);
+				var room:Object = {x: cx, y: cy, w: int(r * 1.6), h: int(r * 1.6)};
+				rooms.push(room);
+				prev = room;
+				var a:Number = -Math.PI / 2 + (rnd() - 0.5) * 1.6;
+				var d:Number = 17 + rnd() * 4;
+				cx = Math.max(25, Math.min(N - 25, cx + int(Math.cos(a) * d)));
+				cy = Math.max(22, cy + int(Math.sin(a) * d));
 			}
-			// walls wherever floor meets the void
-			for (y = 1; y < N - 1; y++) {
-				for (x = 1; x < N - 1; x++) {
-					i = y * N + x;
-					if (tiles[i] != VOID) continue;
-					for (var dy:int = -1; dy <= 1; dy++) {
-						for (var dx:int = -1; dx <= 1; dx++) {
-							var t:int = tiles[(y + dy) * N + x + dx];
-							if (t != VOID && t != WALL) { tiles[i] = WALL; zones[i] = DUNGEON_ZONE; }
-						}
+		}
+
+		/** Pillared halls on a grid, joined by long straight corridors. */
+		private function layoutGrid(th:Object, floor:int, accent:int):void {
+			var cols:int = 3, rowsN:int = th.small ? 2 : 3;
+			var gx:int = 68, gy:int = 170, step:int = 20;
+			// snake through the grid from bottom-left to the top
+			var order:Array = [];
+			for (var row:int = 0; row < rowsN; row++) {
+				for (var c:int = 0; c < cols; c++) order.push([row % 2 == 0 ? c : cols - 1 - c, row]);
+			}
+			var prev:Object = null;
+			for (var k:int = 0; k < order.length; k++) {
+				var cx:int = gx + order[k][0] * step, cy:int = gy - order[k][1] * step;
+				var w:int = 11, h:int = 11;
+				carve(cx - 5, cy - 5, w, h, floor);
+				// pillars for cover
+				for each (var pp:Array in [[-3, -3], [3, -3], [-3, 3], [3, 3]]) if (k > 0) tiles[(cy + pp[1]) * N + cx + pp[0]] = WALL;
+				if (k > 0 && rnd() < 0.5) carve(cx - 1, cy - 1, 3, 3, accent);
+				if (prev) corridor(prev.x, prev.y, cx, cy, floor);
+				var room:Object = {x: cx, y: cy, w: w, h: h};
+				rooms.push(room);
+				prev = room;
+			}
+			// the boss hall above the grid
+			var bx:int = prev.x, by:int = gy - rowsN * step - 6;
+			carve(bx - 9, by - 8, 19, 17, floor);
+			for each (var bp:Array in [[-5, -4], [5, -4], [-5, 4], [5, 4]]) tiles[(by + bp[1]) * N + bx + bp[0]] = WALL;
+			carve(bx - 2, by - 2, 5, 5, accent);
+			corridor(prev.x, prev.y, bx, by, floor);
+			rooms.push({x: bx, y: by, w: 19, h: 17});
+		}
+
+		/** Floating platforms over the abyss, joined by narrow bridges. */
+		private function layoutIslands(th:Object, floor:int, accent:int):void {
+			var cx:int = 100, cy:int = 178;
+			var count:int = th.small ? 5 : 7;
+			var prev:Object = null;
+			for (var k:int = 0; k < count; k++) {
+				var boss:Boolean = k == count - 1;
+				var r:Number = boss ? 9.5 : k == 0 ? 5 : 4.5 + rnd() * 2;
+				blob(cx, cy, r, floor);
+				if (!boss && k > 0) blob(cx, cy, 1.5, accent);
+				if (prev) bridge(prev.x, prev.y, cx, cy);
+				var room:Object = {x: cx, y: cy, w: int(r * 1.5), h: int(r * 1.5)};
+				rooms.push(room);
+				prev = room;
+				var a:Number = -Math.PI / 2 + (rnd() - 0.5) * 2;
+				var d:Number = 18 + rnd() * 5;
+				cx = Math.max(25, Math.min(N - 25, cx + int(Math.cos(a) * d)));
+				cy = Math.max(22, cy + int(Math.sin(a) * d));
+			}
+		}
+
+		/** Chambers around a great ring, with the boss waiting in the centre. */
+		private function layoutRing(th:Object, floor:int, accent:int):void {
+			var ccx:int = 100, ccy:int = 100, R:int = 38;
+			var n:int = th.small ? 5 : 7;
+			var prev:Object = null, first:Object;
+			for (var k:int = 0; k < n; k++) {
+				var a:Number = Math.PI / 2 + k * Math.PI * 2 / n;
+				var cx:int = ccx + int(Math.cos(a) * R), cy:int = ccy + int(Math.sin(a) * R);
+				blob(cx, cy, 5.5, floor);
+				if (k > 0 && rnd() < 0.6) blob(cx, cy, 1.6, accent);
+				if (prev) arc(prev.x, prev.y, cx, cy, ccx, ccy, floor);
+				var room:Object = {x: cx, y: cy, w: 9, h: 9};
+				rooms.push(room);
+				if (!first) first = room;
+				prev = room;
+			}
+			// the inner sanctum, reached from the last chamber
+			blob(ccx, ccy, 10, floor);
+			blob(ccx, ccy, 3, accent);
+			corridor(prev.x, prev.y, ccx, ccy, floor);
+			rooms.push({x: ccx, y: ccy, w: 18, h: 18});
+		}
+
+		/** A real labyrinth: twisting 3-wide passages, the boss beyond its far corner. */
+		private function layoutMaze(th:Object, floor:int, accent:int):void {
+			var W:int = th.small ? 9 : 11, H:int = th.small ? 9 : 11, cell:int = 5;
+			var x0:int = 100 - int(W * cell / 2), y0:int = 120 - int(H * cell / 2);
+			var seen:Array = [];
+			for (var i:int = 0; i < W * H; i++) seen.push(false);
+			var stack:Array = [[0, H - 1]];
+			seen[(H - 1) * W] = true;
+			var dirs:Array = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+			carve(x0 + 1, y0 + (H - 1) * cell + 1, 3, 3, floor);
+			while (stack.length) {
+				var cur:Array = stack[stack.length - 1];
+				var opts:Array = [];
+				for each (var d:Array in dirs) {
+					var nx:int = cur[0] + d[0], ny:int = cur[1] + d[1];
+					if (nx >= 0 && ny >= 0 && nx < W && ny < H && !seen[ny * W + nx]) opts.push([nx, ny]);
+				}
+				if (!opts.length) { stack.pop(); continue; }
+				var nxt:Array = opts[int(rnd() * opts.length)];
+				seen[nxt[1] * W + nxt[0]] = true;
+				// knock through the wall between the two cells
+				var ax:int = x0 + cur[0] * cell + 1, ay:int = y0 + cur[1] * cell + 1;
+				var bx:int = x0 + nxt[0] * cell + 1, by:int = y0 + nxt[1] * cell + 1;
+				carve(Math.min(ax, bx), Math.min(ay, by), Math.abs(ax - bx) + 3, Math.abs(ay - by) + 3, floor);
+				stack.push(nxt);
+			}
+			// a few loops so it isn't a single path
+			for (var lp:int = 0; lp < W; lp++) {
+				var lx:int = x0 + int(rnd() * (W - 1)) * cell + 1, ly:int = y0 + int(rnd() * H) * cell + 1;
+				carve(lx, ly, cell + 3, 3, floor);
+			}
+			var sx:int = x0 + 2, sy:int = y0 + (H - 1) * cell + 2;
+			rooms.push({x: sx, y: sy, w: 3, h: 3});
+			// clearings for monsters scattered through the maze
+			for (var k:int = 0; k < (th.small ? 5 : 7); k++) {
+				var mx:int = x0 + int(rnd() * W) * cell + 2, my:int = y0 + int(rnd() * H) * cell + 2;
+				carve(mx - 2, my - 2, 5, 5, floor);
+				if (rnd() < 0.4) carve(mx, my, 1, 1, accent);
+				rooms.push({x: mx, y: my, w: 5, h: 5});
+			}
+			// the boss lair past the far corner
+			var ex:int = x0 + (W - 1) * cell + 2, ey:int = y0 + 2;
+			var lx2:int = ex + 14, ly2:int = ey - 4;
+			carve(lx2 - 8, ly2 - 7, 17, 15, floor);
+			carve(lx2 - 1, ly2 - 1, 3, 3, accent);
+			corridor(ex, ey, lx2, ly2, floor);
+			rooms.push({x: lx2, y: ly2, w: 17, h: 15});
+		}
+
+		/** A rough disc of floor. */
+		private function blob(cx:int, cy:int, r:Number, t:int):void {
+			var ri:int = Math.ceil(r) + 2;
+			var wob:Array = [];
+			for (var k:int = 0; k < 12; k++) wob.push(0.82 + rnd() * 0.3);
+			for (var y:int = -ri; y <= ri; y++) {
+				for (var x:int = -ri; x <= ri; x++) {
+					var a:Number = Math.atan2(y, x);
+					var f:Number = wob[int((a + Math.PI) / (Math.PI * 2) * 12) % 12];
+					if (x * x + y * y <= r * r * f * f) carve(cx + x, cy + y, 1, 1, t);
+				}
+			}
+		}
+
+		/** A winding 3-wide tunnel. */
+		private function tunnel(x0:int, y0:int, x1:int, y1:int, t:int):void {
+			var x:Number = x0, y:Number = y0;
+			for (var n:int = 0; n < 400; n++) {
+				carve(int(x) - 1, int(y) - 1, 3, 3, t);
+				var dx:Number = x1 - x, dy:Number = y1 - y;
+				var d:Number = Math.sqrt(dx * dx + dy * dy);
+				if (d < 1.5) break;
+				var a:Number = Math.atan2(dy, dx) + (rnd() - 0.5) * 1.4;
+				x += Math.cos(a); y += Math.sin(a);
+			}
+		}
+
+		/** A 2-wide bridge over the abyss. */
+		private function bridge(x0:int, y0:int, x1:int, y1:int):void {
+			var steps:int = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+			for (var k:int = 0; k <= steps; k++) {
+				var x:int = x0 + Math.round((x1 - x0) * k / steps), y:int = y0 + Math.round((y1 - y0) * k / steps);
+				for (var oy:int = 0; oy < 2; oy++) for (var ox:int = 0; ox < 2; ox++) {
+					var i:int = (y + oy) * N + x + ox;
+					if (tiles[i] == VOID) { tiles[i] = BRIDGE; zones[i] = DUNGEON_ZONE; }
+				}
+			}
+		}
+
+		/** A curved passage along the ring between two chambers. */
+		private function arc(x0:int, y0:int, x1:int, y1:int, cx:int, cy:int, t:int):void {
+			var a0:Number = Math.atan2(y0 - cy, x0 - cx), a1:Number = Math.atan2(y1 - cy, x1 - cx);
+			while (a1 < a0) a1 += Math.PI * 2;
+			var R:Number = Math.sqrt((x0 - cx) * (x0 - cx) + (y0 - cy) * (y0 - cy));
+			for (var a:Number = a0; a <= a1; a += 0.02) carve(cx + int(Math.cos(a) * R) - 1, cy + int(Math.sin(a) * R) - 1, 3, 3, t);
+		}
+
+		/** Lava pools or flooded patches in the middle rooms. */
+		private function addHazards(kind:String):void {
+			var t:int = kind == "lava" ? LAVA : WATER;
+			for (var k:int = 1; k < rooms.length - 1; k++) {
+				var rm:Object = rooms[k];
+				if (rnd() < 0.35 || rm.w < 6) continue;
+				var n:int = 1 + int(rnd() * 2);
+				for (var j:int = 0; j < n; j++) {
+					var px:int = rm.x + int((rnd() - 0.5) * (rm.w - 4)), py:int = rm.y + int((rnd() - 0.5) * (rm.h - 4));
+					var r:Number = 1.2 + rnd() * 1.4;
+					for (var y:int = -2; y <= 2; y++) for (var x:int = -2; x <= 2; x++) {
+						var i:int = (py + y) * N + px + x;
+						if (x * x + y * y <= r * r && tiles[i] != VOID && tiles[i] != WALL && tiles[i] != BRIDGE) tiles[i] = t;
 					}
 				}
 			}
-			spawnX = rooms[0].x + 0.5;
-			spawnY = rooms[0].y + 2.5;
 		}
 
 		private function carve(x0:int, y0:int, w:int, h:int, t:int):void {

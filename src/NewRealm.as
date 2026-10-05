@@ -29,6 +29,7 @@ package {
 			stage.align = "";
 			stage.frameRate = 60;
 			stage.quality = StageQuality.HIGH;
+			realm.Bosses.init();
 			Accounts.autoLogin();
 			Ui.loadFonts(showTitle);
 		}

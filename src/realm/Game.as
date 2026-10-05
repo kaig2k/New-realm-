@@ -548,6 +548,7 @@ package realm {
 			stations.push({x: 94.5, y: 111.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080)});
 			stations.push({x: 84.5, y: 93.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e)});
 			stations.push({x: 116.5, y: 93.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff)});
+			stations.push({x: 116.5, y: 107.5, kind: "raids", spr: "raidtable", label: makeLabel("Raid Table", 0xff3050)});
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
@@ -586,6 +587,12 @@ package realm {
 
 		/** The world host dropped a dungeon portal. */
 		public function netPortal(x:Number, y:Number, kind:String, idx:int, color:uint, life:Number, seed:uint):void {
+			if (kind == "raid" && Bosses.RAIDS[idx]) {
+				addPortal(world, x, y, kind, idx, color, life, seed, false);
+				showBanner(Bosses.RAIDS[idx].name + " is open!", color, 3);
+				msg("A portal to " + Bosses.RAIDS[idx].name + " has opened by the Raid Table!", color);
+				return;
+			}
 			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
 			addPortal(world, x, y, kind, idx, color, life, seed, false);
 			msg("A portal to the " + Data.DUNGEONS[idx].name + " has opened!", Data.DUNGEONS[idx].color);
@@ -621,6 +628,7 @@ package realm {
 			if (p.kind == "realm") return realmNames[p.idx] + " Realm";
 			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
 			if (p.kind == "elder") return "Dark Elder's Chamber";
+			if (p.kind == "raid") return Bosses.RAIDS[p.idx].name;
 			return "Nexus";
 		}
 
@@ -632,6 +640,7 @@ package realm {
 			if (p.kind == "realm") enterPortal(p.idx);
 			else if (p.kind == "dungeon") enterDungeon(p.idx, p.seed);
 			else if (p.kind == "elder") enterArena();
+			else if (p.kind == "raid") enterRaid(p.idx, p.seed);
 			else nexusNow();
 		}
 
@@ -728,6 +737,10 @@ package realm {
 
 		public function adminEnterDungeon(i:int):void {
 			travel(function():void { enterDungeon(i); });
+		}
+
+		public function adminEnterRaid(i:int):void {
+			travel(function():void { enterRaid(i, 1 + uint(Math.random() * 0x7ffffffe)); });
 		}
 
 		public function adminEnterArena():void {
@@ -942,6 +955,8 @@ package realm {
 			closePlayerMenu();
 			closeInspect();
 			closeRequest(true);
+			questTarget = null;
+			questT = 0;
 			if (net) net.enterWorld(w);
 		}
 
@@ -1036,6 +1051,7 @@ package realm {
 				updateSpawns(dt);
 				updateEvents(dt);
 			}
+			if (world.raid && sync.isHost) updateRaid(dt);
 			sync.update(dt);
 			netT -= dt;
 			if (netT <= 0) {
@@ -1385,7 +1401,7 @@ package realm {
 				questEvent("kills");
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
-				if (e.def.final) { questEvent("elder"); p.elders++; }
+				if (e.def.final || e.def.finale) { questEvent("elder"); p.elders++; }
 				else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0)) { questEvent("dungeon"); p.dungeons++; }
 				else if (e.isBoss) questEvent("events");
 				p.kills++;
@@ -1427,6 +1443,14 @@ package realm {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
 					msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);
 					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
+				} else if (e.def.raid) {
+					var rdw:Object = world.raid;
+					if (rdw && world.raidStage >= rdw.stages.length - 1 && aliveBosses() == 0) {
+						showBanner(rdw.name + " conquered!", rdw.color, 5);
+						msg("Raid complete! A portal back to the Nexus has opened.", Ui.GOLD);
+						addPortal(world, 100.5, 100.5, "nexus", 0, 0xffffff);
+						questEvent("dungeon");
+					} else showBanner(e.def.name + " has fallen!", rdw ? rdw.color : Ui.GOLD, 3);
 				} else if (e.def.final) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 5);
 					say(SOVEREIGN, "This... is not... the end...");
@@ -1694,6 +1718,12 @@ package realm {
 			return best || world.boss;
 		}
 
+		private function aliveBosses():int {
+			var n:int = 0;
+			for each (var e:Enemy in enemies) if (!e.dead && e.isBoss) n++;
+			return n;
+		}
+
 		private function aliveWith(flag:String):int {
 			var n:int = 0;
 			for each (var e:Enemy in enemies) if (!e.dead && e.def[flag]) n++;
@@ -1737,10 +1767,17 @@ package realm {
 
 		/** The realm has closed: storm Azrakor's Citadel, then face him in his chamber. */
 		private function enterCitadel():void {
-			// online, everyone in the closing realm goes to the same Citadel
+			// each realm closes into one of several finales; online, everyone from the realm goes to the same one
+			var fid:String = finaleFor(world);
 			var seed:uint = net.online && world.seed ? ((world.seed * 2654435761) & 0x7fffffff) | 1 : 0;
-			enterDungeon(Data.dungeonIndex("citadel"), seed);
-			say(SOVEREIGN, "You have slain my champions. Now come to my Citadel... if you can.");
+			enterDungeon(Data.dungeonIndex(fid), seed);
+			var lines:Object = {
+				citadel: [SOVEREIGN, "You have slain my champions. Now come to my Citadel... if you can."],
+				drowned_throne: ["Nerezza, the Tide Empress", "The realm sinks beneath my waves. Come, drown in my throne room."],
+				clockwork_foundry: ["Gearmind Omega", "REALM DECOMMISSIONED. SURVIVORS WILL BE RECYCLED."],
+				void_rift: ["Vael'thrax the Void Dragon", "The realm is torn open. Step into the rift, little ones."]
+			};
+			say(lines[fid][0], lines[fid][1]);
 		}
 
 		public function bossPhase(phase:int, b:Enemy = null):void {
@@ -1976,7 +2013,7 @@ package realm {
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 450},
 			{id: "sor", name: "Star Shard", price: 900},
-			{id: "ut", name: "Mystery Runed item", price: 2500},
+			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
 
@@ -2001,8 +2038,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e}[openStation.kind], true, "center", w, true);
-			title.text = {forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store"}[openStation.kind];
+			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050}[openStation.kind], true, "center", w, true);
+			title.text = {forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -2031,6 +2068,22 @@ package realm {
 					sp.addChild(none);
 				}
 				y += 56;
+			} else if (openStation.kind == "raids") {
+				info.htmlText = "Open a raid portal here in the Nexus. Raids are three boss fights in a row, best with friends. " +
+					"Raid bosses drop their own unique items. You have <b>" + onrane + "</b> Aether.";
+				info.y = y;
+				y += info.height + 10;
+				for (i = 0; i < Bosses.RAIDS.length; i++) {
+					var rd:Object = Bosses.RAIDS[i];
+					var rt:TextField = Ui.text(14, rd.color, true, "left", w - 200, true);
+					rt.htmlText = rd.name + "\n<font size='11' color='#aaaaaa'>" + raidBossNames(rd) + "</font>";
+					rt.x = 16; rt.y = y;
+					sp.addChild(rt);
+					var rb:Sprite = Ui.button("Open (" + rd.cost + " Aether)", 170, 32, raidFn(i), 13);
+					rb.x = w - 186; rb.y = y + 2;
+					sp.addChild(rb);
+					y += 46;
+				}
 			} else if (openStation.kind == "skins") {
 				y = buildSkinPanel(sp, info, y, w);
 			} else if (openStation.kind == "pets") {
@@ -2107,6 +2160,88 @@ package realm {
 			sp.x = (VIEW_W - w) / 2;
 			sp.y = 60;
 			sp.visible = true;
+		}
+
+		// ------------------------------------------------------------ raids
+		private function raidBossNames(rd:Object):String {
+			var parts:Array = [];
+			for each (var st:Array in rd.stages) {
+				var nm:String = Data.ENEMIES[st[0]].name;
+				parts.push(st.length > 1 ? st.length + "x " + nm : nm);
+			}
+			return parts.join("  >  ");
+		}
+
+		private function raidFn(i:int):Function {
+			return function():void { openRaid(i); };
+		}
+
+		/** Spends Aether and opens a raid portal next to the table (everyone in the Nexus sees it). */
+		public function openRaid(i:int, free:Boolean = false):void {
+			var rd:Object = Bosses.RAIDS[i];
+			if (!free && onrane < rd.cost) { msg("Opening " + rd.name + " costs " + rd.cost + " Aether.", 0xff8080); return; }
+			if (!free) addOnrane(-rd.cost);
+			Save.flush();
+			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
+			var px:Number = 113.5, py:Number = 107.5;
+			addPortal(nexusWorld, px, py, "raid", i, rd.color, 120, seed, false);
+			if (net.online) net.sendWorld("all", {t: "portal", x: px, y: py, k: "raid", i: i, c: rd.color, l: 120, s: seed});
+			showBanner(rd.name + " is open!", rd.color, 3);
+			msg(player.name + " opened a portal to " + rd.name + "! (2 minutes)", rd.color);
+			Sfx.play("portal");
+			closeStation();
+		}
+
+		private function enterRaid(i:int, seed:uint):void {
+			var rd:Object = Bosses.RAIDS[i];
+			if (!rd) return;
+			arenaWorld = new World("arena", rd.name, null, seed);
+			arenaWorld.key = "raid:" + i + ":" + seed;
+			arenaWorld.raid = rd;
+			arenaWorld.raidStage = -1;
+			arenaWorld.raidT = 4;
+			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
+			player.invulnT = 3;
+			showBanner(rd.name, rd.color, 4);
+			msg(rd.intro, rd.color);
+			Sfx.play("portal");
+		}
+
+		/** Host: start the next raid stage once the current bosses are down. */
+		private function updateRaid(dt:Number):void {
+			var w:World = world;
+			var rd:Object = w.raid;
+			if (!rd || w.raidStage >= rd.stages.length) return;
+			for each (var e:Enemy in enemies) if (!e.dead && e.isBoss) return;
+			w.raidT -= dt;
+			if (w.raidT > 0) return;
+			w.raidStage++;
+			w.raidT = 5;
+			if (w.raidStage >= rd.stages.length) return;
+			var st:Array = rd.stages[w.raidStage];
+			for (var k:int = 0; k < st.length; k++) {
+				var a:Number = -Math.PI / 2 + (k - (st.length - 1) / 2) * 0.9;
+				var b:Enemy = spawnEnemy(st[k], 100.5 + Math.cos(a) * (st.length > 1 ? 5 : 0), 95.5 + Math.sin(a) * (st.length > 1 ? 3 : 0), World.ARENA_ZONE);
+				if (b && k == 0) w.boss = b;
+			}
+			raidStageBanner(w.raidStage, rd);
+			if (net.online) net.sendWorld("all", {t: "rstage", n: w.raidStage});
+		}
+
+		public function raidStageBanner(n:int, rd:Object = null):void {
+			rd = rd || world.raid;
+			if (!rd || !rd.stages[n]) return;
+			var nm:String = Data.ENEMIES[rd.stages[n][0]].name;
+			showBanner((n == rd.stages.length - 1 ? "Final stage: " : "Stage " + (n + 1) + ": ") + nm, rd.color, 3.5);
+			Sfx.play("boss");
+			shake(0.4, 6);
+		}
+
+		/** Where a closing realm sends everyone (the same place for everyone online). */
+		private function finaleFor(w:World):String {
+			var ids:Array = Bosses.FINALES;
+			if (w.seed) return ids[w.seed % ids.length];
+			return ids[int(Math.random() * ids.length)];
 		}
 
 		private function itemButton(item:Object, x:int, y:int, onClick:Function):Sprite {
@@ -2413,7 +2548,7 @@ package realm {
 					item = Data.makePotion("mp"); break;
 				case "stat": item = Data.makePotion("stat", Data.randomStat()); break;
 				case "sor": item = Data.makeSor(); break;
-				case "ut": item = Data.makeForSlot(player.cls, int(Math.random() * 4), 7, "ut"); break;
+				case "ut": item = Data.makeForSlot(player.cls, int(Math.random() * 3), 7, null); break;
 				case "backpack":
 					if (player.backpack) { msg("This character already has a backpack.", 0xff8080); return; }
 					player.backpack = true;
@@ -2723,7 +2858,8 @@ package realm {
 				var lab:TextField = p.label;
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
-					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>" : "Nexus";
+					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
+					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);
 			}
@@ -2816,6 +2952,7 @@ package realm {
 				pt.y = scrY(q.x, q.y) - 3;
 				canvas.copyPixels(q.bd, q.bd.rect, pt, null, null, true);
 			}
+			if (world.theme && world.theme.dark) drawDarkness();
 			canvas.unlock();
 			updateQuestArrow();
 			updateTags();
@@ -2825,6 +2962,22 @@ package realm {
 				f.tf.x = scrX(f.x, f.y) - f.tf.width / 2;
 				f.tf.y = scrY(f.x, f.y) - f.tf.height / 2;
 			}
+		}
+
+		private var darkShape:Shape = new Shape();
+		private var darkMtx:Matrix = new Matrix();
+
+		/** Dark dungeons: you only see a pool of light around yourself. */
+		private function drawDarkness():void {
+			var px:Number = scrX(player.x, player.y), py:Number = scrY(player.x, player.y);
+			var R:Number = TS * 9;
+			darkMtx.createGradientBox(R * 2, R * 2, 0, px - R, py - R);
+			var g:* = darkShape.graphics;
+			g.clear();
+			g.beginGradientFill("radial", [0, 0, 0], [0, 0.55, 0.94], [0, 140, 255], darkMtx);
+			g.drawRect(0, 0, vw, vh);
+			g.endFill();
+			canvas.draw(darkShape);
 		}
 
 		/** Reuses draw-list entries between frames instead of allocating new objects. */

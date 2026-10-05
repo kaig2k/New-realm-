@@ -231,8 +231,8 @@ package realm {
 				case "/glands":
 					if (world.kind != "realm") { msg("/glands only works inside a realm.", 0xff8080); break; }
 					for (var i:int = 0; i < 600; i++) {
-						var x:Number = 30 + Math.random() * 140, y:Number = 30 + Math.random() * 140;
-						if (world.zoneAt(x, y) == 3 && world.canStand(x, y, 0.5, false)) {
+						var x:Number = Math.random() * world.N, y:Number = Math.random() * world.N;
+						if (world.zoneAt(x, y) == World.GOD_ZONE && world.canStand(x, y, 0.5, false)) {
 							player.x = x; player.y = y; player.invulnT = 1.5;
 							msg("Teleported to the Godlands.", 0xd090ff);
 							Sfx.play("portal");
@@ -486,16 +486,16 @@ package realm {
 				for (var k:int = 0; k < n; k++) {
 					var mx:Number = rm.x + (Math.random() - 0.5) * (rm.w - 3);
 					var my:Number = rm.y + (Math.random() - 0.5) * (rm.h - 3);
-					spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], mx, my, 3);
+					spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], mx, my, th.tier);
 				}
 			}
 			var tr:Object = dungeonWorld.treasure;
 			if (tr) {
-				spawnEnemy("treasure", tr.x + 0.5, tr.y + 0.5, 3);
-				for (k = 0; k < 3; k++) spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], tr.x + 0.5 + (k - 1) * 2, tr.y + 2, 3);
+				spawnEnemy("treasure", tr.x + 0.5, tr.y + 0.5, th.tier);
+				for (k = 0; k < 3; k++) spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], tr.x + 0.5 + (k - 1) * 2, tr.y + 2, th.tier);
 			}
 			var last:Object = rooms[rooms.length - 1];
-			dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, 3);
+			dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, th.tier);
 			dungeonWorld.enemies.push(dungeonWorld.boss);
 			player.bossDmg = 0;
 			showBanner(th.name, th.color, 3);
@@ -640,7 +640,7 @@ package realm {
 
 			var z:int = world.zoneAt(player.x, player.y);
 			if (z != lastZone && z >= 0) {
-				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd090ff, 0xffffff, 0xffffff, 0xff5050][z], 2.5);
+				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd8d070, 0xd090ff, 0xffffff, 0xff5050, 0xffffff, 0xffffff, 0xffffff][z], 2.5);
 				lastZone = z;
 			}
 
@@ -715,13 +715,18 @@ package realm {
 
 		/** Valor-style realm event: the overlord announces a boss somewhere inland. */
 		private function spawnEvent():void {
-			var id:String = Data.EVENTS[world.nextEvent % Data.EVENTS.length];
+			// a random event, avoiding the last few seen in this realm
+			if (!world.recentEvents) world.recentEvents = [];
+			var id:String;
+			do id = Data.EVENTS[int(Math.random() * Data.EVENTS.length)]; while (world.recentEvents.indexOf(id) >= 0);
 			for (var tries:int = 0; tries < 500; tries++) {
-				var x:Number = World.N / 2 + (Math.random() - 0.5) * 120;
-				var y:Number = World.N / 2 + (Math.random() - 0.5) * 120;
+				var x:Number = world.N / 2 + (Math.random() - 0.5) * world.N * 0.6;
+				var y:Number = world.N / 2 + (Math.random() - 0.5) * world.N * 0.6;
 				var z:int = world.zoneAt(x, y);
-				if ((z == 2 || z == 3) && world.canStand(x, y, 0.6, true)) {
+				if (z >= World.MID_ZONE && z <= World.GOD_ZONE && world.canStand(x, y, 0.6, true)) {
 					world.nextEvent++;
+					world.recentEvents.push(id);
+					if (world.recentEvents.length > 4) world.recentEvents.shift();
 					world.boss = new Enemy(id, x, y, z);
 					enemies.push(world.boss);
 					player.bossDmg = 0;
@@ -886,8 +891,8 @@ package realm {
 			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
 			var p:Player = player;
 			questEvent("kills");
-			if (world.kind == "realm" && e.zone == 3) questEvent("godkills");
-			if (world.kind == "realm" && e.zone == 3) p.godKills++;
+			if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
+			if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
 			if (e.def.final) { questEvent("elder"); p.elders++; }
 			else if (e.def.dungeon) { questEvent("dungeon"); p.dungeons++; }
 			else if (e.isBoss) questEvent("events");
@@ -936,7 +941,7 @@ package realm {
 					world.eventT = 20 + Math.random() * 10;
 					// events often leave a dungeon portal behind
 					if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
-						var di:int = int(Math.random() * Data.DUNGEONS.length);
+						var di:int = int(Math.random() * Data.EVENT_DUNGEONS);
 						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, 90);
 						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (90s)", Data.DUNGEONS[di].color);
 						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
@@ -951,7 +956,18 @@ package realm {
 			} else if (world.kind == "realm" && !world.boss && e.def.drop > 0) {
 				world.eventT -= 1.2; // killing speeds up the next event
 			}
-			var items:Array = Data.rollLoot(e.def, Math.max(0, Math.min(3, e.zone)), p.cls, p.frt);
+			// RotMG-style: some monsters drop a portal to their own dungeon
+			if (world.kind == "realm" && e.def.portal && Math.random() < e.def.portalChance) {
+				var pi:int = Data.dungeonIndex(e.def.portal);
+				if (pi >= 0) {
+					var dd:Object = Data.DUNGEONS[pi];
+					addPortal(world, e.x, e.y, "dungeon", pi, dd.color, 60);
+					msg(e.def.name + " dropped a portal to the " + dd.name + "! (60s)", dd.color);
+					Sfx.play("portal", 0.6);
+					tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
+				}
+			}
+			var items:Array = Data.rollLoot(e.def, Math.max(0, Math.min(World.GOD_ZONE, e.zone)), p.cls, p.frt);
 			if (items.length) {
 				while (items.length > LootBag.MAX) items.pop();
 				var bag:LootBag = new LootBag(e.x, e.y, items);
@@ -1032,7 +1048,7 @@ package realm {
 			}
 			// fewer monsters near the shore so new characters aren't swarmed
 			var pz:int = world.zoneAt(player.x, player.y);
-			var cap:int = pz == 0 ? 8 : pz == 1 ? 11 : pz == 2 ? 14 : MAX_ENEMIES_NEAR;
+			var cap:int = pz == 0 ? 8 : pz == 1 ? 11 : pz == 2 ? 13 : pz == 3 ? 14 : MAX_ENEMIES_NEAR;
 			if (near >= cap) return;
 			for (var tries:int = 0; tries < 6; tries++) {
 				var a:Number = Math.random() * Math.PI * 2;
@@ -1040,11 +1056,11 @@ package realm {
 				var sx:Number = player.x + Math.cos(a) * r;
 				var sy:Number = player.y + Math.sin(a) * r;
 				var z:int = world.zoneAt(sx, sy);
-				if (z < 0 || z > 3 || !world.canStand(sx, sy, 0.4, true)) continue;
+				if (z < 0 || z > World.GOD_ZONE || !world.canStand(sx, sy, 0.4, true)) continue;
 				var list:Array = Data.ZONE_SPAWNS[z];
 				var id:String = list[int(Math.random() * list.length)];
 				// small packs near the shore, bigger ones inland
-				var count:int = 1 + int(Math.random() * (z <= 1 ? 2 : z == 3 ? 2 : 3));
+				var count:int = 1 + int(Math.random() * (z <= 1 ? 2 : z == World.GOD_ZONE ? 2 : 3));
 				for (var k:int = 0; k < count; k++) {
 					var ox:Number = sx + Math.random() * 2 - 1, oy:Number = sy + Math.random() * 2 - 1;
 					if (world.canStand(ox, oy, 0.4, true)) spawnEnemy(id, ox, oy, z);
@@ -1792,7 +1808,7 @@ package realm {
 				return best || b;
 			}
 			if (world.kind != "realm") return null;
-			var want:int = Math.min(3, int(player.level / 5));
+			var want:int = Math.min(World.GOD_ZONE, int(player.level / 4));
 			var bestZone:int = -1;
 			for each (e in enemies) {
 				if (e.dead || e.def.drop <= 0) continue;

@@ -401,11 +401,13 @@ package realm {
 		}
 
 		private function drawMinimap():void {
-			var z:Number = ZOOMS[zoom];
 			var p:Player = g.player;
 			var mw:int = mini.width, mh:int = mini.height;
+			var n:int = g.world.N;
+			// zoom 0 fits the whole map
+			var z:Number = zoom == 0 ? Math.min(1, Math.min(mw / n, mh / n)) : ZOOMS[zoom];
 			var ox:Number = Math.round(mw / 2 - p.x * z), oy:Number = Math.round(mh / 2 - p.y * z);
-			if (zoom == 0) { ox = (mw - World.N) / 2; oy = (mh - World.N) / 2; }
+			if (zoom == 0) { ox = Math.round((mw - n * z) / 2); oy = Math.round((mh - n * z) / 2); }
 			mini.fillRect(mini.rect, 0xff000000);
 			mini.draw(g.world.seen, new Matrix(z, 0, 0, z, ox, oy), null, null, null, false);
 

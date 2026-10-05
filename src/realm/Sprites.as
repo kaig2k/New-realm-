@@ -168,6 +168,13 @@ package realm {
 		private static const OWL:Array = [["..B..B..", ".BBBBBB.", "BWEBBEWB", "BBBYYBBB", ".BbBBbB.", ".BbbbbB.", "..BBBB..", "..Y..Y.."]];
 		private static const DRAKE:Array = [["......R.", ".R..RRR.", "RRR.RERR", ".RRRRRRR", "..RRRrR.", "..RrrrR.", "..RR.RR.", "........"]];
 		private static const WISP:Array = [["...WW...", "..WCCW..", ".WCEECW.", ".WCCCCW.", "..WCCW..", "...WC...", "....W...", "...W...."]];
+		private static const SPIDER:Array = [["........", "B.B..B.B", ".B.BB.B.", "..BEEB..", "BBBBBBBB", "..BbbB..", ".B.BB.B.", "B......B"]];
+		private static const SCORPION:Array = [["......T.", ".....T.T", "......T.", "C.....T.", "CC.SSTT.", ".SSESSS.", "SSSSSSS.", ".S.S.S.."]];
+		private static const MOTH:Array = [["W......W", "WW.AA.WW", "WwWAAWwW", "WWWEEWWW", "WwWAAWwW", "WW.AA.WW", "W..AA..W", "...A.A.."]];
+		private static const GHOST:Array = [["..WWWW..", ".WWWWWW.", "WWEWWEWW", "WWEWWEWW", "WWWWWWWW", "WWWwwWWW", "WWWWWWWW", "W.W.W.W."]];
+		private static const DEMON:Array = [["H......H", "HH.RR.HH", ".RRRRRR.", ".RYRRYR.", ".RRRRRR.", "RRrRRrRR", ".RRrrRR.", ".RR..RR."]];
+		private static const FAIRY:Array = [["W..CC..W", "WW.CC.WW", "WWCEECWW", "WwCCCCwW", "W.CCCC.W", "..CccC..", "..C..C..", "........"]];
+		private static const BIRD:Array = [["...HH...", "W.HEEH.W", "WWHHHHWW", "WWWBBWWW", "W.BBBB.W", "..BBBB..", "...BB...", "..Y..Y.."]];
 		private static const GRAVE:Array = [["..GGGG..", ".GGGGGG.", ".GGDGGg.", ".GDDDGg.", ".GGDGGg.", ".GGDGGg.", ".GGGGGg.", "MMMMMMMM"]];
 
 		// ================================================================ projectiles (point right)
@@ -271,6 +278,41 @@ package realm {
 			pet_drake: [DRAKE, {R: 0xe85a24, r: 0xffb040, E: 0xffff60}, 4],
 			pet_wisp: [WISP, {W: 0xe0fff8, C: 0x60f0d0, E: 0x105048}, 4],
 			pet_golem: [BRUTE, {H: 0x9a9aa0, h: 0x6a6a70, E: 0x60ff90, B: 0x8a8a90, b: 0x5a5a60, A: 0x60ff90, L: 0x4a4a50, W: 0x8a8a90, S: 0x9a9aa0}, 4],
+			// ---- realm monsters (biome leaders are drawn bigger)
+			pirate_brawler: [BRUTE, {H: 0x2a2a6a, h: 0x1a1a4a, E: 0x101010, B: 0xe0e0e0, b: 0xc02020, A: 0x8a5a2a, L: 0x3a2a14, W: 0xc0c0c0, S: 0xe0b890}],
+			pirate_captain: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xe0b890, E: 0x101010, B: 0xb02020, b: 0x701010, A: 0xf0c030, L: 0x2a1a10, W: 0xf0c030}, 6],
+			pirate_king: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xd8b088, E: 0xff3030, B: 0x2a2a6a, b: 0x14143a, A: 0xf0c030, L: 0x2a1a10, W: 0xe0e0e0}, 9],
+			scorpion: [SCORPION, {C: 0xb04020, S: 0xd06030, T: 0x8a2a10, E: 0x101010}],
+			green_slime: [BLOB, {B: 0x40b030, b: 0x207018, W: 0x9aff7a, E: 0x103010}, 6],
+			goblin_chief: [BRUTE, {H: 0x58a030, h: 0x3a7020, E: 0xff3030, B: 0x8a2a2a, b: 0x5a1a1a, A: 0xf0c030, L: 0x3a2814, W: 0xd0d0d0, S: 0x58a030}, 6],
+			bandit_leader: [HUMANOID, {H: 0x6a1a1a, h: 0x3a0a0a, S: 0xd0a880, E: 0xff3030, B: 0x2a2a2a, b: 0x141414, A: 0xf0c030, L: 0x1a1a1a, W: 0xe0e0e0}, 6],
+			orc_king: [BRUTE, {H: 0x2a6a2a, h: 0x1a4a1a, E: 0xffe020, B: 0x8a6a2a, b: 0x5a4418, A: 0xf0c030, L: 0x2a1a10, W: 0xe0e0e0, S: 0x2a6a2a}, 7],
+			spider: [SPIDER, {B: 0x3a2a3a, b: 0xc02020, E: 0xff3030}],
+			spider_queen: [SPIDER, {B: 0x2a1a2a, b: 0xe0c020, E: 0xff3030}, 7],
+			broodmother: [SPIDER, {B: 0x1a101a, b: 0xff3030, E: 0xffe040}, 10],
+			great_snake: [SNAKE, {G: 0x3a8a3a, g: 0x1a5a1a, E: 0xffe020}, 6],
+			harpy: [BIRD, {H: 0xe0c0a0, E: 0xff3030, W: 0x8a6a4a, B: 0x6a4a30, Y: 0xf0c030}],
+			dwarf: [BRUTE, {H: 0xc04a20, h: 0x8a3010, E: 0x101010, B: 0x6a6a72, b: 0x4a4a52, A: 0xf0c030, L: 0x3a2814, W: 0xc0c0c0, S: 0xf0c8a0}],
+			dwarf_king: [BRUTE, {H: 0xf0c030, h: 0xc08a10, E: 0x101010, B: 0x8a2a8a, b: 0x5a1a5a, A: 0xf0c030, L: 0x3a2814, W: 0xffffff, S: 0xf0c8a0}, 6],
+			ogre: [BRUTE, {H: 0xa08a5a, h: 0x7a6a40, E: 0xff3030, B: 0x6a4a2a, b: 0x4a3418, A: 0x9a9a9a, L: 0x3a2814, W: 0x8a6a4a, S: 0xa08a5a}, 7],
+			minotaur: [BRUTE, {H: 0x6a3a1a, h: 0x4a2410, E: 0xff3030, B: 0x8a5a2a, b: 0x5a3a18, A: 0xe0e0e0, L: 0x2a1a10, W: 0xe0e0e0, S: 0x6a3a1a}, 6],
+			ghost_god: [GHOST, {W: 0xe8f0ff, w: 0x9ab0d0, E: 0x203060}, 6],
+			ghost: [GHOST, {W: 0xc8d8f0, w: 0x8aa0c0, E: 0x203060}, 4],
+			demon: [DEMON, {H: 0xe0e0e0, R: 0xd02020, r: 0x8a1010, Y: 0xffe040}, 6],
+			lesser_demon: [DEMON, {H: 0xc0c0c0, R: 0xa02828, r: 0x6a1414, Y: 0xffe040}, 4],
+			archdemon: [DEMON, {H: 0x2a2a2a, R: 0x6a0a2a, r: 0x3a0414, Y: 0xff6020}, 10],
+			sprite_god: [FAIRY, {W: 0xc0f0ff, w: 0x80c0e0, C: 0xff80d0, c: 0xc04090, E: 0x101010}, 6],
+			sprite: [FAIRY, {W: 0xe0ffe0, w: 0xa0e0a0, C: 0x80e080, c: 0x40a040, E: 0x101010}, 4],
+			sprite_queen: [FAIRY, {W: 0xfff0a0, w: 0xe0c060, C: 0xff60c0, c: 0xc02080, E: 0x101010}, 10],
+			slime_god: [BLOB, {B: 0x8040c0, b: 0x502080, W: 0xd0a0ff, E: 0x200a30}, 7],
+			moth: [MOTH, {W: 0xe0d8a0, w: 0xa09060, A: 0x6a5030, E: 0xff3030}, 9],
+			mothling: [MOTH, {W: 0xc8c090, w: 0x8a8050, A: 0x5a4428, E: 0xff3030}, 4],
+			serpent_queen: [MEDUSA, {G: 0x2a9a6a, g: 0x1a6a4a, S: 0xa0e0c0, E: 0xffe020, B: 0x6a2a8a, b: 0x401a5a}, 9],
+			lich_king: [MAGE, {H: 0x1a1a3a, h: 0x0a0a20, S: 0xe8e0c8, E: 0xff3030, B: 0x2a1a3a, b: 0x140a20, L: 0x0a0a14, W: 0xc0c0d0, G: 0xff4060}, 10],
+			sphinx: [TITAN, {r: 0x6a5020, R: 0xc8a050, Y: 0x40c0ff, W: 0xfff0b0}, 5],
+			sunken_lord: [HOLLOWKING, {Y: 0x6a8aa0, B: 0x4a5a6a, E: 0x60e0ff, T: 0x1a2a3a, P: 0x2a4a6a, G: 0x8aa0b0}, 5],
+			hermit: [WYRM, {C: 0x2a9a8a, c: 0x1a5a50, E: 0xe0ff80, W: 0xc0fff0}, 5],
+			shrine: [BOSS, {Y: 0xe8e0c8, y: 0xa09880, P: 0x5a1a1a, p: 0x2e0a0a, Q: 0x8a2a2a, W: 0xffffff, E: 0xff2020, R: 0xd02848}, 6],
 			chest: [CHEST, {K: 0x4a2a10, C: 0x9a6a3a, c: 0x7a4a24, Y: 0xf0c030}, 6],
 			bag_brown: [BAG, {K: 0x502a10, C: 0x9a6a3a, c: 0x6a4420, D: 0x5a3a1a}],
 			bag_purple: [BAG, {K: 0x401060, C: 0xb050e0, c: 0x7a2aa8, D: 0x6a2090}],

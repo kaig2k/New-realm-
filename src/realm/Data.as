@@ -384,8 +384,10 @@ package realm {
 		// attacks: p = aimed | ring | spiral | summon ; arc in degrees ; spd tiles/s ; life seconds
 		public static const ENEMIES:Object = {
 			pirate: {name: "Pirate", spr: "pirate", hp: 30, def: 0, spd: 1.6, xp: 10, ai: "chase", keep: 3, drop: 0.12, col: 0xc02020,
+				portal: "pirate_cove", portalChance: 0.01,
 				attacks: [{p: "aimed", n: 1, spd: 6, life: 1.0, dmg: 8, cd: 1.3, r: 0.15, col: 0xffffff}]},
 			snake: {name: "Sand Snake", spr: "snake", hp: 22, def: 0, spd: 2.2, xp: 8, ai: "orbit", keep: 3, drop: 0.1, col: 0xc8b040,
+				portal: "snake_pit", portalChance: 0.01,
 				attacks: [{p: "aimed", n: 1, spd: 7, life: 0.8, dmg: 6, cd: 0.9, r: 0.12, col: 0x80ff80}]},
 			crab: {name: "Shore Crab", spr: "crab", hp: 50, def: 2, spd: 1.0, xp: 12, ai: "wander", drop: 0.15, col: 0xe05030,
 				attacks: [{p: "ring", n: 6, rot: 30, spd: 4, life: 1.3, dmg: 10, cd: 2.0, r: 0.2, col: 0xe08030, shape: "ring"}]},
@@ -542,6 +544,7 @@ package realm {
 				attacks: [{p: "ring", n: 10, rot: 18, spd: 4, life: 1.8, dmg: 26, cd: 2.2, r: 0.22, col: 0xb0b0b0, shape: "orb"},
 					{p: "aimed", n: 1, spd: 9, life: 1.0, dmg: 40, cd: 1.6, r: 0.28, col: 0xe0e0e0, shape: "orb"}]},
 			lich: {name: "Lich", spr: "lich", hp: 850, def: 10, spd: 1.5, xp: 75, ai: "blink", keep: 5, drop: 0.32, col: 0x60e0ff,
+				portal: "undead_lair", portalChance: 0.03,
 				attacks: [{p: "spiral", n: 3, rot: 20, spd: 5.5, life: 1.6, dmg: 40, cd: 0.22, r: 0.18, col: 0x60e0ff, shape: "star"},
 					{p: "aimed", n: 1, spd: 10, life: 1.2, dmg: 55, cd: 1.4, r: 0.22, col: 0xffffff, shape: "dart", eff: "slowed"}]},
 			imp: {name: "Ember Imp", spr: "imp", hp: 300, def: 5, spd: 3.0, xp: 15, ai: "chase", keep: 1, drop: 0, col: 0xff6020,
@@ -550,6 +553,187 @@ package realm {
 				attacks: [{p: "aimed", n: 1, spd: 10, life: 0.9, dmg: 45, cd: 0.9, r: 0.18, col: 0xe8e0c0, shape: "dart"}]},
 			shade: {name: "Elder's Shade", spr: "shade", hp: 600, def: 10, spd: 3.0, xp: 20, ai: "orbit", keep: 4, drop: 0, col: 0x8040c0,
 				attacks: [{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.2, dmg: 50, cd: 1.1, r: 0.18, col: 0xc080ff, shape: "dart", eff: "confused"}]},
+			// ================= RotMG-style realm monsters by biome =================
+			// portal: the dungeon this monster can drop (portalChance per kill)
+			// ---- Beach
+			pirate_brawler: {name: "Pirate Brawler", spr: "pirate_brawler", hp: 48, def: 1, spd: 2.0, xp: 12, ai: "chase", keep: 1.5, drop: 0.13, col: 0x2a2a6a,
+				portal: "pirate_cove", portalChance: 0.012,
+				attacks: [{p: "aimed", n: 2, arc: 30, spd: 6, life: 0.6, dmg: 9, cd: 1.2, r: 0.15, col: 0xe0e0e0, shape: "blade"}]},
+			pirate_captain: {name: "Pirate Captain", spr: "pirate_captain", hp: 170, def: 2, spd: 1.5, xp: 40, ai: "orbit", keep: 4, drop: 0.5, col: 0xb02020, r: 0.55,
+				portal: "pirate_cove", portalChance: 0.15,
+				attacks: [{p: "aimed", n: 3, arc: 24, spd: 6.5, life: 1.2, dmg: 11, cd: 1.3, r: 0.17, col: 0x404040, shape: "orb"},
+					{p: "summon", n: 1, cd: 6, what: "pirate"}]},
+			scorpion: {name: "Sand Scorpion", spr: "scorpion", hp: 35, def: 0, spd: 2.4, xp: 10, ai: "chase", keep: 2, drop: 0.1, col: 0xd06030,
+				attacks: [{p: "aimed", n: 1, spd: 8, life: 0.6, dmg: 8, cd: 0.8, r: 0.13, col: 0x90ff40, shape: "dart"}]},
+			// ---- Lowlands
+			green_slime: {name: "Big Green Slime", spr: "green_slime", hp: 150, def: 2, spd: 1.0, xp: 26, ai: "wander", drop: 0.25, col: 0x40b030, r: 0.55,
+				portal: "forest_maze", portalChance: 0.06,
+				attacks: [{p: "ring", n: 8, rot: 22, spd: 3.5, life: 1.6, dmg: 12, cd: 1.6, r: 0.18, col: 0x9aff7a, shape: "orb"}]},
+			goblin_chief: {name: "Goblin Chieftain", spr: "goblin_chief", hp: 320, def: 4, spd: 2.0, xp: 60, ai: "chase", keep: 2.5, drop: 0.45, col: 0x58a030, r: 0.55,
+				attacks: [{p: "aimed", n: 5, arc: 50, spd: 7, life: 0.8, dmg: 15, cd: 1.3, r: 0.17, col: 0xc0ff60},
+					{p: "summon", n: 2, cd: 7, what: "goblin"}]},
+			bandit_leader: {name: "Bandit Leader", spr: "bandit_leader", hp: 380, def: 5, spd: 1.8, xp: 65, ai: "orbit", keep: 4, drop: 0.45, col: 0x6a1a1a, r: 0.55,
+				attacks: [{p: "aimed", n: 1, spd: 11, life: 0.9, dmg: 22, cd: 0.8, r: 0.18, col: 0xff6060, shape: "knife"},
+					{p: "summon", n: 2, cd: 8, what: "bandit"}]},
+			// ---- Midlands
+			spider: {name: "Forest Spider", spr: "spider", hp: 170, def: 3, spd: 3.0, xp: 26, ai: "chase", keep: 1.5, drop: 0.18, col: 0x3a2a3a,
+				portal: "spider_den", portalChance: 0.02,
+				attacks: [{p: "aimed", n: 2, arc: 16, spd: 8, life: 0.6, dmg: 20, cd: 0.9, r: 0.15, col: 0xffffff, shape: "dart", eff: "slowed"}]},
+			spider_queen: {name: "Spider Queen", spr: "spider_queen", hp: 800, def: 6, spd: 1.6, xp: 120, ai: "orbit", keep: 4, drop: 0.5, col: 0xe0c020, r: 0.6,
+				portal: "spider_den", portalChance: 0.18,
+				attacks: [{p: "ring", n: 10, rot: 18, spd: 4.5, life: 1.6, dmg: 24, cd: 1.6, r: 0.18, col: 0xffffff, shape: "star", eff: "slowed"},
+					{p: "summon", n: 2, cd: 6, what: "spider"}]},
+			great_snake: {name: "Swamp Serpent", spr: "great_snake", hp: 380, def: 4, spd: 2.2, xp: 45, ai: "orbit", keep: 3.5, drop: 0.25, col: 0x3a8a3a, r: 0.55,
+				portal: "snake_pit", portalChance: 0.06,
+				attacks: [{p: "spiral", n: 2, rot: 25, spd: 5, life: 1.4, dmg: 20, cd: 0.25, r: 0.15, col: 0x80ff80, shape: "star"}]},
+			orc_king: {name: "Orc King", spr: "orc_king", hp: 1000, def: 8, spd: 1.8, xp: 140, ai: "chase", keep: 2, drop: 0.5, col: 0x2a6a2a, r: 0.65,
+				attacks: [{p: "aimed", n: 5, arc: 60, spd: 8, life: 0.7, dmg: 32, cd: 1.0, r: 0.2, col: 0xff5050, shape: "blade"},
+					{p: "summon", n: 2, cd: 7, what: "orc"}]},
+			// ---- Highlands
+			harpy: {name: "Harpy", spr: "harpy", hp: 420, def: 5, spd: 3.2, xp: 50, ai: "orbit", keep: 4.5, drop: 0.24, col: 0x8a6a4a,
+				attacks: [{p: "aimed", n: 3, arc: 30, spd: 9, life: 0.9, dmg: 30, cd: 1.0, r: 0.16, col: 0xe0c0a0, shape: "dart"}]},
+			dwarf: {name: "Dwarf Axeman", spr: "dwarf", hp: 500, def: 9, spd: 2.0, xp: 50, ai: "chase", keep: 1.2, drop: 0.24, col: 0xc04a20,
+				attacks: [{p: "aimed", n: 3, arc: 40, spd: 7, life: 0.5, dmg: 38, cd: 0.9, r: 0.2, col: 0xd0d0d0, shape: "blade"}]},
+			dwarf_king: {name: "Dwarf King", spr: "dwarf_king", hp: 1700, def: 14, spd: 1.6, xp: 180, ai: "chase", keep: 2.5, drop: 0.55, col: 0xf0c030, r: 0.6,
+				attacks: [{p: "ring", n: 12, rot: 15, spd: 5, life: 1.4, dmg: 36, cd: 1.6, r: 0.2, col: 0xf0c030, shape: "blade"},
+					{p: "summon", n: 2, cd: 7, what: "dwarf"}]},
+			ogre: {name: "Ogre", spr: "ogre", hp: 1300, def: 12, spd: 1.1, xp: 110, ai: "chase", keep: 2, drop: 0.32, col: 0xa08a5a, r: 0.65,
+				attacks: [{p: "ring", n: 14, rot: 13, spd: 4, life: 1.8, dmg: 34, cd: 2.0, r: 0.24, col: 0xc0a070, shape: "orb"},
+					{p: "aimed", n: 1, spd: 8, life: 1.2, dmg: 55, cd: 1.6, r: 0.3, col: 0x8a6a4a, shape: "orb", eff: "armorbroken"}]},
+			minotaur: {name: "Minotaur", spr: "minotaur", hp: 900, def: 10, spd: 2.2, xp: 90, ai: "charge", keep: 2, drop: 0.3, col: 0x6a3a1a, r: 0.6,
+				attacks: [{p: "aimed", n: 3, arc: 20, spd: 10, life: 0.6, dmg: 40, cd: 1.0, r: 0.2, col: 0xffffff, shape: "blade"}]},
+			// ---- Godlands
+			ghost_god: {name: "Ghost God", spr: "ghost_god", hp: 1200, def: 10, spd: 2.0, xp: 95, ai: "blink", keep: 4, drop: 0.32, col: 0xc8d8f0,
+				portal: "undead_lair", portalChance: 0.05,
+				attacks: [{p: "ring", n: 12, rot: 10, spd: 5, life: 1.6, dmg: 45, cd: 1.4, r: 0.2, col: 0xc8d8f0, shape: "star"},
+					{p: "aimed", n: 1, spd: 10, life: 1.2, dmg: 60, cd: 1.2, r: 0.24, col: 0xffffff, shape: "dart", eff: "confused"}]},
+			demon: {name: "White Demon", spr: "demon", hp: 1300, def: 14, spd: 2.4, xp: 100, ai: "orbit", keep: 4, drop: 0.34, col: 0xd02020,
+				portal: "abyss", portalChance: 0.05,
+				attacks: [{p: "aimed", n: 5, arc: 40, spd: 8, life: 1.2, dmg: 50, cd: 1.0, r: 0.22, col: 0xff4020, shape: "orb"},
+					{p: "spiral", n: 2, rot: 30, spd: 5, life: 1.4, dmg: 40, cd: 0.3, r: 0.18, col: 0xffe040, shape: "star"}]},
+			sprite_god: {name: "Sprite God", spr: "sprite_god", hp: 1000, def: 8, spd: 3.0, xp: 95, ai: "orbit", keep: 5, drop: 0.32, col: 0xff80d0,
+				portal: "sprite_world", portalChance: 0.06,
+				attacks: [{p: "spiral", n: 3, rot: -18, spd: 6, life: 1.4, dmg: 38, cd: 0.2, r: 0.16, col: 0xff80d0, shape: "star"}]},
+			slime_god: {name: "Slime God", spr: "slime_god", hp: 1600, def: 12, spd: 1.0, xp: 100, ai: "wander", drop: 0.34, col: 0x8040c0, r: 0.65,
+				attacks: [{p: "ring", n: 20, rot: 9, spd: 4, life: 2.0, dmg: 42, cd: 1.6, r: 0.22, col: 0xd0a0ff, shape: "orb", eff: "slowed"}]},
+
+			// ================= dungeon minions =================
+			mothling: {name: "Mothling", spr: "mothling", hp: 160, def: 2, spd: 3.0, xp: 12, ai: "chase", keep: 1, drop: 0, col: 0xc8c090,
+				attacks: [{p: "aimed", n: 1, spd: 8, life: 0.7, dmg: 16, cd: 1.0, r: 0.15, col: 0xe0d8a0, shape: "dart"}]},
+			ghost: {name: "Lost Soul", spr: "ghost", hp: 500, def: 8, spd: 2.8, xp: 20, ai: "orbit", keep: 3, drop: 0, col: 0xc8d8f0,
+				attacks: [{p: "aimed", n: 2, arc: 20, spd: 9, life: 1.0, dmg: 45, cd: 1.0, r: 0.17, col: 0xc8d8f0, shape: "star"}]},
+			lesser_demon: {name: "Lesser Demon", spr: "lesser_demon", hp: 650, def: 10, spd: 2.6, xp: 22, ai: "chase", keep: 2, drop: 0, col: 0xa02828,
+				attacks: [{p: "aimed", n: 3, arc: 30, spd: 8, life: 1.0, dmg: 50, cd: 1.0, r: 0.2, col: 0xff4020, shape: "orb"}]},
+			sprite: {name: "Sprite", spr: "sprite", hp: 450, def: 5, spd: 3.6, xp: 18, ai: "orbit", keep: 3, drop: 0, col: 0x80e080,
+				attacks: [{p: "aimed", n: 1, spd: 10, life: 1.0, dmg: 45, cd: 0.7, r: 0.16, col: 0x80ff80, shape: "star"}]},
+
+			// ================= dungeon bosses (dtier: 0 easy .. 4 endgame) =================
+			cove_boss: {name: "Captain Saltbeard", spr: "pirate_king", hp: 1600, def: 3, spd: 1.4, xp: 400, ai: "boss", r: 0.9, aggro: 12, range: 12, drop: 1, col: 0x2a2a6a,
+				gold: 120, onrane: 1, dungeon: true, dtier: 0,
+				phases: [
+					[{p: "aimed", n: 3, arc: 30, spd: 6, life: 1.6, dmg: 14, cd: 1.0, r: 0.22, col: 0x404040, shape: "orb"},
+						{p: "summon", n: 1, cd: 6, what: "pirate"}],
+					[{p: "ring", n: 10, rot: 18, spd: 4, life: 1.8, dmg: 14, cd: 1.4, r: 0.2, col: 0xe0e0e0, shape: "blade"},
+						{p: "summon", n: 2, cd: 7, what: "pirate_brawler"}],
+					[{p: "spiral", n: 3, rot: 20, spd: 5, life: 1.6, dmg: 15, cd: 0.25, r: 0.2, col: 0x404040, shape: "orb"},
+						{p: "aimed", n: 1, spd: 9, life: 1.4, dmg: 25, cd: 0.9, r: 0.26, col: 0xf0c030, shape: "blade"}]
+				]},
+			moth_boss: {name: "Mother Mothwing", spr: "moth", hp: 3500, def: 5, spd: 2.0, xp: 700, ai: "boss", r: 0.9, aggro: 12, range: 12, drop: 1, col: 0xe0d8a0,
+				gold: 180, onrane: 2, dungeon: true, dtier: 1,
+				phases: [
+					[{p: "spiral", n: 4, rot: 14, spd: 4.5, life: 1.8, dmg: 18, cd: 0.25, r: 0.2, col: 0xe0d8a0, shape: "star"}],
+					[{p: "summon", n: 3, cd: 6, what: "mothling"},
+						{p: "aimed", n: 5, arc: 50, spd: 6, life: 1.6, dmg: 22, cd: 1.2, r: 0.2, col: 0x9aff7a, shape: "orb", eff: "slowed"}],
+					[{p: "ring", n: 16, rot: 11, spd: 5, life: 1.8, dmg: 22, cd: 0.9, r: 0.2, col: 0xffe080, shape: "star"},
+						{p: "summon", n: 2, cd: 7, what: "mothling"}]
+				]},
+			serpent_boss: {name: "Ssythra the Serpent Queen", spr: "serpent_queen", hp: 5500, def: 8, spd: 1.6, xp: 1000, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0x2a9a6a,
+				gold: 240, onrane: 2, dungeon: true, dtier: 2,
+				phases: [
+					[{p: "spiral", n: 4, rot: 12, spd: 5, life: 2.0, dmg: 28, cd: 0.18, r: 0.2, col: 0x60ff90, shape: "star"}],
+					[{p: "aimed", n: 7, arc: 60, spd: 7, life: 1.6, dmg: 32, cd: 1.0, r: 0.22, col: 0xffe020, shape: "dart", eff: "paralyzed"},
+						{p: "summon", n: 3, cd: 7, what: "great_snake"}],
+					[{p: "ring", n: 24, rot: 7.5, spd: 4.5, life: 2.2, dmg: 30, cd: 1.0, r: 0.22, col: 0x2a9a6a, shape: "orb"},
+						{p: "spiral", n: 2, rot: -22, spd: 6, life: 1.8, dmg: 30, cd: 0.15, r: 0.2, col: 0xa0e0c0, shape: "star"}]
+				]},
+			spider_boss: {name: "Arachnia the Broodmother", spr: "broodmother", hp: 6000, def: 9, spd: 1.8, xp: 1100, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xff3030,
+				gold: 260, onrane: 3, dungeon: true, dtier: 2,
+				phases: [
+					[{p: "aimed", n: 5, arc: 40, spd: 7, life: 1.6, dmg: 30, cd: 0.9, r: 0.2, col: 0xffffff, shape: "dart", eff: "slowed"},
+						{p: "summon", n: 2, cd: 6, what: "spider"}],
+					[{p: "ring", n: 20, rot: 9, spd: 5, life: 1.8, dmg: 28, cd: 1.0, r: 0.2, col: 0xffffff, shape: "star"},
+						{p: "summon", n: 3, cd: 7, what: "spider"}],
+					[{p: "spiral", n: 6, rot: 10, spd: 6, life: 1.8, dmg: 30, cd: 0.14, r: 0.2, col: 0xff3030, shape: "star"},
+						{p: "aimed", n: 1, spd: 11, life: 1.4, dmg: 55, cd: 0.8, r: 0.26, col: 0xffe040, shape: "blade", eff: "paralyzed"}]
+				]},
+			lich_boss: {name: "Septorius the Lich King", spr: "lich_king", hp: 11000, def: 18, spd: 1.4, xp: 1400, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xff4060,
+				gold: 320, onrane: 4, dungeon: true, dtier: 4,
+				phases: [
+					[{p: "spiral", n: 4, rot: 13, spd: 5.5, life: 2.2, dmg: 55, cd: 0.14, r: 0.2, col: 0xff4060, shape: "star"},
+						{p: "summon", n: 2, cd: 7, what: "ghost"}],
+					[{p: "aimed", n: 1, spd: 13, life: 1.4, dmg: 110, cd: 0.7, r: 0.3, col: 0xffffff, shape: "blade", eff: "armorbroken"},
+						{p: "ring", n: 18, rot: 10, spd: 4.5, life: 2.4, dmg: 55, cd: 1.1, r: 0.22, col: 0x8a60ff, shape: "orb"}],
+					[{p: "spiral", n: 6, rot: -9, spd: 6, life: 2.2, dmg: 60, cd: 0.12, r: 0.2, col: 0xc0c0d0, shape: "star"},
+						{p: "summon", n: 3, cd: 8, what: "skeleton"}]
+				]},
+			demon_boss: {name: "Malgoroth the Archdemon", spr: "archdemon", hp: 12000, def: 20, spd: 1.6, xp: 1500, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xff6020,
+				gold: 340, onrane: 4, dungeon: true, dtier: 4,
+				phases: [
+					[{p: "aimed", n: 5, arc: 40, spd: 8, life: 1.6, dmg: 65, cd: 1.0, r: 0.24, col: 0xff4020, shape: "orb"},
+						{p: "summon", n: 2, cd: 7, what: "lesser_demon"}],
+					[{p: "ring", n: 24, rot: 7.5, spd: 5, life: 2.2, dmg: 60, cd: 0.9, r: 0.24, col: 0xff6020, shape: "ring", eff: "bleeding"}],
+					[{p: "spiral", n: 4, rot: 17, spd: 6.5, life: 2.0, dmg: 65, cd: 0.1, r: 0.22, col: 0xffe040, shape: "star"},
+						{p: "aimed", n: 3, arc: 20, spd: 11, life: 1.4, dmg: 100, cd: 0.8, r: 0.3, col: 0xff2020, shape: "blade"}]
+				]},
+			sprite_boss: {name: "Lumina the Sprite Queen", spr: "sprite_queen", hp: 9500, def: 14, spd: 2.6, xp: 1300, ai: "boss", r: 0.9, aggro: 12, range: 13, drop: 1, col: 0xff60c0,
+				gold: 300, onrane: 4, dungeon: true, dtier: 4,
+				phases: [
+					[{p: "spiral", n: 5, rot: 11, spd: 6, life: 2.0, dmg: 50, cd: 0.13, r: 0.2, col: 0xff80d0, shape: "star"}],
+					[{p: "summon", n: 3, cd: 6, what: "sprite"},
+						{p: "aimed", n: 7, arc: 70, spd: 8, life: 1.6, dmg: 55, cd: 1.0, r: 0.22, col: 0xfff0a0, shape: "dart", eff: "confused"}],
+					[{p: "spiral", n: 8, rot: -8, spd: 6.5, life: 2.0, dmg: 55, cd: 0.12, r: 0.2, col: 0xff60c0, shape: "star"},
+						{p: "aimed", n: 1, spd: 14, life: 1.2, dmg: 110, cd: 0.6, r: 0.3, col: 0xffffff, shape: "blade"}]
+				]},
+
+			// ================= more realm event bosses =================
+			ev_sphinx: {name: "Nekhret the Sand Sphinx", spr: "sphinx", hp: 13000, def: 25, spd: 0.8, xp: 1700, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xc8a050,
+				gold: 450, onrane: 5,
+				phases: [
+					[{p: "ring", n: 18, rot: 10, spd: 4, life: 2.6, dmg: 55, cd: 1.2, r: 0.24, col: 0xe8c870, shape: "orb"},
+						{p: "aimed", n: 3, arc: 20, spd: 9, life: 1.6, dmg: 70, cd: 1.0, r: 0.24, col: 0x40c0ff, shape: "blade", eff: "armorbroken"}],
+					[{p: "spiral", n: 3, rot: 20, spd: 6, life: 2.2, dmg: 60, cd: 0.12, r: 0.22, col: 0xffe080, shape: "star"},
+						{p: "summon", n: 3, cd: 8, what: "scorpion"}],
+					[{p: "ring", n: 32, rot: 5.6, spd: 5, life: 2.4, dmg: 65, cd: 0.9, r: 0.24, col: 0xc8a050, shape: "orb"},
+						{p: "aimed", n: 1, spd: 13, life: 1.6, dmg: 120, cd: 0.7, r: 0.3, col: 0x40c0ff, shape: "blade"}]
+				]},
+			ev_lord: {name: "Lord of the Sunken Lands", spr: "sunken_lord", hp: 14000, def: 28, spd: 1.2, xp: 1800, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x6a8aa0,
+				gold: 480, onrane: 5,
+				phases: [
+					[{p: "aimed", n: 9, arc: 90, spd: 6.5, life: 1.8, dmg: 60, cd: 1.1, r: 0.22, col: 0x60e0ff, shape: "dart"},
+						{p: "summon", n: 2, cd: 7, what: "ghost"}],
+					[{p: "ring", n: 22, rot: 8, spd: 4.5, life: 2.4, dmg: 60, cd: 1.0, r: 0.22, col: 0x8aa0b0, shape: "ring", eff: "slowed"}],
+					[{p: "spiral", n: 5, rot: 12, spd: 6, life: 2.2, dmg: 65, cd: 0.12, r: 0.22, col: 0x60e0ff, shape: "star"},
+						{p: "aimed", n: 3, arc: 24, spd: 11, life: 1.4, dmg: 95, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade"}]
+				]},
+			ev_hermit: {name: "The Tide Hermit", spr: "hermit", hp: 12000, def: 22, spd: 0.6, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x2a9a8a,
+				gold: 430, onrane: 5,
+				phases: [
+					[{p: "spiral", n: 6, rot: 9, spd: 5, life: 2.4, dmg: 50, cd: 0.16, r: 0.2, col: 0x60ffe0, shape: "orb"}],
+					[{p: "ring", n: 16, rot: 11, spd: 3.5, life: 3.0, dmg: 60, cd: 1.0, r: 0.25, col: 0x2a9a8a, shape: "ring", eff: "paralyzed"},
+						{p: "summon", n: 3, cd: 7, what: "slime_god"}],
+					[{p: "spiral", n: 8, rot: -7, spd: 6, life: 2.2, dmg: 60, cd: 0.12, r: 0.2, col: 0xe0ff80, shape: "star"}]
+				]},
+			ev_shrine: {name: "The Skull Shrine", spr: "shrine", hp: 15000, def: 30, spd: 0.01, xp: 1900, ai: "boss", r: 0.9, aggro: 14, range: 15, drop: 1, col: 0xe8e0c8,
+				gold: 500, onrane: 6,
+				phases: [
+					[{p: "ring", n: 12, rot: 15, spd: 5, life: 2.6, dmg: 60, cd: 0.8, r: 0.24, col: 0xff4040, shape: "orb"},
+						{p: "summon", n: 2, cd: 6, what: "skeleton"}],
+					[{p: "spiral", n: 4, rot: 15, spd: 6, life: 2.4, dmg: 60, cd: 0.1, r: 0.22, col: 0xffa040, shape: "star"},
+						{p: "aimed", n: 5, arc: 30, spd: 9, life: 1.8, dmg: 70, cd: 1.0, r: 0.24, col: 0xe8e0c8, shape: "dart"}],
+					[{p: "ring", n: 36, rot: 5, spd: 5, life: 2.6, dmg: 70, cd: 0.8, r: 0.24, col: 0xff2020, shape: "orb", eff: "bleeding"},
+						{p: "summon", n: 3, cd: 8, what: "lesser_demon"}]
+				]},
+
 			// the Dark Elder is immune while these stand
 			elder_crystal: {name: "Elder Crystal", spr: "crystal", hp: 2600, def: 15, spd: 0, xp: 120, ai: "still", r: 0.6, aggro: 16, range: 13, drop: 0, col: 0xff4080, crystal: true,
 				attacks: [{p: "spiral", n: 2, rot: 23, spd: 4.5, life: 2.2, dmg: 45, cd: 0.8, r: 0.2, col: 0xff4080, shape: "star"},
@@ -633,28 +817,48 @@ package realm {
 		public static function petHeal(pet:Object):int { return int(4 + pet.level * 1.2); }
 		public static function petMagic(pet:Object):int { return int(1 + pet.level * 0.4); }
 
-		/** Which enemies spawn in each zone: 0 beach, 1 lowlands, 2 midlands, 3 godlands. */
+		/** Which enemies spawn in each biome (repeats make a monster more common). */
 		public static const ZONE_SPAWNS:Array = [
-			["pirate", "pirate", "snake", "crab", "slime"],
-			["goblin", "hobbit", "bandit", "goblin", "wolf"],
-			["orc", "elf", "gazer", "orc", "golem"],
-			["medusa", "djinn", "ent", "beholder", "lich"]
+			["pirate", "pirate", "pirate_brawler", "snake", "scorpion", "crab", "slime", "pirate_captain"],
+			["goblin", "goblin", "hobbit", "bandit", "wolf", "green_slime", "goblin_chief", "bandit_leader"],
+			["orc", "orc", "gazer", "spider", "spider", "great_snake", "spider_queen", "orc_king"],
+			["golem", "harpy", "dwarf", "dwarf", "elf", "ogre", "minotaur", "dwarf_king"],
+			["medusa", "djinn", "ent", "beholder", "lich", "ghost_god", "demon", "sprite_god", "slime_god"]
 		];
-		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus", "Dark Elder's Chamber", "Dungeon"];
+		public static const ZONE_NAMES:Array = ["Beach", "Lowlands", "Midlands", "Highlands", "Godlands", "Nexus", "Dark Elder's Chamber", "Dungeon", "", "Safe Haven"];
+		/** Gear tier dropped by ordinary monsters in each biome. */
+		public static const ZONE_TIER:Array = [0, 2, 3, 5, 6];
 		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];
 
-		/** Realm events in the order they can appear; each realm needs EVENTS_PER_REALM of them killed. */
-		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent"];
+		/** Realm events; each realm needs EVENTS_PER_REALM of them killed. */
+		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
 		public static const EVENTS_PER_REALM:int = 6;
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
 
-		/** Dungeons dropped by realm events (Valor-style): floor tile, minions and boss. */
+		/**
+		 * Dungeons. Event bosses drop the endgame ones (Valor-style); realm monsters drop
+		 * their own (`portal` on the enemy). tier: mob strength and loot, 0 (beach) .. 4 (godlands).
+		 */
 		public static const DUNGEONS:Array = [
-			{name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
-			{name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
-			{name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
-			{name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"}
+			{id: "crypt", name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
+			{id: "depths", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
+			{id: "spire", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
+			{id: "cellar", name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
+			{id: "pirate_cove", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
+			{id: "forest_maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
+			{id: "snake_pit", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
+			{id: "spider_den", name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
+			{id: "undead_lair", name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
+			{id: "abyss", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
+			{id: "sprite_world", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
+		/** The first 4 dungeons are the ones realm events drop. */
+		public static const EVENT_DUNGEONS:int = 4;
+
+		public static function dungeonIndex(id:String):int {
+			for (var i:int = 0; i < DUNGEONS.length; i++) if (DUNGEONS[i].id == id) return i;
+			return -1;
+		}
 		public static const DUNGEON_DROP_CHANCE:Number = 0.7;
 
 		/** Skill tree (Valor "Ascension"): unlocked at level 20 with 11/11 stats. */
@@ -736,6 +940,19 @@ package realm {
 				items.push(makePotion("mp"));
 				return items;
 			}
+			if (def.dungeon && def.dtier != undefined && def.dtier < 3) {
+				// low-level dungeon boss: good tiered gear, a shot at a UT
+				var dt:int = def.dtier;
+				for (var di:int = 0; di < 2; di++) {
+					slot = int(Math.random() * 4);
+					items.push(slot == 3 ? makeRing(randomStat(), Math.min(5, 2 + dt)) : makeForSlot(cls, slot, 3 + dt + (Math.random() < 0.3 ? 1 : 0), null));
+				}
+				if (Math.random() < (0.08 + dt * 0.07) * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+				if (dt >= 1 && Math.random() < 0.5) items.push(makePotion("stat", randomStat()));
+				if (dt >= 2) items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("hp"));
+				return items;
+			}
 			if (def.dungeon) {
 				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
 				if (Math.random() < 0.1 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
@@ -759,7 +976,7 @@ package realm {
 			if (Math.random() < 0.14) items.push(makePotion("hp"));
 			if (Math.random() < 0.09) items.push(makePotion("mp"));
 			if (Math.random() < def.drop * boost) {
-				var tier:int = zone * 2 + (Math.random() < 0.35 ? 1 : 0) + (Math.random() < 0.06 ? 1 : 0);
+				var tier:int = ZONE_TIER[Math.min(4, zone)] + (Math.random() < 0.35 ? 1 : 0) + (Math.random() < 0.06 ? 1 : 0);
 				if (tier > 7) tier = 7;
 				var roll:Number = Math.random();
 				if (roll < 0.4) items.push(makeWeapon(cls.weapon, tier));
@@ -767,8 +984,8 @@ package realm {
 				else if (roll < 0.82) items.push(makeArmor(cls.armor, tier));
 				else items.push(makeRing(randomStat(), Math.min(5, int(tier * 0.7))));
 			}
-			if (zone == 3 && Math.random() < 0.006 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
-			var statChance:Number = zone == 3 ? 0.07 : zone == 2 ? 0.015 : 0;
+			if (zone == 4 && Math.random() < 0.006 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+			var statChance:Number = zone == 4 ? 0.07 : zone == 3 ? 0.03 : zone == 2 ? 0.01 : 0;
 			if (Math.random() < statChance * boost) items.push(makePotion("stat", randomStat()));
 			return items;
 		}

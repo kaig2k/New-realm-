@@ -9,27 +9,34 @@ package realm {
 	 * trees and rocks are separate objects drawn y-sorted with the entities.
 	 */
 	public class World {
-		public static const N:int = 200;
+		/** Map size in tiles: realms are big islands, other worlds use the default. */
+		public static const DEFAULT_N:int = 200;
+		public static const REALM_N:int = 320;
+		public var N:int = DEFAULT_N;
 		public static const PX:int = 8;
 
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
 		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12, ARENA:int = 13, BLOODSTONE:int = 14;
+		public static const HIGH:int = 15, ROAD:int = 16, BRIDGE:int = 17;
+		/** Realm biomes, from the coast inwards (RotMG order). */
+		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
+		public static const SAFE_ZONE:int = 9;
 		public static const ARENA_ZONE:int = 6;
 		public static const DUNGEON_ZONE:int = 7;
 		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier"];
 		public static const NEXUS_ZONE:int = 5;
 
 		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
-			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c];
+			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
 		private static const PLAZA_PAT:Array = ["LLLMMLLL", "LLMLLMLL", "LMLDDLML", "MLDLLDLM", "MLDLLDLM", "LMLDDLML", "LLMLLMLL", "LLLMMLLL"];
 		private static const BRICK_PAT:Array = ["hhhaHHHb", "hAAaHBBb", "hAAaHBBb", "aaaabbbb", "HHHbhhha", "HBBbhAAa", "HBBbhAAa", "bbbbaaaa"];
 
-		public var tiles:Vector.<int> = new Vector.<int>(N * N, true);
-		public var objs:Vector.<int> = new Vector.<int>(N * N, true);
-		public var zones:Vector.<int> = new Vector.<int>(N * N, true);
+		public var tiles:Vector.<int>;
+		public var objs:Vector.<int>;
+		public var zones:Vector.<int>;
 		public var bitmap:BitmapData;
 		public var minimap:BitmapData;
 		public var seen:BitmapData;
@@ -51,6 +58,7 @@ package realm {
 		public var eventsDone:int = 0;
 		public var eventT:Number = 25;
 		public var nextEvent:int = 0;
+		public var recentEvents:Array;
 		/** Portals standing in this world: {x, y, kind, idx, color, label, life}. */
 		public var portals:Array = [];
 		/** Dungeon rooms {x, y, w, h}; the last one is the boss room. */
@@ -62,11 +70,17 @@ package realm {
 		private var noise:Vector.<Number>;
 		private var noiseW:int;
 		private const CELL:int = 10;
+		/** Extra noise layers for the realm: {v, w, cell}. */
+		private var layers:Array;
 
 		public function World(kind:String = "realm", name:String = "", theme:Object = null) {
 			this.kind = kind;
 			this.name = name;
 			this.theme = theme;
+			N = kind == "realm" ? REALM_N : DEFAULT_N;
+			tiles = new Vector.<int>(N * N, true);
+			objs = new Vector.<int>(N * N, true);
+			zones = new Vector.<int>(N * N, true);
 			if (kind == "nexus") generateNexus();
 			else if (kind == "arena") generateArena();
 			else if (kind == "dungeon") generateDungeon(theme);
@@ -93,49 +107,149 @@ package realm {
 			return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
 		}
 
+		private function layer(cell:int):Object {
+			var w:int = int(N / cell) + 2;
+			var v:Vector.<Number> = new Vector.<Number>(w * w, true);
+			for (var i:int = 0; i < v.length; i++) v[i] = Math.random();
+			return {v: v, w: w, cell: cell};
+		}
+
+		private function lsample(l:Object, x:Number, y:Number):Number {
+			var gx:Number = x / l.cell, gy:Number = y / l.cell;
+			var ix:int = int(gx), iy:int = int(gy);
+			var fx:Number = gx - ix, fy:Number = gy - iy;
+			fx = fx * fx * (3 - 2 * fx);
+			fy = fy * fy * (3 - 2 * fy);
+			var v:Vector.<Number> = l.v, w:int = l.w;
+			var a:Number = v[iy * w + ix], b:Number = v[iy * w + ix + 1];
+			var c:Number = v[(iy + 1) * w + ix], d:Number = v[(iy + 1) * w + ix + 1];
+			return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+		}
+
+		/** Fractal noise from three layers starting at `base`. */
+		private function fbm(base:int, x:Number, y:Number):Number {
+			return lsample(layers[base], x, y) * 0.55 + lsample(layers[base + 1], x, y) * 0.3 + lsample(layers[base + 2], x, y) * 0.15;
+		}
+
+		/**
+		 * A RotMG-style realm: a big island with Beach, Lowlands, Midlands, Highlands and the
+		 * Godlands in the middle, plus lakes, rivers running to the sea and cobblestone roads.
+		 */
 		private function generate():void {
 			makeNoise();
-			var cx:Number = N / 2, cy:Number = N / 2, R:Number = N / 2 - 6;
-			var x:int, y:int, i:int, d:Number, z:int, t:int, r:Number, o:int;
+			// 0-2 coast/biome warp, 3-5 lakes, 6-8 forests
+			layers = [layer(40), layer(16), layer(6), layer(30), layer(12), layer(5), layer(24), layer(9), layer(4)];
+			var cx:Number = N / 2, cy:Number = N / 2, R:Number = N / 2 - 8;
+			var x:int, y:int, i:int, d:Number, z:int, t:int;
+			var dist:Vector.<Number> = new Vector.<Number>(N * N, true);
 			for (y = 0; y < N; y++) {
 				for (x = 0; x < N; x++) {
 					i = y * N + x;
-					d = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / R + (sample(x, y) - 0.5) * 0.2;
+					d = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / R + (fbm(0, x, y) - 0.5) * 0.42;
+					dist[i] = d;
 					if (d > 1) { t = WATER; z = -1; }
-					else if (d > 0.77) { t = SAND; z = 0; }
-					else if (d > 0.58) { t = GRASS; z = 1; }
-					else if (d > 0.33) { t = DARK; z = 2; }
-					else { t = GOD; z = 3; }
+					else if (d > 0.88) { t = SAND; z = SHORE_ZONE; }
+					else if (d > 0.68) { t = GRASS; z = LOW_ZONE; }
+					else if (d > 0.48) { t = DARK; z = MID_ZONE; }
+					else if (d > 0.3) { t = HIGH; z = HIGH_ZONE; }
+					else { t = GOD; z = GOD_ZONE; }
+					// lakes inland
+					if (z >= LOW_ZONE && d > 0.12 && fbm(3, x, y) > 0.73) { t = WATER; }
 					tiles[i] = t;
 					zones[i] = z;
-					r = Math.random();
-					o = 0;
-					if (z == 0 && r < 0.008) o = 3;
-					else if (z == 0 && r < 0.016) o = 4;
-					else if (z == 1 && r < 0.035) o = 1;
-					else if (z == 1 && r < 0.042) o = 4;
-					else if (z == 2 && r < 0.06) o = 2;
-					else if (z == 2 && r < 0.072) o = 1;
-					else if (z == 3 && r < 0.035) o = 5;
-					else if (z == 3 && r < 0.05) o = 6;
+					objs[i] = 0;
+				}
+			}
+			// rivers: wander from the highlands down to the sea
+			var k:int, a:Number, px:Number, py:Number, step:int;
+			for (k = 0; k < 4; k++) {
+				a = Math.random() * Math.PI * 2;
+				px = cx + Math.cos(a) * R * 0.35;
+				py = cy + Math.sin(a) * R * 0.35;
+				var wig:Number = 0;
+				for (step = 0; step < N * 2; step++) {
+					wig += (Math.random() - 0.5) * 0.5;
+					wig *= 0.9;
+					var out:Number = Math.atan2(py - cy, px - cx) + wig;
+					px += Math.cos(out);
+					py += Math.sin(out);
+					if (px < 2 || py < 2 || px >= N - 2 || py >= N - 2) break;
+					var wide:int = step > 30 ? 1 : 0;
+					for (var ry:int = -wide; ry <= wide + 1; ry++) {
+						for (var rx:int = -wide; rx <= wide + 1; rx++) {
+							i = (int(py) + ry) * N + int(px) + rx;
+							tiles[i] = WATER;
+						}
+					}
+					if (dist[int(py) * N + int(px)] > 1.02) break;
+				}
+			}
+			// roads: from the Godlands out to the beach, with bridges over water
+			var roads:int = 6;
+			var off:Number = Math.random() * Math.PI * 2;
+			for (k = 0; k < roads; k++) {
+				a = off + k * Math.PI * 2 / roads + (Math.random() - 0.5) * 0.4;
+				var rr:Number = R * 0.08;
+				var turn:Number = 0;
+				for (step = 0; step < N; step++) {
+					turn += (Math.random() - 0.5) * 0.08;
+					turn *= 0.92;
+					a += turn * 0.2;
+					rr += 1;
+					px = cx + Math.cos(a) * rr;
+					py = cy + Math.sin(a) * rr;
+					if (px < 2 || py < 2 || px >= N - 2 || py >= N - 2) break;
+					if (dist[int(py) * N + int(px)] > 0.95) break;
+					for (ry = 0; ry <= 1; ry++) {
+						for (rx = 0; rx <= 1; rx++) {
+							i = (int(py) + ry) * N + int(px) + rx;
+							if (zones[i] < 0) continue;
+							tiles[i] = tiles[i] == WATER || tiles[i] == BRIDGE ? BRIDGE : ROAD;
+						}
+					}
+				}
+			}
+			// scenery: sparse trees in the lowlands, forests in the midlands, rocks up high
+			for (y = 0; y < N; y++) {
+				for (x = 0; x < N; x++) {
+					i = y * N + x;
+					t = tiles[i];
+					z = zones[i];
+					if (t == WATER || t == ROAD || t == BRIDGE || z < 0) continue;
+					var r:Number = Math.random(), f:Number = fbm(6, x, y), o:int = 0;
+					if (z == SHORE_ZONE) o = r < 0.012 ? 3 : r < 0.018 ? 4 : 0;
+					else if (z == LOW_ZONE) o = r < (f > 0.62 ? 0.14 : 0.025) ? 1 : r < 0.03 ? 4 : 0;
+					else if (z == MID_ZONE) o = r < (f > 0.55 ? 0.22 : 0.04) ? (Math.random() < 0.6 ? 2 : 1) : r < 0.05 ? 4 : 0;
+					else if (z == HIGH_ZONE) o = r < (f > 0.6 ? 0.1 : 0.025) ? 2 : r < 0.045 ? 5 : r < 0.055 ? 6 : 0;
+					else o = r < 0.035 ? 5 : r < 0.05 ? 6 : 0;
 					objs[i] = o;
 				}
 			}
 			makeRuins();
 
-			// safe haven on the southern shore
+			// safe haven on the southern beach
 			x = int(cx);
-			for (y = N - 1; y > 0; y--) if (tiles[y * N + x] != WATER) break;
+			for (y = N - 1; y > 0; y--) if (zones[y * N + x] >= 0 && tiles[y * N + x] != WATER) break;
 			spawnX = x + 0.5;
 			spawnY = y - 6 + 0.5;
-			var px:int = int(spawnX), py:int = int(spawnY);
+			var hx:int = int(spawnX), hy:int = int(spawnY);
 			for (var dy:int = -6; dy <= 6; dy++) {
 				for (var dx:int = -6; dx <= 6; dx++) {
-					var tx:int = px + dx, ty:int = py + dy;
+					var tx:int = hx + dx, ty:int = hy + dy;
 					if (tx < 0 || ty < 0 || tx >= N || ty >= N) continue;
 					i = ty * N + tx;
-					if (Math.abs(dx) <= 4 && Math.abs(dy) <= 4) { tiles[i] = PLAZA; zones[i] = 4; objs[i] = 0; }
-					else if (tiles[i] != WATER) objs[i] = 0;
+					if (Math.abs(dx) <= 4 && Math.abs(dy) <= 4) { tiles[i] = PLAZA; zones[i] = SAFE_ZONE; objs[i] = 0; }
+					else { objs[i] = 0; if (tiles[i] == WATER && zones[i] >= 0) tiles[i] = SAND; }
+				}
+			}
+			// a road from the haven north until it meets one of the realm roads
+			for (y = hy - 5; y > hy - 60 && y > 0; y--) {
+				if (y < hy - 8 && (tiles[y * N + hx] == ROAD || tiles[y * N + hx + 1] == ROAD)) break;
+				for (dx = 0; dx <= 1; dx++) {
+					i = y * N + hx + dx;
+					if (zones[i] < 0) continue;
+					objs[i] = 0;
+					tiles[i] = tiles[i] == WATER || tiles[i] == BRIDGE ? BRIDGE : ROAD;
 				}
 			}
 		}
@@ -186,7 +300,7 @@ package realm {
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
 			var floor:int = th.floor, accent:int = th.accent;
 			var cx:int = 100, cy:int = 175;
-			var count:int = 6 + int(Math.random() * 2);
+			var count:int = th.small ? 4 + int(Math.random() * 2) : 6 + int(Math.random() * 2);
 			var prev:Object = null;
 			for (var k:int = 0; k < count; k++) {
 				var boss:Boolean = k == count - 1;
@@ -279,18 +393,18 @@ package realm {
 
 		/** Brick ruins in the midlands and godlands; godland ruins have lava rivers. */
 		private function makeRuins():void {
-			for (var k:int = 0; k < 26; k++) {
+			for (var k:int = 0; k < (kind == "realm" ? 30 : 26); k++) {
 				var cx:int = 0, cy:int = 0, z:int = -1;
 				for (var tries:int = 0; tries < 50; tries++) {
 					cx = 20 + int(Math.random() * (N - 40));
 					cy = 20 + int(Math.random() * (N - 40));
 					z = zones[cy * N + cx];
-					if (z >= 2) break;
+					if (z >= MID_ZONE && z <= GOD_ZONE) break;
 				}
-				if (z < 2) continue;
+				if (z < MID_ZONE || z > GOD_ZONE) continue;
 				var rw:int = 3 + int(Math.random() * 5), rh:int = 3 + int(Math.random() * 5);
 				var lavaDir:int = Math.random() < 0.5 ? 1 : -1;
-				var lava:Boolean = z == 3 && Math.random() < 0.75;
+				var lava:Boolean = z == GOD_ZONE && Math.random() < 0.75;
 				for (var y:int = cy - rh - 1; y <= cy + rh + 1; y++) {
 					for (var x:int = cx - rw - 1; x <= cx + rw + 1; x++) {
 						var nx:Number = (x - cx) / rw, ny:Number = (y - cy) / rh;
@@ -298,7 +412,7 @@ package realm {
 						var edge:Number = nx * nx + ny * ny + (Math.random() - 0.5) * 0.25;
 						if (edge > 1) continue;
 						var i:int = y * N + x;
-						if (tiles[i] == WATER) continue;
+						if (tiles[i] == WATER || tiles[i] == ROAD || tiles[i] == BRIDGE) continue;
 						objs[i] = 0;
 						var diag:Number = Math.abs((x - cx) - lavaDir * (y - cy));
 						tiles[i] = lava && diag < 1.6 ? LAVA : BRICK;
@@ -311,6 +425,7 @@ package realm {
 		private function texture(t:int, tx:int, ty:int):Vector.<uint> {
 			var v:Vector.<uint> = new Vector.<uint>(PX * PX, true);
 			var x:int, y:int, i:int, r:Number, c:uint;
+			var shal:Boolean = t == WATER && shallow(tx, ty);
 			for (y = 0; y < PX; y++) {
 				for (x = 0; x < PX; x++) {
 					i = y * PX + x;
@@ -318,7 +433,7 @@ package realm {
 					var gx:int = tx * PX + x, gy:int = ty * PX + y;
 					switch (t) {
 						case WATER:
-							c = 0x2b4ea0;
+							c = shal ? 0x3a66b8 : 0x2b4ea0;
 							var wv:int = (gx + int(sample(gx / PX, gy / PX) * 12)) % 7;
 							if (gy % 3 == 0 && wv < 2) c = 0x4470c4;
 							else if (r < 0.06) c = 0x24438c;
@@ -328,6 +443,18 @@ package realm {
 							break;
 						case GRASS:
 							c = r < 0.12 ? 0x458230 : r < 0.2 ? 0x579a38 : r < 0.215 ? 0x68ac44 : 0x4e8c2f;
+							break;
+						case HIGH:
+							// dry olive highland grass
+							c = r < 0.12 ? 0x6a6634 : r < 0.2 ? 0x84803f : r < 0.225 ? 0x8a6a3a : 0x77733c;
+							break;
+						case ROAD:
+							var rc:String = String(STONE_PAT[y]).charAt(x);
+							c = rc == "S" ? 0x9a9080 : rc == "H" ? 0xaaa090 : rc == "h" ? 0x8e8676 : 0x5e574c;
+							if (r < 0.1 && rc != "m") c = Sprites.shade(c, 0.92);
+							break;
+						case BRIDGE:
+							c = y % 4 == 3 ? 0x4a2e16 : (x == 0 || x == PX - 1) ? 0x5a3a1c : r < 0.15 ? 0x7a4e26 : 0x8a5a2e;
 							break;
 						case DARK:
 							c = r < 0.14 ? 0x2e5525 : r < 0.22 ? 0x3e6b31 : r < 0.24 ? 0x5a4a32 : 0x35602a;
@@ -387,6 +514,18 @@ package realm {
 			return v;
 		}
 
+		/** Water next to land is drawn lighter, like RotMG's shallows. */
+		private function shallow(tx:int, ty:int):Boolean {
+			if (kind != "realm") return false;
+			for (var dy:int = -1; dy <= 1; dy++) {
+				for (var dx:int = -1; dx <= 1; dx++) {
+					var nt:int = tileAtI(tx + dx, ty + dy);
+					if (nt != WATER) return true;
+				}
+			}
+			return false;
+		}
+
 		private function render():void {
 			bitmap = new BitmapData(N * PX, N * PX, false, 0);
 			minimap = new BitmapData(N, N, false, 0);
@@ -415,6 +554,8 @@ package realm {
 			if (t == BRICK || t == LAVA) { col = 0xb8ab98; dark = 0x2a2a2a; }
 			else if (t == PLAZA) { col = 0x8c8c8c; dark = 0x5a5a5a; }
 			else if (t == WATER) { col = 0x7aa0e0; dark = 0x2b4ea0; }
+			else if (t == ROAD) { col = 0x6e665a; dark = 0x4a443a; }
+			else if (t == BRIDGE) { col = 0x3a220e; dark = 0x2a1808; }
 			else if (t == CARPET) { col = 0xd8a830; dark = 0x8a6a18; }
 			else if (t == FOUNTAIN) { col = 0xd0d0d8; dark = 0x8a8a92; }
 			else if (t == ARENA) { col = 0x9a9a9a; dark = 0x6a6a6a; }
@@ -422,6 +563,7 @@ package realm {
 			var px:int = x * PX, py:int = y * PX;
 			var same:Function = function(nt:int):Boolean {
 				if (t == BRICK || t == LAVA) return nt == BRICK || nt == LAVA;
+				if (t == ROAD || t == BRIDGE) return nt == ROAD || nt == BRIDGE;
 				return nt == t;
 			};
 			if (!same(tileAtI(x, y - 1))) bitmap.fillRect(new Rectangle(px, py, PX, 1), col);
@@ -478,7 +620,7 @@ package realm {
 
 		public function isSafe(x:Number, y:Number):Boolean {
 			var z:int = zoneAt(x, y);
-			return z == 4 || z == NEXUS_ZONE;
+			return z == SAFE_ZONE || z == NEXUS_ZONE;
 		}
 
 		/** True if a body of half-size r fits at (x, y). Enemies may not enter the safe haven. */

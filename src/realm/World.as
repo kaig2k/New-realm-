@@ -17,17 +17,17 @@ package realm {
 
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
 		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12, ARENA:int = 13, BLOODSTONE:int = 14;
-		public static const HIGH:int = 15, ROAD:int = 16, BRIDGE:int = 17;
+		public static const HIGH:int = 15, ROAD:int = 16, BRIDGE:int = 17, RUIN:int = 18;
 		/** Realm biomes, from the coast inwards (RotMG order). */
 		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
 		public static const SAFE_ZONE:int = 9;
 		public static const ARENA_ZONE:int = 6;
 		public static const DUNGEON_ZONE:int = 7;
-		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier"];
+		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall"];
 		public static const NEXUS_ZONE:int = 5;
 
 		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
-			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e];
+			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -415,8 +415,14 @@ package realm {
 						if (tiles[i] == WATER || tiles[i] == ROAD || tiles[i] == BRIDGE) continue;
 						objs[i] = 0;
 						var diag:Number = Math.abs((x - cx) - lavaDir * (y - cy));
-						tiles[i] = lava && diag < 1.6 ? LAVA : BRICK;
+						tiles[i] = lava && diag < 1.6 ? LAVA : RUIN;
+						// broken walls around the rim, pillars at the corners
+						if (edge > 0.72 && tiles[i] == RUIN && Math.random() < 0.3) objs[i] = 9;
 					}
+				}
+				for each (var c:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+					var pi:int = (cy + c[1] * (rh - 1)) * N + cx + c[0] * (rw - 1);
+					if (tiles[pi] == RUIN) objs[pi] = 8;
 				}
 			}
 		}
@@ -454,6 +460,12 @@ package realm {
 							var rc:String = String(STONE_PAT[y]).charAt(x);
 							c = rc == "S" ? 0x9a9080 : rc == "H" ? 0xaaa090 : rc == "h" ? 0x8e8676 : 0x5e574c;
 							if (r < 0.1 && rc != "m") c = Sprites.shade(c, 0.92);
+							break;
+						case RUIN:
+							// grey flagstones of an old ruin
+							var fc:String = String(PLAZA_PAT[(y + 4) % PX]).charAt((x + (ty & 1) * 4) % PX);
+							c = fc == "L" ? 0x9a9aa2 : fc == "M" ? 0x84848c : 0x6e6e76;
+							if (mark(gx, gy, 9, hs)) c = 0x5c5c64;
 							break;
 						case BRIDGE:
 							c = y % 4 == 3 ? 0x4a2e16 : (x == 0 || x == PX - 1) ? 0x5a3a1c : r < 0.15 ? 0x7a4e26 : 0x8a5a2e;
@@ -563,7 +575,7 @@ package realm {
 		/** Light borders where ruins / haven / water meet other ground (the RotMG tile edge look). */
 		private function drawEdges(x:int, y:int, t:int):void {
 			var col:uint, dark:uint;
-			if (t == BRICK || t == LAVA) { col = 0xb8ab98; dark = 0x2a2a2a; }
+			if (t == BRICK || t == LAVA || t == RUIN) { col = 0xc0c0c8; dark = 0x2a2a2a; }
 			else if (t == PLAZA) { col = 0x8c8c8c; dark = 0x5a5a5a; }
 			else if (t == WATER) { col = 0x7aa0e0; dark = 0x2b4ea0; }
 			else if (t == ROAD) { col = 0x6e665a; dark = 0x4a443a; }
@@ -574,7 +586,7 @@ package realm {
 			else return;
 			var px:int = x * PX, py:int = y * PX;
 			var same:Function = function(nt:int):Boolean {
-				if (t == BRICK || t == LAVA) return nt == BRICK || nt == LAVA;
+				if (t == BRICK || t == LAVA || t == RUIN) return nt == BRICK || nt == LAVA || nt == RUIN;
 				if (t == ROAD || t == BRIDGE) return nt == ROAD || nt == BRIDGE;
 				return nt == t;
 			};

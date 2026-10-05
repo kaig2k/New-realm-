@@ -67,12 +67,14 @@ package realm {
 
 
 		// ================================================================ world objects
-		private static const TREE:Array = [["..gGGg..", ".gGLGGg.", "gGGLGGGg", "gGGGGLGg", "gGLGGGGg", ".gGGGGg.", "..gggg..", "...TT...", "...TT...", "..tTTt.."]];
-		private static const PINE:Array = [["...gg...", "..gGGg..", "..gLGg..", ".gGGLGg.", ".gGGGGg.", "gGLGGGGg", "gGGGGLGg", ".gggggg.", "...TT...", "..tTTt.."]];
-		private static const PALM:Array = [["GG.GG.GG", ".GGLGG..", "G..TGG.G", "...T....", "...T....", "....T...", "....T...", "...tTt.."]];
-		private static const ROCK:Array = [["..kKKk..", ".kKLKKk.", "kKLKKKKd", "kKKKKKdd", ".kkkkdd."]];
-		private static const BOULDER:Array = [["..kKKKk.", ".kKLLKKk", "kKLKKKKd", "kKKKKKKd", "kKKKKKdd", ".kKKKddd", "..kdddd."]];
-		private static const DEADTREE:Array = [["W..W..W.", ".W.W.W..", "..WWW...", "...W..W.", "...WWW..", "...W....", "...W....", "..WWW..."]];
+		private static const TREE:Array = [["...gggggg...", ".ggGGGGGGgg.", "gGGGLGGLGGGg", "gGGLLGGLLGGg", "gGGGGGGGGGGg", "ggGGGGGGGGgg", "gGGGGggGGGGg", ".gGGggggGGg.", "..ggg..ggg..", ".....TT.....", ".....TT.....", "....tTTt...."]];
+		private static const PINE:Array = [[".....gg.....", "....gGGg....", "....gLLg....", "...gGGGGg...", "..ggGLLGgg..", "...gGGGGg...", "..gGGGGGGg..", ".ggGGLLGGgg.", "..gGGGGGGg..", ".gGGGGGGGGg.", "ggggGGGGgggg", ".....TT.....", "....tTTt...."]];
+		private static const PALM:Array = [["..GG....GG..", ".GLLG..GLLG.", "G...GGGG...G", "...GLLLLG...", "..G..TT..G..", ".G...T....G.", ".....T......", "......T.....", "......T.....", "......T.....", ".....tTt...."]];
+		private static const ROCK:Array = [["...kKKk..", "..kKLLKk.", ".kKLKKKKd", "kKKKKKKdd", ".kkkkkdd."]];
+		private static const BOULDER:Array = [["...kKKKk...", "..kKLLKKk..", ".kKLLKKKKd.", "kKKLKKKKKdd", "kKKKKKKKddd", ".kKKKKKdddd", "..kkkdddd.."]];
+		private static const DEADTREE:Array = [["W....W..W...", ".W...W.W..W.", "..W..WW..W..", "...WWW..W...", "W...WW.W....", ".WW.WWW.....", "...WWW......", "....WW......", "....WW......", "....WW......", "...wWWw....."]];
+		private static const PILLAR:Array = [[".L.LL...", "LLLLLLl.", ".SSSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SSSSs..", "LLLLLLl.", "sssssss."]];
+		private static const RUINWALL:Array = [["..LL....", ".LLLLL..", "LSSlSSL.", "SSlSSSSl", "lSSSlSSl", "SSSlSSSS", "lllllllL"]];
 		private static const BRAZIER:Array = [["..Y.F...", "...FYF..", "..FYWYF.", "..FYYF..", ".SSSSSS.", "..sSSs..", "...SS...", "..sSSs.."]];
 		private static const CHEST:Array = [["........", ".KKKKKK.", "KCCCCCCK", "KCcYYcCK", "KKKKKKKK", "KCCYYCCK", "KCcCCcCK", "KKKKKKKK"]];
 		private static const PORTAL:Array = ["..aaaa..", ".abbbba.", "abccccba", "abcddcba", "abcddcba", "abccccba", ".abbbba.", "..aaaa.."];
@@ -247,12 +249,14 @@ package realm {
 			cubelet: [CUBELET, {P: 0x6a28a8, p: 0x3a1060, Q: 0xa050f0, E: 0xff4040}],
 			boss: [BOSS_BOSS, {Y: 0xf8c828, y: 0xb08810, Q: 0xa860f0, P: 0x6a28b8, p: 0x3a1068, W: 0xffffff, E: 0xff2040, K: 0x200008}, 5],
 
-			tree: [TREE, {g: 0x2d6b22, G: 0x4a9a36, L: 0x6ec050, T: 0x6b4423, t: 0x442a14}],
-			pine: [PINE, {g: 0x1a4418, G: 0x2a6424, L: 0x3e8434, T: 0x5a3a1c, t: 0x3a2410}],
-			palm: [PALM, {G: 0x4aa83a, L: 0x7ad060, T: 0x9a7040, t: 0x6a4a28}],
-			rock: [ROCK, {k: 0x6a6a6a, K: 0x8e8e8e, L: 0xb4b4b4, d: 0x4a4a4a}],
-			boulder: [BOULDER, {k: 0x4a4a4e, K: 0x626268, L: 0x84848a, d: 0x2e2e32}],
-			deadtree: [DEADTREE, {W: 0x5a4a3a}],
+			tree: [TREE, {g: 0x24561c, G: 0x3e8a2c, L: 0x6cc04a, T: 0x6b4423, t: 0x442a14}],
+			pine: [PINE, {g: 0x163c16, G: 0x2a6424, L: 0x4a9a3a, T: 0x5a3a1c, t: 0x3a2410}],
+			palm: [PALM, {G: 0x3a9a2a, L: 0x7ad060, T: 0x9a7040, t: 0x6a4a28}],
+			rock: [ROCK, {k: 0x6a6a70, K: 0x8e8e96, L: 0xc0c0c8, d: 0x48484e}],
+			boulder: [BOULDER, {k: 0x4e4e54, K: 0x6a6a72, L: 0x9a9aa4, d: 0x34343a}],
+			pillar: [PILLAR, {L: 0xc8c8cc, l: 0x8a8a90, S: 0xa8a8b0, s: 0x6a6a72}],
+			ruinwall: [RUINWALL, {L: 0xc8c8cc, S: 0xa0a0a8, l: 0x6a6a72}],
+			deadtree: [DEADTREE, {W: 0x6a5640, w: 0x3e3226}],
 			brazier: [BRAZIER, {Y: 0xffe040, F: 0xff7a20, W: 0xffffff, S: 0x6a6a72, s: 0x44444a}],
 			crystal: [CRYSTAL, {W: 0xffd0e8, C: 0xff4080, c: 0xb01850, D: 0x600828, S: 0x3a1a2a}, 7],
 			nest: [NEST, {W: 0xf4ecd8, w: 0xc8b890, S: 0x60c0ff, K: 0x7a5a2a, k: 0x4a3418}, 6],

@@ -94,12 +94,12 @@ package realm {
 		// Tiered items are T0..T7. New Realm's special rarities, from common to rarest:
 		// Runed (RN), Bonded (BD, class sets), Eldritch (EL, the Dark Elder), Starforged (SF, forged), Primordial (PR).
 		// The short ids (ut, st, fb, lg, ar) are only save-file keys and never shown to players.
-		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "ar"];
-		public static const RARITY_NAMES:Object = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial"};
-		public static const RARITY_LABELS:Object = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR"};
-		public static const RARITY_COLORS:Object = {ut: 0x6aa8ff, st: 0x4ee08a, fb: 0xc85cff, lg: 0xffc23a, ar: 0xff5533};
+		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "ar", "gd"];
+		public static const RARITY_NAMES:Object = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial", gd: "Godly"};
+		public static const RARITY_LABELS:Object = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR", gd: "GD"};
+		public static const RARITY_COLORS:Object = {ut: 0x6aa8ff, st: 0x4ee08a, fb: 0xc85cff, lg: 0xffc23a, ar: 0xff5533, gd: 0x30fff0};
 		/** Effective tier used for item stats. */
-		private static const RARITY_POWER:Object = {ut: 8, st: 8.5, fb: 9.5, lg: 11, ar: 12.5};
+		private static const RARITY_POWER:Object = {ut: 8, st: 8.5, fb: 9.5, lg: 11, ar: 12.5, gd: 14};
 
 		public static const WEAPON_NAMES:Object = {
 			staff: ["Twig Staff", "Ember Staff", "Comet Staff", "Serpent Staff", "Starfall Staff", "Ruin Staff", "Nebula Staff", "Staff of the Void"],
@@ -164,8 +164,8 @@ package realm {
 			item.rarity = rarity;
 			item.name = rarityName(item.sub, rarity, item.name);
 			var pool:Array = ["att", "dex", "spd", "vit", "wis", "mgt", "luc", "prt"];
-			var n:int = rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : 3;
-			var amt:int = rarity == "ut" ? 5 : rarity == "st" ? 6 : rarity == "fb" ? 8 : rarity == "lg" ? 10 : 15;
+			var n:int = rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : rarity == "gd" ? 4 : 3;
+			var amt:int = rarity == "ut" ? 5 : rarity == "st" ? 6 : rarity == "fb" ? 8 : rarity == "lg" ? 10 : rarity == "gd" ? 18 : 15;
 			for (var i:int = 0; i < n; i++) {
 				var s:String = pick(pool);
 				item[s] = (item[s] || 0) + amt + int(Math.random() * 4);
@@ -173,8 +173,9 @@ package realm {
 			if (rarity == "fb") item.frt = 5;
 			if (rarity == "ar") item.frt = 8;
 			if (rarity == "st") item.set = SET_NAME;
-			if ((rarity == "lg" || rarity == "ar") && item.kind == "weapon") item.passive = pick(PASSIVE_IDS);
+			if ((rarity == "lg" || rarity == "ar" || rarity == "gd") && item.kind == "weapon") item.passive = pick(PASSIVE_IDS);
 			if (rarity == "ar") item.hp = (item.hp || 0) + 60;
+			if (rarity == "gd") { item.hp = (item.hp || 0) + 100; item.frt = 12; }
 			return item;
 		}
 
@@ -388,7 +389,7 @@ package realm {
 		/** Gold value when selling at the marketplace. */
 		public static function sellValue(item:Object):int {
 			if (!item) return 0;
-			if (item.rarity) return {ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000}[item.rarity];
+			if (item.rarity) return {ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000, gd: 25000}[item.rarity];
 			switch (item.kind) {
 				case "stat": return 250;
 				case "material": return 300;
@@ -457,6 +458,7 @@ package realm {
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
 			}
 			if (item.uid) s += Uniques.describe(item);
+			if (item.rarity == "gd") s += Godly.describe(item);
 			if (item.set) s += "<font color='" + Ui.hex(RARITY_COLORS.st) + "'>" + setName(item.set) + " Set (4 pieces): " + setBonusText(item.set) + "</font>\n";
 			if (isGear(item) && item.kind != "ring") {
 				var ok:Boolean = !viewerClass || canUse(item, viewerClass);
@@ -1127,6 +1129,7 @@ package realm {
 			var boost:Number = 1 + fortune / 100;
 			var slot:int;
 			rollUniques(def, items, boost);
+			Godly.roll(def, items, boost);
 			if (def.raid) {
 				// raid bosses: the best loot in the game
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "fb" : "st"));
@@ -1226,7 +1229,8 @@ package realm {
 			var rank:int = 0;
 			for each (var it:Object in items) {
 				var r:int = 0;
-				if (it.rarity == "ar") r = 6;
+				if (it.rarity == "gd") r = 7;
+				else if (it.rarity == "ar") r = 6;
 				else if (it.rarity == "lg") r = 5;
 				else if (it.rarity == "fb") r = 4;
 				else if (it.rarity) r = 3;
@@ -1234,7 +1238,7 @@ package realm {
 				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = 1;
 				if (r > rank) rank = r;
 			}
-			return ["bag_brown", "bag_purple", "bag_cyan", "bag_white", "bag_fabled", "bag_legendary", "bag_relic"][rank];
+			return ["bag_brown", "bag_purple", "bag_cyan", "bag_white", "bag_fabled", "bag_legendary", "bag_relic", "bag_godly"][rank];
 		}
 	}
 }

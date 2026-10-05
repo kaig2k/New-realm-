@@ -92,6 +92,11 @@ package realm {
 			if (active && isHost && e.id && !e.dead) send("all", {t: "edel", id: e.id});
 		}
 
+		/** Host: a boss's health grew for more players. */
+		public function rescaled(e:Enemy):void {
+			if (active && isHost && e.id) send("all", {t: "emax", id: e.id, m: int(e.maxHp), h: int(e.hp), n: e.scalePlayers});
+		}
+
 		/** You hit a remote copy: tell the host (it decides when the monster dies). */
 		public function hit(e:Enemy, dmg:int, slow:Number, stun:Number):void {
 			if (!active || !e.remote || !e.id) return;
@@ -182,6 +187,10 @@ package realm {
 						if (l[i + 4] & 2) e.stunT = Math.max(e.stunT, 0.15);
 						e.setPhase(l[i + 4] >> 2, g);
 					}
+					break;
+				case "emax":
+					e = w.eById[d.id];
+					if (e && e.remote) { e.maxHp = d.m; e.hp = d.h; e.scalePlayers = d.n; }
 					break;
 				case "efire":
 					e = w.eById[d.id];

@@ -15,9 +15,9 @@ package realm {
 		private static const LOOT:Array = [
 			"All events also drop: tier 6-7 gear, stat potions, sometimes a dungeon portal.",
 			"All dungeon bosses also drop: tiered or Bonded set gear, stat potions.",
-			"All also drop: Bonded and Eldritch gear, stat potions, a chance of Starforged.",
-			"All finales also drop: Eldritch gear, stat potions, a chance of Starforged or Primordial.",
-			"All raid bosses also drop: Eldritch and Bonded gear, the best Starforged / Primordial odds."
+			"All also drop: Bonded and Eldritch gear, stat potions, a chance of Starforged. GD items: 1 in 5,000.",
+			"All finales also drop: Eldritch gear, stat potions, Starforged / Primordial chance. GD items: 1 in 5,000.",
+			"All raid bosses also drop: Eldritch and Bonded gear, the best SF / PR odds. GD items: 1 in 5,000."
 		];
 
 		private var g:Game;
@@ -137,25 +137,26 @@ package realm {
 			name.x = 80; name.y = y + 4;
 			body.addChild(name);
 			var phases:int = d.phases ? d.phases.length : 1;
-			var info:TextField = Ui.text(11, 0xb0b0b8, true, "left", 300, true);
+			var info:TextField = Ui.text(11, 0xb0b0b8, true, "left", 250, true);
 			info.htmlText = e.where + "\n<font color='#808088'>" + Ui.commas(d.hp) + " HP  -  " + phases + " phase" + (phases == 1 ? "" : "s") + "</font>";
 			info.x = 80; info.y = y + 26;
 			body.addChild(info);
 			// its unique drops
 			var ids:Array = (d.uniques || []).concat();
 			if (e.id == "zealot_a" && Data.ENEMIES.zealot_b.uniques) ids = ids.concat(Data.ENEMIES.zealot_b.uniques);
-			if (!ids.length) {
+			var drops:Array = [];
+			for each (var uid:String in ids) { var u:Object = Uniques.make(uid); if (u) drops.push(u); }
+			for each (var gd:Array in d.godly || []) drops.push(Godly.make(gd[0], gd[1]));
+			if (!drops.length) {
 				var none:TextField = Ui.text(11, 0x707078, true, "right", 200, true);
 				none.text = "No unique drops";
 				none.x = W - 216; none.y = y + 22;
 				body.addChild(none);
 			}
-			for (var i:int = 0; i < ids.length; i++) {
-				var it:Object = Uniques.make(ids[i]);
-				if (!it) continue;
+			for (var i:int = 0; i < drops.length; i++) {
 				var sl:ItemSlot = new ItemSlot(i);
-				sl.setItem(it);
-				sl.x = W - 16 - (ids.length - i) * 54;
+				sl.setItem(drops[i]);
+				sl.x = W - 16 - (drops.length - i) * 52;
 				sl.y = y + 6;
 				sl.addEventListener(MouseEvent.ROLL_OVER, over);
 				sl.addEventListener(MouseEvent.ROLL_OUT, function(ev:MouseEvent):void { tip.visible = false; });

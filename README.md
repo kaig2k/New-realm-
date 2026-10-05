@@ -125,6 +125,40 @@ its lore and which boss drops it. Uniques have their own shot patterns: Saltbear
 swings three blades, the Fang of Ssythra weaves like a snake, the Cryptkeeper's Blade
 returns to you. Runed items no longer drop from random monsters. Star Shards are much rarer.
 
+**Endgame difficulty.** Hard-dungeon bosses, realm finales and raid bosses have about twice
+the health, +10 defense, 35% harder bullets and faster attacks. They also **scale with the
+players fighting them**:
+- Each extra player in the world adds +80% boss health; offline, each simulated party member
+  adds +40%.
+- Health only goes up, keeping the same percentage, so leaving mid-fight doesn't help.
+- The boss bar shows how many players it's scaled for.
+
+**Godly items (GD), 1 in 5,000.** The rarest tier: a full four-piece Godly set for every class,
+32 items with no duplicates:
+
+| Class | Set |
+| --- | --- |
+| Wizard | Astral Archmage |
+| Archer | Skypiercer |
+| Knight | Aegis Eternal |
+| Priest | Seraphic |
+| Rogue | Nightfall |
+| Warrior | Titanslayer |
+| Necromancer | Soulforge |
+| Huntress | Wildheart Eternal |
+
+- Every hard-dungeon boss, realm finale boss and raid boss carries one or two pieces. Each
+  piece rolls 1 in 5,000 per kill (Bounty helps a little).
+- Each set has a big 4-piece bonus.
+- A Godly drop comes in a cyan bag with a screen-wide announcement, and online it's
+  announced in chat.
+- The boss wiki shows which boss drops which piece.
+
+**Skins.** 16 new skins in the Fame Store, two per class, inspired by pop-culture archetypes
+but with original designs: Space Wizard, Vampire Lord, Cyber Ranger, Outlaw, Star Trooper,
+Mecha Pilot, Pop Idol, Wasteland Medic, Ninja, Phantom Thief, Barbarian King, Galactic
+Gladiator, Zombie King, Grim Reaper, Tomb Explorer and Neon Hunter.
+
 **Realm finales.** When a realm closes, it sends everyone to one of four finales, picked per
 realm (online, the same one for everyone from that realm):
 - Azrakor's Citadel, then the Dark Elder;
@@ -426,6 +460,7 @@ src/realm/ServerNet.as   online Net: real players, chat, parties, guilds, trades
 src/realm/WorldSync.as   shared monsters online (world host streams monsters to the others)
 src/realm/Bosses.as      every boss fight script, new bosses, raids and realm finales
 src/realm/Uniques.as     unique items and which boss drops each one
+src/realm/Godly.as       Godly sets (1 in 5,000) and which boss drops each piece
 server/server.js         the multiplayer server (Node.js, no dependencies)
 src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trade
 src/realm/RemotePlayer.as another player (position smoothing, public profile)

@@ -1,4 +1,6 @@
 package realm {
+	import flash.utils.Dictionary;
+
 	/**
 	 * Every boss fight: phase scripts, new bosses and their unique drops.
 	 * Bosses.init() runs once at start-up and fills Data.ENEMIES / Data.DUNGEONS.
@@ -64,6 +66,59 @@ package realm {
 			hardDungeons();
 			finales();
 			raids();
+			harden();
+			Godly.init();
+			skins();
+		}
+
+		/**
+		 * Endgame bosses (hard dungeons, finales, raids) hit harder, shoot faster
+		 * and have much more health. Online they also scale with the players
+		 * fighting them (see Game.scaleBosses).
+		 */
+		private static function harden():void {
+			for (var id:String in Data.ENEMIES) {
+				var d:Object = Data.ENEMIES[id];
+				if (d.ai != "boss") continue;
+				var endgame:Boolean = d.raid || d.finale || d.final || d.dtier >= 5;
+				if (!endgame) continue;
+				d.scales = true;
+				d.hp = int(d.hp * (d.raid ? 2.2 : 1.9));
+				d.def = (d.def || 0) + 10;
+				var done:Dictionary = new Dictionary();
+				for each (var ph:Object in d.phases) {
+					var lists:Array = ph is Array ? [ph] : (ph.cycle || []).concat(ph.attacks ? [ph.attacks] : []);
+					for each (var list:Array in lists) for each (var a:Object in list) {
+						if (done[a] || a.p == "summon") continue;
+						done[a] = true;
+						a.dmg = int(a.dmg * 1.35);
+						a.cd = a.cd * (a.cd < 0.3 ? 0.9 : 0.8);
+						if (a.n && (a.p == "ring" || a.p == "flower")) a.n = int(a.n * 1.2);
+						if (a.split && a.split.dmg) a.split.dmg = int(a.split.dmg * 1.35);
+					}
+				}
+			}
+		}
+
+		/** Pop-culture style skins (original designs, recoloured class sprites). */
+		private static function skins():void {
+			var S:Object = Data.SKINS;
+			S.wizard.push({id: "wizard_space", name: "Space Wizard", cost: 1500, pal: {R: 0x1a1a5a, r: 0x0a0a2a, Y: 0xc0c0d0, G: 0xff60ff, W: 0xa0e0ff}},
+				{id: "wizard_vampire", name: "Vampire Lord", cost: 2500, pal: {R: 0x2a0a12, r: 0x14040a, S: 0xe8e0e8, E: 0xff2020, W: 0x8a0a1a, G: 0xff2040, Y: 0x3a3a3a}});
+			S.archer.push({id: "archer_cyber", name: "Cyber Ranger", cost: 1500, pal: {G: 0x20e0ff, g: 0x1080a0, L: 0x2a2a34, l: 0x14141a, W: 0xff40c0, B: 0x0a0a10}},
+				{id: "archer_outlaw", name: "Outlaw", cost: 2500, pal: {G: 0xa06a3a, g: 0x6a4020, L: 0x3a2a1a, l: 0x201408, W: 0x5a3a20}});
+			S.knight.push({id: "knight_trooper", name: "Star Trooper", cost: 1500, pal: {H: 0xf4f4f8, h: 0xa0a0b0, M: 0xe8e8f0, m: 0x8a8a98, K: 0x101014, r: 0x2a2a30, Q: 0x303038, E: 0x101010}},
+				{id: "knight_mecha", name: "Mecha Pilot", cost: 2500, pal: {H: 0x3a6ad0, h: 0x1a3a8a, M: 0xd03030, m: 0x8a1818, K: 0xffd040, Q: 0xffd040, E: 0x60ffff}});
+			S.priest.push({id: "priest_idol", name: "Pop Idol", cost: 1500, pal: {W: 0xff8ad8, w: 0xc04a9a, Y: 0xffffff, G: 0x60e0ff}},
+				{id: "priest_medic", name: "Wasteland Medic", cost: 2500, pal: {W: 0x8a8a6a, w: 0x5a5a40, Y: 0xd03030, G: 0x80ff60, B: 0x3a3020}});
+			S.rogue.push({id: "rogue_ninja", name: "Ninja", cost: 1500, pal: {P: 0x14141a, p: 0x08080a, K: 0x22222a, k: 0x101014, W: 0xd02020, E: 0xffffff}},
+				{id: "rogue_thief", name: "Phantom Thief", cost: 2500, pal: {P: 0x1a1a3a, p: 0x0a0a20, K: 0xf0f0f0, k: 0xb0b0c0, W: 0xd02040}});
+			S.warrior.push({id: "warrior_barbarian", name: "Barbarian King", cost: 1500, pal: {H: 0xc08040, h: 0x8a5020, R: 0x2a6a2a, M: 0x8a6a3a, m: 0x5a4020, Y: 0xffd040}},
+				{id: "warrior_gladiator", name: "Galactic Gladiator", cost: 2500, pal: {H: 0xe0e0f0, h: 0x9090a0, R: 0x6a2ad0, M: 0x40e0ff, m: 0x2080a0, Y: 0xffffff}});
+			S.necromancer.push({id: "necro_zombie", name: "Zombie King", cost: 1500, pal: {D: 0x3a5a3a, d: 0x203a20, S: 0x8ab07a, E: 0xffe040, K: 0x6a1a6a, G: 0xd0c8a0}},
+				{id: "necro_reaper", name: "Grim Reaper", cost: 2500, pal: {D: 0x0c0c10, d: 0x040406, S: 0xe8e8e8, E: 0x60e0ff, K: 0x404048, G: 0xc0c0c8}});
+			S.huntress.push({id: "huntress_explorer", name: "Tomb Explorer", cost: 1500, pal: {R: 0x5a8ac0, r: 0x3a5a80, G: 0x8a6a3a, g: 0x5a4020}},
+				{id: "huntress_neon", name: "Neon Hunter", cost: 2500, pal: {R: 0xff40c0, r: 0xa02080, G: 0x20e0ff, g: 0x1080a0, L: 0x2a2a34, W: 0xffff60}});
 		}
 
 		// ------------------------------------------------------------ art for new bosses
@@ -80,6 +135,7 @@ package realm {
 			Sprites.recolor("zealot", "sorcerer", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
 			Sprites.recolor("galecaller", "seraph", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
 			Sprites.recolor("tempestus", "wyrm", {C: 0x80b0ff, c: 0x4060c0, W: 0xffff80, w: 0xc0c060, E: 0xffffff, K: 0xffff00}, 7);
+			Sprites.recolor("bag_godly", "bag_relic", {K: 0x0a5a5a, C: 0x30fff0, c: 0x18b0a8, D: 0x108080});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
 		}

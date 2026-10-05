@@ -1058,6 +1058,7 @@ package realm {
 				updateEvents(dt);
 			}
 			if (world.raid && sync.isHost) updateRaid(dt);
+			if (sync.isHost) scaleBosses(dt);
 			sync.update(dt);
 			netT -= dt;
 			if (netT <= 0) {
@@ -1501,6 +1502,19 @@ package realm {
 				bags.push(bag);
 				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
 				// rare drop alerts
+				if (bag.spr == "bag_godly") {
+					// a 1 in 5,000 drop: make a scene
+					for each (var gi:Object in items) if (gi.rarity == "gd") {
+						showBanner("GODLY DROP: " + gi.name + "!", Data.RARITY_COLORS.gd, 6);
+						msg("*** You found a Godly item: " + gi.name + "! (1 in 5,000) ***", Data.RARITY_COLORS.gd);
+						if (net.online) net.chat("I just found a Godly " + gi.name + "!!!");
+					}
+					Sfx.play("rare"); Sfx.play("level");
+					shake(0.8, 10);
+					burst(e.x, e.y, Data.RARITY_COLORS.gd, 60);
+					ring(e.x, e.y, Data.RARITY_COLORS.gd, 40);
+					questEvent("legendary");
+				}
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary") questEvent("legendary");
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
 					var kind:String = bag.spr == "bag_relic" ? Data.RARITY_NAMES.ar : bag.spr == "bag_legendary" ? Data.RARITY_NAMES.lg : Data.RARITY_NAMES.fb;
@@ -1722,6 +1736,30 @@ package realm {
 				if (d < bestD) { bestD = d; best = e; }
 			}
 			return best || world.boss;
+		}
+
+		private var scaleT:Number = 0;
+
+		/**
+		 * Endgame bosses get +80% health for every extra player in the world
+		 * (online), or +40% per simulated party member offline. Health only goes
+		 * up, keeping the same percentage, so leaving mid-fight doesn't help.
+		 */
+		private function scaleBosses(dt:Number):void {
+			scaleT -= dt;
+			if (scaleT > 0) return;
+			scaleT = 1;
+			var n:Number = 1 + (net.online ? net.players.length : net.party.length * 0.5);
+			var mult:Number = 1 + 0.8 * (n - 1);
+			for each (var e:Enemy in enemies) {
+				if (e.dead || !e.isBoss || !e.def.scales || e.remote || mult <= e.scaleMult + 0.01) continue;
+				var frac:Number = e.hp / e.maxHp;
+				e.maxHp = e.maxHp / e.scaleMult * mult;
+				e.hp = frac * e.maxHp;
+				e.scaleMult = mult;
+				e.scalePlayers = n;
+				sync.rescaled(e);
+			}
 		}
 
 		private function aliveBosses():int {
@@ -2063,7 +2101,7 @@ package realm {
 				var n:int = 0;
 				for (i = 0; i < player.inv.length; i++) {
 					var item:Object = player.inv[i];
-					if (!item || !item.rarity || item.rarity == "lg" || item.rarity == "ar") continue;
+					if (!item || !item.rarity || item.rarity == "lg" || item.rarity == "ar" || item.rarity == "gd") continue;
 					sp.addChild(itemButton(item, 20 + n * 52, y, forgeFn(i)));
 					n++;
 				}
@@ -2440,7 +2478,7 @@ package realm {
 			var owned:Object = Save.data.skins || {};
 			for (var i:int = 0; i < opts.length; i++) {
 				var sk:Object = opts[i];
-				var x:int = 14 + i * 140;
+				var x:int = 14 + (i % 3) * 140;
 				var box:Sprite = new Sprite();
 				var on:Boolean = player.skin == sk.id;
 				Ui.panel(box.graphics, 0, 0, 132, 150, on ? 0x3e3424 : 0x2c2c2c, on ? 0xff9a2e : 0x4a4a4a);
@@ -2456,10 +2494,10 @@ package realm {
 				var b:Sprite = Ui.button(label, 112, 30, skinFn(sk), 14);
 				b.x = 10; b.y = 108;
 				box.addChild(b);
-				box.x = x; box.y = y;
+				box.x = x; box.y = y + int(i / 3) * 158;
 				sp.addChild(box);
 			}
-			return y + 158;
+			return y + Math.ceil(opts.length / 3) * 158;
 		}
 
 		private function skinFn(sk:Object):Function {
@@ -2678,7 +2716,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -3033,7 +3071,7 @@ package realm {
 		private var auraMtx:Matrix = new Matrix();
 
 		private static const BAG_GLOW:Object = {bag_purple: 0xb050e0, bag_cyan: 0x40d0f0, bag_white: 0x9ad0ff,
-			bag_fabled: 0xc85cff, bag_legendary: 0xffc23a, bag_relic: 0xff5533};
+			bag_fabled: 0xc85cff, bag_legendary: 0xffc23a, bag_relic: 0xff5533, bag_godly: 0x30fff0};
 
 		private function drawAura(cx:Number, cy:Number, col:uint, size:Number = 1):void {
 			var pulse:Number = (Math.sin(time * 4) + 1) / 2;

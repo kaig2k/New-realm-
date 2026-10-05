@@ -210,6 +210,13 @@ package realm {
 			btn("Bonded set", 332, y2, 100, function():void { for (var s:int = 0; s < 4; s++) g.giveItem(Data.makeForSlot(cls, s, 7, "st")); });
 			btn("Random SF", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
 			y2 += 34;
+			btn("Random Godly", 170, y2, 150, function():void {
+				var classes:Array = Data.CLASS_ORDER;
+				g.giveItem(Godly.make(classes[int(Math.random() * classes.length)], int(Math.random() * 4)));
+			});
+			btn("My Godly set", 326, y2, 150, function():void {
+				for (var gs:int = 0; gs < 4; gs++) g.giveItem(Godly.make(cls.id, gs));
+			});
 			btn("Random unique", 14, y2, 150, function():void {
 				var ids:Array = [];
 				for (var u:String in Uniques.ALL) ids.push(u);

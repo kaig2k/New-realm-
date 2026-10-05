@@ -56,6 +56,9 @@ package realm {
 		public var tx:Number, ty:Number;
 		/** Key into Data.ENEMIES. */
 		public var defId:String;
+		/** Endgame bosses get more health per player fighting them. */
+		public var scaleMult:Number = 1;
+		public var scalePlayers:Number = 1;
 		public var moving:Boolean = false;
 
 		private var attacks:Array;

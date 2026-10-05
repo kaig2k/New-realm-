@@ -512,7 +512,7 @@ package realm {
 						{p: "aimed", n: 3, arc: 30, spd: 10, life: 1.4, dmg: 90, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade", eff: "armorbroken"}]
 				]},
 			ev_regent: {name: "The Phantom Regent", spr: "regent", hp: 11000, def: 18, spd: 2.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xb070ff,
-				gold: 420, onrane: 5,
+				gold: 420, onrane: 5, hardDungeon: "sanctum",
 				phases: [
 					[{p: "spiral", n: 6, rot: 8, spd: 5, life: 2.6, dmg: 50, cd: 0.15, r: 0.2, col: 0xc090ff, shape: "star"},
 						{p: "aimed", n: 1, spd: 11, life: 1.4, dmg: 80, cd: 0.9, r: 0.26, col: 0xffffff, shape: "dart", eff: "confused"}],
@@ -702,7 +702,7 @@ package realm {
 
 			// ================= more realm event bosses =================
 			ev_sphinx: {name: "Nekhret the Sand Sphinx", spr: "sphinx", hp: 13000, def: 25, spd: 0.8, xp: 1700, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xc8a050,
-				gold: 450, onrane: 5,
+				gold: 450, onrane: 5, hardDungeon: "tomb",
 				phases: [
 					[{p: "ring", n: 18, rot: 10, spd: 4, life: 2.6, dmg: 55, cd: 1.2, r: 0.24, col: 0xe8c870, shape: "orb"},
 						{p: "aimed", n: 3, arc: 20, spd: 9, life: 1.6, dmg: 70, cd: 1.0, r: 0.24, col: 0x40c0ff, shape: "blade", eff: "armorbroken"}],
@@ -712,7 +712,7 @@ package realm {
 						{p: "aimed", n: 1, spd: 13, life: 1.6, dmg: 120, cd: 0.7, r: 0.3, col: 0x40c0ff, shape: "blade"}]
 				]},
 			ev_lord: {name: "Lord of the Sunken Lands", spr: "sunken_lord", hp: 14000, def: 28, spd: 1.2, xp: 1800, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x6a8aa0,
-				gold: 480, onrane: 5,
+				gold: 480, onrane: 5, hardDungeon: "sanctum",
 				phases: [
 					[{p: "aimed", n: 9, arc: 90, spd: 6.5, life: 1.8, dmg: 60, cd: 1.1, r: 0.22, col: 0x60e0ff, shape: "dart"},
 						{p: "summon", n: 2, cd: 7, what: "ghost"}],
@@ -737,6 +737,80 @@ package realm {
 						{p: "aimed", n: 5, arc: 30, spd: 9, life: 1.8, dmg: 70, cd: 1.0, r: 0.24, col: 0xe8e0c8, shape: "dart"}],
 					[{p: "ring", n: 36, rot: 5, spd: 5, life: 2.6, dmg: 70, cd: 0.8, r: 0.24, col: 0xff2020, shape: "orb", eff: "bleeding"},
 						{p: "summon", n: 3, cd: 8, what: "lesser_demon"}]
+				]},
+
+			// ================= hard multi-boss dungeon bosses (dtier 5) =================
+			// guardian: must die before the sealed boss can be hurt; trio: fought together, survivors grow stronger
+			sun_king: {name: "Solhar the Sun King", spr: "sun_king", hp: 15000, def: 22, spd: 1.3, xp: 1500, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xffb020,
+				gold: 400, onrane: 5, dungeon: true, dtier: 5, trio: true,
+				phases: [
+					[{p: "ring", n: 16, rot: 11, spd: 5, life: 2.4, dmg: 70, cd: 1.2, r: 0.24, col: 0xffc040, shape: "orb"},
+						{p: "aimed", n: 3, arc: 20, spd: 10, life: 1.6, dmg: 85, cd: 1.0, r: 0.26, col: 0xff8020, shape: "blade"}],
+					[{p: "spiral", n: 4, rot: 14, spd: 6, life: 2.4, dmg: 70, cd: 0.12, r: 0.22, col: 0xffe060, shape: "star"}],
+					[{p: "ring", n: 28, rot: 6.4, spd: 5.5, life: 2.4, dmg: 75, cd: 0.8, r: 0.24, col: 0xff6010, shape: "orb", eff: "bleeding"},
+						{p: "aimed", n: 1, spd: 14, life: 1.4, dmg: 130, cd: 0.6, r: 0.3, col: 0xffffff, shape: "blade"}]
+				]},
+			moon_queen: {name: "Lunara the Moon Queen", spr: "moon_queen", hp: 13500, def: 18, spd: 1.8, xp: 1500, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x8a9aff,
+				gold: 400, onrane: 5, dungeon: true, dtier: 5, trio: true,
+				phases: [
+					[{p: "spiral", n: 5, rot: -10, spd: 5.5, life: 2.6, dmg: 60, cd: 0.15, r: 0.2, col: 0xc0d0ff, shape: "star", eff: "slowed"}],
+					[{p: "aimed", n: 9, arc: 100, spd: 7, life: 2.0, dmg: 70, cd: 1.0, r: 0.22, col: 0xe0e8ff, shape: "dart"},
+						{p: "summon", n: 2, cd: 8, what: "ghost"}],
+					[{p: "spiral", n: 8, rot: 8, spd: 6, life: 2.4, dmg: 70, cd: 0.12, r: 0.22, col: 0x8a9aff, shape: "star", eff: "confused"}]
+				]},
+			star_prince: {name: "Astrel the Star Prince", spr: "star_prince", hp: 12500, def: 16, spd: 2.4, xp: 1500, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xc070ff,
+				gold: 400, onrane: 5, dungeon: true, dtier: 5, trio: true,
+				phases: [
+					[{p: "aimed", n: 3, arc: 12, spd: 11, life: 1.6, dmg: 75, cd: 0.4, r: 0.22, col: 0xfff060, shape: "star"}],
+					[{p: "ring", n: 20, rot: 9, spd: 6, life: 2.0, dmg: 65, cd: 0.9, r: 0.22, col: 0xc070ff, shape: "orb"},
+						{p: "aimed", n: 1, spd: 15, life: 1.4, dmg: 120, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade", eff: "paralyzed"}],
+					[{p: "spiral", n: 6, rot: -13, spd: 7, life: 2.0, dmg: 70, cd: 0.1, r: 0.2, col: 0xfff060, shape: "star"}]
+				]},
+			frost_warden: {name: "Glacius the Frost Warden", spr: "frost_warden", hp: 18000, def: 25, spd: 1.2, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x80e0ff,
+				gold: 400, onrane: 5, dungeon: true, dtier: 5, guardian: true,
+				phases: [
+					[{p: "ring", n: 18, rot: 10, spd: 4.5, life: 2.8, dmg: 70, cd: 1.1, r: 0.24, col: 0xc0f0ff, shape: "ring", eff: "slowed"},
+						{p: "aimed", n: 5, arc: 40, spd: 9, life: 1.6, dmg: 80, cd: 1.0, r: 0.22, col: 0xffffff, shape: "dart"}],
+					[{p: "spiral", n: 5, rot: 11, spd: 6, life: 2.4, dmg: 70, cd: 0.13, r: 0.22, col: 0x80e0ff, shape: "star"},
+						{p: "summon", n: 2, cd: 8, what: "ghost"}],
+					[{p: "ring", n: 32, rot: 5.6, spd: 5, life: 2.6, dmg: 80, cd: 0.8, r: 0.24, col: 0x40a0ff, shape: "orb", eff: "paralyzed"}]
+				]},
+			flame_warden: {name: "Ignivar the Flame Warden", spr: "flame_warden", hp: 18000, def: 25, spd: 1.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xff6020,
+				gold: 400, onrane: 5, dungeon: true, dtier: 5, guardian: true,
+				phases: [
+					[{p: "aimed", n: 7, arc: 70, spd: 8, life: 1.8, dmg: 80, cd: 1.0, r: 0.24, col: 0xff6020, shape: "orb", eff: "bleeding"}],
+					[{p: "spiral", n: 4, rot: -16, spd: 6.5, life: 2.2, dmg: 75, cd: 0.11, r: 0.22, col: 0xffb030, shape: "star"},
+						{p: "summon", n: 2, cd: 8, what: "lesser_demon"}],
+					[{p: "ring", n: 24, rot: 7.5, spd: 6, life: 2.4, dmg: 85, cd: 0.7, r: 0.24, col: 0xff3010, shape: "ring"},
+						{p: "aimed", n: 1, spd: 15, life: 1.4, dmg: 140, cd: 0.7, r: 0.32, col: 0xffff80, shape: "blade"}]
+				]},
+			shattered_seraph: {name: "The Shattered Seraph", spr: "shattered_seraph", hp: 32000, def: 30, spd: 2.0, xp: 4000, ai: "boss", r: 0.9, aggro: 16, range: 16, drop: 1, col: 0xff60c0,
+				gold: 900, onrane: 10, dungeon: true, dtier: 5, sealed: true,
+				phases: [
+					[{p: "spiral", n: 6, rot: 10, spd: 6, life: 2.8, dmg: 75, cd: 0.12, r: 0.22, col: 0xff60c0, shape: "star"},
+						{p: "aimed", n: 3, arc: 18, spd: 11, life: 2.0, dmg: 95, cd: 1.0, r: 0.28, col: 0xffffff, shape: "blade"}],
+					[{p: "ring", n: 36, rot: 5, spd: 5, life: 3.0, dmg: 80, cd: 0.9, r: 0.24, col: 0x9a7aff, shape: "ring", eff: "armorbroken"},
+						{p: "summon", n: 2, cd: 7, what: "sprite"}],
+					[{p: "spiral", n: 8, rot: -9, spd: 7, life: 2.6, dmg: 85, cd: 0.1, r: 0.22, col: 0xff2060, shape: "star"},
+						{p: "aimed", n: 7, arc: 60, spd: 9, life: 2.0, dmg: 90, cd: 1.1, r: 0.24, col: 0xffd0f0, shape: "dart", eff: "confused"}]
+				]},
+			blood_knight: {name: "Kael'zar the Blood Knight", spr: "blood_knight", hp: 20000, def: 30, spd: 1.8, xp: 1800, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xd02030,
+				gold: 450, onrane: 6, dungeon: true, dtier: 5, guardian: true,
+				phases: [
+					[{p: "aimed", n: 5, arc: 50, spd: 9, life: 1.4, dmg: 90, cd: 0.9, r: 0.26, col: 0xff4040, shape: "blade", eff: "bleeding"}],
+					[{p: "ring", n: 20, rot: 9, spd: 6, life: 2.0, dmg: 80, cd: 0.9, r: 0.24, col: 0xa01020, shape: "blade"},
+						{p: "summon", n: 3, cd: 8, what: "skeleton"}],
+					[{p: "spiral", n: 4, rot: 19, spd: 7.5, life: 2.0, dmg: 85, cd: 0.1, r: 0.22, col: 0xff4040, shape: "blade"},
+						{p: "aimed", n: 1, spd: 16, life: 1.2, dmg: 150, cd: 0.6, r: 0.32, col: 0xffffff, shape: "blade", eff: "armorbroken"}]
+				]},
+			hex_queen: {name: "Morwyn the Hex Queen", spr: "hex_queen", hp: 17000, def: 22, spd: 2.2, xp: 1800, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x80ff60,
+				gold: 450, onrane: 6, dungeon: true, dtier: 5, guardian: true,
+				phases: [
+					[{p: "spiral", n: 5, rot: 12, spd: 5.5, life: 2.6, dmg: 70, cd: 0.14, r: 0.22, col: 0x80ff60, shape: "star", eff: "confused"}],
+					[{p: "aimed", n: 7, arc: 70, spd: 8, life: 2.0, dmg: 80, cd: 1.0, r: 0.22, col: 0xff60ff, shape: "dart", eff: "slowed"},
+						{p: "summon", n: 2, cd: 7, what: "shade"}],
+					[{p: "ring", n: 30, rot: 6, spd: 5.5, life: 2.6, dmg: 85, cd: 0.8, r: 0.24, col: 0xd060ff, shape: "orb", eff: "paralyzed"},
+						{p: "spiral", n: 2, rot: -21, spd: 7, life: 2.0, dmg: 80, cd: 0.12, r: 0.2, col: 0x80ff60, shape: "star"}]
 				]},
 
 			// the Dark Elder is immune while these stand
@@ -858,6 +932,13 @@ package realm {
 			{id: "spider_den", name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
 			{id: "undead_lair", name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
 			{id: "abyss", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
+			// ---- hard multi-boss dungeons: elite monsters (hard = health/damage multiplier)
+			{id: "tomb", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
+				mobs: ["scorpion", "great_snake", "lesser_demon", "ghost"], trio: ["sun_king", "moon_queen", "star_prince"]},
+			{id: "sanctum", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
+				mobs: ["sprite", "ghost", "lich", "djinn"], guardians: ["frost_warden", "flame_warden"], boss: "shattered_seraph"},
+			{id: "citadel", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
+				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
 			{id: "sprite_world", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
 		/** The first 4 dungeons are the ones realm events drop. */
@@ -946,6 +1027,16 @@ package realm {
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
 				items.push(makePotion("mp"));
+				return items;
+			}
+			if (def.dungeon && def.dtier >= 5) {
+				// hard multi-boss dungeons: the best loot outside the Dark Elder
+				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
+				items.push(makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "ut"));
+				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.5 * boost) items.push(makeSor());
+				for (var hp2:int = 0; hp2 < 3; hp2++) items.push(makePotion("stat", randomStat()));
 				return items;
 			}
 			if (def.dungeon && def.dtier != undefined && def.dtier < 3) {

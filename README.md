@@ -136,8 +136,8 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
 - **Realm events**: the realm's overlord, *Azrakor the Dark Elder*, keeps summoning event
   bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King, Gorehorn the Behemoth, the
   Phantom Regent) and announces each kill in
-  chat as `[3/6][Realm: Ashveil]`. Clear all 6 events and the realm closes. You're pulled
-  into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
+  chat as `[3/6][Realm: Ashveil]`. Clear all 6 events and the realm closes. You storm
+  **Azrakor's Citadel** and then the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
   for Eldritch, Starforged and Primordial loot. At a third of his health he becomes immune and
   summons four Elder Crystals. Destroy them all to make him vulnerable again.
 - **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of four
@@ -195,6 +195,20 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
 
   Leaders such as the Pirate Captain and Spider Queen drop their portal far more often.
   Low-level dungeons drop good tiered gear and sometimes a Runed item.
+- **Hard multi-boss dungeons**: elite monsters (about 1.5-1.7x health and harder hits) and the
+  best loot outside the Dark Elder.
+  - **Azrakor's Citadel**: when a realm closes you storm the Dark Elder's Citadel. Kill his two
+    lieutenants, Kael'zar the Blood Knight and Morwyn the Hex Queen, and the way to his chamber
+    opens.
+  - **Tomb of the Three Kings**: Solhar the Sun King, Lunara the Moon Queen and Astrel the
+    Star Prince fight you together in the last hall. Every king that falls heals the others a little
+    and makes them hit harder. Dropped by the Sand Sphinx.
+  - **The Shattered Sanctum**: Glacius the Frost Warden and Ignivar the Flame Warden guard the
+    sealed Shattered Seraph, who can't be hurt until both Wardens are dead. Dropped by the
+    Phantom Regent and the Lord of the Sunken Lands.
+
+  With several bosses in a dungeon, the boss health bar and quest arrow follow whichever boss is
+  nearest.
 - **10 realm events**, picked at random, now including Nekhret the Sand Sphinx, the Lord of the
   Sunken Lands, the Tide Hermit and the Skull Shrine.
 - Permadeath. Fame from a dead character is added to your account. Like RotMG, the death

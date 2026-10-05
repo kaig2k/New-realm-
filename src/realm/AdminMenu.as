@@ -154,7 +154,7 @@ package realm {
 			var y:int = 24;
 			for (var i:int = 0; i < Data.DUNGEONS.length; i++) {
 				var d:Object = Data.DUNGEONS[i];
-				label("<font color='" + Ui.hex(d.color) + "'>" + d.name + "</font>  <font size='11' color='#888888'>" + Data.ENEMIES[d.boss].name + "</font>", 14, y + 4, 0xffffff, 300);
+				label("<font color='" + Ui.hex(d.color) + "'>" + d.name + "</font>  <font size='11' color='#888888'>" + bossNames(d) + "</font>", 14, y + 4, 0xffffff, 300);
 				btn("Portal", 330, y, 90, portalFn(i), 12, 24);
 				btn("Enter", 426, y, 90, enterFn(i), 12, 24);
 				y += 27;
@@ -162,6 +162,13 @@ package realm {
 			y += 8;
 			btn("Dark Elder's Chamber", 14, y, 200, function():void { g.adminEnterArena(); });
 			btn("Realm portal", 220, y, 140, function():void { g.adminRealmPortal(); });
+		}
+
+		private function bossNames(d:Object):String {
+			var ids:Array = (d.guardians || []).concat(d.trio || []).concat(d.boss ? [d.boss] : []);
+			var names:Array = [];
+			for each (var id:String in ids) names.push(String(Data.ENEMIES[id].name).split(" ")[0].replace(",", ""));
+			return names.join(", ") + (d.toElder ? ", then Azrakor" : "");
 		}
 
 		private function portalFn(i:int):Function {

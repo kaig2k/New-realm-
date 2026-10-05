@@ -481,6 +481,7 @@ package realm {
 		private function portalTitle(p:Object):String {
 			if (p.kind == "realm") return realmNames[p.idx] + " Realm";
 			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
+			if (p.kind == "elder") return "Dark Elder's Chamber";
 			return "Nexus";
 		}
 
@@ -491,6 +492,7 @@ package realm {
 		public function usePortalNow(p:Object):void {
 			if (p.kind == "realm") enterPortal(p.idx);
 			else if (p.kind == "dungeon") enterDungeon(p.idx);
+			else if (p.kind == "elder") enterArena();
 			else nexusNow();
 		}
 
@@ -692,11 +694,45 @@ package realm {
 				for (k = 0; k < 3; k++) spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], tr.x + 0.5 + (k - 1) * 2, tr.y + 2, th.tier);
 			}
 			var last:Object = rooms[rooms.length - 1];
-			dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, th.tier);
-			dungeonWorld.enemies.push(dungeonWorld.boss);
+			var e:Enemy;
+			var gi:int;
+			// guardians wait in the middle rooms
+			if (th.guardians) {
+				for (gi = 0; gi < th.guardians.length; gi++) {
+					var gr:Object = rooms[Math.max(1, Math.round((gi + 1) * (rooms.length - 1) / (th.guardians.length + 1)))];
+					e = new Enemy(th.guardians[gi], gr.x + 0.5, gr.y + 0.5, th.tier);
+					dungeonWorld.enemies.push(e);
+				}
+			}
+			// three kings share the last hall
+			if (th.trio) {
+				for (gi = 0; gi < th.trio.length; gi++) {
+					e = new Enemy(th.trio[gi], last.x + 0.5 + (gi - 1) * 5, last.y + 0.5 + (gi == 1 ? -2 : 1), th.tier);
+					dungeonWorld.enemies.push(e);
+					if (gi == 0) dungeonWorld.boss = e;
+				}
+			}
+			if (th.boss) {
+				dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, th.tier);
+				if (dungeonWorld.boss.def.sealed) dungeonWorld.boss.invuln = true;
+				dungeonWorld.enemies.push(dungeonWorld.boss);
+			}
+			// elite monsters in the hard dungeons
+			if (th.hard) {
+				for each (e in dungeonWorld.enemies) {
+					if (e.def.treasure) continue;
+					e.maxHp *= th.hard;
+					e.hp = e.maxHp;
+					e.dmgMult = 1 + (th.hard - 1) * 0.6;
+				}
+			}
 			player.bossDmg = 0;
 			showBanner(th.name, th.color, 3);
-			msg("You enter the " + th.name + ". Its master waits in the last chamber.", th.color);
+			if (th.trio) msg("You enter the " + th.name + ". Three kings rest in the last hall. Each one that falls makes the others stronger.", th.color);
+			else if (th.toElder) msg("You storm " + th.name + ". Slay Azrakor's two lieutenants to open the way to his chamber.", th.color);
+			else if (th.guardians) msg("You enter the " + th.name + ". Its master is sealed until both guardians fall.", th.color);
+			else msg("You enter the " + th.name + ". Its master waits in the last chamber.", th.color);
+			if (th.hard) msg("Elite monsters: everything here is tougher than usual.", 0xff8080);
 			saveCharacter();
 		}
 
@@ -927,7 +963,7 @@ package realm {
 				if (world.closeT <= 0) {
 					world.closed = true;
 					msg("The " + world.name + " realm has closed.", 0xff8080);
-					travel(enterArena);
+					travel(enterCitadel);
 				}
 			}
 		}
@@ -1124,7 +1160,7 @@ package realm {
 			if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
 			if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
 			if (e.def.final) { questEvent("elder"); p.elders++; }
-			else if (e.def.dungeon) { questEvent("dungeon"); p.dungeons++; }
+			else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0)) { questEvent("dungeon"); p.dungeons++; }
 			else if (e.isBoss) questEvent("events");
 			p.kills++;
 			p.gainXp(e.def.xp, this);
@@ -1156,8 +1192,12 @@ package realm {
 			if (e.isBoss) {
 				shake(0.7, 10);
 				p.bossKills++;
-				world.boss = null;
-				if (e.def.dungeon) {
+				if (world.boss == e) world.boss = null;
+				if (e.def.guardian) {
+					guardianDown(e);
+				} else if (e.def.trio && aliveWith("trio") > 0) {
+					kingDown(e);
+				} else if (e.def.dungeon) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
 					msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);
 					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
@@ -1172,6 +1212,7 @@ package realm {
 					// events often leave a dungeon portal behind
 					if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
 						var di:int = int(Math.random() * Data.EVENT_DUNGEONS);
+						if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
 						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, 90);
 						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (90s)", Data.DUNGEONS[di].color);
 						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
@@ -1209,7 +1250,7 @@ package realm {
 					var kind:String = bag.spr == "bag_relic" ? Data.RARITY_NAMES.ar : bag.spr == "bag_legendary" ? Data.RARITY_NAMES.lg : Data.RARITY_NAMES.fb;
 					var kc:uint = bag.spr == "bag_relic" ? Data.RARITY_COLORS.ar : bag.spr == "bag_legendary" ? Data.RARITY_COLORS.lg : Data.RARITY_COLORS.fb;
 					showBanner(kind + " drop!", kc, 3);
-					msg("A " + kind + " bag dropped from " + e.def.name + "!", kc);
+					msg((/^[AEIOU]/.test(kind) ? "An " : "A ") + kind + " bag dropped from " + e.def.name + "!", kc);
 					Sfx.play("rare");
 					burst(e.x, e.y, kc, 30);
 				} else if (bag.spr != "bag_brown") Sfx.play("loot", 0.7);
@@ -1308,8 +1349,66 @@ package realm {
 		}
 
 
-		public function bossPhase(phase:int):void {
-			var b:Enemy = world.boss;
+		/** The boss the health panel and quest arrow follow: the nearest living boss, else the area boss. */
+		private function focusBoss():Enemy {
+			var best:Enemy = null, bestD:Number = 26 * 26;
+			for each (var e:Enemy in enemies) {
+				if (e.dead || !e.isBoss) continue;
+				var d:Number = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
+				if (d < bestD) { bestD = d; best = e; }
+			}
+			return best || world.boss;
+		}
+
+		private function aliveWith(flag:String):int {
+			var n:int = 0;
+			for each (var e:Enemy in enemies) if (!e.dead && e.def[flag]) n++;
+			return n;
+		}
+
+		/** A guardian fell: open the seal (or the way to the Dark Elder) once all are dead. */
+		private function guardianDown(e:Enemy):void {
+			var left:int = aliveWith("guardian");
+			showBanner(e.def.name + " has fallen!", Ui.GOLD, 3);
+			if (left > 0) { msg(left + " guardian" + (left == 1 ? "" : "s") + " remain.", 0xffd75e); return; }
+			var th:Object = world.theme;
+			if (th && th.toElder) {
+				addPortal(world, e.x, e.y + 2, "elder", 0, 0xc060ff);
+				say(SOVEREIGN, "You dare slay my lieutenants? Come, then. Face me!");
+				showBanner("The way to the Dark Elder is open!", 0xc060ff, 4);
+				return;
+			}
+			for each (var s:Enemy in enemies) {
+				if (s.dead || !s.def.sealed) continue;
+				s.invuln = false;
+				world.boss = s;
+				showBanner(s.def.name + " awakens!", 0xff60c0, 4);
+				say(s.def.name, "The seals are broken... now you face me!");
+				shake(0.6, 8);
+			}
+		}
+
+		/** One of the three kings fell: the survivors heal a little and hit harder. */
+		private function kingDown(e:Enemy):void {
+			showBanner(e.def.name + " has fallen!", Ui.GOLD, 3);
+			for each (var k:Enemy in enemies) {
+				if (k.dead || !k.def.trio) continue;
+				k.dmgMult *= 1.25;
+				k.hp = Math.min(k.maxHp, k.hp + k.maxHp * 0.15);
+				burst(k.x, k.y, 0xff4040, 20);
+				if (!world.boss || world.boss.dead) world.boss = k;
+			}
+			msg("The remaining kings grow stronger!", 0xff6040);
+		}
+
+		/** The realm has closed: storm Azrakor's Citadel, then face him in his chamber. */
+		private function enterCitadel():void {
+			enterDungeon(Data.dungeonIndex("citadel"));
+			say(SOVEREIGN, "You have slain my champions. Now come to my Citadel... if you can.");
+		}
+
+		public function bossPhase(phase:int, b:Enemy = null):void {
+			if (!b) b = world.boss;
 			var nm:String = b ? b.def.name : "The boss";
 			if (phase == 1) say(nm, "You dare wound me? Feel my power!");
 			else if (phase == 2 && b && b.def.final) {
@@ -2064,7 +2163,7 @@ package realm {
 			statusTf.x = CX - 160;
 			statusTf.y = CY - 76;
 
-			var b:Enemy = boss;
+			var b:Enemy = focusBoss();
 			var show:Boolean = b != null && !b.dead;
 			if (show) {
 				var dx:Number = b.x - player.x, dy:Number = b.y - player.y;
@@ -2090,7 +2189,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.invuln ? "IMMUNE: " + crystalsLeft() + " crystals left" : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -2106,10 +2205,20 @@ package realm {
 			if (inNexus) return null;
 			var b:Enemy = world.boss;
 			var e:Enemy, best:Enemy = null, bestD:Number = 1e9, d:Number;
+			if (!b || b.dead) {
+				// multi-boss dungeons: head for the nearest boss
+				for each (e in enemies) {
+					if (e.dead || !e.isBoss) continue;
+					d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
+					if (d < bestD) { bestD = d; best = e; }
+				}
+				if (best) return best;
+				bestD = 1e9;
+			}
 			if (b && !b.dead) {
 				if (!b.invuln) return b;
 				for each (e in enemies) {
-					if (e.dead || !e.def.crystal) continue;
+					if (e.dead || !(e.def.crystal || e.def.guardian)) continue;
 					d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
 					if (d < bestD) { bestD = d; best = e; }
 				}
@@ -2195,7 +2304,8 @@ package realm {
 				var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
 				var lab:TextField = p.label;
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
-					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>" : "Nexus";
+					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
+					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>" : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);
 			}

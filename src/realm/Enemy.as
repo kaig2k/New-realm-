@@ -21,6 +21,8 @@ package realm {
 		public var facingLeft:Boolean = false;
 		/** Bosses can be made immune (the Dark Elder while his crystals stand). */
 		public var invuln:Boolean = false;
+		/** Damage multiplier (elite dungeon monsters, enraged kings). */
+		public var dmgMult:Number = 1;
 
 		private var attacks:Array;
 		private var timers:Array;
@@ -88,7 +90,7 @@ package realm {
 				if (want != phase) {
 					phase = want;
 					setAttacks(def.phases[phase]);
-					g.bossPhase(phase);
+					g.bossPhase(phase, this);
 				}
 			}
 
@@ -197,12 +199,12 @@ package realm {
 			if (a.p == "aimed") {
 				for (k = 0; k < n; k++) {
 					t = n > 1 ? ang + (k / (n - 1) - 0.5) * a.arc * DEG : ang;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, a.eff || null, spin));
+					g.addShot(new Projectile(x, y, t, a.spd, a.life, int(a.dmg * dmgMult), true, a.r, bd, false, def.name, a.eff || null, spin));
 				}
 			} else { // ring / spiral
 				for (k = 0; k < n; k++) {
 					t = spins[i] + k * Math.PI * 2 / n;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, a.dmg, true, a.r, bd, false, def.name, a.eff || null, spin));
+					g.addShot(new Projectile(x, y, t, a.spd, a.life, int(a.dmg * dmgMult), true, a.r, bd, false, def.name, a.eff || null, spin));
 				}
 				spins[i] += (a.rot || 0) * DEG;
 			}

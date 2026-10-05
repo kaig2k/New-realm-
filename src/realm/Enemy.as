@@ -15,6 +15,8 @@ package realm {
 		public var isBoss:Boolean;
 		public var stunT:Number = 0, slowT:Number = 0, hitT:Number = 0;
 		public var facingLeft:Boolean = false;
+		/** Bosses can be made immune (the Dark Elder while his crystals stand). */
+		public var invuln:Boolean = false;
 
 		private var attacks:Array;
 		private var timers:Array;
@@ -130,6 +132,7 @@ package realm {
 				var bx:Number = homeX - x, by:Number = homeY - y;
 				if (bx * bx + by * by > 25) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
+			if (def.ai == "still") { mvx = 0; mvy = 0; }
 			move(mvx * speed * dt, mvy * speed * dt, g.world);
 
 			if (aggro && dist < (def.range || 10)) {

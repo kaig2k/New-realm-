@@ -66,7 +66,8 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   (+1% loot chance per point).
 - **PT and SG bars**: Protection fills a white **PT** shield (about 3 PT per point) that
   absorbs damage before HP. **Surge** gains +2 for each kill near you and refills PT at 100.
-- **Valor item tiers**: T0-T7, then **UT**, **ST** (set items; 4 pieces give a set bonus),
+- **Valor item tiers**: T0-T7, then **UT**, **ST** (class set items, such as the Wizard's
+  Archmage's set or the Knight's Crusader's set; wearing all 4 pieces gives a set bonus),
   **FB** (Fabled), **LG** (Legendary, with passives such as Lifebloom, Shardstorm,
   Frostbite, Executioner and Rampage) and **AR** (Ancient Relic). Each has its own coloured
   tag and loot bag.
@@ -79,11 +80,13 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   Phantom Regent) and announces each kill in
   chat as `[3/6][Realm: Medusa]`. Clear all 6 events and the realm closes. You're pulled
   into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
-  for Fabled, Legendary and Relic loot.
+  for Fabled, Legendary and Relic loot. At a third of his health he becomes immune and
+  summons four Elder Crystals. Destroy them all to make him vulnerable again.
 - **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of four
   dungeons: the Sunken Crypt, the Ember Depths (lava pools), the Storm Spire or the
   Forgotten Cellar. Each is a chain of monster rooms with a boss at the end (the Crypt
-  Warden, Pyrelord Ignaar, the Tempest Seraph or the Cellar Sorcerer).
+  Warden, Pyrelord Ignaar, the Tempest Seraph or the Cellar Sorcerer). Most dungeons also
+  have a side treasure room with a guarded chest holding a set piece and stat potions.
 - **Chat and Valor-style commands** (Enter): `/glands` teleports you to the Godlands, plus
   `/nexus`, `/realm`, `/stats` and `/quests`. One-time tips guide new players.
 - **Skill tree (Valor's Ascension)**: at level 20 with 11/11 stats, every 600 XP gives a

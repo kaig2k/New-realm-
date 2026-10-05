@@ -67,18 +67,27 @@ package realm {
 			pt = maxPt;
 		}
 
-		/** Number of equipped pieces of the Valorous set. */
+		/** Most equipped pieces of any one set. */
 		public function get setPieces():int {
-			var n:int = 0;
-			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it.set) n++;
+			var counts:Object = {}, n:int = 0;
+			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it.set) {
+				counts[it.set] = (counts[it.set] || 0) + 1;
+				n = Math.max(n, counts[it.set]);
+			}
 			return n;
+		}
+
+		/** The set whose 4-piece bonus is active, or null. */
+		public function get activeSet():String {
+			return setPieces >= 4 ? weapon.set : null;
 		}
 
 		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
 		public function bonus(s:String):int {
 			var b:int = 0;
 			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s]) b += it[s];
-			if (setPieces >= 4 && Data.SET_BONUS[s]) b += Data.SET_BONUS[s];
+			var set:String = activeSet;
+			if (set && Data.setBonus(set)[s]) b += Data.setBonus(set)[s];
 			for (var sk:String in Data.SKILL_STATS) {
 				if (skills[sk] && Data.SKILL_STATS[sk][s]) b += skills[sk] * Data.SKILL_STATS[sk][s];
 			}
@@ -407,7 +416,7 @@ package realm {
 			hp = Math.min(hp, maxHp);
 			mp = Math.min(mp, maxMp);
 			g.msg("Equipped " + item.name, item.rarity ? Data.RARITY_COLORS[item.rarity] : 0xffffff);
-			if (setPieces >= 4) g.msg("Valorous Set bonus active!", 0xff9a2e);
+			if (activeSet && item.set) g.msg(Data.setName(activeSet) + " Set bonus active!", 0xff9a2e);
 		}
 
 		public function drinkStat(s:String, g:Game):Boolean {

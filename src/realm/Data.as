@@ -174,8 +174,35 @@ package realm {
 			return item;
 		}
 
-		/** Bonus for wearing all 4 pieces of a set. */
+		/** Bonus for wearing all 4 pieces of a set (old generic Valorous set). */
 		public static const SET_BONUS:Object = {hp: 80, att: 10, def: 10, dex: 10, frt: 10};
+
+		/** Class sets: ST drops are tagged with the class id and give a class-flavoured 4-piece bonus. */
+		public static const SETS:Object = {
+			wizard: {name: "Archmage's", bonus: {mp: 80, att: 12, wis: 10, luc: 12, frt: 10}},
+			archer: {name: "Ranger's", bonus: {hp: 60, att: 10, dex: 12, luc: 10, frt: 10}},
+			knight: {name: "Crusader's", bonus: {hp: 120, def: 15, vit: 15, prt: 15, frt: 10}},
+			priest: {name: "Saint's", bonus: {hp: 60, mp: 60, wis: 15, vit: 10, frt: 10}},
+			rogue: {name: "Nightblade's", bonus: {hp: 60, dex: 12, spd: 12, mgt: 12, frt: 10}},
+			warrior: {name: "Warlord's", bonus: {hp: 100, att: 15, vit: 10, mgt: 10, frt: 10}},
+			necromancer: {name: "Gravecaller's", bonus: {mp: 80, att: 10, wis: 12, mgt: 12, frt: 10}},
+			huntress: {name: "Wildheart's", bonus: {hp: 60, att: 10, dex: 10, spd: 10, luc: 10, frt: 10}}
+		};
+
+		public static function setName(id:String):String {
+			return SETS[id] ? SETS[id].name : id;
+		}
+
+		public static function setBonus(id:String):Object {
+			return SETS[id] ? SETS[id].bonus : SET_BONUS;
+		}
+
+		public static function setBonusText(id:String):String {
+			var b:Object = setBonus(id), parts:Array = [];
+			for each (var k:String in STATS) if (b[k]) parts.push("+" + b[k] + " " + STAT_SHORT[k]);
+			if (b.frt) parts.push("+" + b.frt + " Fortune");
+			return parts.join(", ");
+		}
 
 		public static function makeWeapon(sub:String, tier:int, rarity:String = null):Object {
 			var t:Number = rarity ? RARITY_POWER[rarity] : tier;
@@ -257,11 +284,20 @@ package realm {
 		/** Gear for one of a class's 4 slots. */
 		public static function makeForSlot(cls:Object, slot:int, tier:int, rarity:String):Object {
 			switch (slot) {
-				case 0: return makeWeapon(cls.weapon, tier, rarity);
-				case 1: return makeAbility(cls.abilityType, tier, rarity);
-				case 2: return makeArmor(cls.armor, tier, rarity);
+				case 0: return classSet(makeWeapon(cls.weapon, tier, rarity), cls);
+				case 1: return classSet(makeAbility(cls.abilityType, tier, rarity), cls);
+				case 2: return classSet(makeArmor(cls.armor, tier, rarity), cls);
 			}
-			return makeRing(randomStat(), Math.min(5, tier), rarity);
+			return classSet(makeRing(randomStat(), Math.min(5, tier), rarity), cls);
+		}
+
+		/** Re-tag a generic set item as a piece of the class's own set. */
+		private static function classSet(item:Object, cls:Object):Object {
+			if (item.rarity == "st" && SETS[cls.id]) {
+				item.set = cls.id;
+				item.name = SETS[cls.id].name + " " + (NOUNS[item.sub] || "Relic");
+			}
+			return item;
 		}
 
 		/** Turn an item into a Legendary of the same kind (Sor Forge). */
@@ -338,7 +374,7 @@ package realm {
 				var p:Object = PASSIVES[item.passive];
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
 			}
-			if (item.set) s += "<font color='#ff9a2e'>" + item.set + " Set (4 pieces): +80 HP, +10 ATT/DEF/DEX, +10 Fortune</font>\n";
+			if (item.set) s += "<font color='#ff9a2e'>" + setName(item.set) + " Set (4 pieces): " + setBonusText(item.set) + "</font>\n";
 			s += "<font color='#888888'>Sells for " + sellValue(item) + " gold</font>\n";
 			return s;
 		}
@@ -513,7 +549,14 @@ package realm {
 			skeleton: {name: "Bone Soldier", spr: "skeleton", hp: 350, def: 8, spd: 2.4, xp: 15, ai: "chase", keep: 1.5, drop: 0, col: 0xe8e0c0,
 				attacks: [{p: "aimed", n: 1, spd: 10, life: 0.9, dmg: 45, cd: 0.9, r: 0.18, col: 0xe8e0c0, shape: "dart"}]},
 			shade: {name: "Elder's Shade", spr: "shade", hp: 600, def: 10, spd: 3.0, xp: 20, ai: "orbit", keep: 4, drop: 0, col: 0x8040c0,
-				attacks: [{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.2, dmg: 50, cd: 1.1, r: 0.18, col: 0xc080ff, shape: "dart", eff: "confused"}]}
+				attacks: [{p: "aimed", n: 3, arc: 24, spd: 9, life: 1.2, dmg: 50, cd: 1.1, r: 0.18, col: 0xc080ff, shape: "dart", eff: "confused"}]},
+			// the Dark Elder is immune while these stand
+			elder_crystal: {name: "Elder Crystal", spr: "crystal", hp: 2600, def: 15, spd: 0, xp: 120, ai: "still", r: 0.6, aggro: 16, range: 13, drop: 0, col: 0xff4080, crystal: true,
+				attacks: [{p: "spiral", n: 2, rot: 23, spd: 4.5, life: 2.2, dmg: 45, cd: 0.8, r: 0.2, col: 0xff4080, shape: "star"},
+					{p: "aimed", n: 1, spd: 9, life: 1.4, dmg: 55, cd: 1.6, r: 0.22, col: 0xffd0e8, shape: "dart"}]},
+			// dungeon treasure rooms
+			treasure: {name: "Treasure Chest", spr: "chest", hp: 1800, def: 0, spd: 0, xp: 150, ai: "still", r: 0.5, aggro: 0, range: 0, drop: 1, col: 0xf0c030, treasure: true,
+				gold: 150, onrane: 3, attacks: []}
 		};
 
 		/** Which enemies spawn in each zone: 0 beach, 1 lowlands, 2 midlands, 3 godlands. */
@@ -587,6 +630,16 @@ package realm {
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
+				return items;
+			}
+			if (def.treasure) {
+				// treasure room chest: a set piece for your class plus potions
+				items.push(makeForSlot(cls, int(Math.random() * 4), 7, "st"));
+				if (Math.random() < 0.4 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+				if (Math.random() < 0.25 * boost) items.push(makeSor());
+				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
+				items.push(makePotion("hp"));
+				items.push(makePotion("mp"));
 				return items;
 			}
 			if (def.dungeon) {

@@ -452,6 +452,11 @@ package realm {
 					spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], mx, my, 3);
 				}
 			}
+			var tr:Object = dungeonWorld.treasure;
+			if (tr) {
+				spawnEnemy("treasure", tr.x + 0.5, tr.y + 0.5, 3);
+				for (k = 0; k < 3; k++) spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], tr.x + 0.5 + (k - 1) * 2, tr.y + 2, 3);
+			}
 			var last:Object = rooms[rooms.length - 1];
 			dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, 3);
 			dungeonWorld.enemies.push(dungeonWorld.boss);
@@ -754,6 +759,10 @@ package realm {
 		public function hurtEnemy(e:Enemy, raw:int, effect:String, hx:Number, hy:Number):void {
 			if (e.dead) return;
 			var p:Player = player;
+			if (e.invuln) {
+				if (opt("dmg") && Math.random() < 0.15) floatText(e.x, e.y - e.r - 0.6, "Immune", 0xff80c0);
+				return;
+			}
 			raw = int(raw * p.damageMult);
 			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			var crit:Boolean = Math.random() < p.critChance;
@@ -852,6 +861,19 @@ package realm {
 			if (e.def.onrane) addOnrane(e.def.onrane);
 			if (e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " onrane", Ui.GOLD);
 
+			if (e.def.crystal) {
+				var left:int = crystalsLeft();
+				if (left > 0) msg("Elder Crystal destroyed! " + left + " remaining.", 0xff80c0);
+				else if (world.boss && world.boss.invuln) {
+					world.boss.invuln = false;
+					showBanner("The Dark Elder is vulnerable!", 0xff4080, 3);
+					say(world.boss.def.name, "No! My crystals...!");
+				}
+			}
+			if (e.def.treasure) {
+				msg("You cracked open the treasure chest! (+" + g + " gold)", Ui.GOLD);
+				burst(e.x, e.y, Ui.GOLD, 30);
+			}
 			if (e.isBoss) {
 				p.bossKills++;
 				world.boss = null;
@@ -994,9 +1016,28 @@ package realm {
 
 
 		public function bossPhase(phase:int):void {
-			var nm:String = world.boss ? world.boss.def.name : "The boss";
+			var b:Enemy = world.boss;
+			var nm:String = b ? b.def.name : "The boss";
 			if (phase == 1) say(nm, "You dare wound me? Feel my power!");
+			else if (phase == 2 && b && b.def.final) {
+				// the Dark Elder shields himself with four crystals
+				say(nm, "Crystals of the Abyss, shield your master!");
+				showBanner("The Dark Elder is immune! Destroy the crystals!", 0xff4080, 4);
+				b.invuln = true;
+				for each (var cp:Array in [[-8, -5], [8, -5], [-8, 5], [8, 5]]) {
+					var c:Enemy = spawnEnemy("elder_crystal", b.homeX + cp[0], b.homeY + 7 + cp[1], World.ARENA_ZONE);
+					if (c) burst(c.x, c.y, 0xff4080, 20);
+				}
+				if (crystalsLeft() == 0) b.invuln = false;
+				tip("crystals", "While the Elder Crystals stand, the Dark Elder takes no damage.");
+			}
 			else if (phase == 2) say(nm, "ENOUGH! I will end you!");
+		}
+
+		private function crystalsLeft():int {
+			var n:int = 0;
+			for each (var e:Enemy in enemies) if (!e.dead && e.def.crystal) n++;
+			return n;
 		}
 
 		private function die():void {
@@ -1422,7 +1463,7 @@ package realm {
 				g.clear();
 				g.beginFill(0x111111);
 				g.drawRoundRect(0, 0, 266, 10, 4, 4);
-				g.beginFill(0xc82828);
+				g.beginFill(b.invuln ? 0x9a5a7a : 0xc82828);
 				g.drawRoundRect(0, 0, 266 * frac, 10, 4, 4);
 				g.endFill();
 				var pct:Number = player.bossDmg / b.maxHp * 100;
@@ -1434,7 +1475,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.invuln ? "IMMUNE: " + crystalsLeft() + " crystals left" : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "LG: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -1577,7 +1618,8 @@ package realm {
 				var bw:int = e.isBoss ? 80 : 36;
 				hpBar(cx - bw / 2, cy + TS * 0.4 + 6, bw, e.hp / e.maxHp);
 			}
-			if (e.stunT > 0) statusPip(cx, top - 6, 0xfff0f040);
+			if (e.invuln) statusPip(cx, top - 6, 0xffff4080);
+			else if (e.stunT > 0) statusPip(cx, top - 6, 0xfff0f040);
 			else if (e.slowT > 0) statusPip(cx, top - 6, 0xff60a0ff);
 		}
 

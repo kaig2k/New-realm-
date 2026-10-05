@@ -55,6 +55,8 @@ package realm {
 		public var portals:Array = [];
 		/** Dungeon rooms {x, y, w, h}; the last one is the boss room. */
 		public var rooms:Array = [];
+		/** Dungeon side room holding a treasure chest (or null). */
+		public var treasure:Object;
 		public var theme:Object;
 
 		private var noise:Vector.<Number>;
@@ -204,6 +206,21 @@ package realm {
 				else cy -= 17 + int(Math.random() * 3);
 				if (k == count - 2) { cy -= 4; }
 				if (cy < 25) cy = 25;
+			}
+			// a hidden treasure room off one of the middle rooms
+			for (var tries:int = 0; tries < 12 && !treasure; tries++) {
+				var base:Object = rooms[1 + int(Math.random() * (rooms.length - 2))];
+				var side:int = Math.random() < 0.5 ? -1 : 1;
+				var tx:int = base.x + side * (int(base.w / 2) + 8), ty:int = base.y;
+				var free:Boolean = tx > 12 && tx < N - 12;
+				for each (var o:Object in rooms) {
+					if (Math.abs(o.x - tx) < o.w / 2 + 6 && Math.abs(o.y - ty) < o.h / 2 + 6) free = false;
+				}
+				if (!free) continue;
+				carve(tx - 3, ty - 3, 7, 7, floor);
+				carve(tx - 1, ty - 1, 3, 3, CARPET);
+				corridor(base.x, base.y, tx, ty, floor);
+				treasure = {x: tx, y: ty, w: 7, h: 7};
 			}
 			// walls wherever floor meets the void
 			for (y = 1; y < N - 1; y++) {

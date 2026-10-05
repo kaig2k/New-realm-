@@ -163,6 +163,7 @@ package realm {
 		private static const QUESTBOARD:Array = [["WWWWWWWW", "WPPPPPPW", "WPLLLPPW", "WPPPPPPW", "WPLLLLPW", "WPPPPPPW", "WWWWWWWW", ".W....W."]];
 		private static const WOLF:Array = [["......W.", ".....WWW", "WWWWWWEW", "WWWWWWWW", "wWWWWWW.", ".W.W.W.W", ".W.W.W.W", "........"]];
 		private static const BAG:Array = [["...KK...", "..K..K..", "..CCCC..", ".CCCCCC.", "CCCDCCCc", "CCCCCCCc", ".cCCCCc.", "........"]];
+		private static const CRYSTAL:Array = [["...WC...", "..WCCc..", ".WCCCcc.", ".CCCCcc.", ".CCCcccD", "..CccD..", "...cD...", "..SSSS.."]];
 		private static const GRAVE:Array = [["..GGGG..", ".GGGGGG.", ".GGDGGg.", ".GDDDGg.", ".GGDGGg.", ".GGDGGg.", ".GGGGGg.", "MMMMMMMM"]];
 
 		// ================================================================ projectiles (point right)
@@ -257,6 +258,7 @@ package realm {
 			boulder: [BOULDER, {k: 0x4a4a4e, K: 0x626268, L: 0x84848a, d: 0x2e2e32}],
 			deadtree: [DEADTREE, {W: 0x5a4a3a}],
 			brazier: [BRAZIER, {Y: 0xffe040, F: 0xff7a20, W: 0xffffff, S: 0x6a6a72, s: 0x44444a}],
+			crystal: [CRYSTAL, {W: 0xffd0e8, C: 0xff4080, c: 0xb01850, D: 0x600828, S: 0x3a1a2a}, 7],
 			chest: [CHEST, {K: 0x4a2a10, C: 0x9a6a3a, c: 0x7a4a24, Y: 0xf0c030}, 6],
 			bag_brown: [BAG, {K: 0x502a10, C: 0x9a6a3a, c: 0x6a4420, D: 0x5a3a1a}],
 			bag_purple: [BAG, {K: 0x401060, C: 0xb050e0, c: 0x7a2aa8, D: 0x6a2090}],

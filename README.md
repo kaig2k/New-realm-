@@ -45,7 +45,7 @@ rebuild that file if you change the fonts, and that needs the Apache Flex SDK's 
 | 1-8 | Use or equip the item in that inventory slot |
 | R | Return to the Nexus (full heal) |
 | Enter | Go through the portal you are standing on |
-| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/tips` |
+| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/tips` |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
 | P / Esc | Pause menu (options, Save & Quit) |
@@ -107,6 +107,12 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   chimes, portals and boss spawns. A banner announces Legendary, Relic and Fabled drops.
 - **Daily Quest Board** (Valor's daily contracts): three missions picked by date, such as
   "Clear a dungeon" or "Defeat 2 realm event bosses", paying gold and Onrane.
+- **Quest arrow** (like RotMG's quest marker): a gold arrow at the edge of the screen points
+  to your current objective, with its name and distance. That's the area boss, the nearest
+  Elder Crystal while the Dark Elder is immune, or a monster suited to your level.
+- **Achievements**: 16 account-wide goals, such as First Blood, Dungeon Master, Treasure
+  Hunter, Bane of Azrakor and Perfection (11/11). Each pays gold and Onrane once. See them
+  at the Quest Board, or type `/achievements`.
 - **Pause menu** with Resume, sound, damage numbers and particle toggles, and Save & Quit
   to the title screen.
 - **Boss damage meter** with your damage share and the LG threshold.

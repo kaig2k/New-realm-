@@ -655,6 +655,26 @@ package realm {
 			{id: "elder", text: "Defeat the Dark Elder", goal: 1, gold: 1000, onrane: 8}
 		];
 
+		/** Account achievements: counted from the same events as quests, rewarded once. */
+		public static const ACHIEVEMENTS:Array = [
+			{id: "first_blood", ev: "kills", goal: 1, name: "First Blood", desc: "Slay a monster", gold: 50, onrane: 0},
+			{id: "slayer", ev: "kills", goal: 1000, name: "Slayer", desc: "Slay 1,000 monsters", gold: 1000, onrane: 2},
+			{id: "exterminator", ev: "kills", goal: 10000, name: "Exterminator", desc: "Slay 10,000 monsters", gold: 5000, onrane: 20},
+			{id: "god_hunter", ev: "godkills", goal: 500, name: "God Hunter", desc: "Slay 500 Godlands monsters", gold: 1500, onrane: 5},
+			{id: "event_1", ev: "events", goal: 1, name: "Event Horizon", desc: "Defeat a realm event boss", gold: 300, onrane: 1},
+			{id: "event_25", ev: "events", goal: 25, name: "Champion of the Realm", desc: "Defeat 25 realm event bosses", gold: 2500, onrane: 10},
+			{id: "dungeon_1", ev: "dungeon", goal: 1, name: "Delver", desc: "Clear a dungeon", gold: 300, onrane: 2},
+			{id: "dungeon_20", ev: "dungeon", goal: 20, name: "Dungeon Master", desc: "Clear 20 dungeons", gold: 3000, onrane: 15},
+			{id: "treasure", ev: "treasure", goal: 5, name: "Treasure Hunter", desc: "Open 5 treasure chests", gold: 1000, onrane: 3},
+			{id: "elder_1", ev: "elder", goal: 1, name: "Elder Slayer", desc: "Defeat the Dark Elder", gold: 2000, onrane: 10},
+			{id: "elder_10", ev: "elder", goal: 10, name: "Bane of Azrakor", desc: "Defeat the Dark Elder 10 times", gold: 10000, onrane: 40},
+			{id: "legend", ev: "level20", goal: 1, name: "Legend", desc: "Reach level 20", gold: 500, onrane: 0},
+			{id: "maxed", ev: "maxed", goal: 1, name: "Perfection", desc: "Max all 11 stats on a character", gold: 5000, onrane: 20},
+			{id: "lucky", ev: "rare", goal: 50, name: "Lucky", desc: "Find 50 purple-or-better loot bags", gold: 1500, onrane: 5},
+			{id: "legendary", ev: "legendary", goal: 1, name: "Shining Light", desc: "Obtain a Legendary or Relic", gold: 1000, onrane: 5},
+			{id: "pet", ev: "pet", goal: 1, name: "Best Friend", desc: "Hatch a pet", gold: 200, onrane: 0}
+		];
+
 		public static function quest(id:String):Object {
 			for each (var q:Object in QUESTS) if (q.id == id) return q;
 			return null;

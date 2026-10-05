@@ -54,6 +54,7 @@ package realm {
 		private var petX:Number = 0, petY:Number = 0, petHealT:Number = 3;
 		private var petMoving:Boolean = false;
 		private var releaseArmed:Boolean = false;
+		private var showAch:Boolean = false;
 		private var goldTf:TextField, onraneTf:TextField;
 		private var thresholdTf:TextField;
 		private var vaultBag:LootBag;
@@ -77,6 +78,11 @@ package realm {
 		private var bossBar:Shape, dmgBar:Shape;
 		private var dmgTf:TextField;
 		private var nameTag:TextField;
+		/** RotMG-style quest arrow pointing at the current objective. */
+		private var questArrow:Shape;
+		private var questTf:TextField;
+		private var questTarget:Enemy;
+		private var questT:Number = 0;
 		private var fameTf:TextField, killTf:TextField;
 		private var statusTf:TextField;
 		private var pauseLayer:Sprite;
@@ -116,6 +122,17 @@ package realm {
 			floatLayer = new Sprite();
 			floatLayer.mouseEnabled = floatLayer.mouseChildren = false;
 			addChild(floatLayer);
+			questArrow = new Shape();
+			var qg:* = questArrow.graphics;
+			qg.lineStyle(2, 0x2a1a00);
+			qg.beginFill(0xffd75e);
+			qg.moveTo(15, 0); qg.lineTo(-8, -10); qg.lineTo(-3, 0); qg.lineTo(-8, 10); qg.lineTo(15, 0);
+			qg.endFill();
+			questArrow.visible = false;
+			addChild(questArrow);
+			questTf = Ui.text(12, 0xffd75e, true, "center", 160, true);
+			questTf.visible = false;
+			addChild(questTf);
 			nameTag = Ui.text(13, 0xffe36e, true, "center", 140, true);
 			nameTag.text = name;
 			addChild(nameTag);
@@ -202,7 +219,7 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /tips", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /tips", 0x8fd0ff);
 					break;
 				case "/nexus": case "/n":
 					nexus();
@@ -232,6 +249,12 @@ package realm {
 						var q:Object = Data.quest(qs.id);
 						msg(q.text + "  " + qs.progress + "/" + q.goal + (qs.claimed ? "  (claimed)" : ""), 0x9cff7a);
 					}
+					break;
+				case "/achievements":
+				case "/ach":
+					var ast:Object = achState(), nd:int = 0;
+					for each (var ac:Object in Data.ACHIEVEMENTS) if (ast.done[ac.id]) nd++;
+					msg("Achievements: " + nd + "/" + Data.ACHIEVEMENTS.length + " unlocked. See the Quest Board in the Nexus.", 0xffd75e);
 					break;
 				case "/tips":
 					Save.data.tips = {};
@@ -880,6 +903,7 @@ package realm {
 				}
 			}
 			if (e.def.treasure) {
+				questEvent("treasure");
 				msg("You cracked open the treasure chest! (+" + g + " gold)", Ui.GOLD);
 				burst(e.x, e.y, Ui.GOLD, 30);
 			}
@@ -922,6 +946,7 @@ package realm {
 				bags.push(bag);
 				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
 				// Valor-style rare drop alerts
+				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary") questEvent("legendary");
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
 					var kind:String = bag.spr == "bag_relic" ? "Ancient Relic" : bag.spr == "bag_legendary" ? "Legendary" : "Fabled";
 					var kc:uint = bag.spr == "bag_relic" ? 0x40e8d8 : bag.spr == "bag_legendary" ? 0xd8e040 : 0xff4a4a;
@@ -1223,6 +1248,31 @@ package realm {
 				y += 56;
 			} else if (openStation.kind == "pets") {
 				y = buildPetPanel(sp, info, y, w);
+			} else if (openStation.kind == "quests" && showAch) {
+				title.text = "Achievements";
+				var ast0:Object = achState();
+				info.htmlText = "Account-wide goals. Each pays out once, automatically.";
+				info.y = y;
+				y += info.height + 4;
+				for each (var ach:Object in Data.ACHIEVEMENTS) {
+					var got:Boolean = ast0.done[ach.id];
+					var prog:int = Math.min(ach.goal, int(ast0.counts[ach.ev] || 0));
+					var ar:TextField = Ui.text(13, got ? 0xffd75e : 0xffffff, true, "left", 300, true);
+					ar.htmlText = ach.name + "  <font size='12' color='#999999'>" + ach.desc +
+						(got || ach.goal == 1 ? "" : "  " + Ui.commas(prog) + "/" + Ui.commas(ach.goal)) + "</font>";
+					ar.x = 14; ar.y = y;
+					sp.addChild(ar);
+					var rw:TextField = Ui.text(12, got ? 0x777777 : 0xffd75e, true, "right", 120, true);
+					rw.text = ach.gold + "g" + (ach.onrane ? "  " + ach.onrane + " on" : "");
+					rw.x = w - 134; rw.y = y + 1;
+					sp.addChild(rw);
+					y += 22;
+				}
+				y += 6;
+				var bk:Sprite = Ui.button("Back to Daily Quests", 200, 30, function():void { showAch = false; refreshStation(); }, 14);
+				bk.x = (w - 200) / 2; bk.y = y;
+				sp.addChild(bk);
+				y += 36;
 			} else if (openStation.kind == "quests") {
 				info.htmlText = "Complete these missions with any character. New quests every day.";
 				info.y = y;
@@ -1247,6 +1297,12 @@ package realm {
 					}
 					y += 44;
 				}
+				var nDone:int = 0;
+				for each (var a2:Object in Data.ACHIEVEMENTS) if (achState().done[a2.id]) nDone++;
+				var ab:Sprite = Ui.button("Achievements (" + nDone + "/" + Data.ACHIEVEMENTS.length + ")", 200, 30, function():void { showAch = true; refreshStation(); }, 14);
+				ab.x = (w - 200) / 2; ab.y = y + 2;
+				sp.addChild(ab);
+				y += 38;
 			} else {
 				info.htmlText = "You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.  Shift+click inventory items to sell them.";
 				info.y = y;
@@ -1312,6 +1368,7 @@ package realm {
 		}
 
 		public function questEvent(id:String, n:int = 1):void {
+			achievementEvent(id, n);
 			for each (var qs:Object in questState().list) {
 				if (qs.id != id || qs.claimed) continue;
 				var q:Object = Data.quest(id);
@@ -1322,6 +1379,28 @@ package realm {
 					Sfx.play("coin");
 					Save.flush();
 				}
+			}
+		}
+
+		/** Account achievement progress: {counts: {event: n}, done: {id: true}}. */
+		private function achState():Object {
+			var a:Object = Save.data.ach;
+			if (!a) a = Save.data.ach = {counts: {}, done: {}};
+			return a;
+		}
+
+		private function achievementEvent(ev:String, n:int):void {
+			var a:Object = achState();
+			a.counts[ev] = int(a.counts[ev] || 0) + n;
+			for each (var ach:Object in Data.ACHIEVEMENTS) {
+				if (ach.ev != ev || a.done[ach.id] || a.counts[ev] < ach.goal) continue;
+				a.done[ach.id] = true;
+				if (ach.gold) addGold(ach.gold);
+				if (ach.onrane) addOnrane(ach.onrane);
+				showBanner("Achievement: " + ach.name, 0xffd75e, 3);
+				msg("Achievement unlocked: " + ach.name + " (" + ach.desc + ")  +" + ach.gold + " gold" + (ach.onrane ? " +" + ach.onrane + " onrane" : ""), 0xffd75e);
+				Sfx.play("rare", 0.7);
+				Save.flush();
 			}
 		}
 
@@ -1427,6 +1506,7 @@ package realm {
 			if (gold < Data.PET_EGG_PRICE) { msg("You need " + Ui.commas(Data.PET_EGG_PRICE) + " gold to buy a pet egg.", 0xff8080); return; }
 			addGold(-Data.PET_EGG_PRICE);
 			var pt:Object = Save.data.pet = Data.hatchPet();
+			questEvent("pet");
 			petX = player.x - 1; petY = player.y + 0.5;
 			var r:Object = Data.PET_RARITIES[pt.rarity];
 			showBanner("You hatched a " + r.name + " " + pt.name + "!", r.col, 3);
@@ -1472,6 +1552,7 @@ package realm {
 			player.inv[sorSlot] = null;
 			var lg:Object = Data.forgeLegendary(item, player.cls);
 			player.inv[slot] = lg;
+			questEvent("legendary");
 			Save.flush();
 			showBanner("Forged " + lg.name + "!", Data.RARITY_COLORS.lg, 3);
 			Sfx.play("rare");
@@ -1622,6 +1703,66 @@ package realm {
 		public function screenToWorldX(sx:Number):Number { return camX + (sx - CX) / TS; }
 		public function screenToWorldY(sy:Number):Number { return camY + (sy - CY) / TS; }
 
+		/** Picks the objective: the area boss (or its crystals), else a monster suited to your level. */
+		private function pickQuest():Enemy {
+			if (inNexus) return null;
+			var b:Enemy = world.boss;
+			var e:Enemy, best:Enemy = null, bestD:Number = 1e9, d:Number;
+			if (b && !b.dead) {
+				if (!b.invuln) return b;
+				for each (e in enemies) {
+					if (e.dead || !e.def.crystal) continue;
+					d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
+					if (d < bestD) { bestD = d; best = e; }
+				}
+				return best || b;
+			}
+			if (world.kind != "realm") return null;
+			var want:int = Math.min(3, int(player.level / 5));
+			var bestZone:int = -1;
+			for each (e in enemies) {
+				if (e.dead || e.def.drop <= 0) continue;
+				var z:int = Math.min(e.zone, want);
+				d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
+				if (z > bestZone || (z == bestZone && d < bestD)) { bestZone = z; bestD = d; best = e; }
+			}
+			return best;
+		}
+
+		private function updateQuestArrow(ox:Number, oy:Number):void {
+			questT -= 1 / 30;
+			if (questT <= 0 || !questTarget || questTarget.dead) {
+				questT = 0.5;
+				questTarget = pickQuest();
+			}
+			var q:Enemy = questTarget;
+			questArrow.visible = questTf.visible = q != null && !q.dead && !paused;
+			if (!questArrow.visible) return;
+			var sx:Number = q.x * TS + ox, sy:Number = q.y * TS + oy;
+			var m:Number = 34;
+			if (sx > m && sx < VIEW_W - m && sy > m + 40 && sy < VIEW_H - m) {
+				// on screen: bob above the target, pointing down
+				questArrow.rotation = 90;
+				questArrow.x = sx;
+				questArrow.y = sy - TS * (q.isBoss ? 2.2 : 1.4) - 4 + Math.sin(time * 6) * 4;
+				questTf.visible = false;
+				return;
+			}
+			var dx:Number = sx - CX, dy:Number = sy - CY;
+			var ang:Number = Math.atan2(dy, dx);
+			// clamp to the edge of the view
+			var kx:Number = dx != 0 ? (dx > 0 ? (VIEW_W - m - CX) : (m - CX)) / dx : 1e9;
+			var ky:Number = dy != 0 ? (dy > 0 ? (VIEW_H - m - CY) : (m + 40 - CY)) / dy : 1e9;
+			var k:Number = Math.min(kx, ky);
+			questArrow.x = CX + dx * k;
+			questArrow.y = CY + dy * k;
+			questArrow.rotation = ang * 180 / Math.PI;
+			var dist:int = Math.sqrt((q.x - player.x) * (q.x - player.x) + (q.y - player.y) * (q.y - player.y));
+			questTf.text = q.def.name + "  " + dist + "m";
+			questTf.x = Math.max(4, Math.min(VIEW_W - 164, questArrow.x - 80));
+			questTf.y = questArrow.y + (dy > 0 ? -34 : 14);
+		}
+
 		private function render():void {
 			var ox:Number = Math.round(CX - camX * TS);
 			var oy:Number = Math.round(CY - camY * TS);
@@ -1720,6 +1861,7 @@ package realm {
 				canvas.copyPixels(q.bd, q.bd.rect, pt, null, null, false);
 			}
 			canvas.unlock();
+			updateQuestArrow(ox, oy);
 
 			for each (var f:Floater in floaters) {
 				if (!f.tf.visible) continue;

@@ -2,8 +2,27 @@ package realm {
 	import flash.display.BitmapData;
 	import flash.utils.getTimer;
 
+	/**
+	 * A monster or boss.
+	 *
+	 * Bosses run a phase script (def.phases). Each phase is either a plain list
+	 * of attacks (old style: phases at 66% and 33% health) or an object:
+	 *   {hp: 0.6,            enter at or below this fraction of health
+	 *    say: "...",         the boss speaks when the phase starts
+	 *    banner: "...",      big on-screen text
+	 *    shield: 2.5,        seconds of invulnerability while it powers up
+	 *    move: "wander" | "still" | "chase" | "orbit" | "charge" | "teleport" | "center",
+	 *    speed: 1.5,         movement speed multiplier
+	 *    summon: [{what, n}] minions on entering the phase
+	 *    attacks: [...]      or cycle: [[...], [...]] with every: seconds
+	 *   }
+	 * Attack patterns (p): aimed, ring, spiral, flower, wall, nova, rain, summon;
+	 * extras: waves + gap (repeat), motion ("wave", "return", "accel", "home"),
+	 * split {n, spd, life, dmg} (bursts into a ring when it expires).
+	 */
 	public class Enemy {
 		private static const DEG:Number = Math.PI / 180;
+		private static const LEGACY_HP:Array = [1, 0.66, 0.33];
 		/** Sprites that hover instead of walking. */
 		private static const FLYERS:Array = ["ghost", "ghost_god", "sprite", "sprite_god", "harpy", "djinn", "gazer", "beholder",
 			"lich", "shade", "mothling", "cubelet", "crystal"];
@@ -21,6 +40,8 @@ package realm {
 		public var facingLeft:Boolean = false;
 		/** Bosses can be made immune (the Dark Elder while his crystals stand). */
 		public var invuln:Boolean = false;
+		/** Phase-change shield (seconds). */
+		public var shieldT:Number = 0;
 		/** Damage multiplier (elite dungeon monsters, enraged kings). */
 		public var dmgMult:Number = 1;
 		/** You hit it at least once (you only get loot from monsters you fought). */
@@ -33,19 +54,24 @@ package realm {
 		 */
 		public var remote:Boolean = false;
 		public var tx:Number, ty:Number;
+		/** Key into Data.ENEMIES. */
+		public var defId:String;
+		public var moving:Boolean = false;
 
 		private var attacks:Array;
 		private var timers:Array;
 		private var spins:Array;
+		/** Normalised phase objects (bosses). */
+		private var phases:Array;
 		private var phase:int = 0;
+		private var phaseT:Number = 0;
+		private var cycleK:int = 0;
 		private var dirX:Number = 0, dirY:Number = 0;
 		private var moveT:Number = 0;
 		private var chargeT:Number = 0;
 		private var orbitDir:Number;
+		private var orbitA:Number = 0;
 		private var blinkT:Number = 2 + Math.random() * 2;
-
-		/** Key into Data.ENEMIES. */
-		public var defId:String;
 
 		public function Enemy(id:String, x:Number, y:Number, zone:int) {
 			defId = id;
@@ -59,7 +85,32 @@ package realm {
 			isBoss = def.ai == "boss";
 			if (def.fly == undefined) def.fly = FLYERS.indexOf(def.spr) >= 0;
 			orbitDir = Math.random() < 0.5 ? 1 : -1;
-			setAttacks(isBoss ? def.phases[0] : def.attacks);
+			orbitA = Math.random() * Math.PI * 2;
+			if (isBoss) {
+				phases = normalise(def.phases);
+				setAttacks(listFor(0, 0));
+			} else setAttacks(def.attacks);
+		}
+
+		/** Old-style phase arrays become phase objects at 100% / 66% / 33%. */
+		private static function normalise(list:Array):Array {
+			if (list.normalised) return list.normalised;
+			var out:Array = [];
+			for (var i:int = 0; i < list.length; i++) {
+				var p:Object = list[i];
+				if (p is Array) p = {hp: LEGACY_HP[Math.min(i, 2)], attacks: p};
+				if (p.hp == undefined) p.hp = i == 0 ? 1 : 1 - i / list.length;
+				out.push(p);
+			}
+			list.normalised = out;
+			return out;
+		}
+
+		private function listFor(ph:int, k:int):Array {
+			var p:Object = phases[ph];
+			if (!p) return [];
+			if (p.cycle) return p.cycle[k % p.cycle.length];
+			return p.attacks || [];
 		}
 
 		private function setAttacks(list:Array):void {
@@ -72,8 +123,6 @@ package realm {
 			}
 		}
 
-		public var moving:Boolean = false;
-
 		public function get sprite():BitmapData {
 			// bosses play a 2-frame idle animation; in their last phase they pulse red
 			var frame:int = isBoss ? int(getTimer() / 320 + homeX) % 2 : 0;
@@ -84,12 +133,21 @@ package realm {
 
 		/** True in a boss's final phase. */
 		public function get enraged():Boolean {
-			return isBoss && phase == 2;
+			return isBoss && phases && phase == phases.length - 1 && phases.length > 1;
 		}
+
+		/** Can't be damaged right now. */
+		public function get immune():Boolean { return invuln || shieldT > 0; }
+
+		public function get phaseIndex():int { return phase; }
+		public function get phaseCount():int { return phases ? phases.length : 1; }
+		/** Phase and attack cycle packed together (for the network). */
+		public function get phaseCode():int { return phase + cycleK * 16; }
 
 		public function update(dt:Number, g:Game):void {
 			if (hitT > 0) hitT -= dt;
 			if (slowT > 0) slowT -= dt;
+			if (shieldT > 0) shieldT -= dt;
 			if (remote) { follow(dt, g); return; }
 			// the nearest player it can see (online that includes other players)
 			var p:Object = g.aggroTarget(this);
@@ -100,42 +158,58 @@ package realm {
 
 			if (stunT > 0) { stunT -= dt; return; }
 
+			var ph:Object = null;
 			if (isBoss) {
 				var frac:Number = hp / maxHp;
-				var want:int = frac > 0.66 ? 0 : frac > 0.33 ? 1 : 2;
-				if (want != phase) {
-					phase = want;
-					setAttacks(def.phases[phase]);
-					g.bossPhase(phase, this);
+				var want:int = 0;
+				for (var pi:int = 0; pi < phases.length; pi++) if (frac <= phases[pi].hp) want = pi;
+				if (want > phase) enterPhase(want, g);
+				ph = phases[phase];
+				phaseT += dt;
+				if (ph.cycle) {
+					var k:int = int(phaseT / (ph.every || 6)) % ph.cycle.length;
+					if (k != cycleK) { cycleK = k; setAttacks(ph.cycle[k]); }
 				}
 			}
 
-			var speed:Number = def.spd * (slowT > 0 ? 0.45 : 1) * (!def.fly && g.world.inWater(x, y) ? 0.5 : 1);
+			var speed:Number = def.spd * (slowT > 0 ? 0.45 : 1) * (!def.fly && g.world.inWater(x, y) ? 0.5 : 1) * (ph && ph.speed ? ph.speed : 1);
 			var mvx:Number = 0, mvy:Number = 0;
+			var mode:String = ph ? (ph.move || "wander") : def.ai;
 			if (aggro && dist > 0.01) {
 				var ux:Number = dx / dist, uy:Number = dy / dist;
-				switch (def.ai) {
+				switch (mode) {
 					case "chase":
-						if (dist > def.keep) { mvx = ux; mvy = uy; }
+						if (dist > (def.keep || 2.5)) { mvx = ux; mvy = uy; }
 						else { mvx = -uy * orbitDir * 0.5; mvy = ux * orbitDir * 0.5; }
 						break;
 					case "blink":
-						// orbit, but every few seconds teleport to a new spot around the player
+					case "teleport":
+						// every few seconds vanish and reappear somewhere else
 						blinkT -= dt;
 						if (blinkT <= 0) {
-							blinkT = 3 + Math.random() * 2;
-							for (var bt:int = 0; bt < 8; bt++) {
-								var ba:Number = Math.random() * Math.PI * 2, br:Number = 3 + Math.random() * 3;
-								var bx2:Number = p.x + Math.cos(ba) * br, by2:Number = p.y + Math.sin(ba) * br;
+							blinkT = mode == "teleport" ? 3.5 + Math.random() * 1.5 : 3 + Math.random() * 2;
+							for (var bt:int = 0; bt < 10; bt++) {
+								var ba:Number = Math.random() * Math.PI * 2, br:Number = 3 + Math.random() * 4;
+								var cxp:Number = isBoss ? homeX : p.x, cyp:Number = isBoss ? homeY : p.y;
+								var bx2:Number = cxp + Math.cos(ba) * br, by2:Number = cyp + Math.sin(ba) * br;
 								if (g.world.canStand(bx2, by2, 0.4, true)) {
-									g.burst(x, y, def.col, 10);
+									g.burst(x, y, def.col, 14);
 									x = bx2; y = by2;
-									g.burst(x, y, def.col, 10);
+									g.burst(x, y, def.col, 14);
 									break;
 								}
 							}
 						}
+						if (mode == "teleport") break;
 					case "orbit":
+						if (isBoss) {
+							// circle the arena centre
+							orbitA += dt * 0.6 * orbitDir;
+							var ox:Number = homeX + Math.cos(orbitA) * 4.5 - x, oy:Number = homeY + Math.sin(orbitA) * 4.5 - y;
+							var od:Number = Math.sqrt(ox * ox + oy * oy) || 1;
+							mvx = ox / od * Math.min(1, od); mvy = oy / od * Math.min(1, od);
+							break;
+						}
 						var radial:Number = (dist - def.keep) * 0.6;
 						if (radial > 1) radial = 1;
 						if (radial < -1) radial = -1;
@@ -144,16 +218,20 @@ package realm {
 						break;
 					case "charge":
 						chargeT -= dt;
-						if (chargeT <= 0) chargeT = 2.2;
+						if (chargeT <= 0) chargeT = isBoss ? 3 : 2.2;
 						if (chargeT < 0.6) { mvx = ux * 3; mvy = uy * 3; }
 						break;
-					case "boss":
-					case "wander":
+					case "center":
+						mvx = (homeX - x) * 0.5; mvy = (homeY - y) * 0.5;
+						break;
+					case "still":
+						break;
+					default: // boss / wander
 						wander(dt);
 						mvx = dirX * 0.6; mvy = dirY * 0.6;
 						break;
 				}
-			} else {
+			} else if (!isBoss || mode != "still") {
 				wander(dt);
 				mvx = dirX * 0.5; mvy = dirY * 0.5;
 				// drift back toward home if wandering too far
@@ -161,22 +239,40 @@ package realm {
 				if (hx * hx + hy * hy > 64) { mvx = hx * 0.1; mvy = hy * 0.1; }
 			}
 			if (isBoss) {
+				var leash:Number = mode == "chase" || mode == "charge" ? 64 : 25;
 				var bx:Number = homeX - x, by:Number = homeY - y;
-				if (bx * bx + by * by > 25) { mvx = bx * 0.2; mvy = by * 0.2; }
+				if (bx * bx + by * by > leash) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
-			if (def.ai == "still") { mvx = 0; mvy = 0; }
+			if (def.ai == "still" || (isBoss && shieldT > 0 && mode != "orbit")) { mvx = 0; mvy = 0; }
 			move(mvx * speed * dt, mvy * speed * dt, g.world);
 
-			if (aggro && dist < (def.range || 10)) {
+			if (aggro && dist < (def.range || 10) && shieldT <= 0) {
 				var ang:Number = Math.atan2(dy, dx);
 				for (var i:int = 0; i < attacks.length; i++) {
 					timers[i] -= dt;
 					if (timers[i] <= 0) {
 						timers[i] += attacks[i].cd;
-						fire(i, ang, g);
+						fire(i, ang, dist, g);
 					}
 				}
 			}
+		}
+
+		/** A new boss phase: speech, a shield while it powers up, minions. */
+		private function enterPhase(i:int, g:Game):void {
+			phase = i;
+			phaseT = 0;
+			cycleK = 0;
+			var ph:Object = phases[i];
+			setAttacks(listFor(i, 0));
+			if (ph.shield) shieldT = ph.shield;
+			if (ph.summon) for each (var s:Object in ph.summon) {
+				for (var k:int = 0; k < (s.n || 1); k++) {
+					var a:Number = k * Math.PI * 2 / (s.n || 1);
+					g.spawnEnemy(s.what, x + Math.cos(a) * 2.5, y + Math.sin(a) * 2.5, zone);
+				}
+			}
+			g.bossPhase(i, this);
 		}
 
 		/** Remote copy: glide toward the host's position. */
@@ -194,26 +290,33 @@ package realm {
 			}
 		}
 
-		public function get phaseIndex():int { return phase; }
-
 		/** A remote copy takes over (its host left): start thinking for itself. */
 		public function takeOver():void {
 			remote = false;
-			if (isBoss) setAttacks(def.phases[phase]);
+			if (isBoss) setAttacks(listFor(phase, cycleK));
 		}
 
-		/** Remote copy: show a phase change the host reported. */
-		public function setPhase(ph:int):void {
-			if (!isBoss || ph == phase || !def.phases[ph]) return;
-			phase = ph;
-			setAttacks(def.phases[phase]);
+		/** Remote copy: show a phase change the host reported (code = phase + cycle * 16). */
+		public function setPhase(code:int, g:Game = null):void {
+			if (!isBoss) return;
+			var ph:int = code & 15, k:int = code >> 4;
+			if (!phases[ph]) return;
+			if (ph != phase) {
+				phase = ph;
+				cycleK = k;
+				setAttacks(listFor(ph, k));
+				if (g) g.bossPhase(ph, this);
+			} else if (k != cycleK) {
+				cycleK = k;
+				setAttacks(listFor(ph, k));
+			}
 		}
 
 		/** Replays an attack the host's copy just fired (same bullets for everyone). */
-		public function remoteFire(i:int, ang:Number, spin:Number, ph:int, g:Game):void {
-			var list:Array = isBoss ? def.phases[ph] : def.attacks;
+		public function remoteFire(i:int, ang:Number, spin:Number, code:int, dist:Number, g:Game):void {
+			var list:Array = isBoss ? listFor(code & 15, code >> 4) : def.attacks;
 			if (!list || !list[i]) return;
-			shootAttack(list[i], ang, spin, g);
+			shootAttack(list[i], ang, spin, dist, g);
 		}
 
 		private function wander(dt:Number):void {
@@ -237,38 +340,117 @@ package realm {
 			if (w.canStand(x, ny, rr, true)) y = ny; else { dirY = -dirY; }
 		}
 
-		private function fire(i:int, ang:Number, g:Game):void {
+		private function fire(i:int, ang:Number, dist:Number, g:Game):void {
 			var a:Object = attacks[i];
-			var n:int = a.n;
 			var k:int;
 			if (a.p == "summon") {
-				for (k = 0; k < n; k++) g.spawnEnemy(a.what, x + Math.random() * 2 - 1, y + Math.random() * 2 - 1, zone);
+				var alive:int = g.countAlive(a.what);
+				if (alive >= (a.max || 8)) return;
+				for (k = 0; k < a.n; k++) g.spawnEnemy(a.what, x + Math.random() * 2 - 1, y + Math.random() * 2 - 1, zone);
 				return;
 			}
-			var spin0:Number = spins[i];
-			shootAttack(a, ang, spin0, g);
-			if (a.p != "aimed") spins[i] += (a.rot || 0) * DEG;
-			g.sync.fired(this, i, ang, spin0, phase);
+			// patterns that rotate or scatter carry their own seed so every player sees the same bullets
+			var spin0:Number = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : spins[i];
+			shootAttack(a, ang, spin0, dist, g);
+			if (a.p == "ring" || a.p == "spiral" || a.p == "flower") spins[i] += (a.rot || 0) * DEG;
+			g.sync.fired(this, i, ang, spin0, phaseCode, dist);
 		}
 
-		private function shootAttack(a:Object, ang:Number, spin0:Number, g:Game):void {
-			var n:int = a.n;
-			var k:int;
-			var shape:String = a.shape || (a.p == "aimed" ? "dart" : a.p == "spiral" ? "star" : "orb");
-			var bd:Vector.<BitmapData> = Sprites.projectile(shape, a.col, a.r <= 0.15 ? 3 : a.r <= 0.2 ? 4 : 5);
-			var spin:Boolean = shape == "star";
-			var t:Number;
-			if (a.p == "aimed") {
-				for (k = 0; k < n; k++) {
-					t = n > 1 ? ang + (k / (n - 1) - 0.5) * a.arc * DEG : ang;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, int(a.dmg * dmgMult), true, a.r, bd, false, def.name, a.eff || null, spin));
-				}
-			} else { // ring / spiral
-				for (k = 0; k < n; k++) {
-					t = spin0 + k * Math.PI * 2 / n;
-					g.addShot(new Projectile(x, y, t, a.spd, a.life, int(a.dmg * dmgMult), true, a.r, bd, false, def.name, a.eff || null, spin));
-				}
+		/** All bullet patterns. Deterministic given the same arguments (online replay). */
+		private function shootAttack(a:Object, ang:Number, spin0:Number, dist:Number, g:Game):void {
+			var waves:int = a.waves || 1;
+			for (var w:int = 0; w < waves; w++) {
+				if (w == 0) shootWave(a, ang, spin0, dist, g, 0);
+				else g.later(w * (a.gap || 0.2), waveFn(a, ang, spin0, dist, g, w));
 			}
+		}
+
+		private function waveFn(a:Object, ang:Number, spin0:Number, dist:Number, g:Game, w:int):Function {
+			return function():void { if (!dead) shootWave(a, ang, spin0, dist, g, w); };
+		}
+
+		private function shootWave(a:Object, ang:Number, spin0:Number, dist:Number, g:Game, w:int):void {
+			var n:int = a.n || 1;
+			var k:int, t:Number;
+			var shape:String = a.shape || (a.p == "aimed" ? "dart" : a.p == "spiral" ? "star" : "orb");
+			var col:uint = a.col;
+			var bd:Vector.<BitmapData> = Sprites.projectile(shape, col, a.r <= 0.15 ? 3 : a.r <= 0.2 ? 4 : a.r <= 0.3 ? 5 : 6);
+			var spinning:Boolean = shape == "star";
+			var dmg:int = int(a.dmg * dmgMult);
+			var rot:Number = (a.wrot || 0) * DEG * w;
+			switch (a.p) {
+				case "aimed":
+					for (k = 0; k < n; k++) {
+						t = n > 1 ? ang + (k / (n - 1) - 0.5) * a.arc * DEG : ang;
+						shot(t + rot, a.spd, a, dmg, bd, spinning, g, x, y, k);
+					}
+					break;
+				case "flower":
+					// a ring whose petals alternate fast and slow
+					for (k = 0; k < n; k++) {
+						t = spin0 + rot + k * Math.PI * 2 / n;
+						shot(t, k % 2 == 0 ? a.spd : a.spd * (a.slow || 0.55), a, dmg, bd, spinning, g, x, y, k);
+					}
+					break;
+				case "wall":
+					// a line of bullets marching at you, with a gap to slip through
+					var gap:int = int(spin0) % n;
+					var px:Number = -Math.sin(ang), py:Number = Math.cos(ang);
+					var spacing:Number = a.spacing || 0.7;
+					for (k = 0; k < n; k++) {
+						if (Math.abs(k - gap) <= (a.hole || 1) - 1) continue;
+						var off:Number = (k - (n - 1) / 2) * spacing;
+						shot(ang, a.spd, a, dmg, bd, spinning, g, x + px * off, y + py * off, k);
+					}
+					break;
+				case "nova":
+					// a blast marked on the ground where you stand, then a ring bursts out of it
+					var nd:Number = Math.min(dist, a.reach || 9);
+					var nx:Number = x + Math.cos(ang) * nd, ny:Number = y + Math.sin(ang) * nd;
+					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, novaFn(a, nx, ny, dmg, bd, spinning, g, spin0));
+					break;
+				case "rain":
+					// several blasts scattered around you
+					var seed:uint = uint(spin0 * 1000) | 1;
+					var rd:Number = Math.min(dist, a.reach || 9);
+					var cx:Number = x + Math.cos(ang) * rd, cy:Number = y + Math.sin(ang) * rd;
+					for (k = 0; k < n; k++) {
+						seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+						var ra:Number = (seed % 6283) / 1000;
+						seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+						var rr:Number = k == 0 ? 0 : 1 + (seed % 1000) / 1000 * (a.spread || 4);
+						var mx:Number = cx + Math.cos(ra) * rr, my:Number = cy + Math.sin(ra) * rr;
+						g.addMarker(mx, my, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, novaFn(a, mx, my, dmg, bd, spinning, g, ra));
+					}
+					break;
+				default: // ring / spiral
+					for (k = 0; k < n; k++) {
+						t = spin0 + rot + k * Math.PI * 2 / n;
+						shot(t, a.spd, a, dmg, bd, spinning, g, x, y, k);
+					}
+			}
+		}
+
+		private function novaFn(a:Object, nx:Number, ny:Number, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, base:Number):Function {
+			return function():void {
+				g.areaHit(nx, ny, a.radius || 1.6, dmg, def.name, a.eff || null, a.col);
+				var m:int = a.burst || 0;
+				for (var k:int = 0; k < m; k++) {
+					var t:Number = base + k * Math.PI * 2 / m;
+					g.addShot(new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, int(dmg * 0.6), true, 0.2, bd, false, def.name, a.eff || null, spinning));
+				}
+			};
+		}
+
+		private function shot(t:Number, spd:Number, a:Object, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, sx:Number, sy:Number, k:int):void {
+			var s:Projectile = new Projectile(sx, sy, t, spd, a.life, dmg, true, a.r, bd, false, def.name, a.eff || null, spinning);
+			if (a.motion) {
+				s.motion = a.motion;
+				s.accel = a.accel || 0;
+				if (k % 2 == 1) s.phase = Math.PI;
+			}
+			if (a.split) s.split = a.split;
+			g.addShot(s);
 		}
 	}
 }

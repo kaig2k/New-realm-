@@ -18,8 +18,14 @@ package realm {
 		public static const VIEW_W:int = Ui.W - Hud.W;
 		public static const VIEW_H:int = Ui.H;
 		public static const TS:int = 40;
-		private static const CX:int = VIEW_W / 2;
-		private static const CY:int = VIEW_H / 2 + 20;
+		/** World view scale (mouse wheel): below 1 shows more of the map. */
+		public var zoom:Number = 0.8;
+		public static const ZOOM_MIN:Number = 0.5, ZOOM_MAX:Number = 1.25;
+		/** The world canvas (before scaling): size and centre. */
+		private var vw:int = VIEW_W, vh:int = VIEW_H;
+		private var cx:Number = VIEW_W / 2, cy:Number = VIEW_H / 2 + 20;
+		/** Holds everything drawn in world space; scaled by zoom. */
+		private var worldLayer:Sprite;
 		private static const MAX_ENEMIES_NEAR:int = 15;
 		public static const SOVEREIGN:String = Data.OVERLORD;
 		public static const LG_THRESHOLD:Number = 5;
@@ -156,16 +162,18 @@ package realm {
 			camY = player.y;
 			world.reveal(player.x, player.y, 14);
 
+			worldLayer = new Sprite();
+			worldLayer.mouseEnabled = false;
+			addChild(worldLayer);
 			canvas = new BitmapData(VIEW_W, VIEW_H, false, 0);
 			canvasBmp = new Bitmap(canvas);
-			addChild(canvasBmp);
-			addChild(makeVignette());
+			worldLayer.addChild(canvasBmp);
 			floatLayer = new Sprite();
 			floatLayer.mouseEnabled = floatLayer.mouseChildren = false;
-			addChild(floatLayer);
+			worldLayer.addChild(floatLayer);
 			tagLayer = new Sprite();
 			tagLayer.mouseEnabled = tagLayer.mouseChildren = false;
-			addChild(tagLayer);
+			worldLayer.addChild(tagLayer);
 			questArrow = new Shape();
 			var qg:* = questArrow.graphics;
 			qg.lineStyle(2, 0x2a1a00);
@@ -173,16 +181,18 @@ package realm {
 			qg.moveTo(15, 0); qg.lineTo(-8, -10); qg.lineTo(-3, 0); qg.lineTo(-8, 10); qg.lineTo(15, 0);
 			qg.endFill();
 			questArrow.visible = false;
-			addChild(questArrow);
+			worldLayer.addChild(questArrow);
 			questTf = Ui.text(12, 0xffd75e, true, "center", 160, true);
 			questTf.visible = false;
-			addChild(questTf);
+			worldLayer.addChild(questTf);
 			nameTag = Ui.text(13, 0xffe36e, true, "center", 140, true);
 			nameTag.text = name;
-			addChild(nameTag);
+			worldLayer.addChild(nameTag);
 
 			statusTf = Ui.text(14, 0xff9a40, true, "center", 320, true);
-			addChild(statusTf);
+			worldLayer.addChild(statusTf);
+			addChild(makeVignette());
+			setZoom(Save.data.opt && Save.data.opt.zoom ? Number(Save.data.opt.zoom) : 0.8);
 
 			chat = Ui.text(15, 0xffffff, false, "left", 620, true);
 			chat.x = 8;
@@ -560,7 +570,7 @@ package realm {
 		private function makeLabel(text:String, color:uint):TextField {
 			var lab:TextField = Ui.text(13, color, true, "center", 160, true);
 			lab.htmlText = text;
-			addChildAt(lab, getChildIndex(floatLayer));
+			worldLayer.addChildAt(lab, worldLayer.getChildIndex(floatLayer));
 			return lab;
 		}
 
@@ -981,6 +991,7 @@ package realm {
 				input.endFrame();
 			}
 			if (tradeWin) tradeWin.update();
+			if (!(chatInput && chatInput.visible)) updateZoom();
 			if (admin && admin.visible && input.pressed(Keyboard.ESCAPE)) toggleAdmin();
 			else if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
 			if (dyingT > 0) updateDying(dt);
@@ -1036,6 +1047,7 @@ package realm {
 			updateNexus(dt);
 			updateTraps(dt);
 			updatePet(dt);
+			updateBossHelpers(dt);
 
 			revealT -= dt;
 			if (revealT <= 0) {
@@ -1207,6 +1219,7 @@ package realm {
 				if (!s.enemy && !s.bot && parts.length < 420 && Math.random() < 0.55 && opt("parts"))
 					parts.push(new Particle(s.x, s.y, 0, 0, 0.14, Sprites.glow(s.trailCol)));
 				var remove:Boolean = s.life <= 0;
+				if (remove && s.split) splitShot(s);
 				if (!remove) {
 					if (s.enemy) {
 						if (world.isSafe(s.x, s.y)) remove = true;
@@ -1241,6 +1254,16 @@ package realm {
 			}
 		}
 
+		/** A splitting boss shot bursts into a ring where it ends. */
+		private function splitShot(s:Projectile):void {
+			var sp:Object = s.split;
+			var n:int = sp.n || 8;
+			var fr:Vector.<BitmapData> = Sprites.projectile(sp.shape || "orb", sp.col || s.trailCol, 3);
+			for (var k:int = 0; k < n; k++) {
+				shots.push(new Projectile(s.x, s.y, s.angle + k * Math.PI * 2 / n, sp.spd || 5, sp.life || 1, sp.dmg || int(s.dmg * 0.6), true, 0.18, fr, false, s.owner, s.effect));
+			}
+		}
+
 		private function damageEnemy(e:Enemy, s:Projectile):void {
 			hurtEnemy(e, s.dmg, s.effect, s.x, s.y);
 		}
@@ -1250,7 +1273,7 @@ package realm {
 			if (e.dead) return;
 			var p:Player = player;
 			e.playerHit = true;
-			if (e.invuln) {
+			if (e.immune) {
 				if (opt("dmg") && Math.random() < 0.15) floatText(e.x, e.y - e.r - 0.6, "Immune", 0xff80c0);
 				return;
 			}
@@ -1517,6 +1540,79 @@ package realm {
 			return out;
 		}
 
+		// ------------------------------------------------------------ boss helpers
+		private var pending:Array = [];
+		private var markers:Array = [];
+
+		/** Runs fn after secs of game time (multi-wave boss attacks). Cleared on leaving the world. */
+		public function later(secs:Number, fn:Function):void {
+			pending.push({t: secs, fn: fn, w: world});
+		}
+
+		/** A telegraphed blast: a circle on the ground fills up, then boom(). */
+		public function addMarker(x:Number, y:Number, r:Number, delay:Number, col:uint, boom:Function):void {
+			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world});
+		}
+
+		/** Area damage from a blast (only your own character; others check in their games). */
+		public function areaHit(x:Number, y:Number, r:Number, dmg:int, src:String, eff:String, col:uint):void {
+			burst(x, y, col, 14);
+			ring(x, y, col, 18);
+			var dx:Number = player.x - x, dy:Number = player.y - y;
+			if (dx * dx + dy * dy < r * r && player.invulnT <= 0 && player.hp > 0) player.takeHit(dmg, src, this, eff);
+			var sx:Number = (player.x - x), sy:Number = (player.y - y);
+			if (sx * sx + sy * sy < 64) shake(0.15, 3);
+		}
+
+		public function countAlive(id:String):int {
+			var n:int = 0;
+			for each (var e:Enemy in enemies) if (!e.dead && e.defId == id) n++;
+			return n;
+		}
+
+		private function updateBossHelpers(dt:Number):void {
+			var i:int;
+			for (i = pending.length - 1; i >= 0; i--) {
+				var pd:Object = pending[i];
+				if (pd.w != world) { pending.splice(i, 1); continue; }
+				pd.t -= dt;
+				if (pd.t <= 0) { pending.splice(i, 1); pd.fn(); }
+			}
+			for (i = markers.length - 1; i >= 0; i--) {
+				var m:Object = markers[i];
+				if (m.w != world) { markers.splice(i, 1); continue; }
+				m.t += dt;
+				if (m.t >= m.d) { markers.splice(i, 1); m.fn(); }
+			}
+			Projectile.homeX = player.x;
+			Projectile.homeY = player.y;
+		}
+
+		private var markShape:Shape = new Shape();
+		private var markMtx:Matrix = new Matrix();
+
+		/** Ground circles for incoming blasts: an outline that fills as it gets closer. */
+		private function drawMarkers():void {
+			for each (var m:Object in markers) {
+				var sx:Number = scrX(m.x, m.y), sy:Number = scrY(m.x, m.y);
+				if (sx < -100 || sy < -100 || sx > vw + 100 || sy > vh + 100) continue;
+				var f:Number = Math.min(1, m.t / m.d);
+				var rx:Number = m.r * TS, ry:Number = rx * 0.6;
+				var gr:* = markShape.graphics;
+				gr.clear();
+				gr.lineStyle(2, m.col, 0.9);
+				gr.beginFill(m.col, 0.12);
+				gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+				gr.endFill();
+				gr.lineStyle();
+				gr.beginFill(m.col, 0.25 + f * 0.25);
+				gr.drawEllipse(-rx * f, -ry * f, rx * 2 * f, ry * 2 * f);
+				gr.endFill();
+				markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+				canvas.draw(markShape, markMtx);
+			}
+		}
+
 		/** The nearest player a monster can see (others count online). */
 		public function aggroTarget(e:Enemy):Object {
 			var best:Object = null, bd:Number = 1e9;
@@ -1650,6 +1746,14 @@ package realm {
 		public function bossPhase(phase:int, b:Enemy = null):void {
 			if (!b) b = world.boss;
 			var nm:String = b ? b.def.name : "The boss";
+			var po:Object = b && b.def.phases ? b.def.phases[phase] : null;
+			if (po && !(po is Array)) {
+				// scripted phase: its own lines, banner and a shake
+				if (po.say) say(nm, po.say);
+				if (po.banner) showBanner(po.banner, b.def.col, 3);
+				if (po.shield) { shake(0.4, 6); burst(b.x, b.y, b.def.col, 30); ring(b.x, b.y, b.def.col, 32); }
+				if (!(b.def.final && phase == 2)) return;
+			}
 			if (phase == 1) say(nm, "You dare wound me? Feel my power!");
 			else if (phase == 2 && b && b.def.final) {
 				// the Dark Elder shields himself with four crystals
@@ -2404,8 +2508,8 @@ package realm {
 			if (nearPortal) {
 				promptTf.htmlText = portalTitle(nearPortal) + "<font size='13' color='#aaaaaa'>  -  press Enter</font>";
 			}
-			statusTf.x = CX - 160;
-			statusTf.y = CY - 76;
+			statusTf.x = cx - 160;
+			statusTf.y = cy - 76;
 
 			var b:Enemy = focusBoss();
 			var show:Boolean = b != null && !b.dead;
@@ -2421,7 +2525,7 @@ package realm {
 				g.clear();
 				g.beginFill(0x111111);
 				g.drawRoundRect(0, 0, 266, 10, 4, 4);
-				g.beginFill(b.invuln ? 0x9a5a7a : 0xc82828);
+				g.beginFill(b.immune ? 0x9a5a7a : 0xc82828);
 				g.drawRoundRect(0, 0, 266 * frac, 10, 4, 4);
 				g.endFill();
 				var pct:Number = player.bossDmg / b.maxHp * 100;
@@ -2433,7 +2537,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -2447,21 +2551,52 @@ package realm {
 		public function get camSin():Number { return rs; }
 		private var camZeroing:Boolean = false;
 		private var rc:Number = 1, rs:Number = 0, shx:Number = 0, shy:Number = 0;
+		/** Mouse wheel / - and = keys: zoom the world view in or out. */
+		public function setZoom(z:Number):void {
+			z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+			if (Math.abs(z - 1) < 0.04) z = 1;
+			zoom = z;
+			var w:int = Math.ceil(VIEW_W / z), h:int = Math.ceil(VIEW_H / z);
+			if (!canvas || canvas.width != w || canvas.height != h) {
+				if (canvas) canvas.dispose();
+				canvas = new BitmapData(w, h, false, 0);
+				canvasBmp.bitmapData = canvas;
+			}
+			vw = w; vh = h;
+			cx = w / 2; cy = h / 2 + 20 / z;
+			worldLayer.scaleX = worldLayer.scaleY = z;
+			if (!Save.data.opt) Save.data.opt = {};
+			Save.data.opt.zoom = Math.round(z * 100) / 100;
+		}
+
+		private function updateZoom():void {
+			var steps:Number = input.wheel;
+			if (input.pressed(189) || input.pressed(109)) steps -= 1;
+			if (input.pressed(187) || input.pressed(107)) steps += 1;
+			if (steps == 0) return;
+			// the wheel over the sidebar or a window doesn't zoom
+			if (input.wheel != 0 && (input.mx >= VIEW_W || uiCaptured())) return;
+			setZoom(zoom * Math.pow(1.1, steps > 0 ? 1 : -1));
+		}
+
 		/** Camera position used for drawing (pixel-snapped when the view isn't rotated). */
 		private var viewX:Number = 0, viewY:Number = 0;
 
 		/** World tile coordinates -> screen pixels (rotated around the camera). */
-		public function scrX(x:Number, y:Number):Number { return CX + shx + TS * ((x - viewX) * rc + (y - viewY) * rs); }
-		public function scrY(x:Number, y:Number):Number { return CY + shy + TS * ((y - viewY) * rc - (x - viewX) * rs); }
+		public function scrX(x:Number, y:Number):Number { return cx + shx + TS * ((x - viewX) * rc + (y - viewY) * rs); }
+		public function scrY(x:Number, y:Number):Number { return cy + shy + TS * ((y - viewY) * rc - (x - viewX) * rs); }
 
+		/** Stage (mouse) coordinates -> world tiles, through the zoom. */
 		public function screenToWorldX(sx:Number, sy:Number = NaN):Number {
-			if (isNaN(sy)) sy = input ? input.my : CY;
-			var dx:Number = (sx - CX) / TS, dy:Number = (sy - CY) / TS;
+			if (isNaN(sy)) sy = input ? input.my : cy * zoom;
+			sx /= zoom; sy /= zoom;
+			var dx:Number = (sx - cx) / TS, dy:Number = (sy - cy) / TS;
 			return viewX + dx * rc - dy * rs;
 		}
 		public function screenToWorldY(sy:Number, sx:Number = NaN):Number {
-			if (isNaN(sx)) sx = input ? input.mx : CX;
-			var dx:Number = (sx - CX) / TS, dy:Number = (sy - CY) / TS;
+			if (isNaN(sx)) sx = input ? input.mx : cx * zoom;
+			sx /= zoom; sy /= zoom;
+			var dx:Number = (sx - cx) / TS, dy:Number = (sy - cy) / TS;
 			return viewY + dx * rs + dy * rc;
 		}
 
@@ -2493,7 +2628,7 @@ package realm {
 				bestD = 1e9;
 			}
 			if (b && !b.dead) {
-				if (!b.invuln) return b;
+				if (!b.immune) return b;
 				for each (e in enemies) {
 					if (e.dead || !(e.def.crystal || e.def.guardian)) continue;
 					d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
@@ -2524,7 +2659,7 @@ package realm {
 			if (!questArrow.visible) return;
 			var sx:Number = scrX(q.x, q.y), sy:Number = scrY(q.x, q.y);
 			var m:Number = 34;
-			if (sx > m && sx < VIEW_W - m && sy > m + 40 && sy < VIEW_H - m) {
+			if (sx > m && sx < vw - m && sy > m + 40 && sy < vh - m) {
 				// on screen: bob above the target, pointing down
 				questArrow.rotation = 90;
 				questArrow.x = sx;
@@ -2532,18 +2667,18 @@ package realm {
 				questTf.visible = false;
 				return;
 			}
-			var dx:Number = sx - CX, dy:Number = sy - CY;
+			var dx:Number = sx - cx, dy:Number = sy - cy;
 			var ang:Number = Math.atan2(dy, dx);
 			// clamp to the edge of the view
-			var kx:Number = dx != 0 ? (dx > 0 ? (VIEW_W - m - CX) : (m - CX)) / dx : 1e9;
-			var ky:Number = dy != 0 ? (dy > 0 ? (VIEW_H - m - CY) : (m + 40 - CY)) / dy : 1e9;
+			var kx:Number = dx != 0 ? (dx > 0 ? (vw - m - cx) : (m - cx)) / dx : 1e9;
+			var ky:Number = dy != 0 ? (dy > 0 ? (vh - m - cy) : (m + 40 - cy)) / dy : 1e9;
 			var k:Number = Math.min(kx, ky);
-			questArrow.x = CX + dx * k;
-			questArrow.y = CY + dy * k;
+			questArrow.x = cx + dx * k;
+			questArrow.y = cy + dy * k;
 			questArrow.rotation = ang * 180 / Math.PI;
 			var dist:int = Math.sqrt((q.x - player.x) * (q.x - player.x) + (q.y - player.y) * (q.y - player.y));
 			questTf.text = q.def.name + "  " + dist + "m";
-			questTf.x = Math.max(4, Math.min(VIEW_W - 164, questArrow.x - 80));
+			questTf.x = Math.max(4, Math.min(vw - 164, questArrow.x - 80));
 			questTf.y = questArrow.y + (dy > 0 ? -34 : 14);
 		}
 
@@ -2566,7 +2701,7 @@ package realm {
 			mtx.scale(TS / World.PX, TS / World.PX);
 			mtx.translate(-viewX * TS, -viewY * TS);
 			if (camAngle != 0) mtx.rotate(-camAngle);
-			mtx.translate(CX + shx, CY + shy);
+			mtx.translate(cx + shx, cy + shy);
 			canvas.draw(world.bitmap, mtx, null, null, null, false);
 
 			var bd:BitmapData;
@@ -2609,10 +2744,11 @@ package realm {
 				canvas.copyPixels(trapIcon, trapIcon.rect, pt, null, null, true);
 			}
 
+			drawMarkers();
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
 			drawN = 0;
-			var reach:int = int(Math.sqrt(VIEW_W * VIEW_W + VIEW_H * VIEW_H) / 2 / TS) + 3;
+			var reach:int = int(Math.sqrt(vw * vw + vh * vh) / 2 / TS) + 3;
 			var tx0:int = int(viewX) - reach, tx1:int = int(viewX) + reach;
 			var ty0:int = int(viewY) - reach, ty1:int = int(viewY) + reach;
 			for (var ty:int = ty0; ty <= ty1; ty++) {
@@ -2620,7 +2756,7 @@ package realm {
 					var o:int = world.objAt(tx, ty);
 					if (o <= 0) continue;
 					var osx:Number = scrX(tx + 0.5, ty + 0.5), osy:Number = scrY(tx + 0.5, ty + 0.5);
-					if (osx < -80 || osy < -40 || osx > VIEW_W + 80 || osy > VIEW_H + 160) continue;
+					if (osx < -80 || osy < -40 || osx > vw + 80 || osy > vh + 160) continue;
 					var di:Object = drawItem(osy + TS * 0.4, o, tx, null, false);
 					di.t = ty;
 					drawList.push(di);
@@ -2628,13 +2764,13 @@ package realm {
 			}
 			for each (var e:Enemy in enemies) {
 				var sx:Number = scrX(e.x, e.y), sy:Number = scrY(e.x, e.y);
-				if (sx < -100 || sy < -100 || sx > VIEW_W + 100 || sy > VIEW_H + 120) continue;
+				if (sx < -100 || sy < -100 || sx > vw + 100 || sy > vh + 120) continue;
 				drawList.push(drawItem(sy, 0, 0, e, false));
 			}
 			for each (var rp:RemotePlayer in net.players) {
 				if (!shown(rp)) continue;
 				var rsx:Number = scrX(rp.x, rp.y), rsy:Number = scrY(rp.x, rp.y);
-				if (rsx < -60 || rsy < -60 || rsx > VIEW_W + 60 || rsy > VIEW_H + 80) continue;
+				if (rsx < -60 || rsy < -60 || rsx > vw + 60 || rsy > vh + 80) continue;
 				var rdi:Object = drawItem(rsy, -2, 0, null, false);
 				rdi.r = rp;
 				drawList.push(rdi);
@@ -2672,7 +2808,7 @@ package realm {
 				bd = s.frame(time, camAngle);
 				pt.x = int(scrX(s.x, s.y) - bd.width / 2);
 				pt.y = int(scrY(s.x, s.y) - bd.height / 2);
-				if (pt.x < -bd.width || pt.y < -bd.height || pt.x > VIEW_W || pt.y > VIEW_H) continue;
+				if (pt.x < -bd.width || pt.y < -bd.height || pt.x > vw || pt.y > vh) continue;
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
 			for each (var q:Particle in parts) {
@@ -2766,7 +2902,7 @@ package realm {
 			else bob = int(time * 1.6 + e.homeX) % 2 == 0 ? 1 : 0;
 			if (e.isBoss) {
 				// pulsing aura on the ground and a slow hover
-				drawAura(cx, cy + TS * 0.4, e.invuln ? 0xff4080 : e.enraged ? 0xff2020 : uint(e.def.col));
+				drawAura(cx, cy + TS * 0.4, e.immune ? 0xff4080 : e.enraged ? 0xff2020 : uint(e.def.col));
 				bob = int((Math.sin(time * 2.5 + e.homeX) + 1) * 2.5);
 			}
 			var top:Number = drawEntity(e.sprite, cx, cy, bob, !e.def.fly && !e.isBoss && world.inWater(e.x, e.y));
@@ -2774,7 +2910,7 @@ package realm {
 				var bw:int = e.isBoss ? 80 : 36;
 				hpBar(cx - bw / 2, cy + TS * 0.4 + 6, bw, e.hp / e.maxHp);
 			}
-			if (e.invuln) statusPip(cx, top - 6, 0xffff4080);
+			if (e.immune) statusPip(cx, top - 6, 0xffff4080);
 			else if (e.stunT > 0) statusPip(cx, top - 6, 0xfff0f040);
 			else if (e.slowT > 0) statusPip(cx, top - 6, 0xff60a0ff);
 		}
@@ -2793,7 +2929,7 @@ package realm {
 			for each (var rp:RemotePlayer in net.players) {
 				if (!shown(rp)) continue;
 				var cx:Number = scrX(rp.x, rp.y), cy:Number = scrY(rp.x, rp.y);
-				if (cx < -60 || cy < -60 || cx > VIEW_W + 60 || cy > VIEW_H + 40) continue;
+				if (cx < -60 || cy < -60 || cx > vw + 60 || cy > vh + 40) continue;
 				var friend:uint = net.inParty(rp) ? 0x7fd8ff : net.inGuild(rp) ? 0x80ff80 : 0;
 				if (names || rp == hoverRemote || friend) {
 				var tf:TextField = tags[n];
@@ -2849,7 +2985,7 @@ package realm {
 
 		/** Click another player (right-click in combat zones) for their menu. */
 		private function updatePlayerClicks(dt:Number):void {
-			hoverRemote = input.mx < VIEW_W && !uiCaptured() ? remoteAt(input.mx, input.my) : null;
+			hoverRemote = input.mx < VIEW_W && !uiCaptured() ? remoteAt(input.mx / zoom, input.my / zoom) : null;
 			if (requestPopup) {
 				requestT -= dt;
 				if (requestT <= 0) closeRequest(true);
@@ -3125,7 +3261,7 @@ package realm {
 		}
 
 		private function botHit(e:Enemy, s:Projectile):void {
-			if (e.dead || e.invuln) return;
+			if (e.dead || e.immune) return;
 			var d:int = Math.max(s.dmg - e.defense, int(s.dmg * 0.15));
 			e.hp -= d;
 			e.hitT = 0.08;

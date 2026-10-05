@@ -30,6 +30,12 @@ package realm {
 		public var life0:Number;
 		public var bx:Number, by:Number;
 		public var turned:Boolean = false;
+		/** "accel": speed grows by this fraction per second (negative slows down). */
+		public var accel:Number = 0;
+		/** Bursts into a ring when it expires: {n, spd, life, dmg, shape, col}. */
+		public var split:Object;
+		/** Where "home" shots steer (your character; set every frame). */
+		public static var homeX:Number = 0, homeY:Number = 0;
 
 		public function Projectile(x:Number, y:Number, angle:Number, speed:Number, life:Number, dmg:int, enemy:Boolean,
 				r:Number, frames:Vector.<BitmapData>, pierce:Boolean, owner:String, effect:String, spin:Boolean = false) {
@@ -66,6 +72,20 @@ package realm {
 				x = bx - Math.sin(angle) * off;
 				y = by + Math.cos(angle) * off;
 				return;
+			}
+			if (motion == "accel") {
+				var f:Number = 1 + accel * dt;
+				if (f > 0) { vx *= f; vy *= f; }
+			} else if (motion == "home" && age > 0.15) {
+				// turn gently toward you
+				var want:Number = Math.atan2(homeY - y, homeX - x);
+				var diff:Number = want - angle;
+				while (diff > Math.PI) diff -= Math.PI * 2;
+				while (diff < -Math.PI) diff += Math.PI * 2;
+				var turn:Number = Math.max(-1.6 * dt, Math.min(1.6 * dt, diff));
+				angle += turn;
+				var sp:Number = Math.sqrt(vx * vx + vy * vy);
+				vx = Math.cos(angle) * sp; vy = Math.sin(angle) * sp;
 			}
 			if (motion == "return" && !turned && life < life0 * 0.5) {
 				turned = true;

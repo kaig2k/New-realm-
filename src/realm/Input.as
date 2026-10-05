@@ -13,6 +13,8 @@ package realm {
 		/** A mouse button went down this frame. */
 		public var clicked:Boolean = false;
 		public var rightClicked:Boolean = false;
+		/** Mouse wheel clicks this frame (positive = up). */
+		public var wheel:Number = 0;
 
 		public function Input(stage:Stage) {
 			this.stage = stage;
@@ -20,6 +22,7 @@ package realm {
 			stage.addEventListener(KeyboardEvent.KEY_UP, onKeyUp);
 			stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
 			stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+			stage.addEventListener(MouseEvent.MOUSE_WHEEL, onWheel);
 			try { stage.addEventListener("rightMouseDown", onRightDown); } catch (e:Error) {}
 			stage.addEventListener(Event.DEACTIVATE, onDeactivate);
 		}
@@ -29,6 +32,7 @@ package realm {
 			stage.removeEventListener(KeyboardEvent.KEY_UP, onKeyUp);
 			stage.removeEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
 			stage.removeEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+			stage.removeEventListener(MouseEvent.MOUSE_WHEEL, onWheel);
 			stage.removeEventListener("rightMouseDown", onRightDown);
 			stage.removeEventListener(Event.DEACTIVATE, onDeactivate);
 		}
@@ -41,7 +45,7 @@ package realm {
 		public function get mx():Number { return stage.mouseX; }
 		public function get my():Number { return stage.mouseY; }
 
-		public function endFrame():void { hit = {}; clicked = rightClicked = false; }
+		public function endFrame():void { hit = {}; clicked = rightClicked = false; wheel = 0; }
 
 		private function onKeyDown(e:KeyboardEvent):void {
 			if (!down[e.keyCode]) hit[e.keyCode] = true;
@@ -55,6 +59,7 @@ package realm {
 		}
 
 		private function onMouseDown(e:MouseEvent):void { mouseDown = true; clicked = true; shift = e.shiftKey; }
+		private function onWheel(e:MouseEvent):void { wheel += e.delta > 0 ? 1 : e.delta < 0 ? -1 : 0; }
 		private function onRightDown(e:MouseEvent):void { rightClicked = true; }
 		private function onMouseUp(e:MouseEvent):void { mouseDown = false; }
 

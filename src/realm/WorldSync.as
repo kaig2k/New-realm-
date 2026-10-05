@@ -39,7 +39,7 @@ package realm {
 		private static function r2(v:Number):Number { return Math.round(v * 100) / 100; }
 
 		private function flags(e:Enemy):int {
-			return (e.invuln ? 1 : 0) | (e.stunT > 0 ? 2 : 0) | (e.phaseIndex << 2);
+			return (e.immune ? 1 : 0) | (e.stunT > 0 ? 2 : 0) | (e.phaseCode << 2);
 		}
 
 		private function entry(e:Enemy, w:World):Array {
@@ -77,9 +77,9 @@ package realm {
 		}
 
 		/** The host's monster fired: everyone replays the same attack. */
-		public function fired(e:Enemy, i:int, ang:Number, spin:Number, phase:int):void {
+		public function fired(e:Enemy, i:int, ang:Number, spin:Number, code:int, dist:Number):void {
 			if (!active || !isHost || !e.id || !g.net.players.length) return;
-			send("all", {t: "efire", id: e.id, i: i, a: Math.round(ang * 1000) / 1000, s: Math.round(spin * 1000) / 1000, p: phase});
+			send("all", {t: "efire", id: e.id, i: i, a: Math.round(ang * 1000) / 1000, s: Math.round(spin * 1000) / 1000, p: code, d: Math.round(dist * 10) / 10});
 		}
 
 		public function killed(e:Enemy):void {
@@ -157,7 +157,7 @@ package realm {
 						e.maxHp = en[6];
 						e.dmgMult = en[7];
 						e.invuln = (en[8] & 1) != 0;
-						e.setPhase(en[8] >> 2);
+						e.setPhase(en[8] >> 2, null);
 						e.homeX = en[10]; e.homeY = en[11];
 						e.tx = e.x; e.ty = e.y;
 						w.eById[e.id] = e;
@@ -180,12 +180,12 @@ package realm {
 						e.hp = Math.min(e.hp, l[i + 3]);
 						e.invuln = (l[i + 4] & 1) != 0;
 						if (l[i + 4] & 2) e.stunT = Math.max(e.stunT, 0.15);
-						e.setPhase(l[i + 4] >> 2);
+						e.setPhase(l[i + 4] >> 2, g);
 					}
 					break;
 				case "efire":
 					e = w.eById[d.id];
-					if (e && e.remote && !e.dead) e.remoteFire(d.i, d.a, d.s, d.p, g);
+					if (e && e.remote && !e.dead) e.remoteFire(d.i, d.a, d.s, d.p, d.d || 0, g);
 					break;
 				case "ekill":
 					e = w.eById[d.id];
@@ -201,7 +201,7 @@ package realm {
 					if (!e || e.dead || e.remote) return;
 					if (d.sl) e.slowT = Math.max(e.slowT, d.sl);
 					if (d.st) e.stunT = Math.max(e.stunT, e.isBoss ? d.st * 0.4 : d.st);
-					if (d.d > 0 && !e.invuln) {
+					if (d.d > 0 && !e.immune) {
 						e.hp -= d.d;
 						e.hitT = 0.08;
 						if (e.hp <= 0) g.hostKill(e);

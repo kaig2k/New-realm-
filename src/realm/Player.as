@@ -251,7 +251,7 @@ package realm {
 			}
 			var wantShoot:Boolean = autoFire || (inp.mouseDown && inp.mx < Game.VIEW_W && !g.uiCaptured());
 			if (wantShoot && !w.isSafe(x, y)) {
-				facingLeft = inp.mx < g.scrX(x, y);
+				facingLeft = inp.mx / g.zoom < g.scrX(x, y);
 				attackT = 0.25;
 				if (shootT <= 0) { shoot(g); Sfx.play("shoot", 0.5, 0.09); }
 			} else if (mx != 0) {

@@ -1124,7 +1124,7 @@ package realm {
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
 				if (Math.random() < 0.3 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.05 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				items.push(makeSor());
+				if (Math.random() < 0.35 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
@@ -1134,7 +1134,7 @@ package realm {
 				// treasure room chest: a set piece for your class plus potions
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
 				if (Math.random() < 0.4 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ut"));
-				if (Math.random() < 0.25 * boost) items.push(makeSor());
+				if (Math.random() < 0.06 * boost) items.push(makeSor());
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
 				items.push(makePotion("mp"));
@@ -1146,7 +1146,7 @@ package realm {
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "ut"));
 				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.5 * boost) items.push(makeSor());
+				if (Math.random() < 0.15 * boost) items.push(makeSor());
 				for (var hp2:int = 0; hp2 < 3; hp2++) items.push(makePotion("stat", randomStat()));
 				return items;
 			}
@@ -1166,7 +1166,7 @@ package realm {
 			if (def.dungeon) {
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : "ut"));
 				if (Math.random() < 0.1 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.3 * boost) items.push(makeSor());
+				if (Math.random() < 0.06 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				return items;
@@ -1176,7 +1176,7 @@ package realm {
 				slot = int(Math.random() * 4);
 				items.push(makeForSlot(lootClass(cls), slot, 7, Math.random() < 0.4 ? "st" : "ut"));
 				if (Math.random() < 0.08 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.35 * boost) items.push(makeSor());
+				if (Math.random() < 0.05 * boost) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));

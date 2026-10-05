@@ -52,7 +52,7 @@ with ` or Esc. It has five tabs:
   spawn it in front of you (toward the mouse).
 - **Dungeons**: open a portal to any dungeon next to you, or go straight in. Also has the
   Dark Elder's chamber and a realm portal.
-- **Items**: any tier (T0-T7) or rarity (UT, ST, FB, LG, AR) of weapon, ability, armor and
+- **Items**: any tier (T0-T7) or rarity (RN, BD, EL, SF, PR) of weapon, ability, armor and
   ring for your class, a full ST set, potions, Sor Crystals and every stat potion.
 
 ## Accounts and saves
@@ -107,15 +107,20 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   (+1% loot chance per point).
 - **PT and SG bars**: Protection fills a white **PT** shield (about 3 PT per point) that
   absorbs damage before HP. **Surge** gains +2 for each kill near you and refills PT at 100.
-- **Valor item tiers**: T0-T7, then **UT**, **ST** (class set items, such as the Wizard's
-  Archmage's set or the Knight's Crusader's set; wearing all 4 pieces gives a set bonus),
-  **FB** (Fabled), **LG** (Legendary, with passives such as Lifebloom, Shardstorm,
-  Frostbite, Executioner and Rampage) and **AR** (Ancient Relic). Each has its own coloured
-  tag and loot bag.
+- **Item tiers and rarities**: tiered gear T0-T7, then New Realm's own rarities, from common
+  to rarest. Each has its own colour, tag and loot bag.
+
+  | Rarity | Tag | Colour | What it is |
+  | --- | --- | --- | --- |
+  | **Runed** | RN | azure | Rare drops from events, dungeons and the Godlands |
+  | **Bonded** | BD | jade | Class sets, such as the Wizard's Archmage's set or the Knight's Crusader's set; wearing all 4 pieces gives a set bonus |
+  | **Eldritch** | EL | violet | Dropped by the Dark Elder |
+  | **Starforged** | SF | gold | Made at the forge, or very rare drops. Weapons carry passives such as Lifebloom, Shardstorm, Frostbite, Executioner and Rampage |
+  | **Primordial** | PR | ember red | The rarest drops |
 - **Currencies**: account-wide **Gold** and **Onrane**, plus account Fame.
-- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the Fame Store, the **Sor Forge** (a UT, ST
-  or FB item + a Sor Crystal + 100 Onrane = a Legendary) and the **Marketplace** (buy
-  potions, stat potions, Sor Crystals, mystery UTs and a **Backpack**, and shift+click items to sell them). A
+- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the Fame Store, the **Sor Forge** (a Runed, Bonded
+  or Eldritch item + a Sor Crystal + 100 Onrane = a Starforged item) and the **Marketplace** (buy
+  potions, stat potions, Sor Crystals, mystery Runed items and a **Backpack**, and shift+click items to sell them). A
   backpack gives that character 8 more inventory slots. Switch pages with the button by
   the sidebar tabs; keys 1-8 use the page you're on.
 - **Fame Store** (Nexus, north-west): spend account fame on skins, two per class, such as
@@ -133,7 +138,7 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   Phantom Regent) and announces each kill in
   chat as `[3/6][Realm: Medusa]`. Clear all 6 events and the realm closes. You're pulled
   into the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
-  for Fabled, Legendary and Relic loot. At a third of his health he becomes immune and
+  for Eldritch, Starforged and Primordial loot. At a third of his health he becomes immune and
   summons four Elder Crystals. Destroy them all to make him vulnerable again.
 - **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of four
   dungeons: the Sunken Crypt, the Ember Depths (lava pools), the Storm Spire or the
@@ -150,7 +155,7 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
 - **Status effects**: bosses and dungeon enemies can leave you Slowed, Paralyzed, Confused
   (controls reversed), Armor Broken (0 Defense) or Bleeding (draining HP, no regen).
 - **Sound effects**, all synthesised in code: shots, hits, kills, level-ups, loot, rare-drop
-  chimes, portals and boss spawns. A banner announces Legendary, Relic and Fabled drops.
+  chimes, portals and boss spawns. A banner announces Eldritch, Starforged and Primordial drops.
 - **Daily Quest Board** (Valor's daily contracts): three missions picked by date, such as
   "Clear a dungeon" or "Defeat 2 realm event bosses", paying gold and Onrane.
 - **Quest arrow** (like RotMG's quest marker): a gold arrow at the edge of the screen points
@@ -162,7 +167,7 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
 - **Screen shake** on heavy hits, explosions and boss deaths.
 - **Pause menu** with Resume, sound, damage numbers, particle and screen shake toggles, and Save & Quit
   to the title screen.
-- **Boss damage meter** with your damage share and the LG threshold.
+- **Boss damage meter** with your damage share and the loot threshold.
 - **RotMG-style realms**: a big procedurally generated island (320x320 tiles) with five
   biomes from the coast inwards: **Beach → Lowlands → Midlands → Highlands → Godlands**.
   There are cobblestone roads running inland with bridges over rivers, lakes, shallows,
@@ -189,14 +194,14 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   | Sprite Gods | Sprite World | Lumina the Sprite Queen |
 
   Leaders such as the Pirate Captain and Spider Queen drop their portal far more often.
-  Low-level dungeons drop good tiered gear and sometimes a UT.
+  Low-level dungeons drop good tiered gear and sometimes a Runed item.
 - **10 realm events**, picked at random, now including Nekhret the Sand Sphinx, the Lord of the
   Sunken Lands, the Tide Hermit and the Skull Shrine.
 - Permadeath. Fame from a dead character is added to your account. Like RotMG, the death
   screen lists **fame bonuses**:
   - Ancestor: the first hero of a class to die.
   - Thirsty: level 20 without drinking a stat potion.
-  - Well Equipped: wearing four UT or better items.
+  - Well Equipped: wearing four Runed or better items.
   - Set Master: wearing a full set.
   - Well Fed / Fully Maxed: 8/11 or 11/11 maxed stats.
   - Tunnel Rat: 3+ dungeons cleared.

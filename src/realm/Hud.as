@@ -434,7 +434,7 @@ package realm {
 					statLine("vit") + statLine("wis") + "\n" + statLine("mgt") + statLine("luc") + "\n" +
 					statLine("prt") + "<font color='#9a9a9a'>FRT</font> " + p.frt + "\n" +
 					"<font color='#aaaaaa' size='12'>Crit " + Math.round(p.critChance * 100) + "%  x" + p.critMult.toFixed(2) +
-					(p.setPieces >= 4 ? "   <font color='#ff9a2e'>Set bonus</font>" : "") + "</font>";
+					(p.setPieces >= 4 ? "   <font color='#4ee08a'>Set bonus</font>" : "") + "</font>";
 				if (st != lastStats) {
 					lastStats = st;
 					statTf.htmlText = st;

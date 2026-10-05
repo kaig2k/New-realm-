@@ -430,7 +430,7 @@ package realm {
 			hp = Math.min(hp, maxHp);
 			mp = Math.min(mp, maxMp);
 			g.msg("Equipped " + item.name, item.rarity ? Data.RARITY_COLORS[item.rarity] : 0xffffff);
-			if (activeSet && item.set) g.msg(Data.setName(activeSet) + " Set bonus active!", 0xff9a2e);
+			if (activeSet && item.set) g.msg(Data.setName(activeSet) + " Set bonus active!", Data.RARITY_COLORS.st);
 		}
 
 		public function drinkStat(s:String, g:Game):Boolean {

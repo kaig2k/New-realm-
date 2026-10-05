@@ -183,7 +183,7 @@ package realm {
 				var y:int = 26 + r * 34;
 				label(rows[r], 14, y + 5, 0xffffff, 80);
 				for (var t:int = 0; t <= caps[r]; t++) btn("T" + t, 84 + t * 36, y, 34, itemFn(r, t, null), 12, 28);
-				for (var k:int = 0; k < rar.length; k++) btn(String(rar[k]).toUpperCase(), 84 + 8 * 36 + 4 + k * 31, y, 30, itemFn(r, 7, rar[k]), 11, 28);
+				for (var k:int = 0; k < rar.length; k++) btn(Data.RARITY_LABELS[rar[k]], 84 + 8 * 36 + 4 + k * 31, y, 30, itemFn(r, 7, rar[k]), 11, 28);
 			}
 			var y2:int = 26 + 4 * 34 + 10;
 			label("Potions and materials", 14, y2, 0xffd75e);
@@ -191,8 +191,8 @@ package realm {
 			btn("HP potion", 14, y2, 100, function():void { g.giveItem(Data.makePotion("hp")); });
 			btn("MP potion", 120, y2, 100, function():void { g.giveItem(Data.makePotion("mp")); });
 			btn("Sor Crystal", 226, y2, 100, function():void { g.giveItem(Data.makeSor()); });
-			btn("Full ST set", 332, y2, 100, function():void { for (var s:int = 0; s < 4; s++) g.giveItem(Data.makeForSlot(cls, s, 7, "st")); });
-			btn("Random LG", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
+			btn("Bonded set", 332, y2, 100, function():void { for (var s:int = 0; s < 4; s++) g.giveItem(Data.makeForSlot(cls, s, 7, "st")); });
+			btn("Random SF", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
 			y2 += 40;
 			label("Stat potions", 14, y2, 0xffd75e);
 			y2 += 22;

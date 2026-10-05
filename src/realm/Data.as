@@ -2,8 +2,8 @@ package realm {
 	/**
 	 * Game balance: classes, enemies, items and loot tables.
 	 * Modelled on the Valor private server: 11 maxable stats (vanilla 8 +
-	 * Might, Luck, Protection), Fortune from gear, and the T / UT / ST /
-	 * FB / LG / AR item tiers.
+	 * Might, Luck, Protection), Fortune from gear, and the T0-T7 / RN / BD /
+	 * EL / SF / PR item rarities.
 	 */
 	public class Data {
 		public static const STATS:Array = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt"];
@@ -91,10 +91,13 @@ package realm {
 		}
 
 		// ---- item tiers -------------------------------------------------
-		// Tiered items are T0..T7. Special rarities (Valor): UT, ST (set), FB (fabled), LG (legendary), AR (ancient relic).
+		// Tiered items are T0..T7. New Realm's special rarities, from common to rarest:
+		// Runed (RN), Bonded (BD, class sets), Eldritch (EL, the Dark Elder), Starforged (SF, forged), Primordial (PR).
+		// The short ids (ut, st, fb, lg, ar) are only save-file keys and never shown to players.
 		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "ar"];
-		public static const RARITY_NAMES:Object = {ut: "Untiered", st: "Set", fb: "Fabled", lg: "Legendary", ar: "Ancient Relic"};
-		public static const RARITY_COLORS:Object = {ut: 0xb070ff, st: 0xff9a2e, fb: 0xff4a4a, lg: 0xd8e040, ar: 0x40e8d8};
+		public static const RARITY_NAMES:Object = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial"};
+		public static const RARITY_LABELS:Object = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR"};
+		public static const RARITY_COLORS:Object = {ut: 0x6aa8ff, st: 0x4ee08a, fb: 0xc85cff, lg: 0xffc23a, ar: 0xff5533};
 		/** Effective tier used for item stats. */
 		private static const RARITY_POWER:Object = {ut: 8, st: 8.5, fb: 9.5, lg: 11, ar: 12.5};
 
@@ -124,13 +127,13 @@ package realm {
 		private static const NOUNS:Object = {staff: "Staff", bow: "Longbow", sword: "Greatsword", wand: "Wand", dagger: "Kris",
 			spell: "Grimoire", quiver: "Quiver", shield: "Aegis", tome: "Codex", cloak: "Shroud", helm: "Crown", skull: "Skull", trap: "Snare",
 			robe: "Vestments", leather: "Hide", heavy: "Plate", ring: "Signet"};
-		private static const UT_PREFIX:Array = ["Cursed", "Ember-Wrought", "Frostbound", "Bloodsworn", "Stormcaller's", "Gravewarden's", "Sunken", "Hollow"];
-		private static const LG_PREFIX:Array = ["Starforged", "Eternal", "Abyssal", "Sovereign", "Radiant", "Phantom", "Verdant", "Celestial"];
-		private static const AR_SUFFIX:Array = ["of the First Light", "of Aeons", "of the Void Tide", "of the Shattered Sun"];
-		public static const FB_SOURCE:String = "Dark Elder's";
+		private static const UT_PREFIX:Array = ["Runed", "Ember-Runed", "Frostrune", "Bloodrune", "Stormrune", "Graverune", "Tiderune", "Hollowrune"];
+		private static const LG_PREFIX:Array = ["Starforged", "Starfall", "Comet-Forged", "Nova", "Sunforged", "Moonforged", "Starlit", "Celestial"];
+		private static const AR_SUFFIX:Array = ["of the First Dawn", "of the Old Realm", "of the Unmade", "of the Primal Flame"];
+		public static const FB_SOURCE:String = "Eldritch";
 		public static const SET_NAME:String = "Valorous";
 
-		/** Legendary / relic passives. */
+		/** Passives on Starforged and Primordial weapons. */
 		public static const PASSIVES:Object = {
 			lifesteal: {name: "Lifebloom", desc: "Heal 4 HP on every hit."},
 			shards: {name: "Shardstorm", desc: "6% on hit: 8 shards burst from the target (60% damage)."},
@@ -177,7 +180,7 @@ package realm {
 		/** Bonus for wearing all 4 pieces of a set (old generic Valorous set). */
 		public static const SET_BONUS:Object = {hp: 80, att: 10, def: 10, dex: 10, frt: 10};
 
-		/** Class sets: ST drops are tagged with the class id and give a class-flavoured 4-piece bonus. */
+		/** Class sets: Bonded drops are tagged with the class id and give a class-flavoured 4-piece bonus. */
 		public static const SETS:Object = {
 			wizard: {name: "Archmage's", bonus: {mp: 80, att: 12, wis: 10, luc: 12, frt: 10}},
 			archer: {name: "Ranger's", bonus: {hp: 60, att: 10, dex: 12, luc: 10, frt: 10}},
@@ -300,7 +303,7 @@ package realm {
 			return item;
 		}
 
-		/** Turn an item into a Legendary of the same kind (Sor Forge). */
+		/** Turn an item into a Starforged item of the same kind (Sor Forge). */
 		public static function forgeLegendary(item:Object, cls:Object):Object {
 			switch (item.kind) {
 				case "weapon": return makeWeapon(item.sub, 7, "lg");
@@ -315,10 +318,10 @@ package realm {
 			return item && (item.kind == "weapon" || item.kind == "armor" || item.kind == "ability" || item.kind == "ring");
 		}
 
-		/** "T3", "UT", "LG"... or "" for consumables. */
+		/** "T3", "RN", "SF"... or "" for consumables. */
 		public static function tierLabel(item:Object):String {
 			if (!item) return "";
-			if (item.rarity) return String(item.rarity).toUpperCase();
+			if (item.rarity) return RARITY_LABELS[item.rarity] || String(item.rarity).toUpperCase();
 			if (!isGear(item)) return "";
 			return "T" + item.tier;
 		}
@@ -361,7 +364,7 @@ package realm {
 				case "hp": s += "Restores 100 HP\n"; break;
 				case "mp": s += "Restores 100 MP\n"; break;
 				case "stat": s += "Permanently raises " + STAT_NAMES[item.sub] + "\n"; break;
-				case "material": s += "Crafting material for the Sor Forge.\nForge: UT/ST/FB item + Sor Crystal + 100 Onrane = Legendary\n"; break;
+				case "material": s += "Crafting material for the Sor Forge.\nForge: Runed, Bonded or Eldritch item + Sor Crystal + 100 Onrane = Starforged\n"; break;
 			}
 			if (isGear(item)) {
 				var on:String = "";
@@ -374,7 +377,7 @@ package realm {
 				var p:Object = PASSIVES[item.passive];
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
 			}
-			if (item.set) s += "<font color='#ff9a2e'>" + setName(item.set) + " Set (4 pieces): " + setBonusText(item.set) + "</font>\n";
+			if (item.set) s += "<font color='" + Ui.hex(RARITY_COLORS.st) + "'>" + setName(item.set) + " Set (4 pieces): " + setBonusText(item.set) + "</font>\n";
 			s += "<font color='#888888'>Sells for " + sellValue(item) + " gold</font>\n";
 			return s;
 		}
@@ -752,7 +755,7 @@ package realm {
 			if (p.level >= 20 && p.potsDrunk == 0) add("Thirsty", "Level 20 without stat potions", 10);
 			var rare:int = 0;
 			for each (var it:Object in [p.weapon, p.ability, p.armor, p.ring]) if (it && it.rarity) rare++;
-			if (rare >= 4) add("Well Equipped", "4 UT or better items equipped", 10);
+			if (rare >= 4) add("Well Equipped", "4 Runed or better items equipped", 10);
 			if (p.activeSet) add("Set Master", "Died wearing a full set", 5);
 			if (p.maxedCount >= 11) add("Fully Maxed", "11/11 stats", 25);
 			else if (p.maxedCount >= 8) add("Well Fed", p.maxedCount + "/11 stats", 10);
@@ -903,7 +906,7 @@ package realm {
 			{id: "legend", ev: "level20", goal: 1, name: "Legend", desc: "Reach level 20", gold: 500, onrane: 0},
 			{id: "maxed", ev: "maxed", goal: 1, name: "Perfection", desc: "Max all 11 stats on a character", gold: 5000, onrane: 20},
 			{id: "lucky", ev: "rare", goal: 50, name: "Lucky", desc: "Find 50 purple-or-better loot bags", gold: 1500, onrane: 5},
-			{id: "legendary", ev: "legendary", goal: 1, name: "Shining Light", desc: "Obtain a Legendary or Relic", gold: 1000, onrane: 5},
+			{id: "legendary", ev: "legendary", goal: 1, name: "Shining Light", desc: "Obtain a Starforged or Primordial item", gold: 1000, onrane: 5},
 			{id: "pet", ev: "pet", goal: 1, name: "Best Friend", desc: "Hatch a pet", gold: 200, onrane: 0}
 		];
 
@@ -941,7 +944,7 @@ package realm {
 				return items;
 			}
 			if (def.dungeon && def.dtier != undefined && def.dtier < 3) {
-				// low-level dungeon boss: good tiered gear, a shot at a UT
+				// low-level dungeon boss: good tiered gear, a shot at a Runed item
 				var dt:int = def.dtier;
 				for (var di:int = 0; di < 2; di++) {
 					slot = int(Math.random() * 4);
@@ -962,7 +965,7 @@ package realm {
 				return items;
 			}
 			if (def.ai == "boss") {
-				// realm event: UT or set piece, sometimes a legendary
+				// realm event: Runed or Bonded piece, sometimes Starforged
 				slot = int(Math.random() * 4);
 				items.push(makeForSlot(cls, slot, 7, Math.random() < 0.4 ? "st" : "ut"));
 				if (Math.random() < 0.08 * boost) items.push(makeForSlot(cls, int(Math.random() * 4), 7, "lg"));

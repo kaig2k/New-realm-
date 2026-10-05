@@ -153,7 +153,7 @@ package realm {
 			var info:TextField = Ui.text(13, 0xbbbbbb, false, "left", 150);
 			var maxed:int = 0;
 			for each (var s:String in Data.STATS) if (c.stats[s] >= cls.max[s]) maxed++;
-			var gear:String = c.weapon && c.weapon.rarity ? " <font color='" + Ui.hex(Data.RARITY_COLORS[c.weapon.rarity]) + "'>" + String(c.weapon.rarity).toUpperCase() + "</font>" : "";
+			var gear:String = c.weapon && c.weapon.rarity ? " <font color='" + Ui.hex(Data.RARITY_COLORS[c.weapon.rarity]) + "'>" + Data.tierLabel(c.weapon) + "</font>" : "";
 			info.htmlText = "Lvl " + c.level + " " + cls.name + gear + "\n" + maxed + "/11 maxed   " + c.kills + " kills";
 			info.x = 82; info.y = 40;
 			card.addChild(info);

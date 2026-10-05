@@ -764,7 +764,7 @@ package realm {
 			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
 			saveCharacter();
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
-			msg("The fountain heals you. Vault (west) stores items, Sor Forge (east) crafts Legendaries, Marketplace (south) buys and sells.", 0xcccccc);
+			msg("The fountain heals you. Vault (west) stores items, Sor Forge (east) crafts Starforged gear, Marketplace (south) buys and sells.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
 		}
@@ -962,7 +962,7 @@ package realm {
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
-					tip("event", "Event bosses drop UT/Set gear, Sor Crystals and dungeon portals. Kill 6 to face the Dark Elder.");
+					tip("event", "Event bosses drop Runed and Bonded gear, Sor Crystals and dungeon portals. Kill 6 to face the Dark Elder.");
 					return;
 				}
 			}
@@ -1050,7 +1050,7 @@ package realm {
 			if (e.isBoss) p.bossDmg += d;
 			if (opt("dmg")) floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
 			if (effect == "slow") e.slowT = 3;
-			// Legendary passives (not from passive-spawned shards)
+			// Starforged / Primordial passives (not from passive-spawned shards)
 			if (effect != "shard") {
 				switch (p.weapon.passive) {
 					case "lifesteal":
@@ -1164,7 +1164,7 @@ package realm {
 				} else if (e.def.final) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 5);
 					say(SOVEREIGN, "This... is not... the end...");
-					msg("Fabled loot has dropped! Take the portal back to the Nexus when you're ready.", 0xff6060);
+					msg("Eldritch loot has dropped! Take the portal back to the Nexus when you're ready.", 0xff6060);
 					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
 				} else {
 					world.eventsDone++;
@@ -1206,8 +1206,8 @@ package realm {
 				// Valor-style rare drop alerts
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary") questEvent("legendary");
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
-					var kind:String = bag.spr == "bag_relic" ? "Ancient Relic" : bag.spr == "bag_legendary" ? "Legendary" : "Fabled";
-					var kc:uint = bag.spr == "bag_relic" ? 0x40e8d8 : bag.spr == "bag_legendary" ? 0xd8e040 : 0xff4a4a;
+					var kind:String = bag.spr == "bag_relic" ? Data.RARITY_NAMES.ar : bag.spr == "bag_legendary" ? Data.RARITY_NAMES.lg : Data.RARITY_NAMES.fb;
+					var kc:uint = bag.spr == "bag_relic" ? Data.RARITY_COLORS.ar : bag.spr == "bag_legendary" ? Data.RARITY_COLORS.lg : Data.RARITY_COLORS.fb;
 					showBanner(kind + " drop!", kc, 3);
 					msg("A " + kind + " bag dropped from " + e.def.name + "!", kc);
 					Sfx.play("rare");
@@ -1408,7 +1408,7 @@ package realm {
 			if (kind == "bag") {
 				if (!nearBag || idx >= nearBag.items.length) return;
 				item = nearBag.items[idx];
-				if (item.kind == "material") tip("sor", "Sor Crystal: bring it with a UT/ST/FB item and 100 Onrane to the Sor Forge to make a Legendary.");
+				if (item.kind == "material") tip("sor", "Sor Crystal: bring it with a Runed, Bonded or Eldritch item and 100 Onrane to the Sor Forge to make it Starforged.");
 				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) p.hpPots++;
 				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) p.mpPots++;
 				else {
@@ -1529,7 +1529,7 @@ package realm {
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 450},
 			{id: "sor", name: "Sor Crystal", price: 900},
-			{id: "ut", name: "Mystery UT (your class)", price: 2500},
+			{id: "ut", name: "Mystery Runed item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
 
@@ -1566,7 +1566,7 @@ package realm {
 			if (openStation.kind == "forge") {
 				var sors:int = 0;
 				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
-				info.htmlText = "Forge a <font color='#d8e040'><b>Legendary</b></font>: a UT, ST or FB item + 1 Sor Crystal + 100 Onrane\n" +
+				info.htmlText = "Forge a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Starforged</b></font> item: Runed, Bonded or Eldritch item + 1 Sor Crystal + 100 Onrane\n" +
 					"You have <b>" + sors + "</b> Sor Crystal" + (sors == 1 ? "" : "s") + " and <b>" + onrane + "</b> Onrane. Click an item to forge it.";
 				info.y = y;
 				y += info.height + 8;
@@ -1580,7 +1580,7 @@ package realm {
 				if (n == 0) {
 					var none:TextField = Ui.text(13, 0x888888, false, "center", w - 20);
 					none.x = 10; none.y = y + 10;
-					none.text = "No UT, ST or FB items in your inventory.";
+					none.text = "No Runed, Bonded or Eldritch items in your inventory.";
 					sp.addChild(none);
 				}
 				y += 56;
@@ -1932,7 +1932,7 @@ package realm {
 			return function():void { buy(e); };
 		}
 
-		/** Sor Forge: UT/ST/FB item + Sor Crystal + 100 Onrane -> Legendary. */
+		/** Sor Forge: Runed/Bonded/Eldritch item + Sor Crystal + 100 Onrane -> Starforged. */
 		private function forge(slot:int):void {
 			var item:Object = player.inv[slot];
 			if (!item) return;
@@ -2092,7 +2092,7 @@ package realm {
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
 				bossInfo.text = b.invuln ? "IMMUNE: " + crystalsLeft() + " crystals left" : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
-				thresholdTf.text = "LG: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
+				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
 			}
 		}
@@ -2303,8 +2303,8 @@ package realm {
 		private var auraShape:Shape = new Shape();
 		private var auraMtx:Matrix = new Matrix();
 
-		private static const BAG_GLOW:Object = {bag_purple: 0xb050e0, bag_cyan: 0x40d0f0, bag_white: 0xffffff,
-			bag_fabled: 0xff4040, bag_legendary: 0xf0e040, bag_relic: 0x40f0e0};
+		private static const BAG_GLOW:Object = {bag_purple: 0xb050e0, bag_cyan: 0x40d0f0, bag_white: 0x9ad0ff,
+			bag_fabled: 0xc85cff, bag_legendary: 0xffc23a, bag_relic: 0xff5533};
 
 		private function drawAura(cx:Number, cy:Number, col:uint, size:Number = 1):void {
 			var pulse:Number = (Math.sin(time * 4) + 1) / 2;

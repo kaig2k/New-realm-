@@ -503,6 +503,20 @@ package realm {
 			return bd;
 		}
 
+		/** Soft glowing dot without an outline (trails, dust, sparkles). */
+		public static function glow(color:uint):BitmapData {
+			var key:String = "gl" + color;
+			var bd:BitmapData = cache[key];
+			if (bd) return bd;
+			bd = new BitmapData(6, 6, true, 0);
+			bd.fillRect(new Rectangle(1, 0, 4, 6), 0x55000000 | color);
+			bd.fillRect(new Rectangle(0, 1, 6, 4), 0x55000000 | color);
+			bd.fillRect(new Rectangle(1, 1, 4, 4), 0xaa000000 | color);
+			bd.fillRect(new Rectangle(2, 2, 2, 2), 0xff000000 | Sprites.shade(color, 1.25));
+			cache[key] = bd;
+			return bd;
+		}
+
 		/** Inventory icon (36x36). */
 		public static function icon(item:Object):BitmapData {
 			var key:String = "icon_" + item.kind + "_" + (item.sub || "") + "_" + item.tier + "_" + (item.rarity || "");

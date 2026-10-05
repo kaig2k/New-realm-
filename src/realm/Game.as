@@ -4,6 +4,7 @@ package realm {
 	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.filters.ColorMatrixFilter;
 	import flash.events.MouseEvent;
 	import flash.events.KeyboardEvent;
 	import flash.geom.Matrix;
@@ -56,6 +57,14 @@ package realm {
 		private var releaseArmed:Boolean = false;
 		private var showAch:Boolean = false;
 		private var shakeT:Number = 0, shakeAmp:Number = 0;
+		// smoothness: fades, death sequence, vignette
+		private var canvasBmp:Bitmap;
+		private var fadeShape:Shape;
+		private var fadeA:Number = 1, fadeTarget:Number = 0;
+		private var travelFn:Function;
+		private var dyingT:Number = 0;
+		private static const DYING_TIME:Number = 2.6;
+		private var dustT:Number = 0;
 		private var goldTf:TextField, onraneTf:TextField;
 		private var thresholdTf:TextField;
 		private var vaultBag:LootBag;
@@ -119,7 +128,9 @@ package realm {
 			world.reveal(player.x, player.y, 14);
 
 			canvas = new BitmapData(VIEW_W, VIEW_H, false, 0);
-			addChild(new Bitmap(canvas));
+			canvasBmp = new Bitmap(canvas);
+			addChild(canvasBmp);
+			addChild(makeVignette());
 			floatLayer = new Sprite();
 			floatLayer.mouseEnabled = floatLayer.mouseChildren = false;
 			addChild(floatLayer);
@@ -468,9 +479,83 @@ package realm {
 		}
 
 		public function usePortal(p:Object):void {
+			travel(function():void { usePortalNow(p); });
+		}
+
+		public function usePortalNow(p:Object):void {
 			if (p.kind == "realm") enterPortal(p.idx);
 			else if (p.kind == "dungeon") enterDungeon(p.idx);
-			else nexus();
+			else nexusNow();
+		}
+
+		/** Fades the view to black, runs fn (a world switch), then fades back in. */
+		public function travel(fn:Function):void {
+			if (travelFn != null || dyingT > 0 || deathInfo) return;
+			travelFn = fn;
+			fadeTarget = 1;
+		}
+
+		private function updateFade(dt:Number):void {
+			if (fadeA < fadeTarget) fadeA = Math.min(fadeTarget, fadeA + dt * 4.5);
+			else if (fadeA > fadeTarget) fadeA = Math.max(fadeTarget, fadeA - dt * 2.5);
+			if (fadeA >= 1 && travelFn != null) {
+				var fn:Function = travelFn;
+				travelFn = null;
+				fn();
+				fadeTarget = 0;
+			}
+			var deathFade:Number = dyingT > 0 ? Math.max(0, 1 - dyingT / (DYING_TIME * 0.5)) : 0;
+			if (fadeShape) {
+				fadeShape.alpha = Math.max(fadeA, deathFade);
+				fadeShape.visible = fadeShape.alpha > 0.01;
+			}
+		}
+
+		/** RotMG-style death: the world drains to grey and fades out before the death screen. */
+		private function updateDying(dt:Number):void {
+			time += dt;
+			dyingT -= dt;
+			var i:int;
+			for (i = enemies.length - 1; i >= 0; i--) if (!enemies[i].dead) enemies[i].update(dt, this);
+			updateShots(dt);
+			updateParticles(dt);
+			updateFloaters(dt);
+			var k:Number = Math.min(1, (1 - dyingT / DYING_TIME) * 1.8);
+			var s:Number = 1 - k;
+			var r:Number = 0.299 * (1 - s), gg:Number = 0.587 * (1 - s), b:Number = 0.114 * (1 - s);
+			canvasBmp.filters = [new ColorMatrixFilter([
+				r + s, gg, b, 0, 0,
+				r, gg + s, b, 0, 0,
+				r, gg, b + s, 0, 0,
+				0, 0, 0, 1, 0])];
+			if (dyingT <= 0) canvasBmp.filters = [];
+		}
+
+		private function dustColor():uint {
+			var t:int = world.tileAt(player.x, player.y);
+			return t == World.SAND ? 0xe8d8a0 : t == World.GRASS || t == World.DARK || t == World.HIGH ? 0x9ab070 : 0xb0b0b8;
+		}
+
+		private function makeVignette():Bitmap {
+			var sh:Shape = new Shape();
+			var m:Matrix = new Matrix();
+			m.createGradientBox(VIEW_W * 1.25, VIEW_H * 1.45, 0, -VIEW_W * 0.125, -VIEW_H * 0.225);
+			sh.graphics.beginGradientFill("radial", [0x000000, 0x000000], [0, 0.42], [150, 255], m);
+			sh.graphics.drawRect(0, 0, VIEW_W, VIEW_H);
+			sh.graphics.endFill();
+			var bd:BitmapData = new BitmapData(VIEW_W, VIEW_H, true, 0);
+			bd.draw(sh);
+			return new Bitmap(bd);
+		}
+
+		/** A ring of sparks expanding outwards (level ups, big moments). */
+		public function ring(x:Number, y:Number, color:uint, n:int = 28):void {
+			if (!opt("parts")) return;
+			var bd:BitmapData = Sprites.spark(color);
+			for (var i:int = 0; i < n; i++) {
+				var a:Number = i * Math.PI * 2 / n;
+				parts.push(new Particle(x, y, Math.cos(a) * 9, Math.sin(a) * 9, 0.6, bd));
+			}
 		}
 
 		/** Valor-style dungeon: rooms of monsters with a boss at the end. */
@@ -555,6 +640,12 @@ package realm {
 		private function onAdded(e:Event):void {
 			removeEventListener(Event.ADDED_TO_STAGE, onAdded);
 			input = new Input(stage);
+			fadeShape = new Shape();
+			fadeShape.graphics.beginFill(0x000000);
+			fadeShape.graphics.drawRect(0, 0, Ui.W, Ui.H);
+			fadeShape.graphics.endFill();
+			fadeShape.alpha = 1;
+			addChild(fadeShape);
 			lastT = getTimer();
 			addEventListener(Event.ENTER_FRAME, tick);
 			showBanner("Nexus", 0xffffff, 2.5);
@@ -583,13 +674,15 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
 			if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
-			if (!paused) update(dt);
+			if (dyingT > 0) updateDying(dt);
+			else if (!paused) update(dt);
+			updateFade(dt);
 			render();
 			hud.refresh();
 			updateOverlays();
 			input.endFrame();
 
-			if (deathInfo) {
+			if (deathInfo && dyingT <= 0) {
 				var info:Object = deathInfo;
 				deathInfo = null;
 				onDeath(info);
@@ -644,13 +737,32 @@ package realm {
 				lastZone = z;
 			}
 
-			camX = player.x;
-			camY = player.y;
+			// the camera glides after the player instead of snapping
+			var ck:Number = Math.min(1, dt * 12);
+			camX += (player.x - camX) * ck;
+			camY += (player.y - camY) * ck;
+
+			// little dust puffs while walking
+			if (player.moving && opt("parts")) {
+				dustT -= dt;
+				if (dustT <= 0) {
+					dustT = 0.18;
+					parts.push(new Particle(player.x + (Math.random() - 0.5) * 0.4, player.y + 0.35, (Math.random() - 0.5) * 0.6, -0.4, 0.3, Sprites.glow(dustColor())));
+				}
+			}
 
 			if (player.hp <= 0 && !deathInfo) die();
 		}
 
 		private function updateNexus(dt:Number):void {
+			if (opt("parts")) {
+				for each (var sp:Object in world.portals) {
+					if (Math.random() < dt * 7) {
+						parts.push(new Particle(sp.x + (Math.random() - 0.5) * 0.9, sp.y + 0.2 - Math.random() * 0.6,
+							(Math.random() - 0.5) * 0.4, -1.5 - Math.random() * 1.5, 0.7, Sprites.glow(sp.color)));
+					}
+				}
+			}
 			// timed portals (dungeon entrances) vanish
 			for (var pi:int = world.portals.length - 1; pi >= 0; pi--) {
 				var tp:Object = world.portals[pi];
@@ -700,7 +812,7 @@ package realm {
 				if (world.closeT <= 0) {
 					world.closed = true;
 					msg("The " + world.name + " realm has closed.", 0xff8080);
-					enterArena();
+					travel(enterArena);
 				}
 			}
 		}
@@ -761,6 +873,9 @@ package realm {
 				s.x += s.vx * dt;
 				s.y += s.vy * dt;
 				s.life -= dt;
+				// glowing trail behind your own shots
+				if (!s.enemy && parts.length < 420 && Math.random() < 0.55 && opt("parts"))
+					parts.push(new Particle(s.x, s.y, 0, 0, 0.14, Sprites.glow(s.trailCol)));
 				var remove:Boolean = s.life <= 0;
 				if (!remove) {
 					if (s.enemy) {
@@ -998,6 +1113,7 @@ package realm {
 			for (var i:int = bags.length - 1; i >= 0; i--) {
 				var b:LootBag = bags[i];
 				if (!b.vault) b.life -= dt;
+				b.age += dt;
 				if (!b.vault && (b.life <= 0 || b.items.length == 0)) {
 					bags[i] = bags[bags.length - 1];
 					bags.length--;
@@ -1105,6 +1221,11 @@ package realm {
 
 		private function die():void {
 			var p:Player = player;
+			dyingT = DYING_TIME;
+			burst(p.x, p.y, 0xd02020, 30);
+			ring(p.x, p.y, 0xffffff, 20);
+			Sfx.play("hurt", 1);
+			shake(0.5, 8);
 			var save:Object = Save.data;
 			var base:int = p.fame;
 			var first:Boolean = !save.bestLevel || !save.bestLevel[p.cls.id];
@@ -1151,6 +1272,10 @@ package realm {
 
 		/** R key / temple button: return to the Nexus (full heal). */
 		public function nexus():void {
+			travel(nexusNow);
+		}
+
+		public function nexusNow():void {
 			var wasNexus:Boolean = inNexus;
 			switchWorld(nexusWorld, nexusWorld.spawnX, nexusWorld.spawnY);
 			player.hp = player.maxHp;
@@ -1941,7 +2066,11 @@ package realm {
 			// loot bags lie on the ground
 			for each (var b:LootBag in bags) {
 				if (b.life < 8 && int(b.life * 4) % 2 == 0) continue;
-				drawEntity(Sprites.get(b.spr), b.x * TS + ox, b.y * TS + oy, 0);
+				var bx:Number = b.x * TS + ox, by:Number = b.y * TS + oy;
+				// rare bags glow; new bags bounce as they land
+				if (!b.vault && b.spr != "bag_brown") drawAura(bx, by + TS * 0.4, BAG_GLOW[b.spr] || 0xffffff, 0.45);
+				var hop:int = b.age < 0.5 ? int(Math.abs(Math.sin(b.age * 19)) * 22 * (1 - b.age / 0.5)) : 0;
+				drawEntity(Sprites.get(b.spr), bx, by, hop);
 			}
 
 			// portals and labels
@@ -2022,7 +2151,7 @@ package realm {
 			for each (var q:Particle in parts) {
 				pt.x = q.x * TS + ox - 3;
 				pt.y = q.y * TS + oy - 3;
-				canvas.copyPixels(q.bd, q.bd.rect, pt, null, null, false);
+				canvas.copyPixels(q.bd, q.bd.rect, pt, null, null, true);
 			}
 			canvas.unlock();
 			updateQuestArrow(ox, oy);
@@ -2059,9 +2188,12 @@ package realm {
 		private var auraShape:Shape = new Shape();
 		private var auraMtx:Matrix = new Matrix();
 
-		private function drawAura(cx:Number, cy:Number, col:uint):void {
+		private static const BAG_GLOW:Object = {bag_purple: 0xb050e0, bag_cyan: 0x40d0f0, bag_white: 0xffffff,
+			bag_fabled: 0xff4040, bag_legendary: 0xf0e040, bag_relic: 0x40f0e0};
+
+		private function drawAura(cx:Number, cy:Number, col:uint, size:Number = 1):void {
 			var pulse:Number = (Math.sin(time * 4) + 1) / 2;
-			var rx:Number = TS * 1.15 + pulse * 6, ry:Number = rx * 0.45;
+			var rx:Number = (TS * 1.15 + pulse * 6) * size, ry:Number = rx * 0.45;
 			var g:* = auraShape.graphics;
 			g.clear();
 			g.beginFill(col, 0.12 + pulse * 0.1);
@@ -2078,7 +2210,11 @@ package realm {
 
 		private function drawEnemy(e:Enemy, ox:Number, oy:Number):void {
 			var cx:Number = e.x * TS + ox, cy:Number = e.y * TS + oy;
-			var bob:int = e.moving && int(time * 5 + e.homeX) % 2 == 0 ? 2 : 0;
+			// fliers hover, walkers bob as they move and "breathe" when idle
+			var bob:int;
+			if (e.def.fly) bob = int((Math.sin(time * 3 + e.homeX) + 1) * 3);
+			else if (e.moving) bob = int(time * 5 + e.homeX) % 2 == 0 ? 2 : 0;
+			else bob = int(time * 1.6 + e.homeX) % 2 == 0 ? 1 : 0;
 			if (e.isBoss) {
 				// pulsing aura on the ground and a slow hover
 				drawAura(cx, cy + TS * 0.4, e.invuln ? 0xff4080 : e.enraged ? 0xff2020 : uint(e.def.col));
@@ -2097,7 +2233,8 @@ package realm {
 		private function drawPlayer(ox:Number, oy:Number):void {
 			var p:Player = player;
 			var cx:Number = p.x * TS + ox, cy:Number = p.y * TS + oy;
-			if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0);
+			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
+			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0);
 			nameTag.x = int(cx - nameTag.width / 2);
 			nameTag.y = int(cy + TS * 0.4 + 1);
 			hpBar(cx - 20, cy + TS * 0.4 + 21, 40, p.hp / p.maxHp);

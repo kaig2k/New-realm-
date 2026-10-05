@@ -1,4 +1,5 @@
 package {
+	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.display.StageScaleMode;
 	import flash.display.StageQuality;
@@ -14,6 +15,8 @@ package {
 	[SWF(width="1100", height="640", frameRate="60", backgroundColor="#000000")]
 	public class NewRealm extends Sprite {
 		private var screen:Sprite;
+		/** Black overlay that fades out whenever the screen changes. */
+		private var fade:Shape;
 
 		public function NewRealm() {
 			if (stage) init();
@@ -38,9 +41,25 @@ package {
 			screen = s;
 			addChild(s);
 			stage.focus = stage;
+			if (!fade) {
+				fade = new Shape();
+				fade.graphics.beginFill(0x000000);
+				fade.graphics.drawRect(0, 0, 1100, 640);
+				fade.graphics.endFill();
+				addEventListener(Event.ENTER_FRAME, fadeStep);
+			}
+			addChild(fade);
+			fade.alpha = 1;
+			fade.visible = true;
 		}
 
 		/** Home screen: PLAY (after logging in) leads to character select. */
+		private function fadeStep(e:Event):void {
+			if (!fade.visible) return;
+			fade.alpha -= 1 / 60 / 0.35;
+			if (fade.alpha <= 0) fade.visible = false;
+		}
+
 		private function showTitle():void {
 			setScreen(new TitleScreen(showMenu));
 		}

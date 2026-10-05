@@ -4,6 +4,8 @@ package realm {
 		public var x:Number, y:Number;
 		public var items:Array;
 		public var life:Number = 45;
+		/** Seconds since the bag dropped (for the landing bounce). */
+		public var age:Number = 0;
 		public var spr:String;
 		/** The nexus vault: never expires, persists between characters. */
 		public var vault:Boolean = false;

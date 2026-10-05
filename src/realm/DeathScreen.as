@@ -1,5 +1,6 @@
 package realm {
 	import flash.display.Bitmap;
+	import flash.display.DisplayObject;
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.KeyboardEvent;
@@ -8,6 +9,10 @@ package realm {
 
 	public class DeathScreen extends Sprite {
 		private var onDone:Function;
+		private var reveal:Array = [];
+		private var t:Number = 0;
+		private var fameTf:TextField;
+		private var fameTotal:int;
 
 		public function DeathScreen(info:Object, onDone:Function) {
 			this.onDone = onDone;
@@ -72,9 +77,13 @@ package realm {
 			var fameIcon:Bitmap = new Bitmap(Sprites.get("fame"));
 			var fame:TextField = Ui.text(34, 0xff9a2e, true, "center", Ui.W, true);
 			fame.text = Ui.commas(info.fame) + " Fame";
+			var fameW:Number = fame.textWidth;
+			fame.text = "0 Fame";
+			fameTf = fame;
+			fameTotal = info.fame;
 			fame.y = y + 12;
 			addChild(fame);
-			fameIcon.x = Ui.W / 2 - fame.textWidth / 2 - 40;
+			fameIcon.x = Ui.W / 2 - fameW / 2 - 44;
 			fameIcon.y = y + 22;
 			addChild(fameIcon);
 			if (info.best) {
@@ -89,15 +98,39 @@ package realm {
 			btn.y = y + 116;
 			addChild(btn);
 
+			// fade in from black, then reveal each line in turn (like RotMG's death screen)
+			for (var ci:int = 0; ci < numChildren; ci++) {
+				var ch:DisplayObject = getChildAt(ci);
+				reveal.push({o: ch, y: ch.y});
+				ch.alpha = 0;
+			}
+			alpha = 0;
+			addEventListener(Event.ENTER_FRAME, animate);
 			addEventListener(Event.ADDED_TO_STAGE, function(e:Event):void {
 				stage.addEventListener(KeyboardEvent.KEY_DOWN, onKey);
 			});
 			addEventListener(Event.REMOVED_FROM_STAGE, function(e:Event):void {
 				stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKey);
+				removeEventListener(Event.ENTER_FRAME, animate);
 			});
 		}
 
+		private function animate(e:Event):void {
+			t += 1 / 60;
+			alpha = Math.min(1, t / 0.9);
+			for (var i:int = 0; i < reveal.length; i++) {
+				var k:Number = Math.max(0, Math.min(1, (t - 0.7 - i * 0.07) / 0.4));
+				var ease:Number = 1 - (1 - k) * (1 - k);
+				reveal[i].o.alpha = ease;
+				reveal[i].o.y = reveal[i].y + (1 - ease) * 14;
+			}
+			var f:Number = Math.max(0, Math.min(1, (t - 1.4) / 1.3));
+			fameTf.text = Ui.commas(int(fameTotal * (1 - (1 - f) * (1 - f)))) + " Fame";
+			if (t > 4) removeEventListener(Event.ENTER_FRAME, animate);
+		}
+
 		private function onKey(e:KeyboardEvent):void {
+			if (t < 0.8) return;
 			if (e.keyCode == Keyboard.ENTER) finish();
 		}
 

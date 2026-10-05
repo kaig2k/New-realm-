@@ -15,6 +15,8 @@ package realm {
 		public var hits:Dictionary;
 		public var effect:String;
 		public var owner:String;
+		/** Colour of the faint trail behind player shots. */
+		public var trailCol:uint = 0xffffff;
 
 		public function Projectile(x:Number, y:Number, angle:Number, speed:Number, life:Number, dmg:int, enemy:Boolean,
 				r:Number, frames:Vector.<BitmapData>, pierce:Boolean, owner:String, effect:String, spin:Boolean = false) {
@@ -28,6 +30,11 @@ package realm {
 			this.enemy = enemy;
 			this.r = r;
 			this.frames = frames;
+			if (frames && frames.length) {
+				var f:BitmapData = frames[0];
+				var c:uint = f.getPixel32(f.width >> 1, f.height >> 1);
+				if ((c >>> 24) > 0) trailCol = c & 0xffffff;
+			}
 			this.pierce = pierce;
 			this.owner = owner;
 			this.effect = effect;

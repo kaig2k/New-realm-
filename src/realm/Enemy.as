@@ -4,6 +4,9 @@ package realm {
 
 	public class Enemy {
 		private static const DEG:Number = Math.PI / 180;
+		/** Sprites that hover instead of walking. */
+		private static const FLYERS:Array = ["ghost", "ghost_god", "sprite", "sprite_god", "harpy", "djinn", "gazer", "beholder",
+			"lich", "shade", "mothling", "cubelet", "crystal"];
 
 		public var def:Object;
 		public var x:Number, y:Number;
@@ -38,6 +41,7 @@ package realm {
 			defense = def.def;
 			r = def.r || 0.4;
 			isBoss = def.ai == "boss";
+			if (def.fly == undefined) def.fly = FLYERS.indexOf(def.spr) >= 0;
 			orbitDir = Math.random() < 0.5 ? 1 : -1;
 			setAttacks(isBoss ? def.phases[0] : def.attacks);
 		}

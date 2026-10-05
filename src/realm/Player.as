@@ -490,6 +490,7 @@ package realm {
 				if (level >= MAX_LEVEL) g.questEvent("level20");
 				if (level >= MAX_LEVEL) g.tip("max", "Level 20! Drink stat potions to max all 11 stats; 11/11 unlocks the skill tree (star tab).");
 				g.burst(x, y, 0x60ff60, 20);
+				g.ring(x, y, 0xffe040);
 			}
 			if (level >= MAX_LEVEL) xp = 0;
 		}

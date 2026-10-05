@@ -38,6 +38,23 @@ precompiled into `assets/fonts/RealmFonts.swf` and loaded at startup. You only n
 rebuild that file if you change the fonts, and that needs the Apache Flex SDK's `mxmlc`
 (see `assets/fonts/RealmFonts.as`).
 
+## Admin menu (for testing)
+
+Press **`** (the key under Esc) or type `/admin` in chat to open the admin menu. Close it
+with ` or Esc. It has five tabs:
+
+- **Player**: max level, max all stats (11/11), god mode, full heal, skill points, max
+  potions, gold / Onrane / account fame, backpack, clear inventory, a level 30 pet.
+  - **World buttons:** kill all monsters, teleport to the Godlands or the Nexus, finish the
+    realm's events (the realm closes and the Dark Elder fight starts), spawn an event now,
+    reveal the minimap.
+- **Monsters / Bosses**: every monster and boss in the game, sorted by health. Click one to
+  spawn it in front of you (toward the mouse).
+- **Dungeons**: open a portal to any dungeon next to you, or go straight in. Also has the
+  Dark Elder's chamber and a realm portal.
+- **Items**: any tier (T0-T7) or rarity (UT, ST, FB, LG, AR) of weapon, ability, armor and
+  ring for your class, a full ST set, potions, Sor Crystals and every stat potion.
+
 ## Accounts and saves
 
 The game opens on a home screen. The first time you play it asks you to **create an
@@ -62,7 +79,7 @@ into the first account you create.
 | 1-8 | Use or equip the item in that inventory slot |
 | R | Return to the Nexus (full heal) |
 | Enter | Go through the portal you are standing on |
-| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/tips` |
+| Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/tips`, `/admin` |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
 | P / Esc | Pause menu (options, Save & Quit) |

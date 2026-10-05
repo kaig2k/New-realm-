@@ -240,7 +240,7 @@ package realm {
 				autoFire = !autoFire;
 				g.msg("Auto-fire " + (autoFire ? "enabled" : "disabled"), 0xaaaaaa);
 			}
-			var wantShoot:Boolean = autoFire || (inp.mouseDown && inp.mx < Game.VIEW_W);
+			var wantShoot:Boolean = autoFire || (inp.mouseDown && inp.mx < Game.VIEW_W && !g.uiCaptured());
 			if (wantShoot && !w.isSafe(x, y)) {
 				facingLeft = aimX < x;
 				attackT = 0.25;
@@ -505,7 +505,7 @@ package realm {
 		}
 
 		public function takeHit(raw:int, src:String, g:Game, effect:String = null):void {
-			if (invulnT > 0) return;
+			if (invulnT > 0 || g.godMode) return;
 			if (effect && STATUS_TIME[effect] != undefined) {
 				if (status[effect] <= 0) {
 					g.floatText(x, y - 1.5, STATUS_NAMES[effect], STATUS_COLORS[effect]);

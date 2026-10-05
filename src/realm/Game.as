@@ -65,6 +65,9 @@ package realm {
 		private var dyingT:Number = 0;
 		private static const DYING_TIME:Number = 2.6;
 		private var dustT:Number = 0;
+		// admin / testing tools
+		public var godMode:Boolean = false;
+		private var admin:AdminMenu;
 		private var goldTf:TextField, onraneTf:TextField;
 		private var thresholdTf:TextField;
 		private var vaultBag:LootBag;
@@ -231,7 +234,7 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /tips", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /tips  /admin", 0x8fd0ff);
 					break;
 				case "/nexus": case "/n":
 					nexus();
@@ -267,6 +270,9 @@ package realm {
 					var ast:Object = achState(), nd:int = 0;
 					for each (var ac:Object in Data.ACHIEVEMENTS) if (ast.done[ac.id]) nd++;
 					msg("Achievements: " + nd + "/" + Data.ACHIEVEMENTS.length + " unlocked. See the Quest Board in the Nexus.", 0xffd75e);
+					break;
+				case "/admin":
+					toggleAdmin();
 					break;
 				case "/tips":
 					Save.data.tips = {};
@@ -488,6 +494,112 @@ package realm {
 			else nexusNow();
 		}
 
+		// ------------------------------------------------------------- admin menu
+		public function toggleAdmin():void {
+			if (!admin) {
+				admin = new AdminMenu(this);
+				admin.x = int((VIEW_W - AdminMenu.W) / 2);
+				admin.y = 56;
+				admin.visible = false;
+			}
+			admin.visible = !admin.visible;
+			if (admin.visible) {
+				addChild(admin);
+				if (paused) setPaused(false);
+			}
+		}
+
+		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
+		public function uiCaptured():Boolean {
+			return admin != null && admin.visible && admin.hitTestPoint(stage.mouseX, stage.mouseY, true);
+		}
+
+		public function adminRefresh():void {
+			hud.refresh();
+		}
+
+		public function adminMaxLevel():void {
+			for (var n:int = 0; n < 40 && player.level < Player.MAX_LEVEL; n++) player.gainXp(Math.max(1, player.xpNext - player.xp), this);
+			player.hp = player.maxHp; player.mp = player.maxMp;
+		}
+
+		public function adminMaxStats():void {
+			for each (var s:String in Data.STATS) player.stats[s] = player.cls.max[s];
+			player.hp = player.maxHp; player.mp = player.maxMp; player.pt = player.maxPt;
+			questEvent("maxed");
+			msg("All 11 stats maxed.", Ui.GOLD);
+		}
+
+		/** Spawns a monster or boss a few tiles in front of you, toward the mouse. */
+		public function adminSpawn(id:String, boss:Boolean):void {
+			var aim:Number = Math.atan2(input.my - CY, input.mx - CX);
+			// toward the mouse first, then further out and in other directions (safe zones block monsters)
+			for (var tries:int = 0; tries < 120; tries++) {
+				var a:Number = aim + (tries < 10 ? 0 : (Math.random() - 0.5) * Math.PI * 2);
+				var d:Number = (boss ? 6 : 4) + (tries < 10 ? tries * 0.6 : Math.random() * 10);
+				var x:Number = player.x + Math.cos(a) * d + (boss ? 0 : (Math.random() - 0.5) * 2);
+				var y:Number = player.y + Math.sin(a) * d + (boss ? 0 : (Math.random() - 0.5) * 2);
+				if (!world.canStand(x, y, 0.4, true)) continue;
+				var e:Enemy = new Enemy(id, x, y, Math.max(0, Math.min(World.GOD_ZONE, world.zoneAt(x, y))));
+				if (boss) {
+					e.homeX = x; e.homeY = y;
+					if (!world.boss) { world.boss = e; player.bossDmg = 0; }
+				}
+				enemies.push(e);
+				burst(x, y, e.def.col, 12);
+				return;
+			}
+			msg("No room to spawn there (safe zones and walls block monsters).", 0xff8080);
+		}
+
+		public function adminKillAll():void {
+			for each (var e:Enemy in enemies.concat()) if (!e.dead) killEnemy(e);
+		}
+
+		public function adminFinishEvents():void {
+			if (world.kind != "realm") { msg("Only works inside a realm.", 0xff8080); return; }
+			world.eventsDone = Data.EVENTS_PER_REALM;
+			world.closeT = 6;
+			showBanner("The realm is closing!", 0xff5050, 3);
+		}
+
+		public function adminSpawnEvent():void {
+			if (world.kind != "realm") { msg("Only works inside a realm.", 0xff8080); return; }
+			if (world.boss) { msg("A boss is already alive here.", 0xff8080); return; }
+			spawnEvent();
+		}
+
+		public function adminRevealMap():void {
+			world.reveal(world.N / 2, world.N / 2, world.N);
+		}
+
+		public function adminDungeonPortal(i:int):void {
+			addPortal(world, player.x + 1.5, player.y, "dungeon", i, Data.DUNGEONS[i].color, 120);
+			msg("Opened a portal to the " + Data.DUNGEONS[i].name + ".", Data.DUNGEONS[i].color);
+		}
+
+		public function adminRealmPortal():void {
+			var i:int = int(Math.random() * 3);
+			addPortal(world, player.x + 1.5, player.y, "realm", i, PORTAL_COLORS[i], 120);
+		}
+
+		public function adminEnterDungeon(i:int):void {
+			travel(function():void { enterDungeon(i); });
+		}
+
+		public function adminEnterArena():void {
+			toggleAdmin();
+			travel(enterArena);
+		}
+
+		/** Puts an item in the first free inventory slot, or in a bag at your feet. */
+		public function giveItem(item:Object):void {
+			var slot:int = player.freeSlot();
+			if (slot >= 0) player.inv[slot] = item;
+			else dropAtPlayer(item);
+			msg("Received " + item.name + ".", item.rarity ? Data.RARITY_COLORS[item.rarity] : 0xcccccc);
+		}
+
 		/** Fades the view to black, runs fn (a world switch), then fades back in. */
 		public function travel(fn:Function):void {
 			if (travelFn != null || dyingT > 0 || deathInfo) return;
@@ -673,7 +785,9 @@ package realm {
 				Sfx.muted = !Sfx.muted;
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
-			if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
+			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
+			if (admin && admin.visible && input.pressed(Keyboard.ESCAPE)) toggleAdmin();
+			else if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
 			if (dyingT > 0) updateDying(dt);
 			else if (!paused) update(dt);
 			updateFade(dt);
@@ -751,6 +865,7 @@ package realm {
 				}
 			}
 
+			if (godMode) player.hp = Math.max(player.hp, player.maxHp);
 			if (player.hp <= 0 && !deathInfo) die();
 		}
 

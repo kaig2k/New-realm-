@@ -559,6 +559,27 @@ package realm {
 				gold: 150, onrane: 3, attacks: []}
 		};
 
+		// ---- fame bonuses on death (RotMG style) -------------------------------
+		/** Bonuses earned by a fallen hero: [{name, desc, pct}]. */
+		public static function fameBonuses(p:Player, firstOfClass:Boolean):Array {
+			var list:Array = [];
+			var add:Function = function(name:String, desc:String, pct:int):void { list.push({name: name, desc: desc, pct: pct}); };
+			if (firstOfClass) add("Ancestor", "First " + p.cls.name + " to fall", 10);
+			if (p.level >= 20 && p.potsDrunk == 0) add("Thirsty", "Level 20 without stat potions", 10);
+			var rare:int = 0;
+			for each (var it:Object in [p.weapon, p.ability, p.armor, p.ring]) if (it && it.rarity) rare++;
+			if (rare >= 4) add("Well Equipped", "4 UT or better items equipped", 10);
+			if (p.activeSet) add("Set Master", "Died wearing a full set", 5);
+			if (p.maxedCount >= 11) add("Fully Maxed", "11/11 stats", 25);
+			else if (p.maxedCount >= 8) add("Well Fed", p.maxedCount + "/11 stats", 10);
+			if (p.dungeons >= 3) add("Tunnel Rat", "Cleared " + p.dungeons + " dungeons", 10);
+			if (p.bossKills >= 6) add("Realm Hero", "Slew " + p.bossKills + " bosses", 10);
+			if (p.elders > 0) add("Elder Slayer", "Defeated the Dark Elder", 25);
+			if (p.godKills >= 100) add("Godlands Hunter", p.godKills + " Godlands kills", 5);
+			if (p.shotsFired >= 500 && p.shotsHit / p.shotsFired >= 0.4) add("Accurate", int(p.shotsHit * 100 / p.shotsFired) + "% of shots hit", 5);
+			return list;
+		}
+
 		// ---- pets (account-wide, like RotMG's pet yard) ---------------------------
 		public static const PET_SPECIES:Array = [
 			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},

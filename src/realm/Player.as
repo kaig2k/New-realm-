@@ -22,6 +22,8 @@ package realm {
 		public var hpPots:int = 2, mpPots:int = 0;
 		public var level:int = 1, xp:int = 0, xpNext:int = 60, totalXp:int = 0;
 		public var kills:int = 0, bossKills:int = 0, potsDrunk:int = 0;
+		/** Lifetime counters for the death fame bonuses. */
+		public var dungeons:int = 0, elders:int = 0, godKills:int = 0, shotsFired:int = 0, shotsHit:int = 0;
 		public var bossDmg:int = 0;
 		public var facingLeft:Boolean = false;
 		public var autoFire:Boolean = false;
@@ -135,7 +137,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
@@ -272,6 +274,7 @@ package realm {
 				}
 				var dmg:int = int((w.dmin + Math.random() * (w.dmax - w.dmin)) * mult);
 				g.addShot(new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25, frames, w.pierce, name, null));
+				shotsFired++;
 			}
 			// Rampage passive: every 12th shot also fires a ring
 			if (w.passive == "rampage" && ++shotCount % 12 == 0) {

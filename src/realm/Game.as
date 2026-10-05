@@ -773,6 +773,7 @@ package realm {
 			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			var crit:Boolean = Math.random() < p.critChance;
 			if (crit) raw = int(raw * p.critMult);
+			if (effect != "shard") p.shotsHit++;
 			var d:int = Math.max(raw - e.defense, int(raw * 0.15));
 			if (d > e.hp) d = Math.ceil(e.hp);
 			e.hp -= d;
@@ -852,8 +853,9 @@ package realm {
 			var p:Player = player;
 			questEvent("kills");
 			if (world.kind == "realm" && e.zone == 3) questEvent("godkills");
-			if (e.def.final) questEvent("elder");
-			else if (e.def.dungeon) questEvent("dungeon");
+			if (world.kind == "realm" && e.zone == 3) p.godKills++;
+			if (e.def.final) { questEvent("elder"); p.elders++; }
+			else if (e.def.dungeon) { questEvent("dungeon"); p.dungeons++; }
 			else if (e.isBoss) questEvent("events");
 			p.kills++;
 			p.gainXp(e.def.xp, this);
@@ -1050,7 +1052,12 @@ package realm {
 		private function die():void {
 			var p:Player = player;
 			var save:Object = Save.data;
-			var fame:int = p.fame;
+			var base:int = p.fame;
+			var first:Boolean = !save.bestLevel || !save.bestLevel[p.cls.id];
+			var bonuses:Array = Data.fameBonuses(p, first);
+			var pct:int = 0;
+			for each (var fb:Object in bonuses) { fb.fame = int(base * fb.pct / 100); pct += fb.pct; }
+			var fame:int = base + int(base * pct / 100);
 			var best:Boolean = fame > (save.bestFame || 0);
 			if (best) save.bestFame = fame;
 			save.deaths = (save.deaths || 0) + 1;
@@ -1066,7 +1073,7 @@ package realm {
 			if (save.graves.length > 30) save.graves.length = 30;
 			Save.flush();
 			deathInfo = {
-				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best,
+				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best, baseFame: base, bonuses: bonuses,
 				kills: p.kills, bosses: p.bossKills, killer: p.lastHitBy || "the Realm", time: time
 			};
 		}

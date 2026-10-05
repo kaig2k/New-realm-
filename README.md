@@ -114,7 +114,18 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   ruins and lava. Each zone has five monster types, such as Sea Slimes, Dire Wolves,
   Stone Golems and teleporting Liches. Fewer, smaller packs spawn near the shore so new
   characters can level up.
-- Permadeath. Fame from a dead character is added to your account.
+- Permadeath. Fame from a dead character is added to your account. Like RotMG, the death
+  screen lists **fame bonuses**:
+  - Ancestor: the first hero of a class to die.
+  - Thirsty: level 20 without drinking a stat potion.
+  - Well Equipped: wearing four UT or better items.
+  - Set Master: wearing a full set.
+  - Well Fed / Fully Maxed: 8/11 or 11/11 maxed stats.
+  - Tunnel Rat: 3+ dungeons cleared.
+  - Realm Hero: 6+ bosses killed.
+  - Elder Slayer: killed the Dark Elder.
+  - Godlands Hunter: 100+ Godlands kills.
+  - Accurate: hit with 40%+ of your shots.
 
 ## Code layout
 

@@ -12,49 +12,51 @@ package realm {
 	public class Sprites {
 		public static const SCALE:int = 5;
 		public static const ROT_FRAMES:int = 32;
-		private static const OUTLINE_COL:uint = 0xff0c0c0c;
+		private static const OUTLINE_COL:uint = 0xff000000;
 		private static var cache:Object = {};
 
 		// ================================================================ classes
 		// Every class: [stand, walk, attack]. They face right.
+		// RotMG "lofi" style: big hooded head, pale face with two eyes, narrow shaded body,
+		// 1px weapon at the side. Frames: stand, walk, attack.
 		private static const WIZARD:Array = [
-			["...RR..G", "..RRRr.Y", ".RRRRRrY", "..SSES.Y", ".WWWWWSY", "RRWWWRrY", "rRRRRRr.", ".BB..BB."],
-			["...RR..G", "..RRRr.Y", ".RRRRRrY", "..SSES.Y", ".WWWWWSY", "RRWWWRrY", "rRRRRRr.", "BB...BB."],
-			["...RR...", "..RRRr..", ".RRRRRr.", "..SSES.G", ".WWWWSYY", "RRWWWRr.", "rRRRRRr.", ".BB..BB."]];
+			["...RR..G", "..RRRr.Y", ".rSESEr.", "..SSSS.Y", "RRRWWRRS", ".rRWWRrY", ".rRRRRr.", "..B..B.."],
+			["...RR..G", "..RRRr.Y", ".rSESEr.", "..SSSS.Y", "RRRWWRRS", ".rRWWRrY", ".rRRRRr.", ".B....B."],
+			["...RR...", "..RRRr..", ".rSESEr.", "..SSSS.G", "RRRWWRSY", ".rRWWRY.", ".rRRRRr.", "..B..B.."]];
 		private static const ARCHER:Array = [
-			["..GGGg..", ".GGGGGgW", ".GSSESgW", "..SSSS.W", ".LLLLLSW", ".LlGGLlW", ".LLLLLl.", ".BB..BB."],
-			["..GGGg..", ".GGGGGgW", ".GSSESgW", "..SSSS.W", ".LLLLLSW", ".LlGGLlW", ".LLLLLl.", "BB...BB."],
-			["..GGGg..", ".GGGGGg.", ".GSSESgW", "..SSSSSW", ".LLLLL.W", ".LlGGLlW", ".LLLLLl.", ".BB..BB."]];
+			["..GGGg.W", ".GGGGGgW", ".gSESEg.", "..SSSS.W", "gLLLLLgS", ".gLllLgW", ".gLLLLg.", "..B..B.."],
+			["..GGGg.W", ".GGGGGgW", ".gSESEg.", "..SSSS.W", "gLLLLLgS", ".gLllLgW", ".gLLLLg.", ".B....B."],
+			["..GGGg..", ".GGGGGg.", ".gSESEgW", "..SSSSW.", "gLLLLLSW", ".gLllLW.", ".gLLLLg.", "..B..B.."]];
 		private static const KNIGHT:Array = [
-			["..rHHH.W", ".HHHHHhW", ".HhEEhhW", ".hHHHHhW", "KKMMMMSA", "KQKMMmS.", "KKMMMMm.", ".BB..BB."],
-			["..rHHH.W", ".HHHHHhW", ".HhEEhhW", ".hHHHHhW", "KKMMMMSA", "KQKMMmS.", "KKMMMMm.", "BB...BB."],
-			["..rHHH..", ".HHHHHh.", ".HhEEhh.", ".hHHHHh.", "KKMMMMS.", "KQKMMmWW", "KKMMMMm.", ".BB..BB."]];
+			["..HHHH..", ".HHrrHH.", ".HEhEhHW", ".hHHHHhW", "KKMMMMmW", "KQKMMmSA", "KKMMMMm.", "..B..B.."],
+			["..HHHH..", ".HHrrHH.", ".HEhEhHW", ".hHHHHhW", "KKMMMMmW", "KQKMMmSA", "KKMMMMm.", ".B....B."],
+			["..HHHH..", ".HHrrHH.", ".HEhEhH.", ".hHHHHh.", "KKMMMMm.", "KQKMMmSW", "KKMMMMmW", "..B..B.."]];
 		private static const PRIEST:Array = [
-			["..WWWw..", ".WWWWWw.", ".WSSESw.", "..SSSS.G", ".WWDWWSY", ".WDDDWwY", ".WWDWWw.", ".BB..BB."],
-			["..WWWw..", ".WWWWWw.", ".WSSESw.", "..SSSS.G", ".WWDWWSY", ".WDDDWwY", ".WWDWWw.", "BB...BB."],
-			["..WWWw..", ".WWWWWw.", ".WSSESwG", "..SSSSSY", ".WWDWW..", ".WDDDWw.", ".WWDWWw.", ".BB..BB."]];
+			["..WWWw..", ".WWWWWwG", ".wSESEwY", "..SSSS.Y", "wWWYWWwS", ".wYYYWwY", ".wWYWWw.", "..B..B.."],
+			["..WWWw..", ".WWWWWwG", ".wSESEwY", "..SSSS.Y", "wWWYWWwS", ".wYYYWwY", ".wWYWWw.", ".B....B."],
+			["..WWWw..", ".WWWWWw.", ".wSESEw.", "..SSSS.G", "wWWYWWSY", ".wYYYWY.", ".wWYWWw.", "..B..B.."]];
 
 		private static const ROGUE:Array = [
-			["..PPPp..", ".PPPPPp.", ".PSSESp.", "..SSSS.W", ".KKKKKSW", ".KkKKkK.", ".KKKKKk.", ".BB..BB."],
-			["..PPPp..", ".PPPPPp.", ".PSSESp.", "..SSSS.W", ".KKKKKSW", ".KkKKkK.", ".KKKKKk.", "BB...BB."],
-			["..PPPp..", ".PPPPPp.", ".PSSESp.", "..SSSSWW", ".KKKKKS.", ".KkKKkK.", ".KKKKKk.", ".BB..BB."]];
+			["..PPPp..", ".PPPPPp.", ".pSESEp.", "..KKKK..", "kKKKKKkS", ".kKPPKkW", ".kKKKKk.", "..B..B.."],
+			["..PPPp..", ".PPPPPp.", ".pSESEp.", "..KKKK..", "kKKKKKkS", ".kKPPKkW", ".kKKKKk.", ".B....B."],
+			["..PPPp..", ".PPPPPp.", ".pSESEp.", "..KKKK..", "kKKKKKSW", ".kKPPKW.", ".kKKKKk.", "..B..B.."]];
 		private static const WARRIOR:Array = [
-			["Y.HHHH.W", "YHHHHHHW", ".HhEEhHW", ".hHHHHhW", "RRMMMMSA", "RRMMMmS.", ".RMMMMm.", ".BB..BB."],
-			["Y.HHHH.W", "YHHHHHHW", ".HhEEhHW", ".hHHHHhW", "RRMMMMSA", "RRMMMmS.", ".RMMMMm.", "BB...BB."],
-			["Y.HHHH..", "YHHHHHH.", ".HhEEhH.", ".hHHHHh.", "RRMMMMS.", "RRMMMmWW", ".RMMMMm.", ".BB..BB."]];
+			["Y.HHHH.Y", "YHHHHHHY", ".HEhEhH.", ".hHHHHhW", "RRMMMMmW", "RMMMMmSA", ".RMMMMm.", "..B..B.."],
+			["Y.HHHH.Y", "YHHHHHHY", ".HEhEhH.", ".hHHHHhW", "RRMMMMmW", "RMMMMmSA", ".RMMMMm.", ".B....B."],
+			["Y.HHHH.Y", "YHHHHHHY", ".HEhEhH.", ".hHHHHh.", "RRMMMMm.", "RMMMMmSW", ".RMMMMmW", "..B..B.."]];
 		private static const NECRO:Array = [
-			["..DDDd.G", ".DDDDDdW", ".DSSESdW", "..SSSS.W", ".DDKDDSW", ".DKKKDdW", ".DDKDDd.", ".BB..BB."],
-			["..DDDd.G", ".DDDDDdW", ".DSSESdW", "..SSSS.W", ".DDKDDSW", ".DKKKDdW", ".DDKDDd.", "BB...BB."],
-			["..DDDd..", ".DDDDDd.", ".DSSESdG", "..SSSSSW", ".DDKDD..", ".DKKKDd.", ".DDKDDd.", ".BB..BB."]];
+			["..DDDd.G", ".DDDDDdW", ".dSESEd.", "..SSSS.W", "dDDKDDdS", ".dKKKDdW", ".dDKDDd.", "..B..B.."],
+			["..DDDd.G", ".DDDDDdW", ".dSESEd.", "..SSSS.W", "dDDKDDdS", ".dKKKDdW", ".dDKDDd.", ".B....B."],
+			["..DDDd..", ".DDDDDd.", ".dSESEd.", "..SSSS.G", "dDDKDDSW", ".dKKKDW.", ".dDKDDd.", "..B..B.."]];
 		private static const HUNTRESS:Array = [
-			["..RRRr..", ".RRRRRrW", ".RSSESrW", "..SSSS.W", ".GGGGGSW", ".GgLGgGW", ".GGGGGg.", ".BB..BB."],
-			["..RRRr..", ".RRRRRrW", ".RSSESrW", "..SSSS.W", ".GGGGGSW", ".GgLGgGW", ".GGGGGg.", "BB...BB."],
-			["..RRRr..", ".RRRRRr.", ".RSSESrW", "..SSSSSW", ".GGGGG.W", ".GgLGgGW", ".GGGGGg.", ".BB..BB."]];
+			["..RRRr.W", ".RRRRRrW", "RrSESErW", "R.SSSS.W", "gGGGGGgS", ".gGLLGgW", ".gGGGGg.", "..B..B.."],
+			["..RRRr.W", ".RRRRRrW", "RrSESErW", "R.SSSS.W", "gGGGGGgS", ".gGLLGgW", ".gGGGGg.", ".B....B."],
+			["..RRRr..", ".RRRRRr.", "RrSESErW", "R.SSSSW.", "gGGGGGSW", ".gGLLGW.", ".gGGGGg.", "..B..B.."]];
 
 		// ================================================================ enemies
-		private static const HUMANOID:Array = [["..HHHh..", ".HHHHHh.", ".HSSESh.", "..SSSS.W", ".BBBBBSW", ".BbABbBW", ".BBBBBb.", ".LL..LL."]];
-		private static const BRUTE:Array = [["..hHHH..", ".hHHHHH.", ".hHHEHE.", ".hHHHHH.", "bBBBBBSW", "bBBABBSW", ".bBBBB.W", ".LL..LL."]];
-		private static const MAGE:Array = [["...Hh...", "..HHHh.G", ".HHHHHhW", "..SSES.W", ".bBBBBSW", ".bBBABbW", "bBBBBBBb", ".LL..LL."]];
+		private static const HUMANOID:Array = [["..HHHh..", ".HHHHHh.", ".hSESEh.", "..SSSS.W", "bBBBBBbS", ".bBAABbW", ".bBBBBb.", "..L..L.."]];
+		private static const BRUTE:Array = [[".hHHHHh.", "hHHHHHHh", "hHEHHEHh", ".hHHHHh.", "bBBBBBBS", "bBBAABbW", ".bBBBBb.", ".LL..LL."]];
+		private static const MAGE:Array = [["...HH..G", "..HHHh.W", ".hSESEhW", "..SSSS.W", "bBBBBBbS", "bBBABBbW", "bBBBBBBb", "..L..L.."]];
 		private static const SNAKE:Array = [["........", "....GGg.", "...GEGGg", "...GGg..", "..GGg...", ".GGg.GGg", ".gGGGGg.", "........"]];
 		private static const CRAB:Array = [["C......C", "Cc....cC", ".C.EE.C.", "..cCCc..", ".cCCCCc.", "cCCCCCCc", ".c.cc.c.", "c......c"]];
 		private static const BLOB:Array = [["..bBBb..", ".bBBBBb.", "bBWWWWBb", "bBWEEWBb", "bBWEEWBb", "bBWWWWBb", ".bBBBBb.", "..bBBb.."]];
@@ -215,15 +217,15 @@ package realm {
 
 		// name: [frames, palette, scale]
 		private static const DEFS:Object = {
-			wizard: [WIZARD, {R: 0xd42a2a, r: 0x8a1414, S: 0xf2c9a0, E: 0x101010, W: 0xf4f4f4, Y: 0xe0b030, G: 0x60e0ff, B: 0x3a2010}],
-			archer: [ARCHER, {G: 0x3a9a3a, g: 0x226a22, S: 0xf2c9a0, E: 0x101010, L: 0x8a5a2a, l: 0x5a3a18, W: 0xc08040, B: 0x3a2a14}],
-			knight: [KNIGHT, {r: 0xd02020, H: 0xd0d0d8, h: 0x8a8a96, E: 0x101010, K: 0xb02828, Q: 0xf0c030, M: 0xa8a8b4, m: 0x6a6a78, S: 0xc89030, A: 0xc89030, W: 0xf0f0ff, B: 0x2a2a30}],
-			priest: [PRIEST, {W: 0xf4f4f4, w: 0xb8b8c4, S: 0xf2c9a0, E: 0x101010, D: 0x202020, G: 0x70e0ff, Y: 0xe0b030, B: 0x5a4030}],
+			wizard: [WIZARD, {R: 0xd03030, r: 0x8a1818, S: 0xf5dc72, E: 0x101010, W: 0xf4f4f4, Y: 0x8a5a2a, G: 0x60e0ff, B: 0x3a2010}],
+			archer: [ARCHER, {G: 0x3a9a3a, g: 0x1e6a1e, S: 0xf5dc72, E: 0x101010, L: 0x8a5a2a, l: 0x5a3a18, W: 0xc08040, B: 0x3a2a14}],
+			knight: [KNIGHT, {r: 0xd02020, H: 0xc8c8d0, h: 0x7a7a86, E: 0x101010, K: 0x3a5ad0, Q: 0xf0c030, M: 0xa8a8b4, m: 0x6a6a78, S: 0xf5dc72, A: 0xc89030, W: 0xf0f0ff, B: 0x2a2a30}],
+			priest: [PRIEST, {W: 0xf4f4f4, w: 0xa8a8b8, S: 0xf5dc72, E: 0x101010, Y: 0xe0b030, G: 0x70e0ff, B: 0x5a4030}],
 
-			rogue: [ROGUE, {P: 0x5a2a7a, p: 0x341848, S: 0xf2c9a0, E: 0x101010, K: 0x3a3a44, k: 0x24242c, W: 0xd8d8e8, B: 0x1a1a1a}],
-			warrior: [WARRIOR, {Y: 0xe8e0c0, H: 0xc0a060, h: 0x806a30, E: 0x101010, R: 0xb02020, M: 0xc83030, m: 0x802020, S: 0xc89030, A: 0xc89030, W: 0xf0f0ff, B: 0x2a1a10}],
-			necromancer: [NECRO, {D: 0x2e2e36, d: 0x18181c, S: 0xd8c8b8, E: 0xff3030, K: 0x9a1a1a, G: 0xe8e0c8, W: 0x5a3a2a, B: 0x101010}],
-			huntress: [HUNTRESS, {R: 0xd04a20, r: 0x8a2a10, S: 0xf2c9a0, E: 0x101010, G: 0x4a8a3a, g: 0x2e5a24, L: 0x8a5a2a, W: 0xc08040, B: 0x3a2a14}],
+			rogue: [ROGUE, {P: 0x6a2a8a, p: 0x3a1850, S: 0xf5dc72, E: 0x101010, K: 0x3a3a44, k: 0x22222a, W: 0xd8d8e8, B: 0x1a1a1a}],
+			warrior: [WARRIOR, {Y: 0xf0e0b0, H: 0xc0a060, h: 0x806a30, E: 0x101010, R: 0xb02020, M: 0xc83030, m: 0x802020, S: 0xf5dc72, A: 0xc89030, W: 0xf0f0ff, B: 0x2a1a10}],
+			necromancer: [NECRO, {D: 0x2e2e36, d: 0x18181c, S: 0xd8d0c0, E: 0xff3030, K: 0x9a1a1a, G: 0xe8e0c8, W: 0x5a3a2a, B: 0x101010}],
+			huntress: [HUNTRESS, {R: 0xd04a20, r: 0x8a2a10, S: 0xf5dc72, E: 0x101010, G: 0x4a8a3a, g: 0x2e5a24, L: 0x8a5a2a, W: 0xc08040, B: 0x3a2a14}],
 			titan: [TITAN, {r: 0x2a1610, R: 0x5a3020, Y: 0xff8a20, W: 0xffd040}, 5],
 			wyrm: [WYRM, {C: 0x7ac8f0, c: 0x3a78b0, E: 0x1a2a6a, W: 0xf0f8ff}, 5],
 			hollowking: [HOLLOWKING, {Y: 0xf0c030, B: 0xe8e0c8, E: 0x6aff4a, T: 0x2a2a2a, P: 0x4a1a6a, G: 0x9a7a40}, 5],
@@ -237,8 +239,8 @@ package realm {
 			imp: [BRUTE, {H: 0xe05020, h: 0x902a10, E: 0xffe040, B: 0x5a2a14, b: 0x3a1a0c, A: 0xff9030, L: 0x2a140a, W: 0xffb040, S: 0xe05020}],
 			skeleton: [HUMANOID, {H: 0xe8e0c8, h: 0xb0a890, S: 0xe8e0c8, E: 0x202020, B: 0xd0c8b0, b: 0x9a9280, A: 0x5a5a5a, L: 0xb0a890, W: 0xa0a0a0}],
 			shade: [HUMANOID, {H: 0x3a1a5a, h: 0x200c34, S: 0x7a5aa8, E: 0xff3060, B: 0x2e1448, b: 0x1a0a2c, A: 0xa060ff, L: 0x100818, W: 0xc080ff}],
-			famekeeper: [HUMANOID, {H: 0xd06010, h: 0x8a3a08, S: 0xf2c9a0, E: 0x101010, B: 0xff9a2e, b: 0xb06010, A: 0xffe080, L: 0x3a2014, W: 0xffe080}],
-			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf2c9a0, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
+			famekeeper: [HUMANOID, {H: 0xd06010, h: 0x8a3a08, S: 0xf5dc72, E: 0x101010, B: 0xff9a2e, b: 0xb06010, A: 0xffe080, L: 0x3a2014, W: 0xffe080}],
+			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf5dc72, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
 			questboard: [QUESTBOARD, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 6],
 			slime: [BLOB, {B: 0x5ac040, b: 0x3a8a2a, W: 0x9aff7a, E: 0x103010}],
 			wolf: [WOLF, {W: 0x8a8a92, w: 0x5a5a62, E: 0xff3030}],
@@ -247,8 +249,8 @@ package realm {
 			anvil: [ANVIL, {C: 0xa060ff, W: 0xffffff, c: 0x6a30c0, K: 0x5a5a62, k: 0x3a3a40}, 6],
 			gold: [[I_GOLD], {Y: 0xf0c030, y: 0xb08818, W: 0xfff0a0}, 3],
 			onrane: [[I_ONRANE], {P: 0xc060ff, p: 0x7a28b8, W: 0xf0d0ff}, 3],
-			pirate: [HUMANOID, {H: 0xd02828, h: 0x901818, S: 0xe0b890, E: 0x101010, B: 0x4a50a8, b: 0x323878, A: 0xd0b040, L: 0x2a1a10, W: 0xc0c0c0}],
-			bandit: [HUMANOID, {H: 0x383838, h: 0x202020, S: 0xd0a880, E: 0xff3030, B: 0x484848, b: 0x2a2a2a, A: 0x8a5a2a, L: 0x1a1a1a, W: 0xc0c0c0}],
+			pirate: [HUMANOID, {H: 0xd02828, h: 0x901818, S: 0xecd070, E: 0x101010, B: 0x4a50a8, b: 0x323878, A: 0xd0b040, L: 0x2a1a10, W: 0xc0c0c0}],
+			bandit: [HUMANOID, {H: 0x383838, h: 0x202020, S: 0xe0c060, E: 0xff3030, B: 0x484848, b: 0x2a2a2a, A: 0x8a5a2a, L: 0x1a1a1a, W: 0xc0c0c0}],
 			elf: [HUMANOID, {H: 0x4a2858, h: 0x2a1438, S: 0x9a78c8, E: 0xffffff, B: 0x382448, b: 0x221430, A: 0xd0a0ff, L: 0x1a0c20, W: 0xd0a0ff}],
 			goblin: [BRUTE, {H: 0x70b840, h: 0x4a8a28, E: 0xffe020, B: 0x7a5a32, b: 0x50381c, A: 0xd0b040, L: 0x3a2814, W: 0xa0a0a0, S: 0x70b840}],
 			orc: [BRUTE, {H: 0x3a8a3a, h: 0x245a24, E: 0xff3030, B: 0x6a4a2a, b: 0x42301a, A: 0x9a9a9a, L: 0x2a1a10, W: 0xd0d0d0, S: 0x3a8a3a}],
@@ -279,13 +281,13 @@ package realm {
 			pet_wisp: [WISP, {W: 0xe0fff8, C: 0x60f0d0, E: 0x105048}, 4],
 			pet_golem: [BRUTE, {H: 0x9a9aa0, h: 0x6a6a70, E: 0x60ff90, B: 0x8a8a90, b: 0x5a5a60, A: 0x60ff90, L: 0x4a4a50, W: 0x8a8a90, S: 0x9a9aa0}, 4],
 			// ---- realm monsters (biome leaders are drawn bigger)
-			pirate_brawler: [BRUTE, {H: 0x2a2a6a, h: 0x1a1a4a, E: 0x101010, B: 0xe0e0e0, b: 0xc02020, A: 0x8a5a2a, L: 0x3a2a14, W: 0xc0c0c0, S: 0xe0b890}],
-			pirate_captain: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xe0b890, E: 0x101010, B: 0xb02020, b: 0x701010, A: 0xf0c030, L: 0x2a1a10, W: 0xf0c030}, 6],
+			pirate_brawler: [BRUTE, {H: 0x2a2a6a, h: 0x1a1a4a, E: 0x101010, B: 0xe0e0e0, b: 0xc02020, A: 0x8a5a2a, L: 0x3a2a14, W: 0xc0c0c0, S: 0xecd070}],
+			pirate_captain: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xecd070, E: 0x101010, B: 0xb02020, b: 0x701010, A: 0xf0c030, L: 0x2a1a10, W: 0xf0c030}, 6],
 			pirate_king: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xd8b088, E: 0xff3030, B: 0x2a2a6a, b: 0x14143a, A: 0xf0c030, L: 0x2a1a10, W: 0xe0e0e0}, 9],
 			scorpion: [SCORPION, {C: 0xb04020, S: 0xd06030, T: 0x8a2a10, E: 0x101010}],
 			green_slime: [BLOB, {B: 0x40b030, b: 0x207018, W: 0x9aff7a, E: 0x103010}, 6],
 			goblin_chief: [BRUTE, {H: 0x58a030, h: 0x3a7020, E: 0xff3030, B: 0x8a2a2a, b: 0x5a1a1a, A: 0xf0c030, L: 0x3a2814, W: 0xd0d0d0, S: 0x58a030}, 6],
-			bandit_leader: [HUMANOID, {H: 0x6a1a1a, h: 0x3a0a0a, S: 0xd0a880, E: 0xff3030, B: 0x2a2a2a, b: 0x141414, A: 0xf0c030, L: 0x1a1a1a, W: 0xe0e0e0}, 6],
+			bandit_leader: [HUMANOID, {H: 0x6a1a1a, h: 0x3a0a0a, S: 0xe0c060, E: 0xff3030, B: 0x2a2a2a, b: 0x141414, A: 0xf0c030, L: 0x1a1a1a, W: 0xe0e0e0}, 6],
 			orc_king: [BRUTE, {H: 0x2a6a2a, h: 0x1a4a1a, E: 0xffe020, B: 0x8a6a2a, b: 0x5a4418, A: 0xf0c030, L: 0x2a1a10, W: 0xe0e0e0, S: 0x2a6a2a}, 7],
 			spider: [SPIDER, {B: 0x3a2a3a, b: 0xc02020, E: 0xff3030}],
 			spider_queen: [SPIDER, {B: 0x2a1a2a, b: 0xe0c020, E: 0xff3030}, 7],
@@ -340,7 +342,7 @@ package realm {
 				bd = new BitmapData(src.width, src.height, true, 0);
 				bd.draw(src, new Matrix(-1, 0, 0, 1, src.width, 0));
 			} else {
-				bd = build(frames[frame], d[1], d[2] || SCALE, 3);
+				bd = build(frames[frame], d[1], d[2] || SCALE, 2);
 			}
 			cache[key] = bd;
 			return bd;

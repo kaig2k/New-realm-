@@ -426,6 +426,7 @@ package realm {
 			var v:Vector.<uint> = new Vector.<uint>(PX * PX, true);
 			var x:int, y:int, i:int, r:Number, c:uint;
 			var shal:Boolean = t == WATER && shallow(tx, ty);
+			var hs:int = ((tx * 7349 + ty * 3613) ^ (tx * ty)) & 255;
 			for (y = 0; y < PX; y++) {
 				for (x = 0; x < PX; x++) {
 					i = y * PX + x;
@@ -433,20 +434,21 @@ package realm {
 					var gx:int = tx * PX + x, gy:int = ty * PX + y;
 					switch (t) {
 						case WATER:
-							c = shal ? 0x3a66b8 : 0x2b4ea0;
-							var wv:int = (gx + int(sample(gx / PX, gy / PX) * 12)) % 7;
-							if (gy % 3 == 0 && wv < 2) c = 0x4470c4;
-							else if (r < 0.06) c = 0x24438c;
+							// RotMG-style water: flat blue with diagonal wave dashes
+							var wd:int = (gx + gy * 2 + hs) % 12;
+							c = shal ? (wd < 2 && gy % 4 == 0 ? 0x6a98e8 : 0x3a6ac0) : (wd < 2 && gy % 4 == 0 ? 0x4a78d0 : 0x2a52a8);
 							break;
 						case SAND:
-							c = r < 0.10 ? 0xcdb272 : r < 0.18 ? 0xe0c88a : r < 0.2 ? 0xc4a868 : 0xd6bc7a;
+							// flat sand with a few darker grains
+							c = mark(gx, gy, 9, hs) ? 0xc9ae6c : mark(gx + 3, gy + 5, 13, hs) ? 0xeed8a0 : 0xdfc68a;
 							break;
 						case GRASS:
-							c = r < 0.12 ? 0x458230 : r < 0.2 ? 0x579a38 : r < 0.215 ? 0x68ac44 : 0x4e8c2f;
+							// flat lowland grass with small two-pixel blades
+							c = blade(gx, gy, hs) ? 0x6aaa3c : blade(gx + 4, gy + 2, hs + 7) ? 0x3f7a22 : 0x529230;
 							break;
 						case HIGH:
-							// dry olive highland grass
-							c = r < 0.12 ? 0x6a6634 : r < 0.2 ? 0x84803f : r < 0.225 ? 0x8a6a3a : 0x77733c;
+							// dry highland grass
+							c = blade(gx, gy, hs) ? 0x95914c : blade(gx + 4, gy + 2, hs + 7) ? 0x5c5a2a : 0x7a773a;
 							break;
 						case ROAD:
 							var rc:String = String(STONE_PAT[y]).charAt(x);
@@ -457,12 +459,11 @@ package realm {
 							c = y % 4 == 3 ? 0x4a2e16 : (x == 0 || x == PX - 1) ? 0x5a3a1c : r < 0.15 ? 0x7a4e26 : 0x8a5a2e;
 							break;
 						case DARK:
-							c = r < 0.14 ? 0x2e5525 : r < 0.22 ? 0x3e6b31 : r < 0.24 ? 0x5a4a32 : 0x35602a;
+							c = blade(gx, gy, hs) ? 0x447a2c : blade(gx + 4, gy + 2, hs + 7) ? 0x24481a : 0x31612a;
 							break;
 						case GOD:
-							// diagonal streaky dark stone
-							var s:int = (gx - gy + 400 + int(sample(gx / PX, gy / PX) * 8)) % 4;
-							c = r < 0.08 ? 0x323235 : s == 0 && r < 0.6 ? 0x3a3a3d : s == 2 && r < 0.4 ? 0x4e4e52 : 0x434346;
+							// Godlands rock: dark grey with short cracks
+							c = mark(gx, gy, 7, hs) || mark(gx + 1, gy, 7, hs) ? 0x2e2e30 : mark(gx + 2, gy + 4, 11, hs) ? 0x5a5a5e : 0x434346;
 							break;
 						case PLAZA:
 							var ch:String = String(PLAZA_PAT[y]).charAt(x);
@@ -512,6 +513,17 @@ package realm {
 				}
 			}
 			return v;
+		}
+
+		/** Sparse, regular texture marks (instead of per-pixel noise). */
+		private static function mark(gx:int, gy:int, every:int, seed:int):Boolean {
+			return ((gx * 5 + gy * 3 + seed) % every) == 0 && ((gx + gy * 7 + seed) % 3) == 0;
+		}
+
+		/** Little vertical grass blades two pixels tall. */
+		private static function blade(gx:int, gy:int, seed:int):Boolean {
+			var cx:int = gx + ((gy >> 1) * 5 + seed) % 7;
+			return (cx % 7) == 0 && ((gy >> 1) + seed) % 3 == 0;
 		}
 
 		/** Water next to land is drawn lighter, like RotMG's shallows. */

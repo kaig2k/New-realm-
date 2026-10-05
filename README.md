@@ -12,13 +12,16 @@ scaled 5x with thin outlines and drop shadows, textured tiles, and rotated proje
 A pre-built `bin/NewRealm.swf` is included, so you only need an AIR SDK
 ([HARMAN AIR SDK](https://airsdk.harman.io/), or the old Adobe AIR SDK 32).
 
-```sh
-# macOS / Linux
-AIR_SDK=/path/to/AIRSDK ./run.sh
+**Windows:** unzip the AIR SDK to `C:\AIRSDK` (so `C:\AIRSDK\bin\adl.exe` exists), then
+double-click `run.bat`. It also finds SDK folders named `AIRSDK*` in your user folder,
+Downloads or Desktop, or next to the game folder. If yours is somewhere else, either put
+its path on one line in a file called `airsdk.txt` next to `run.bat`, or `set AIR_SDK=...`
+first. If anything goes wrong, the window stays open and shows the error.
 
-# Windows
-set AIR_SDK=C:\AIRSDK
-run.bat
+**macOS / Linux:**
+
+```sh
+AIR_SDK=/path/to/AIRSDK ./run.sh
 ```
 
 `run` opens the game with `adl`, the AIR Debug Launcher. To get a standalone app you can

@@ -215,7 +215,7 @@ package realm {
 			}
 			if (status.confused > 0) { mx = -mx; my = -my; }
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
-			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (status.slowed > 0 ? 0.5 : 1);
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;
@@ -279,7 +279,7 @@ package realm {
 			shootT = 1 / fireRate;
 			var ang:Number = Math.atan2(aimY - y, aimX - x);
 			var mult:Number = 0.5 + att / 50;
-			var frames:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.sub == "sword" ? 4 : 3);
+			var frames:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.size || (w.sub == "sword" ? 4 : 3));
 			for (var k:int = 0; k < w.shots; k++) {
 				var a:Number = ang, ox:Number = 0, oy:Number = 0;
 				var off:Number = k - (w.shots - 1) / 2;
@@ -292,7 +292,10 @@ package realm {
 					}
 				}
 				var dmg:int = int((w.dmin + Math.random() * (w.dmax - w.dmin)) * mult);
-				g.addShot(new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25, frames, w.pierce, name, null));
+				var shot:Projectile = new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25 + (w.form == "heavy" ? 0.12 : 0), frames, w.pierce, name, null);
+				shot.motion = w.motion;
+				if (k % 2 == 1) shot.phase = Math.PI;
+				g.addShot(shot);
 				shotsFired++;
 			}
 			// Rampage passive: every 12th shot also fires a ring

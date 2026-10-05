@@ -209,7 +209,56 @@ package realm {
 			return parts.join(", ");
 		}
 
-		public static function makeWeapon(sub:String, tier:int, rarity:String = null):Object {
+		/**
+		 * Weapon forms: the same weapon type can drop with a different shot pattern
+		 * and trade-offs (more damage for less range, one big shot, faster fire...).
+		 */
+		public static const FORMS:Object = {
+			heavy: {name: "Heavy", desc: "One big, slow-firing shot that hits very hard. Great against armored enemies."},
+			long: {name: "Farshot", desc: "Much longer range, a little less damage."},
+			brutal: {name: "Brutal", desc: "Short range, a lot more damage."},
+			scatter: {name: "Scattershot", desc: "Two extra shots in a wide spread; each one hits softer."},
+			swift: {name: "Swift", desc: "Fires much faster; each shot hits softer."},
+			siege: {name: "Siege", desc: "Slow, heavy shots that pierce through every enemy in their path."},
+			serpent: {name: "Serpent", desc: "Shots weave in a wave, sweeping a wider path."},
+			returning: {name: "Returning", desc: "Shots fly out and come back, hitting enemies on the way out and back."}
+		};
+		public static const FORM_IDS:Array = ["heavy", "long", "brutal", "scatter", "swift", "siege", "serpent", "returning"];
+
+		/** Half of all dropped weapons have a form. */
+		public static function rollForm():String {
+			return Math.random() < 0.5 ? "" : pick(FORM_IDS);
+		}
+
+		private static function applyForm(w:Object, form:String):void {
+			if (!form || !FORMS[form]) return;
+			var mul:Number = 1;
+			switch (form) {
+				case "heavy":
+					mul = w.shots * 1.15 + 0.35;
+					w.shots = 1; w.parallel = false; w.pierce = false;
+					w.rate *= 0.6; w.spd *= 0.85; w.size = (w.size || 3) + 2;
+					break;
+				case "long": w.life *= 1.5; mul = 0.8; break;
+				case "brutal": w.life *= 0.6; mul = 1.45; break;
+				case "scatter":
+					w.shots += 2; w.parallel = false; w.arc = Math.max(w.arc, 12); mul = 0.6;
+					break;
+				case "swift": w.rate *= 1.45; mul = 0.7; break;
+				case "siege":
+					w.spd *= 0.55; w.life *= 1.7; w.pierce = true; mul = 1.35; w.size = (w.size || 3) + 1;
+					break;
+				case "serpent": w.motion = "wave"; w.life *= 1.15; mul = 1.1; break;
+				case "returning": w.motion = "return"; w.pierce = true; w.life *= 1.3; mul = 0.85; break;
+			}
+			w.dmin = int(w.dmin * mul);
+			w.dmax = int(w.dmax * mul);
+			w.form = form;
+			w.name = FORMS[form].name + " " + w.name;
+		}
+
+		/** form: "" = plain, "?" = roll a random form, or a FORMS id. */
+		public static function makeWeapon(sub:String, tier:int, rarity:String = null, form:String = ""):Object {
 			var t:Number = rarity ? RARITY_POWER[rarity] : tier;
 			var w:Object = {kind: "weapon", sub: sub, tier: rarity ? 8 : tier, name: WEAPON_NAMES[sub][Math.min(tier, 7)], shots: 1, arc: 0, parallel: false, pierce: false, rate: 1};
 			switch (sub) {
@@ -241,7 +290,10 @@ package realm {
 				else if (sub == "dagger") { w.shots = 2; w.arc = 6; }
 				else { w.pierce = true; w.rate = 1.2; }
 			}
-			return enchant(w, rarity);
+			if (sub == "sword") w.size = 4;
+			w = enchant(w, rarity);
+			applyForm(w, form == "?" ? rollForm() : form);
+			return w;
 		}
 
 		public static function makeArmor(sub:String, tier:int, rarity:String = null):Object {
@@ -289,7 +341,7 @@ package realm {
 		/** Gear for one of a class's 4 slots. */
 		public static function makeForSlot(cls:Object, slot:int, tier:int, rarity:String):Object {
 			switch (slot) {
-				case 0: return classSet(makeWeapon(cls.weapon, tier, rarity), cls);
+				case 0: return classSet(makeWeapon(cls.weapon, tier, rarity, "?"), cls);
 				case 1: return classSet(makeAbility(cls.abilityType, tier, rarity), cls);
 				case 2: return classSet(makeArmor(cls.armor, tier, rarity), cls);
 			}
@@ -308,7 +360,7 @@ package realm {
 		/** Turn an item into a Starforged item of the same kind (Starforge). */
 		public static function forgeLegendary(item:Object, cls:Object):Object {
 			switch (item.kind) {
-				case "weapon": return makeWeapon(item.sub, 7, "lg");
+				case "weapon": return makeWeapon(item.sub, 7, "lg", item.form || "?");
 				case "ability": return makeAbility(item.sub, 6, "lg");
 				case "armor": return makeArmor(item.sub, 7, "lg");
 				case "ring": return makeRing(item.sub, 5, "lg");
@@ -345,6 +397,29 @@ package realm {
 			return 10 + item.tier * item.tier * 12;
 		}
 
+		/** Level used for the numbers in ability tooltips (the game keeps it up to date). */
+		public static var viewerLevel:int = 1;
+
+		/** What an ability does, with its numbers at your level. */
+		public static function abilityText(item:Object):String {
+			var lv:int = viewerLevel, pw:Number = item.power;
+			var cost:int = 0;
+			for each (var c:Object in CLASSES) if (c.abilityType == item.sub) cost = c.ability.cost;
+			var t:String;
+			switch (item.sub) {
+				case "spell": t = "Fires a ring of 20 bolts where you aim (up to 9 tiles away). Each bolt deals " + int((55 + lv * 7) * pw) + " damage."; break;
+				case "quiver": t = "Fires one huge arrow that pierces everything in its path for " + int((100 + lv * 12) * pw) + " damage and slows enemies for 3s."; break;
+				case "shield": t = "Stuns enemies within 3.5 tiles for " + (2.5 * Math.sqrt(pw)).toFixed(1) + "s and throws 12 blades around you (" + int((40 + lv * 5) * pw) + " damage each)."; break;
+				case "tome": t = "Heals you for " + int((80 + lv * 8) * pw) + " HP and bursts 10 orbs of holy light around you (" + int((30 + lv * 4) * pw) + " damage each). Works in the Nexus too."; break;
+				case "cloak": t = "Turns you invisible for " + (3 * Math.sqrt(pw)).toFixed(1) + "s: monsters lose track of you and stop shooting at you."; break;
+				case "helm": t = "Sends you berserk for " + (5 * Math.sqrt(pw)).toFixed(1) + "s: +50% fire rate and +25% movement speed."; break;
+				case "skull": t = "Blasts a 3-tile area where you aim for " + int((70 + lv * 8) * pw) + " damage and heals you 20 HP plus 15 per enemy hit."; break;
+				case "trap": t = "Throws a trap where you aim. It arms, then bursts into slowing shards for " + int((60 + lv * 7) * pw) + " damage."; break;
+				default: return "";
+			}
+			return "<font color='#e8e0a0'>" + t + "</font>\n<font color='#9a9aaa'>Costs " + cost + " MP. Press SPACE to use.</font>";
+		}
+
 		/** Tooltip body text (HTML). */
 		public static function describe(item:Object):String {
 			if (!item) return "";
@@ -352,7 +427,8 @@ package realm {
 			if (item.rarity) s += "<font color='" + Ui.hex(RARITY_COLORS[item.rarity]) + "'>" + RARITY_NAMES[item.rarity] + "</font>\n";
 			switch (item.kind) {
 				case "weapon":
-					s += "Damage: " + item.dmin + "-" + item.dmax + "\n";
+					if (item.form && FORMS[item.form]) s += "<font color='#9ad0ff'>" + FORMS[item.form].name + ":</font> " + FORMS[item.form].desc + "\n";
+					s += "Damage: " + item.dmin + "-" + item.dmax + (item.shots > 1 ? " per shot" : "") + "\n";
 					if (item.shots > 1) s += "Shots: " + item.shots + "\n";
 					s += "Range: " + (item.spd * item.life).toFixed(1) + " tiles\n";
 					if (item.pierce) s += "Shots hit multiple targets\n";
@@ -361,6 +437,7 @@ package realm {
 				case "armor":
 					break;
 				case "ability":
+					s += abilityText(item) + "\n";
 					s += "Ability power: " + Math.round(item.power * 100) + "%\n";
 					break;
 				case "hp": s += "Restores 100 HP\n"; break;
@@ -1078,7 +1155,7 @@ package realm {
 				var tier:int = ZONE_TIER[Math.min(4, zone)] + (Math.random() < 0.35 ? 1 : 0) + (Math.random() < 0.06 ? 1 : 0);
 				if (tier > 7) tier = 7;
 				var roll:Number = Math.random();
-				if (roll < 0.4) items.push(makeWeapon(cls.weapon, tier));
+				if (roll < 0.4) items.push(makeWeapon(cls.weapon, tier, null, "?"));
 				else if (roll < 0.55) items.push(makeAbility(cls.abilityType, Math.min(6, tier)));
 				else if (roll < 0.82) items.push(makeArmor(cls.armor, tier));
 				else items.push(makeRing(randomStat(), Math.min(5, int(tier * 0.7))));

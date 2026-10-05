@@ -96,7 +96,7 @@ package realm {
 				}
 			}
 
-			var speed:Number = def.spd * (slowT > 0 ? 0.45 : 1);
+			var speed:Number = def.spd * (slowT > 0 ? 0.45 : 1) * (!def.fly && g.world.inWater(x, y) ? 0.5 : 1);
 			var mvx:Number = 0, mvy:Number = 0;
 			if (aggro && dist > 0.01) {
 				var ux:Number = dx / dist, uy:Number = dy / dist;

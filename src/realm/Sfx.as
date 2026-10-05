@@ -19,6 +19,10 @@ package realm {
 		public static function get muted():Boolean { return Save.data.muted == true; }
 		public static function set muted(v:Boolean):void { Save.data.muted = v; Save.flush(); }
 
+		/** Master volume, 0..1 (saved with the account). */
+		public static function get volume():Number { return Save.data.vol == undefined ? 0.8 : Number(Save.data.vol); }
+		public static function set volume(v:Number):void { Save.data.vol = Math.max(0, Math.min(1, v)); Save.flush(); }
+
 		private static function init():void {
 			buffers = {};
 			// tiny laser blip
@@ -67,6 +71,8 @@ package realm {
 		/** Play a named effect; rapid repeats of the same sound are throttled. */
 		public static function play(name:String, vol:Number = 1, minGap:Number = 0.05):void {
 			if (muted || playing >= MAX_PLAYING) return;
+			vol *= volume;
+			if (vol <= 0.001) return;
 			try {
 				if (!buffers) init();
 				var buf:ByteArray = buffers[name];

@@ -82,10 +82,11 @@ into the first account you create.
 | R | Return to the Nexus (full heal) |
 | Enter | Go through the portal you are standing on |
 | Enter (elsewhere) | Chat / commands: `/help`, `/nexus`, `/realm`, `/glands`, `/stats`, `/quests`, `/achievements`, `/who`, `/trade name`, `/inspect name`, `/tips`, `/admin` |
-| Click a player (Nexus) / right-click (anywhere) | Player menu: Inspect or Trade |
+| Click a player (Nexus) / right-click (anywhere) | Player menu: Inspect, Trade, party / guild invite, Teleport |
+| L | Party and guild window |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
-| P / Esc | Pause menu (options, Save & Quit) |
+| P / Esc | Pause menu and settings: volume slider, mute, show players (everyone or party and guild only), player names, chat bubbles, damage numbers, particles, screen shake, Save & Quit |
 
 **Items work like RotMG, with drag and drop:**
 - **Drop:** drag an inventory item onto the ground (anywhere in the game view) to drop it in
@@ -118,6 +119,40 @@ is ready, real players will come in through the same code (see `Net.as` below).
 - In the realms other players fight monsters too. You share the XP from kills near you,
   but loot only drops for monsters you hit yourself.
 - Other players show as yellow dots on the minimap.
+
+**Parties** (up to 6 players)
+- Invite someone from the player menu or with `/party invite name`.
+- Party members follow you into realms and dungeons and fight beside you.
+- Party members have blue names and blue minimap dots.
+- `/p message` is party chat.
+
+**Guilds** (up to 27 members)
+- Found one for 1,000 gold with `/guild create Name`.
+- Officers and above can invite. Ranks are Initiate, Member, Officer, Leader and Founder;
+  promote, demote and kick from the guild window (L).
+- `/g message` is guild chat. Guild members have green names, and online members hang out
+  in the Nexus.
+- You can teleport to party and guild members (`/tp name`, 10s cooldown).
+- Setting: **Show players: Party & guild** hides everyone else (their sprites, names, chat and shots).
+
+**Weapon forms:** half of all dropped weapons come in a form that changes how they shoot.
+
+| Form | What it does |
+| --- | --- |
+| Heavy | One big, slow-firing shot that hits very hard (good against armor) |
+| Farshot | Much longer range, a little less damage |
+| Brutal | Short range, a lot more damage |
+| Scattershot | Two extra shots in a wide spread; each hits softer |
+| Swift | Fires much faster; each shot hits softer |
+| Siege | Slow, heavy shots that pierce through everything |
+| Serpent | Shots weave in a wave |
+| Returning | Shots fly out and come back, hitting on both passes |
+
+**Abilities:** ability tooltips explain what the ability does, with its damage, healing and
+duration at your level, and its MP cost.
+
+**Water:** lakes and rivers can be waded through at half speed (you sink in up to your
+waist). The open sea is still impassable.
 
 ## Features
 
@@ -266,6 +301,7 @@ src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trad
 src/realm/RemotePlayer.as another player (position smoothing, public profile)
 src/realm/TradeSession.as trade rules (offers, accept lock, space check, swap)
 src/realm/TradeWindow.as trade screen; InspectWindow.as player inspect screen
+src/realm/SocialWindow.as party and guild window
 src/realm/Ui.as          fonts, text, panels and buttons
 src/realm/TitleScreen.as home screen, log in / register dialogs
 src/realm/Accounts.as    local accounts (salted password hashes)

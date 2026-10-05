@@ -12,6 +12,14 @@ package realm {
 		public var players:Vector.<RemotePlayer> = new Vector.<RemotePlayer>();
 		/** The trade in progress, if any. */
 		public var trade:TradeSession;
+		/** Your party (not counting you). */
+		public var party:Vector.<RemotePlayer> = new Vector.<RemotePlayer>();
+
+		public static const PARTY_MAX:int = 6;
+		public static const GUILD_MAX:int = 27;
+		public static const GUILD_COST:int = 1000;
+		public static const RANKS:Array = ["Initiate", "Member", "Officer", "Leader", "Founder"];
+		public static const OFFICER:int = 2, FOUNDER:int = 4;
 
 		public function Net(g:Game) {
 			this.g = g;
@@ -40,6 +48,35 @@ package realm {
 
 		/** You closed the trade window. */
 		public function cancelTrade():void {}
+
+		// ---- party
+		public function inviteParty(p:RemotePlayer):void {}
+		public function leaveParty():void {}
+		public function kickParty(p:RemotePlayer):void {}
+		public function partyChat(text:String):void {}
+		public function inParty(p:RemotePlayer):Boolean { return party.indexOf(p) >= 0; }
+
+		// ---- guild
+		/**
+		 * Your guild: {name, myRank, members: [{name, cls, level, fame, rank}]}
+		 * (members does not include you), or null.
+		 */
+		public function get guild():Object { return null; }
+		/** Returns an error message, or null if the guild was created. */
+		public function createGuild(name:String):String { return "Guilds need a server connection."; }
+		public function inviteGuild(p:RemotePlayer):void {}
+		public function leaveGuild():void {}
+		public function kickGuild(name:String):void {}
+		public function setRank(name:String, rank:int):void {}
+		public function guildChat(text:String):void {}
+		/** "here" (in your world), "online" or "offline". */
+		public function guildStatus(name:String):String { return "offline"; }
+		public function inGuild(p:RemotePlayer):Boolean {
+			return guild != null && p.profile.guild == guild.name;
+		}
+
+		/** Party or guild: always shown, even with "Show players: Party & guild". */
+		public function isFriend(p:RemotePlayer):Boolean { return inParty(p) || inGuild(p); }
 
 		public function find(name:String):RemotePlayer {
 			name = name.toLowerCase();

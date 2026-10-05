@@ -24,18 +24,47 @@ package realm {
 		private var askT:Number = 70;
 		private var names:Object = {};
 		private var pending:Array = [];
+		/** Guild members online this session, and their bots (when they're in the Nexus). */
+		private var online:Object = {};
+		private var guildT:Number = 40;
+		private static const OTHER_GUILDS:Array = ["Night Owls", "Realm Wardens", "Star Chasers", "Lost Heroes", "The Ember Pact",
+			"Godlanders", "Pot Hoarders", "Shoreline", "Midnight Oath"];
+		private static const PARTY_SAYS:Array = ["ok", "omw", "lets go", "ty", "sure", "nice", "following you", "lol", "gg"];
+		private static const GUILD_SAYS:Array = ["anyone up for a dungeon?", "gz on the drop!", "who wants to run the Godlands?",
+			"just maxed my defense", "hi guild", "need someone for a trade", "realm is closing soon, come to the Nexus"];
 
 		public function LocalNet(g:Game) {
 			super(g);
+			var gd:Object = guild;
+			if (gd) for each (var m:Object in gd.members) {
+				names[m.name.toLowerCase()] = true;
+				if (Math.random() < 0.4) online[m.name] = true;
+			}
 		}
 
 		// ------------------------------------------------------------ worlds
 		override public function enterWorld(w:World):void {
 			if (trade) cancelTrade();
+			// your party comes with you
+			var p:RemotePlayer;
+			for each (p in party) {
+				var i:int = players.indexOf(p);
+				if (i >= 0) players.splice(i, 1);
+			}
 			world = w;
 			if (!crowds[w]) crowds[w] = populate(w);
 			players = crowds[w];
 			for each (var b:Bot in players) b.x = b.tx, b.y = b.ty;
+			var k:int = 0;
+			for each (p in party) {
+				var pb:Bot = Bot(p);
+				var a:Number = k++ * Math.PI * 2 / 5 + Math.PI / 2;
+				var px:Number = g.player.x + Math.cos(a) * 1.4, py:Number = g.player.y + Math.sin(a) * 1.4;
+				if (!w.canStand(px, py, 0.3, false)) { px = g.player.x; py = g.player.y; }
+				pb.x = pb.tx = pb.goalX = pb.homeX = px;
+				pb.y = pb.ty = pb.goalY = pb.homeY = py;
+				players.push(pb);
+			}
 		}
 
 		private function populate(w:World):Vector.<RemotePlayer> {
@@ -44,6 +73,18 @@ package realm {
 			for (var i:int = 0; i < n; i++) {
 				var b:Bot = w.kind == "nexus" ? nexusBot(w) : realmBot(w);
 				if (b) list.push(b);
+			}
+			var gd:Object = guild;
+			if (w.kind == "nexus" && gd) for each (var m:Object in gd.members) {
+				if (!online[m.name]) continue;
+				var gb:Bot = nexusBot(w);
+				if (!gb) continue;
+				gb.name = m.name;
+				gb.profile.cls = m.cls;
+				gb.profile.skin = "";
+				gb.profile.level = m.level;
+				gb.profile.guild = gd.name;
+				list.push(gb);
 			}
 			return list;
 		}
@@ -92,7 +133,7 @@ package realm {
 			for (var i:int = 0; i < 8; i++) inv.push(i < n ? loot(level) : null);
 			var maxed:int = level >= 20 ? int(Math.random() * 12) : 0;
 			var profile:Object = {cls: clsId, skin: skin, level: level, fame: level * 40 + int(Math.random() * level * 120) + maxed * 300,
-				maxed: maxed, equip: equip, inv: inv};
+				maxed: maxed, equip: equip, inv: inv, guild: Math.random() < 0.25 ? OTHER_GUILDS[int(Math.random() * OTHER_GUILDS.length)] : ""};
 			var b:Bot = new Bot("bot" + int(Math.random() * 1e9), uniqueName(), x, y, profile);
 			b.greed = 0.9 + Math.random() * 0.4;
 			b.wants = ["stat", "material", "ut", "st", "fb"][int(Math.random() * 5)];
@@ -144,6 +185,7 @@ package realm {
 				b.update(dt);
 			}
 			if (world && world.kind == "nexus") nexusLife(dt);
+			guildLife(dt);
 			if (trade) updateTrade(dt);
 		}
 
@@ -174,6 +216,7 @@ package realm {
 					if (d < 4) { b.goalX = b.x + dx / d * 2; b.goalY = b.y + dy / d * 2; }
 				}
 			}
+			if (b.inParty) follow(b);
 			var gx:Number = b.goalX - b.tx, gy:Number = b.goalY - b.ty, gd:Number = Math.sqrt(gx * gx + gy * gy);
 			if (gd < 0.1) {
 				if (b.leaving) { b.gone = true; g.burst(b.x, b.y, 0x9a7cff, 14); return; }
@@ -181,7 +224,8 @@ package realm {
 				if (b.waitT <= 0) pickGoal(b);
 				return;
 			}
-			var speed:Number = world.kind == "nexus" ? 3.2 : 4.4;
+			var speed:Number = b.inParty ? 6.5 : world.kind == "nexus" ? 3.2 : 4.4;
+			if (world.inWater(b.tx, b.ty)) speed *= 0.5;
 			var step:Number = Math.min(gd, speed * dt);
 			var nx:Number = b.tx + gx / gd * step, ny:Number = b.ty + gy / gd * step;
 			if (world.canStand(nx, ny, 0.3, false)) b.moveTo(nx, ny);
@@ -189,7 +233,19 @@ package realm {
 			else { b.goalX = b.tx; b.goalY = b.ty; b.waitT = 0.3; }
 		}
 
+		/** Party members stay close to you, and catch up if you get far ahead. */
+		private function follow(b:Bot):void {
+			var i:int = party.indexOf(b);
+			var a:Number = i * Math.PI * 2 / 5 + Math.PI / 2;
+			var px:Number = g.player.x + Math.cos(a) * 1.5, py:Number = g.player.y + Math.sin(a) * 1.5;
+			var dx:Number = px - b.tx, dy:Number = py - b.ty;
+			var d:Number = dx * dx + dy * dy;
+			if (d > 18 * 18) { b.moveTo(px, py); b.goalX = px; b.goalY = py; return; }
+			if (d > 1.2 * 1.2) { b.goalX = px; b.goalY = py; b.waitT = 0; }
+		}
+
 		private function pickGoal(b:Bot):void {
+			if (b.inParty) { b.waitT = 0.3; return; }
 			b.waitT = world.kind == "nexus" ? 2 + Math.random() * 7 : 0.5 + Math.random() * 2;
 			var range:Number = world.kind == "nexus" ? 9 : 14;
 			if (world.kind == "realm") {
@@ -220,14 +276,14 @@ package realm {
 			if (chatT <= 0 && players.length) {
 				chatT = 7 + Math.random() * 10;
 				var b:Bot = Bot(players[int(Math.random() * players.length)]);
-				if (!b.leaving && !(trade && trade.partner == b)) say(b, advert(b));
+				if (!b.leaving && !b.inParty && !(trade && trade.partner == b)) say(b, advert(b));
 			}
 			crowdT -= dt;
 			if (crowdT <= 0) {
 				crowdT = 10 + Math.random() * 15;
 				if (players.length > 7 && Math.random() < 0.5) {
 					var lv:Bot = Bot(players[int(Math.random() * players.length)]);
-					if (!(trade && trade.partner == lv)) {
+					if (!(trade && trade.partner == lv) && !lv.inParty && !inGuild(lv)) {
 						// walk off through one of the realm portals
 						lv.leaving = true;
 						lv.goalX = [90.5, 100.5, 110.5][int(Math.random() * 3)];
@@ -249,6 +305,23 @@ package realm {
 					g.tradeRequested(near);
 				}
 			}
+		}
+
+		private function guildLife(dt:Number):void {
+			var gd:Object = guild;
+			if (!gd) return;
+			guildT -= dt;
+			if (guildT > 0) return;
+			guildT = 50 + Math.random() * 50;
+			var on:Array = onlineMembers();
+			if (on.length) g.channelSay(on[int(Math.random() * on.length)], GUILD_SAYS[int(Math.random() * GUILD_SAYS.length)], "guild");
+		}
+
+		private function onlineMembers():Array {
+			var out:Array = [];
+			var gd:Object = guild;
+			if (gd) for each (var m:Object in gd.members) if (online[m.name]) out.push(m.name);
+			return out;
 		}
 
 		private function nearestBot(range:Number):Bot {
@@ -283,6 +356,138 @@ package realm {
 			if (!/^(hi|hello|hey|yo|sup|o\/)\b/i.test(text)) return;
 			var b:Bot = nearestBot(14);
 			if (b) later(1 + Math.random(), function():void { say(b, GREETS[int(Math.random() * GREETS.length)]); });
+		}
+
+		// ------------------------------------------------------------ party
+		override public function inviteParty(p:RemotePlayer):void {
+			var b:Bot = Bot(p);
+			if (b.inParty) { g.msg(b.name + " is already in your party.", 0xff8080); return; }
+			if (party.length + 1 >= PARTY_MAX) { g.msg("Your party is full (" + PARTY_MAX + " players max).", 0xff8080); return; }
+			g.msg("You invited " + b.name + " to your party.", 0x7fd8ff);
+			later(1 + Math.random(), function():void {
+				if (b.gone || players.indexOf(b) < 0) return;
+				if (party.length + 1 >= PARTY_MAX) return;
+				if (b.leaving || Math.random() < 0.25) {
+					say(b, ["no thanks", "solo for now", "maybe later"][int(Math.random() * 3)]);
+					g.msg(b.name + " declined your party invite.", 0xff8080);
+					return;
+				}
+				b.inParty = true;
+				b.offering = -1;
+				party.push(b);
+				g.channelSay(b.name, ["hi party!", "ty for the invite", "lets go", "o/"][int(Math.random() * 4)], "party");
+				g.msg(b.name + " joined the party. (" + (party.length + 1) + "/" + PARTY_MAX + ")", 0x7fd8ff);
+				g.socialChanged();
+			});
+		}
+
+		override public function leaveParty():void {
+			if (!party.length) { g.msg("You're not in a party.", 0xff8080); return; }
+			for each (var p:RemotePlayer in party) { Bot(p).inParty = false; Bot(p).homeX = p.x; Bot(p).homeY = p.y; }
+			party.length = 0;
+			g.msg("You left the party.", 0x7fd8ff);
+			g.socialChanged();
+		}
+
+		override public function kickParty(p:RemotePlayer):void {
+			var i:int = party.indexOf(p);
+			if (i < 0) return;
+			party.splice(i, 1);
+			var b:Bot = Bot(p);
+			b.inParty = false;
+			b.homeX = b.x; b.homeY = b.y;
+			g.msg(b.name + " was removed from the party.", 0x7fd8ff);
+			g.socialChanged();
+		}
+
+		override public function partyChat(text:String):void {
+			if (!party.length || Math.random() < 0.4) return;
+			var b:RemotePlayer = party[int(Math.random() * party.length)];
+			later(1 + Math.random() * 1.5, function():void {
+				if (inParty(b)) g.channelSay(b.name, PARTY_SAYS[int(Math.random() * PARTY_SAYS.length)], "party");
+			});
+		}
+
+		// ------------------------------------------------------------ guild
+		override public function get guild():Object { return Save.data.guild || null; }
+
+		override public function createGuild(name:String):String {
+			if (guild) return "You're already in a guild.";
+			name = name.replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+			if (!/^[A-Za-z][A-Za-z ]{2,19}$/.test(name)) return "Guild names are 3-20 letters (spaces allowed).";
+			if (OTHER_GUILDS.indexOf(name) >= 0) return "That guild name is taken.";
+			Save.data.guild = {name: name, myRank: FOUNDER, members: []};
+			Save.flush();
+			return null;
+		}
+
+		override public function inviteGuild(p:RemotePlayer):void {
+			var gd:Object = guild, b:Bot = Bot(p);
+			if (!gd) { g.msg("You're not in a guild. Create one with /guild create Name.", 0xff8080); return; }
+			if (gd.myRank < OFFICER) { g.msg("Only Officers and above can invite.", 0xff8080); return; }
+			if (gd.members.length + 1 >= GUILD_MAX) { g.msg("Your guild is full (" + GUILD_MAX + " members max).", 0xff8080); return; }
+			if (inGuild(b)) { g.msg(b.name + " is already in your guild.", 0xff8080); return; }
+			g.msg("You invited " + b.name + " to " + gd.name + ".", 0x80ff80);
+			later(1.2 + Math.random(), function():void {
+				if (b.gone || players.indexOf(b) < 0 || !guild) return;
+				if (b.profile.guild) { say(b, "sorry, i'm in " + b.profile.guild); g.msg(b.name + " is already in a guild.", 0xff8080); return; }
+				if (Math.random() < 0.35) { say(b, ["no thanks", "not looking for a guild", "maybe later"][int(Math.random() * 3)]); g.msg(b.name + " declined the guild invite.", 0xff8080); return; }
+				b.profile.guild = guild.name;
+				guild.members.push({name: b.name, cls: b.profile.cls, level: b.profile.level, fame: b.profile.fame, rank: 0});
+				online[b.name] = true;
+				Save.flush();
+				g.channelSay(b.name, ["thanks for the invite!", "hi guild!", "glad to be here"][int(Math.random() * 3)], "guild");
+				g.msg(b.name + " joined " + guild.name + ". (" + (guild.members.length + 1) + "/" + GUILD_MAX + ")", 0x80ff80);
+				g.socialChanged();
+			});
+		}
+
+		override public function leaveGuild():void {
+			var gd:Object = guild;
+			if (!gd) return;
+			for each (var c:Vector.<RemotePlayer> in crowds) for each (var p:RemotePlayer in c) if (p.profile.guild == gd.name) p.profile.guild = "";
+			Save.data.guild = null;
+			Save.flush();
+			g.msg(gd.myRank == FOUNDER ? "You disbanded " + gd.name + "." : "You left " + gd.name + ".", 0x80ff80);
+			g.socialChanged();
+		}
+
+		private function member(name:String):Object {
+			var gd:Object = guild;
+			if (gd) for each (var m:Object in gd.members) if (m.name == name) return m;
+			return null;
+		}
+
+		override public function kickGuild(name:String):void {
+			var gd:Object = guild, m:Object = member(name);
+			if (!m || gd.myRank < OFFICER || m.rank >= gd.myRank) { g.msg("You can't remove " + name + ".", 0xff8080); return; }
+			gd.members.splice(gd.members.indexOf(m), 1);
+			for each (var c:Vector.<RemotePlayer> in crowds) for each (var p:RemotePlayer in c) if (p.name == name) p.profile.guild = "";
+			Save.flush();
+			g.msg(name + " was removed from " + gd.name + ".", 0x80ff80);
+			g.socialChanged();
+		}
+
+		override public function setRank(name:String, rank:int):void {
+			var gd:Object = guild, m:Object = member(name);
+			if (!m || rank < 0 || rank >= gd.myRank || m.rank >= gd.myRank) return;
+			var up:Boolean = rank > m.rank;
+			m.rank = rank;
+			Save.flush();
+			g.msg(name + " was " + (up ? "promoted" : "demoted") + " to " + RANKS[rank] + ".", 0x80ff80);
+			g.socialChanged();
+		}
+
+		override public function guildChat(text:String):void {
+			var on:Array = onlineMembers();
+			if (!on.length || Math.random() < 0.5) return;
+			var who:String = on[int(Math.random() * on.length)];
+			later(1.5 + Math.random() * 2, function():void { if (member(who)) g.channelSay(who, PARTY_SAYS[int(Math.random() * PARTY_SAYS.length)], "guild"); });
+		}
+
+		override public function guildStatus(name:String):String {
+			for each (var p:RemotePlayer in players) if (p.name == name) return "here";
+			return online[name] ? "online" : "offline";
 		}
 
 		// ------------------------------------------------------------ trading
@@ -433,6 +638,7 @@ class Bot extends RemotePlayer {
 	public var lastVersion:int = -1;
 	public var thinkT:Number = 0;
 	public var acceptPlan:Boolean = false;
+	public var inParty:Boolean = false;
 
 	public function Bot(id:String, name:String, x:Number, y:Number, profile:Object) {
 		super(id, name, x, y, profile);

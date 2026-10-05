@@ -108,6 +108,50 @@ package realm {
 			return b;
 		}
 
+		/** Horizontal slider for a 0..1 value; onChange(v) fires while dragging. */
+		public static function slider(label:String, w:int, value:Number, onChange:Function):Sprite {
+			var sp:Sprite = new Sprite();
+			var tf:TextField = text(15, 0xffffff, true, "left", w, true);
+			sp.addChild(tf);
+			var track:Sprite = new Sprite();
+			track.y = 26;
+			track.buttonMode = true;
+			sp.addChild(track);
+			var draw:Function = function():void {
+				tf.text = label + ": " + Math.round(value * 100) + "%";
+				var g:* = track.graphics;
+				g.clear();
+				g.beginFill(0x000000, 0);
+				g.drawRect(-8, -10, w + 16, 24);
+				g.endFill();
+				panel(g, 0, 0, w, 8, 0x1a1a1a, 0x6a6a6a);
+				g.beginFill(GOLD);
+				g.drawRoundRect(1, 1, Math.max(4, (w - 2) * value), 6, 6, 6);
+				g.endFill();
+				g.lineStyle(2, 0x000000);
+				g.beginFill(0xffffff);
+				g.drawCircle(w * value, 4, 8);
+				g.endFill();
+			};
+			var setFrom:Function = function():void {
+				value = Math.max(0, Math.min(1, track.mouseX / w));
+				draw();
+				onChange(value);
+			};
+			var move:Function = function(e:MouseEvent):void { setFrom(); };
+			var up:Function = function(e:MouseEvent):void {
+				sp.stage.removeEventListener(MouseEvent.MOUSE_MOVE, move);
+				sp.stage.removeEventListener(MouseEvent.MOUSE_UP, up);
+			};
+			track.addEventListener(MouseEvent.MOUSE_DOWN, function(e:MouseEvent):void {
+				setFrom();
+				sp.stage.addEventListener(MouseEvent.MOUSE_MOVE, move);
+				sp.stage.addEventListener(MouseEvent.MOUSE_UP, up);
+			});
+			draw();
+			return sp;
+		}
+
 		public static function hex(c:uint):String {
 			var s:String = c.toString(16);
 			while (s.length < 6) s = "0" + s;

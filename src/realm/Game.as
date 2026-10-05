@@ -129,6 +129,8 @@ package realm {
 		private var requestFrom:RemotePlayer;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
+		private var social:SocialWindow;
+		private var tpT:Number = 0;
 
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
 			this.onDeath = onDeath;
@@ -252,7 +254,39 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /tips  /admin", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name", 0x8fd0ff);
+					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  (L opens the party & guild window)", 0x8fd0ff);
+					break;
+				case "/p":
+					var pt:String = t.substr(3);
+					if (!net.party.length) { msg("You're not in a party. Invite players from their menu.", 0xff8080); break; }
+					if (pt) { channelSay(player.name, pt, "party"); net.partyChat(pt); }
+					break;
+				case "/g":
+					var gt:String = t.substr(3);
+					if (!net.guild) { msg("You're not in a guild.", 0xff8080); break; }
+					if (gt) { channelSay(player.name, gt, "guild"); net.guildChat(gt); }
+					break;
+				case "/party": case "/guild":
+					var sub:String = (t.split(" ")[1] || "").toLowerCase();
+					var rest:String = t.split(" ").slice(2).join(" ");
+					var isParty:Boolean = cmd == "/party";
+					if (!sub) { toggleSocial(isParty ? 0 : 1); break; }
+					if (sub == "create" && !isParty) { createGuild(rest); break; }
+					if (sub == "leave") { if (isParty) net.leaveParty(); else net.leaveGuild(); break; }
+					if (sub == "invite" || sub == "kick") {
+						var who2:RemotePlayer = rest ? net.find(rest) : null;
+						if (sub == "kick" && !isParty) { net.kickGuild(rest); break; }
+						if (!who2) { msg("No player called " + rest + " here.", 0xff8080); break; }
+						if (isParty) { if (sub == "invite") net.inviteParty(who2); else net.kickParty(who2); }
+						else net.inviteGuild(who2);
+						break;
+					}
+					msg("Usage: " + cmd + (isParty ? " invite|kick name, /party leave, /p message" : " create Name, /guild invite|kick name, /guild leave, /g message"), 0xff8080);
+					break;
+				case "/tp": case "/teleport":
+					var tpw:RemotePlayer = net.find(t.split(" ")[1] || "");
+					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
 					break;
 				case "/who":
 					var who:Array = [];
@@ -348,10 +382,10 @@ package realm {
 			pauseLayer.graphics.beginFill(0x000000, 0.6);
 			pauseLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
 			pauseLayer.graphics.endFill();
-			Ui.panel(pauseLayer.graphics, Ui.W / 2 - 170, 110, 340, 430, 0x262626, 0x6a6a6a);
-			var pt1:TextField = Ui.text(34, 0xffffff, true, "center", Ui.W, true);
-			pt1.text = "Paused";
-			pt1.y = 122;
+			Ui.panel(pauseLayer.graphics, Ui.W / 2 - 190, 20, 380, 600, 0x262626, 0x6a6a6a);
+			var pt1:TextField = Ui.text(30, 0xffffff, true, "center", Ui.W, true);
+			pt1.text = "Paused - Settings";
+			pt1.y = 28;
 			pauseLayer.addChild(pt1);
 			pauseButtons = new Sprite();
 			pauseLayer.addChild(pauseButtons);
@@ -362,19 +396,38 @@ package realm {
 
 		private function refreshPauseMenu():void {
 			pauseButtons.removeChildren();
+			var onOff:Function = function(name:String):String { return opt(name) ? "On" : "Off"; };
+			var toggle:Function = function(name:String):Function {
+				return function():void { setOpt(name, !opt(name)); refreshPauseMenu(); };
+			};
 			var rows:Array = [
 				["Resume", function():void { setPaused(false); }],
+				["slider"],
 				["Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }],
-				["Damage numbers: " + (opt("dmg") ? "On" : "Off"), function():void { setOpt("dmg", !opt("dmg")); refreshPauseMenu(); }],
-				["Particles: " + (opt("parts") ? "On" : "Off"), function():void { setOpt("parts", !opt("parts")); refreshPauseMenu(); }],
-				["Screen shake: " + (opt("shake") ? "On" : "Off"), function():void { setOpt("shake", !opt("shake")); refreshPauseMenu(); }],
+				["Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers")],
+				["Player names: " + onOff("names"), toggle("names")],
+				["Chat bubbles: " + onOff("bubbles"), toggle("bubbles")],
+				["Damage numbers: " + onOff("dmg"), toggle("dmg")],
+				["Particles: " + onOff("parts"), toggle("parts")],
+				["Screen shake: " + onOff("shake"), toggle("shake")],
 				["Save & Quit to Menu", function():void { saveCharacter(); quitRequested = true; }]
 			];
+			var y:int = 76;
 			for (var i:int = 0; i < rows.length; i++) {
-				var b:Sprite = Ui.button(rows[i][0], 260, 42, rows[i][1], 17);
-				b.x = Ui.W / 2 - 130;
-				b.y = 186 + i * 56;
+				if (rows[i][0] == "slider") {
+					var sl:Sprite = Ui.slider("Volume", 280, Sfx.volume, function(v:Number):void { Sfx.volume = v; });
+					sl.addEventListener(MouseEvent.MOUSE_UP, function(e:MouseEvent):void { Sfx.play("coin"); });
+					sl.x = Ui.W / 2 - 140;
+					sl.y = y;
+					pauseButtons.addChild(sl);
+					y += 56;
+					continue;
+				}
+				var b:Sprite = Ui.button(rows[i][0], 300, 40, rows[i][1], 16);
+				b.x = Ui.W / 2 - 150;
+				b.y = y;
 				pauseButtons.addChild(b);
+				y += i == rows.length - 2 ? 58 : 50;
 			}
 		}
 
@@ -545,7 +598,7 @@ package realm {
 		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -860,8 +913,9 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social)) {
 				if (playerMenu) closePlayerMenu();
+				else if (social) toggleSocial();
 				else if (inspectWin) closeInspect();
 				else closeTrade();
 				input.endFrame();
@@ -889,10 +943,13 @@ package realm {
 
 		private function update(dt:Number):void {
 			time += dt;
+			Data.viewerLevel = player.level;
 			var i:int;
 			player.update(dt, this);
 			net.update(dt);
 			updatePlayerClicks(dt);
+			if (tpT > 0) tpT -= dt;
+			if (input.pressed(Keyboard.L)) toggleSocial();
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -1069,8 +1126,7 @@ package realm {
 			var p:Player = player;
 			for (var i:int = shots.length - 1; i >= 0; i--) {
 				var s:Projectile = shots[i];
-				s.x += s.vx * dt;
-				s.y += s.vy * dt;
+				s.move(dt);
 				s.life -= dt;
 				// glowing trail behind your own shots
 				if (!s.enemy && !s.bot && parts.length < 420 && Math.random() < 0.55 && opt("parts"))
@@ -2446,6 +2502,7 @@ package realm {
 				drawList.push(drawItem(sy, 0, 0, e, false));
 			}
 			for each (var rp:RemotePlayer in net.players) {
+				if (!shown(rp)) continue;
 				var rsx:Number = scrX(rp.x, rp.y), rsy:Number = scrY(rp.x, rp.y);
 				if (rsx < -60 || rsy < -60 || rsx > VIEW_W + 60 || rsy > VIEW_H + 80) continue;
 				var rdi:Object = drawItem(rsy, -2, 0, null, false);
@@ -2481,6 +2538,7 @@ package realm {
 			}
 
 			for each (var s:Projectile in shots) {
+				if (s.bot && !s.shown) continue;
 				bd = s.frame(time, camAngle);
 				pt.x = int(scrX(s.x, s.y) - bd.width / 2);
 				pt.y = int(scrY(s.x, s.y) - bd.height / 2);
@@ -2513,7 +2571,28 @@ package realm {
 		}
 
 		/** Draws a sprite standing at (cx, cy) with its drop shadow; returns the sprite top. */
-		private function drawEntity(bd:BitmapData, cx:Number, cy:Number, bob:int):Number {
+		private var wadeRect:Rectangle = new Rectangle();
+
+		/** Draws a sprite standing in water: the bottom is hidden below a ripple line. */
+		private function drawWading(bd:BitmapData, cx:Number, cy:Number):Number {
+			var foot:Number = cy + TS * 0.4;
+			var sink:int = int(bd.height * 0.3);
+			wadeRect.x = 0; wadeRect.y = 0; wadeRect.width = bd.width; wadeRect.height = bd.height - sink;
+			pt.x = int(cx - bd.width / 2);
+			pt.y = int(foot - bd.height + 2 + sink);
+			canvas.copyPixels(bd, wadeRect, pt, null, null, true);
+			var w:Number = bd.width * 0.4 + Math.sin(time * 6 + cx) * 2;
+			var g:* = auraShape.graphics;
+			g.clear();
+			g.lineStyle(2, 0xcfe4ff, 0.75);
+			g.drawEllipse(-w, -4, w * 2, 8);
+			auraMtx.tx = cx; auraMtx.ty = foot - 1;
+			canvas.draw(auraShape, auraMtx);
+			return pt.y;
+		}
+
+		private function drawEntity(bd:BitmapData, cx:Number, cy:Number, bob:int, wade:Boolean = false):Number {
+			if (wade) return drawWading(bd, cx, cy);
 			var foot:Number = cy + TS * 0.4;
 			var sh:BitmapData = Sprites.shadow(int(bd.width * 0.7));
 			pt.x = int(cx - sh.width / 2);
@@ -2560,7 +2639,7 @@ package realm {
 				drawAura(cx, cy + TS * 0.4, e.invuln ? 0xff4080 : e.enraged ? 0xff2020 : uint(e.def.col));
 				bob = int((Math.sin(time * 2.5 + e.homeX) + 1) * 2.5);
 			}
-			var top:Number = drawEntity(e.sprite, cx, cy, bob);
+			var top:Number = drawEntity(e.sprite, cx, cy, bob, !e.def.fly && !e.isBoss && world.inWater(e.x, e.y));
 			if (e.hp < e.maxHp) {
 				var bw:int = e.isBoss ? 80 : 36;
 				hpBar(cx - bw / 2, cy + TS * 0.4 + 6, bw, e.hp / e.maxHp);
@@ -2574,15 +2653,19 @@ package realm {
 		private function drawRemote(rp:RemotePlayer):void {
 			var cx:Number = scrX(rp.x, rp.y), cy:Number = scrY(rp.x, rp.y);
 			if (rp == hoverRemote || (playerMenu && playerMenu.name == rp.id)) drawAura(cx, cy + TS * 0.4, 0xffffff, 0.45);
-			drawEntity(rp.sprite, cx, cy, 0);
+			drawEntity(rp.sprite, cx, cy, 0, world.inWater(rp.x, rp.y));
 		}
 
 		/** Name tags under other players and chat bubbles over their heads. */
 		private function updateTags():void {
 			var n:int = 0, nb:int = 0;
+			var names:Boolean = opt("names"), bubblesOn:Boolean = opt("bubbles");
 			for each (var rp:RemotePlayer in net.players) {
+				if (!shown(rp)) continue;
 				var cx:Number = scrX(rp.x, rp.y), cy:Number = scrY(rp.x, rp.y);
 				if (cx < -60 || cy < -60 || cx > VIEW_W + 60 || cy > VIEW_H + 40) continue;
+				var friend:uint = net.inParty(rp) ? 0x7fd8ff : net.inGuild(rp) ? 0x80ff80 : 0;
+				if (names || rp == hoverRemote || friend) {
 				var tf:TextField = tags[n];
 				if (!tf) {
 					tf = tags[n] = Ui.text(12, 0xffffff, true, "center", 120, true);
@@ -2590,11 +2673,12 @@ package realm {
 				}
 				n++;
 				if (tf.text != rp.name) tf.text = rp.name;
-				tf.textColor = rp == hoverRemote ? Ui.GOLD : 0xe8e8e8;
+				tf.textColor = rp == hoverRemote ? Ui.GOLD : friend || 0xe8e8e8;
 				tf.visible = true;
 				tf.x = int(cx - tf.width / 2);
 				tf.y = int(cy + TS * 0.4 + 1);
-				if (rp.bubbleT > 0) {
+				}
+				if (rp.bubbleT > 0 && bubblesOn) {
 					var b:Sprite = bubbles[nb];
 					if (!b) {
 						b = bubbles[nb] = new Sprite();
@@ -2626,6 +2710,7 @@ package realm {
 		private function remoteAt(sx:Number, sy:Number):RemotePlayer {
 			var best:RemotePlayer, bd:Number = 26 * 26;
 			for each (var rp:RemotePlayer in net.players) {
+				if (!shown(rp)) continue;
 				var dx:Number = sx - scrX(rp.x, rp.y), dy:Number = sy - (scrY(rp.x, rp.y) - 4);
 				if (dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; best = rp; }
 			}
@@ -2648,22 +2733,38 @@ package realm {
 			closePlayerMenu();
 			var m:Sprite = new Sprite();
 			m.name = rp.id;
-			Ui.panel(m.graphics, 0, 0, 150, 116, 0x1e1e24, 0x8a8a9a, 0.97);
-			var t:TextField = Ui.text(15, Ui.GOLD, true, "center", 150, true);
-			t.text = rp.name;
-			t.y = 6;
+			var gd:Object = net.guild;
+			var rows:Array = [
+				["Inspect", function():void { openInspect(rp); }],
+				["Trade", function():void { net.requestTrade(rp); }],
+				net.inParty(rp) ? ["Kick from party", function():void { net.kickParty(rp); }] : ["Invite to party", function():void { net.inviteParty(rp); }]
+			];
+			if (gd && gd.myRank >= Net.OFFICER && !net.inGuild(rp)) rows.push(["Invite to guild", function():void { net.inviteGuild(rp); }]);
+			if (net.isFriend(rp)) rows.push(["Teleport", function():void { teleportTo(rp); }]);
+			var h:int = 40 + rows.length * 36;
+			Ui.panel(m.graphics, 0, 0, 160, h, 0x1e1e24, 0x8a8a9a, 0.97);
+			var t:TextField = Ui.text(15, net.inParty(rp) ? 0x7fd8ff : net.inGuild(rp) ? 0x80ff80 : Ui.GOLD, true, "center", 160, true);
+			t.htmlText = rp.name + (rp.profile.guild ? "\n<font size='11' color='#9a9aaa'>" + rp.profile.guild + "</font>" : "");
+			t.y = 4;
 			m.addChild(t);
-			var ins:Sprite = Ui.button("Inspect", 130, 30, function():void { closePlayerMenu(); openInspect(rp); }, 14);
-			ins.x = 10; ins.y = 36;
-			m.addChild(ins);
-			var tr:Sprite = Ui.button("Trade", 130, 30, function():void { closePlayerMenu(); net.requestTrade(rp); }, 14);
-			tr.x = 10; tr.y = 74;
-			m.addChild(tr);
-			m.x = int(Math.min(VIEW_W - 156, input.mx + 8));
-			m.y = int(Math.max(4, Math.min(VIEW_H - 122, input.my - 20)));
+			var y:int = rp.profile.guild ? 40 : 32;
+			for each (var r:Array in rows) {
+				var b:Sprite = Ui.button(r[0], 140, 30, menuFn(r[1]), 13);
+				b.x = 10; b.y = y;
+				m.addChild(b);
+				y += 36;
+			}
+			m.graphics.clear();
+			Ui.panel(m.graphics, 0, 0, 160, y + 4, 0x1e1e24, 0x8a8a9a, 0.97);
+			m.x = int(Math.min(VIEW_W - 166, input.mx + 8));
+			m.y = int(Math.max(4, Math.min(VIEW_H - y - 10, input.my - 20)));
 			playerMenu = m;
 			addChild(m);
 			Sfx.play("click", 0.5);
+		}
+
+		private function menuFn(fn:Function):Function {
+			return function():void { closePlayerMenu(); fn(); };
 		}
 
 		private function closePlayerMenu():void {
@@ -2690,8 +2791,72 @@ package realm {
 
 		/** The connection says another player said something. */
 		public function netSay(rp:RemotePlayer, text:String):void {
+			if (!shown(rp)) return;
 			pushChat("<font color='#ffffff'><b>&lt;" + rp.name + "&gt;</b></font> <font color='#d8d8d8'>" + text.replace(/</g, "&lt;") + "</font>");
 			rp.say(text);
+		}
+
+		/** Party / guild chat (the sender may be anywhere). */
+		public function channelSay(name:String, text:String, channel:String):void {
+			var col:String = channel == "party" ? "#7fd8ff" : "#80ff80";
+			pushChat("<font color='" + col + "'><b>[" + (channel == "party" ? "Party" : "Guild") + "] &lt;" + name + "&gt;</b> " + text.replace(/</g, "&lt;") + "</font>");
+			for each (var rp:RemotePlayer in net.players) if (rp.name == name) rp.say(text);
+		}
+
+		/** Hidden players (the "Party & guild" setting) are not drawn and can't be clicked. */
+		public function shown(rp:RemotePlayer):Boolean {
+			return opt("allplayers") || net.isFriend(rp);
+		}
+
+		/** Party or guild changed. */
+		public function socialChanged():void {
+			if (social) social.refresh();
+		}
+
+		public function toggleSocial(tab:int = -1):void {
+			if (social && (tab < 0 || social.tab == tab)) { removeChild(social); social = null; return; }
+			if (!social) {
+				social = new SocialWindow(this);
+				social.x = int((VIEW_W - SocialWindow.W) / 2);
+				social.y = 40;
+				addChild(social);
+			}
+			if (tab >= 0) social.show(tab);
+		}
+
+		/** Teleport to a party or guild member in the same world (RotMG style). */
+		public function teleportTo(rp:RemotePlayer):void {
+			if (!net.isFriend(rp)) { msg("You can only teleport to party and guild members.", 0xff8080); return; }
+			if (net.players.indexOf(rp) < 0) { msg(rp.name + " isn't in this world.", 0xff8080); return; }
+			if (tpT > 0) { msg("Teleport is ready in " + Math.ceil(tpT) + "s.", 0xff8080); return; }
+			tpT = 10;
+			burst(player.x, player.y, 0x9a7cff, 14);
+			player.x = rp.x; player.y = rp.y;
+			player.invulnT = Math.max(player.invulnT, 1);
+			camX = player.x; camY = player.y;
+			burst(player.x, player.y, 0x9a7cff, 18);
+			Sfx.play("portal", 0.5);
+			msg("Teleported to " + rp.name + ".", 0x9a7cff);
+		}
+
+		/** Starts a guild (costs gold). */
+		public function createGuild(name:String):void {
+			if (gold < Net.GUILD_COST) { msg("Creating a guild costs " + Ui.commas(Net.GUILD_COST) + " gold.", 0xff8080); return; }
+			var err:String = net.createGuild(name);
+			if (err) { msg(err, 0xff8080); return; }
+			addGold(-Net.GUILD_COST);
+			Save.flush();
+			showBanner("Guild founded: " + net.guild.name, 0x80ff80, 3);
+			msg("You founded " + net.guild.name + "! Invite players from their menu.", 0x80ff80);
+			Sfx.play("level");
+			socialChanged();
+		}
+
+		/** Opens the chat box with some text already typed. */
+		public function chatWith(text:String):void {
+			openChat();
+			chatInput.text = text;
+			chatInput.setSelection(text.length, text.length);
 		}
 
 		public function get tradeAsking():Boolean { return requestPopup != null || tradeWin != null; }
@@ -2765,10 +2930,16 @@ package realm {
 		public function botShoot(rp:RemotePlayer, ang:Number):void {
 			var w:Object = rp.profile.equip[0];
 			if (!w || !w.shape) return;
-			var fr:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.sub == "sword" ? 4 : 3);
-			var s:Projectile = new Projectile(rp.x, rp.y, ang, w.spd, w.life, int((w.dmin + w.dmax) / 2 * 0.6), false, 0.25, fr, w.pierce, rp.name, null);
-			s.bot = true;
-			shots.push(s);
+			var fr:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.size || 3);
+			for (var k:int = 0; k < (w.shots || 1); k++) {
+				var a:Number = ang + (w.shots > 1 && !w.parallel ? (k - (w.shots - 1) / 2) * w.arc * Math.PI / 180 : 0);
+				var s:Projectile = new Projectile(rp.x, rp.y, a, w.spd, w.life, int((w.dmin + w.dmax) / 2 * 0.5), false, 0.25, fr, w.pierce, rp.name, null);
+				s.bot = true;
+				s.shown = shown(rp);
+				s.motion = w.motion;
+				if (k % 2 == 1) s.phase = Math.PI;
+				shots.push(s);
+			}
 		}
 
 		private function botHit(e:Enemy, s:Projectile):void {
@@ -2784,7 +2955,7 @@ package realm {
 			var p:Player = player;
 			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
-			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0);
+			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0, world.inWater(p.x, p.y));
 			nameTag.x = int(cx - nameTag.width / 2);
 			nameTag.y = int(cy + TS * 0.4 + 1);
 			hpBar(cx - 20, cy + TS * 0.4 + 21, 40, p.hp / p.maxHp);

@@ -639,7 +639,13 @@ package realm {
 			if (x < 0 || y < 0 || x >= N || y >= N) return false;
 			var i:int = int(y) * N + int(x);
 			var t:int = tiles[i];
-			return t != WATER && t != VOID && t != WALL && objs[i] == 0;
+			// lakes and rivers can be waded through (slowly); the open sea cannot
+			return (t != WATER || zones[i] >= 0) && t != VOID && t != WALL && objs[i] == 0;
+		}
+
+		/** Wading through water halves your speed. */
+		public function inWater(x:Number, y:Number):Boolean {
+			return tileAt(x, y) == WATER;
 		}
 
 		public function isSafe(x:Number, y:Number):Boolean {

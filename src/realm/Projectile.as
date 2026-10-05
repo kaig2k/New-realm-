@@ -19,6 +19,15 @@ package realm {
 		public var trailCol:uint = 0xffffff;
 		/** Fired by another player: hurts monsters but gives you nothing. */
 		public var bot:Boolean = false;
+		/** False when the shooter is hidden by the "Party & guild" setting. */
+		public var shown:Boolean = true;
+		/** Special flight: "wave" weaves side to side, "return" flies back halfway through. */
+		public var motion:String;
+		public var phase:Number = 0;
+		public var age:Number = 0;
+		public var life0:Number;
+		public var bx:Number, by:Number;
+		public var turned:Boolean = false;
 
 		public function Projectile(x:Number, y:Number, angle:Number, speed:Number, life:Number, dmg:int, enemy:Boolean,
 				r:Number, frames:Vector.<BitmapData>, pierce:Boolean, owner:String, effect:String, spin:Boolean = false) {
@@ -27,7 +36,8 @@ package realm {
 			this.angle = angle;
 			this.vx = Math.cos(angle) * speed;
 			this.vy = Math.sin(angle) * speed;
-			this.life = life;
+			this.life = life0 = life;
+			bx = x; by = y;
 			this.dmg = dmg;
 			this.enemy = enemy;
 			this.r = r;
@@ -42,6 +52,27 @@ package realm {
 			this.effect = effect;
 			this.spin = spin;
 			if (pierce) hits = new Dictionary(true);
+		}
+
+		/** Moves the shot one step. */
+		public function move(dt:Number):void {
+			age += dt;
+			if (motion == "wave") {
+				bx += vx * dt;
+				by += vy * dt;
+				var off:Number = Math.sin(age * 16 + phase) * 0.5;
+				x = bx - Math.sin(angle) * off;
+				y = by + Math.cos(angle) * off;
+				return;
+			}
+			if (motion == "return" && !turned && life < life0 * 0.5) {
+				turned = true;
+				vx = -vx; vy = -vy;
+				angle += Math.PI;
+				if (hits) hits = new Dictionary(true);
+			}
+			x += vx * dt;
+			y += vy * dt;
 		}
 
 		/** Sprite frame; `view` is the camera rotation so bullets point the right way on screen. */

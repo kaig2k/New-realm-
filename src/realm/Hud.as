@@ -17,6 +17,7 @@ package realm {
 		private static const I_TEMPLE:Array = ["...WW...", "..WWWW..", "WWWWWWWW", ".W.WW.W.", ".W.WW.W.", ".W.WW.W.", "WWWWWWWW", "........"];
 		private static const I_PACK:Array = ["..WWWW..", ".W....W.", "WWWWWWWW", "WWWDDWWW", "WWWWWWWW", "WWWWWWWW", ".WWWWWW.", "........"];
 		private static const I_STAR:Array = ["...W....", "...W....", ".WWWWW..", "..WWW...", "..W.W...", ".W...W..", "........", "........"];
+		private static const I_PEOPLE:Array = ["..W..W..", ".WWWWWW.", "..W..W..", "........", ".WW..WW.", "WWWWWWWW", "WWWWWWWW", "........"];
 		private static const I_CHART:Array = ["........", "......W.", "......W.", "...W..W.", "...W..W.", "W..W..W.", "W..W..W.", "WWWWWWWW"];
 
 		private var g:Game;
@@ -84,6 +85,9 @@ package realm {
 			var nexusBtn:Sprite = iconButton(I_TEMPLE, W - 34, y + 2, 0xe8e8e8);
 			nexusBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.nexus(); });
 			addChild(nexusBtn);
+			var socialBtn:Sprite = iconButton(I_PEOPLE, W - 62, y + 2, 0x9ad0ff);
+			socialBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.toggleSocial(); });
+			addChild(socialBtn);
 
 			// --- bars
 			y = MINI_H + 40;
@@ -494,9 +498,10 @@ package realm {
 			}
 			// other players are yellow, like RotMG
 			for each (var rp:RemotePlayer in g.net.players) {
+				if (!g.shown(rp)) continue;
 				var rx:Number = ox + rp.x * z, ry:Number = oy + rp.y * z;
 				if (rx < 0 || ry < 0 || rx > mw || ry > mh) continue;
-				gr.beginFill(0xffe040);
+				gr.beginFill(g.net.inParty(rp) ? 0x7fd8ff : g.net.inGuild(rp) ? 0x60ff60 : 0xffe040);
 				gr.drawRect(rx - ds / 2, ry - ds / 2, ds, ds);
 				gr.endFill();
 			}

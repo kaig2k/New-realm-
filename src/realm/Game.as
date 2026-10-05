@@ -362,7 +362,7 @@ package realm {
 			bossBar = new Shape();
 			bossBar.x = 12; bossBar.y = 34;
 			bossPanel.addChild(bossBar);
-			var icon:Bitmap = new Bitmap(Sprites.get(player.cls.id));
+			var icon:Bitmap = new Bitmap(Sprites.get(player.spriteId));
 			icon.scaleX = icon.scaleY = 0.45;
 			icon.x = 10; icon.y = 50;
 			bossPanel.addChild(icon);
@@ -414,6 +414,7 @@ package realm {
 			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Sor Forge", 0xc080ff)});
 			stations.push({x: 106.5, y: 111.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f)});
 			stations.push({x: 94.5, y: 111.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080)});
+			stations.push({x: 84.5, y: 93.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e)});
 			stations.push({x: 116.5, y: 93.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff)});
 
 			promptPanel = new Sprite();
@@ -1105,7 +1106,7 @@ package realm {
 			// the graveyard keeps the 30 most recent fallen heroes
 			if (!(save.graves is Array)) save.graves = [];
 			var now:Date = new Date();
-			save.graves.unshift({name: p.name, cls: p.cls.id, level: p.level, fame: fame, kills: p.kills,
+			save.graves.unshift({name: p.name, cls: p.cls.id, skin: p.skin, level: p.level, fame: fame, kills: p.kills,
 				killer: p.lastHitBy || "the Realm", date: now.fullYear + "-" + (now.month + 1) + "-" + now.date});
 			if (save.graves.length > 30) save.graves.length = 30;
 			Save.flush();
@@ -1229,8 +1230,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff}[openStation.kind], true, "center", w, true);
-			title.text = {forge: "Sor Forge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard"}[openStation.kind];
+			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e}[openStation.kind], true, "center", w, true);
+			title.text = {forge: "Sor Forge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -1259,6 +1260,8 @@ package realm {
 					sp.addChild(none);
 				}
 				y += 56;
+			} else if (openStation.kind == "skins") {
+				y = buildSkinPanel(sp, info, y, w);
 			} else if (openStation.kind == "pets") {
 				y = buildPetPanel(sp, info, y, w);
 			} else if (openStation.kind == "quests" && showAch) {
@@ -1512,6 +1515,58 @@ package realm {
 			b.x = w - 214; b.y = y;
 			sp.addChild(b);
 			return y + 38;
+		}
+
+		// ------------------------------------------------------------- fame store (skins)
+		private function buildSkinPanel(sp:Sprite, info:TextField, y:int, w:int):int {
+			var fame:int = int(Save.data.fame || 0);
+			info.htmlText = "Spend account fame (earned when heroes die) on " + player.cls.name + " skins.\n" +
+				"You have <font color='#ff9a2e'><b>" + Ui.commas(fame) + "</b></font> fame.";
+			info.y = y;
+			y += info.height + 8;
+			var opts:Array = [{id: "", name: "Classic " + player.cls.name, cost: 0}].concat(Data.SKINS[player.cls.id] || []);
+			var owned:Object = Save.data.skins || {};
+			for (var i:int = 0; i < opts.length; i++) {
+				var sk:Object = opts[i];
+				var x:int = 14 + i * 140;
+				var box:Sprite = new Sprite();
+				var on:Boolean = player.skin == sk.id;
+				Ui.panel(box.graphics, 0, 0, 132, 150, on ? 0x3e3424 : 0x2c2c2c, on ? 0xff9a2e : 0x4a4a4a);
+				var bmp:Bitmap = new Bitmap(Sprites.get(sk.id || player.cls.id));
+				bmp.x = (132 - bmp.width) / 2; bmp.y = 6;
+				box.addChild(bmp);
+				var nm:TextField = Ui.text(13, 0xffffff, true, "center", 132, true);
+				nm.text = sk.name;
+				nm.y = 66;
+				box.addChild(nm);
+				var have:Boolean = !sk.id || owned[sk.id];
+				var label:String = on ? "Equipped" : have ? "Equip" : Ui.commas(sk.cost) + " fame";
+				var b:Sprite = Ui.button(label, 112, 30, skinFn(sk), 14);
+				b.x = 10; b.y = 108;
+				box.addChild(b);
+				box.x = x; box.y = y;
+				sp.addChild(box);
+			}
+			return y + 158;
+		}
+
+		private function skinFn(sk:Object):Function {
+			return function():void {
+				var owned:Object = Save.data.skins || (Save.data.skins = {});
+				if (sk.id && !owned[sk.id]) {
+					var fame:int = int(Save.data.fame || 0);
+					if (fame < sk.cost) { msg("You need " + Ui.commas(sk.cost) + " fame for " + sk.name + ". Fame is earned when heroes die.", 0xff8080); return; }
+					Save.data.fame = fame - sk.cost;
+					owned[sk.id] = true;
+					showBanner("Unlocked " + sk.name + "!", 0xff9a2e, 3);
+					Sfx.play("rare");
+				}
+				player.skin = sk.id;
+				burst(player.x, player.y, 0xff9a2e, 20);
+				saveCharacter();
+				Save.flush();
+				refreshStation();
+			};
 		}
 
 		private function hatchPet():void {

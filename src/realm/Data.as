@@ -580,6 +580,34 @@ package realm {
 			return list;
 		}
 
+		// ---- skins (bought with account fame, RotMG style) --------------------
+		public static const SKINS:Object = {
+			wizard: [{id: "wizard_frost", name: "Frost Mage", cost: 400, pal: {R: 0x3a7ad4, r: 0x1a4a8a, G: 0xffffff}},
+				{id: "wizard_shadow", name: "Shadow Mage", cost: 1000, pal: {R: 0x2a2a34, r: 0x141418, Y: 0xa040ff, G: 0xff40a0}}],
+			archer: [{id: "archer_autumn", name: "Autumn Ranger", cost: 400, pal: {G: 0xc06a20, g: 0x8a4410}},
+				{id: "archer_shadow", name: "Shadow Ranger", cost: 1000, pal: {G: 0x34343c, g: 0x1c1c22, W: 0xa0a0b0}}],
+			knight: [{id: "knight_gold", name: "Golden Knight", cost: 400, pal: {H: 0xf0c840, h: 0xa88a20, M: 0xe0b030, m: 0x9a7818, K: 0x2a5ad0}},
+				{id: "knight_dark", name: "Dark Knight", cost: 1000, pal: {H: 0x3a3a44, h: 0x22222a, M: 0x2e2e38, m: 0x18181e, K: 0x7a1010, r: 0x5a0a0a}}],
+			priest: [{id: "priest_sun", name: "Sun Priest", cost: 400, pal: {W: 0xfff0b0, w: 0xd8b860, G: 0xff9a20}},
+				{id: "priest_dark", name: "Dark Priest", cost: 1000, pal: {W: 0x2a2a34, w: 0x16161c, G: 0xff4040}}],
+			rogue: [{id: "rogue_assassin", name: "Assassin", cost: 400, pal: {P: 0x9a1a1a, p: 0x5a0a0a}},
+				{id: "rogue_ghost", name: "Ghost", cost: 1000, pal: {P: 0xd8d8e8, p: 0x9a9aa8, K: 0xb8b8c8, k: 0x8a8a9a}}],
+			warrior: [{id: "warrior_viking", name: "Viking", cost: 400, pal: {H: 0x8a8a92, h: 0x5a5a62, R: 0x2a5ad0, M: 0x3a6ae0, m: 0x1a3a8a}},
+				{id: "warrior_blood", name: "Bloodlord", cost: 1000, pal: {R: 0x5a0a0a, M: 0x8a1010, m: 0x4a0808, Y: 0x2a2a2a}}],
+			necromancer: [{id: "necro_lich", name: "Lichlord", cost: 400, pal: {D: 0x2a4a6a, d: 0x142a40, E: 0x60e0ff, K: 0x2a8ad0}},
+				{id: "necro_plague", name: "Plague Doctor", cost: 1000, pal: {D: 0x3a5a2a, d: 0x203a14, K: 0x6ad040, E: 0xffe040}}],
+			huntress: [{id: "huntress_snow", name: "Snow Huntress", cost: 400, pal: {R: 0xe8f0ff, r: 0xa8b8d0, G: 0x6a8aa8, g: 0x4a6080}},
+				{id: "huntress_jungle", name: "Jungle Huntress", cost: 1000, pal: {R: 0x2a8a3a, r: 0x145a20, G: 0xc0a040, g: 0x8a7020}}]
+		};
+
+		/** Skin definition by id, with its base class id, or null. */
+		public static function findSkin(id:String):Object {
+			for (var cls:String in SKINS) {
+				for each (var sk:Object in SKINS[cls]) if (sk.id == id) return {base: cls, skin: sk};
+			}
+			return null;
+		}
+
 		// ---- pets (account-wide, like RotMG's pet yard) ---------------------------
 		public static const PET_SPECIES:Array = [
 			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},

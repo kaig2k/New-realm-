@@ -230,6 +230,7 @@ package realm {
 			imp: [BRUTE, {H: 0xe05020, h: 0x902a10, E: 0xffe040, B: 0x5a2a14, b: 0x3a1a0c, A: 0xff9030, L: 0x2a140a, W: 0xffb040, S: 0xe05020}],
 			skeleton: [HUMANOID, {H: 0xe8e0c8, h: 0xb0a890, S: 0xe8e0c8, E: 0x202020, B: 0xd0c8b0, b: 0x9a9280, A: 0x5a5a5a, L: 0xb0a890, W: 0xa0a0a0}],
 			shade: [HUMANOID, {H: 0x3a1a5a, h: 0x200c34, S: 0x7a5aa8, E: 0xff3060, B: 0x2e1448, b: 0x1a0a2c, A: 0xa060ff, L: 0x100818, W: 0xc080ff}],
+			famekeeper: [HUMANOID, {H: 0xd06010, h: 0x8a3a08, S: 0xf2c9a0, E: 0x101010, B: 0xff9a2e, b: 0xb06010, A: 0xffe080, L: 0x3a2014, W: 0xffe080}],
 			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf2c9a0, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
 			questboard: [QUESTBOARD, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 6],
 			slime: [BLOB, {B: 0x5ac040, b: 0x3a8a2a, W: 0x9aff7a, E: 0x103010}],
@@ -286,7 +287,7 @@ package realm {
 		// ================================================================ API
 		/** Animation frame `frame` of a sprite (0 stand, 1 walk, 2 attack). */
 		public static function get(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
-			var d:Array = DEFS[name] || DEFS["cubelet"];
+			var d:Array = DEFS[name] || skinDef(name) || DEFS["cubelet"];
 			var frames:Array = d[0];
 			if (frame >= frames.length) frame = 0;
 			var key:String = name + ":" + frame + (flip ? "f" : "");
@@ -319,6 +320,18 @@ package realm {
 		}
 
 		/** Flashed version used when something gets hit. */
+		/** Builds (once) the sprite definition for a class skin: the class frames with a recoloured palette. */
+		private static function skinDef(name:String):Array {
+			var f:Object = Data.findSkin(name);
+			if (!f) return null;
+			var base:Array = DEFS[f.base];
+			var pal:Object = {};
+			var k:String;
+			for (k in base[1]) pal[k] = base[1][k];
+			for (k in f.skin.pal) pal[k] = f.skin.pal[k];
+			return DEFS[name] = [base[0], pal, base[2]];
+		}
+
 		public static function hit(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var key:String = name + ":" + frame + (flip ? "f" : "") + ":hit";
 			var bd:BitmapData = cache[key];

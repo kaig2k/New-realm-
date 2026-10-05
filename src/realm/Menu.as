@@ -149,7 +149,7 @@ package realm {
 				Ui.panel(card.graphics, 0, 0, w, h, hover ? 0x3e3e3e : 0x262626, hover ? Ui.GOLD : 0x5a5a5a, 0.94);
 			};
 			draw(false);
-			var spr:Bitmap = new Bitmap(Sprites.get(c.cls));
+			var spr:Bitmap = new Bitmap(Sprites.get(c.skin || c.cls));
 			spr.scaleX = spr.scaleY = 1.4;
 			spr.x = 10; spr.y = (h - spr.height) / 2;
 			card.addChild(spr);
@@ -245,7 +245,7 @@ package realm {
 			for (var i:int = 0; i < Math.min(10, graves.length); i++) {
 				var g:Object = graves[i];
 				var ry:int = py + 54 + i * 38;
-				var ic:Bitmap = new Bitmap(Sprites.get(g.cls));
+				var ic:Bitmap = new Bitmap(Sprites.get(g.skin || g.cls));
 				ic.scaleX = ic.scaleY = 0.7;
 				ic.x = px + 18; ic.y = ry;
 				graveLayer.addChild(ic);

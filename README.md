@@ -72,11 +72,14 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   Frostbite, Executioner and Rampage) and **AR** (Ancient Relic). Each has its own coloured
   tag and loot bag.
 - **Currencies**: account-wide **Gold** and **Onrane**, plus account Fame.
-- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the **Sor Forge** (a UT, ST
+- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the Fame Store, the **Sor Forge** (a UT, ST
   or FB item + a Sor Crystal + 100 Onrane = a Legendary) and the **Marketplace** (buy
   potions, stat potions, Sor Crystals, mystery UTs and a **Backpack**, and shift+click items to sell them). A
   backpack gives that character 8 more inventory slots. Switch pages with the button by
   the sidebar tabs; keys 1-8 use the page you're on.
+- **Fame Store** (Nexus, north-west): spend account fame on skins, two per class, such as
+  Frost Mage, Dark Knight, Ghost (Rogue) and Plague Doctor (Necromancer). Skins cost
+  400 or 1,000 fame. Once bought, a skin can be equipped by any character of that class.
 - **Pet Yard**: hatch a pet egg (1,000 gold) in the Nexus to get one of six pets (Realm
   Pup, Jelly, Night Owl, Ember Drake, Wisp, Pebble Golem). Pets are Common, Rare or
   Legendary. They follow you, heal HP and MP every 3 seconds, and level up with every kill

@@ -25,6 +25,7 @@ package realm {
 		private var zoom:int = 1;
 		private var frameN:int = 0;
 		private var nameTf:TextField;
+		private var portrait:Bitmap;
 		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar, ptBar:Bar, sgBar:Bar;
 		private var equip:Vector.<Slot> = new Vector.<Slot>();
 		private var invSlots:Vector.<Slot> = new Vector.<Slot>();
@@ -66,7 +67,7 @@ package realm {
 
 			// --- name row: portrait, name, nexus button
 			var y:int = MINI_H + 4;
-			var portrait:Bitmap = new Bitmap(Sprites.get(g.player.cls.id));
+			portrait = new Bitmap(Sprites.get(g.player.spriteId));
 			portrait.scaleX = portrait.scaleY = 0.72;
 			portrait.x = 6;
 			portrait.y = y - 2;
@@ -337,6 +338,8 @@ package realm {
 		public function refresh():void {
 			var p:Player = g.player;
 			nameTf.text = p.name;
+			var pbd:BitmapData = Sprites.get(p.spriteId);
+			if (portrait.bitmapData != pbd) { portrait.bitmapData = pbd; portrait.scaleX = portrait.scaleY = 0.72; }
 			if (p.level >= Player.MAX_LEVEL) lvlBar.set(1, "Lvl " + p.level, "Max");
 			else lvlBar.set(p.xp / p.xpNext, "Lvl " + p.level, p.xp + "/" + p.xpNext);
 			fameBar.set(1, "Fame", Ui.commas(p.fame));

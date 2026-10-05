@@ -21,6 +21,8 @@ package realm {
 		public var inv:Array = [null, null, null, null, null, null, null, null];
 		/** RotMG backpack: 8 extra inventory slots (bought at the Marketplace). */
 		public var backpack:Boolean = false;
+		/** Equipped skin id, or "" for the class's default look. */
+		public var skin:String = "";
 		/** Which 8-slot page of the inventory the HUD shows (and keys 1-8 use). */
 		public var packPage:int = 0;
 		public var hpPots:int = 2, mpPots:int = 0;
@@ -141,7 +143,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "backpack", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
@@ -172,7 +174,11 @@ package realm {
 			var frame:int = 0;
 			if (attackT > 0) frame = shootT > (1 / fireRate) * 0.5 ? 2 : 0;
 			else if (moving) frame = int(walkT * 6) % 2;
-			return hitT > 0 ? Sprites.hit(cls.id, frame, facingLeft) : Sprites.get(cls.id, frame, facingLeft);
+			return hitT > 0 ? Sprites.hit(spriteId, frame, facingLeft) : Sprites.get(spriteId, frame, facingLeft);
+		}
+
+		public function get spriteId():String {
+			return skin || cls.id;
 		}
 
 		public function get fireRate():Number {

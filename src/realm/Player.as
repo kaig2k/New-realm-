@@ -299,6 +299,7 @@ package realm {
 		private function useAbility(g:Game):void {
 			var ab:Object = cls.ability;
 			if (abilityT > 0) return;
+			if (!ability) { g.msg("Equip an ability item first.", 0xff8080); abilityT = 0.5; return; }
 			if (mp < ab.cost) { g.msg("Not enough MP for " + ability.name, 0x8080ff); return; }
 			if (g.world.isSafe(x, y) && cls.id != "priest") return;
 			mp -= ab.cost;

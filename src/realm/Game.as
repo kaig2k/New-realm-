@@ -1173,7 +1173,7 @@ package realm {
 				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) p.mpPots++;
 				else {
 					var slot:int = p.freeSlot();
-					if (slot < 0) { msg("Inventory full! Shift+click an item to drop it.", 0xff8080); return; }
+					if (slot < 0) { msg("Inventory full! Drag an item onto the ground to drop it.", 0xff8080); return; }
 					p.inv[slot] = item;
 				}
 				nearBag.items.splice(idx, 1);
@@ -1199,6 +1199,74 @@ package realm {
 			} else if (kind == "pot") {
 				if (idx == 0) p.drinkHp(this); else p.drinkMp(this);
 			}
+		}
+
+		// ------------------------------------------------------------- drag and drop
+		private static const EQUIP_KINDS:Array = ["weapon", "ability", "armor", "ring"];
+
+		private function itemAt(kind:String, idx:int):Object {
+			var p:Player = player;
+			if (kind == "inv") return p.inv[idx];
+			if (kind == "bag") return nearBag && idx < nearBag.items.length ? nearBag.items[idx] : null;
+			if (EQUIP_KINDS.indexOf(kind) >= 0) return p[kind];
+			return null;
+		}
+
+		/** Drag an item onto the ground (the game view) to drop it, RotMG style. */
+		public function dragToGround(kind:String, idx:int):void {
+			var item:Object = itemAt(kind, idx);
+			if (!item) return;
+			if (kind == "inv") {
+				player.inv[idx] = null;
+				dropAtPlayer(item);
+				if (!nearBag || !nearBag.vault) msg("Dropped " + item.name + ".", 0xcccccc);
+				Sfx.play("loot", 0.4);
+			} else if (EQUIP_KINDS.indexOf(kind) >= 0) {
+				msg("Drag your " + kind + " into your inventory first to drop it.", 0xff8080);
+			}
+		}
+
+		/** Drag an item from one slot to another: move, swap, equip or put in a bag. */
+		public function dragToSlot(sk:String, si:int, dk:String, di:int):void {
+			var p:Player = player;
+			var item:Object = itemAt(sk, si);
+			if (!item || (sk == dk && si == di)) return;
+			var target:Object;
+			if (sk == "inv" && dk == "inv") {
+				p.inv[si] = p.inv[di];
+				p.inv[di] = item;
+			} else if (sk == "inv" && EQUIP_KINDS.indexOf(dk) >= 0) {
+				if (item.kind != dk) { msg("That doesn't go in your " + dk + " slot.", 0xff8080); return; }
+				p.useItem(si, this);
+			} else if (EQUIP_KINDS.indexOf(sk) >= 0 && dk == "inv") {
+				target = p.inv[di];
+				if (!target) {
+					if (sk == "weapon") { msg("You can't fight without a weapon! Swap it for another one instead.", 0xff8080); return; }
+					p[sk] = null;
+					p.inv[di] = item;
+					p.hp = Math.min(p.hp, p.maxHp);
+					p.mp = Math.min(p.mp, p.maxMp);
+				} else if (target.kind == sk) {
+					p.useItem(di, this);
+				} else {
+					msg("Drop it on an empty slot or an item of the same kind.", 0xff8080);
+					return;
+				}
+			} else if (sk == "bag" && dk == "inv") {
+				target = p.inv[di];
+				p.inv[di] = item;
+				if (target) nearBag.items[si] = target;
+				else nearBag.items.splice(si, 1);
+				nearBag.refresh();
+				if (nearBag.vault) saveVault();
+			} else if (sk == "inv" && dk == "bag") {
+				if (!nearBag) { dragToGround(sk, si); return; }
+				p.inv[si] = null;
+				dropAtPlayer(item);
+			} else {
+				return;
+			}
+			Sfx.play("loot", 0.35);
 		}
 
 		private function dropAtPlayer(item:Object):void {

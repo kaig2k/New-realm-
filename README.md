@@ -67,8 +67,15 @@ into the first account you create.
 | M | Mute / unmute sound |
 | P / Esc | Pause menu (options, Save & Quit) |
 
-To pick up loot, stand on a loot bag and click its items in the sidebar. Click an
-inventory item to equip or drink it, and shift+click to drop it.
+**Items work like RotMG, with drag and drop:**
+- **Drop:** drag an inventory item onto the ground (anywhere in the game view) to drop it in
+  a loot bag.
+- **Move:** drag between inventory slots to move or swap items.
+- **Equip:** drag onto a gear slot to equip, or drag gear into an empty inventory slot to take it off.
+- **Loot bags:** drag items between a loot bag (or the vault) and your inventory.
+- **Click:** clicking an item still uses or equips it, and clicking a loot bag item picks
+  it up.
+- **Shift+click:** sells an item at the Marketplace, and quick-drops it anywhere else.
 
 ## Features
 

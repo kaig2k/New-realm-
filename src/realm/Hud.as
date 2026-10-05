@@ -42,6 +42,11 @@ package realm {
 		private var bagBox:Shape;
 		private var tip:Tooltip;
 		private var hover:Slot;
+		// drag and drop
+		private var dragSlot:Slot;
+		private var dragging:Boolean = false;
+		private var dragGhost:Bitmap;
+		private var downX:Number, downY:Number;
 		private var lastStats:String = "";
 		private var lastBag:LootBag;
 
@@ -310,9 +315,67 @@ package realm {
 
 		private function onSlotDown(e:MouseEvent):void {
 			var s:Slot = Slot(e.currentTarget);
-			g.slotClick(s.kind, s.idx, e.shiftKey);
+			// shift+click keeps its shortcuts (sell at the Marketplace, quick drop); clicks on empty slots do nothing
+			if (e.shiftKey || !s.item) {
+				g.slotClick(s.kind, s.idx, e.shiftKey);
+				refresh();
+				showTip(s);
+				return;
+			}
+			dragSlot = s;
+			dragging = false;
+			downX = stage.mouseX; downY = stage.mouseY;
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, onDragMove);
+			stage.addEventListener(MouseEvent.MOUSE_UP, onDragUp);
+		}
+
+		private function onDragMove(e:MouseEvent):void {
+			if (!dragSlot) return;
+			if (!dragging) {
+				var dx:Number = stage.mouseX - downX, dy:Number = stage.mouseY - downY;
+				if (dx * dx + dy * dy < 36) return;
+				dragging = true;
+				dragGhost = new Bitmap(Sprites.icon(dragSlot.item));
+				dragGhost.alpha = 0.9;
+				addChild(dragGhost);
+				dragSlot.alpha = 0.35;
+				tip.visible = false;
+			}
+			dragGhost.x = mouseX - dragGhost.width / 2;
+			dragGhost.y = mouseY - dragGhost.height / 2;
+			e.updateAfterEvent();
+		}
+
+		private function onDragUp(e:MouseEvent):void {
+			stage.removeEventListener(MouseEvent.MOUSE_MOVE, onDragMove);
+			stage.removeEventListener(MouseEvent.MOUSE_UP, onDragUp);
+			var s:Slot = dragSlot;
+			dragSlot = null;
+			if (!s) return;
+			s.alpha = 1;
+			if (!dragging) {
+				// a plain click: use, equip or pick up
+				g.slotClick(s.kind, s.idx, false);
+			} else {
+				if (dragGhost) { removeChild(dragGhost); dragGhost = null; }
+				dragging = false;
+				var target:Slot = slotUnderMouse();
+				if (target) g.dragToSlot(s.kind, s.idx, target.kind, target.idx);
+				else if (mouseX < 0) g.dragToGround(s.kind, s.idx);
+			}
 			refresh();
-			showTip(s);
+			if (hover) showTip(hover);
+		}
+
+		private function slotUnderMouse():Slot {
+			var lists:Array = [invSlots, equip, bagSlots];
+			for each (var list:Vector.<Slot> in lists) {
+				for each (var sl:Slot in list) {
+					if (!sl.visible || !sl.parent || !sl.parent.visible) continue;
+					if (sl.hitTestPoint(stage.mouseX, stage.mouseY, false)) return sl;
+				}
+			}
+			return null;
 		}
 
 		private function onSlotOver(e:MouseEvent):void {
@@ -327,7 +390,7 @@ package realm {
 
 		private function showTip(s:Slot):void {
 			if (!s || !s.item) { tip.visible = false; return; }
-			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Shift+click to drop.") : "Equipped";
+			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up, or drag into a slot") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Drag onto the ground to drop.") : "Equipped. Drag into your inventory to take it off.";
 			tip.show(s.item, hint);
 			var lp:Point = globalToLocal(s.localToGlobal(new Point(0, 0)));
 			tip.x = lp.x - tip.width - 8;

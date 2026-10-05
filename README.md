@@ -25,13 +25,13 @@ double-click, run `package.sh` / `package.bat`. It builds a captive-runtime bund
 `dist/NewRealm` and creates a self-signed certificate the first time.
 
 After changing the code, rebuild with `build.sh` / `build.bat` (uses `amxmlc`).
+The source also compiles with the Apache Flex SDK's `mxmlc`, and the SWF runs in
+Flash Player or Ruffle.
 
 The UI font is Source Sans Pro (SIL Open Font License, see `assets/fonts/`). It is
 precompiled into `assets/fonts/RealmFonts.swf` and loaded at startup. You only need to
 rebuild that file if you change the fonts, and that needs the Apache Flex SDK's `mxmlc`
 (see `assets/fonts/RealmFonts.as`).
-The source also compiles with the Apache Flex SDK's `mxmlc`, and the SWF runs in
-Flash Player or Ruffle.
 
 ## Controls
 

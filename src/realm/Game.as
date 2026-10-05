@@ -32,12 +32,19 @@ package realm {
 		public var world:World;
 		public var player:Player;
 		public var input:Input;
-		public var enemies:Vector.<Enemy> = new Vector.<Enemy>();
 		public var shots:Vector.<Projectile> = new Vector.<Projectile>();
-		public var bags:Vector.<LootBag> = new Vector.<LootBag>();
 		public var parts:Vector.<Particle> = new Vector.<Particle>();
-		public var boss:Enemy;
 		public var nearBag:LootBag;
+		public var nexusWorld:World;
+		/** Realms reachable from the nexus portals (created on first entry). */
+		public var realms:Array = [null, null, null];
+		public var realmNames:Array = [];
+		private var portals:Array = [];
+		private var nearPortal:Object;
+		private var vaultBag:LootBag;
+		private var vaultLabel:TextField;
+		private var promptPanel:Sprite;
+		private var promptTf:TextField;
 		public var camX:Number, camY:Number;
 		public var time:Number = 0;
 
@@ -62,8 +69,6 @@ package realm {
 		private var lastT:int;
 		private var spawnT:Number = 0;
 		private var revealT:Number = 0;
-		public var killsToBoss:int = 40;
-		public var bossGoal:int = 40;
 		private var tauntT:Number = 30;
 		private var deathInfo:Object;
 		private var onDeath:Function;
@@ -74,8 +79,10 @@ package realm {
 
 		public function Game(clsId:String, name:String, onDeath:Function) {
 			this.onDeath = onDeath;
-			world = new World();
+			world = nexusWorld = new World("nexus", "Nexus");
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
+			var pool:Array = Data.REALM_NAMES.concat();
+			for (var ri:int = 0; ri < 3; ri++) realmNames.push(pool.splice(int(Math.random() * pool.length), 1)[0]);
 			camX = player.x;
 			camY = player.y;
 			world.reveal(player.x, player.y, 14);
@@ -103,6 +110,7 @@ package realm {
 
 			buildCounters();
 			buildBossPanel();
+			buildNexus();
 
 			hud = new Hud(this);
 			hud.x = VIEW_W;
@@ -169,15 +177,108 @@ package realm {
 			addChild(bossPanel);
 		}
 
+		// per-world state lives on the World, so each realm keeps its own monsters and loot
+		public function get enemies():Vector.<Enemy> { return world.enemies; }
+		public function get bags():Vector.<LootBag> { return world.bags; }
+		public function get boss():Enemy { return world.boss; }
+		public function set boss(e:Enemy):void { world.boss = e; }
+		public function get killsToBoss():int { return world.killsToBoss; }
+		public function set killsToBoss(n:int):void { world.killsToBoss = n; }
+		public function get bossGoal():int { return world.bossGoal; }
+		public function set bossGoal(n:int):void { world.bossGoal = n; }
+		public function get inNexus():Boolean { return world == nexusWorld; }
+
+		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a];
+
+		private function buildNexus():void {
+			var px:Array = [90.5, 100.5, 110.5];
+			for (var i:int = 0; i < 3; i++) {
+				var lab:TextField = Ui.text(13, 0xffffff, true, "center", 160, true);
+				addChildAt(lab, getChildIndex(floatLayer));
+				portals.push({x: px[i], y: 84.2, idx: i, label: lab});
+			}
+			var saved:Array = Save.data.vault as Array;
+			var items:Array = [];
+			if (saved) for each (var it:Object in saved) if (it && items.length < LootBag.MAX) items.push(it);
+			vaultBag = new LootBag(83.5, 100.5, items);
+			vaultBag.vault = true;
+			vaultBag.refresh();
+			nexusWorld.bags.push(vaultBag);
+			vaultLabel = Ui.text(13, Ui.GOLD, true, "center", 120, true);
+			vaultLabel.text = "Vault";
+			addChildAt(vaultLabel, getChildIndex(floatLayer));
+
+			promptPanel = new Sprite();
+			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
+			promptTf = Ui.text(17, 0xffffff, true, "center", 280, true);
+			promptTf.y = 6;
+			promptPanel.addChild(promptTf);
+			var btn:Sprite = Ui.button("Enter", 120, 30, function():void { if (nearPortal) enterPortal(nearPortal.idx); });
+			btn.x = 80; btn.y = 40;
+			promptPanel.addChild(btn);
+			promptPanel.x = (VIEW_W - 280) / 2;
+			promptPanel.y = VIEW_H - 250;
+			promptPanel.visible = false;
+			addChild(promptPanel);
+		}
+
+		private function saveVault():void {
+			Save.data.vault = vaultBag.items.concat();
+			Save.flush();
+		}
+
+		private function realmStatus(i:int):String {
+			var r:World = realms[i];
+			if (!r) return "New realm";
+			if (r.boss) return "Overlord is awake!";
+			return "Overlord " + (r.bossGoal - r.killsToBoss) + "/" + r.bossGoal;
+		}
+
+		/** Walk through a nexus portal into its realm. */
+		public function enterPortal(i:int):void {
+			var r:World = realms[i];
+			if (!r || r.closed) {
+				if (r && r.closed) {
+					var pool:Array = Data.REALM_NAMES.filter(function(n:String, ...a):Boolean { return realmNames.indexOf(n) < 0; });
+					realmNames[i] = pool[int(Math.random() * pool.length)];
+				}
+				r = realms[i] = new World("realm", realmNames[i]);
+			}
+			switchWorld(r, r.spawnX, r.spawnY);
+			showBanner(r.name + " Realm", PORTAL_COLORS[i], 3);
+			msg("You have entered the " + r.name + " realm.", Ui.GOLD);
+			taunt(r.boss ? "My Overlord awaits you in the Godlands, fool!" : "Another fool enters my " + r.name + " realm...");
+		}
+
+		private function switchWorld(w:World, x:Number, y:Number):void {
+			world = w;
+			player.x = x;
+			player.y = y;
+			player.invulnT = 1.5;
+			shots.length = 0;
+			parts.length = 0;
+			for each (var f:Floater in floaters) f.tf.visible = false;
+			nearBag = null;
+			nearPortal = null;
+			lastZone = -2;
+			camX = x;
+			camY = y;
+			world.reveal(x, y, 14);
+			var nx:Boolean = inNexus;
+			for each (var p:Object in portals) p.label.visible = nx;
+			vaultLabel.visible = nx;
+		}
+
 		private function onAdded(e:Event):void {
 			removeEventListener(Event.ADDED_TO_STAGE, onAdded);
 			input = new Input(stage);
 			lastT = getTimer();
 			addEventListener(Event.ENTER_FRAME, tick);
-			msg("Welcome to the Realm, " + player.name + "!", Ui.GOLD);
-			msg("WASD move, mouse aims and shoots, SPACE ability, F/G potions, R returns to the Haven.", 0xcccccc);
-			msg("Head inland - the closer to the centre, the deadlier (and richer) the Realm.", 0xcccccc);
-			taunt("Welcome to my realm, mortal. You will not leave it alive.");
+			showBanner("Nexus", 0xffffff, 2.5);
+			msg("Welcome to the Nexus, " + player.name + "!", Ui.GOLD);
+			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
+			msg("The fountain heals you. The vault (west) keeps items between characters.", 0xcccccc);
+			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 		}
 
 		public function destroy():void {
@@ -223,7 +324,8 @@ package realm {
 			updateBags(dt);
 			updateParticles(dt);
 			updateFloaters(dt);
-			updateSpawns(dt);
+			if (!inNexus) updateSpawns(dt);
+			updateNexus(dt);
 
 			revealT -= dt;
 			if (revealT <= 0) {
@@ -231,7 +333,7 @@ package realm {
 				world.reveal(player.x, player.y, 14);
 			}
 
-			tauntT -= dt;
+			if (!inNexus) tauntT -= dt;
 			if (tauntT <= 0) {
 				tauntT = 50 + Math.random() * 40;
 				taunt(TAUNTS[int(Math.random() * TAUNTS.length)]);
@@ -244,7 +346,7 @@ package realm {
 
 			var z:int = world.zoneAt(player.x, player.y);
 			if (z != lastZone && z >= 0) {
-				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd090ff, 0xffffff][z], 2.5);
+				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd090ff, 0xffffff, 0xffffff][z], 2.5);
 				lastZone = z;
 			}
 
@@ -252,6 +354,32 @@ package realm {
 			camY = player.y;
 
 			if (player.hp <= 0 && !deathInfo) die();
+		}
+
+		private function updateNexus(dt:Number):void {
+			if (inNexus) {
+				// healing fountain
+				if (world.tileAt(player.x, player.y) == World.FOUNTAIN) {
+					player.hp = Math.min(player.maxHp, player.hp + player.maxHp * 0.6 * dt);
+					player.mp = Math.min(player.maxMp, player.mp + player.maxMp * 0.6 * dt);
+				}
+				nearPortal = null;
+				for each (var p:Object in portals) {
+					var dx:Number = p.x - player.x, dy:Number = p.y - player.y;
+					if (dx * dx + dy * dy < 1.3 * 1.3) nearPortal = p;
+				}
+				if (nearPortal && input.pressed(Keyboard.ENTER)) enterPortal(nearPortal.idx);
+			} else if (world.closeT > 0) {
+				var before:int = Math.ceil(world.closeT);
+				world.closeT -= dt;
+				var after:int = Math.ceil(world.closeT);
+				if (after != before && (after == 10 || after <= 5) && after > 0) msg("Realm closing in " + after + "...", 0xff8080);
+				if (world.closeT <= 0) {
+					world.closed = true;
+					msg("The " + world.name + " realm has closed.", 0xff8080);
+					nexus();
+				}
+			}
 		}
 
 		private function updateShots(dt:Number):void {
@@ -317,7 +445,8 @@ package realm {
 				boss = null;
 				showBanner("The Cube Overlord has fallen!", Ui.GOLD, 4);
 				say(SOVEREIGN, "Impossible... my Overlord! You will pay for this!");
-				msg("A white bag has dropped!", 0xffffff);
+				msg("A white bag has dropped! The realm closes in 30 seconds - grab your loot.", 0xffffff);
+				world.closeT = 30;
 				killsToBoss = bossGoal = 60;
 			} else if (!boss && e.def.drop > 0) {
 				killsToBoss--;
@@ -340,8 +469,8 @@ package realm {
 			var best:Number = 1.0;
 			for (var i:int = bags.length - 1; i >= 0; i--) {
 				var b:LootBag = bags[i];
-				b.life -= dt;
-				if (b.life <= 0 || b.items.length == 0) {
+				if (!b.vault) b.life -= dt;
+				if (!b.vault && (b.life <= 0 || b.items.length == 0)) {
 					bags[i] = bags[bags.length - 1];
 					bags.length--;
 					continue;
@@ -469,13 +598,14 @@ package realm {
 			return n;
 		}
 
+		/** R key / temple button: return to the Nexus (full heal). */
 		public function nexus():void {
-			player.x = world.spawnX;
-			player.y = world.spawnY;
+			var wasNexus:Boolean = inNexus;
+			switchWorld(nexusWorld, nexusWorld.spawnX, nexusWorld.spawnY);
 			player.hp = player.maxHp;
 			player.mp = player.maxMp;
-			player.invulnT = 1.5;
-			msg("You return to the Safe Haven. HP and MP restored.", 0xffffff);
+			if (!wasNexus) showBanner("Nexus", 0xffffff, 2);
+			msg("You return to the Nexus. HP and MP restored.", 0xffffff);
 		}
 
 		public function slotClick(kind:String, idx:int, shift:Boolean):void {
@@ -493,6 +623,7 @@ package realm {
 				}
 				nearBag.items.splice(idx, 1);
 				nearBag.refresh();
+				if (nearBag.vault) saveVault();
 			} else if (kind == "inv") {
 				item = p.inv[idx];
 				if (!item) return;
@@ -511,7 +642,11 @@ package realm {
 			if (nearBag && nearBag.items.length < LootBag.MAX) {
 				nearBag.items.push(item);
 				nearBag.refresh();
-				nearBag.life = 45;
+				if (nearBag.vault) { saveVault(); msg("Stored " + item.name + " in your vault.", Ui.GOLD); }
+				else nearBag.life = 45;
+			} else if (nearBag && nearBag.vault) {
+				player.inv[player.inv.indexOf(null)] = item;
+				msg("Your vault is full.", 0xff8080);
 			} else {
 				bags.push(new LootBag(player.x, player.y, [item]));
 			}
@@ -581,6 +716,10 @@ package realm {
 			fameTf.text = Ui.commas(player.fame);
 			killTf.text = Ui.commas(player.kills);
 			statusTf.text = player.burning ? "Burning!" : "";
+			promptPanel.visible = nearPortal != null;
+			if (nearPortal) {
+				promptTf.htmlText = realmNames[nearPortal.idx] + " Realm<font size='13' color='#aaaaaa'>  -  press Enter</font>";
+			}
 			statusTf.x = CX - 100;
 			statusTf.y = CY - 76;
 
@@ -633,6 +772,21 @@ package realm {
 			for each (var b:LootBag in bags) {
 				if (b.life < 8 && int(b.life * 4) % 2 == 0) continue;
 				drawEntity(Sprites.get(b.spr), b.x * TS + ox, b.y * TS + oy, 0);
+			}
+
+			// nexus portals and labels
+			if (inNexus) {
+				for each (var p:Object in portals) {
+					var pcx:Number = p.x * TS + ox, pcy:Number = p.y * TS + oy;
+					var pbd:BitmapData = Sprites.portal(PORTAL_COLORS[p.idx], int(time * 8));
+					var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
+					var lab:TextField = p.label;
+					lab.htmlText = realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>";
+					lab.x = int(pcx - lab.width / 2);
+					lab.y = int(ptop - lab.height - 2);
+				}
+				vaultLabel.x = int(vaultBag.x * TS + ox - vaultLabel.width / 2);
+				vaultLabel.y = int(vaultBag.y * TS + oy - 58);
 			}
 
 			// y-sorted: world objects, enemies, player

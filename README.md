@@ -5,6 +5,7 @@ ActionScript 3 for **Adobe AIR**. All of the pixel art is generated in code: 8x8
 scaled 5x with thin outlines and drop shadows, textured tiles, and rotated projectiles.
 
 ![screenshot](docs/screenshot.png)
+![nexus](docs/nexus.png)
 
 ## Play it
 
@@ -42,7 +43,8 @@ rebuild that file if you change the fonts, and that needs the Apache Flex SDK's 
 | Space | Class ability (aimed at cursor) |
 | F / G | Drink health / magic potion |
 | 1-8 | Use or equip the item in that inventory slot |
-| R | Return to the Safe Haven (full heal) |
+| R | Return to the Nexus (full heal) |
+| Enter | Go through the portal you are standing on |
 | I | Toggle auto-fire |
 | P / Esc | Pause |
 
@@ -53,7 +55,15 @@ inventory item to equip or drink it, and shift+click to drop it.
 
 - **4 classes**: Wizard (twin-bolt staff, Spell Bomb), Archer (piercing arrows, slowing
   Quiver), Knight (sword, stunning Shield Bash) and Priest (wand, Holy Tome heal).
-- **A procedurally generated island realm.** Difficulty rises as you head inland:
+- **The Nexus hub.** Every character starts in the Nexus: a walled stone hall with red
+  carpets, braziers and a healing fountain. Three portals along the north wall each lead
+  to their own realm, and their labels show the realm's Overlord progress. Press R (or
+  the temple button) to return from anywhere. The **vault** chest on the west side stores
+  up to 8 items that carry over between characters: shift+click an inventory item while
+  standing at the vault to deposit it, and click a vault item to take it out. After you
+  kill a realm's Cube Overlord, that realm closes 30 seconds later and its portal opens
+  a fresh realm.
+- **Procedurally generated island realms.** Difficulty rises as you head inland:
   Shore → Lowlands → Midlands → Godlands. Brick ruins are scattered inland, and the
   Godlands ruins have lava rivers that burn you. You start in the Safe Haven, where
   enemies and their bullets can't reach you.

@@ -80,8 +80,8 @@ package realm {
 
 			var help:TextField = Ui.text(14, 0xcccccc, false, "center", Ui.W, true);
 			help.htmlText = "<b>WASD</b> move   <b>Mouse</b> aim + shoot   <b>Space</b> ability   <b>F / G</b> health / magic potion   " +
-				"<b>1-8</b> use item   <b>R</b> return to Haven   <b>I</b> auto-fire   <b>P</b> pause\n" +
-				"Stand on loot bags and click their items in the sidebar. Slay enough monsters and the Cube Overlord appears.";
+				"<b>1-8</b> use item   <b>R</b> return to Nexus   <b>I</b> auto-fire   <b>P</b> pause\n" +
+				"You start in the Nexus: step into a portal to enter a realm. Slay enough monsters and the Cube Overlord appears.";
 			help.y = 546;
 			addChild(help);
 

@@ -212,7 +212,8 @@ package realm {
 			["orc", "elf", "gazer", "orc"],
 			["medusa", "djinn", "ent", "beholder"]
 		];
-		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven"];
+		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus"];
+		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];
 
 		// ---- loot -------------------------------------------------------
 		public static function rollLoot(def:Object, zone:int, cls:Object):Array {

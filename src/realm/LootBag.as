@@ -5,6 +5,8 @@ package realm {
 		public var items:Array;
 		public var life:Number = 45;
 		public var spr:String;
+		/** The nexus vault: never expires, persists between characters. */
+		public var vault:Boolean = false;
 
 		public function LootBag(x:Number, y:Number, items:Array) {
 			this.x = x;
@@ -14,7 +16,7 @@ package realm {
 		}
 
 		public function refresh():void {
-			spr = Data.bagColor(items);
+			spr = vault ? "chest" : Data.bagColor(items);
 		}
 	}
 }

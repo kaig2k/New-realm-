@@ -13,9 +13,14 @@ package realm {
 		public static const PX:int = 8;
 
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
-		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree"];
+		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12;
+		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier"];
+		public static const NEXUS_ZONE:int = 5;
 
-		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a];
+		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
+			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8];
+		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
+		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
 		private static const PLAZA_PAT:Array = ["LLLMMLLL", "LLMLLMLL", "LMLDDLML", "MLDLLDLM", "MLDLLDLM", "LMLDDLML", "LLMLLMLL", "LLLMMLLL"];
 		private static const BRICK_PAT:Array = ["hhhaHHHb", "hAAaHBBb", "hAAaHBBb", "aaaabbbb", "HHHbhhha", "HBBbhAAa", "HBBbhAAa", "bbbbaaaa"];
@@ -29,12 +34,27 @@ package realm {
 		public var spawnX:Number;
 		public var spawnY:Number;
 
+		/** "realm" or "nexus". */
+		public var kind:String;
+		public var name:String;
+		// per-world game state, so a realm keeps its monsters, loot and boss while you're away
+		public var enemies:Vector.<Enemy> = new Vector.<Enemy>();
+		public var bags:Vector.<LootBag> = new Vector.<LootBag>();
+		public var boss:Enemy;
+		public var killsToBoss:int = 40;
+		public var bossGoal:int = 40;
+		public var closeT:Number = 0;
+		public var closed:Boolean = false;
+
 		private var noise:Vector.<Number>;
 		private var noiseW:int;
 		private const CELL:int = 10;
 
-		public function World() {
-			generate();
+		public function World(kind:String = "realm", name:String = "") {
+			this.kind = kind;
+			this.name = name;
+			if (kind == "nexus") generateNexus();
+			else generate();
 			render();
 			seen = new BitmapData(N, N, true, 0);
 		}
@@ -102,6 +122,43 @@ package realm {
 					else if (tiles[i] != WATER) objs[i] = 0;
 				}
 			}
+		}
+
+		/**
+		 * The Nexus: a walled stone hall with a healing fountain, a red carpet
+		 * cross, braziers, realm portals to the north and the vault to the west.
+		 */
+		private function generateNexus():void {
+			var x:int, y:int, i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			var x0:int = 78, x1:int = 122, y0:int = 82, y1:int = 116;
+			for (y = y0; y <= y1; y++) {
+				for (x = x0; x <= x1; x++) {
+					i = y * N + x;
+					zones[i] = NEXUS_ZONE;
+					tiles[i] = (x == x0 || x == x1 || y == y0 || y == y1) ? WALL : STONE;
+				}
+			}
+			// pillars
+			var pillars:Array = [[83, 87], [117, 87], [83, 111], [117, 111], [92, 93], [108, 93], [92, 107], [108, 107]];
+			for each (var pp:Array in pillars) tiles[pp[1] * N + pp[0]] = WALL;
+			// carpets: north-south and east-west
+			for (y = 88; y <= 115; y++) for (x = 99; x <= 101; x++) tiles[y * N + x] = CARPET;
+			for (x = 82; x <= 118; x++) for (y = 99; y <= 101; y++) tiles[y * N + x] = CARPET;
+			// portal alcove along the north wall
+			for (x = 86; x <= 114; x++) for (y = 83; y <= 87; y++) tiles[y * N + x] = CARPET;
+			// healing fountain
+			for (y = 96; y <= 104; y++) {
+				for (x = 96; x <= 104; x++) {
+					var d:Number = Math.sqrt((x - 100) * (x - 100) + (y - 100) * (y - 100));
+					if (d <= 2.9) tiles[y * N + x] = FOUNTAIN;
+				}
+			}
+			// braziers
+			var lights:Array = [[95, 95], [105, 95], [95, 105], [105, 105], [80, 84], [120, 84], [80, 114], [120, 114], [97, 113], [103, 113]];
+			for each (var lp:Array in lights) objs[lp[1] * N + lp[0]] = 7;
+			spawnX = 100.5;
+			spawnY = 110.5;
 		}
 
 		/** Brick ruins in the midlands and godlands; godland ruins have lava rivers. */
@@ -174,6 +231,24 @@ package realm {
 							c = bc == "A" ? 0xa86a3c : bc == "a" ? 0x7c4a28 : bc == "h" ? 0xc4874f : bc == "B" ? 0x8a5230 : bc == "H" ? 0xa0663c : 0x643a1e;
 							if (r < 0.15) c = Sprites.shade(c, 0.93);
 							break;
+						case VOID:
+							c = 0x000000;
+							break;
+						case STONE:
+							var sc:String = String(STONE_PAT[y]).charAt(x);
+							c = sc == "S" ? 0x5c5c64 : sc == "H" ? 0x707078 : sc == "h" ? 0x68686f : 0x404046;
+							if (r < 0.12 && sc != "m") c = Sprites.shade(c, 0.92);
+							break;
+						case WALL:
+							var wc:String = String(WALL_PAT[y]).charAt(x);
+							c = wc == "L" ? 0xc4c4cc : wc == "T" ? 0xa4a4ac : wc == "d" ? 0x7a7a82 : wc == "F" ? 0x55555c : 0x3a3a40;
+							break;
+						case CARPET:
+							c = r < 0.08 ? 0x7a1616 : ((gx + gy) % 4 == 0 && r < 0.5) ? 0xa82828 : 0x8c1c1c;
+							break;
+						case FOUNTAIN:
+							c = r < 0.06 ? 0xb0e8ff : (gx * 3 + gy * 5) % 9 == 0 ? 0x5aa8f0 : 0x3a86d4;
+							break;
 						case LAVA:
 							var ls:int = (gx + gy) & 3;
 							c = ls == 0 ? 0x8a1a0e : ls == 1 ? 0xe04a22 : 0xc0301a;
@@ -214,6 +289,8 @@ package realm {
 			if (t == BRICK || t == LAVA) { col = 0xb8ab98; dark = 0x2a2a2a; }
 			else if (t == PLAZA) { col = 0x8c8c8c; dark = 0x5a5a5a; }
 			else if (t == WATER) { col = 0x7aa0e0; dark = 0x2b4ea0; }
+			else if (t == CARPET) { col = 0xd8a830; dark = 0x8a6a18; }
+			else if (t == FOUNTAIN) { col = 0xd0d0d8; dark = 0x8a8a92; }
 			else return;
 			var px:int = x * PX, py:int = y * PX;
 			var same:Function = function(nt:int):Boolean {
@@ -268,11 +345,12 @@ package realm {
 		public function walkable(x:Number, y:Number):Boolean {
 			if (x < 0 || y < 0 || x >= N || y >= N) return false;
 			var i:int = int(y) * N + int(x);
-			return tiles[i] != WATER && objs[i] == 0;
+			var t:int = tiles[i];
+			return t != WATER && t != VOID && t != WALL && objs[i] == 0;
 		}
 
 		public function isSafe(x:Number, y:Number):Boolean {
-			return tileAt(x, y) == PLAZA;
+			return zoneAt(x, y) >= 4;
 		}
 
 		/** True if a body of half-size r fits at (x, y). Enemies may not enter the safe haven. */

@@ -251,7 +251,7 @@ package realm {
 
 		private function showTip(s:Slot):void {
 			if (!s || !s.item) { tip.visible = false; return; }
-			var hint:String = s.kind == "bag" ? "Click to pick up" : s.kind == "inv" ? "Click to use or equip. Shift+click to drop." : "Equipped";
+			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up") : s.kind == "inv" ? "Click to use or equip. Shift+click to drop." : "Equipped";
 			tip.show(s.item, hint);
 			var lp:Point = globalToLocal(s.localToGlobal(new Point(0, 0)));
 			tip.x = lp.x - tip.width - 8;
@@ -269,7 +269,8 @@ package realm {
 			hpBar.set(p.hp / p.maxHp, "HP", int(Math.max(0, p.hp)) + "/" + p.maxHp + (hb > 0 ? " <font color='#ffe36e'>(+" + hb + ")</font>" : ""));
 			mpBar.set(p.mp / p.maxMp, "MP", int(p.mp) + "/" + p.maxMp + (mb > 0 ? " <font color='#ffe36e'>(+" + mb + ")</font>" : ""));
 			var done:int = g.bossGoal - g.killsToBoss;
-			if (g.boss) bossBar.set(1, "OV", "Active!");
+			if (g.inNexus) bossBar.set(0, "OV", "-");
+			else if (g.boss) bossBar.set(1, "OV", "Active!");
 			else bossBar.set(done / g.bossGoal, "OV", done + "/" + g.bossGoal);
 			var maxed:int = 0;
 			for each (var st0:String in Data.STATS) if (p.stats[st0] >= p.cls.max[st0]) maxed++;

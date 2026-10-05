@@ -72,9 +72,16 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   Frostbite, Executioner and Rampage) and **AR** (Ancient Relic). Each has its own coloured
   tag and loot bag.
 - **Currencies**: account-wide **Gold** and **Onrane**, plus account Fame.
-- **The Nexus**: realm portals, a healing fountain, the vault, the **Sor Forge** (a UT, ST
+- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the **Sor Forge** (a UT, ST
   or FB item + a Sor Crystal + 100 Onrane = a Legendary) and the **Marketplace** (buy
   potions, stat potions, Sor Crystals and mystery UTs, and shift+click items to sell them).
+- **Pet Yard**: hatch a pet egg (1,000 gold) in the Nexus to get one of six pets (Realm
+  Pup, Jelly, Night Owl, Ember Drake, Wisp, Pebble Golem). Pets are Common, Rare or
+  Legendary. They follow you, heal HP and MP every 3 seconds, and level up with every kill
+  (or when you feed them gold). Rarer pets reach higher levels. Your pet is shared by all
+  your characters and survives their deaths.
+- **Graveyard**: the title screen lists your 30 most recently fallen heroes. Each entry shows
+  the hero's level, kills, fame and what killed them.
 - **Realm events**: the realm's overlord, *Azrakor the Dark Elder*, keeps summoning event
   bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King, Gorehorn the Behemoth, the
   Phantom Regent) and announces each kill in

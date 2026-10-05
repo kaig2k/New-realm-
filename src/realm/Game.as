@@ -51,6 +51,9 @@ package realm {
 		private var stationPanel:Sprite;
 		private var openStation:Object;
 		private var traps:Array = [];
+		private var petX:Number = 0, petY:Number = 0, petHealT:Number = 3;
+		private var petMoving:Boolean = false;
+		private var releaseArmed:Boolean = false;
 		private var goldTf:TextField, onraneTf:TextField;
 		private var thresholdTf:TextField;
 		private var vaultBag:LootBag;
@@ -379,6 +382,7 @@ package realm {
 			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Sor Forge", 0xc080ff)});
 			stations.push({x: 106.5, y: 111.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f)});
 			stations.push({x: 94.5, y: 111.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080)});
+			stations.push({x: 116.5, y: 93.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff)});
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
@@ -495,6 +499,7 @@ package realm {
 			player.x = x;
 			player.y = y;
 			player.invulnT = 1.5;
+			petX = x - 1; petY = y + 0.5;
 			shots.length = 0;
 			parts.length = 0;
 			for each (var f:Floater in floaters) f.tf.visible = false;
@@ -581,6 +586,7 @@ package realm {
 			}
 			updateNexus(dt);
 			updateTraps(dt);
+			updatePet(dt);
 
 			revealT -= dt;
 			if (revealT <= 0) {
@@ -851,6 +857,7 @@ package realm {
 			else if (e.isBoss) questEvent("events");
 			p.kills++;
 			p.gainXp(e.def.xp, this);
+			petGainXp(e.isBoss ? 20 : 1);
 			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
 			var dx:Number = e.x - p.x, dy:Number = e.y - p.y;
 			if (dx * dx + dy * dy < 12 * 12) p.addSurge(this);
@@ -1051,6 +1058,12 @@ package realm {
 			if (!save.bestLevel) save.bestLevel = {};
 			if (p.level > (save.bestLevel[p.cls.id] || 0)) save.bestLevel[p.cls.id] = p.level;
 			Save.removeChar(p.id);
+			// the graveyard keeps the 30 most recent fallen heroes
+			if (!(save.graves is Array)) save.graves = [];
+			var now:Date = new Date();
+			save.graves.unshift({name: p.name, cls: p.cls.id, level: p.level, fame: fame, kills: p.kills,
+				killer: p.lastHitBy || "the Realm", date: now.fullYear + "-" + (now.month + 1) + "-" + now.date});
+			if (save.graves.length > 30) save.graves.length = 30;
 			Save.flush();
 			deathInfo = {
 				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best,
@@ -1157,6 +1170,7 @@ package realm {
 
 		private function closeStation():void {
 			openStation = null;
+			releaseArmed = false;
 			if (stationPanel) {
 				stationPanel.visible = false;
 				stationPanel.removeChildren();
@@ -1170,8 +1184,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080}[openStation.kind], true, "center", w, true);
-			title.text = {forge: "Sor Forge", market: "Marketplace", quests: "Daily Quests"}[openStation.kind];
+			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff}[openStation.kind], true, "center", w, true);
+			title.text = {forge: "Sor Forge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -1200,6 +1214,8 @@ package realm {
 					sp.addChild(none);
 				}
 				y += 56;
+			} else if (openStation.kind == "pets") {
+				y = buildPetPanel(sp, info, y, w);
 			} else if (openStation.kind == "quests") {
 				info.htmlText = "Complete these missions with any character. New quests every day.";
 				info.y = y;
@@ -1318,6 +1334,119 @@ package realm {
 
 		private function forgeFn(slot:int):Function {
 			return function():void { forge(slot); };
+		}
+
+		// ------------------------------------------------------------- pets
+		public function get pet():Object { return Save.data.pet; }
+
+		/** The pet trails behind the player and heals HP / MP every few seconds. */
+		private function updatePet(dt:Number):void {
+			var pt:Object = pet;
+			if (!pt) return;
+			var dx:Number = player.x - petX, dy:Number = player.y - petY;
+			var d:Number = Math.sqrt(dx * dx + dy * dy);
+			if (d > 10) { petX = player.x - 1; petY = player.y + 0.5; d = 0; }
+			petMoving = d > 1.4;
+			if (petMoving) {
+				var sp:Number = Math.min(d - 1.2, (4 + 5.6 * (player.spd / 75)) * 1.15 * dt);
+				petX += dx / d * sp; petY += dy / d * sp;
+			}
+			petHealT -= dt;
+			if (petHealT <= 0) {
+				petHealT = 3;
+				if (inNexus || player.hp <= 0) return;
+				var h:int = Math.min(Data.petHeal(pt), player.maxHp - player.hp);
+				var m:int = Math.min(Data.petMagic(pt), player.maxMp - player.mp);
+				if (h > 0 && player.status.bleeding <= 0) {
+					player.hp += h;
+					if (opt("dmg")) floatText(player.x, player.y - 1.2, "+" + h, 0x60ff60);
+				}
+				if (m > 0) player.mp += m;
+				if (h > 0 || m > 0) burst(petX, petY - 0.3, 0x60ff90, 4);
+			}
+		}
+
+		private function petGainXp(n:int):void {
+			var pt:Object = pet;
+			if (!pt) return;
+			var max:int = Data.PET_RARITIES[pt.rarity].max;
+			if (pt.level >= max) return;
+			pt.xp += n;
+			while (pt.level < max && pt.xp >= Data.petXpNeeded(pt.level)) {
+				pt.xp -= Data.petXpNeeded(pt.level);
+				pt.level++;
+				msg(pt.name + " reached level " + pt.level + "!", Data.PET_RARITIES[pt.rarity].col);
+			}
+		}
+
+		private function buildPetPanel(sp:Sprite, info:TextField, y:int, w:int):int {
+			var pt:Object = pet;
+			var b:Sprite;
+			if (!pt) {
+				info.htmlText = "Pets follow you into the realm and heal your HP and MP every few seconds.\n" +
+					"They grow stronger with every kill. Rare and Legendary pets reach higher levels.";
+				info.y = y;
+				y += info.height + 10;
+				b = Ui.button("Hatch an Egg  -  " + Ui.commas(Data.PET_EGG_PRICE) + "g", 240, 34, hatchPet, 15);
+				b.x = (w - 240) / 2; b.y = y;
+				sp.addChild(b);
+				return y + 42;
+			}
+			var r:Object = Data.PET_RARITIES[pt.rarity];
+			var icon:Bitmap = new Bitmap(Sprites.get("pet_" + pt.species));
+			icon.x = 24; icon.y = y;
+			sp.addChild(icon);
+			var max:Boolean = pt.level >= r.max;
+			info.htmlText = "<font size='17' color='" + Ui.hex(r.col) + "'><b>" + pt.name + "</b></font>  <font color='" + Ui.hex(r.col) + "'>" + r.name + "</font>\n" +
+				"Level <b>" + pt.level + "</b> / " + r.max + (max ? "  (max)" : "   XP " + pt.xp + " / " + Data.petXpNeeded(pt.level)) + "\n" +
+				"Heals <font color='#80ff80'>" + Data.petHeal(pt) + " HP</font> and <font color='#80a0ff'>" + Data.petMagic(pt) + " MP</font> every 3 seconds";
+			info.x = 80; info.width = w - 90;
+			info.autoSize = "left";
+			info.y = y;
+			y += Math.max(icon.height, info.height) + 10;
+			if (!max) {
+				b = Ui.button("Feed (+" + Data.PET_FEED_XP + " XP)  -  " + Data.PET_FEED_PRICE + "g", 200, 30, feedPet, 14);
+				b.x = 14; b.y = y;
+				sp.addChild(b);
+			}
+			b = Ui.button(releaseArmed ? "Click again to release" : "Release pet", 200, 30, releasePet, 14);
+			b.x = w - 214; b.y = y;
+			sp.addChild(b);
+			return y + 38;
+		}
+
+		private function hatchPet():void {
+			if (pet) return;
+			if (gold < Data.PET_EGG_PRICE) { msg("You need " + Ui.commas(Data.PET_EGG_PRICE) + " gold to buy a pet egg.", 0xff8080); return; }
+			addGold(-Data.PET_EGG_PRICE);
+			var pt:Object = Save.data.pet = Data.hatchPet();
+			petX = player.x - 1; petY = player.y + 0.5;
+			var r:Object = Data.PET_RARITIES[pt.rarity];
+			showBanner("You hatched a " + r.name + " " + pt.name + "!", r.col, 3);
+			Sfx.play(pt.rarity == "common" ? "loot" : "rare");
+			burst(petX, petY, r.col, 25);
+			Save.flush();
+			refreshStation();
+		}
+
+		private function feedPet():void {
+			if (!pet) return;
+			if (gold < Data.PET_FEED_PRICE) { msg("Not enough gold to feed your pet.", 0xff8080); return; }
+			addGold(-Data.PET_FEED_PRICE);
+			petGainXp(Data.PET_FEED_XP);
+			burst(petX, petY, 0x60ff90, 10);
+			Save.flush();
+			refreshStation();
+		}
+
+		private function releasePet():void {
+			if (!pet) return;
+			if (!releaseArmed) { releaseArmed = true; refreshStation(); return; }
+			releaseArmed = false;
+			msg(pet.name + " returns to the wild.", 0xcccccc);
+			delete Save.data.pet;
+			Save.flush();
+			refreshStation();
 		}
 
 		private function buyFn(e:Object):Function {
@@ -1547,10 +1676,14 @@ package realm {
 				drawList.push(drawItem(e.y, 0, 0, e, false));
 			}
 			drawList.push(drawItem(player.y, 0, 0, null, true));
+			if (pet) drawList.push(drawItem(petY, -1, 0, null, false));
 			drawList.sortOn("y", Array.NUMERIC);
 
 			for each (var d:Object in drawList) {
-				if (d.o) {
+				if (d.o < 0) {
+					drawEntity(Sprites.get("pet_" + pet.species, 0, petX > player.x), petX * TS + ox, petY * TS + oy,
+						petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
+				} else if (d.o) {
 					bd = Sprites.get(World.OBJ_NAMES[d.o]);
 					var baseY:Number = (d.y + 0.1) * TS + oy;
 					var sh:BitmapData = Sprites.shadow(TS);

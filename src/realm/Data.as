@@ -559,6 +559,31 @@ package realm {
 				gold: 150, onrane: 3, attacks: []}
 		};
 
+		// ---- pets (account-wide, like RotMG's pet yard) ---------------------------
+		public static const PET_SPECIES:Array = [
+			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},
+			{id: "drake", name: "Ember Drake"}, {id: "wisp", name: "Wisp"}, {id: "golem", name: "Pebble Golem"}
+		];
+		public static const PET_RARITIES:Object = {
+			common: {name: "Common", max: 30, col: 0xe0e0e0},
+			rare: {name: "Rare", max: 50, col: 0x40a0ff},
+			legendary: {name: "Legendary", max: 70, col: 0xd8e040}
+		};
+		public static const PET_EGG_PRICE:int = 1000;
+		public static const PET_FEED_PRICE:int = 200;
+		public static const PET_FEED_XP:int = 20;
+
+		public static function hatchPet():Object {
+			var sp:Object = pick(PET_SPECIES);
+			var r:Number = Math.random();
+			return {species: sp.id, name: sp.name, rarity: r < 0.1 ? "legendary" : r < 0.4 ? "rare" : "common", level: 1, xp: 0};
+		}
+
+		public static function petXpNeeded(level:int):int { return 8 + level * 2; }
+		/** HP and MP the pet heals every 3 seconds. */
+		public static function petHeal(pet:Object):int { return int(4 + pet.level * 1.2); }
+		public static function petMagic(pet:Object):int { return int(1 + pet.level * 0.4); }
+
 		/** Which enemies spawn in each zone: 0 beach, 1 lowlands, 2 midlands, 3 godlands. */
 		public static const ZONE_SPAWNS:Array = [
 			["pirate", "pirate", "snake", "crab", "slime"],

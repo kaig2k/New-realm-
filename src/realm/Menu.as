@@ -97,6 +97,10 @@ package realm {
 
 			buildCharLayer(save);
 
+			var gy:Sprite = Ui.button("Graveyard", 130, 32, showGraveyard, 15);
+			gy.x = Ui.W - 150; gy.y = 20;
+			addChild(gy);
+
 			addEventListener(Event.ENTER_FRAME, animate);
 			addEventListener(Event.REMOVED_FROM_STAGE, function(e:Event):void {
 				removeEventListener(Event.ENTER_FRAME, animate);
@@ -213,6 +217,50 @@ package realm {
 				onPick(cls.id, n);
 			});
 			return c;
+		}
+
+		/** The graveyard: your most recent fallen heroes. */
+		private var graveLayer:Sprite;
+
+		private function showGraveyard():void {
+			if (graveLayer) { removeChild(graveLayer); graveLayer = null; return; }
+			graveLayer = new Sprite();
+			var w:int = 720, h:int = 470;
+			var px:int = (Ui.W - w) / 2, py:int = 120;
+			graveLayer.graphics.beginFill(0x000000, 0.6);
+			graveLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
+			graveLayer.graphics.endFill();
+			Ui.panel(graveLayer.graphics, px, py, w, h, 0x1e1e22, 0x6a6a6a, 0.97);
+			var t:TextField = Ui.text(24, 0xe0e0e0, true, "center", w, true);
+			t.text = "Graveyard";
+			t.x = px; t.y = py + 10;
+			graveLayer.addChild(t);
+			var graves:Array = Save.data.graves as Array || [];
+			if (graves.length == 0) {
+				var none:TextField = Ui.text(15, 0x999999, false, "center", w, true);
+				none.text = "No heroes have fallen yet.";
+				none.x = px; none.y = py + 80;
+				graveLayer.addChild(none);
+			}
+			for (var i:int = 0; i < Math.min(10, graves.length); i++) {
+				var g:Object = graves[i];
+				var ry:int = py + 54 + i * 38;
+				var ic:Bitmap = new Bitmap(Sprites.get(g.cls));
+				ic.scaleX = ic.scaleY = 0.7;
+				ic.x = px + 18; ic.y = ry;
+				graveLayer.addChild(ic);
+				var row:TextField = Ui.text(14, 0xffffff, false, "left", w - 80, true);
+				var cls:Object = Data.CLASSES[g.cls];
+				row.htmlText = "<b>" + g.name + "</b>  <font color='#aaaaaa'>Lvl " + g.level + " " + (cls ? cls.name : g.cls) +
+					"   " + g.kills + " kills   killed by </font><font color='#ff9a40'>" + g.killer + "</font>" +
+					"   <font color='#ffb040'><b>" + Ui.commas(g.fame) + " fame</b></font>  <font color='#777777'>" + g.date + "</font>";
+				row.x = px + 64; row.y = ry + 6;
+				graveLayer.addChild(row);
+			}
+			var close:Sprite = Ui.button("Close", 120, 32, showGraveyard, 15);
+			close.x = px + (w - 120) / 2; close.y = py + h - 44;
+			graveLayer.addChild(close);
+			addChild(graveLayer);
 		}
 
 		private function drawBackground():void {

@@ -36,6 +36,8 @@ package realm {
 		private var lastSkills:String = "";
 		private var statTf:TextField;
 		private var tabs:Array = [];
+		private var packBtn:Sprite;
+		private var packTf:TextField;
 		private var bagBox:Shape;
 		private var tip:Tooltip;
 		private var hover:Slot;
@@ -115,6 +117,24 @@ package realm {
 			tabs.push(makeTab(I_PACK, 8, y, 0));
 			tabs.push(makeTab(I_CHART, 46, y, 1));
 			tabs.push(makeTab(I_STAR, 84, y, 2));
+			// backpack page toggle
+			packBtn = new Sprite();
+			Ui.panel(packBtn.graphics, 0, 0, 104, 24, 0x3a3020, 0x8a7040);
+			packTf = Ui.text(12, 0xffd75e, true, "center", 104, true);
+			packTf.y = 3;
+			packBtn.addChild(packTf);
+			packBtn.x = 128; packBtn.y = y;
+			packBtn.buttonMode = true;
+			packBtn.mouseChildren = false;
+			packBtn.visible = false;
+			packBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void {
+				var pl:Player = g.player;
+				if (!pl.backpack) return;
+				pl.packPage = 1 - pl.packPage;
+				selectTab(0);
+				refresh();
+			});
+			addChild(packBtn);
 
 			// --- inventory page
 			y += 28;
@@ -331,7 +351,13 @@ package realm {
 			equip[2].setItem(p.armor);
 			equip[3].setItem(p.ring);
 			var i:int;
-			for (i = 0; i < 8; i++) invSlots[i].setItem(p.inv[i]);
+			if (!p.backpack) p.packPage = 0;
+			packBtn.visible = p.backpack;
+			packTf.text = p.packPage == 0 ? "Inventory  1 / 2" : "Backpack  2 / 2";
+			for (i = 0; i < 8; i++) {
+				invSlots[i].idx = p.packPage * 8 + i;
+				invSlots[i].setItem(p.inv[p.packPage * 8 + i]);
+			}
 			hpPot.setCount(p.hpPots, "F");
 			mpPot.setCount(p.mpPots, "G");
 

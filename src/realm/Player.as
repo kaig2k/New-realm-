@@ -19,6 +19,10 @@ package realm {
 		public var stats:Object = {};
 		public var weapon:Object, ability:Object, armor:Object, ring:Object;
 		public var inv:Array = [null, null, null, null, null, null, null, null];
+		/** RotMG backpack: 8 extra inventory slots (bought at the Marketplace). */
+		public var backpack:Boolean = false;
+		/** Which 8-slot page of the inventory the HUD shows (and keys 1-8 use). */
+		public var packPage:int = 0;
 		public var hpPots:int = 2, mpPots:int = 0;
 		public var level:int = 1, xp:int = 0, xpNext:int = 60, totalXp:int = 0;
 		public var kills:int = 0, bossKills:int = 0, potsDrunk:int = 0;
@@ -137,7 +141,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
@@ -148,7 +152,7 @@ package realm {
 		public function restore(o:Object):void {
 			o = Save.clone(o);
 			for each (var f:String in SAVE_FIELDS) if (o[f] != undefined) this[f] = o[f];
-			while (inv.length < 8) inv.push(null);
+			while (inv.length < (backpack ? 16 : 8)) inv.push(null);
 			for each (var s:String in Data.STATS) if (stats[s] == undefined) stats[s] = cls.base[s];
 			hp = maxHp;
 			mp = maxMp;
@@ -243,7 +247,7 @@ package realm {
 			if (inp.pressed(Keyboard.SPACE)) useAbility(g);
 			if (inp.pressed(Keyboard.F)) drinkHp(g);
 			if (inp.pressed(Keyboard.G)) drinkMp(g);
-			for (var k:int = 0; k < 8; k++) if (inp.pressed(49 + k)) useItem(k, g);
+			for (var k:int = 0; k < 8; k++) if (inp.pressed(49 + k)) useItem(packPage * 8 + k, g);
 			if (inp.pressed(Keyboard.R)) g.nexus();
 
 			// --- regen (bleeding drains instead)
@@ -513,6 +517,7 @@ package realm {
 				}
 			}
 			hp -= d;
+			if (d >= maxHp * 0.15) g.shake(0.25, Math.min(10, 3 + d / maxHp * 20));
 			hitT = 0.12;
 			lastHitBy = src;
 			g.floatText(x, y - 1.1, "-" + d, 0xff3030);

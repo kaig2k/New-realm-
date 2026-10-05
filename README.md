@@ -74,7 +74,9 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
 - **Currencies**: account-wide **Gold** and **Onrane**, plus account Fame.
 - **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the **Sor Forge** (a UT, ST
   or FB item + a Sor Crystal + 100 Onrane = a Legendary) and the **Marketplace** (buy
-  potions, stat potions, Sor Crystals and mystery UTs, and shift+click items to sell them).
+  potions, stat potions, Sor Crystals, mystery UTs and a **Backpack**, and shift+click items to sell them). A
+  backpack gives that character 8 more inventory slots. Switch pages with the button by
+  the sidebar tabs; keys 1-8 use the page you're on.
 - **Pet Yard**: hatch a pet egg (1,000 gold) in the Nexus to get one of six pets (Realm
   Pup, Jelly, Night Owl, Ember Drake, Wisp, Pebble Golem). Pets are Common, Rare or
   Legendary. They follow you, heal HP and MP every 3 seconds, and level up with every kill
@@ -113,7 +115,8 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
 - **Achievements**: 16 account-wide goals, such as First Blood, Dungeon Master, Treasure
   Hunter, Bane of Azrakor and Perfection (11/11). Each pays gold and Onrane once. See them
   at the Quest Board, or type `/achievements`.
-- **Pause menu** with Resume, sound, damage numbers and particle toggles, and Save & Quit
+- **Screen shake** on heavy hits, explosions and boss deaths.
+- **Pause menu** with Resume, sound, damage numbers, particle and screen shake toggles, and Save & Quit
   to the title screen.
 - **Boss damage meter** with your damage share and the LG threshold.
 - Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick

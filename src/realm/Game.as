@@ -55,6 +55,7 @@ package realm {
 		private var petMoving:Boolean = false;
 		private var releaseArmed:Boolean = false;
 		private var showAch:Boolean = false;
+		private var shakeT:Number = 0, shakeAmp:Number = 0;
 		private var goldTf:TextField, onraneTf:TextField;
 		private var thresholdTf:TextField;
 		private var vaultBag:LootBag;
@@ -275,6 +276,13 @@ package realm {
 			msg("[Tip] " + text, 0x8fd0ff);
 		}
 
+		/** Screen shake (can be turned off in the pause menu). */
+		public function shake(secs:Number, amp:Number):void {
+			if (!opt("shake")) return;
+			if (amp >= shakeAmp || shakeT <= 0) shakeAmp = amp;
+			shakeT = Math.max(shakeT, secs);
+		}
+
 		// ------------------------------------------------------------ pause / options
 		public static function opt(name:String):Boolean {
 			var o:Object = Save.data.opt || {};
@@ -292,10 +300,10 @@ package realm {
 			pauseLayer.graphics.beginFill(0x000000, 0.6);
 			pauseLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
 			pauseLayer.graphics.endFill();
-			Ui.panel(pauseLayer.graphics, Ui.W / 2 - 170, 120, 340, 380, 0x262626, 0x6a6a6a);
+			Ui.panel(pauseLayer.graphics, Ui.W / 2 - 170, 110, 340, 430, 0x262626, 0x6a6a6a);
 			var pt1:TextField = Ui.text(34, 0xffffff, true, "center", Ui.W, true);
 			pt1.text = "Paused";
-			pt1.y = 132;
+			pt1.y = 122;
 			pauseLayer.addChild(pt1);
 			pauseButtons = new Sprite();
 			pauseLayer.addChild(pauseButtons);
@@ -311,12 +319,13 @@ package realm {
 				["Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }],
 				["Damage numbers: " + (opt("dmg") ? "On" : "Off"), function():void { setOpt("dmg", !opt("dmg")); refreshPauseMenu(); }],
 				["Particles: " + (opt("parts") ? "On" : "Off"), function():void { setOpt("parts", !opt("parts")); refreshPauseMenu(); }],
+				["Screen shake: " + (opt("shake") ? "On" : "Off"), function():void { setOpt("shake", !opt("shake")); refreshPauseMenu(); }],
 				["Save & Quit to Menu", function():void { saveCharacter(); quitRequested = true; }]
 			];
 			for (var i:int = 0; i < rows.length; i++) {
 				var b:Sprite = Ui.button(rows[i][0], 260, 42, rows[i][1], 17);
 				b.x = Ui.W / 2 - 130;
-				b.y = 196 + i * 56;
+				b.y = 186 + i * 56;
 				pauseButtons.addChild(b);
 			}
 		}
@@ -830,6 +839,7 @@ package realm {
 
 		/** Area damage (Necromancer skull). Returns number of enemies hit. */
 		public function blastAt(x:Number, y:Number, radius:Number, dmg:int):int {
+			shake(0.15, 4);
 			var n:int = 0;
 			for each (var e:Enemy in enemies.concat()) {
 				var dx:Number = e.x - x, dy:Number = e.y - y;
@@ -908,6 +918,7 @@ package realm {
 				burst(e.x, e.y, Ui.GOLD, 30);
 			}
 			if (e.isBoss) {
+				shake(0.7, 10);
 				p.bossKills++;
 				world.boss = null;
 				if (e.def.dungeon) {
@@ -1058,6 +1069,7 @@ package realm {
 				say(nm, "Crystals of the Abyss, shield your master!");
 				showBanner("The Dark Elder is immune! Destroy the crystals!", 0xff4080, 4);
 				b.invuln = true;
+				shake(0.5, 7);
 				for each (var cp:Array in [[-8, -5], [8, -5], [-8, 5], [8, 5]]) {
 					var c:Enemy = spawnEnemy("elder_crystal", b.homeX + cp[0], b.homeY + 7 + cp[1], World.ARENA_ZONE);
 					if (c) burst(c.x, c.y, 0xff4080, 20);
@@ -1192,7 +1204,8 @@ package realm {
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 450},
 			{id: "sor", name: "Sor Crystal", price: 900},
-			{id: "ut", name: "Mystery UT (your class)", price: 2500}
+			{id: "ut", name: "Mystery UT (your class)", price: 2500},
+			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
 
 		private function openStationPanel(st:Object):void {
@@ -1575,6 +1588,12 @@ package realm {
 				case "stat": item = Data.makePotion("stat", Data.randomStat()); break;
 				case "sor": item = Data.makeSor(); break;
 				case "ut": item = Data.makeForSlot(player.cls, int(Math.random() * 4), 7, "ut"); break;
+				case "backpack":
+					if (player.backpack) { msg("This character already has a backpack.", 0xff8080); return; }
+					player.backpack = true;
+					while (player.inv.length < 16) player.inv.push(null);
+					msg("You bought a backpack! Switch inventory pages with the button by the tabs.", Ui.GOLD);
+					break;
 			}
 			if (item) {
 				var slot:int = player.freeSlot();
@@ -1766,6 +1785,12 @@ package realm {
 		private function render():void {
 			var ox:Number = Math.round(CX - camX * TS);
 			var oy:Number = Math.round(CY - camY * TS);
+			if (shakeT > 0 && !paused) {
+				shakeT -= 1 / 30;
+				var sa:Number = shakeAmp * Math.min(1, shakeT * 4);
+				ox += Math.round((Math.random() * 2 - 1) * sa);
+				oy += Math.round((Math.random() * 2 - 1) * sa);
+			}
 			canvas.lock();
 			canvas.fillRect(canvas.rect, 0xff101820);
 			mtx.a = mtx.d = TS / World.PX;

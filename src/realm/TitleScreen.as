@@ -53,6 +53,11 @@ package realm {
 			play.y = 400;
 			addChild(play);
 
+			// multiplayer: join a New Realm server
+			onlineLayer = new Sprite();
+			addChild(onlineLayer);
+			refreshOnline();
+
 			accountLayer = new Sprite();
 			addChild(accountLayer);
 			refreshAccount();
@@ -91,6 +96,37 @@ package realm {
 			else if (!dialog) clickPlay();
 		}
 
+		private var onlineLayer:Sprite;
+
+		private function refreshOnline():void {
+			onlineLayer.removeChildren();
+			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
+			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.address + "</font>  (" + Online.welcome.online + " playing)"
+				: "Playing offline. Join a server to play with friends.";
+			tf.y = 478;
+			onlineLayer.addChild(tf);
+			var b:Sprite = Online.connected ? Ui.button("Disconnect", 170, 34, function():void { Online.disconnect(); refreshOnline(); }, 15)
+				: Ui.button("Play Online", 170, 34, showServer, 15);
+			b.x = (Ui.W - 170) / 2;
+			b.y = 506;
+			onlineLayer.addChild(b);
+		}
+
+		private function showServer():void {
+			if (!Accounts.current) { showLogin(); return; }
+			openDialog("Play Online", ["Server address (ask the host)"], [false], "Connect", function():void {
+				errorTf.textColor = 0xcccccc;
+				errorTf.text = "Connecting...";
+				Online.connect(fields[0].text, function(err:String):void {
+					errorTf.textColor = 0xff7070;
+					if (err) { errorTf.text = err; return; }
+					done();
+					refreshOnline();
+					onPlay();
+				});
+			}, null, null, {maxChars: 80, restrict: "A-Za-z0-9.:\\-", values: [Online.lastAddress]});
+		}
+
 		private function clickPlay():void {
 			if (Accounts.current) onPlay();
 			else showLogin();
@@ -108,7 +144,7 @@ package realm {
 			var b1:Sprite, b2:Sprite;
 			if (Accounts.current) {
 				info.htmlText = "Logged in as <font color='#ffd75e'>" + Accounts.current + "</font>";
-				b1 = Ui.button("Log out", 130, 32, function():void { Accounts.logout(); refreshAccount(); }, 15);
+				b1 = Ui.button("Log out", 130, 32, function():void { Online.disconnect(); Accounts.logout(); refreshAccount(); refreshOnline(); }, 15);
 				b2 = Ui.button("Password", 130, 32, showChangePassword, 15);
 			} else {
 				info.text = "Not logged in";
@@ -123,7 +159,7 @@ package realm {
 
 		// ------------------------------------------------------------ dialogs
 		private function openDialog(title:String, labels:Array, passwords:Array, okLabel:String, onOk:Function,
-				extraLabel:String = null, onExtra:Function = null):void {
+				extraLabel:String = null, onExtra:Function = null, opts:Object = null):void {
 			closeDialog();
 			dialog = new Sprite();
 			dialog.graphics.beginFill(0x000000, 0.55);
@@ -154,8 +190,9 @@ package realm {
 				f.wordWrap = false;
 				f.selectable = true;
 				f.mouseEnabled = true;
-				f.maxChars = passwords[i] ? 32 : 12;
-				if (!passwords[i]) f.restrict = "A-Za-z0-9";
+				f.maxChars = passwords[i] ? 32 : opts && opts.maxChars ? opts.maxChars : 12;
+				if (!passwords[i]) f.restrict = opts && opts.restrict ? opts.restrict : "A-Za-z0-9";
+				if (opts && opts.values && opts.values[i]) f.text = opts.values[i];
 				f.displayAsPassword = passwords[i];
 				dialog.addChild(f);
 				fields.push(f);

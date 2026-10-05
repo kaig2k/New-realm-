@@ -98,11 +98,58 @@ into the first account you create.
   it up.
 - **Shift+click:** sells an item at the Marketplace, and quick-drops it anywhere else.
 
+## Playing with friends (multiplayer)
+
+One person runs the server. Everyone else joins it from the title screen.
+
+**1. Host: start the server**
+- Install **Node.js** (the LTS version from https://nodejs.org). You only need to do this once.
+- Double-click **`server.bat`** (or run `./server.sh` on Mac/Linux). Leave the window open
+  while you play.
+- The window shows the addresses to share, for example `Friends connect to: 192.168.1.20:2050`.
+- Accounts and guilds are saved in `server/data/`.
+
+**2. Let your friends reach it.** Pick one:
+- **Same house / same Wi-Fi:** friends use the `192.168.x.x:2050` address the server shows.
+- **Tailscale (easiest over the internet, no router setup):** you and your friends install
+  Tailscale (https://tailscale.com, free) and sign in. Then share your PC with them from the
+  Tailscale admin page (or have them join your tailnet). Friends use your Tailscale address,
+  e.g. `100.101.102.103:2050`; the server window marks it "(Tailscale)".
+- **Port forwarding:** forward TCP port 2050 on your router to your PC. Allow it through
+  Windows Firewall if asked. Friends use your public IP (search "what is my ip") plus `:2050`.
+- **Always-on:** run `node server/server.js` on any cloud server (a small VPS is enough) and
+  open port 2050.
+
+**3. Everyone: join.** Build the game installer with `package.bat` and give it to your
+friends. On the title screen, log in, click **Play Online** and enter the server address.
+The host uses `localhost:2050`.
+
+**What's shared online**
+- Players: you see everyone in the same Nexus or realm, moving and shooting.
+- The three realms behind the Nexus portals come from the server, and everyone gets the same map.
+- Public chat with speech bubbles, party chat (`/p`) and guild chat (`/g`).
+- Trading through the server: both players must accept the same offer.
+- Parties (6), and guilds (27) saved on the server.
+- `/join name` takes you to a party or guild member's realm or dungeon (same dungeon layout).
+  Party members are told when you enter a dungeon.
+
+**Not shared yet**
+- Monsters, bosses and loot still run in each player's own game. You see your friends and
+  their shots, but you each fight your own copy of the monsters. The next step is to move
+  monsters onto the server so you fight the same ones.
+- Characters and items are still saved on each player's own computer, so a modified game
+  could cheat. That's fine among friends.
+
+Your name on a server is your account name. The first time you join a server, your game
+gets a secret key for that name, so nobody else can use it there.
+
+Server options: `server.bat 3000` runs it on port 3000 instead of 2050. The server speaks
+plain TCP for the game and WebSocket on the same port, for browser builds.
+
 ## Other players and trading
 
-New Realm is being built as a multiplayer game. Other players already walk around the
-Nexus and the realms. For now they are simulated on your computer. When the game server
-is ready, real players will come in through the same code (see `Net.as` below).
+When you play offline, the other players are simulated on your computer (`LocalNet.as`).
+Online, the same features talk to the real server (`ServerNet.as`).
 
 - **Inspect:** click a player in the Nexus (or right-click anywhere, or `/inspect name`) to
   see their class, level, fame, maxed stats and equipment, with item tooltips.
@@ -302,6 +349,9 @@ src/realm/Sprites.as     text-defined pixel art, bullets, icons
 src/realm/Hud.as         sidebar UI (minimap, bars, gear, inventory, loot bag)
 src/realm/Tooltip.as     item tooltip
 src/realm/Net.as         connection to other players (the seam for the game server)
+src/realm/Online.as      socket connection to a New Realm server
+src/realm/ServerNet.as   online Net: real players, chat, parties, guilds, trades
+server/server.js         the multiplayer server (Node.js, no dependencies)
 src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trade
 src/realm/RemotePlayer.as another player (position smoothing, public profile)
 src/realm/TradeSession.as trade rules (offers, accept lock, space check, swap)

@@ -28,6 +28,18 @@ package realm {
 			try { if (so) so.flush(); } catch (e:Error) {}
 		}
 
+		/** Computer-wide settings (e.g. the last server address). */
+		public static function setting(name:String):String {
+			var o:Object = reg.settings || {};
+			return o[name] ? String(o[name]) : null;
+		}
+
+		public static function setSetting(name:String, value:String):void {
+			if (!reg.settings) reg.settings = {};
+			reg.settings[name] = value;
+			flush();
+		}
+
 		public static function key(name:String):String {
 			return name.toLowerCase();
 		}

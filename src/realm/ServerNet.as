@@ -1,0 +1,280 @@
+package realm {
+	/**
+	 * Net over a real server connection (Online): the other players are real.
+	 * Monsters still run in your own game; the server shares players, chat,
+	 * parties, guilds and trades.
+	 */
+	public class ServerNet extends Net {
+		/** Everyone we've heard of this session, by server id (same object across worlds). */
+		private var known:Object = {};
+		private var worldKey:String = "";
+		private var sendT:Number = 0, profT:Number = 0;
+		private var lastX:Number = NaN, lastY:Number = NaN;
+		private var lastProfile:String = "";
+		private var myGuild:Object;
+		/** Party members as the server sent them: {id, name, profile, world}. */
+		private var partyInfo:Array = [];
+		private var sentVersion:int = -1;
+		private var sentAccept:Boolean = false;
+		private var guildDone:Function;
+
+		public function ServerNet(g:Game) {
+			super(g);
+			Online.onClose = function():void {
+				g.msg("Lost the connection to the server. You're on your own until you log in again.", 0xff8080);
+				if (trade) endTrade("Trade cancelled.");
+				players.length = 0;
+				party.length = 0;
+				myGuild = null;
+				g.socialChanged();
+			};
+			Online.onMessage = onMessage;
+		}
+
+		private function get myId():int { return Online.welcome ? Online.welcome.id : 0; }
+
+		override public function enterWorld(w:World):void {
+			if (trade) cancelTrade();
+			worldKey = w.key;
+			players.length = 0;
+			lastProfile = JSON.stringify(g.myProfile());
+			Online.send({t: "enter", key: w.key, label: w.name, x: g.player.x, y: g.player.y, profile: g.myProfile()});
+		}
+
+		override public function update(dt:Number):void {
+			for each (var p:RemotePlayer in players) p.update(dt);
+			if (trade) trade.update(dt);
+			if (!Online.connected) return;
+			sendT -= dt;
+			if (sendT <= 0) {
+				sendT = 0.1;
+				var pl:Player = g.player;
+				if (pl.x != lastX || pl.y != lastY) {
+					lastX = pl.x; lastY = pl.y;
+					Online.send({t: "move", x: Math.round(pl.x * 100) / 100, y: Math.round(pl.y * 100) / 100, f: pl.facingLeft ? 1 : 0});
+				}
+			}
+			profT -= dt;
+			if (profT <= 0) {
+				profT = 1.5;
+				var prof:Object = g.myProfile();
+				var js:String = JSON.stringify(prof);
+				if (js != lastProfile) { lastProfile = js; Online.send({t: "profile", profile: prof}); }
+			}
+		}
+
+		override public function chat(text:String):void { Online.send({t: "chat", text: text}); }
+		override public function shoot(ang:Number):void { Online.send({t: "shoot", ang: Math.round(ang * 1000) / 1000}); }
+
+		// ------------------------------------------------------------ players
+		private function meet(info:Object):RemotePlayer {
+			var rp:RemotePlayer = known[info.id];
+			if (!rp) rp = known[info.id] = new RemotePlayer(String(info.id), info.name, info.x || 0, info.y || 0, info.profile || {});
+			if (info.profile) rp.profile = info.profile;
+			if (!rp.profile.equip) rp.profile.equip = [null, null, null, null];
+			if (!rp.profile.cls) rp.profile.cls = "wizard";
+			rp.gone = false;
+			return rp;
+		}
+
+		private function arrive(info:Object):void {
+			var rp:RemotePlayer = meet(info);
+			rp.x = rp.tx = info.x; rp.y = rp.ty = info.y;
+			if (players.indexOf(rp) < 0) players.push(rp);
+		}
+
+		private function byId(id:*):RemotePlayer {
+			var rp:RemotePlayer = known[id];
+			return rp && players.indexOf(rp) >= 0 ? rp : null;
+		}
+
+		private function onMessage(m:Object):void {
+			var rp:RemotePlayer;
+			switch (m.t) {
+				case "players":
+					players.length = 0;
+					for each (var info:Object in m.list) arrive(info);
+					break;
+				case "join":
+					arrive(m.p);
+					break;
+				case "leave":
+					rp = byId(m.id);
+					if (rp) players.splice(players.indexOf(rp), 1);
+					if (trade && trade.partner == rp) endTrade(rp.name + " left.");
+					break;
+				case "move":
+					rp = byId(m.id);
+					if (rp) {
+						rp.moveTo(m.x, m.y);
+						if (!rp.moving) rp.facingLeft = m.f == 1;
+					}
+					break;
+				case "shoot":
+					rp = byId(m.id);
+					if (rp) {
+						rp.attacking = 0.3;
+						g.botShoot(rp, m.ang, true);
+					}
+					break;
+				case "profile":
+					rp = known[m.id];
+					if (rp) rp.profile = m.profile;
+					break;
+				case "chat":
+					if (m.ch) g.channelSay(m.name, m.text, m.ch);
+					else if ((rp = byId(m.id))) g.netSay(rp, m.text);
+					break;
+				case "msg":
+					g.msg(m.text, m.color || 0xff8080);
+					break;
+				case "kicked":
+					g.msg(m.msg, 0xff8080);
+					break;
+
+				// trading
+				case "tradeReq":
+					rp = byId(m.from);
+					if (rp) g.tradeRequested(rp);
+					break;
+				case "tradeStart":
+					rp = byId(m["with"]);
+					if (!rp) { Online.send({t: "tradeCancel"}); break; }
+					var theirs:Array = m.inv || [];
+					while (theirs.length < 8) theirs.push(null);
+					trade = new TradeSession(rp, g.player.inv, theirs);
+					sentVersion = trade.version;
+					sentAccept = false;
+					g.openTrade(trade);
+					if (m.sendInv) Online.send({t: "tradeInv", inv: g.player.inv});
+					break;
+				case "tradeOffer":
+					if (!trade) break;
+					trade.asked = m.want || [];
+					trade.setTheirs(m.sel || []);
+					sentVersion = trade.version;
+					sentAccept = false;
+					if (trade.onChange != null) trade.onChange();
+					break;
+				case "tradeAccept":
+					if (trade) trade.setTheirAccept(true);
+					break;
+				case "tradeDone":
+					if (!trade) break;
+					trade.execute();
+					trade = null;
+					g.tradeEnded("Trade successful!", true);
+					break;
+				case "tradeCancel":
+					if (trade) endTrade(m.msg);
+					break;
+
+				// party
+				case "party":
+					partyInfo = m.members || [];
+					party.length = 0;
+					for each (var pm:Object in partyInfo) if (pm.id != myId) party.push(meet(pm));
+					g.socialChanged();
+					break;
+				case "partyInvite":
+					var from:int = m.from;
+					g.askPopup(m.name + " invited you to their party.", 0x7fd8ff,
+						function():void { Online.send({t: "partyAns", from: from, yes: true}); },
+						function():void { Online.send({t: "partyAns", from: from, yes: false}); });
+					break;
+
+				// guild
+				case "guild":
+					myGuild = m.guild;
+					g.socialChanged();
+					break;
+				case "guildInvite":
+					var gfrom:int = m.from;
+					g.askPopup(m.name + " invited you to join the guild " + m.guild + ".", 0x80ff80,
+						function():void { Online.send({t: "guildAns", from: gfrom, yes: true}); },
+						function():void { Online.send({t: "guildAns", from: gfrom, yes: false}); });
+					break;
+				case "guildCreated":
+					var cb:Function = guildDone;
+					guildDone = null;
+					if (cb != null) cb(m.err || null);
+					break;
+			}
+		}
+
+		// ------------------------------------------------------------ trading
+		override public function requestTrade(p:RemotePlayer):void {
+			Online.send({t: "tradeReq", to: int(p.id)});
+			g.msg("You sent a trade request to " + p.name + ".", 0xc8a0ff);
+		}
+
+		override public function answerTrade(p:RemotePlayer, yes:Boolean):void {
+			Online.send({t: "tradeAns", to: int(p.id), yes: yes, inv: yes ? g.player.inv : null});
+		}
+
+		override public function tradeChanged():void {
+			if (!trade) return;
+			if (trade.version != sentVersion) {
+				sentVersion = trade.version;
+				sentAccept = false;
+				Online.send({t: "tradeOffer", sel: trade.mySel, want: trade.wanted});
+			}
+			if (trade.myAccept && !sentAccept) {
+				sentAccept = true;
+				Online.send({t: "tradeAccept"});
+			}
+		}
+
+		override public function cancelTrade():void {
+			if (!trade) return;
+			Online.send({t: "tradeCancel"});
+			endTrade("Trade cancelled.");
+		}
+
+		private function endTrade(text:String):void {
+			if (trade) trade.closed = true;
+			trade = null;
+			g.tradeEnded(text);
+		}
+
+		// ------------------------------------------------------------ party
+		override public function inviteParty(p:RemotePlayer):void {
+			if (party.length + 1 >= PARTY_MAX) { g.msg("Your party is full (" + PARTY_MAX + " players max).", 0xff8080); return; }
+			Online.send({t: "partyInvite", to: int(p.id)});
+		}
+		override public function leaveParty():void { Online.send({t: "partyLeave"}); }
+		override public function kickParty(p:RemotePlayer):void { Online.send({t: "partyKick", name: p.name}); }
+		override public function partyChat(text:String):void { Online.send({t: "pchat", text: text}); }
+
+		// ------------------------------------------------------------ guild
+		override public function get guild():Object { return myGuild; }
+
+		override public function createGuild(name:String, done:Function):void {
+			guildDone = done;
+			Online.send({t: "guildCreate", name: name});
+		}
+
+		override public function inviteGuild(p:RemotePlayer):void { Online.send({t: "guildInvite", to: int(p.id)}); }
+		override public function leaveGuild():void { Online.send({t: "guildLeave"}); }
+		override public function kickGuild(name:String):void { Online.send({t: "guildKick", name: name}); }
+		override public function setRank(name:String, rank:int):void { Online.send({t: "guildRank", name: name, rank: rank}); }
+		override public function guildChat(text:String):void { Online.send({t: "gchat", text: text}); }
+
+		override public function guildStatus(name:String):String {
+			if (myGuild) for each (var m:Object in myGuild.members) if (m.name == name) {
+				if (!m.online) return "offline";
+				return m.world == worldKey ? "here" : "online";
+			}
+			return "offline";
+		}
+
+		override public function worldOf(name:String):String {
+			name = name.toLowerCase();
+			for each (var pm:Object in partyInfo) if (String(pm.name).toLowerCase() == name) return pm.world;
+			if (myGuild) for each (var m:Object in myGuild.members) if (String(m.name).toLowerCase() == name && m.online) return m.world;
+			return null;
+		}
+
+		override public function get online():Boolean { return true; }
+	}
+}

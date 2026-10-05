@@ -46,6 +46,8 @@ package realm {
 		/** Realms reachable from the nexus portals (created on first entry). */
 		public var realms:Array = [null, null, null];
 		public var realmNames:Array = [];
+		/** Realm map seeds from the server (online only). */
+		private var realmSeeds:Array = [];
 		private var nearPortal:Object;
 		private var stations:Array = [];
 		private var nearStation:Object;
@@ -126,7 +128,6 @@ package realm {
 		private var tradeWin:TradeWindow;
 		private var inspectWin:InspectWindow;
 		private var requestPopup:Sprite;
-		private var requestFrom:RemotePlayer;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
 		private var social:SocialWindow;
@@ -135,12 +136,18 @@ package realm {
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
 			this.onDeath = onDeath;
 			world = nexusWorld = new World("nexus", "Nexus");
+			nexusWorld.key = "nexus";
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
 			if (saved) player.restore(saved);
 			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			Data.viewerClass = player.cls.id;
-			var pool:Array = Data.REALM_NAMES.concat();
-			for (var ri:int = 0; ri < 3; ri++) realmNames.push(pool.splice(int(Math.random() * pool.length), 1)[0]);
+			if (Online.connected) {
+				// the server picks the realms, and their seeds give everyone the same maps
+				for each (var sr:Object in Online.welcome.realms) { realmNames.push(sr.name); realmSeeds.push(uint(sr.seed)); }
+			} else {
+				var pool:Array = Data.REALM_NAMES.concat();
+				for (var ri:int = 0; ri < 3; ri++) realmNames.push(pool.splice(int(Math.random() * pool.length), 1)[0]);
+			}
 			camX = player.x;
 			camY = player.y;
 			world.reveal(player.x, player.y, 14);
@@ -185,7 +192,7 @@ package realm {
 			buildCounters();
 			buildBossPanel();
 			buildNexus();
-			net = new LocalNet(this);
+			net = Online.connected ? new ServerNet(this) : new LocalNet(this);
 			net.enterWorld(world);
 
 			hud = new Hud(this);
@@ -256,7 +263,7 @@ package realm {
 			switch (cmd) {
 				case "/help":
 					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name", 0x8fd0ff);
-					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  (L opens the party & guild window)", 0x8fd0ff);
+					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					break;
 				case "/p":
 					var pt:String = t.substr(3);
@@ -289,10 +296,14 @@ package realm {
 					var tpw:RemotePlayer = net.find(t.split(" ")[1] || "");
 					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
 					break;
+				case "/join":
+					joinPlayer(t.split(" ")[1] || "");
+					break;
 				case "/who":
 					var who:Array = [];
 					for each (var rp:RemotePlayer in net.players) who.push(rp.name);
 					msg(who.length ? "Players here (" + who.length + "): " + who.join(", ") : "Nobody else is here.", 0x8fd0ff);
+					msg(net.online ? "Online on " + Online.address + "." : "Playing offline (other players are simulated).", 0x8fd0ff);
 					break;
 				case "/trade": case "/tr":
 				case "/inspect": case "/in":
@@ -760,9 +771,16 @@ package realm {
 		}
 
 		/** dungeon: rooms of monsters with a boss at the end. */
-		private function enterDungeon(idx:int):void {
+		private static function soloKey():String {
+			return "solo:" + int(Math.random() * 1e9);
+		}
+
+		/** seed 0 = a new dungeon; party members can follow you in with /join (same seed, same layout). */
+		private function enterDungeon(idx:int, seed:uint = 0):void {
 			var th:Object = Data.DUNGEONS[idx];
-			dungeonWorld = new World("dungeon", th.name, th);
+			if (!seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
+			dungeonWorld = new World("dungeon", th.name, th, seed);
+			dungeonWorld.key = "dg:" + idx + ":" + seed;
 			Sfx.play("portal");
 			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
 			var rooms:Array = dungeonWorld.rooms;
@@ -833,11 +851,13 @@ package realm {
 		public function enterPortal(i:int):void {
 			var r:World = realms[i];
 			if (!r || r.closed) {
-				if (r && r.closed) {
+				if (r && r.closed && !net.online) {
 					var pool:Array = Data.REALM_NAMES.filter(function(n:String, ...a):Boolean { return realmNames.indexOf(n) < 0; });
 					realmNames[i] = pool[int(Math.random() * pool.length)];
 				}
-				r = realms[i] = new World("realm", realmNames[i]);
+				var seed:uint = net.online ? realmSeeds[i] : 0;
+				r = realms[i] = new World("realm", realmNames[i], null, seed);
+				r.key = net.online ? "realm:" + realmNames[i] + ":" + seed : soloKey();
 			}
 			switchWorld(r, r.spawnX, r.spawnY);
 			Sfx.play("portal");
@@ -1115,6 +1135,7 @@ package realm {
 		/** The realm has closed: the Dark Elder pulls you into his chamber. */
 		private function enterArena():void {
 			arenaWorld = new World("arena", "Dark Elder's Chamber");
+			arenaWorld.key = soloKey();
 			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
 			player.invulnT = 3;
 			arenaWorld.boss = new Enemy("elder", 100.5, 91.5, World.ARENA_ZONE);
@@ -1144,7 +1165,7 @@ package realm {
 								remove = true;
 							}
 						}
-					} else {
+					} else if (!s.ghost) {
 						for (var j:int = 0; j < enemies.length; j++) {
 							var e:Enemy = enemies[j];
 							if (e.dead) continue;
@@ -2770,7 +2791,7 @@ package realm {
 		}
 
 		private function closePlayerMenu():void {
-			if (playerMenu && playerMenu.parent) removeChild(playerMenu);
+			if (playerMenu && playerMenu.parent) { removeChild(playerMenu); refocus(); }
 			playerMenu = null;
 		}
 
@@ -2787,7 +2808,7 @@ package realm {
 		}
 
 		public function closeInspect():void {
-			if (inspectWin && inspectWin.parent) removeChild(inspectWin);
+			if (inspectWin && inspectWin.parent) { removeChild(inspectWin); refocus(); }
 			inspectWin = null;
 		}
 
@@ -2816,7 +2837,7 @@ package realm {
 		}
 
 		public function toggleSocial(tab:int = -1):void {
-			if (social && (tab < 0 || social.tab == tab)) { removeChild(social); social = null; return; }
+			if (social && (tab < 0 || social.tab == tab)) { removeChild(social); social = null; refocus(); return; }
 			if (!social) {
 				social = new SocialWindow(this);
 				social.x = int((VIEW_W - SocialWindow.W) / 2);
@@ -2844,14 +2865,50 @@ package realm {
 		/** Starts a guild (costs gold). */
 		public function createGuild(name:String):void {
 			if (gold < Net.GUILD_COST) { msg("Creating a guild costs " + Ui.commas(Net.GUILD_COST) + " gold.", 0xff8080); return; }
-			var err:String = net.createGuild(name);
+			net.createGuild(name, guildMade);
+		}
+
+		private function guildMade(err:String):void {
 			if (err) { msg(err, 0xff8080); return; }
+			if (gold < Net.GUILD_COST) return;
 			addGold(-Net.GUILD_COST);
 			Save.flush();
 			showBanner("Guild founded: " + net.guild.name, 0x80ff80, 3);
 			msg("You founded " + net.guild.name + "! Invite players from their menu.", 0x80ff80);
 			Sfx.play("level");
 			socialChanged();
+		}
+
+		/** What other players see of you (sent to the server). */
+		public function myProfile():Object {
+			var p:Player = player;
+			return {cls: p.cls.id, skin: p.skin, level: p.level, fame: p.fame, maxed: p.maxedCount,
+				equip: [p.weapon, p.ability, p.armor, p.ring], guild: net && net.guild ? net.guild.name : ""};
+		}
+
+		public function get trading():Boolean { return tradeWin != null; }
+
+		/** /join: go to the world a party or guild member is in. */
+		public function joinPlayer(name:String):void {
+			var key:String = net.worldOf(name);
+			if (!net.online) { msg("/join works when you're playing online.", 0xff8080); return; }
+			if (!key) { msg("You can only join party or guild members who are online.", 0xff8080); return; }
+			if (key == world.key) { msg("You're already there.", 0xaaaaaa); return; }
+			var parts:Array = key.split(":");
+			if (parts[0] == "nexus") { nexus(); return; }
+			if (parts[0] == "realm") {
+				var ri:int = realmNames.indexOf(parts[1]);
+				if (ri < 0) { msg("That realm is gone.", 0xff8080); return; }
+				travel(function():void { enterPortal(ri); });
+				return;
+			}
+			if (parts[0] == "dg") {
+				var di:int = int(parts[1]), seed:uint = uint(parts[2]);
+				travel(function():void { enterDungeon(di, seed); });
+				msg("Following " + name + " into the " + Data.DUNGEONS[di].name + ".", Data.DUNGEONS[di].color);
+				return;
+			}
+			msg(name + " is somewhere you can't follow.", 0xff8080);
 		}
 
 		/** Opens the chat box with some text already typed. */
@@ -2865,35 +2922,45 @@ package realm {
 
 		/** The connection says someone wants to trade with you. */
 		public function tradeRequested(rp:RemotePlayer):void {
-			closeRequest(false);
-			requestFrom = rp;
+			askPopup("<font color='#d0b8ff'>" + rp.name + "</font> wants to trade with you.", 0xc8a0ff,
+				function():void { net.answerTrade(rp, true); },
+				function():void { net.answerTrade(rp, false); });
+			Sfx.play("trade", 0.6);
+		}
+
+		private var requestNo:Function;
+
+		/** Accept / Decline popup (trade, party and guild invites). Unanswered, it declines itself after 20s. */
+		public function askPopup(html:String, color:uint, onYes:Function, onNo:Function):void {
+			closeRequest(true);
+			requestNo = onNo;
 			requestT = 20;
-			var w:int = 340;
+			var w:int = 360;
 			var pop:Sprite = new Sprite();
-			Ui.panel(pop.graphics, 0, 0, w, 92, 0x1e1e24, 0x8a6aff, 0.97);
-			var t:TextField = Ui.text(15, 0xffffff, true, "center", w, true);
-			t.htmlText = "<font color='#d0b8ff'>" + rp.name + "</font> wants to trade with you.";
-			t.y = 10;
+			Ui.panel(pop.graphics, 0, 0, w, 92, 0x1e1e24, color, 0.97);
+			var t:TextField = Ui.text(15, 0xffffff, true, "center", w - 20, true);
+			t.htmlText = html;
+			t.x = 10; t.y = 10;
 			pop.addChild(t);
-			var yes:Sprite = Ui.button("Accept", 140, 32, function():void { closeRequest(false); net.answerTrade(rp, true); }, 15);
-			yes.x = 22; yes.y = 46;
+			var yes:Sprite = Ui.button("Accept", 140, 32, function():void { requestNo = null; closeRequest(false); onYes(); }, 15);
+			yes.x = 30; yes.y = 50;
 			pop.addChild(yes);
 			var no:Sprite = Ui.button("Decline", 140, 32, function():void { closeRequest(true); }, 15);
-			no.x = w - 162; no.y = 46;
+			no.x = w - 170; no.y = 50;
 			pop.addChild(no);
 			pop.x = int((VIEW_W - w) / 2);
 			pop.y = 64;
 			requestPopup = pop;
 			addChild(pop);
-			msg(rp.name + " wants to trade with you.", 0xc8a0ff);
-			Sfx.play("trade", 0.6);
+			msg(t.text, color);
 		}
 
 		private function closeRequest(decline:Boolean):void {
-			if (requestPopup && requestPopup.parent) removeChild(requestPopup);
+			if (requestPopup && requestPopup.parent) { removeChild(requestPopup); refocus(); }
 			requestPopup = null;
-			if (decline && requestFrom) net.answerTrade(requestFrom, false);
-			requestFrom = null;
+			var no:Function = requestNo;
+			requestNo = null;
+			if (decline && no != null) no();
 		}
 
 		/** The connection opened a trade. */
@@ -2917,8 +2984,13 @@ package realm {
 		}
 
 		/** The trade finished (ok) or was called off. */
+		/** Keys go back to the game after a window closes (a removed button would keep the focus). */
+		private function refocus():void {
+			if (stage && !(chatInput && chatInput.visible)) stage.focus = stage;
+		}
+
 		public function tradeEnded(text:String, ok:Boolean = false):void {
-			if (tradeWin && tradeWin.parent) removeChild(tradeWin);
+			if (tradeWin && tradeWin.parent) { removeChild(tradeWin); refocus(); }
 			tradeWin = null;
 			if (text) msg(text, ok ? 0x5ae06a : 0xff8080);
 			if (ok) {
@@ -2929,7 +3001,7 @@ package realm {
 		}
 
 		/** Another player fires at a monster. */
-		public function botShoot(rp:RemotePlayer, ang:Number):void {
+		public function botShoot(rp:RemotePlayer, ang:Number, ghost:Boolean = false):void {
 			var w:Object = rp.profile.equip[0];
 			if (!w || !w.shape) return;
 			var fr:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.size || 3);
@@ -2937,6 +3009,7 @@ package realm {
 				var a:Number = ang + (w.shots > 1 && !w.parallel ? (k - (w.shots - 1) / 2) * w.arc * Math.PI / 180 : 0);
 				var s:Projectile = new Projectile(rp.x, rp.y, a, w.spd, w.life, int((w.dmin + w.dmax) / 2 * 0.5), false, 0.25, fr, w.pierce, rp.name, null);
 				s.bot = true;
+				s.ghost = ghost;
 				s.shown = shown(rp);
 				s.motion = w.motion;
 				if (k % 2 == 1) s.phase = Math.PI;

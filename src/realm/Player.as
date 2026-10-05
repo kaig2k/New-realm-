@@ -262,7 +262,7 @@ package realm {
 			if (inp.pressed(Keyboard.SPACE)) useAbility(g);
 			if (inp.pressed(Keyboard.F)) drinkHp(g);
 			if (inp.pressed(Keyboard.G)) drinkMp(g);
-			for (var k:int = 0; k < 8; k++) if (inp.pressed(49 + k)) useItem(packPage * 8 + k, g);
+			if (!g.trading) for (var k:int = 0; k < 8; k++) if (inp.pressed(49 + k)) useItem(packPage * 8 + k, g);
 			if (inp.pressed(Keyboard.R)) g.nexus();
 
 			// --- regen (bleeding drains instead)
@@ -298,6 +298,7 @@ package realm {
 				g.addShot(shot);
 				shotsFired++;
 			}
+			g.net.shoot(ang);
 			// Rampage passive: every 12th shot also fires a ring
 			if (w.passive == "rampage" && ++shotCount % 12 == 0) {
 				var ring:Vector.<BitmapData> = Sprites.projectile("star", w.col, 3);

@@ -25,7 +25,7 @@ package realm {
 		private var names:Object = {};
 		private var pending:Array = [];
 		/** Guild members online this session, and their bots (when they're in the Nexus). */
-		private var online:Object = {};
+		private var onlineNow:Object = {};
 		private var guildT:Number = 40;
 		private static const OTHER_GUILDS:Array = ["Night Owls", "Realm Wardens", "Star Chasers", "Lost Heroes", "The Ember Pact",
 			"Godlanders", "Pot Hoarders", "Shoreline", "Midnight Oath"];
@@ -38,7 +38,7 @@ package realm {
 			var gd:Object = guild;
 			if (gd) for each (var m:Object in gd.members) {
 				names[m.name.toLowerCase()] = true;
-				if (Math.random() < 0.4) online[m.name] = true;
+				if (Math.random() < 0.4) onlineNow[m.name] = true;
 			}
 		}
 
@@ -76,7 +76,7 @@ package realm {
 			}
 			var gd:Object = guild;
 			if (w.kind == "nexus" && gd) for each (var m:Object in gd.members) {
-				if (!online[m.name]) continue;
+				if (!onlineNow[m.name]) continue;
 				var gb:Bot = nexusBot(w);
 				if (!gb) continue;
 				gb.name = m.name;
@@ -320,7 +320,7 @@ package realm {
 		private function onlineMembers():Array {
 			var out:Array = [];
 			var gd:Object = guild;
-			if (gd) for each (var m:Object in gd.members) if (online[m.name]) out.push(m.name);
+			if (gd) for each (var m:Object in gd.members) if (onlineNow[m.name]) out.push(m.name);
 			return out;
 		}
 
@@ -411,7 +411,11 @@ package realm {
 		// ------------------------------------------------------------ guild
 		override public function get guild():Object { return Save.data.guild || null; }
 
-		override public function createGuild(name:String):String {
+		override public function createGuild(name:String, done:Function):void {
+			done(makeGuild(name));
+		}
+
+		private function makeGuild(name:String):String {
 			if (guild) return "You're already in a guild.";
 			name = name.replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
 			if (!/^[A-Za-z][A-Za-z ]{2,19}$/.test(name)) return "Guild names are 3-20 letters (spaces allowed).";
@@ -434,7 +438,7 @@ package realm {
 				if (Math.random() < 0.35) { say(b, ["no thanks", "not looking for a guild", "maybe later"][int(Math.random() * 3)]); g.msg(b.name + " declined the guild invite.", 0xff8080); return; }
 				b.profile.guild = guild.name;
 				guild.members.push({name: b.name, cls: b.profile.cls, level: b.profile.level, fame: b.profile.fame, rank: 0});
-				online[b.name] = true;
+				onlineNow[b.name] = true;
 				Save.flush();
 				g.channelSay(b.name, ["thanks for the invite!", "hi guild!", "glad to be here"][int(Math.random() * 3)], "guild");
 				g.msg(b.name + " joined " + guild.name + ". (" + (guild.members.length + 1) + "/" + GUILD_MAX + ")", 0x80ff80);
@@ -487,7 +491,7 @@ package realm {
 
 		override public function guildStatus(name:String):String {
 			for each (var p:RemotePlayer in players) if (p.name == name) return "here";
-			return online[name] ? "online" : "offline";
+			return onlineNow[name] ? "online" : "offline";
 		}
 
 		// ------------------------------------------------------------ trading

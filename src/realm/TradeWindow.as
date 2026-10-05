@@ -105,7 +105,7 @@ package realm {
 
 		private function showTip(sl:ItemSlot, mine:Boolean):void {
 			if (!sl.item) { tip.visible = false; return; }
-			var hint:String = mine ? (s.mySel[sl.idx] ? "Offered. Click to take it back." : "Click to offer this item.")
+			var hint:String = mine ? (s.mySel[sl.idx] ? "Offered. Click to take it back." : s.asked[sl.idx] ? s.partner.name + " asked for this. Click to offer it." : "Click to offer this item.")
 				: s.theirSel[sl.idx] ? s.partner.name + " is offering this." : s.wanted[sl.idx] ? "Asked for. Click to un-ask." : "Click to ask for this item.";
 			tip.show(sl.item, hint);
 			var lp:Point = globalToLocal(sl.localToGlobal(new Point(0, 0)));
@@ -125,7 +125,9 @@ package realm {
 		public function refresh():void {
 			for (var i:int = 0; i < mySlots.length; i++) {
 				mySlots[i].setItem(s.mine[i]);
-				mySlots[i].mark(s.mySel[i] ? OFFER : 0);
+				if (s.mySel[i]) mySlots[i].mark(OFFER);
+				else if (s.asked[i] && s.mine[i]) mySlots[i].mark(ASK, false, true);
+				else mySlots[i].mark(0);
 			}
 			for (i = 0; i < theirSlots.length; i++) {
 				theirSlots[i].setItem(s.theirs[i]);

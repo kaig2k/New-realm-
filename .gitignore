@@ -2,3 +2,4 @@ dist/
 cert.p12
 *.air
 airsdk.txt
+server/data/

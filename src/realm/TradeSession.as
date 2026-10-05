@@ -19,6 +19,8 @@ package realm {
 		public var theirSel:Array = [];
 		/** Their items you have asked for. */
 		public var wanted:Array = [];
+		/** Your items they have asked for. */
+		public var asked:Array = [];
 		public var myAccept:Boolean = false;
 		public var theirAccept:Boolean = false;
 		/** Seconds since anything changed. */

@@ -73,7 +73,26 @@ package realm {
 		/** Extra noise layers for the realm: {v, w, cell}. */
 		private var layers:Array;
 
-		public function World(kind:String = "realm", name:String = "", theme:Object = null) {
+		/**
+		 * Identifies the world for other players: "nexus", "realm:Name:seed",
+		 * "dg:index:seed"; worlds nobody else can enter get a unique "solo:" key.
+		 */
+		public var key:String = "";
+		/** Seeded generator state: the same seed builds the same map for everyone. */
+		private var seedState:uint = 0;
+
+		/** Random 0..1 from the seed (or Math.random when there is no seed). */
+		private function rnd():Number {
+			if (seedState == 0) return Math.random();
+			// xorshift32
+			seedState ^= seedState << 13;
+			seedState ^= seedState >>> 17;
+			seedState ^= seedState << 5;
+			return (seedState >>> 0) / 4294967296;
+		}
+
+		public function World(kind:String = "realm", name:String = "", theme:Object = null, seed:uint = 0) {
+			seedState = seed;
 			this.kind = kind;
 			this.name = name;
 			this.theme = theme;
@@ -93,7 +112,7 @@ package realm {
 		private function makeNoise():void {
 			noiseW = int(N / CELL) + 2;
 			noise = new Vector.<Number>(noiseW * noiseW, true);
-			for (var i:int = 0; i < noise.length; i++) noise[i] = Math.random();
+			for (var i:int = 0; i < noise.length; i++) noise[i] = rnd();
 		}
 
 		private function sample(x:Number, y:Number):Number {
@@ -110,7 +129,7 @@ package realm {
 		private function layer(cell:int):Object {
 			var w:int = int(N / cell) + 2;
 			var v:Vector.<Number> = new Vector.<Number>(w * w, true);
-			for (var i:int = 0; i < v.length; i++) v[i] = Math.random();
+			for (var i:int = 0; i < v.length; i++) v[i] = rnd();
 			return {v: v, w: w, cell: cell};
 		}
 
@@ -163,12 +182,12 @@ package realm {
 			// rivers: wander from the highlands down to the sea
 			var k:int, a:Number, px:Number, py:Number, step:int;
 			for (k = 0; k < 4; k++) {
-				a = Math.random() * Math.PI * 2;
+				a = rnd() * Math.PI * 2;
 				px = cx + Math.cos(a) * R * 0.35;
 				py = cy + Math.sin(a) * R * 0.35;
 				var wig:Number = 0;
 				for (step = 0; step < N * 2; step++) {
-					wig += (Math.random() - 0.5) * 0.5;
+					wig += (rnd() - 0.5) * 0.5;
 					wig *= 0.9;
 					var out:Number = Math.atan2(py - cy, px - cx) + wig;
 					px += Math.cos(out);
@@ -186,13 +205,13 @@ package realm {
 			}
 			// roads: from the Godlands out to the beach, with bridges over water
 			var roads:int = 6;
-			var off:Number = Math.random() * Math.PI * 2;
+			var off:Number = rnd() * Math.PI * 2;
 			for (k = 0; k < roads; k++) {
-				a = off + k * Math.PI * 2 / roads + (Math.random() - 0.5) * 0.4;
+				a = off + k * Math.PI * 2 / roads + (rnd() - 0.5) * 0.4;
 				var rr:Number = R * 0.08;
 				var turn:Number = 0;
 				for (step = 0; step < N; step++) {
-					turn += (Math.random() - 0.5) * 0.08;
+					turn += (rnd() - 0.5) * 0.08;
 					turn *= 0.92;
 					a += turn * 0.2;
 					rr += 1;
@@ -216,10 +235,10 @@ package realm {
 					t = tiles[i];
 					z = zones[i];
 					if (t == WATER || t == ROAD || t == BRIDGE || z < 0) continue;
-					var r:Number = Math.random(), f:Number = fbm(6, x, y), o:int = 0;
+					var r:Number = rnd(), f:Number = fbm(6, x, y), o:int = 0;
 					if (z == SHORE_ZONE) o = r < 0.012 ? 3 : r < 0.018 ? 4 : 0;
 					else if (z == LOW_ZONE) o = r < (f > 0.62 ? 0.14 : 0.025) ? 1 : r < 0.03 ? 4 : 0;
-					else if (z == MID_ZONE) o = r < (f > 0.55 ? 0.22 : 0.04) ? (Math.random() < 0.6 ? 2 : 1) : r < 0.05 ? 4 : 0;
+					else if (z == MID_ZONE) o = r < (f > 0.55 ? 0.22 : 0.04) ? (rnd() < 0.6 ? 2 : 1) : r < 0.05 ? 4 : 0;
 					else if (z == HIGH_ZONE) o = r < (f > 0.6 ? 0.1 : 0.025) ? 2 : r < 0.045 ? 5 : r < 0.055 ? 6 : 0;
 					else o = r < 0.035 ? 5 : r < 0.05 ? 6 : 0;
 					objs[i] = o;
@@ -300,31 +319,31 @@ package realm {
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
 			var floor:int = th.floor, accent:int = th.accent;
 			var cx:int = 100, cy:int = 175;
-			var count:int = th.small ? 4 + int(Math.random() * 2) : 6 + int(Math.random() * 2);
+			var count:int = th.small ? 4 + int(rnd() * 2) : 6 + int(rnd() * 2);
 			var prev:Object = null;
 			for (var k:int = 0; k < count; k++) {
 				var boss:Boolean = k == count - 1;
-				var w:int = boss ? 17 : 9 + int(Math.random() * 5);
-				var h:int = boss ? 15 : 8 + int(Math.random() * 4);
+				var w:int = boss ? 17 : 9 + int(rnd() * 5);
+				var h:int = boss ? 15 : 8 + int(rnd() * 4);
 				var room:Object = {x: cx, y: cy, w: w, h: h};
 				carve(cx - int(w / 2), cy - int(h / 2), w, h, floor);
 				// accent pattern in the middle of bigger rooms (lava pools, carpets...)
-				if (!boss && k > 0 && Math.random() < 0.6) carve(cx - 1, cy - 1, 3, 3, accent);
+				if (!boss && k > 0 && rnd() < 0.6) carve(cx - 1, cy - 1, 3, 3, accent);
 				if (prev) corridor(prev.x, prev.y, cx, cy, floor);
 				rooms.push(room);
 				prev = room;
 				// next room: mostly north, drifting east/west
-				var dir:Number = Math.random();
-				if (dir < 0.25 && cx > 50) cx -= 16 + int(Math.random() * 4);
-				else if (dir < 0.5 && cx < 150) cx += 16 + int(Math.random() * 4);
-				else cy -= 17 + int(Math.random() * 3);
+				var dir:Number = rnd();
+				if (dir < 0.25 && cx > 50) cx -= 16 + int(rnd() * 4);
+				else if (dir < 0.5 && cx < 150) cx += 16 + int(rnd() * 4);
+				else cy -= 17 + int(rnd() * 3);
 				if (k == count - 2) { cy -= 4; }
 				if (cy < 25) cy = 25;
 			}
 			// a hidden treasure room off one of the middle rooms
 			for (var tries:int = 0; tries < 12 && !treasure; tries++) {
-				var base:Object = rooms[1 + int(Math.random() * (rooms.length - 2))];
-				var side:int = Math.random() < 0.5 ? -1 : 1;
+				var base:Object = rooms[1 + int(rnd() * (rooms.length - 2))];
+				var side:int = rnd() < 0.5 ? -1 : 1;
 				var tx:int = base.x + side * (int(base.w / 2) + 8), ty:int = base.y;
 				var free:Boolean = tx > 12 && tx < N - 12;
 				for each (var o:Object in rooms) {
@@ -396,20 +415,20 @@ package realm {
 			for (var k:int = 0; k < (kind == "realm" ? 30 : 26); k++) {
 				var cx:int = 0, cy:int = 0, z:int = -1;
 				for (var tries:int = 0; tries < 50; tries++) {
-					cx = 20 + int(Math.random() * (N - 40));
-					cy = 20 + int(Math.random() * (N - 40));
+					cx = 20 + int(rnd() * (N - 40));
+					cy = 20 + int(rnd() * (N - 40));
 					z = zones[cy * N + cx];
 					if (z >= MID_ZONE && z <= GOD_ZONE) break;
 				}
 				if (z < MID_ZONE || z > GOD_ZONE) continue;
-				var rw:int = 3 + int(Math.random() * 5), rh:int = 3 + int(Math.random() * 5);
-				var lavaDir:int = Math.random() < 0.5 ? 1 : -1;
-				var lava:Boolean = z == GOD_ZONE && Math.random() < 0.75;
+				var rw:int = 3 + int(rnd() * 5), rh:int = 3 + int(rnd() * 5);
+				var lavaDir:int = rnd() < 0.5 ? 1 : -1;
+				var lava:Boolean = z == GOD_ZONE && rnd() < 0.75;
 				for (var y:int = cy - rh - 1; y <= cy + rh + 1; y++) {
 					for (var x:int = cx - rw - 1; x <= cx + rw + 1; x++) {
 						var nx:Number = (x - cx) / rw, ny:Number = (y - cy) / rh;
 						// blocky, stair-stepped outline like RotMG ruins
-						var edge:Number = nx * nx + ny * ny + (Math.random() - 0.5) * 0.25;
+						var edge:Number = nx * nx + ny * ny + (rnd() - 0.5) * 0.25;
 						if (edge > 1) continue;
 						var i:int = y * N + x;
 						if (tiles[i] == WATER || tiles[i] == ROAD || tiles[i] == BRIDGE) continue;
@@ -417,7 +436,7 @@ package realm {
 						var diag:Number = Math.abs((x - cx) - lavaDir * (y - cy));
 						tiles[i] = lava && diag < 1.6 ? LAVA : RUIN;
 						// broken walls around the rim, pillars at the corners
-						if (edge > 0.72 && tiles[i] == RUIN && Math.random() < 0.3) objs[i] = 9;
+						if (edge > 0.72 && tiles[i] == RUIN && rnd() < 0.3) objs[i] = 9;
 					}
 				}
 				for each (var c:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
@@ -436,7 +455,7 @@ package realm {
 			for (y = 0; y < PX; y++) {
 				for (x = 0; x < PX; x++) {
 					i = y * PX + x;
-					r = Math.random();
+					r = rnd();
 					var gx:int = tx * PX + x, gy:int = ty * PX + y;
 					switch (t) {
 						case WATER:

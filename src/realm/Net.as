@@ -31,6 +31,15 @@ package realm {
 		/** Called every frame. */
 		public function update(dt:Number):void {}
 
+		/** True when connected to a real server. */
+		public function get online():Boolean { return false; }
+
+		/** You fired your weapon (so others see your shots). */
+		public function shoot(ang:Number):void {}
+
+		/** World key ("nexus", "realm:...", "dg:...") a party or guild member is in, or null. */
+		public function worldOf(name:String):String { return null; }
+
 		/** You said something in chat. */
 		public function chat(text:String):void {}
 
@@ -62,8 +71,8 @@ package realm {
 		 * (members does not include you), or null.
 		 */
 		public function get guild():Object { return null; }
-		/** Returns an error message, or null if the guild was created. */
-		public function createGuild(name:String):String { return "Guilds need a server connection."; }
+		/** Founds a guild; done(error) gets null when it worked. */
+		public function createGuild(name:String, done:Function):void { done("Guilds need a server connection."); }
 		public function inviteGuild(p:RemotePlayer):void {}
 		public function leaveGuild():void {}
 		public function kickGuild(name:String):void {}

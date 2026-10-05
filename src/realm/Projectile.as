@@ -21,6 +21,8 @@ package realm {
 		public var bot:Boolean = false;
 		/** False when the shooter is hidden by the "Party & guild" setting. */
 		public var shown:Boolean = true;
+		/** Another real player's shot: drawn, but it can't hit your monsters. */
+		public var ghost:Boolean = false;
 		/** Special flight: "wave" weaves side to side, "return" flies back halfway through. */
 		public var motion:String;
 		public var phase:Number = 0;

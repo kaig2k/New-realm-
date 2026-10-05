@@ -100,7 +100,7 @@ package realm {
 					i = y * N + x;
 					d = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / R + (sample(x, y) - 0.5) * 0.2;
 					if (d > 1) { t = WATER; z = -1; }
-					else if (d > 0.8) { t = SAND; z = 0; }
+					else if (d > 0.77) { t = SAND; z = 0; }
 					else if (d > 0.58) { t = GRASS; z = 1; }
 					else if (d > 0.33) { t = DARK; z = 2; }
 					else { t = GOD; z = 3; }

@@ -19,7 +19,7 @@ package realm {
 		public var stats:Object = {};
 		public var weapon:Object, ability:Object, armor:Object, ring:Object;
 		public var inv:Array = [null, null, null, null, null, null, null, null];
-		public var hpPots:int = 1, mpPots:int = 0;
+		public var hpPots:int = 2, mpPots:int = 0;
 		public var level:int = 1, xp:int = 0, xpNext:int = 60, totalXp:int = 0;
 		public var kills:int = 0, bossKills:int = 0, potsDrunk:int = 0;
 		public var bossDmg:int = 0;

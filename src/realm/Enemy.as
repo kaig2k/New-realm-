@@ -24,6 +24,7 @@ package realm {
 		private var moveT:Number = 0;
 		private var chargeT:Number = 0;
 		private var orbitDir:Number;
+		private var blinkT:Number = 2 + Math.random() * 2;
 
 		public function Enemy(id:String, x:Number, y:Number, zone:int) {
 			def = Data.ENEMIES[id];
@@ -84,6 +85,22 @@ package realm {
 						if (dist > def.keep) { mvx = ux; mvy = uy; }
 						else { mvx = -uy * orbitDir * 0.5; mvy = ux * orbitDir * 0.5; }
 						break;
+					case "blink":
+						// orbit, but every few seconds teleport to a new spot around the player
+						blinkT -= dt;
+						if (blinkT <= 0) {
+							blinkT = 3 + Math.random() * 2;
+							for (var bt:int = 0; bt < 8; bt++) {
+								var ba:Number = Math.random() * Math.PI * 2, br:Number = 3 + Math.random() * 3;
+								var bx2:Number = p.x + Math.cos(ba) * br, by2:Number = p.y + Math.sin(ba) * br;
+								if (g.world.canStand(bx2, by2, 0.4, true)) {
+									g.burst(x, y, def.col, 10);
+									x = bx2; y = by2;
+									g.burst(x, y, def.col, 10);
+									break;
+								}
+							}
+						}
 					case "orbit":
 						var radial:Number = (dist - def.keep) * 0.6;
 						if (radial > 1) radial = 1;

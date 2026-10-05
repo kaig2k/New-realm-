@@ -347,19 +347,19 @@ package realm {
 		// ai: chase (close to `keep`), orbit (circle at `keep`), wander, charge, boss
 		// attacks: p = aimed | ring | spiral | summon ; arc in degrees ; spd tiles/s ; life seconds
 		public static const ENEMIES:Object = {
-			pirate: {name: "Pirate", spr: "pirate", hp: 30, def: 0, spd: 1.6, xp: 5, ai: "chase", keep: 3, drop: 0.12, col: 0xc02020,
+			pirate: {name: "Pirate", spr: "pirate", hp: 30, def: 0, spd: 1.6, xp: 10, ai: "chase", keep: 3, drop: 0.12, col: 0xc02020,
 				attacks: [{p: "aimed", n: 1, spd: 6, life: 1.0, dmg: 8, cd: 1.3, r: 0.15, col: 0xffffff}]},
-			snake: {name: "Sand Snake", spr: "snake", hp: 22, def: 0, spd: 2.2, xp: 4, ai: "orbit", keep: 3, drop: 0.1, col: 0xc8b040,
+			snake: {name: "Sand Snake", spr: "snake", hp: 22, def: 0, spd: 2.2, xp: 8, ai: "orbit", keep: 3, drop: 0.1, col: 0xc8b040,
 				attacks: [{p: "aimed", n: 1, spd: 7, life: 0.8, dmg: 6, cd: 0.9, r: 0.12, col: 0x80ff80}]},
-			crab: {name: "Shore Crab", spr: "crab", hp: 50, def: 2, spd: 1.0, xp: 7, ai: "wander", drop: 0.15, col: 0xe05030,
+			crab: {name: "Shore Crab", spr: "crab", hp: 50, def: 2, spd: 1.0, xp: 12, ai: "wander", drop: 0.15, col: 0xe05030,
 				attacks: [{p: "ring", n: 6, rot: 30, spd: 4, life: 1.3, dmg: 10, cd: 2.0, r: 0.2, col: 0xe08030, shape: "ring"}]},
 
-			goblin: {name: "Goblin", spr: "goblin", hp: 90, def: 2, spd: 2.4, xp: 12, ai: "chase", keep: 1.5, drop: 0.16, col: 0x6ab040,
+			goblin: {name: "Goblin", spr: "goblin", hp: 90, def: 2, spd: 2.4, xp: 18, ai: "chase", keep: 1.5, drop: 0.16, col: 0x6ab040,
 				attacks: [{p: "aimed", n: 2, arc: 15, spd: 7, life: 0.6, dmg: 12, cd: 1.0, r: 0.15, col: 0xc0ff60}]},
-			hobbit: {name: "Hobbit Mage", spr: "hobbit", hp: 70, def: 0, spd: 1.6, xp: 12, ai: "orbit", keep: 4, drop: 0.16, col: 0x8040a0,
+			hobbit: {name: "Hobbit Mage", spr: "hobbit", hp: 70, def: 0, spd: 1.6, xp: 18, ai: "orbit", keep: 4, drop: 0.16, col: 0x8040a0,
 				attacks: [{p: "aimed", n: 3, arc: 30, spd: 6, life: 1.1, dmg: 14, cd: 1.4, r: 0.15, col: 0x66ccff}]},
-			bandit: {name: "Bandit", spr: "bandit", hp: 120, def: 3, spd: 1.8, xp: 15, ai: "charge", keep: 2, drop: 0.18, col: 0x404040,
-				attacks: [{p: "aimed", n: 1, spd: 9, life: 0.8, dmg: 20, cd: 1.0, r: 0.17, col: 0xff6060}]},
+			bandit: {name: "Bandit", spr: "bandit", hp: 120, def: 3, spd: 1.8, xp: 22, ai: "charge", keep: 2, drop: 0.18, col: 0x404040,
+				attacks: [{p: "aimed", n: 1, spd: 9, life: 0.8, dmg: 15, cd: 1.0, r: 0.17, col: 0xff6060}]},
 
 			orc: {name: "Orc Warrior", spr: "orc", hp: 260, def: 4, spd: 2.6, xp: 30, ai: "chase", keep: 1, drop: 0.2, col: 0x3a7a3a,
 				attacks: [{p: "aimed", n: 3, arc: 40, spd: 8, life: 0.5, dmg: 30, cd: 0.8, r: 0.18, col: 0xff5050}]},
@@ -497,6 +497,17 @@ package realm {
 					[{p: "spiral", n: 6, rot: 9, spd: 7, life: 2.0, dmg: 60, cd: 0.11, r: 0.2, col: 0xfff060, shape: "dart"},
 						{p: "summon", n: 2, cd: 8, what: "djinn"}]
 				]},
+			// ---- extra realm monsters
+			slime: {name: "Sea Slime", spr: "slime", hp: 40, def: 0, spd: 1.2, xp: 10, ai: "wander", drop: 0.12, col: 0x5ac040,
+				attacks: [{p: "ring", n: 4, rot: 45, spd: 3.5, life: 1.2, dmg: 9, cd: 1.8, r: 0.16, col: 0x9aff7a, shape: "orb"}]},
+			wolf: {name: "Dire Wolf", spr: "wolf", hp: 55, def: 0, spd: 3.2, xp: 16, ai: "chase", keep: 1.5, drop: 0.12, col: 0x8a8a92,
+				attacks: [{p: "aimed", n: 2, arc: 24, spd: 8, life: 0.35, dmg: 7, cd: 1.2, r: 0.15, col: 0xffffff, shape: "blade"}]},
+			golem: {name: "Stone Golem", spr: "golem", hp: 600, def: 12, spd: 0.9, xp: 38, ai: "chase", keep: 2, drop: 0.25, col: 0x8a8a8a,
+				attacks: [{p: "ring", n: 10, rot: 18, spd: 4, life: 1.8, dmg: 26, cd: 2.2, r: 0.22, col: 0xb0b0b0, shape: "orb"},
+					{p: "aimed", n: 1, spd: 9, life: 1.0, dmg: 40, cd: 1.6, r: 0.28, col: 0xe0e0e0, shape: "orb"}]},
+			lich: {name: "Lich", spr: "lich", hp: 850, def: 10, spd: 1.5, xp: 75, ai: "blink", keep: 5, drop: 0.32, col: 0x60e0ff,
+				attacks: [{p: "spiral", n: 3, rot: 20, spd: 5.5, life: 1.6, dmg: 40, cd: 0.22, r: 0.18, col: 0x60e0ff, shape: "star"},
+					{p: "aimed", n: 1, spd: 10, life: 1.2, dmg: 55, cd: 1.4, r: 0.22, col: 0xffffff, shape: "dart", eff: "slowed"}]},
 			imp: {name: "Ember Imp", spr: "imp", hp: 300, def: 5, spd: 3.0, xp: 15, ai: "chase", keep: 1, drop: 0, col: 0xff6020,
 				attacks: [{p: "aimed", n: 2, arc: 20, spd: 8, life: 0.9, dmg: 35, cd: 0.8, r: 0.16, col: 0xff8030}]},
 			skeleton: {name: "Bone Soldier", spr: "skeleton", hp: 350, def: 8, spd: 2.4, xp: 15, ai: "chase", keep: 1.5, drop: 0, col: 0xe8e0c0,
@@ -507,10 +518,10 @@ package realm {
 
 		/** Which enemies spawn in each zone: 0 beach, 1 lowlands, 2 midlands, 3 godlands. */
 		public static const ZONE_SPAWNS:Array = [
-			["pirate", "pirate", "snake", "crab"],
-			["goblin", "hobbit", "bandit", "goblin"],
-			["orc", "elf", "gazer", "orc"],
-			["medusa", "djinn", "ent", "beholder"]
+			["pirate", "pirate", "snake", "crab", "slime"],
+			["goblin", "hobbit", "bandit", "goblin", "wolf"],
+			["orc", "elf", "gazer", "orc", "golem"],
+			["medusa", "djinn", "ent", "beholder", "lich"]
 		];
 		public static const ZONE_NAMES:Array = ["Shore", "Lowlands", "Midlands", "Godlands", "Safe Haven", "Nexus", "Dark Elder's Chamber", "Dungeon"];
 		public static const REALM_NAMES:Array = ["Medusa", "Djinn", "Beholder", "Ent", "Gazer", "Cyclops", "Lich", "Hydra", "Sphinx", "Ogre", "Kraken", "Wraith", "Basilisk", "Harpy", "Golem"];

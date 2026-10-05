@@ -962,7 +962,10 @@ package realm {
 				if (!e.isBoss && d2 > 34 * 34) { removeEnemyAt(i); continue; }
 				if (d2 < 24 * 24) near++;
 			}
-			if (near >= MAX_ENEMIES_NEAR) return;
+			// fewer monsters near the shore so new characters aren't swarmed
+			var pz:int = world.zoneAt(player.x, player.y);
+			var cap:int = pz == 0 ? 8 : pz == 1 ? 11 : pz == 2 ? 14 : MAX_ENEMIES_NEAR;
+			if (near >= cap) return;
 			for (var tries:int = 0; tries < 6; tries++) {
 				var a:Number = Math.random() * Math.PI * 2;
 				var r:Number = 14 + Math.random() * 8;
@@ -972,7 +975,8 @@ package realm {
 				if (z < 0 || z > 3 || !world.canStand(sx, sy, 0.4, true)) continue;
 				var list:Array = Data.ZONE_SPAWNS[z];
 				var id:String = list[int(Math.random() * list.length)];
-				var count:int = 1 + int(Math.random() * (z == 3 ? 2 : 3));
+				// small packs near the shore, bigger ones inland
+				var count:int = 1 + int(Math.random() * (z <= 1 ? 2 : z == 3 ? 2 : 3));
 				for (var k:int = 0; k < count; k++) {
 					var ox:Number = sx + Math.random() * 2 - 1, oy:Number = sy + Math.random() * 2 - 1;
 					if (world.canStand(ox, oy, 0.4, true)) spawnEnemy(id, ox, oy, z);

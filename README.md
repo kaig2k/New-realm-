@@ -101,7 +101,9 @@ the public [Valor wiki](https://github.com/Valor-Inc/Wiki); the names and pixel 
   to the title screen.
 - **Boss damage meter** with your damage share and the LG threshold.
 - Procedurally generated island realms: Shore → Lowlands → Midlands → Godlands, with brick
-  ruins and lava.
+  ruins and lava. Each zone has five monster types, such as Sea Slimes, Dire Wolves,
+  Stone Golems and teleporting Liches. Fewer, smaller packs spawn near the shore so new
+  characters can level up.
 - Permadeath. Fame from a dead character is added to your account.
 
 ## Code layout

@@ -83,18 +83,20 @@ package realm {
 				var endgame:Boolean = d.raid || d.finale || d.final || d.dtier >= 5;
 				if (!endgame) continue;
 				d.scales = true;
-				d.hp = int(d.hp * (d.raid ? 2.2 : 1.9));
-				d.def = (d.def || 0) + 10;
+				// raids are the hardest fights in the game
+				d.hp = int(d.hp * (d.raid ? 2.6 : 1.9));
+				d.def = (d.def || 0) + (d.raid ? 14 : 10);
+				var dm:Number = d.raid ? 1.5 : 1.35;
 				var done:Dictionary = new Dictionary();
 				for each (var ph:Object in d.phases) {
 					var lists:Array = ph is Array ? [ph] : (ph.cycle || []).concat(ph.attacks ? [ph.attacks] : []);
 					for each (var list:Array in lists) for each (var a:Object in list) {
 						if (done[a] || a.p == "summon") continue;
 						done[a] = true;
-						a.dmg = int(a.dmg * 1.35);
+						a.dmg = int(a.dmg * dm);
 						a.cd = a.cd * (a.cd < 0.3 ? 0.9 : 0.8);
 						if (a.n && (a.p == "ring" || a.p == "flower")) a.n = int(a.n * 1.2);
-						if (a.split && a.split.dmg) a.split.dmg = int(a.split.dmg * 1.35);
+						if (a.split && a.split.dmg) a.split.dmg = int(a.split.dmg * dm);
 					}
 				}
 			}
@@ -123,6 +125,13 @@ package realm {
 
 		// ------------------------------------------------------------ art for new bosses
 		private static function art():void {
+			// raid monsters
+			Sprites.recolor("cultist", "bandit", {H: 0x8a0a1a, h: 0x5a0610, S: 0xe8d0c0, E: 0xffe040, B: 0xa01428, b: 0x6a0a18, A: 0xf0c030, L: 0x2a0408, W: 0xff3040});
+			Sprites.recolor("bone_thrall", "skeleton", {H: 0xe8e0c8, h: 0xa09880, S: 0xe8e0c8, E: 0xff2020, B: 0x8a1a1a, b: 0x5a0a0a, A: 0xd02030, L: 0xb0a890, W: 0xe8e0c8});
+			Sprites.recolor("blood_hound", "wolf", {W: 0x9a1a24, w: 0x5a0a10, E: 0xffe040});
+			Sprites.recolor("gale_harpy", "harpy", {H: 0xd8f0ff, E: 0x2040ff, W: 0x6ab0e0, B: 0x3a7ab0, Y: 0xffff80});
+			Sprites.recolor("thunder_golem", "golem", {H: 0x6a6a8a, h: 0x40405a, E: 0xffff60, B: 0x5a5a7a, b: 0x3a3a50, A: 0xffff60, L: 0x2a2a3a, W: 0x5a5a7a, S: 0x6a6a8a}, 6);
+			Sprites.recolor("cloud_serpent", "great_snake", {G: 0xe8f4ff, g: 0x8ab0d0, E: 0x40c0ff}, 6);
 			Sprites.recolor("colossus", "titan", {R: 0x2a2a34, r: 0x141418, Y: 0xc070ff, L: 0x8030ff}, 6);
 			Sprites.recolor("phoenix", "seraph", {Y: 0xffd040, W: 0xff8030, S: 0xffe0a0, E: 0x601000, G: 0xff4010, g: 0xa02008}, 6);
 			Sprites.recolor("witch", "lich_king", {Y: 0x80ff60, B: 0x3a2a4a, E: 0xc0ff40, R: 0xff60ff, T: 0x2a2a2a, P: 0x2a6a2a, p: 0x143a14, G: 0xff80ff}, 5);
@@ -149,6 +158,19 @@ package realm {
 				attacks: [aim(1, 0, 9, 70, 0.9, 0xff40ff, {motion: "home"})]});
 			mob("blood_acolyte", {name: "Blood Acolyte", spr: "imp", hp: 1400, def: 10, spd: 2.6, xp: 80, col: 0xd02030,
 				attacks: [aim(3, 24, 8, 70, 1.1, 0xff3040, {eff: "bleeding"})]});
+			// raid guards: the toughest ordinary monsters in the game
+			mob("crimson_cultist", {name: "Crimson Cultist", spr: "cultist", hp: 3000, def: 18, spd: 2.4, xp: 160, col: 0xa01428, ai: "orbit", keep: 5,
+				attacks: [aim(3, 20, 8.5, 90, 1.0, 0xff3040, {eff: "bleeding"}), ring(8, 22, 4.5, 75, 2.4, 0xd02030)]});
+			mob("bone_thrall", {name: "Bone Thrall", spr: "bone_thrall", hp: 4200, def: 26, spd: 1.8, xp: 180, col: 0xe8e0c8, keep: 2.5,
+				attacks: [aim(5, 50, 7, 85, 1.3, 0xe8e0c8, {shape: "blade"}), aim(1, 0, 6, 100, 2.2, 0xff4040, {motion: "home", r: 0.28})]});
+			mob("blood_hound", {name: "Blood Hound", spr: "blood_hound", hp: 2000, def: 12, spd: 4.4, xp: 120, col: 0x9a1a24, keep: 1,
+				attacks: [aim(1, 0, 11, 95, 0.6, 0xff3040, {eff: "bleeding"}), ring(6, 30, 5, 65, 1.8, 0xd02030)]});
+			mob("gale_harpy", {name: "Gale Harpy", spr: "gale_harpy", hp: 2400, def: 12, spd: 4, xp: 140, col: 0x6ab0e0, ai: "orbit", keep: 4.5,
+				attacks: [aim(3, 30, 9.5, 85, 0.9, 0x80ffff, {motion: "wave"})]});
+			mob("thunder_golem", {name: "Thunder Golem", spr: "thunder_golem", hp: 5200, def: 30, spd: 1.4, xp: 200, col: 0xffff60, keep: 2,
+				attacks: [ring(12, 15, 5, 90, 1.9, 0xffff60, {eff: "paralyzed"}), aim(1, 0, 13, 110, 1.4, 0xffffff, {shape: "blade"})]});
+			mob("cloud_serpent", {name: "Cloud Serpent", spr: "cloud_serpent", hp: 3000, def: 14, spd: 2.8, xp: 150, col: 0xd0f0ff, ai: "orbit", keep: 4,
+				attacks: [spiral(2, 40, 6.5, 80, 0.22, 0xe8f4ff), aim(3, 40, 7, 80, 1.6, 0x40c0ff)]});
 			mob("storm_wisp", {name: "Storm Wisp", spr: "sprite", hp: 1000, def: 8, spd: 3.6, xp: 70, col: 0xffff60, ai: "orbit", keep: 3.5,
 				attacks: [spiral(2, 30, 7, 60, 0.35, 0xffff80)]});
 		}
@@ -484,12 +506,18 @@ package realm {
 		// ------------------------------------------------------------ raids
 		/** Raids: opened from the Nexus Raid Table, three boss stages in one arena. */
 		public static const RAIDS:Array = [
-			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050, key: "conclave_key", cost: 60,
+			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
 				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],
-				intro: "The Conclave's blood rites have begun. Stop them."},
-			{id: "storm", name: "Heart of the Storm", color: 0x80ffff, key: "storm_key", cost: 60,
+				places: ["the Zealots' chapels", "the Matron's sanctum", "the Archon's altar"],
+				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels to break the first seal. Beware the blood pools.",
+				theme: {id: "conclave", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
+					mobs: ["crimson_cultist", "crimson_cultist", "bone_thrall", "blood_hound", "blood_acolyte"]}},
+			{id: "storm", name: "Heart of the Storm", color: 0x80ffff,
 				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["galecaller"], ["tempestus"]],
-				intro: "Climb into the eye of the storm."}
+				places: ["the three pylons", "the Galecaller's terrace", "the eye of the storm"],
+				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
+				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
+					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}}
 		];
 
 		private static function raids():void {

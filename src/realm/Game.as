@@ -1118,6 +1118,7 @@ package realm {
 				updateEvents(dt);
 			}
 			if (world.raid && sync.isHost) updateRaid(dt);
+			updateLightning(dt);
 			if (sync.isHost) scaleBosses(dt);
 			sync.update(dt);
 			netT -= dt;
@@ -1526,7 +1527,7 @@ package realm {
 					if (rdw && world.raidStage >= rdw.stages.length - 1 && aliveBosses() == 0) {
 						showBanner(rdw.name + " conquered!", rdw.color, 5);
 						msg("Raid complete! A portal back to the Nexus has opened.", Ui.GOLD);
-						addPortal(world, 100.5, 100.5, "nexus", 0, 0xffffff);
+						addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
 						questEvent("dungeon");
 					} else showBanner(e.def.name + " has fallen!", rdw ? rdw.color : Ui.GOLD, 3);
 				} else if (e.def.final) {
@@ -2405,40 +2406,97 @@ package realm {
 			hud.refresh();
 		}
 
+		/**
+		 * Raids are dungeons of their own: guarded halls, then three boss stages
+		 * behind seals that open as each stage falls.
+		 */
 		private function enterRaid(i:int, seed:uint):void {
 			var rd:Object = Bosses.RAIDS[i];
 			if (!rd) return;
-			arenaWorld = new World("arena", rd.name, null, seed);
-			arenaWorld.key = "raid:" + i + ":" + seed;
-			arenaWorld.raid = rd;
-			arenaWorld.raidStage = -1;
-			arenaWorld.raidT = 4;
-			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
+			dungeonWorld = new World("dungeon", rd.name, rd.theme, seed);
+			dungeonWorld.key = "raid:" + i + ":" + seed;
+			dungeonWorld.raid = rd;
+			dungeonWorld.raidStage = -1;
+			dungeonWorld.raidT = 1;
+			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
+			var dw:World = dungeonWorld;
+			whenHost(function():void { populateRaid(dw); });
 			player.invulnT = 3;
+			player.bossDmg = 0;
+			lightningT = 6;
 			showBanner(rd.name, rd.color, 4);
 			msg(rd.intro, rd.color);
 			Sfx.play("portal");
 		}
 
-		/** Host: start the next raid stage once the current bosses are down. */
+		/** Host: the raid's guards, elite like the hardest dungeons (and then some). */
+		private function populateRaid(w:World):void {
+			if (world != w) return;
+			var th:Object = w.raid.theme;
+			for each (var rm:Object in w.mobRooms) {
+				for (var k:int = 0; k < rm.n; k++) {
+					var e:Enemy = spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], rm.x + (Math.random() - 0.5) * rm.w, rm.y + (Math.random() - 0.5) * rm.h, th.tier);
+					if (!e) continue;
+					e.maxHp *= th.hard;
+					e.hp = e.maxHp;
+					e.dmgMult = 1 + (th.hard - 1) * 0.6;
+				}
+			}
+			msg("Raid: everything here is far tougher than anywhere else. Bring friends.", 0xff8080);
+			saveCharacter();
+		}
+
+		/** Host: start a stage, and when its bosses fall open the next seal and wake the next stage. */
 		private function updateRaid(dt:Number):void {
 			var w:World = world;
 			var rd:Object = w.raid;
 			if (!rd || w.raidStage >= rd.stages.length) return;
-			for each (var e:Enemy in enemies) if (!e.dead && e.isBoss) return;
+			if (w.raidStage >= 0) for each (var e:Enemy in enemies) if (!e.dead && e.isBoss) return;
 			w.raidT -= dt;
 			if (w.raidT > 0) return;
+			if (w.raidStage == rd.stages.length - 1) { w.raidStage++; return; }
 			w.raidStage++;
-			w.raidT = 5;
-			if (w.raidStage >= rd.stages.length) return;
-			var st:Array = rd.stages[w.raidStage];
+			w.raidT = 2;
+			var n:int = w.raidStage;
+			var st:Array = rd.stages[n];
+			var spots:Array = w.stageSpots[n] || [];
 			for (var k:int = 0; k < st.length; k++) {
-				var a:Number = -Math.PI / 2 + (k - (st.length - 1) / 2) * 0.9;
-				var b:Enemy = spawnEnemy(st[k], 100.5 + Math.cos(a) * (st.length > 1 ? 5 : 0), 95.5 + Math.sin(a) * (st.length > 1 ? 3 : 0), World.ARENA_ZONE);
+				var at:Array = spots[k] || spots[0] || [100.5, 100.5];
+				var b:Enemy = spawnEnemy(st[k], at[0], at[1], World.DUNGEON_ZONE);
 				if (b && k == 0) w.boss = b;
 			}
-			raidStageBanner(w.raidStage, rd);
-			if (net.online) net.sendWorld("all", {t: "rstage", n: w.raidStage});
+			raidStageReached(n);
+			if (net.online) net.sendWorld("all", {t: "rstage", n: n});
+		}
+
+		/** Stage n has begun: every seal before it is open (also run by other players' games). */
+		public function raidStageReached(n:int):void {
+			var w:World = world;
+			if (!w.raid) return;
+			w.raidStage = Math.max(w.raidStage, n);
+			var opened:Boolean = false;
+			for (var k:int = 0; k < n; k++) if (w.openGate(k)) opened = true;
+			if (opened) {
+				showBanner("The way to " + w.raid.places[n] + " opens!", w.raid.color, 3.5);
+				msg("A seal breaks. The way to " + w.raid.places[n] + " is open.", w.raid.color);
+				Sfx.play("portal");
+				shake(0.5, 6);
+			} else raidStageBanner(n, w.raid);
+		}
+
+		/** Heart of the Storm: lightning keeps striking near you (dodge the circles). */
+		private var lightningT:Number = 0;
+		private function updateLightning(dt:Number):void {
+			if (!world.raid || world.raid.id != "storm" || player.hp <= 0) return;
+			lightningT -= dt;
+			if (lightningT > 0) return;
+			lightningT = 1.4 + Math.random() * 1.2;
+			var lx:Number = player.x + (Math.random() - 0.5) * 6, ly:Number = player.y + (Math.random() - 0.5) * 6;
+			var self:Game = this;
+			addMarker(lx, ly, 1.6, 1.1, 0xffff80, function():void {
+				self.areaHit(lx, ly, 1.6, 120, "Lightning", "paralyzed", 0xffff80);
+				Sfx.play("hit", 0.5);
+			});
 		}
 
 		public function raidStageBanner(n:int, rd:Object = null):void {

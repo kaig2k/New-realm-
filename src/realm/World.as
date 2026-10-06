@@ -81,6 +81,14 @@ package realm {
 		public var portals:Array = [];
 		/** Dungeon rooms {x, y, w, h}; the last one is the boss room. */
 		public var rooms:Array = [];
+		/**
+		 * Raids: gates[k] are the cells sealing the way past stage k ({i, t}:
+		 * tile index and the floor it becomes); stageSpots[k] are where that
+		 * stage's bosses stand; mobRooms are {x, y, w, h, n} rooms of guards.
+		 */
+		public var gates:Array = [];
+		public var stageSpots:Array = [];
+		public var mobRooms:Array = [];
 		/** Dungeon side room holding a treasure chest (or null). */
 		public var treasure:Object;
 		public var theme:Object;
@@ -428,11 +436,13 @@ package realm {
 				case "islands": layoutIslands(th, floor, accent); break;
 				case "ring": layoutRing(th, floor, accent); break;
 				case "maze": layoutMaze(th, floor, accent); break;
+				case "conclave": layoutConclave(th); break;
+				case "spire": layoutSpire(th); break;
 				default: layoutRooms(th, floor, accent);
 			}
 			if (th.hazard) addHazards(th.hazard);
 			// a hidden treasure room off one of the middle rooms
-			for (var tries:int = 0; tries < 12 && !treasure; tries++) {
+			for (var tries:int = 0; tries < 12 && !treasure && !th.raid; tries++) {
 				var base:Object = rooms[1 + int(rnd() * (rooms.length - 2))];
 				var side:int = rnd() < 0.5 ? -1 : 1;
 				var tx:int = base.x + side * (int(base.w / 2) + 8), ty:int = base.y;
@@ -447,7 +457,7 @@ package realm {
 				treasure = {x: tx, y: ty, w: 7, h: 7};
 			}
 			// walls wherever floor meets the void (islands float over the abyss instead)
-			if (th.layout != "islands") for (y = 1; y < N - 1; y++) {
+			if (th.layout != "islands" && th.layout != "spire") for (y = 1; y < N - 1; y++) {
 				for (x = 1; x < N - 1; x++) {
 					i = y * N + x;
 					if (tiles[i] != VOID) continue;
@@ -632,6 +642,141 @@ package realm {
 			carve(lx2 - 1, ly2 - 1, 3, 3, accent);
 			corridor(ex, ey, lx2, ly2, floor);
 			rooms.push({x: lx2, y: ly2, w: 17, h: 15});
+		}
+
+		// ------------------------------------------------------------ raids
+		/** A rectangular room centred on (cx, cy). */
+		private function hall(cx:int, cy:int, w:int, h:int, t:int):Object {
+			carve(cx - int(w / 2), cy - int(h / 2), w, h, t);
+			return {x: cx, y: cy, w: w, h: h};
+		}
+
+		/** Seals rows y0..y1 of a 3-wide north-south corridor at x as gate k. */
+		private function gateRows(k:int, x:int, y0:int, y1:int, seal:int):void {
+			while (gates.length <= k) gates.push([]);
+			for (var y:int = y0; y <= y1; y++) for (var dx:int = -1; dx <= 1; dx++) {
+				var i:int = y * N + x + dx;
+				gates[k].push({i: i, t: tiles[i]});
+				tiles[i] = seal;
+			}
+		}
+
+		/**
+		 * The Crimson Conclave: a blood cathedral. Narthex, a pillared nave with
+		 * crypts, two chapels where the Zealots wait, the Matron's sanctum, and
+		 * Archon Vesper's altar. Each sealed door opens when a stage falls.
+		 */
+		private function layoutConclave(th:Object):void {
+			var x:int, y:int, i:int;
+			rooms.push(hall(100, 184, 11, 9, STONE));
+			corridor(100, 184, 100, 170, STONE);
+			var nave:Object = hall(100, 157, 15, 29, STONE);
+			carve(99, 143, 3, 29, CARPET);
+			for (y = 146; y <= 168; y += 5) { objs[y * N + 95] = 8; objs[y * N + 105] = 8; }
+			pool(96, 151, 1.4); pool(104, 163, 1.4); pool(104, 149, 1.1);
+			// crypts off the nave
+			var wc:Object = hall(80, 160, 9, 9, STONE), ec:Object = hall(120, 160, 9, 9, STONE);
+			corridor(93, 160, 80, 160, STONE); corridor(107, 160, 120, 160, STONE);
+			for each (var c:Object in [wc, ec]) for (var g:int = 0; g < 5; g++) objs[(c.y - 3 + (g % 2) * 6) * N + c.x - 3 + int(g / 2) * 3] = 11;
+			// the Zealots' chapels
+			var wch:Object = hall(74, 140, 13, 11, BLOODSTONE), ech:Object = hall(126, 140, 13, 11, BLOODSTONE);
+			carve(73, 139, 3, 3, CARPET); carve(125, 139, 3, 3, CARPET);
+			corridor(93, 145, 74, 145, STONE); corridor(107, 145, 126, 145, STONE);
+			for each (c in [wch, ech]) { objs[(c.y - 4) * N + c.x - 5] = 7; objs[(c.y - 4) * N + c.x + 5] = 7; }
+			// the Matron's sanctum, behind the first seal
+			corridor(100, 143, 100, 119, STONE);
+			gateRows(0, 100, 133, 134, WALL);
+			var sanct:Object = hall(100, 112, 19, 15, BLOODSTONE);
+			pool(93, 107, 1.5); pool(107, 107, 1.5); pool(93, 117, 1.5); pool(107, 117, 1.5);
+			for each (var b:Array in [[91, 105], [109, 105], [91, 119], [109, 119]]) objs[b[1] * N + b[0]] = 7;
+			// Archon Vesper's altar, behind the second seal
+			corridor(100, 105, 100, 83, STONE);
+			gateRows(1, 100, 94, 95, WALL);
+			var altar:Object = hall(100, 72, 25, 23, BLOODSTONE);
+			carve(90, 63, 21, 19, ARENA);
+			carve(99, 72, 3, 12, CARPET);
+			carve(97, 66, 7, 5, CARPET);
+			for each (var p:Array in [[91, 64], [109, 64], [91, 80], [109, 80], [95, 61], [105, 61]]) objs[p[1] * N + p[0]] = 8;
+			for each (b in [[89, 62], [111, 62], [89, 82], [111, 82]]) objs[b[1] * N + b[0]] = 7;
+			rooms.push(nave, wc, ec, wch, ech, sanct, altar);
+			stageSpots = [[[74.5, 139.5], [126.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
+			mobRooms = [{x: 100, y: 157, w: 13, h: 26, n: 11}, {x: 80, y: 160, w: 7, h: 7, n: 5}, {x: 120, y: 160, w: 7, h: 7, n: 5},
+				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
+		}
+
+		/** A pool of blood (burns like lava). */
+		private function pool(cx:int, cy:int, r:Number):void {
+			for (var y:int = -2; y <= 2; y++) for (var x:int = -2; x <= 2; x++) {
+				var i:int = (cy + y) * N + cx + x;
+				if (x * x + y * y <= r * r && tiles[i] != VOID && tiles[i] != WALL && tiles[i] != CARPET) { tiles[i] = LAVA; objs[i] = 0; }
+			}
+		}
+
+		/**
+		 * Heart of the Storm: islands climbing through the clouds. Three pylon
+		 * islands hold the Thunder Sentinels; when they fall a bridge forms to
+		 * the Galecaller's terrace, then another to the eye of the storm.
+		 */
+		private function layoutSpire(th:Object):void {
+			var F:int = th.floor, A:int = th.accent;
+			var isl:Array = [[100, 184, 6], [100, 163, 6.5], [79, 150, 5.5], [121, 150, 5.5], [60, 128, 6.5], [100, 136, 6.5], [140, 128, 6.5]];
+			for each (var d:Array in isl) blob(d[0], d[1], d[2], F);
+			for each (var s:Array in [[100, 163], [79, 150], [121, 150]]) blob(s[0], s[1], 1.5, A);
+			bridge(100, 184, 100, 163); bridge(100, 163, 79, 150); bridge(100, 163, 121, 150);
+			bridge(79, 150, 60, 128); bridge(100, 163, 100, 136); bridge(121, 150, 140, 128);
+			// pylons around each Sentinel
+			for each (var py:Array in [[60, 128], [100, 136], [140, 128]])
+				for each (var o:Array in [[-3, -3], [3, -3], [-3, 3], [3, 3]]) objs[(py[1] + o[1]) * N + py[0] + o[0]] = 8;
+			// the Galecaller's terrace and the eye, joined by bridges that only form later
+			blob(100, 104, 8.5, F);
+			blob(100, 104, 2, A);
+			blob(100, 66, 12, F);
+			blob(100, 66, 4, PLAZA);
+			for each (var e:Array in [[90, 58], [110, 58], [90, 74], [110, 74]]) objs[e[1] * N + e[0]] = 8;
+			gateBridge(0, 100, 132, 100, 108);
+			gateBridge(1, 100, 99, 100, 72);
+			for each (d in isl) rooms.push({x: d[0], y: d[1], w: int(d[2] * 1.5), h: int(d[2] * 1.5)});
+			rooms.push({x: 100, y: 104, w: 12, h: 12}, {x: 100, y: 66, w: 18, h: 18});
+			stageSpots = [[[60.5, 127.5], [140.5, 127.5], [100.5, 135.5]], [[100.5, 104.5]], [[100.5, 64.5]]];
+			mobRooms = [{x: 100, y: 163, w: 9, h: 9, n: 8}, {x: 79, y: 150, w: 7, h: 7, n: 5}, {x: 121, y: 150, w: 7, h: 7, n: 5},
+				{x: 60, y: 128, w: 8, h: 8, n: 3}, {x: 140, y: 128, w: 8, h: 8, n: 3}, {x: 100, y: 136, w: 8, h: 8, n: 3}, {x: 100, y: 104, w: 11, h: 11, n: 6}];
+		}
+
+		/** A 2-wide bridge that is missing (open sky) until gate k opens. */
+		private function gateBridge(k:int, x0:int, y0:int, x1:int, y1:int):void {
+			while (gates.length <= k) gates.push([]);
+			var steps:int = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+			for (var n:int = 0; n <= steps; n++) {
+				var x:int = x0 + Math.round((x1 - x0) * n / steps), y:int = y0 + Math.round((y1 - y0) * n / steps);
+				for (var oy:int = 0; oy < 2; oy++) for (var ox:int = 0; ox < 2; ox++) {
+					var i:int = (y + oy) * N + x + ox;
+					if (tiles[i] == VOID) gates[k].push({i: i, t: BRIDGE});
+				}
+			}
+		}
+
+		/** Opens raid gate k: the sealed cells become floor (and are redrawn). */
+		public function openGate(k:int):Boolean {
+			var list:Array = gates[k];
+			if (!list || !list.length) return false;
+			for each (var c:Object in list) {
+				tiles[c.i] = c.t;
+				zones[c.i] = DUNGEON_ZONE;
+				var x:int = c.i % N, y:int = int(c.i / N);
+				if (minimap) minimap.setPixel(x, y, MINI_COL[c.t]);
+				for (var dy:int = -1; dy <= 1; dy++) for (var dx:int = -1; dx <= 1; dx++) dropChunk(int((x + dx) / CHUNK), int((y + dy) / CHUNK));
+			}
+			gates[k] = [];
+			return true;
+		}
+
+		private function dropChunk(cx:int, cy:int):void {
+			var k:int = cy * 1024 + cx;
+			var bd:BitmapData = chunks[k];
+			if (!bd) return;
+			bd.dispose();
+			delete chunks[k];
+			chunkOrder.splice(chunkOrder.indexOf(k), 1);
 		}
 
 		/** A rough disc of floor. */

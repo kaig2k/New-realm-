@@ -216,9 +216,18 @@ realm (online, the same one for everyone from that realm):
 Bounty raises these chances like other loot. Keys can be traded, stored in the vault and sold.
 Click a key in the Nexus, or use it at the **Raid Table** (east, below the Starforge), to open
 its raid portal. Everyone in the Nexus sees the portal, and it lasts 2 minutes. A raid is three
-boss stages in a row:
-- **The Crimson Conclave:** two Zealots, then Matron Sanguine, then Archon Vesper.
-- **Heart of the Storm:** three Thunder Sentinels, then Galecaller Ysra, then Tempestus.
+full dungeon of its own and the hardest content in the game: guarded halls full of elite
+raid monsters, then three boss stages behind seals that open as each stage falls.
+- **The Crimson Conclave**, a blood cathedral: a pillared nave of Crimson Cultists, Bone
+  Thralls and Blood Hounds with burning blood pools, then the two Zealots in their chapels,
+  then Matron Sanguine's sanctum, then Archon Vesper at the altar.
+- **Heart of the Storm**, floating islands climbing into the clouds: Gale Harpies, Thunder
+  Golems and Cloud Serpents, then three Thunder Sentinels on their pylon islands, then a
+  bridge forms to Galecaller Ysra's terrace, and finally Tempestus in the eye of the storm.
+  Lightning keeps striking near you the whole way, so keep moving.
+
+Raid bosses have more health, armor and damage than any other boss, and scale with the
+number of players.
 
 Raid bosses drop the best loot and their own uniques.
 

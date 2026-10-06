@@ -225,13 +225,12 @@ package realm {
 					break;
 				case "rstage":
 					if (isHost || !w.raid) return;
-					w.raidStage = d.n;
-					g.raidStageBanner(d.n);
+					g.raidStageReached(d.n);
 					break;
 				case "wstate":
 					if (isHost) return;
 					w.eventsDone = d.ev;
-					if (d.rs != undefined) w.raidStage = d.rs;
+					if (d.rs != undefined && w.raid && d.rs >= 0) g.raidStageReached(Math.min(d.rs, w.raid.stages.length - 1));
 					if (d.ct > 0 && w.closeT <= 0) w.closeT = d.ct;
 					break;
 				case "portal":

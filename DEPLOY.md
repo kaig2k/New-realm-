@@ -110,6 +110,23 @@ mkdir -p ~/backups
 
 Copy the backups somewhere off the server now and then (or use your provider's snapshots).
 
+## 9. Give players a .swf that joins your server automatically
+
+Build the game with your server's address:
+
+```
+build.bat play.example.com:2050        (Windows)
+AIR_SDK=~/AIRSDK ./build.sh play.example.com:2050
+```
+
+This writes the address into `src/realm/ServerConfig.as` and builds `bin/NewRealm.swf`. Send that
+file to your players. When they open it, they create an account (or log in) and the game
+connects to your server by itself; PLAY then goes straight online, with no address to type.
+If the server can't be reached they get a Retry button, or can play offline instead.
+
+To go back to an offline-first build, set `HOME` in `src/realm/ServerConfig.as` back to `""`
+and build again. Remember to send players a new .swf whenever the network version changes.
+
 ## What this setup does and doesn't protect
 
 - **Saves:** characters, the vault and currencies live on the server. Players can't edit

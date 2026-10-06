@@ -44,7 +44,7 @@ package realm {
 
 		/** Saved server address (shared by all accounts on this computer). */
 		public static function get lastAddress():String {
-			return Accounts.setting("server") || "localhost:" + DEFAULT_PORT;
+			return ServerConfig.HOME || Accounts.setting("server") || "localhost:" + DEFAULT_PORT;
 		}
 
 		/** Connects and logs in as the current account. done(error:String) — error is null on success. */

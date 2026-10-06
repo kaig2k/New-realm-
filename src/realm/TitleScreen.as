@@ -77,6 +77,8 @@ package realm {
 			});
 			// first launch: go straight to account creation
 			if (!Accounts.current && Accounts.count == 0) showRegister();
+			// a build with a home server joins it as soon as you're logged in
+			else if (ServerConfig.HOME && Accounts.current && !Online.connected) connectHome(null);
 		}
 
 		private var t:Number = 0;
@@ -98,10 +100,17 @@ package realm {
 
 		private var onlineLayer:Sprite;
 
+		/** Connecting to the build's home server right now. */
+		private var connecting:Boolean = false;
+		private var homeError:String;
+
 		private function refreshOnline():void {
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
 			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.address + "</font>  (" + Online.welcome.online + " playing)"
+				: connecting ? "Connecting to the server..."
+				: ServerConfig.HOME && homeError ? "<font color='#ff8080'>Couldn't reach the server.</font> Press PLAY to try again."
+				: ServerConfig.HOME && !Accounts.current ? "Log in or register to join the server."
 				: "Playing offline. Join a server to play with friends.";
 			tf.y = 478;
 			onlineLayer.addChild(tf);
@@ -128,8 +137,32 @@ package realm {
 		}
 
 		private function clickPlay():void {
-			if (Accounts.current) onPlay();
+			if (Accounts.current) go();
 			else showLogin();
+		}
+
+		/** Into the game: through the home server when this build has one. */
+		private function go():void {
+			if (ServerConfig.HOME && !Online.connected) connectHome(onPlay);
+			else onPlay();
+		}
+
+		/** Connects to ServerConfig.HOME, then runs `then` (if any). On failure: Retry or play offline. */
+		private function connectHome(then:Function):void {
+			if (connecting) return;
+			connecting = true;
+			homeError = null;
+			refreshOnline();
+			Online.connect(ServerConfig.HOME, function(err:String):void {
+				connecting = false;
+				homeError = err;
+				refreshOnline();
+				if (!err) { if (then != null) then(); return; }
+				if (then == null) return;
+				openDialog("Server unavailable", [], [], "Retry", function():void { closeDialog(); connectHome(then); },
+					"Play offline instead", function():void { closeDialog(); onPlay(); });
+				errorTf.text = err;
+			});
 		}
 
 		/** Top-right account box: logged in as X, or log in / register buttons. */
@@ -238,7 +271,7 @@ package realm {
 			openDialog("Log In", ["Username", "Password"], [false, true], "Log in", function():void {
 				var err:String = Accounts.login(fields[0].text, fields[1].text, true);
 				if (err) errorTf.text = err;
-				else { done(); onPlay(); }
+				else { done(); go(); }
 			}, "No account yet? Register", showRegister);
 		}
 
@@ -246,7 +279,7 @@ package realm {
 			openDialog("Create Account", ["Username (3-12 letters or numbers)", "Password", "Confirm password"], [false, true, true], "Create", function():void {
 				var err:String = Accounts.register(fields[0].text, fields[1].text, fields[2].text, true);
 				if (err) errorTf.text = err;
-				else { done(); onPlay(); }
+				else { done(); go(); }
 			}, Accounts.count > 0 ? "Already have an account? Log in" : null, showLogin);
 		}
 

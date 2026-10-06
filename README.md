@@ -100,6 +100,30 @@ into the first account you create.
   it up.
 - **Shift+click:** sells an item at the Marketplace, and quick-drops it anywhere else.
 
+## The realm
+
+Realms are now 512 x 512 tiles, about 2.5 times the old size, with more rivers, roads and
+ruins. The ground is drawn in chunks as you get near them, so the bigger map loads faster
+and uses less memory than the old one did.
+
+**Landmarks.** Each realm has about 30-40 guarded places spread across its biomes:
+
+| Biome | Landmarks |
+|---|---|
+| Beach | Smugglers' Cove (Pirate Captain) |
+| Lowlands | Bandit Camp (Bandit Leader), Goblin Warren (Goblin Chieftain) |
+| Midlands | Spider Grove (Spider Queen), Orc Warcamp (Orc King) |
+| Highlands | Dwarven Hall (Dwarf King), Ogre Den (Minotaur) |
+| Godlands | Fallen Temple (Demon), Lich's Barrow (Lich) |
+
+- Walking near one wakes its leader and band; more players bring a bigger band.
+- Killing the leader clears the landmark for everyone in the realm and gives everyone
+  who hit it a **bonus loot roll** plus gold.
+- Landmarks you've seen show on the minimap as coloured diamonds, and turn grey once
+  cleared.
+- Clearing landmarks also brings the next realm event sooner.
+- Realms now need **8 event bosses** (up from 6) before they close.
+
 ## Bosses, raids and loot
 
 **Boss fights.** Every boss now runs a scripted fight with 2-4 phases.
@@ -374,7 +398,7 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
 - **Realm events**: the realm's overlord, *Azrakor the Dark Elder*, keeps summoning event
   bosses (Cube Overlord, Ember Titan, Frost Wyrm, Hollow King, Gorehorn the Behemoth, the
   Phantom Regent) and announces each kill in
-  chat as `[3/6][Realm: Ashveil]`. Clear all 6 events and the realm closes. You storm
+  chat as `[3/8][Realm: Ashveil]`. Clear all 8 events and the realm closes. You storm
   **Azrakor's Citadel** and then the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
   for Eldritch, Starforged and Primordial loot. At a third of his health he becomes immune and
   summons four Elder Crystals. Destroy them all to make him vulnerable again.

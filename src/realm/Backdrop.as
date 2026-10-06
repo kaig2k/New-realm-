@@ -40,7 +40,7 @@ package realm {
 			mtx.a = mtx.d = Game.TS / World.PX;
 			mtx.tx = Math.round(Ui.W / 2 - camX * Game.TS);
 			mtx.ty = Math.round(Ui.H / 2 - camY * Game.TS);
-			bg.draw(world.bitmap, mtx, null, null, null, false);
+			world.drawGround(bg, mtx, camX, camY, Math.sqrt(Ui.W * Ui.W + Ui.H * Ui.H) / 2 / Game.TS + 1);
 			bg.unlock();
 		}
 

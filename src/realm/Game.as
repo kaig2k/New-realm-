@@ -95,6 +95,7 @@ package realm {
 		private var chat:TextField;
 		private var chatLines:Array = [];
 		private var lastZone:int = -2;
+		private var lastSite:Object;
 		private var banner:TextField;
 		private var bannerT:Number = 0;
 		private var bossPanel:Sprite;
@@ -975,6 +976,7 @@ package realm {
 		}
 
 		private function switchWorld(w:World, x:Number, y:Number):void {
+			if (world && world != w) world.releaseGround();
 			world = w;
 			player.x = x;
 			player.y = y;
@@ -986,6 +988,7 @@ package realm {
 			nearBag = null;
 			nearPortal = null;
 			lastZone = -2;
+			lastSite = null;
 			camX = x;
 			camY = y;
 			world.reveal(x, y, 14);
@@ -1135,6 +1138,15 @@ package realm {
 				if (bannerT <= 0) banner.visible = false;
 			}
 
+			var here:Object = world.kind == "realm" ? world.siteAt(player.x, player.y, 3) : null;
+			if (here != lastSite) {
+				lastSite = here;
+				if (here) {
+					showBanner(here.name, here.color, 2.5);
+					if (!here.found && !here.cleared) msg("You found the " + here.name + ". Defeat its leader for a bonus loot bag!", here.color);
+					here.found = true;
+				}
+			}
 			var z:int = world.zoneAt(player.x, player.y);
 			if (z != lastZone && z >= 0) {
 				if (lastZone != -2) showBanner(Data.ZONE_NAMES[z], [0xffe8a0, 0x9cff7a, 0x5ad05a, 0xd8d070, 0xd090ff, 0xffffff, 0xff5050, 0xffffff, 0xffffff, 0xffffff][z], 2.5);
@@ -1255,7 +1267,7 @@ package realm {
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
-					tip("event", "Event bosses drop Runed and Bonded gear, Star Shards and dungeon portals. Kill 6 to face the Dark Elder.");
+					tip("event", "Event bosses drop Runed and Bonded gear, Star Shards and dungeon portals. Kill " + Data.EVENTS_PER_REALM + " to face the Dark Elder.");
 					return;
 				}
 			}
@@ -1544,6 +1556,8 @@ package realm {
 				}
 			}
 			var items:Array = mine ? Data.rollLoot(e.def, Math.max(0, Math.min(World.GOD_ZONE, e.zone)), p.cls, p.frt) : [];
+			var hoard:Array = siteCleared(e, mine);
+			if (hoard) items = items.concat(hoard);
 			if (items.length) {
 				while (items.length > LootBag.MAX) items.pop();
 				var bag:LootBag = new LootBag(e.x, e.y, items);
@@ -1736,6 +1750,7 @@ package realm {
 				}
 				if (!keep) removeEnemyAt(i);
 			}
+			updateSites(spots);
 			// top up around one player at a time
 			var who:Object = spots[int(Math.random() * spots.length)];
 			if (world.isSafe(who.x, who.y)) who = player;
@@ -1765,6 +1780,66 @@ package realm {
 				}
 				return;
 			}
+		}
+
+		/**
+		 * Realm landmarks (host only): a player coming near an uncleared site
+		 * wakes its leader and band; if they all wander off unbeaten (everyone
+		 * left), the site resets for the next visitor.
+		 */
+		private function updateSites(spots:Array):void {
+			for each (var s:Object in world.sites) {
+				if (s.cleared) continue;
+				var nearby:Boolean = false;
+				for each (var sp:Object in spots) {
+					var dx:Number = sp.x - s.x, dy:Number = sp.y - s.y, rr:Number = s.r + 12;
+					if (dx * dx + dy * dy < rr * rr) { nearby = true; break; }
+				}
+				var leader:Enemy = siteLeader(s);
+				if (s.active && !leader) s.active = false;
+				if (s.active || !nearby || leader) continue;
+				s.active = true;
+				spawnEnemy(s.boss, s.x, s.y, s.zone);
+				var extra:int = Math.min(4, Math.max(0, playerSpots().length - 1));
+				for (var k:int = 0; k < s.n + extra; k++) {
+					var a:Number = k * Math.PI * 2 / (s.n + extra) + Math.random() * 0.4;
+					var d:Number = 2 + Math.random() * (s.r - 3);
+					spawnEnemy(s.guards[k % s.guards.length], s.x + Math.cos(a) * d, s.y + Math.sin(a) * d, s.zone);
+				}
+			}
+		}
+
+		/** The living leader of a landmark, or null. */
+		private function siteLeader(s:Object):Enemy {
+			for each (var e:Enemy in enemies) {
+				if (e.dead || e.defId != s.boss) continue;
+				var dx:Number = e.x - s.x, dy:Number = e.y - s.y, rr:Number = s.r + 14;
+				if (dx * dx + dy * dy < rr * rr) return e;
+			}
+			return null;
+		}
+
+		/** A landmark's leader died: the site is cleared for everyone in the realm. */
+		private function siteCleared(e:Enemy, mine:Boolean):Array {
+			if (world.kind != "realm") return null;
+			for each (var s:Object in world.sites) {
+				if (s.cleared || e.defId != s.boss) continue;
+				var dx:Number = e.x - s.x, dy:Number = e.y - s.y, rr:Number = s.r + 14;
+				if (dx * dx + dy * dy >= rr * rr) continue;
+				s.cleared = true;
+				s.active = false;
+				var done:int = 0;
+				for each (var o:Object in world.sites) if (o.cleared) done++;
+				showBanner(s.name + " cleared!", s.color, 3);
+				msg(s.name + " cleared! [" + done + "/" + world.sites.length + " landmarks in " + world.name + "]", s.color);
+				ring(s.x, s.y, s.color, 30);
+				// the leader's hoard: an extra roll of loot and some gold for whoever helped
+				if (!mine) return null;
+				addGold(25 + s.zone * 25);
+				world.eventT -= 8; // clearing landmarks stirs the overlord
+				return Data.rollLoot(e.def, Math.max(0, Math.min(World.GOD_ZONE, e.zone)), player.cls, player.frt);
+			}
+			return null;
 		}
 
 		public function spawnEnemy(id:String, x:Number, y:Number, zone:int):Enemy {
@@ -2929,7 +3004,7 @@ package realm {
 			mtx.translate(-viewX * TS, -viewY * TS);
 			if (camAngle != 0) mtx.rotate(-camAngle);
 			mtx.translate(cx + shx, cy + shy);
-			canvas.draw(world.bitmap, mtx, null, null, null, false);
+			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw + vh * vh) / 2 / TS + 1);
 
 			var bd:BitmapData;
 			// loot bags lie on the ground

@@ -75,6 +75,9 @@ package realm {
 		private static const BOULDER:Array = [["...kKKKk...", "..kKLLKKk..", ".kKLLKKKKd.", "kKKLKKKKKdd", "kKKKKKKKddd", ".kKKKKKdddd", "..kkkdddd.."]];
 		private static const DEADTREE:Array = [["W....W..W...", ".W...W.W..W.", "..W..WW..W..", "...WWW..W...", "W...WW.W....", ".WW.WWW.....", "...WWW......", "....WW......", "....WW......", "....WW......", "...wWWw....."]];
 		private static const PILLAR:Array = [[".L.LL...", "LLLLLLl.", ".SSSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SSSSs..", "LLLLLLl.", "sssssss."]];
+		private static const TENT:Array = [["....K....", "...KCK...", "..KCCcK..", "..KCCcK..", ".KCCDccK.", ".KCCDDcK.", "KCCCDDccK", "KKKKDDKKK"]];
+		private static const CAMPFIRE:Array = [["...Y....", "..YFY...", "..FYWF..", ".FYWYF..", "..FYF...", "KkKkKkK.", ".kKkKk.."]];
+		private static const TOTEM:Array = [["R.KKKK.R", "RKEKKEKR", ".KKKKKK.", ".KkRRkK.", ".KKKKKK.", ".KEKKEK.", ".KKRRKK.", ".KkkkkK.", ".KKKKKK.", "..kkkk.."]];
 		private static const RUINWALL:Array = [["..LL....", ".LLLLL..", "LSSlSSL.", "SSlSSSSl", "lSSSlSSl", "SSSlSSSS", "lllllllL"]];
 		private static const BRAZIER:Array = [["..Y.F...", "...FYF..", "..FYWYF.", "..FYYF..", ".SSSSSS.", "..sSSs..", "...SS...", "..sSSs.."]];
 		private static const CHEST:Array = [["........", ".KKKKKK.", "KCCCCCCK", "KCcYYcCK", "KKKKKKKK", "KCCYYCCK", "KCcCCcCK", "KKKKKKKK"]];
@@ -281,6 +284,9 @@ package realm {
 			boulder: [BOULDER, {k: 0x4e4e54, K: 0x6a6a72, L: 0x9a9aa4, d: 0x34343a}],
 			pillar: [PILLAR, {L: 0xc8c8cc, l: 0x8a8a90, S: 0xa8a8b0, s: 0x6a6a72}],
 			ruinwall: [RUINWALL, {L: 0xc8c8cc, S: 0xa0a0a8, l: 0x6a6a72}],
+			tent: [TENT, {K: 0x3a2814, C: 0xb08a50, c: 0x806030, D: 0x2a1a0c}],
+			campfire: [CAMPFIRE, {Y: 0xffe040, F: 0xff6a20, W: 0xffffff, K: 0x5a3a1c, k: 0x3a2410}],
+			totem: [TOTEM, {K: 0x7a5230, k: 0x4a3018, E: 0xffe040, R: 0xc03020}],
 			deadtree: [DEADTREE, {W: 0x6a5640, w: 0x3e3226}],
 			brazier: [BRAZIER, {Y: 0xffe040, F: 0xff7a20, W: 0xffffff, S: 0x6a6a72, s: 0x44444a}],
 			crystal: [CRYSTAL, {W: 0xffd0e8, C: 0xff4080, c: 0xb01850, D: 0x600828, S: 0x3a1a2a}, 7],

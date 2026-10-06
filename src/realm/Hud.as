@@ -500,6 +500,18 @@ package realm {
 				gr.drawRect(lx - ds / 2, ly - ds / 2, ds, ds);
 				gr.endFill();
 			}
+			// landmarks you've seen: a coloured diamond, grey once cleared
+			for each (var st:Object in g.world.sites) {
+				if (!st.found && (g.world.seen.getPixel32(int(st.x), int(st.y)) >>> 24) == 0) continue;
+				var sx:Number = ox + st.x * z, sy:Number = oy + st.y * z;
+				if (sx < 0 || sy < 0 || sx > mw || sy > mh) continue;
+				var sr:Number = Math.max(3, ds * 1.6);
+				gr.lineStyle(1, 0x000000);
+				gr.beginFill(st.cleared ? 0x707070 : st.color);
+				gr.moveTo(sx, sy - sr); gr.lineTo(sx + sr, sy); gr.lineTo(sx, sy + sr); gr.lineTo(sx - sr, sy); gr.lineTo(sx, sy - sr);
+				gr.endFill();
+				gr.lineStyle();
+			}
 			// other players are yellow, like RotMG
 			for each (var rp:RemotePlayer in g.net.players) {
 				if (!g.shown(rp)) continue;

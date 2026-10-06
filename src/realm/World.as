@@ -1,17 +1,22 @@
 package realm {
 	import flash.display.BitmapData;
+	import flash.geom.Matrix;
 	import flash.geom.Rectangle;
 
 	/**
 	 * A round island realm: shore on the rim, more dangerous toward the
 	 * godlands in the centre, with brick ruins and lava scattered inland.
-	 * Ground is rendered once to an 8px-per-tile bitmap (scaled 5x in game);
+	 * Ground is rendered in 8px-per-tile chunks as you approach them (scaled 5x in game);
 	 * trees and rocks are separate objects drawn y-sorted with the entities.
 	 */
 	public class World {
 		/** Map size in tiles: realms are big islands, other worlds use the default. */
 		public static const DEFAULT_N:int = 200;
-		public static const REALM_N:int = 320;
+		public static const REALM_N:int = 512;
+		/** Ground chunks are CHUNK x CHUNK tiles, rendered when first seen. */
+		public static const CHUNK:int = 32;
+		/** Most chunks a world keeps rendered at once (each is 256x256 pixels). */
+		private static const MAX_CHUNKS:int = 72;
 		public var N:int = DEFAULT_N;
 		public static const PX:int = 8;
 
@@ -23,7 +28,7 @@ package realm {
 		public static const SAFE_ZONE:int = 9;
 		public static const ARENA_ZONE:int = 6;
 		public static const DUNGEON_ZONE:int = 7;
-		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall"];
+		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall", "tent", "grave", "campfire", "totem"];
 		public static const NEXUS_ZONE:int = 5;
 
 		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
@@ -37,7 +42,20 @@ package realm {
 		public var tiles:Vector.<int>;
 		public var objs:Vector.<int>;
 		public var zones:Vector.<int>;
-		public var bitmap:BitmapData;
+		/** Rendered ground chunks by index, plus the order they were last used in. */
+		private var chunks:Object = {};
+		private var chunkOrder:Array = [];
+		private var drawMtx:Matrix = new Matrix();
+		/** The bitmap a chunk is being drawn into, and its pixel offset. */
+		private var target:BitmapData;
+		private var offX:int, offY:int;
+		/** Per-tile random state for ground textures (independent of the map seed). */
+		private var trng:uint = 1;
+		/**
+		 * Realm landmarks: {x, y, r, kind, name, zone, boss, guards, color,
+		 * cleared, active, found}. Each one is guarded until its leader falls.
+		 */
+		public var sites:Array = [];
 		public var minimap:BitmapData;
 		public var seen:BitmapData;
 		public var spawnX:Number;
@@ -168,7 +186,8 @@ package realm {
 		private function generate():void {
 			makeNoise();
 			// 0-2 coast/biome warp, 3-5 lakes, 6-8 forests
-			layers = [layer(40), layer(16), layer(6), layer(30), layer(12), layer(5), layer(24), layer(9), layer(4)];
+			var big:Number = N / 320;
+			layers = [layer(int(40 * big)), layer(int(16 * big)), layer(6), layer(30), layer(12), layer(5), layer(24), layer(9), layer(4)];
 			var cx:Number = N / 2, cy:Number = N / 2, R:Number = N / 2 - 8;
 			var x:int, y:int, i:int, d:Number, z:int, t:int;
 			var dist:Vector.<Number> = new Vector.<Number>(N * N, true);
@@ -192,7 +211,8 @@ package realm {
 			}
 			// rivers: wander from the highlands down to the sea
 			var k:int, a:Number, px:Number, py:Number, step:int;
-			for (k = 0; k < 4; k++) {
+			var rivers:int = int(4 * big + 1.5);
+			for (k = 0; k < rivers; k++) {
 				a = rnd() * Math.PI * 2;
 				px = cx + Math.cos(a) * R * 0.35;
 				py = cy + Math.sin(a) * R * 0.35;
@@ -215,7 +235,7 @@ package realm {
 				}
 			}
 			// roads: from the Godlands out to the beach, with bridges over water
-			var roads:int = 6;
+			var roads:int = int(6 * big + 0.5);
 			var off:Number = rnd() * Math.PI * 2;
 			for (k = 0; k < roads; k++) {
 				a = off + k * Math.PI * 2 / roads + (rnd() - 0.5) * 0.4;
@@ -273,7 +293,7 @@ package realm {
 				}
 			}
 			// a road from the haven north until it meets one of the realm roads
-			for (y = hy - 5; y > hy - 60 && y > 0; y--) {
+			for (y = hy - 5; y > hy - 90 && y > 0; y--) {
 				if (y < hy - 8 && (tiles[y * N + hx] == ROAD || tiles[y * N + hx + 1] == ROAD)) break;
 				for (dx = 0; dx <= 1; dx++) {
 					i = y * N + hx + dx;
@@ -282,6 +302,78 @@ package realm {
 					tiles[i] = tiles[i] == WATER || tiles[i] == BRIDGE ? BRIDGE : ROAD;
 				}
 			}
+			makeSites(hx, hy);
+		}
+
+		/**
+		 * Landmarks spread over the realm: camps, groves, halls and temples,
+		 * each held by a leader and its band until someone clears it.
+		 */
+		private function makeSites(hx:int, hy:int):void {
+			var per:int = Math.max(2, int(N / 110));
+			for (var k:int = 0; k < Data.SITES.length; k++) {
+				var def:Object = Data.SITES[k];
+				var placed:int = 0;
+				for (var tries:int = 0; tries < 400 && placed < per; tries++) {
+					var x:int = 16 + int(rnd() * (N - 32)), y:int = 16 + int(rnd() * (N - 32));
+					var i:int = y * N + x;
+					if (zones[i] != def.zone || tiles[i] == WATER) continue;
+					if ((x - hx) * (x - hx) + (y - hy) * (y - hy) < 40 * 40) continue;
+					var ok:Boolean = true;
+					// the Godlands are small, so their sites may sit closer together
+					var gap:int = def.zone == GOD_ZONE ? 24 : 36;
+					for each (var o:Object in sites) {
+						if ((o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < gap * gap) { ok = false; break; }
+					}
+					// mostly dry ground
+					var wet:int = 0;
+					for (var dy:int = -def.r; dy <= def.r; dy += 2) for (var dx:int = -def.r; dx <= def.r; dx += 2) {
+						var j:int = (y + dy) * N + x + dx;
+						if (tiles[j] == WATER || zones[j] < 0 || zones[j] == SAFE_ZONE) wet++;
+					}
+					if (!ok || wet > 4) continue;
+					buildSite(def, x, y);
+					sites.push({x: x + 0.5, y: y + 0.5, r: def.r, kind: def.id, name: def.name, zone: def.zone, boss: def.boss,
+						guards: def.guards, n: def.n, color: def.color, cleared: false, active: false, found: false});
+					placed++;
+				}
+			}
+		}
+
+		/** Lays out a landmark's ground and scenery. */
+		private function buildSite(def:Object, cx:int, cy:int):void {
+			var r:int = def.r;
+			for (var y:int = cy - r - 1; y <= cy + r + 1; y++) {
+				for (var x:int = cx - r - 1; x <= cx + r + 1; x++) {
+					var dx:int = x - cx, dy:int = y - cy;
+					var d:Number = Math.sqrt(dx * dx + dy * dy);
+					if (d > r + 0.5) continue;
+					var i:int = y * N + x;
+					if (tiles[i] == WATER && d > r - 2) continue;
+					objs[i] = 0;
+					var edge:Boolean = d > r - 1.2;
+					if (def.floor >= 0) tiles[i] = def.floor;
+					if (def.inner >= 0 && d < r * 0.35) tiles[i] = def.inner;
+					// a broken ring of the site's scenery, with gaps to walk through
+					if (edge && def.wall && rnd() < def.wallChance && Math.abs(dy) > 1 && Math.abs(dx) > 1) objs[i] = def.wall;
+					else if (!edge && def.prop && d > 2.5 && rnd() < def.propChance) objs[i] = def.prop;
+				}
+			}
+			// the centrepiece (a campfire, an altar...)
+			if (def.centre) objs[cy * N + cx] = def.centre;
+			if (def.pillars) for each (var c:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+				var pi:int = (cy + c[1] * int(r * 0.6)) * N + cx + c[0] * int(r * 0.6);
+				objs[pi] = def.pillars;
+			}
+		}
+
+		/** The landmark at (x, y), or null. */
+		public function siteAt(x:Number, y:Number, extra:Number = 0):Object {
+			for each (var s:Object in sites) {
+				var dx:Number = s.x - x, dy:Number = s.y - y, rr:Number = s.r + extra;
+				if (dx * dx + dy * dy < rr * rr) return s;
+			}
+			return null;
 		}
 
 		/**
@@ -647,7 +739,8 @@ package realm {
 
 		/** Brick ruins in the midlands and godlands; godland ruins have lava rivers. */
 		private function makeRuins():void {
-			for (var k:int = 0; k < (kind == "realm" ? 30 : 26); k++) {
+			var count:int = kind == "realm" ? int(30 * (N / 320) * (N / 320)) : 26;
+			for (var k:int = 0; k < count; k++) {
 				var cx:int = 0, cy:int = 0, z:int = -1;
 				for (var tries:int = 0; tries < 50; tries++) {
 					cx = 20 + int(rnd() * (N - 40));
@@ -687,10 +780,12 @@ package realm {
 			var x:int, y:int, i:int, r:Number, c:uint;
 			var shal:Boolean = t == WATER && shallow(tx, ty);
 			var hs:int = ((tx * 7349 + ty * 3613) ^ (tx * ty)) & 255;
+			trng = uint(tx * 73856093 ^ ty * 19349663 ^ t * 83492791) | 1;
 			for (y = 0; y < PX; y++) {
 				for (x = 0; x < PX; x++) {
 					i = y * PX + x;
-					r = rnd();
+					trng ^= trng << 13; trng ^= trng >>> 17; trng ^= trng << 5;
+					r = (trng >>> 0) / 4294967296;
 					var gx:int = tx * PX + x, gy:int = ty * PX + y;
 					switch (t) {
 						case WATER:
@@ -804,26 +899,80 @@ package realm {
 			return false;
 		}
 
+		/** Builds the minimap; the ground itself is drawn chunk by chunk in drawGround. */
 		private function render():void {
-			bitmap = new BitmapData(N * PX, N * PX, false, 0);
 			minimap = new BitmapData(N, N, false, 0);
-			var r:Rectangle = new Rectangle(0, 0, PX, PX);
-			bitmap.lock();
+			minimap.lock();
 			for (var y:int = 0; y < N; y++) {
 				for (var x:int = 0; x < N; x++) {
 					var i:int = y * N + x;
-					var t:int = tiles[i];
-					r.x = x * PX;
-					r.y = y * PX;
-					bitmap.setVector(r, texture(t, x, y));
-					drawEdges(x, y, t);
-					var mc:uint = MINI_COL[t];
+					var mc:uint = MINI_COL[tiles[i]];
 					if (objs[i] == 1 || objs[i] == 2) mc = 0x1e4a18;
 					else if (objs[i] == 4 || objs[i] == 5) mc = 0x7a7a7a;
 					minimap.setPixel(x, y, mc);
 				}
 			}
-			bitmap.unlock();
+			minimap.unlock();
+		}
+
+		private function chunk(cx:int, cy:int):BitmapData {
+			var k:int = cy * 1024 + cx;
+			var bd:BitmapData = chunks[k];
+			if (bd) {
+				var at:int = chunkOrder.indexOf(k);
+				if (at < chunkOrder.length - 1) { chunkOrder.splice(at, 1); chunkOrder.push(k); }
+				return bd;
+			}
+			while (chunkOrder.length >= MAX_CHUNKS) {
+				var old:int = chunkOrder.shift();
+				BitmapData(chunks[old]).dispose();
+				delete chunks[old];
+			}
+			bd = new BitmapData(CHUNK * PX, CHUNK * PX, false, 0);
+			target = bd;
+			offX = cx * CHUNK * PX;
+			offY = cy * CHUNK * PX;
+			var r:Rectangle = new Rectangle(0, 0, PX, PX);
+			bd.lock();
+			var x1:int = Math.min(N, (cx + 1) * CHUNK), y1:int = Math.min(N, (cy + 1) * CHUNK);
+			for (var y:int = cy * CHUNK; y < y1; y++) {
+				for (var x:int = cx * CHUNK; x < x1; x++) {
+					var t:int = tiles[y * N + x];
+					r.x = x * PX - offX;
+					r.y = y * PX - offY;
+					bd.setVector(r, texture(t, x, y));
+					drawEdges(x, y, t);
+				}
+			}
+			bd.unlock();
+			target = null;
+			chunks[k] = bd;
+			chunkOrder.push(k);
+			return bd;
+		}
+
+		/**
+		 * Draws the ground within `reach` tiles of (vx, vy) into `out`. mtx maps
+		 * ground pixels (8 per tile) to the screen, rotation and zoom included.
+		 */
+		public function drawGround(out:BitmapData, mtx:Matrix, vx:Number, vy:Number, reach:Number):void {
+			var c0:int = Math.max(0, int((vx - reach) / CHUNK)), c1:int = Math.min(int((N - 1) / CHUNK), int((vx + reach) / CHUNK));
+			var r0:int = Math.max(0, int((vy - reach) / CHUNK)), r1:int = Math.min(int((N - 1) / CHUNK), int((vy + reach) / CHUNK));
+			for (var cy:int = r0; cy <= r1; cy++) {
+				for (var cx:int = c0; cx <= c1; cx++) {
+					drawMtx.identity();
+					drawMtx.translate(cx * CHUNK * PX, cy * CHUNK * PX);
+					drawMtx.concat(mtx);
+					out.draw(chunk(cx, cy), drawMtx, null, null, null, false);
+				}
+			}
+		}
+
+		/** Frees the rendered ground (it is redrawn when you come back). */
+		public function releaseGround():void {
+			for each (var bd:BitmapData in chunks) bd.dispose();
+			chunks = {};
+			chunkOrder = [];
 		}
 
 		/** Light borders where ruins / haven / water meet other ground (the RotMG tile edge look). */
@@ -838,7 +987,8 @@ package realm {
 			else if (t == FOUNTAIN) { col = 0xd0d0d8; dark = 0x8a8a92; }
 			else if (t == ARENA) { col = 0x9a9a9a; dark = 0x6a6a6a; }
 			else return;
-			var px:int = x * PX, py:int = y * PX;
+			var px:int = x * PX - offX, py:int = y * PX - offY;
+			var bitmap:BitmapData = target;
 			var same:Function = function(nt:int):Boolean {
 				if (t == BRICK || t == LAVA || t == RUIN) return nt == BRICK || nt == LAVA || nt == RUIN;
 				if (t == ROAD || t == BRIDGE) return nt == ROAD || nt == BRIDGE;

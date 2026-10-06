@@ -998,9 +998,37 @@ package realm {
 		public static const REALM_NAMES:Array = ["Ashveil", "Thornwick", "Glimmerfen", "Duskhollow", "Brineholt", "Stormreach", "Mirewood", "Emberfall",
 			"Frostgate", "Sunspire", "Wraithmoor", "Ironvale", "Starhaven", "Mosscairn", "Grimtide"];
 
+		/**
+		 * Realm landmarks, several of each per realm. Walking up to one wakes its
+		 * band; killing the leader clears it for a bonus loot bag.
+		 * Tiles: -1 keep, 1 sand, 5 plaza, 6 brick, 16 road, 18 ruin.
+		 * Scenery: 3 palm, 4 rock, 5 boulder, 6 dead tree, 7 brazier, 8 pillar,
+		 * 9 ruin wall, 10 tent, 11 grave, 12 campfire, 13 totem.
+		 */
+		public static const SITES:Array = [
+			{id: "cove", name: "Smugglers' Cove", zone: 0, r: 6, boss: "pirate_captain", guards: ["pirate", "pirate_brawler", "pirate"], n: 6, color: 0xffd070,
+				floor: 1, inner: -1, wall: 3, wallChance: 0.35, prop: 10, propChance: 0.03, centre: 12},
+			{id: "bandits", name: "Bandit Camp", zone: 1, r: 7, boss: "bandit_leader", guards: ["bandit", "bandit", "wolf"], n: 7, color: 0xd08a50,
+				floor: -1, inner: 16, wall: 4, wallChance: 0.25, prop: 10, propChance: 0.05, centre: 12},
+			{id: "warren", name: "Goblin Warren", zone: 1, r: 6, boss: "goblin_chief", guards: ["goblin", "goblin", "green_slime"], n: 7, color: 0x9cd060,
+				floor: -1, inner: 1, wall: 13, wallChance: 0.12, prop: 5, propChance: 0.03, centre: 13},
+			{id: "grove", name: "Spider Grove", zone: 2, r: 7, boss: "spider_queen", guards: ["spider", "spider", "great_snake"], n: 8, color: 0xe0c020,
+				floor: -1, inner: -1, wall: 6, wallChance: 0.45, prop: 6, propChance: 0.04, centre: 0},
+			{id: "warcamp", name: "Orc Warcamp", zone: 2, r: 8, boss: "orc_king", guards: ["orc", "orc", "gazer"], n: 8, color: 0x60b060,
+				floor: 16, inner: -1, wall: 9, wallChance: 0.5, prop: 10, propChance: 0.04, centre: 12},
+			{id: "hall", name: "Dwarven Hall", zone: 3, r: 8, boss: "dwarf_king", guards: ["dwarf", "dwarf", "golem"], n: 8, color: 0xf0c030,
+				floor: 18, inner: 5, wall: 9, wallChance: 0.45, prop: 0, propChance: 0, centre: 7, pillars: 8},
+			{id: "den", name: "Ogre Den", zone: 3, r: 7, boss: "minotaur", guards: ["ogre", "harpy", "harpy"], n: 7, color: 0xa08a5a,
+				floor: -1, inner: 1, wall: 5, wallChance: 0.4, prop: 4, propChance: 0.04, centre: 12},
+			{id: "temple", name: "Fallen Temple", zone: 4, r: 8, boss: "demon", guards: ["djinn", "medusa", "beholder"], n: 8, color: 0xff6060,
+				floor: 18, inner: 6, wall: 9, wallChance: 0.4, prop: 0, propChance: 0, centre: 7, pillars: 8},
+			{id: "barrow", name: "Lich's Barrow", zone: 4, r: 7, boss: "lich", guards: ["ghost_god", "ghost_god", "beholder"], n: 8, color: 0xa070ff,
+				floor: -1, inner: 18, wall: 9, wallChance: 0.3, prop: 11, propChance: 0.12, centre: 7}
+		];
+
 		/** Realm events; each realm needs EVENTS_PER_REALM of them killed. */
 		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
-		public static const EVENTS_PER_REALM:int = 6;
+		public static const EVENTS_PER_REALM:int = 8;
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
 
 		/**

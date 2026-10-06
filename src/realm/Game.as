@@ -1876,18 +1876,42 @@ package realm {
 					var dx:Number = sp.x - s.x, dy:Number = sp.y - s.y, rr:Number = s.r + 12;
 					if (dx * dx + dy * dy < rr * rr) { nearby = true; break; }
 				}
-				var leader:Enemy = siteLeader(s);
-				if (s.active && !leader) s.active = false;
-				if (s.active || !nearby || leader) continue;
+				// the band is tied to its leader, wherever the leader has chased you
+				var alive:Boolean = s.leader && !s.leader.dead && enemies.indexOf(s.leader) >= 0;
+				if (s.active && !alive) {
+					// the leader wandered off and despawned: the site rests before its band returns
+					s.active = false;
+					s.leader = null;
+					s.retryAt = time + 90;
+				}
+				if (s.active || !nearby || time < (s.retryAt || 0)) continue;
+				// another player's game may already be running this site's band
+				if (siteLeader(s)) continue;
+				// never pile a band on top of an already crowded spot
+				if (enemiesNear(s.x, s.y, 20) > 18) continue;
+				var leader:Enemy = spawnEnemy(s.boss, s.x, s.y, s.zone);
+				if (!leader) continue;
 				s.active = true;
-				spawnEnemy(s.boss, s.x, s.y, s.zone);
-				var extra:int = Math.min(4, Math.max(0, playerSpots().length - 1));
+				s.leader = leader;
+				leader.site = s;
+				var extra:int = Math.min(3, Math.max(0, spots.length - 1));
 				for (var k:int = 0; k < s.n + extra; k++) {
 					var a:Number = k * Math.PI * 2 / (s.n + extra) + Math.random() * 0.4;
 					var d:Number = 2 + Math.random() * (s.r - 3);
-					spawnEnemy(s.guards[k % s.guards.length], s.x + Math.cos(a) * d, s.y + Math.sin(a) * d, s.zone);
+					var gd:Enemy = spawnEnemy(s.guards[k % s.guards.length], s.x + Math.cos(a) * d, s.y + Math.sin(a) * d, s.zone);
+					if (gd) gd.site = s;
 				}
 			}
+		}
+
+		private function enemiesNear(x:Number, y:Number, r:Number):int {
+			var n:int = 0;
+			for each (var e:Enemy in enemies) {
+				if (e.dead) continue;
+				var dx:Number = e.x - x, dy:Number = e.y - y;
+				if (dx * dx + dy * dy < r * r) n++;
+			}
+			return n;
 		}
 
 		/** The living leader of a landmark, or null. */
@@ -1905,8 +1929,12 @@ package realm {
 			if (world.kind != "realm") return null;
 			for each (var s:Object in world.sites) {
 				if (s.cleared || e.defId != s.boss) continue;
-				var dx:Number = e.x - s.x, dy:Number = e.y - s.y, rr:Number = s.r + 14;
-				if (dx * dx + dy * dy >= rr * rr) continue;
+				// the host knows its leader; other players' games go by where it fell
+				if (e.site != s) {
+					if (e.site) continue;
+					var dx:Number = e.x - s.x, dy:Number = e.y - s.y, rr:Number = s.r + 30;
+					if (dx * dx + dy * dy >= rr * rr) continue;
+				}
 				s.cleared = true;
 				s.active = false;
 				var done:int = 0;

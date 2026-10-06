@@ -64,6 +64,8 @@ package realm {
 		public var elite:String = "";
 		/** Speed multiplier (Swift and Frenzied elites). */
 		public var spdMult:Number = 1;
+		/** The realm landmark this monster guards (host only), or null. */
+		public var site:Object;
 		/** Seconds alive (treasure goblins escape after a while). */
 		public var age:Number = 0;
 

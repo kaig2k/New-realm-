@@ -124,6 +124,17 @@ and uses less memory than the old one did.
 - Clearing landmarks also brings the next realm event sooner.
 - Realms now need **8 event bosses** (up from 6) before they close.
 
+## Item art
+
+Every item has its own 8x8 sprite, like RotMG:
+- **Weapons:** each of the 8 tiers of every weapon type is its own drawing (Rusty Sword
+  through Sunforged Blade, Twig Staff through Staff of the Void, and so on).
+- **Abilities, armor and rings:** each tier has its own shape, emblem and colours.
+- **Stat potions:** each stat has its own bottle and colour.
+- **Named gear:** uniques, Godly pieces, class sets and Starforged, Eldritch and
+  Primordial items each get a look of their own, picked from the item's identity. The same
+  item always looks the same, and its rarity glow still shows what tier it is.
+
 ## Bosses, raids and loot
 
 **Boss fights.** Every boss now runs a scripted fight with 2-4 phases.

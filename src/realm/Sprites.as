@@ -503,7 +503,7 @@ package realm {
 			return (r << 16) | (g << 8) | b;
 		}
 
-		private static function tint(c:uint, t:Number):uint {
+		public static function tint(c:uint, t:Number):uint {
 			var r:int = ((c >> 16) & 255) + (255 - ((c >> 16) & 255)) * t;
 			var g:int = ((c >> 8) & 255) + (255 - ((c >> 8) & 255)) * t;
 			var b:int = (c & 255) + (255 - (c & 255)) * t;
@@ -565,11 +565,19 @@ package realm {
 
 		/** Inventory icon (36x36). */
 		public static function icon(item:Object):BitmapData {
-			var key:String = "icon_" + item.kind + "_" + (item.sub || "") + "_" + item.tier + "_" + (item.rarity || "");
+			var key:String = "icon_" + ItemArt.identity(item) + "_" + item.kind + "_" + (item.sub || "");
 			var bd:BitmapData = cache[key];
 			if (bd) return bd;
 			var rar:String = item.rarity;
 			var rc:uint = rar ? Data.RARITY_COLORS[rar] : 0;
+			// gear and stat potions: every item has its own drawing (ItemArt)
+			var art:Object = ItemArt.art(item);
+			if (art) {
+				bd = build(art.rows, art.pal, 4, 2);
+				if (rar) bd = glowEdge(bd, rc);
+				cache[key] = bd;
+				return bd;
+			}
 			var band:int = Math.max(0, Math.min(3, int((item.tier || 0) / 2)));
 			var rows:Array, pal:Object;
 			switch (item.kind) {

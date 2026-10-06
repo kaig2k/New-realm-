@@ -574,7 +574,8 @@ package realm {
 			var art:Object = ItemArt.art(item);
 			if (art) {
 				bd = build(art.rows, art.pal, 4, 2);
-				if (rar) bd = glowEdge(bd, rc);
+				if (rar == "gd") bd = godlyFrame(bd);
+				else if (rar) bd = glowEdge(bd, rc);
 				cache[key] = bd;
 				return bd;
 			}
@@ -630,6 +631,34 @@ package realm {
 		private static function rarityPal(c:uint, rar:String):Object {
 			return {B: rar == "lg" ? 0xf0f0d0 : c, b: shade(c, 0.55), H: 0xffffff, G: 0xf0c030, g: 0xa07810, R: c, r: shade(c, 0.6),
 				W: 0x3a2a3a, w: 0x1a1018, P: c, S: 0xffffff};
+		}
+
+		/**
+		 * Godly frame: the dark outline, then a solid off-white border, then a
+		 * soft warm glow fading out around it.
+		 */
+		private static function godlyFrame(src:BitmapData):BitmapData {
+			var w:int = src.width + 8, h:int = src.height + 8;
+			var bd:BitmapData = new BitmapData(w, h, true, 0);
+			bd.copyPixels(src, src.rect, new Point(4, 4));
+			var px:Vector.<uint> = bd.getVector(bd.rect);
+			// solid border, then three glow passes getting fainter
+			var cols:Array = [0xfffff6e0, 0xfffff6e0, 0xb0fff0d0, 0x60ffe8c0, 0x28ffe0b0];
+			for (var pass:int = 0; pass < cols.length; pass++) {
+				var copy:Vector.<uint> = px.concat();
+				for (var y:int = 1; y < h - 1; y++) {
+					for (var x:int = 1; x < w - 1; x++) {
+						var i:int = y * w + x;
+						if (copy[i] != 0) continue;
+						// the first passes hug the shape tightly (incl. diagonals) so the border is crisp
+						var hit:Boolean = copy[i - 1] != 0 || copy[i + 1] != 0 || copy[i - w] != 0 || copy[i + w] != 0;
+						if (!hit && pass < 2) hit = copy[i - w - 1] != 0 || copy[i - w + 1] != 0 || copy[i + w - 1] != 0 || copy[i + w + 1] != 0;
+						if (hit) px[i] = uint(cols[pass]);
+					}
+				}
+			}
+			bd.setVector(bd.rect, px);
+			return bd;
 		}
 
 		/** Adds a soft coloured glow around an icon (rare items). */

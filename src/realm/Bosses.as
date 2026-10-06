@@ -135,7 +135,7 @@ package realm {
 			Sprites.recolor("zealot", "sorcerer", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
 			Sprites.recolor("galecaller", "seraph", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
 			Sprites.recolor("tempestus", "wyrm", {C: 0x80b0ff, c: 0x4060c0, W: 0xffff80, w: 0xc0c060, E: 0xffffff, K: 0xffff00}, 7);
-			Sprites.recolor("bag_godly", "bag_relic", {K: 0x0a5a5a, C: 0x30fff0, c: 0x18b0a8, D: 0x108080});
+			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
 		}

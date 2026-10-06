@@ -97,7 +97,7 @@ package realm {
 		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "ar", "gd"];
 		public static const RARITY_NAMES:Object = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial", gd: "Godly"};
 		public static const RARITY_LABELS:Object = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR", gd: "GD"};
-		public static const RARITY_COLORS:Object = {ut: 0x6aa8ff, st: 0x4ee08a, fb: 0xc85cff, lg: 0xffc23a, ar: 0xff5533, gd: 0x30fff0};
+		public static const RARITY_COLORS:Object = {ut: 0x6aa8ff, st: 0x4ee08a, fb: 0xc85cff, lg: 0xffc23a, ar: 0xff5533, gd: 0xfff6e0};
 		/** Effective tier used for item stats. */
 		private static const RARITY_POWER:Object = {ut: 8, st: 8.5, fb: 9.5, lg: 11, ar: 12.5, gd: 14};
 

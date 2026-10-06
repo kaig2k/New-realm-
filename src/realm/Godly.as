@@ -98,7 +98,7 @@ package realm {
 
 		public static function describe(it:Object):String {
 			var src:String = source[it.gid];
-			return "<font color='#30fff0'>Godly: 1 in 5,000" + (src ? " from " + src : "") + ".</font>\n";
+			return "<font color='#fff6e0'>Godly: 1 in 5,000" + (src ? " from " + src : "") + ".</font>\n";
 		}
 	}
 }

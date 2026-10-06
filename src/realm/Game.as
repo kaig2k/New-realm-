@@ -2418,7 +2418,7 @@ package realm {
 			b.graphics.drawRoundRect(0, 0, 48, 48, 10, 10);
 			b.graphics.endFill();
 			var bmp:Bitmap = new Bitmap(Sprites.icon(item));
-			bmp.x = 6; bmp.y = 6;
+			bmp.x = int((48 - bmp.width) / 2); bmp.y = int((48 - bmp.height) / 2);
 			b.addChild(bmp);
 			var tag:TextField = Ui.text(12, Data.tierColor(item), true, "right", 30, true);
 			tag.text = Data.tierLabel(item);
@@ -3195,7 +3195,7 @@ package realm {
 		private var auraMtx:Matrix = new Matrix();
 
 		private static const BAG_GLOW:Object = {bag_purple: 0xb050e0, bag_cyan: 0x40d0f0, bag_white: 0x9ad0ff,
-			bag_fabled: 0xc85cff, bag_legendary: 0xffc23a, bag_relic: 0xff5533, bag_godly: 0x30fff0};
+			bag_fabled: 0xc85cff, bag_legendary: 0xffc23a, bag_relic: 0xff5533, bag_godly: 0xfff6e0};
 
 		private function drawAura(cx:Number, cy:Number, col:uint, size:Number = 1):void {
 			var pulse:Number = (Math.sin(time * 4) + 1) / 2;

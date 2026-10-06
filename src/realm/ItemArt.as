@@ -239,6 +239,8 @@ package realm {
 		/** The item's main colour for named gear. */
 		private static function mainColour(it:Object, h:uint):uint {
 			var rc:uint = Data.RARITY_COLORS[it.rarity] || 0xffffff;
+			// Godly: ivory with only a hint of its own hue
+			if (it.rarity == "gd") return mix(GODLY, HUES[(h >>> 12) % 8], 0.12);
 			if (it.col && it.kind == "weapon") return mix(it.col, rc, 0.15);
 			// uniques come in every colour; the rarity glow still marks them as Runed
 			if (it.uid) return UNIQUE_COLS[(h >>> 12) % UNIQUE_COLS.length];
@@ -266,8 +268,28 @@ package realm {
 			return out;
 		}
 
+		/** Godly gear: ivory and gold, with one jewel colour of its own. */
+		public static const GODLY:uint = 0xfff6e0;
+
 		/** The 8x8 drawing and colours for a piece of gear, or null for other items. */
 		public static function art(it:Object):Object {
+			var a:Object = baseArt(it);
+			if (a && it.rarity == "gd") {
+				var p:Object = a.pal;
+				var jewel:uint = HUES[(hash(identity(it)) >>> 4) % 8];
+				if (it.kind == "ring") {
+					p.G = 0xf2cc6a; p.g = 0xb08a30; p.R = jewel; p.r = Sprites.shade(jewel, 0.6);
+				} else {
+					p.B = mainColour(it, hash(identity(it))); p.b = Sprites.shade(p.B, 0.72); p.H = 0xffffff;
+					p.G = 0xf2cc6a; p.g = 0xb08a30; p.P = p.G; p.R = jewel; p.r = Sprites.shade(jewel, 0.6); p.S = 0xffffff;
+					if (it.kind == "weapon" && it.sub != "sword" && it.sub != "dagger") { p.W = Sprites.shade(p.B, 0.85); p.w = Sprites.shade(p.B, 0.6); }
+					else { p.W = 0x6a4a2a; p.w = 0x3a2a14; }
+				}
+			}
+			return a;
+		}
+
+		private static function baseArt(it:Object):Object {
 			var named:Boolean = it.rarity != null && it.rarity != undefined;
 			var id:String = identity(it);
 			var h:uint = hash(id);

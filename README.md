@@ -134,6 +134,8 @@ Every item has its own 8x8 sprite, like RotMG:
 - **Named gear:** uniques, Godly pieces, class sets and Starforged, Eldritch and
   Primordial items each get a look of their own, picked from the item's identity. The same
   item always looks the same, and its rarity glow still shows what tier it is.
+- **Godly** items are ivory and gold with one jewel colour, framed by an off-white border
+  and a soft warm glow. Godly loot bags, banners and text use the same off-white.
 
 ## Bosses, raids and loot
 

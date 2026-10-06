@@ -294,8 +294,9 @@ firewall, systemd service, domain name, settings, moderation and backups.
 
 On a server, your **characters, vault, gold and fame are stored on the server**:
 - They follow your account to any PC.
-- They're kept separate from your offline characters. On a server's first visit your offline
-  progress comes along, unless the server turns that off.
+- Online and offline never mix. Everyone starts fresh on a server, nothing from your offline
+  save is ever uploaded, and nothing from the server is written to your PC. Character select
+  shows which side you're on ("Online characters" or "Offline characters").
 - The server checks every save and refuses impossible items or currency jumps.
 - Trades are done by the server itself.
 

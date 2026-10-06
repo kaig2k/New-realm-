@@ -32,7 +32,6 @@ const DEFAULT_CONFIG = {
   minRealms: 3,
   maxRealms: 6,
   admins: [],
-  importLocalSaves: true,
   viewRange: 32,
   chatPerTenSeconds: 8
 };
@@ -43,7 +42,7 @@ const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 7;
+const VERSION = 8;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;
@@ -141,6 +140,17 @@ function publicInfo(c) {
 function guildOf(c) { return c.guild ? guilds[c.guild] : null; }
 
 // ------------------------------------------------------------------ messages
+/**
+ * An account's online save. Online and offline progress never mix: a new
+ * account gets an empty save here on its first visit, and nothing from a
+ * player's PC is ever imported.
+ */
+function onlineSave(key) {
+  let s = store.getSave(key);
+  if (!s) { s = {}; store.putSave(key, s); }
+  return s;
+}
+
 const handlers = {
   hello(c, m) {
     if (c.authed) return;
@@ -176,7 +186,7 @@ const handlers = {
     c.meta = { lastSave: Date.now(), lastGodly: 0 };
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, realms: realmList(), online: byName.size,
-      save: store.getSave(key), allowImport: !!config.importLocalSaves, motd: config.motd, admin: isAdmin(c) });
+      save: onlineSave(key), motd: config.motd, admin: isAdmin(c) });
     sendGuild(c.guild);
     log(c.name, 'joined (' + byName.size + ' online)');
   },
@@ -434,10 +444,8 @@ const handlers = {
 
   /** The account's save (characters, vault, gold...). Checked, then stored. */
   save(c, m) {
-    const prev = store.getSave(c.key);
-    if (!prev && !config.importLocalSaves && !m.fresh) {
-      return c.send({ t: 'saveRejected', reason: 'this server starts everyone fresh', data: null });
-    }
+    // online progress is its own: every account starts from the empty save made at its first visit
+    const prev = onlineSave(c.key);
     const why = checkSave(prev, m.data, c.meta, Date.now());
     if (why) {
       log('refused save from ' + c.name + ': ' + why);

@@ -16,7 +16,7 @@ package realm {
 	public class Online {
 		public static const DEFAULT_PORT:int = 2050;
 		/** Must match VERSION in server/server.js. */
-		public static const PROTOCOL:int = 7;
+		public static const PROTOCOL:int = 8;
 
 		private static var socket:Socket;
 		private static var inBuf:ByteArray = new ByteArray();
@@ -77,19 +77,13 @@ package realm {
 		}
 
 		/**
-		 * Online, the account's save lives on the server. First visit: bring this
-		 * PC's progress along if the server allows it, otherwise start fresh.
+		 * Online, the account's save lives on the server and is kept apart from
+		 * this PC's offline save: nothing offline is ever uploaded, and nothing
+		 * online is written to this PC. A first visit starts from a fresh save.
 		 */
 		private static function useServerSave(m:Object):void {
 			Save.onRemoteChange = queueSave;
-			if (m.save) {
-				Save.useRemote(m.save);
-				return;
-			}
-			var start:Object = m.allowImport ? Save.clone(Save.local) : {};
-			delete start.serverTokens;
-			Save.useRemote(start);
-			send({t: "save", data: start, fresh: !m.allowImport});
+			Save.useRemote(m.save || {});
 		}
 
 		/** Sends the save a moment after the last change (many changes become one upload). */

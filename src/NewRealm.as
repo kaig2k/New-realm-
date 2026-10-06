@@ -10,6 +10,8 @@ package {
 	import realm.Menu;
 	import realm.Accounts;
 	import realm.TitleScreen;
+	import realm.Online;
+	import realm.Save;
 	import realm.Ui;
 
 	[SWF(width="1100", height="640", frameRate="60", backgroundColor="#000000")]
@@ -66,6 +68,8 @@ package {
 		}
 
 		private function showMenu():void {
+			// offline play always uses this PC's save; online play only the server's
+			if (!Online.connected) Save.useRemote(null);
 			setScreen(new Menu(startGame, showTitle));
 		}
 

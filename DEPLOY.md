@@ -76,7 +76,6 @@ Players then join with `play.yourgame.com:2050`.
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
 | `admins` | Account names with moderator powers and the in-game admin menu, e.g. `["YourName"]`. |
-| `importLocalSaves` | `true`: a player's first visit brings their offline characters along. **Set `false` for a public server**, so everyone starts fresh and nobody can bring in edited offline saves. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 
@@ -126,6 +125,10 @@ If the server can't be reached they get a Retry button, or can play offline inst
 
 To go back to an offline-first build, set `HOME` in `src/realm/ServerConfig.as` back to `""`
 and build again. Remember to send players a new .swf whenever the network version changes.
+
+Online and offline progress are always kept apart: every account starts fresh on your server,
+and offline characters, items and currencies can't be brought in. (Older servers had an
+`importLocalSaves` setting; it's gone, and an old `config.json` line for it is simply ignored.)
 
 ## What this setup does and doesn't protect
 

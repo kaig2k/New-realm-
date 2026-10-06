@@ -28,7 +28,10 @@ package realm {
 		public static const SAFE_ZONE:int = 9;
 		public static const ARENA_ZONE:int = 6;
 		public static const DUNGEON_ZONE:int = 7;
-		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall", "tent", "grave", "campfire", "totem"];
+		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall", "tent", "grave", "campfire", "totem",
+			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana"];
+		/** Shrine kinds, in the order of their objects (14-18). */
+		public static const SHRINES:Array = ["might", "haste", "fortune", "vigor", "arcana"];
 		public static const NEXUS_ZONE:int = 5;
 
 		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
@@ -56,6 +59,8 @@ package realm {
 		 * cleared, active, found}. Each one is guarded until its leader falls.
 		 */
 		public var sites:Array = [];
+		/** Realm shrines: {x, y, kind, cd} (cd = seconds until it can bless you again, kept per player). */
+		public var shrines:Array = [];
 		public var minimap:BitmapData;
 		public var seen:BitmapData;
 		public var spawnX:Number;
@@ -311,6 +316,29 @@ package realm {
 				}
 			}
 			makeSites(hx, hy);
+			makeShrines(hx, hy);
+		}
+
+		/** Shrines scattered inland: touch one for a minute-long blessing. */
+		private function makeShrines(hx:int, hy:int):void {
+			var want:int = int(N / 40);
+			for (var tries:int = 0; tries < 2000 && shrines.length < want; tries++) {
+				var x:int = 12 + int(rnd() * (N - 24)), y:int = 12 + int(rnd() * (N - 24));
+				var z:int = zones[y * N + x];
+				if (z < LOW_ZONE || z > GOD_ZONE || tiles[y * N + x] == WATER) continue;
+				if ((x - hx) * (x - hx) + (y - hy) * (y - hy) < 30 * 30 || siteAt(x, y, 6)) continue;
+				var ok:Boolean = true;
+				for each (var o:Object in shrines) if ((o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < 40 * 40) { ok = false; break; }
+				if (!ok) continue;
+				var k:int = int(rnd() * SHRINES.length);
+				// a small paved clearing around the pedestal
+				for (var dy:int = -2; dy <= 2; dy++) for (var dx:int = -2; dx <= 2; dx++) {
+					var i:int = (y + dy) * N + x + dx;
+					if (dx * dx + dy * dy <= 5 && tiles[i] != WATER) { objs[i] = 0; tiles[i] = RUIN; }
+				}
+				objs[y * N + x] = 14 + k;
+				shrines.push({x: x + 0.5, y: y + 0.5, kind: SHRINES[k], cd: 0});
+			}
 		}
 
 		/**

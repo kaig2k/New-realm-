@@ -210,6 +210,9 @@ package realm {
 			streakTf.x = VIEW_W / 2 - 180; streakTf.y = 78;
 			streakTf.visible = false;
 			addChild(streakTf);
+			buffTf = Ui.text(14, 0xffffff, true, "center", 500, true);
+			buffTf.x = VIEW_W / 2 - 250; buffTf.y = 116;
+			addChild(buffTf);
 			streakBar = new Shape();
 			streakBar.x = VIEW_W / 2 - 60; streakBar.y = 108;
 			addChild(streakBar);
@@ -907,6 +910,12 @@ package realm {
 					spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], mx, my, th.tier);
 				}
 			}
+			// crates in some rooms (a few of them bite)
+			for (r = 1; r < rooms.length - 1; r++) {
+				if (Math.random() > 0.45) continue;
+				var crm:Object = rooms[r];
+				for (k = 1 + int(Math.random() * 2); k > 0; k--) spawnEnemy("crate", crm.x + (Math.random() - 0.5) * (crm.w - 3), crm.y + (Math.random() - 0.5) * (crm.h - 3), th.tier);
+			}
 			var tr:Object = dungeonWorld.treasure;
 			if (tr) {
 				spawnEnemy("treasure", tr.x + 0.5, tr.y + 0.5, th.tier);
@@ -1138,6 +1147,7 @@ package realm {
 			updateAtmosphere(dt);
 			updateAmbient(dt);
 			updateStreak(dt);
+			updateShrines(dt);
 			if (world.kind == "realm" && sync.isHost) updateGoblin(dt);
 			if (sync.isHost) updateElites(dt);
 			if (sync.isHost) scaleBosses(dt);
@@ -1498,7 +1508,7 @@ package realm {
 			var dx:Number = e.x - p.x, dy:Number = e.y - p.y;
 			var near:Boolean = dx * dx + dy * dy < 15 * 15;
 			if (mine) {
-				questEvent("kills");
+				if (!e.def.crate) questEvent("kills");
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
 				if (e.def.final || e.def.finale) { questEvent("elder"); p.elders++; }
@@ -1507,7 +1517,8 @@ package realm {
 				p.kills++;
 				petGainXp(e.isBoss ? 20 : 1);
 			}
-			if (mine && !e.def.treasure) addStreak(e);
+			if (mine && !e.def.treasure && !e.def.crate) addStreak(e);
+			if (e.def.crate) crateBroken(e, mine, remote);
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
 			if (mine || near) p.gainXp(int(e.def.xp * xpMult), this);
 			if (e.elite && !remote && e.elite == "Splitting") splitElite(e);
@@ -1594,10 +1605,12 @@ package realm {
 				}
 			}
 			var lootZone:int = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
-			var items:Array = mine ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + streakBonus()) : [];
+			var items:Array = mine ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck()) : [];
 			// elites drop twice; the treasure goblin spills its whole sack
-			if (mine && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + streakBonus() + 50));
+			if (mine && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + 50));
 			if (mine && e.def.goblin) items = items.concat(goblinLoot(lootZone));
+			if (mine && e.def.crate) items = items.concat(crateLoot(lootZone));
+			if (mine && e.def.mimic) items = items.concat(mimicLoot());
 			var hoard:Array = siteCleared(e, mine);
 			if (hoard) items = items.concat(hoard);
 			if (items.length) {
@@ -1820,6 +1833,14 @@ package realm {
 				var sy:Number = who.y + Math.sin(a) * r;
 				var z:int = world.zoneAt(sx, sy);
 				if (z < 0 || z > World.GOD_ZONE || !world.canStand(sx, sy, 0.4, true)) continue;
+				// sometimes a little pile of crates instead of monsters
+				if (z >= World.LOW_ZONE && Math.random() < 0.1) {
+					for (var cr:int = 1 + int(Math.random() * 3); cr > 0; cr--) {
+						var crx:Number = sx + Math.random() * 3 - 1.5, cry:Number = sy + Math.random() * 3 - 1.5;
+						if (world.canStand(crx, cry, 0.45, true)) spawnEnemy("crate", crx, cry, z);
+					}
+					return;
+				}
 				var list:Array = Data.ZONE_SPAWNS[z];
 				var id:String = list[int(Math.random() * list.length)];
 				// small packs near the shore, bigger ones inland
@@ -2765,6 +2786,117 @@ package realm {
 			burst(e.x, e.y, eliteCol("Splitting"), 20);
 		}
 
+		// ------------------------------------------------------------ shrines
+		private var buffTf:TextField;
+		private static const BLESSINGS:Object = {
+			might: ["Shrine of Might", "+30% damage", 0xff4040],
+			haste: ["Shrine of Haste", "+35% speed", 0x40e0ff],
+			fortune: ["Shrine of Fortune", "+25% loot luck", 0xffd040],
+			vigor: ["Shrine of Vigor", "regenerate 4% HP a second", 0x50e070],
+			arcana: ["Shrine of Arcana", "regenerate 10% MP a second", 0xb060ff]
+		};
+
+		/** Loot luck on top of Bounty: your kill streak and the Shrine of Fortune. */
+		private function lootLuck():int { return streakBonus() + (player.buffs.fortune > 0 ? 25 : 0); }
+
+		/** Touch a shrine for a 60-second blessing; each shrine rests 2 minutes after blessing you. */
+		private function updateShrines(dt:Number):void {
+			if (world.kind == "realm") {
+				for each (var s:Object in world.shrines) {
+					if (s.cd > 0) { s.cd -= dt; continue; }
+					var dx:Number = s.x - player.x, dy:Number = s.y - player.y;
+					if (dx * dx + dy * dy > 2.3 * 2.3 || player.hp <= 0) continue;
+					s.cd = 120;
+					var bl:Array = BLESSINGS[s.kind];
+					player.buffs[s.kind] = 60;
+					showBanner(bl[0] + ": " + bl[1], bl[2], 3);
+					msg(bl[0] + " blesses you: " + bl[1] + " for 60 seconds.", bl[2]);
+					ring(player.x, player.y, bl[2], 30);
+					burst(s.x, s.y - 0.5, bl[2], 24);
+					Sfx.play("level", 0.7);
+				}
+			}
+			var parts2:Array = [];
+			for (var k:String in BLESSINGS) {
+				var t:Number = player.buffs[k];
+				if (t > 0) parts2.push("<font color='" + Ui.hex(BLESSINGS[k][2]) + "'>" + BLESSINGS[k][0].replace("Shrine of ", "") + " " + Math.ceil(t) + "s</font>");
+			}
+			var txt:String = parts2.join("   ");
+			if (buffTf.htmlText.length == 0 && !txt) return;
+			if (txt != lastBuffTxt) { lastBuffTxt = txt; buffTf.htmlText = txt; }
+			buffTf.y = streakN >= 3 ? 116 : 84;
+		}
+		private var lastBuffTxt:String = "";
+
+		/** A glow under every ready shrine, with motes rising off it. */
+		private function drawShrineGlow():void {
+			if (world.kind != "realm") return;
+			for each (var s:Object in world.shrines) {
+				if (s.cd > 0) continue;
+				var sx:Number = scrX(s.x, s.y), sy:Number = scrY(s.x, s.y);
+				if (sx < -60 || sy < -60 || sx > vw + 60 || sy > vh + 60) continue;
+				var col:uint = BLESSINGS[s.kind][2];
+				drawAura(sx, sy + TS * 0.4, col, 0.9);
+				if (Math.random() < 0.25 && opt("parts")) parts.push(new Particle(s.x + (Math.random() - 0.5) * 0.6, s.y - 0.8, 0, -1.2, 0.8, Sprites.glow(col)));
+			}
+		}
+
+		// ------------------------------------------------------------ crates and mimics
+		/** A crate breaks; one in eight was a Mimic all along (the world host decides). */
+		private function crateBroken(e:Enemy, mine:Boolean, remote:Boolean):void {
+			burst(e.x, e.y, 0xa0703a, 14);
+			if (remote || Math.random() > 0.12) return;
+			var m:Enemy = spawnEnemy("mimic", e.x, e.y, e.zone);
+			if (!m) return;
+			m.maxHp = m.hp = 1200 + Math.max(0, e.zone) * 900;
+			showBanner("It's a Mimic!", 0xff4040, 2.5);
+			shake(0.3, 6);
+			Sfx.play("boss", 0.6);
+		}
+
+		/** What's in a crate: mostly a little gold, sometimes potions. */
+		private function crateLoot(zone:int):Array {
+			var r:Number = Math.random();
+			if (r < 0.55) {
+				var gold:int = (8 + int(Math.random() * 18)) * (Math.max(0, zone) + 1);
+				addGold(gold);
+				floatText(player.x, player.y - 1.4, "+" + gold + " gold", Ui.GOLD);
+				return [];
+			}
+			if (r < 0.85) return [Data.makePotion(Math.random() < 0.5 ? "hp" : "mp")];
+			return [Data.makePotion("stat", Data.randomStat())];
+		}
+
+		/** Mimics guard the good stuff. */
+		private function mimicLoot():Array {
+			var out:Array = [Data.makePotion("stat", Data.randomStat())];
+			if (Math.random() < 0.4) out.push(Data.makeForSlot(player.cls, int(Math.random() * 4), 7, "ut"));
+			if (Math.random() < 0.15) out.push(Data.makeSor());
+			return out;
+		}
+
+		// ------------------------------------------------------------ loot beams
+		private static const BEAM_BAGS:Array = ["bag_white", "bag_fabled", "bag_legendary", "bag_relic", "bag_godly"];
+		private static var beams:Object = {};
+
+		/** A soft column of light (two frames that pulse). */
+		private static function lootBeam(col:uint, frame:int):BitmapData {
+			var key:String = col + "_" + frame;
+			if (beams[key]) return beams[key];
+			var w:int = 18, h:int = 170;
+			var bd:BitmapData = new BitmapData(w, h, true, 0);
+			var peak:Number = frame ? 0.85 : 0.7;
+			for (var y:int = 0; y < h; y++) {
+				var f:Number = y / h;
+				var a:Number = peak * (0.15 + 0.85 * f);
+				bd.fillRect(new Rectangle(0, y, w, 1), (uint(a * 60) << 24) | col);
+				bd.fillRect(new Rectangle(4, y, w - 8, 1), (uint(a * 140) << 24) | col);
+				bd.fillRect(new Rectangle(7, y, w - 14, 1), (uint(a * 230) << 24) | Sprites.tint(col, 0.6));
+			}
+			beams[key] = bd;
+			return bd;
+		}
+
 		// ------------------------------------------------------------ treasure goblin
 		private var goblinT:Number = 90 + Math.random() * 120;
 
@@ -3466,6 +3598,12 @@ package realm {
 				var bx:Number = scrX(b.x, b.y), by:Number = scrY(b.x, b.y);
 				// rare bags glow; new bags bounce as they land
 				if (!b.vault && b.spr != "bag_brown") drawAura(bx, by + TS * 0.4, BAG_GLOW[b.spr] || 0xffffff, 0.45);
+				// white bags and better shine a beam of light into the sky
+				if (!b.vault && BEAM_BAGS.indexOf(b.spr) >= 0) {
+					var beam:BitmapData = lootBeam(BAG_GLOW[b.spr] || 0xffffff, int(time * 3 + b.x) % 2);
+					pt.x = int(bx - beam.width / 2); pt.y = int(by + TS * 0.3 - beam.height);
+					canvas.copyPixels(beam, beam.rect, pt, null, null, true);
+				}
 				var hop:int = b.age < 0.5 ? int(Math.abs(Math.sin(b.age * 19)) * 22 * (1 - b.age / 0.5)) : 0;
 				drawEntity(Sprites.get(b.spr), bx, by, hop);
 			}
@@ -3502,6 +3640,7 @@ package realm {
 			}
 
 			drawMarkers();
+			drawShrineGlow();
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
 			drawN = 0;

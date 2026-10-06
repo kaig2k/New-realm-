@@ -115,6 +115,16 @@ into the first account you create.
   inland and runs away. The quest arrow points to it. Catch it within 30 seconds for a big
   sack: gold, a Runed item for your class, stat potions, a good chance of a Star Shard, and
   sometimes Bonded or Eldritch gear.
+- **Shrines:** about 12 shrines stand in each realm's inland biomes (shown on the minimap once
+  seen). Walk up to one for a 60-second blessing: **Might** (+30% damage), **Haste** (+35%
+  speed), **Fortune** (+25% loot luck), **Vigor** (regenerate 4% HP a second) or **Arcana**
+  (regenerate 10% MP a second). Active blessings show a countdown at the top of the screen. A
+  shrine rests for 2 minutes after blessing you.
+- **Crates and Mimics:** piles of breakable crates turn up in the realm and in dungeon rooms.
+  Shoot them for gold or potions. One in eight is a **Mimic** that jumps out and fights back,
+  and guards stat potions, a 40% chance of a Runed item and sometimes a Star Shard.
+- **Loot beams:** white bags and rarer shine a column of light into the sky in their colour,
+  so you can spot good drops from across the screen.
 - **Atmosphere:** the light shifts with where you are (warm beach, shaded forests, violet
   Godlands, blood-red Conclave, stormy blue skies). Leaves drift through the forests, embers
   rise in the Godlands and lava dungeons, ash falls in the Conclave, and rain pours through

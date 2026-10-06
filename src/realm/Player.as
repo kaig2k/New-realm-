@@ -123,7 +123,10 @@ package realm {
 		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
 		/** Base x1.5, +0.1 per 10 Might. */
 		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.1; }
-		public function get damageMult():Number { return 1 + rank("brutality") * 0.05; }
+		public function get damageMult():Number { return (1 + rank("brutality") * 0.05) * (buffs.might > 0 ? 1.3 : 1); }
+
+		/** Shrine blessings: seconds left of might, haste, fortune, vigor and arcana. */
+		public var buffs:Object = {};
 		public function get leech():int { return rank("leech"); }
 		public function rank(id:String):int { return int(skills[id] || 0); }
 
@@ -199,6 +202,9 @@ package realm {
 			if (attackT > 0) attackT -= dt;
 			if (abilityT > 0) abilityT -= dt;
 			for (var st:String in status) if (status[st] > 0) status[st] -= dt;
+			for (var bf:String in buffs) if (buffs[bf] > 0) buffs[bf] -= dt;
+			if (buffs.vigor > 0 && hp > 0) hp = Math.min(maxHp, hp + maxHp * 0.04 * dt);
+			if (buffs.arcana > 0) mp = Math.min(maxMp, mp + maxMp * 0.1 * dt);
 
 			// --- movement
 			var mx:Number = 0, my:Number = 0;
@@ -216,7 +222,7 @@ package realm {
 			}
 			if (status.confused > 0) { mx = -mx; my = -my; }
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
-			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;

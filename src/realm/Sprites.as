@@ -75,6 +75,8 @@ package realm {
 		private static const BOULDER:Array = [["...kKKKk...", "..kKLLKKk..", ".kKLLKKKKd.", "kKKLKKKKKdd", "kKKKKKKKddd", ".kKKKKKdddd", "..kkkdddd.."]];
 		private static const DEADTREE:Array = [["W....W..W...", ".W...W.W..W.", "..W..WW..W..", "...WWW..W...", "W...WW.W....", ".WW.WWW.....", "...WWW......", "....WW......", "....WW......", "....WW......", "...wWWw....."]];
 		private static const PILLAR:Array = [[".L.LL...", "LLLLLLl.", ".SSSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SSSSs..", "LLLLLLl.", "sssssss."]];
+		private static const CRATE:Array = [["KKKKKKKK", "KCCCCCCK", "KCKCCKCK", "KCCKKCCK", "KCCKKCCK", "KCKCCKCK", "KCCCCCCK", "KKKKKKKK"]];
+		private static const SHRINE:Array = [["...OO...", "..OHOo..", "..OOOo..", "...oo...", "..SSSS..", "...ss...", "...SS...", "...ss...", ".SSSSSS.", "ssssssss"]];
 		private static const TENT:Array = [["....K....", "...KCK...", "..KCCcK..", "..KCCcK..", ".KCCDccK.", ".KCCDDcK.", "KCCCDDccK", "KKKKDDKKK"]];
 		private static const CAMPFIRE:Array = [["...Y....", "..YFY...", "..FYWF..", ".FYWYF..", "..FYF...", "KkKkKkK.", ".kKkKk.."]];
 		private static const TOTEM:Array = [["R.KKKK.R", "RKEKKEKR", ".KKKKKK.", ".KkRRkK.", ".KKKKKK.", ".KEKKEK.", ".KKRRKK.", ".KkkkkK.", ".KKKKKK.", "..kkkk.."]];
@@ -284,6 +286,13 @@ package realm {
 			boulder: [BOULDER, {k: 0x4e4e54, K: 0x6a6a72, L: 0x9a9aa4, d: 0x34343a}],
 			pillar: [PILLAR, {L: 0xc8c8cc, l: 0x8a8a90, S: 0xa8a8b0, s: 0x6a6a72}],
 			ruinwall: [RUINWALL, {L: 0xc8c8cc, S: 0xa0a0a8, l: 0x6a6a72}],
+			crate: [CRATE, {K: 0x5a3a1a, C: 0xa0703a}],
+			mimic: [CHEST, {K: 0x3a0a0a, C: 0x9a1a1a, c: 0x6a0a0a, Y: 0xffffff}, 6],
+			shrine_might: [SHRINE, {O: 0xff4040, o: 0xa01818, H: 0xffd0d0, S: 0xb0b0b8, s: 0x6a6a72}],
+			shrine_haste: [SHRINE, {O: 0x40e0ff, o: 0x1880a0, H: 0xd0f8ff, S: 0xb0b0b8, s: 0x6a6a72}],
+			shrine_fortune: [SHRINE, {O: 0xffd040, o: 0xa08010, H: 0xfff4c0, S: 0xb0b0b8, s: 0x6a6a72}],
+			shrine_vigor: [SHRINE, {O: 0x50e070, o: 0x208a38, H: 0xd0ffd8, S: 0xb0b0b8, s: 0x6a6a72}],
+			shrine_arcana: [SHRINE, {O: 0xb060ff, o: 0x6a28b0, H: 0xf0d8ff, S: 0xb0b0b8, s: 0x6a6a72}],
 			tent: [TENT, {K: 0x3a2814, C: 0xb08a50, c: 0x806030, D: 0x2a1a0c}],
 			campfire: [CAMPFIRE, {Y: 0xffe040, F: 0xff6a20, W: 0xffffff, K: 0x5a3a1c, k: 0x3a2410}],
 			totem: [TOTEM, {K: 0x7a5230, k: 0x4a3018, E: 0xffe040, R: 0xc03020}],

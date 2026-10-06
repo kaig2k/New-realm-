@@ -159,6 +159,10 @@ package realm {
 				attacks: [aim(1, 0, 9, 70, 0.9, 0xff40ff, {motion: "home"})]});
 			mob("blood_acolyte", {name: "Blood Acolyte", spr: "imp", hp: 1400, def: 10, spd: 2.6, xp: 80, col: 0xd02030,
 				attacks: [aim(3, 24, 8, 70, 1.1, 0xff3040, {eff: "bleeding"})]});
+			// breakable crates, and the Mimics that hide among them
+			mob("crate", {name: "Crate", spr: "crate", hp: 260, def: 0, spd: 0, xp: 4, col: 0xa0703a, ai: "still", aggro: 0, range: 0, r: 0.45, attacks: [], crate: true});
+			mob("mimic", {name: "Mimic", spr: "mimic", hp: 2400, def: 12, spd: 3.4, xp: 260, col: 0xc02020, ai: "chase", keep: 1.5, aggro: 12, drop: 0.9, mimic: true,
+				attacks: [ring(10, 18, 5, 60, 1.6, 0xffd040), aim(3, 30, 8, 70, 1.1, 0xff4040)]});
 			// a rare thief that runs from you with a sack of loot (see Game.updateGoblin)
 			mob("loot_goblin", {name: "Treasure Goblin", spr: "loot_goblin", hp: 1500, def: 8, spd: 5, xp: 300, col: 0xf0c030, ai: "flee", aggro: 11,
 				attacks: [], goblin: true, gold: 120});

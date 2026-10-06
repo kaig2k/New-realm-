@@ -500,6 +500,17 @@ package realm {
 				gr.drawRect(lx - ds / 2, ly - ds / 2, ds, ds);
 				gr.endFill();
 			}
+			// shrines you've seen: a small dot in the blessing's colour
+			for each (var sh:Object in g.world.shrines) {
+				if ((g.world.seen.getPixel32(int(sh.x), int(sh.y)) >>> 24) == 0) continue;
+				var hx:Number = ox + sh.x * z, hy:Number = oy + sh.y * z;
+				if (hx < 0 || hy < 0 || hx > mw || hy > mh) continue;
+				gr.lineStyle(1, 0x000000);
+				gr.beginFill(sh.cd > 0 ? 0x606060 : {might: 0xff4040, haste: 0x40e0ff, fortune: 0xffd040, vigor: 0x50e070, arcana: 0xb060ff}[sh.kind]);
+				gr.drawCircle(hx, hy, Math.max(2.5, ds));
+				gr.endFill();
+				gr.lineStyle();
+			}
 			// landmarks you've seen: a coloured diamond, grey once cleared
 			for each (var st:Object in g.world.sites) {
 				if (!st.found && (g.world.seen.getPixel32(int(st.x), int(st.y)) >>> 24) == 0) continue;

@@ -203,8 +203,19 @@ realm (online, the same one for everyone from that realm):
 - the Clockwork Foundry (Gearmind Omega);
 - the Void Rift (Vael'thrax the Void Dragon).
 
-**Raids.** The **Raid Table** in the Nexus (east, below the Starforge) opens a raid portal
-for 60 Aether. Everyone in the Nexus sees it, and the portal lasts 2 minutes. A raid is three
+**Raids.** Raids are opened with **raid keys**, which drop rarely from bosses:
+
+| Boss | Key chance |
+|---|---|
+| Dark Elder and realm finales | 8% |
+| Hard dungeon bosses | 6% |
+| Raid bosses | 4% |
+| Other dungeon bosses | 2.5% |
+| Realm event bosses | 2% |
+
+Bounty raises these chances like other loot. Keys can be traded, stored in the vault and sold.
+Click a key in the Nexus, or use it at the **Raid Table** (east, below the Starforge), to open
+its raid portal. Everyone in the Nexus sees the portal, and it lasts 2 minutes. A raid is three
 boss stages in a row:
 - **The Crimson Conclave:** two Zealots, then Matron Sanguine, then Archon Vesper.
 - **Heart of the Storm:** three Thunder Sentinels, then Galecaller Ysra, then Tempestus.

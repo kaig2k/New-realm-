@@ -337,6 +337,25 @@ package realm {
 			return {kind: "stat", sub: stat, tier: 0, name: "Potion of " + STAT_NAMES[stat], color: STAT_COLORS[stat]};
 		}
 
+		/** A raid key: use it in the Nexus to open that raid's portal. */
+		public static function makeKey(raid:int):Object {
+			var rd:Object = Bosses.RAIDS[raid];
+			return {kind: "key", sub: rd.id, tier: 0, name: rd.name + " Key", color: rd.color};
+		}
+
+		/** Which raid a key opens (-1 if none). */
+		public static function keyRaid(item:Object):int {
+			if (!item || item.kind != "key") return -1;
+			for (var i:int = 0; i < Bosses.RAIDS.length; i++) if (Bosses.RAIDS[i].id == item.sub) return i;
+			return -1;
+		}
+
+		/** Bosses rarely drop a raid key: the Dark Elder and finales most often, realm events least. */
+		private static function rollKey(def:Object, items:Array, boost:Number):void {
+			var c:Number = def.final || def.finale ? 0.08 : def.raid ? 0.04 : def.dungeon && !def.guardian ? (def.dtier >= 5 ? 0.06 : 0.025) : def.ai == "boss" ? 0.02 : 0;
+			if (c > 0 && Math.random() < c * boost) items.push(makeKey(int(Math.random() * Bosses.RAIDS.length)));
+		}
+
 		public static function makeSor():Object {
 			return {kind: "material", sub: "sor", tier: 0, name: "Star Shard"};
 		}
@@ -395,6 +414,7 @@ package realm {
 			switch (item.kind) {
 				case "stat": return 250;
 				case "material": return 300;
+				case "key": return 2000;
 				case "hp": case "mp": return 20;
 			}
 			return 10 + item.tier * item.tier * 12;
@@ -446,6 +466,7 @@ package realm {
 				case "hp": s += "Restores 100 HP\n"; break;
 				case "mp": s += "Restores 100 MP\n"; break;
 				case "stat": s += "Permanently raises " + STAT_NAMES[item.sub] + "\n"; break;
+				case "key": s += "Opens a portal to " + Bosses.RAIDS[Math.max(0, keyRaid(item))].name + ".\nUse it in the Nexus (click it) or at the Raid Table.\nDrops rarely from bosses.\n"; break;
 				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
 			}
 			if (isGear(item)) {
@@ -1160,6 +1181,7 @@ package realm {
 			var slot:int;
 			rollUniques(def, items, boost);
 			Godly.roll(def, items, boost);
+			rollKey(def, items, boost);
 			if (def.raid) {
 				// raid bosses: the best loot in the game
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "fb" : "st"));
@@ -1263,7 +1285,7 @@ package realm {
 				else if (it.rarity == "ar") r = 6;
 				else if (it.rarity == "lg") r = 5;
 				else if (it.rarity == "fb") r = 4;
-				else if (it.rarity) r = 3;
+				else if (it.rarity || it.kind == "key") r = 3;
 				else if (it.tier >= 6 || it.kind == "material") r = 2;
 				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = 1;
 				if (r > rank) rank = r;

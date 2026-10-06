@@ -43,7 +43,7 @@ const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 6;
+const VERSION = 7;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;

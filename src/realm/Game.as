@@ -758,6 +758,17 @@ package realm {
 			travel(function():void { enterDungeon(i); });
 		}
 
+		/** Admin: one key for every raid (into free inventory slots). */
+		public function adminGiveKeys():void {
+			for (var i:int = 0; i < Bosses.RAIDS.length; i++) {
+				var slot:int = player.freeSlot();
+				if (slot < 0) { msg("Inventory full.", 0xff8080); break; }
+				player.inv[slot] = Data.makeKey(i);
+			}
+			hud.refresh();
+			saveCharacter();
+		}
+
 		public function adminEnterRaid(i:int):void {
 			travel(function():void { enterRaid(i, 1 + uint(Math.random() * 0x7ffffffe)); });
 		}
@@ -1564,6 +1575,12 @@ package realm {
 				bags.push(bag);
 				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
 				// rare drop alerts
+				for each (var ki:Object in items) if (ki.kind == "key") {
+					showBanner(ki.name + " dropped!", ki.color, 4);
+					msg("A raid key dropped: " + ki.name + "! Use it in the Nexus to open the raid.", ki.color);
+					Sfx.play("rare");
+					ring(e.x, e.y, ki.color, 30);
+				}
 				if (bag.spr == "bag_godly") {
 					// a 1 in 5,000 drop: make a scene
 					for each (var gi:Object in items) if (gi.rarity == "gd") {
@@ -2236,19 +2253,27 @@ package realm {
 				}
 				y += 56;
 			} else if (openStation.kind == "raids") {
-				info.htmlText = "Open a raid portal here in the Nexus. Raids are three boss fights in a row, best with friends. " +
-					"Raid bosses drop their own unique items. You have <b>" + onrane + "</b> Aether.";
+				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are three boss fights in a row, best with friends, " +
+					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder.";
 				info.y = y;
 				y += info.height + 10;
 				for (i = 0; i < Bosses.RAIDS.length; i++) {
 					var rd:Object = Bosses.RAIDS[i];
-					var rt:TextField = Ui.text(14, rd.color, true, "left", w - 200, true);
+					var rt:TextField = Ui.text(14, rd.color, true, "left", w - 212, true);
 					rt.htmlText = rd.name + "\n<font size='11' color='#aaaaaa'>" + raidBossNames(rd) + "</font>";
 					rt.x = 16; rt.y = y;
 					sp.addChild(rt);
-					var rb:Sprite = Ui.button("Open (" + rd.cost + " Aether)", 170, 32, raidFn(i), 13);
-					rb.x = w - 186; rb.y = y + 2;
-					sp.addChild(rb);
+					var keys:int = keyCount(i);
+					if (keys > 0) {
+						var rb:Sprite = Ui.button("Use Key (" + keys + ")", 170, 32, raidFn(i), 13);
+						rb.x = w - 186; rb.y = y + 2;
+						sp.addChild(rb);
+					} else {
+						var nk:TextField = Ui.text(12, 0x888888, false, "center", 170);
+						nk.text = "Needs a key";
+						nk.x = w - 186; nk.y = y + 9;
+						sp.addChild(nk);
+					}
 					y += 46;
 				}
 			} else if (openStation.kind == "skins") {
@@ -2340,14 +2365,34 @@ package realm {
 		}
 
 		private function raidFn(i:int):Function {
-			return function():void { openRaid(i); };
+			return function():void {
+				for (var k:int = 0; k < player.inv.length; k++) {
+					if (Data.keyRaid(player.inv[k]) != i) continue;
+					if (useRaidKey(player.inv[k])) { player.inv[k] = null; saveCharacter(); }
+					return;
+				}
+			};
 		}
 
-		/** Spends Aether and opens a raid portal next to the table (everyone in the Nexus sees it). */
-		public function openRaid(i:int, free:Boolean = false):void {
+		/** Raid keys of this raid in your inventory. */
+		private function keyCount(i:int):int {
+			var n:int = 0;
+			for each (var it:Object in player.inv) if (Data.keyRaid(it) == i) n++;
+			return n;
+		}
+
+		/** Using a raid key: opens its raid in the Nexus. Returns true when the key was used up. */
+		public function useRaidKey(item:Object):Boolean {
+			var i:int = Data.keyRaid(item);
+			if (i < 0) return false;
+			if (!inNexus) { msg("Raid keys open their portal in the Nexus. Bring it there and click it.", item.color); return false; }
+			openRaid(i);
+			return true;
+		}
+
+		/** Opens a raid portal next to the table (everyone in the Nexus sees it). */
+		public function openRaid(i:int):void {
 			var rd:Object = Bosses.RAIDS[i];
-			if (!free && onrane < rd.cost) { msg("Opening " + rd.name + " costs " + rd.cost + " Aether.", 0xff8080); return; }
-			if (!free) addOnrane(-rd.cost);
 			Save.flush();
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
 			var px:Number = 113.5, py:Number = 107.5;
@@ -2357,6 +2402,7 @@ package realm {
 			msg(player.name + " opened a portal to " + rd.name + "! (2 minutes)", rd.color);
 			Sfx.play("portal");
 			closeStation();
+			hud.refresh();
 		}
 
 		private function enterRaid(i:int, seed:uint):void {

@@ -166,6 +166,9 @@ package realm {
 			["...H....", "..RRR...", ".HRHRH..", "..RRR...", ".G.H..g.", "G......g", ".G....g.", "..GGgg.."]
 		];
 
+		/** Raid keys: an ornate key in the raid's colour. */
+		public static const KEY:Array = ["..GGG...", ".G.R.G..", ".GRHRG..", "..GGG...", "...G....", "...GG...", "...G....", "...GGG.."];
+
 		/** Stat potion bottles (each stat gets a shape and its colour). */
 		public static const BOTTLES:Array = [
 			["...WW...", "...GG...", "..GHGG..", ".GPHPPG.", "GPPHPPpG", "GPPPPPpG", ".GPPPpG.", "..GGGG.."],
@@ -338,6 +341,9 @@ package realm {
 					var band:uint = named ? ACCENTS[h % ACCENTS.length] : t >= 5 ? 0xd8f0ff : t >= 3 ? 0xf0c030 : t >= 1 ? 0xc0c0c8 : 0x9a7a5a;
 					if (band == 0x3a3a4a) band = 0x6a6a7a;
 					return {rows: rows, pal: {R: gem, r: Sprites.shade(gem, 0.6), H: 0xffffff, G: band, g: Sprites.shade(band, 0.62)}};
+				case "key":
+					var kc:uint = it.color || 0xf0c030;
+					return {rows: KEY, pal: {G: Sprites.tint(kc, 0.25), R: kc, H: 0xffffff}};
 				case "stat":
 					var sc:uint = Data.STAT_COLORS[it.sub] || 0xa040e0;
 					var keys:Array = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt", "frt"];

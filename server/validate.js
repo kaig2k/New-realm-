@@ -12,7 +12,7 @@
  * The limits are generous on purpose: honest players should never hit them.
  */
 
-const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material']);
+const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key']);
 const RARITIES = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
 const PASSIVES = new Set(['lifesteal', 'shards', 'frost', 'critical', 'rampage']);
 const MOTIONS = new Set(['wave', 'return', 'accel', 'home']);

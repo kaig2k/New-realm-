@@ -167,6 +167,7 @@ package realm {
 			yy += 32;
 			btn("Dark Elder's Chamber", 14, yy, 200, function():void { g.adminEnterArena(); });
 			btn("Realm portal", 220, yy, 140, function():void { g.adminRealmPortal(); });
+			btn("Raid keys", 366, yy, 120, function():void { g.adminGiveKeys(); });
 		}
 
 		private function raidFn(i:int):Function {

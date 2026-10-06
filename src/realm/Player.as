@@ -437,6 +437,9 @@ package realm {
 				case "stat":
 					if (drinkStat(item.sub, g)) inv[idx] = null;
 					return;
+				case "key":
+					if (g.useRaidKey(item)) inv[idx] = null;
+					return;
 				case "material":
 					g.msg("Take Star Shards to the Starforge in the Nexus.", 0xc080ff);
 					return;

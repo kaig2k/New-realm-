@@ -43,7 +43,7 @@ package realm {
 		}
 
 		private function entry(e:Enemy, w:World):Array {
-			return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, int(e.hp), int(e.maxHp), r2(e.dmgMult), flags(e), w.boss == e ? 1 : 0, r2(e.homeX), r2(e.homeY)];
+			return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, int(e.hp), int(e.maxHp), r2(e.dmgMult), flags(e), w.boss == e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite];
 		}
 
 		// ------------------------------------------------------------ host side
@@ -164,6 +164,7 @@ package realm {
 						e.invuln = (en[8] & 1) != 0;
 						e.setPhase(en[8] >> 2, null);
 						e.homeX = en[10]; e.homeY = en[11];
+						if (en[12]) e.elite = en[12];
 						e.tx = e.x; e.ty = e.y;
 						w.eById[e.id] = e;
 						w.enemies.push(e);

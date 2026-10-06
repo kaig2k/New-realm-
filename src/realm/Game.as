@@ -196,7 +196,23 @@ package realm {
 
 			statusTf = Ui.text(14, 0xff9a40, true, "center", 320, true);
 			worldLayer.addChild(statusTf);
+			atmo = new Shape();
+			addChild(atmo);
+			flashShape = new Shape();
+			flashShape.graphics.beginFill(0xffffff);
+			flashShape.graphics.drawRect(0, 0, VIEW_W, VIEW_H);
+			flashShape.graphics.endFill();
+			flashShape.alpha = 0;
+			flashShape.visible = false;
+			addChild(flashShape);
 			addChild(makeVignette());
+			streakTf = Ui.text(22, Ui.GOLD, true, "center", 360, true);
+			streakTf.x = VIEW_W / 2 - 180; streakTf.y = 78;
+			streakTf.visible = false;
+			addChild(streakTf);
+			streakBar = new Shape();
+			streakBar.x = VIEW_W / 2 - 60; streakBar.y = 108;
+			addChild(streakBar);
 			setZoom(Save.data.opt && Save.data.opt.zoom ? Number(Save.data.opt.zoom) : 0.8);
 
 			chat = Ui.text(15, 0xffffff, false, "left", 620, true);
@@ -1119,6 +1135,11 @@ package realm {
 			}
 			if (world.raid && sync.isHost) updateRaid(dt);
 			updateLightning(dt);
+			updateAtmosphere(dt);
+			updateAmbient(dt);
+			updateStreak(dt);
+			if (world.kind == "realm" && sync.isHost) updateGoblin(dt);
+			if (sync.isHost) updateElites(dt);
 			if (sync.isHost) scaleBosses(dt);
 			sync.update(dt);
 			netT -= dt;
@@ -1486,7 +1507,12 @@ package realm {
 				p.kills++;
 				petGainXp(e.isBoss ? 20 : 1);
 			}
-			if (mine || near) p.gainXp(e.def.xp, this);
+			if (mine && !e.def.treasure) addStreak(e);
+			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
+			if (mine || near) p.gainXp(int(e.def.xp * xpMult), this);
+			if (e.elite && !remote && e.elite == "Splitting") splitElite(e);
+			if (e.elite && mine) { addGold(int(e.def.xp / 2) + 20); floatText(e.x, e.y - 1.2, "Elite slain!", eliteCol(e.elite)); }
+			if (e.def.goblin) goblinDown(e, mine);
 			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
 			if (dx * dx + dy * dy < 12 * 12) p.addSurge(this);
 
@@ -1567,11 +1593,17 @@ package realm {
 					tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 				}
 			}
-			var items:Array = mine ? Data.rollLoot(e.def, Math.max(0, Math.min(World.GOD_ZONE, e.zone)), p.cls, p.frt) : [];
+			var lootZone:int = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
+			var items:Array = mine ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + streakBonus()) : [];
+			// elites drop twice; the treasure goblin spills its whole sack
+			if (mine && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + streakBonus() + 50));
+			if (mine && e.def.goblin) items = items.concat(goblinLoot(lootZone));
 			var hoard:Array = siteCleared(e, mine);
 			if (hoard) items = items.concat(hoard);
 			if (items.length) {
-				while (items.length > LootBag.MAX) items.pop();
+				// more than one bag's worth spills into extra bags beside it
+				var spill:Array = items.splice(LootBag.MAX);
+				for (var sb:int = 0; spill.length && sb < 3; sb++) bags.push(new LootBag(e.x + 0.9 * (sb + 1), e.y + 0.4 * (sb % 2), spill.splice(0, LootBag.MAX)));
 				var bag:LootBag = new LootBag(e.x, e.y, items);
 				bags.push(bag);
 				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
@@ -1794,7 +1826,10 @@ package realm {
 				var count:int = 1 + int(Math.random() * (z <= 1 ? 2 : z == World.GOD_ZONE ? 2 : 3));
 				for (var k:int = 0; k < count; k++) {
 					var ox:Number = sx + Math.random() * 2 - 1, oy:Number = sy + Math.random() * 2 - 1;
-					if (world.canStand(ox, oy, 0.4, true)) spawnEnemy(id, ox, oy, z);
+					if (!world.canStand(ox, oy, 0.4, true)) continue;
+					var ne:Enemy = spawnEnemy(id, ox, oy, z);
+					// now and then a monster spawns as an elite with a special trait
+					if (ne && z >= World.LOW_ZONE && Math.random() < 0.035) makeElite(ne);
 				}
 				return;
 			}
@@ -2484,6 +2519,314 @@ package realm {
 			} else raidStageBanner(n, w.raid);
 		}
 
+		// ------------------------------------------------------------ atmosphere
+		private var atmo:Shape;
+		private var flashShape:Shape;
+		private var atmoCol:uint = 0, atmoA:Number = 0;
+		private var drawnCol:uint = 1, drawnA:Number = -1;
+
+		/** A white flash over the view (lightning, big hits). */
+		public function flash(a:Number):void {
+			if (!opt("shake")) a *= 0.5;
+			flashShape.alpha = Math.max(flashShape.alpha, a);
+			flashShape.visible = true;
+		}
+
+		/** The colour the light takes in each place: warm beach, dim forests, violet Godlands, red raids... */
+		private function atmoTarget():Array {
+			if (world.raid) return world.raid.id == "storm" ? [0x001030, 0.18] : [0x500010, 0.16];
+			if (world.kind == "dungeon") return [0x000010, 0.12];
+			if (world.kind == "arena") return [0x300008, 0.12];
+			if (world.kind != "realm") return [0x000000, 0];
+			switch (world.zoneAt(player.x, player.y)) {
+				case World.SHORE_ZONE: return [0xfff0c0, 0.04];
+				case World.MID_ZONE: return [0x002010, 0.08];
+				case World.HIGH_ZONE: return [0x302000, 0.06];
+				case World.GOD_ZONE: return [0x2a0040, 0.15];
+			}
+			return [0x000000, 0];
+		}
+
+		private function updateAtmosphere(dt:Number):void {
+			var t:Array = atmoTarget();
+			var k:Number = Math.min(1, dt * 1.5);
+			atmoA += (t[1] - atmoA) * k;
+			atmoCol = mixCol(atmoCol, t[0], k);
+			if (Math.abs(atmoA - drawnA) > 0.002 || atmoCol != drawnCol) {
+				drawnA = atmoA; drawnCol = atmoCol;
+				atmo.graphics.clear();
+				if (atmoA > 0.003) {
+					atmo.graphics.beginFill(atmoCol, atmoA);
+					atmo.graphics.drawRect(0, 0, VIEW_W, VIEW_H);
+					atmo.graphics.endFill();
+				}
+			}
+			if (flashShape.visible) {
+				flashShape.alpha -= dt * 1.8;
+				if (flashShape.alpha <= 0) { flashShape.alpha = 0; flashShape.visible = false; }
+			}
+		}
+
+		private static function mixCol(a:uint, b:uint, t:Number):uint {
+			var r:int = ((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t;
+			var g:int = ((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t;
+			var bl:int = (a & 255) + ((b & 255) - (a & 255)) * t;
+			return (r << 16) | (g << 8) | bl;
+		}
+
+		// ------------------------------------------------------------ ambient particles
+		/** Weather and motes drifting through the view: {x, y, vx, vy, life, max, bd: [3 fades]}. */
+		private var amb:Array = [];
+		private var ambAcc:Number = 0;
+		private static var ambBits:Object = {};
+
+		/** A small dot or streak in three fading strengths. */
+		private static function ambBit(kind:String, col:uint):Array {
+			var key:String = kind + col;
+			if (ambBits[key]) return ambBits[key];
+			var out:Array = [];
+			for each (var a:Number in [1, 0.6, 0.3]) {
+				var w:int = kind == "rain" ? 2 : kind == "leaf" ? 5 : kind == "glint" || kind == "ember" ? 6 : 4;
+				var h:int = kind == "rain" ? 12 : kind == "leaf" ? 4 : kind == "glint" || kind == "ember" ? 6 : 4;
+				var bd:BitmapData = new BitmapData(w, h, true, 0);
+				var c:uint = (uint(a * (kind == "rain" ? 150 : 230)) << 24) | col;
+				if (kind == "glint") { bd.fillRect(new Rectangle(2, 0, 2, 6), c); bd.fillRect(new Rectangle(0, 2, 6, 2), c); }
+				else if (kind == "ember") {
+					// a soft glow with a bright core
+					bd.fillRect(new Rectangle(1, 0, 4, 6), (uint(a * 90) << 24) | col);
+					bd.fillRect(new Rectangle(0, 1, 6, 4), (uint(a * 90) << 24) | col);
+					bd.fillRect(new Rectangle(2, 2, 2, 2), (uint(a * 255) << 24) | Sprites.tint(col, 0.5));
+				}
+				else bd.fillRect(bd.rect, c);
+				out.push(bd);
+			}
+			ambBits[key] = out;
+			return out;
+		}
+
+		/** What drifts through the air here: [kind, colours, per second]. */
+		private function ambientKind():Array {
+			if (world.raid) return world.raid.id == "storm" ? ["rain", [0xb0c8ff], 70] : ["ash", [0xa01020, 0x501010], 14];
+			if (world.kind == "nexus") return ["mote", [0xffe080, 0xfff0c0], 4];
+			if (world.kind == "arena") return ["ember", [0xff3040, 0xff8040], 10];
+			if (world.kind == "dungeon") {
+				var th:Object = world.theme;
+				if (th && th.hazard == "lava") return ["ember", [0xff6020, 0xffa040], 12];
+				if (th && th.hazard == "water") return ["mote", [0x80c0ff, 0xc0e0ff], 6];
+				return ["mote", [0xa0a0b0, 0x707080], 5];
+			}
+			switch (world.zoneAt(player.x, player.y)) {
+				case World.SHORE_ZONE: return ["mote", [0xfff0d0], 3];
+				case World.LOW_ZONE: return ["leaf", [0x8ac040, 0xc0d050, 0x5a9a30], 5];
+				case World.MID_ZONE: return ["leaf", [0x4a8a30, 0xd08030, 0x8a6020], 7];
+				case World.HIGH_ZONE: return ["mote", [0xd0c090, 0xa09060], 6];
+				case World.GOD_ZONE: return ["ember", [0xc060ff, 0xff70d0, 0xff9040], 18];
+			}
+			return null;
+		}
+
+		private function updateAmbient(dt:Number):void {
+			var i:int;
+			for (i = amb.length - 1; i >= 0; i--) {
+				var a:Object = amb[i];
+				a.life -= dt;
+				if (a.life <= 0) { amb[i] = amb[amb.length - 1]; amb.length--; continue; }
+				a.x += a.vx * dt; a.y += a.vy * dt;
+				if (a.sway) a.x += Math.sin(time * 2 + a.sway) * dt * 0.6;
+			}
+			if (!opt("parts") || paused) return;
+			var k:Array = ambientKind();
+			// sparkles on water near you
+			if (Math.random() < 0.35) {
+				var gx:int = int(viewX + (Math.random() - 0.5) * vw / TS), gy:int = int(viewY + (Math.random() - 0.5) * vh / TS);
+				if (world.tileAt(gx, gy) == World.WATER) amb.push({x: gx + Math.random(), y: gy + Math.random(), vx: 0, vy: 0, life: 0.6, max: 0.6, bd: ambBit("glint", 0xffffff)});
+			}
+			if (!k) return;
+			ambAcc += dt * k[2];
+			var cap:int = k[0] == "rain" ? 160 : 90;
+			while (ambAcc >= 1) {
+				ambAcc -= 1;
+				if (amb.length >= cap) continue;
+				var col:uint = k[1][int(Math.random() * k[1].length)];
+				var p:Object = {x: viewX + (Math.random() - 0.5) * vw / TS * 1.1, y: viewY + (Math.random() - 0.5) * vh / TS * 1.1, bd: ambBit(k[0] == "ash" ? "mote" : k[0], col)};
+				switch (k[0]) {
+					case "rain": p.vx = -3; p.vy = 20; p.life = p.max = 0.45; p.y -= 3; break;
+					case "leaf": p.vx = 0.4 + Math.random() * 0.6; p.vy = 0.9 + Math.random() * 0.6; p.life = p.max = 3 + Math.random() * 2; p.sway = Math.random() * 6; break;
+					case "ember": p.vx = (Math.random() - 0.5) * 0.6; p.vy = -0.8 - Math.random() * 0.8; p.life = p.max = 2 + Math.random() * 1.5; p.sway = Math.random() * 6; break;
+					case "ash": p.vx = (Math.random() - 0.5) * 0.4; p.vy = 0.5 + Math.random() * 0.4; p.life = p.max = 3 + Math.random() * 2; p.sway = Math.random() * 6; break;
+					default: p.vx = (Math.random() - 0.5) * 0.4; p.vy = (Math.random() - 0.5) * 0.4; p.life = p.max = 2.5 + Math.random() * 2;
+				}
+				amb.push(p);
+			}
+		}
+
+		private function drawAmbient():void {
+			for each (var a:Object in amb) {
+				var f:Number = a.life / a.max;
+				// fade in over the first fifth of its life and out over the last third
+				var lvl:int = f > 0.8 ? (f > 0.9 ? 2 : 1) : f > 0.33 ? 0 : f > 0.15 ? 1 : 2;
+				var bd:BitmapData = a.bd[lvl];
+				pt.x = scrX(a.x, a.y) - (bd.width >> 1);
+				pt.y = scrY(a.x, a.y) - (bd.height >> 1);
+				if (pt.x < -8 || pt.y < -8 || pt.x > vw + 8 || pt.y > vh + 8) continue;
+				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
+			}
+		}
+
+		// ------------------------------------------------------------ kill streaks
+		private var streakN:int = 0;
+		private var streakT:Number = 0;
+		private var streakTf:TextField;
+		private var streakBar:Shape;
+		private static const STREAK_TIME:Number = 3.5;
+		private static const STREAK_NAMES:Object = {5: "Killing Spree", 10: "Rampage", 20: "Unstoppable", 35: "Godlike", 50: "Legendary", 75: "Mythical", 100: "Beyond Mortal"};
+
+		/** Loot luck from your streak: +1% per kill, up to +30%. */
+		private function streakBonus():int { return Math.min(30, streakN); }
+
+		private function addStreak(e:Enemy):void {
+			streakN++;
+			streakT = STREAK_TIME;
+			var nm:String = STREAK_NAMES[streakN];
+			if (nm) {
+				showBanner(nm + "!  x" + streakN, streakN >= 35 ? 0xff60ff : streakN >= 10 ? 0xff8040 : Ui.GOLD, 2);
+				Sfx.play("level", 0.6);
+				ring(player.x, player.y, streakN >= 35 ? 0xff60ff : Ui.GOLD, 22);
+			}
+		}
+
+		private function updateStreak(dt:Number):void {
+			if (streakN > 0 && !paused) {
+				streakT -= dt;
+				if (streakT <= 0) endStreak();
+			}
+			var show:Boolean = streakN >= 3;
+			streakTf.visible = show;
+			streakBar.visible = show;
+			if (!show) return;
+			var txt:String = "x" + streakN + " STREAK  <font size='14' color='#e0e0e0'>+" + streakBonus() + "% loot</font>";
+			if (streakTf.htmlText.indexOf("x" + streakN + " ") < 0) streakTf.htmlText = txt;
+			streakTf.textColor = streakN >= 35 ? 0xff80ff : streakN >= 10 ? 0xffa060 : Ui.GOLD;
+			var gr:* = streakBar.graphics;
+			gr.clear();
+			gr.beginFill(0x000000, 0.5); gr.drawRect(0, 0, 120, 4); gr.endFill();
+			gr.beginFill(streakN >= 10 ? 0xffa060 : 0xffd75e); gr.drawRect(0, 0, 120 * Math.max(0, streakT / STREAK_TIME), 4); gr.endFill();
+		}
+
+		private function endStreak():void {
+			if (streakN >= 10) {
+				var gold:int = streakN * 5;
+				addGold(gold);
+				var best:int = int(Save.data.bestStreak || 0);
+				var record:Boolean = streakN > best;
+				if (record) { Save.data.bestStreak = streakN; Save.flush(); }
+				msg("Streak over: " + streakN + " kills (+" + gold + " gold)" + (record ? "  New personal best!" : ""), record ? 0xff80ff : Ui.GOLD);
+			}
+			streakN = 0;
+			streakT = 0;
+		}
+
+		// ------------------------------------------------------------ elites
+		private static const ELITES:Array = ["Swift", "Armored", "Frenzied", "Giant", "Splitting", "Vampiric"];
+		private var eliteLabels:Array = [];
+		private var eliteTags:Array = [];
+
+		public static function eliteCol(id:String):uint {
+			return {Swift: 0x60e0ff, Armored: 0xc8c8d8, Frenzied: 0xff5040, Giant: 0xffb040, Splitting: 0x80ff60, Vampiric: 0xff3080}[id] || 0xffffff;
+		}
+
+		/** Host: turns a fresh monster into an elite with one trait (more health, double loot). */
+		private function makeElite(e:Enemy, id:String = null):void {
+			id = id || ELITES[int(Math.random() * ELITES.length)];
+			e.elite = id;
+			e.maxHp *= 2.5;
+			switch (id) {
+				case "Swift": e.spdMult = 1.7; break;
+				case "Armored": e.defense += 15; e.maxHp *= 1.4; break;
+				case "Frenzied": e.dmgMult *= 1.4; e.spdMult = 1.25; break;
+				case "Giant": e.maxHp *= 2; e.dmgMult *= 1.2; break;
+			}
+			e.hp = e.maxHp;
+		}
+
+		/** Host: Vampiric elites heal over time. */
+		private function updateElites(dt:Number):void {
+			for each (var e:Enemy in enemies) {
+				if (e.elite == "Vampiric" && !e.dead && !e.remote && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.03 * dt);
+			}
+		}
+
+		/** A Splitting elite bursts into three ordinary copies. */
+		private function splitElite(e:Enemy):void {
+			for (var k:int = 0; k < 3; k++) {
+				var a:Number = k * Math.PI * 2 / 3;
+				spawnEnemy(e.defId, e.x + Math.cos(a) * 1.2, e.y + Math.sin(a) * 1.2, e.zone);
+			}
+			burst(e.x, e.y, eliteCol("Splitting"), 20);
+		}
+
+		// ------------------------------------------------------------ treasure goblin
+		private var goblinT:Number = 90 + Math.random() * 120;
+
+		/** Host: now and then a Treasure Goblin pops up near a player and runs. It escapes after 30 seconds. */
+		private function updateGoblin(dt:Number):void {
+			for (var i:int = enemies.length - 1; i >= 0; i--) {
+				var g:Enemy = enemies[i];
+				if (!g.def.goblin || g.dead) continue;
+				g.age += dt;
+				if (g.age > 30) {
+					burst(g.x, g.y, 0xffe060, 30);
+					msg("The Treasure Goblin escaped with its loot!", 0xc0a040);
+					removeEnemyAt(i);
+				}
+				return;
+			}
+			if (world.closeT > 0) return;
+			goblinT -= dt;
+			if (goblinT > 0) return;
+			goblinT = 150 + Math.random() * 150;
+			var spots:Array = playerSpots();
+			var who:Object = spots[int(Math.random() * spots.length)];
+			for (var tries:int = 0; tries < 20; tries++) {
+				var a:Number = Math.random() * Math.PI * 2, r:Number = 9 + Math.random() * 4;
+				var gx:Number = who.x + Math.cos(a) * r, gy:Number = who.y + Math.sin(a) * r;
+				var z:int = world.zoneAt(gx, gy);
+				if (z < World.LOW_ZONE || z > World.GOD_ZONE || !world.canStand(gx, gy, 0.4, true)) continue;
+				var gob:Enemy = spawnEnemy("loot_goblin", gx, gy, z);
+				if (!gob) return;
+				gob.maxHp = gob.hp = 800 + z * 900;
+				showBanner("A Treasure Goblin appears!", 0xffe060, 2.5);
+				msg("A Treasure Goblin is nearby! Catch it before it escapes (30s).", 0xffe060);
+				Sfx.play("rare", 0.7);
+				return;
+			}
+		}
+
+		private function goblinDown(e:Enemy, mine:Boolean):void {
+			showBanner("Treasure Goblin slain!", 0xffe060, 3);
+			ring(e.x, e.y, 0xffe060, 36);
+			burst(e.x, e.y, 0xffe060, 40);
+			Sfx.play("rare");
+			if (mine) {
+				var gold:int = e.def.gold * (Math.max(0, e.zone) + 1);
+				addGold(gold);
+				floatText(e.x, e.y - 1.6, "+" + gold + " gold", Ui.GOLD);
+			}
+		}
+
+		/** The goblin's sack: potions, a Runed item for your class, a good chance of a Star Shard. */
+		private function goblinLoot(zone:int):Array {
+			var out:Array = [];
+			var cls:Object = player.cls;
+			out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+			out.push(Data.makePotion("stat", Data.randomStat()));
+			out.push(Data.makePotion("stat", Data.randomStat()));
+			if (Math.random() < 0.35) out.push(Data.makeSor());
+			if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.7 ? "st" : "fb"));
+			for each (var it:Object in Data.rollLoot(Data.ENEMIES.loot_goblin, zone, player.cls, player.frt + 40)) out.push(it);
+			return out;
+		}
+
 		/** Heart of the Storm: lightning keeps striking near you (dodge the circles). */
 		private var lightningT:Number = 0;
 		private function updateLightning(dt:Number):void {
@@ -2495,6 +2838,7 @@ package realm {
 			var self:Game = this;
 			addMarker(lx, ly, 1.6, 1.1, 0xffff80, function():void {
 				self.areaHit(lx, ly, 1.6, 120, "Lightning", "paralyzed", 0xffff80);
+				self.flash(0.22);
 				Sfx.play("hit", 0.5);
 			});
 		}
@@ -3009,7 +3353,7 @@ package realm {
 		private function updateCameraRotation(dt:Number):void {
 			if (input.isDown(Keyboard.Q)) { camAngle -= dt * 2.2; camZeroing = false; }
 			if (input.isDown(Keyboard.E)) { camAngle += dt * 2.2; camZeroing = false; }
-			if (input.pressed(Keyboard.Z)) camZeroing = true;
+			if (input.pressed(Keyboard.Z)) { camAngle = 0; camZeroing = false; }
 			if (camZeroing) {
 				while (camAngle > Math.PI) camAngle -= Math.PI * 2;
 				while (camAngle < -Math.PI) camAngle += Math.PI * 2;
@@ -3021,6 +3365,11 @@ package realm {
 		/** Picks the objective: the area boss (or its crystals), else a monster suited to your level. */
 		private function pickQuest():Enemy {
 			if (inNexus) return null;
+			// a treasure goblin nearby is always worth chasing
+			for each (var gob:Enemy in enemies) {
+				if (gob.dead || !gob.def.goblin) continue;
+				if ((gob.x - player.x) * (gob.x - player.x) + (gob.y - player.y) * (gob.y - player.y) < 40 * 40) return gob;
+			}
 			var b:Enemy = world.boss;
 			var e:Enemy, best:Enemy = null, bestD:Number = 1e9, d:Number;
 			if (!b || b.dead) {
@@ -3224,6 +3573,7 @@ package realm {
 				pt.y = scrY(q.x, q.y) - 3;
 				canvas.copyPixels(q.bd, q.bd.rect, pt, null, null, true);
 			}
+			drawAmbient();
 			if (world.theme && world.theme.dark) drawDarkness();
 			canvas.unlock();
 			updateQuestArrow();
@@ -3330,7 +3680,13 @@ package realm {
 				drawAura(cx, cy + TS * 0.4, e.immune ? 0xff4080 : e.enraged ? 0xff2020 : uint(e.def.col));
 				bob = int((Math.sin(time * 2.5 + e.homeX) + 1) * 2.5);
 			}
+			if (e.elite) drawAura(cx, cy + TS * 0.4, eliteCol(e.elite), 0.85);
+			if (e.def.goblin) {
+				drawAura(cx, cy + TS * 0.4, 0xffe060, 0.7);
+				if (Math.random() < 0.5 && opt("parts")) parts.push(new Particle(e.x + Math.random() - 0.5, e.y - 0.3, 0, 1.5, 0.5, Sprites.glow(0xffe060)));
+			}
 			var top:Number = drawEntity(e.sprite, cx, cy, bob, !e.def.fly && !e.isBoss && world.inWater(e.x, e.y));
+			if (e.elite || e.def.goblin) eliteLabels.push({e: e, x: cx, y: top});
 			if (e.hp < e.maxHp) {
 				var bw:int = e.isBoss ? 80 : 36;
 				hpBar(cx - bw / 2, cy + TS * 0.4 + 6, bw, e.hp / e.maxHp);
@@ -3349,6 +3705,21 @@ package realm {
 
 		/** Name tags under other players and chat bubbles over their heads. */
 		private function updateTags():void {
+			// elite and goblin name plates
+			var ne:int = 0;
+			for each (var el:Object in eliteLabels) {
+				var et:TextField = eliteTags[ne];
+				if (!et) { et = eliteTags[ne] = Ui.text(11, 0xffffff, true, "center", 200, true); tagLayer.addChild(et); }
+				ne++;
+				var en:Enemy = el.e;
+				var label:String = en.def.goblin ? "Treasure Goblin" : en.elite + " " + en.def.name;
+				if (et.text != label) et.text = label;
+				et.textColor = en.def.goblin ? 0xffe060 : eliteCol(en.elite);
+				et.x = int(el.x - et.width / 2); et.y = int(el.y - 16);
+				et.visible = true;
+			}
+			for (; ne < eliteTags.length; ne++) eliteTags[ne].visible = false;
+			eliteLabels.length = 0;
 			var n:int = 0, nb:int = 0;
 			var names:Boolean = opt("names"), bubblesOn:Boolean = opt("bubbles");
 			for each (var rp:RemotePlayer in net.players) {

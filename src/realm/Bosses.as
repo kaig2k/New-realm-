@@ -125,6 +125,7 @@ package realm {
 
 		// ------------------------------------------------------------ art for new bosses
 		private static function art():void {
+			Sprites.recolor("loot_goblin", "goblin", {H: 0x70b840, h: 0x4a8a28, E: 0xffe020, B: 0xc8962a, b: 0x8a6418, A: 0xffe060, L: 0x5a3a14, W: 0xffe060, S: 0x70b840});
 			// raid monsters
 			Sprites.recolor("cultist", "bandit", {H: 0x8a0a1a, h: 0x5a0610, S: 0xe8d0c0, E: 0xffe040, B: 0xa01428, b: 0x6a0a18, A: 0xf0c030, L: 0x2a0408, W: 0xff3040});
 			Sprites.recolor("bone_thrall", "skeleton", {H: 0xe8e0c8, h: 0xa09880, S: 0xe8e0c8, E: 0xff2020, B: 0x8a1a1a, b: 0x5a0a0a, A: 0xd02030, L: 0xb0a890, W: 0xe8e0c8});
@@ -158,6 +159,9 @@ package realm {
 				attacks: [aim(1, 0, 9, 70, 0.9, 0xff40ff, {motion: "home"})]});
 			mob("blood_acolyte", {name: "Blood Acolyte", spr: "imp", hp: 1400, def: 10, spd: 2.6, xp: 80, col: 0xd02030,
 				attacks: [aim(3, 24, 8, 70, 1.1, 0xff3040, {eff: "bleeding"})]});
+			// a rare thief that runs from you with a sack of loot (see Game.updateGoblin)
+			mob("loot_goblin", {name: "Treasure Goblin", spr: "loot_goblin", hp: 1500, def: 8, spd: 5, xp: 300, col: 0xf0c030, ai: "flee", aggro: 11,
+				attacks: [], goblin: true, gold: 120});
 			// raid guards: the toughest ordinary monsters in the game
 			mob("crimson_cultist", {name: "Crimson Cultist", spr: "cultist", hp: 3000, def: 18, spd: 2.4, xp: 160, col: 0xa01428, ai: "orbit", keep: 5,
 				attacks: [aim(3, 20, 8.5, 90, 1.0, 0xff3040, {eff: "bleeding"}), ring(8, 22, 4.5, 75, 2.4, 0xd02030)]});

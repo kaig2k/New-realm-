@@ -75,7 +75,7 @@ into the first account you create.
 | WASD / arrows | Move |
 | Mouse wheel / - and = | Zoom the view out and in |
 | Q / E | Rotate the camera |
-| Z | Snap the camera back to 0 degrees |
+| Z | Snap the camera straight back to 0 degrees (instantly) |
 | Mouse | Aim; hold left button to shoot |
 | Space | Class ability (aimed at cursor) |
 | F / G | Drink health / magic potion |
@@ -99,6 +99,26 @@ into the first account you create.
 - **Click:** clicking an item still uses or equips it, and clicking a loot bag item picks
   it up.
 - **Shift+click:** sells an item at the Marketplace, and quick-drops it anywhere else.
+
+## What keeps it lively
+
+- **Kill streaks:** kills within 3.5 seconds of each other build a streak, shown under the
+  top of the screen with a timer bar. Each kill in a streak adds +1% loot luck (up to +30%) and
+  bonus XP. Milestones get their own call-outs: Killing Spree (5), Rampage (10), Unstoppable
+  (20), Godlike (35), Legendary (50), Mythical (75), Beyond Mortal (100). Streaks of 10+ pay out
+  gold when they end, and your best streak is remembered.
+- **Elite monsters:** about 1 in 30 realm monsters spawns as an elite with a coloured aura and
+  name plate. Each has one trait: **Swift** (fast), **Armored** (tough), **Frenzied** (hits hard),
+  **Giant** (huge health), **Splitting** (bursts into three when killed) or **Vampiric** (heals).
+  Elites drop loot twice, with better odds, and give triple XP and bonus gold.
+- **Treasure Goblins:** every few minutes a gold-glowing Treasure Goblin appears near a player
+  inland and runs away. The quest arrow points to it. Catch it within 30 seconds for a big
+  sack: gold, a Runed item for your class, stat potions, a good chance of a Star Shard, and
+  sometimes Bonded or Eldritch gear.
+- **Atmosphere:** the light shifts with where you are (warm beach, shaded forests, violet
+  Godlands, blood-red Conclave, stormy blue skies). Leaves drift through the forests, embers
+  rise in the Godlands and lava dungeons, ash falls in the Conclave, and rain pours through
+  Heart of the Storm, where lightning flashes the screen. Water sparkles as you pass.
 
 ## The realm
 

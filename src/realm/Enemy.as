@@ -60,6 +60,12 @@ package realm {
 		public var scaleMult:Number = 1;
 		public var scalePlayers:Number = 1;
 		public var moving:Boolean = false;
+		/** Elite affix ("Swift", "Armored"...; "" for ordinary monsters). */
+		public var elite:String = "";
+		/** Speed multiplier (Swift and Frenzied elites). */
+		public var spdMult:Number = 1;
+		/** Seconds alive (treasure goblins escape after a while). */
+		public var age:Number = 0;
 
 		private var attacks:Array;
 		private var timers:Array;
@@ -175,7 +181,7 @@ package realm {
 				}
 			}
 
-			var speed:Number = def.spd * (slowT > 0 ? 0.45 : 1) * (!def.fly && g.world.inWater(x, y) ? 0.5 : 1) * (ph && ph.speed ? ph.speed : 1);
+			var speed:Number = def.spd * spdMult * (slowT > 0 ? 0.45 : 1) * (!def.fly && g.world.inWater(x, y) ? 0.5 : 1) * (ph && ph.speed ? ph.speed : 1);
 			var mvx:Number = 0, mvy:Number = 0;
 			var mode:String = ph ? (ph.move || "wander") : def.ai;
 			if (aggro && dist > 0.01) {
@@ -218,6 +224,12 @@ package realm {
 						if (radial < -1) radial = -1;
 						mvx = -uy * orbitDir + ux * radial;
 						mvy = ux * orbitDir + uy * radial;
+						break;
+					case "flee":
+						// run from the nearest player, veering sideways so walls don't trap it
+						mvx = -ux + -uy * orbitDir * 0.6; mvy = -uy + ux * orbitDir * 0.6;
+						moveT -= dt;
+						if (moveT <= 0) { moveT = 1 + Math.random(); if (Math.random() < 0.4) orbitDir = -orbitDir; }
 						break;
 					case "charge":
 						chargeT -= dt;

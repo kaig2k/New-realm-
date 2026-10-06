@@ -91,7 +91,7 @@ package realm {
 				reconnecting = false;
 				if (err) {
 					retryT = 5;
-					if (retries >= 10) g.msg("Couldn't reconnect (" + err + "). Save & Quit and join again from the title screen.", 0xff8080);
+					if (retries >= 10) g.lostConnection(err);
 					return;
 				}
 				g.msg("Reconnected to " + Online.address + ".", 0x5ae06a);

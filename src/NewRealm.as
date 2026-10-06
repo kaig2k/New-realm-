@@ -32,7 +32,6 @@ package {
 			stage.frameRate = 60;
 			stage.quality = StageQuality.HIGH;
 			realm.Bosses.init();
-			Accounts.autoLogin();
 			Ui.loadFonts(showTitle);
 		}
 
@@ -68,8 +67,8 @@ package {
 		}
 
 		private function showMenu():void {
-			// offline play always uses this PC's save; online play only the server's
-			if (!Online.connected) Save.useRemote(null);
+			// the game is online-only: without a connection, back to the title screen to log in
+			if (!Online.connected) { showTitle(); return; }
 			setScreen(new Menu(startGame, showTitle));
 		}
 

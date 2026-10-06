@@ -57,16 +57,21 @@ with ` or Esc. It has five tabs:
 
 ## Accounts and saves
 
-The game opens on a home screen. The first time you play it asks you to **create an
-account** (username and password). PLAY then takes you to character select. The top-right
-box lets you log out, switch accounts or change your password, and the game remembers the
-last account you used.
-
-There is no server: accounts and saves are stored locally on this computer, in the AIR or
-Flash Player local storage. Each account has its own save (characters, vault, gold,
-Aether, fame, pets, skins, quests and achievements). Passwords are never stored as
-plain text, only as salted SHA-256 hashes. Progress saved before accounts existed is moved
-into the first account you create.
+New Realm is **online-only**. Accounts, characters and items all live on the game server:
+- The first time you open the game it asks you to **create an account** (username and
+  password) on the server. After that the game remembers you on that PC and logs you in by
+  itself, so PLAY goes straight to character select.
+- You can log in to the same account from any computer with your password.
+- The top-right box lets you log out (the server forgets that PC) or change your password
+  (other PCs then have to log in again).
+- Passwords are stored on the server only as salted scrypt hashes. Eight wrong passwords from
+  one address lock it out for 5 minutes.
+- If the server goes down mid-game, the game keeps trying to reconnect for about a minute,
+  then returns to the title screen. Your progress up to the last save is safe on the server.
+- **Accounts from before passwords** keep working: log in once from the PC you first played
+  on, and the password you type becomes the account's password.
+- A build without a server baked in (`build.bat` with no address) shows a "Server" button on
+  the title screen to choose one.
 
 ## Controls
 
@@ -324,9 +329,8 @@ firewall, systemd service, domain name, settings, moderation and backups.
 
 On a server, your **characters, vault, gold and fame are stored on the server**:
 - They follow your account to any PC.
-- Online and offline never mix. Everyone starts fresh on a server, nothing from your offline
-  save is ever uploaded, and nothing from the server is written to your PC. Character select
-  shows which side you're on ("Online characters" or "Offline characters").
+- The game is online-only, and everyone starts fresh on a server. Nothing from a PC is ever
+  uploaded as a save.
 - The server checks every save and refuses impossible items or currency jumps.
 - Trades are done by the server itself.
 

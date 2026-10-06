@@ -1117,6 +1117,13 @@ package realm {
 			}
 		}
 
+		/** The server is gone for good: back to the title screen (your last save is on the server). */
+		public function lostConnection(err:String):void {
+			msg("Lost connection to the server (" + err + "). Returning to the title screen...", 0xff8080);
+			saveCharacter();
+			quitRequested = true;
+		}
+
 		private function update(dt:Number):void {
 			time += dt;
 			Data.viewerLevel = player.level;

@@ -16,7 +16,7 @@ package realm {
 	public class Online {
 		public static const DEFAULT_PORT:int = 2050;
 		/** Must match VERSION in server/server.js. */
-		public static const PROTOCOL:int = 8;
+		public static const PROTOCOL:int = 9;
 
 		private static var socket:Socket;
 		private static var inBuf:ByteArray = new ByteArray();
@@ -47,9 +47,19 @@ package realm {
 			return ServerConfig.HOME || Accounts.setting("server") || "localhost:" + DEFAULT_PORT;
 		}
 
-		/** Connects and logs in as the current account. done(error:String) — error is null on success. */
-		public static function connect(addr:String, done:Function):void {
+		/** How the next connection logs in: {name, password, register} or null for the remembered session. */
+		private static var cred:Object;
+		/** Called with (error or null) when a password change finishes. */
+		private static var onPassword:Function;
+
+		/**
+		 * Connects and logs in. cred is {name, password, register:Boolean} for a
+		 * login or a new account, or null to resume this PC's remembered session.
+		 * done(error:String): error is null on success.
+		 */
+		public static function connect(addr:String, done:Function, login:Object = null):void {
 			disconnect();
+			cred = login;
 			addr = addr.replace(/^\s+|\s+$/g, "");
 			var host:String = addr, port:int = DEFAULT_PORT;
 			var colon:int = addr.lastIndexOf(":");
@@ -110,6 +120,23 @@ package realm {
 			Save.useRemote(null);
 		}
 
+		/** Logs out for good on this PC: the server forgets this PC's session. */
+		public static function logout():void {
+			var rem:Object = Accounts.remembered(address || lastAddress);
+			if (connected && rem) { sendSave(); send({t: "logout", token: rem.token}); }
+			Accounts.forget(address || lastAddress);
+			disconnect();
+			Save.useRemote(null);
+			Accounts.logout();
+		}
+
+		/** Changes the account's password on the server. done(error or null). */
+		public static function changePassword(oldPw:String, newPw:String, done:Function):void {
+			if (!connected) { done("Not connected to the server."); return; }
+			onPassword = done;
+			send({t: "password", old: oldPw, pw: newPw});
+		}
+
 		public static function disconnect():void {
 			if (timeout) { timeout.stop(); timeout = null; }
 			if (socket) {
@@ -136,16 +163,14 @@ package realm {
 		}
 
 		private static function onConnect(e:Event):void {
-			// every account gets a secret token per server, so nobody else can use its name there
-			var loc:Object = Save.local;
-			var tokens:Object = loc.serverTokens || (loc.serverTokens = {});
-			if (!tokens[address]) {
-				var t:String = "";
-				for (var i:int = 0; i < 32; i++) t += int(Math.random() * 16).toString(16);
-				tokens[address] = t;
-				Save.flushLocal();
+			if (cred) {
+				send({t: "hello", name: cred.name, password: cred.password, register: cred.register == true,
+					legacy: cred.register ? null : Accounts.legacyToken(cred.name, address), ver: PROTOCOL});
+				return;
 			}
-			send({t: "hello", name: Accounts.current, token: tokens[address], ver: PROTOCOL});
+			var rem:Object = Accounts.remembered(address);
+			if (!rem) { fail("Please log in."); return; }
+			send({t: "hello", name: rem.name, token: rem.token, ver: PROTOCOL});
 		}
 
 		private static function onData(e:ProgressEvent):void {
@@ -176,10 +201,18 @@ package realm {
 			var m:Object;
 			try { m = JSON.parse(line); } catch (err:Error) { return; }
 			if (!welcome) {
-				if (m.t == "error") { fail(m.msg); return; }
+				if (m.t == "error") {
+					// a remembered session the server no longer accepts: log in again
+					if (!cred) Accounts.forget(address);
+					fail(m.msg);
+					return;
+				}
 				if (m.t == "welcome") {
 					welcome = m;
 					connected = true;
+					if (m.session) Accounts.remember(address, m.name, m.session);
+					Accounts.loggedIn(m.name);
+					cred = null;
 					useServerSave(m);
 					if (timeout) { timeout.stop(); timeout = null; }
 					Accounts.setSetting("server", address);
@@ -187,6 +220,13 @@ package realm {
 					connectDone = null;
 					if (cb != null) cb(null);
 				}
+				return;
+			}
+			if (m.t == "password") {
+				if (m.ok && m.session) Accounts.remember(address, welcome.name, m.session);
+				var pcb:Function = onPassword;
+				onPassword = null;
+				if (pcb != null) pcb(m.ok ? null : m.msg);
 				return;
 			}
 			if (m.t == "saveRejected") {

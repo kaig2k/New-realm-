@@ -42,7 +42,7 @@ const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 8;
+const VERSION = 9;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;
@@ -58,7 +58,7 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
 const store = new Store(DATA_DIR);
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
-/** accounts[lowername] = {name, salt, hash, created} */
+/** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
 const accounts = load('accounts.json', {});
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
 const guilds = load('guilds.json', {});
@@ -67,6 +67,48 @@ const bans = load('bans.json', {});
 
 function hashToken(token, salt) {
   return crypto.createHash('sha256').update(salt + ':' + token).digest('hex');
+}
+
+/** Passwords are stored as salted scrypt hashes, never as text. */
+function hashPassword(pw, salt) {
+  return crypto.scryptSync(String(pw), salt, 32).toString('hex');
+}
+
+function checkPassword(acc, pw) {
+  if (!acc.pwHash) return false;
+  const a = Buffer.from(hashPassword(pw, acc.pwSalt), 'hex'), b = Buffer.from(acc.pwHash, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function setPassword(acc, pw) {
+  acc.pwSalt = crypto.randomBytes(16).toString('hex');
+  acc.pwHash = hashPassword(pw, acc.pwSalt);
+}
+
+/** A new "remember me" session for this PC; only its hash is kept. */
+function newSession(acc) {
+  const token = crypto.randomBytes(24).toString('hex');
+  acc.sessions = (acc.sessions || []).concat([hashToken(token, 'session')]).slice(-10);
+  return token;
+}
+
+function hasSession(acc, token) {
+  if (!token) return false;
+  if (acc.hash && acc.salt && hashToken(token, acc.salt) === acc.hash) return true; // the old per-PC token
+  return (acc.sessions || []).indexOf(hashToken(token, 'session')) >= 0;
+}
+
+/** Slows down password guessing: 8 failed logins from one address locks it out for 5 minutes. */
+const failedLogins = new Map();
+function loginLocked(ip) {
+  const f = failedLogins.get(ip);
+  return f && f.n >= 8 && Date.now() - f.t < 5 * 60 * 1000;
+}
+function loginFailed(ip) {
+  const f = failedLogins.get(ip) || { n: 0, t: 0 };
+  if (Date.now() - f.t > 5 * 60 * 1000) f.n = 0;
+  f.n++; f.t = Date.now();
+  failedLogins.set(ip, f);
 }
 
 // ------------------------------------------------------------------ realms
@@ -156,19 +198,40 @@ const handlers = {
     if (c.authed) return;
     if (m.ver !== VERSION) return c.fail('Version mismatch: this server runs New Realm network version ' + VERSION +
       ' and your game uses version ' + m.ver + '. Get the same game build as the host.');
+    // accounts live on the server: register, log in with a password, or resume a remembered session
     const name = str(m.name, 12);
+    const password = typeof m.password === 'string' ? m.password.slice(0, 64) : '';
     const token = str(m.token, 64);
-    if (!/^[A-Za-z0-9]{3,12}$/.test(name)) return c.fail('Invalid name.');
-    if (token.length < 16) return c.fail('Invalid login token.');
+    if (!/^[A-Za-z0-9]{3,12}$/.test(name)) return c.fail('Usernames are 3-12 letters or numbers.');
+    if (loginLocked(c.ip)) return c.fail('Too many failed logins. Wait a few minutes and try again.');
     const key = name.toLowerCase();
     let acc = accounts[key];
-    if (!acc) {
-      const salt = crypto.randomBytes(8).toString('hex');
-      acc = accounts[key] = { name, salt, hash: hashToken(token, salt), created: Date.now() };
+    let session = null;
+    if (m.register) {
+      if (acc) return c.fail('That username is already taken.');
+      if (password.length < 4) return c.fail('Passwords need at least 4 characters.');
+      acc = accounts[key] = { name, created: Date.now() };
+      setPassword(acc, password);
+      session = newSession(acc);
       save('accounts.json', accounts);
       log('new account', name);
-    } else if (hashToken(token, acc.salt) !== acc.hash) {
-      return c.fail('The name "' + acc.name + '" belongs to someone else on this server.');
+    } else if (password) {
+      if (!acc) { loginFailed(c.ip); return c.fail('No account with that username.'); }
+      if (!acc.pwHash) {
+        // made before passwords: the PC it was first played on still holds its token
+        if (!hasSession(acc, str(m.legacy, 64))) {
+          return c.fail('This account was made before passwords. Log in once from the PC you first played on to set its password.');
+        }
+        setPassword(acc, password);
+        log(name, 'set a password');
+      } else if (!checkPassword(acc, password)) {
+        loginFailed(c.ip);
+        return c.fail('Wrong password.');
+      }
+      session = newSession(acc);
+      save('accounts.json', accounts);
+    } else {
+      if (!acc || !hasSession(acc, token)) { loginFailed(c.ip); return c.fail('Please log in again.'); }
     }
     const ban = bans[key];
     if (ban && (!ban.until || ban.until > Date.now())) {
@@ -186,7 +249,7 @@ const handlers = {
     c.meta = { lastSave: Date.now(), lastGodly: 0 };
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, realms: realmList(), online: byName.size,
-      save: onlineSave(key), motd: config.motd, admin: isAdmin(c) });
+      save: onlineSave(key), motd: config.motd, admin: isAdmin(c), session, needPassword: !acc.pwHash });
     sendGuild(c.guild);
     log(c.name, 'joined (' + byName.size + ' online)');
   },
@@ -441,6 +504,29 @@ const handlers = {
   },
 
   ping(c, m) { c.send({ t: 'pong', at: m.at }); },
+
+  /** Change (or, for old accounts, set) the password. */
+  password(c, m) {
+    const acc = accounts[c.key];
+    const pw = typeof m.pw === 'string' ? m.pw.slice(0, 64) : '';
+    if (acc.pwHash && !checkPassword(acc, typeof m.old === 'string' ? m.old : '')) return c.send({ t: 'password', ok: false, msg: 'Current password is wrong.' });
+    if (pw.length < 4) return c.send({ t: 'password', ok: false, msg: 'Passwords need at least 4 characters.' });
+    setPassword(acc, pw);
+    // other PCs have to log in again with the new password
+    acc.sessions = [];
+    const session = newSession(acc);
+    save('accounts.json', accounts);
+    c.send({ t: 'password', ok: true, session });
+  },
+
+  /** Log out: forget this PC's remembered session. */
+  logout(c, m) {
+    const acc = accounts[c.key];
+    const h = hashToken(str(m.token, 64), 'session');
+    acc.sessions = (acc.sessions || []).filter(s => s !== h);
+    save('accounts.json', accounts);
+    c.close();
+  },
 
   /** The account's save (characters, vault, gold...). Checked, then stored. */
   save(c, m) {
@@ -698,7 +784,7 @@ const POLICY = '<?xml version="1.0"?><cross-domain-policy><allow-access-from dom
 
 const server = net.createServer((sock) => {
   sock.setNoDelay(true);
-  const c = { id: nextId++, authed: false, world: '', x: 0, y: 0, profile: {}, party: 0 };
+  const c = { id: nextId++, authed: false, world: '', x: 0, y: 0, profile: {}, party: 0, ip: String(sock.remoteAddress || '') };
   let mode = null; // 'tcp' | 'ws'
   let buf = Buffer.alloc(0);
   let text = '';

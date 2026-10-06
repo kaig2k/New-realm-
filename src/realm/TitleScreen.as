@@ -14,7 +14,7 @@ package realm {
 	 * PLAY goes to character select once you're logged in.
 	 */
 	public class TitleScreen extends Sprite {
-		public static const VERSION:String = "v1.0";
+		public static const VERSION:String = "v1.1";
 
 		private var onPlay:Function;
 		private var accountLayer:Sprite;
@@ -63,7 +63,7 @@ package realm {
 			refreshAccount();
 
 			var ver:TextField = Ui.text(13, 0xaaaaaa, false, "left", 700, true);
-			ver.text = "New Realm " + VERSION + "  -  single player, saves are stored on this computer";
+			ver.text = "New Realm " + VERSION + "  -  online: your characters are saved on the server";
 			ver.x = 14; ver.y = Ui.H - 26;
 			addChild(ver);
 
@@ -75,10 +75,11 @@ package realm {
 				removeEventListener(Event.ENTER_FRAME, animate);
 				stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKey);
 			});
-			// first launch: go straight to account creation
-			if (!Accounts.current && Accounts.count == 0) showRegister();
-			// a build with a home server joins it as soon as you're logged in
-			else if (ServerConfig.HOME && Accounts.current && !Online.connected) connectHome(null);
+			// the game is online-only: pick up this PC's remembered login, or ask for one
+			if (Online.connected) {}
+			else if (Accounts.remembered(server)) resume(null);
+			else if (server && Accounts.setting("server")) showLogin();
+			else showRegister();
 		}
 
 		private var t:Number = 0;
@@ -100,69 +101,88 @@ package realm {
 
 		private var onlineLayer:Sprite;
 
-		/** Connecting to the build's home server right now. */
+		/** Connecting to the server right now, and the last connection error. */
 		private var connecting:Boolean = false;
-		private var homeError:String;
+		private var netError:String;
+
+		/** The server this game plays on: baked into the build, or the last one used. */
+		private function get server():String {
+			return ServerConfig.HOME || Accounts.setting("server");
+		}
 
 		private function refreshOnline():void {
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
 			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.address + "</font>  (" + Online.welcome.online + " playing)"
 				: connecting ? "Connecting to the server..."
-				: ServerConfig.HOME && homeError ? "<font color='#ff8080'>Couldn't reach the server.</font> Press PLAY to try again."
-				: ServerConfig.HOME && !Accounts.current ? "Log in or register to join the server."
-				: "Playing offline. Join a server to play with friends.";
+				: netError ? "<font color='#ff8080'>Couldn't reach the server.</font> Press PLAY to try again."
+				: "Log in or create an account to play.";
 			tf.y = 478;
 			onlineLayer.addChild(tf);
-			var b:Sprite = Online.connected ? Ui.button("Disconnect", 170, 34, function():void { Online.signOut(); refreshOnline(); }, 15)
-				: Ui.button("Play Online", 170, 34, showServer, 15);
-			b.x = (Ui.W - 170) / 2;
-			b.y = 506;
-			onlineLayer.addChild(b);
+			// builds without a baked-in server can switch servers here
+			if (!ServerConfig.HOME) {
+				var b:Sprite = Ui.button(server ? "Server: " + server : "Choose server", 260, 30, showServer, 13);
+				b.x = (Ui.W - 260) / 2;
+				b.y = 508;
+				onlineLayer.addChild(b);
+			}
 		}
 
 		private function showServer():void {
-			if (!Accounts.current) { showLogin(); return; }
-			openDialog("Play Online", ["Server address (ask the host)"], [false], "Connect", function():void {
-				errorTf.textColor = 0xcccccc;
-				errorTf.text = "Connecting...";
-				Online.connect(fields[0].text, function(err:String):void {
-					errorTf.textColor = 0xff7070;
-					if (err) { errorTf.text = err; return; }
-					done();
-					refreshOnline();
-					onPlay();
-				});
-			}, null, null, {maxChars: 80, restrict: "A-Za-z0-9.:\\-", values: [Online.lastAddress]});
+			openDialog("Game server", ["Server address (ask the host)"], [false], "Save", function():void {
+				var addr:String = fields[0].text.replace(/^\s+|\s+$/g, "");
+				if (!addr) { errorTf.text = "Enter the server address."; return; }
+				if (Online.connected) Online.signOut();
+				Accounts.setSetting("server", addr);
+				Accounts.logout();
+				closeDialog();
+				refreshAccount();
+				refreshOnline();
+				if (Accounts.remembered(addr)) resume(null); else showLogin();
+			}, null, null, {maxChars: 80, restrict: "A-Za-z0-9.:\\-", values: [server || "localhost:" + Online.DEFAULT_PORT]});
 		}
 
 		private function clickPlay():void {
-			if (Accounts.current) go();
+			if (Online.connected) onPlay();
+			else if (server && Accounts.remembered(server)) resume(onPlay);
 			else showLogin();
 		}
 
-		/** Into the game: through the home server when this build has one. */
-		private function go():void {
-			if (ServerConfig.HOME && !Online.connected) connectHome(onPlay);
-			else onPlay();
-		}
-
-		/** Connects to ServerConfig.HOME, then runs `then` (if any). On failure: Retry or play offline. */
-		private function connectHome(then:Function):void {
+		/** Logs back in with this PC's remembered session, then runs `then` (if any). */
+		private function resume(then:Function):void {
 			if (connecting) return;
 			connecting = true;
-			homeError = null;
+			netError = null;
 			refreshOnline();
-			Online.connect(ServerConfig.HOME, function(err:String):void {
+			Online.connect(server, function(err:String):void {
 				connecting = false;
-				homeError = err;
+				refreshAccount();
+				if (!err) { netError = null; refreshOnline(); if (then != null) then(); return; }
+				// the server no longer knows this PC's session: log in with a password
+				if (!Accounts.remembered(server)) { refreshOnline(); showLogin(err); return; }
+				netError = err;
 				refreshOnline();
-				if (!err) { if (then != null) then(); return; }
 				if (then == null) return;
-				openDialog("Server unavailable", [], [], "Retry", function():void { closeDialog(); connectHome(then); },
-					"Play offline instead", function():void { closeDialog(); onPlay(); });
+				openDialog("Server unavailable", [], [], "Retry", function():void { closeDialog(); resume(then); });
 				errorTf.text = err;
 			});
+		}
+
+		/** Logs in or registers on the server, then into the game. */
+		private function serverLogin(name:String, pw:String, register:Boolean, addr:String):void {
+			if (!addr) { errorTf.text = "Enter the server address."; return; }
+			errorTf.textColor = 0xcccccc;
+			errorTf.text = register ? "Creating your account..." : "Logging in...";
+			connecting = true;
+			Online.connect(addr, function(err:String):void {
+				connecting = false;
+				errorTf.textColor = 0xff7070;
+				if (err) { errorTf.text = err; return; }
+				netError = null;
+				done();
+				refreshOnline();
+				onPlay();
+			}, {name: name, password: pw, register: register});
 		}
 
 		/** Top-right account box: logged in as X, or log in / register buttons. */
@@ -177,11 +197,11 @@ package realm {
 			var b1:Sprite, b2:Sprite;
 			if (Accounts.current) {
 				info.htmlText = "Logged in as <font color='#ffd75e'>" + Accounts.current + "</font>";
-				b1 = Ui.button("Log out", 130, 32, function():void { Online.signOut(); Accounts.logout(); refreshAccount(); refreshOnline(); }, 15);
+				b1 = Ui.button("Log out", 130, 32, function():void { Online.logout(); refreshAccount(); refreshOnline(); showLogin(); }, 15);
 				b2 = Ui.button("Password", 130, 32, showChangePassword, 15);
 			} else {
 				info.text = "Not logged in";
-				b1 = Ui.button("Log in", 130, 32, showLogin, 15);
+				b1 = Ui.button("Log in", 130, 32, function():void { showLogin(); }, 15);
 				b2 = Ui.button("Register", 130, 32, showRegister, 15);
 			}
 			b1.x = Ui.W - w - 16 + 14; b1.y = 54;
@@ -267,27 +287,50 @@ package realm {
 			refreshAccount();
 		}
 
-		private function showLogin():void {
-			openDialog("Log In", ["Username", "Password"], [false, true], "Log in", function():void {
-				var err:String = Accounts.login(fields[0].text, fields[1].text, true);
-				if (err) errorTf.text = err;
-				else { done(); go(); }
-			}, "No account yet? Register", showRegister);
+		/** Dialog fields, plus a server field when the build has no server baked in. */
+		private function withServer(labels:Array):Array {
+			return ServerConfig.HOME ? labels : labels.concat(["Server address"]);
+		}
+
+		private function serverField(i:int):String {
+			return ServerConfig.HOME || String(fields[i].text).replace(/^\s+|\s+$/g, "");
+		}
+
+		private function showLogin(error:String = null):void {
+			var labels:Array = withServer(["Username", "Password"]);
+			openDialog("Log In", labels, [false, true, false], "Log in", function():void {
+				var name:String = String(fields[0].text);
+				if (!/^[A-Za-z0-9]{3,12}$/.test(name)) { errorTf.text = "Usernames are 3-12 letters or numbers."; return; }
+				if (!fields[1].text) { errorTf.text = "Enter your password."; return; }
+				serverLogin(name, fields[1].text, false, serverField(2));
+			}, "No account yet? Register", showRegister, {maxChars: 80, restrict: "A-Za-z0-9.:\\-", values: ["", "", server || ""]});
+			if (error) errorTf.text = error;
 		}
 
 		private function showRegister():void {
-			openDialog("Create Account", ["Username (3-12 letters or numbers)", "Password", "Confirm password"], [false, true, true], "Create", function():void {
-				var err:String = Accounts.register(fields[0].text, fields[1].text, fields[2].text, true);
-				if (err) errorTf.text = err;
-				else { done(); go(); }
-			}, Accounts.count > 0 ? "Already have an account? Log in" : null, showLogin);
+			var labels:Array = withServer(["Username (3-12 letters or numbers)", "Password", "Confirm password"]);
+			openDialog("Create Account", labels, [false, true, true, false], "Create", function():void {
+				var name:String = String(fields[0].text);
+				if (!/^[A-Za-z0-9]{3,12}$/.test(name)) { errorTf.text = "Usernames are 3-12 letters or numbers."; return; }
+				if (String(fields[1].text).length < 4) { errorTf.text = "Passwords need at least 4 characters."; return; }
+				if (fields[1].text != fields[2].text) { errorTf.text = "The passwords don't match."; return; }
+				serverLogin(name, fields[1].text, true, serverField(3));
+			}, "Already have an account? Log in", function():void { showLogin(); }, {maxChars: 80, restrict: "A-Za-z0-9.:\\-", values: ["", "", "", server || ""]});
 		}
 
 		private function showChangePassword():void {
-			openDialog("Change Password", ["Current password", "New password", "Confirm new password"], [true, true, true], "Change", function():void {
-				var err:String = Accounts.changePassword(fields[0].text, fields[1].text, fields[2].text);
-				if (err) errorTf.text = err;
-				else done();
+			var oldLabel:String = Online.welcome && Online.welcome.needPassword ? "Current password (leave empty: none set yet)" : "Current password";
+			openDialog("Change Password", [oldLabel, "New password", "Confirm new password"], [true, true, true], "Change", function():void {
+				if (String(fields[1].text).length < 4) { errorTf.text = "Passwords need at least 4 characters."; return; }
+				if (fields[1].text != fields[2].text) { errorTf.text = "The new passwords don't match."; return; }
+				errorTf.textColor = 0xcccccc;
+				errorTf.text = "Saving...";
+				Online.changePassword(fields[0].text, fields[1].text, function(err:String):void {
+					errorTf.textColor = 0xff7070;
+					if (err) { errorTf.text = err; return; }
+					if (Online.welcome) Online.welcome.needPassword = false;
+					done();
+				});
 			});
 		}
 	}

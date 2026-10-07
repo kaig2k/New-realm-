@@ -190,10 +190,12 @@ Every item has its own 8x8 sprite, like RotMG:
 - Realm events: the Obsidian Colossus, Pyraxis the Phoenix, Mother Hexis and the Reef Kraken.
 - Three new realm finales (below), and six raid bosses.
 
-**Boss wiki.** The book button next to the Nexus button (or K, or `/wiki`) lists every boss
+**Wiki.** The book button next to the Nexus button (or K, or `/wiki`) lists every boss
 by category: realm events, dungeons, hard dungeons, finales and raids. Each entry shows
 where to find the boss, its HP and phase count, and its unique drops; hover an item for its
-full stats.
+full stats. The **Abilities** tab shows every class's three abilities with their MP cost and
+cooldown, and the **Guide** tab explains rarities, boss uniques, the Starforge and rerolls,
+abilities, stat potions, skill points and pets.
 
 **Unique drops.** About 70 named items, each dropped by **one boss only**. The tooltip shows
 its lore and which boss drops it. Uniques have their own shot patterns: Saltbeard's Cutlass
@@ -208,7 +210,7 @@ players fighting them**:
 - Health only goes up, keeping the same percentage, so leaving mid-fight doesn't help.
 - The boss bar shows how many players it's scaled for.
 
-**Godly items (GD), 1 in 5,000.** The rarest tier: a full four-piece Godly set for every class,
+**Godly items (GD), 1 in 3,000.** The rarest tier: a full four-piece Godly set for every class,
 32 items with no duplicates:
 
 | Class | Set |
@@ -223,7 +225,7 @@ players fighting them**:
 | Huntress | Wildheart Eternal |
 
 - Every hard-dungeon boss, realm finale boss and raid boss carries one or two pieces. Each
-  piece rolls 1 in 5,000 per kill (Bounty helps a little).
+  piece rolls 1 in 3,000 per kill (Bounty helps a little).
 - Each set has a big 4-piece bonus.
 - A Godly drop comes in a cyan bag with a screen-wide announcement, and online it's
   announced in chat.
@@ -443,8 +445,10 @@ waist). The open sea is still impassable.
 The game is set on **Eldmere**, an island of realms ruled by Azrakor the Dark Elder. It plays
 like Realm of the Mad God, but its names, systems and pixel art are New Realm's own.
 
-- **8 classes**, each with its own ability (Space, aimed at the cursor). Other players
-  see your casts.
+- **8 classes**, each with three abilities (Space, aimed at the cursor). An ability item holds
+  one of them (its name says which, e.g. "Comet Spell of Storms" is Lightning Strike); each has
+  its own MP cost and cooldown, shown on the ability slot. Other players see your casts. The
+  first ability of each class is listed below; the in-game wiki's Abilities tab lists all 24.
   - **Wizard, Fireball:** a fireball that explodes where it hits and scatters embers.
   - **Archer, Arrow Storm:** arrows rain on an area and slow what they hit.
   - **Knight, Shield Wall:** plants the shield in front of you. Bullets from the front stop
@@ -487,8 +491,9 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
   (80 in all), shared by all your characters and safe when one dies. You start with 3 chests;
   the **Vault Keeper** sells the rest (1,000 gold for the 4th, then 500 more each). Stand by
   a chest to see inside and drag items between it and your inventory.
-- Nexus stations: the Pet Yard, the Fame Store, the **Starforge** (a Runed, Bonded
-  or Eldritch item + a Star Shard + 100 Aether = a Starforged item) and the **Marketplace** (buy
+- Nexus stations: the Pet Yard (pets heal you and shoot monsters), the Fame Store, the **Starforge** (a Runed, Bonded
+  or Eldritch item + a Star Shard + 100 Aether = a Starforged item; its Reroll tab gives a weapon a new
+  prefix for 400 gold, or special-rarity gear new bonus stats for 60 Aether) and the **Marketplace** (buy
   potions, stat potions, Star Shards, mystery Runed items and a **Backpack**, and shift+click items to sell them). A
   backpack gives that character 8 more inventory slots. Switch pages with the button by
   the sidebar tabs; keys 1-8 use the page you're on.

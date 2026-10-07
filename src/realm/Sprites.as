@@ -220,7 +220,7 @@ package realm {
 		private static const I_TOME:Array = [".BBBBBB.", "BAAAAAAW", "BAATTAAW", "BATTTTAW", "BAATTAAW", "BAAAAAAW", ".BBBBBBW", "........"];
 		private static const I_RING:Array = ["...TT...", "..TLLT..", "..TTTT..", ".G....G.", "G......G", "G......G", ".G....G.", "..GGGG.."];
 		private static const I_DAGGER:Array = ["......LT", ".....TL.", "....TL..", "...TL...", ".GGL....", "..GG....", ".W.G....", "W......."];
-		private static const I_CLOAK:Array = ["..AAAA..", ".AAAAAA.", "AAaTTaAA", "AAaaaaAA", "AAAAAAAA", "AAaAAaAA", "AaAAAAaA", "a.aAAa.a"];
+		private static const I_CLOAK:Array = ["...AA...", "..AaaA..", "..AaaA..", ".AATTAA.", ".AaAAaA.", "AAaAAaAA", "AaAAAAaA", "A.aAAa.A"];
 		private static const I_HELM:Array = ["..TTTT..", ".TAAAAT.", "TAAAAAAT", "TAaaaaAT", "TAa..aAT", "TAa..aAT", ".TA..AT.", "........"];
 		private static const I_SKULLITEM:Array = ["..WWWW..", ".WWWWWW.", "WWTWWTWW", "WWTWWTWW", "WWWWWWWW", ".WWTTWW.", "..W..W..", "..WWWW.."];
 		private static const I_TRAP:Array = ["T..T..T.", ".TAAAAT.", ".AAaaAA.", "TAaTTaAT", "TAaTTaAT", ".AAaaAA.", ".TAAAAT.", "T..T..T."];
@@ -258,6 +258,7 @@ package realm {
 			shade: [HUMANOID, {H: 0x3a1a5a, h: 0x200c34, S: 0x7a5aa8, E: 0xff3060, B: 0x2e1448, b: 0x1a0a2c, A: 0xa060ff, L: 0x100818, W: 0xc080ff}],
 			famekeeper: [HUMANOID, {H: 0xd06010, h: 0x8a3a08, S: 0xf5dc72, E: 0x101010, B: 0xff9a2e, b: 0xb06010, A: 0xffe080, L: 0x3a2014, W: 0xffe080}],
 			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf5dc72, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
+			keysmith: [HUMANOID, {H: 0x2a4a8a, h: 0x1a3060, S: 0xf5dc72, E: 0x101010, B: 0x3a5aa0, b: 0x243a70, A: 0x80d0ff, L: 0x3a2a14, W: 0xc0e8ff}],
 			questboard: [QUESTBOARD, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 6],
 			slime: [BLOB, {B: 0x5ac040, b: 0x3a8a2a, W: 0x9aff7a, E: 0x103010}],
 			wolf: [WOLF, {W: 0x8a8a92, w: 0x5a5a62, E: 0xff3030}],

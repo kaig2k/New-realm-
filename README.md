@@ -91,6 +91,7 @@ New Realm is **online-only**. Accounts, characters and items all live on the gam
 | Click a player (Nexus) / right-click (anywhere) | Player menu: Inspect, Trade, party / guild invite, Teleport |
 | L | Party and guild window |
 | K (or the book button) | Boss wiki: every boss, where it is and its unique drops |
+| T | Skill tree |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
 | P / Esc | Pause menu and settings: volume slider, mute, show players (everyone or party and guild only), player names, chat bubbles, damage numbers, particles, screen shake, Save & Quit |
@@ -432,9 +433,21 @@ waist). The open sea is still impassable.
 The game is set on **Eldmere**, an island of realms ruled by Azrakor the Dark Elder. It plays
 like Realm of the Mad God, but its names, systems and pixel art are New Realm's own.
 
-- **8 classes**: Wizard (Spell), Archer (Quiver), Knight (Shield),
-  Priest (Tome), Rogue (Cloak, invisibility), Warrior (Helm, berserk), Necromancer (Skull,
-  life-draining blast) and Huntress (Trap).
+- **8 classes**, each with its own ability (Space, aimed at the cursor). Other players
+  see your casts.
+  - **Wizard, Fireball:** a fireball that explodes where it hits and scatters embers.
+  - **Archer, Arrow Storm:** arrows rain on an area and slow what they hit.
+  - **Knight, Shield Wall:** plants the shield in front of you. Bullets from the front stop
+    on it, for your party too. Behind it you take 60% less damage but move slower.
+  - **Priest, Sanctuary:** a holy circle that heals you while you stand in it and burns
+    monsters inside. It works in the Nexus too.
+  - **Rogue, Shadowstep:** vanish in smoke and reappear at the cursor. You stay invisible
+    for a moment, and your next hit is a Backstab (a sure crit, +50%).
+  - **Warrior, Berserker Charge:** rush through monsters, hitting each one, then go berserk.
+  - **Necromancer, Soul Harvest:** a draining blast, plus two spirit skulls that circle you
+    and shoot.
+  - **Huntress, Snare:** a trap that roots nearby monsters in vines, then bursts into
+    slowing shards.
 - **11 maxable stats ("11/11")**: the classic 8 plus **Fury** (crit damage, +0.1x per
   10), **Focus** (crit chance, +1% per 10) and **Warding**. Gear can also add **Bounty**
   (+1% loot chance per point).
@@ -456,6 +469,10 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
   classes, with a garden in each corner. The **east wing** has the Starforge and Raid Table; the
   **west wing** has the Fame Store, the Pet Yard and the gold **vault portal**; the Marketplace
   and Quest Board stand by the south entrance.
+- **Key Merchant** (south-east garden): sells a key for every dungeon. Prices go from
+  300 gold (Pirate Cove) to 11,000 gold (Azrakor's Citadel); harder dungeons cost more.
+  Click the key in the Nexus or a realm to open that dungeon's portal beside you for
+  30 seconds. Your party can follow you in.
 - **The Vault** is your own private room behind the gold portal: up to 10 chests of 8 slots
   (80 in all), shared by all your characters and safe when one dies. You start with 3 chests;
   the **Vault Keeper** sells the rest (1,000 gold for the 4th, then 500 more each). Stand by
@@ -489,9 +506,20 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
   have a side treasure room with a guarded chest holding a set piece and stat potions.
 - **Chat and commands** (Enter): `/glands` teleports you to the Godlands, plus
   `/nexus`, `/realm`, `/stats` and `/quests`. One-time tips guide new players.
-- **Skill tree (Awakening)**: at level 20 with 11/11 stats, every 600 XP gives a
-  skill point. Spend points on 9 nodes (Brutality, Precision, Ferocity, Vigor, Bulwark,
-  Aegis, Swiftness, Leech, Prosperity) in the star tab.
+- **Skill tree** (T, or the star tab): you get a skill point every level, then one per
+  1,000 XP at level 20. There are three branches, and each skill needs 2 ranks in the one
+  above it:
+  - **Might:** Brutality, Precision, Ferocity, Executioner.
+  - **Guard:** Vigor, Bulwark, Aegis, Leech.
+  - **Fortune:** Swiftness, Prosperity, Arcane Flow, Scavenger.
+
+  Each branch ends in a capstone that unlocks at level 20:
+  - **Bloodlust:** kills stack up extra damage.
+  - **Last Stand:** survive a killing blow once a minute.
+  - **High Stakes:** every loot bag is either doubled or lost on a coin flip. You can switch
+    it on or off.
+
+  Resetting the tree costs 1,000 gold.
 - **Saved characters**: characters are saved automatically and live until they die. The
   title screen lists them under "Your Characters".
 - **Status effects**: bosses and dungeon enemies can leave you Slowed, Paralyzed, Confused

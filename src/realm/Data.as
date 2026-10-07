@@ -343,6 +343,25 @@ package realm {
 			return {kind: "key", sub: rd.id, tier: 0, name: rd.name + " Key", color: rd.color};
 		}
 
+		/** A dungeon key (Key Merchant): opens a portal to that dungeon. */
+		public static function makeDungeonKey(idx:int):Object {
+			var d:Object = DUNGEONS[idx];
+			return {kind: "key", sub: "dg_" + d.id, tier: 0, name: d.name + " Key", color: d.color};
+		}
+
+		/** Which dungeon a key opens (-1 if it isn't a dungeon key). */
+		public static function keyDungeon(item:Object):int {
+			if (!item || item.kind != "key" || String(item.sub).indexOf("dg_") != 0) return -1;
+			return dungeonIndex(String(item.sub).substr(3));
+		}
+
+		/** Key Merchant price: harder dungeons cost more. */
+		public static function keyPrice(idx:int):int {
+			var d:Object = DUNGEONS[idx];
+			if (d.hard) return 5000 + int((d.hard - 1.5) * 30000 + 0.5);
+			return [300, 600, 1000, 1400, 1800][Math.min(4, d.tier)];
+		}
+
 		/** Which raid a key opens (-1 if none). */
 		public static function keyRaid(item:Object):int {
 			if (!item || item.kind != "key") return -1;
@@ -466,7 +485,10 @@ package realm {
 				case "hp": s += "Restores 100 HP\n"; break;
 				case "mp": s += "Restores 100 MP\n"; break;
 				case "stat": s += "Permanently raises " + STAT_NAMES[item.sub] + "\n"; break;
-				case "key": s += "Opens a portal to " + Bosses.RAIDS[Math.max(0, keyRaid(item))].name + ".\nUse it in the Nexus (click it) or at the Raid Table.\nDrops rarely from bosses.\n"; break;
+				case "key":
+					if (keyDungeon(item) >= 0) s += "Opens a portal to the " + DUNGEONS[keyDungeon(item)].name + " (30 seconds; your party can follow).\nClick it in the Nexus or a realm.\nSold by the Key Merchant.\n";
+					else s += "Opens a portal to " + Bosses.RAIDS[Math.max(0, keyRaid(item))].name + ".\nUse it in the Nexus (click it) or at the Raid Table.\nDrops rarely from bosses.\n";
+					break;
 				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
 			}
 			if (isGear(item)) {

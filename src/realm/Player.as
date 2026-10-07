@@ -554,7 +554,7 @@ package realm {
 					if (drinkStat(item.sub, g)) inv[idx] = null;
 					return;
 				case "key":
-					if (g.useRaidKey(item)) inv[idx] = null;
+					if (Data.keyDungeon(item) >= 0 ? g.useDungeonKey(item) : g.useRaidKey(item)) { inv[idx] = null; g.saveCharacter(); }
 					return;
 				case "material":
 					g.msg("Take Star Shards to the Starforge in the Nexus.", 0xc080ff);

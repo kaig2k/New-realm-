@@ -569,6 +569,7 @@ package realm {
 
 		/** Dropped and opened portals close after this many seconds. */
 		public static const PORTAL_TIME:Number = 30;
+		private static const KEYS_X:Number = 122.5, KEYS_Y:Number = 112.5;
 		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a, 0xffb040, 0xc080ff, 0x40e0e0];
 
 		private function buildNexus():void {
@@ -585,6 +586,7 @@ package realm {
 			stations.push({x: 74.5, y: 88.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e), w: "nexus"});
 			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
 			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
+			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
 			stations.push({x: 92.5, y: 120.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080), w: "nexus"});
 			// the Vault Keeper sells more chests
 			stations.push({x: 94.5, y: 107.5, kind: "vaultkeeper", spr: "merchant", label: makeLabel("Vault Keeper", Ui.GOLD), w: "vault"});
@@ -2462,8 +2464,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD}[openStation.kind], true, "center", w, true);
-			title.text = {forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper"}[openStation.kind];
+			var title:TextField = Ui.text(20, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD}[openStation.kind], true, "center", w, true);
+			title.text = {keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -2516,6 +2518,22 @@ package realm {
 					}
 					y += 46;
 				}
+			} else if (openStation.kind == "keys") {
+				info.htmlText = "Dungeon keys open a portal to that dungeon right where you stand (30 seconds; friends can follow). " +
+					"The harder the dungeon, the dearer the key. You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.";
+				info.y = y;
+				y += info.height + 8;
+				var order:Array = [];
+				for (i = 0; i < Data.DUNGEONS.length; i++) order.push(i);
+				order.sort(function(a:int, b:int):int { return Data.keyPrice(a) - Data.keyPrice(b); });
+				for (i = 0; i < order.length; i++) {
+					var kd:Object = Data.DUNGEONS[order[i]];
+					var kb:Sprite = keyButton(order[i], 205, 34);
+					kb.x = 12 + (i % 2) * 211;
+					kb.y = y + int(i / 2) * 40;
+					sp.addChild(kb);
+				}
+				y += int((order.length + 1) / 2) * 40 + 4;
 			} else if (openStation.kind == "vaultkeeper") {
 				var full:Boolean = vaultChests >= VAULT_CHESTS;
 				info.htmlText = "Your vault has <b>" + vaultChests + " of " + VAULT_CHESTS + "</b> chests (" + vaultChests * LootBag.MAX + " slots). " +
@@ -3453,6 +3471,62 @@ package realm {
 			delete Save.data.pet;
 			Save.flush();
 			refreshStation();
+		}
+
+		/** A Key Merchant entry: the key's icon, the dungeon's name and its price. */
+		private function keyButton(idx:int, w:int, h:int):Sprite {
+			var d:Object = Data.DUNGEONS[idx];
+			var price:int = Data.keyPrice(idx);
+			var b:Sprite = new Sprite();
+			Ui.panel(b.graphics, 0, 0, w, h, 0x2c2c34, d.color, 0.95);
+			var ic:Bitmap = new Bitmap(Sprites.icon(Data.makeDungeonKey(idx)));
+			ic.scaleX = ic.scaleY = 0.8;
+			ic.x = 3; ic.y = 3;
+			b.addChild(ic);
+			var t:TextField = Ui.text(12, d.color, true, "left", w - 40, true);
+			var diff:String = d.hard ? "Hard" : ["Easy", "Easy", "Medium", "Medium", "Tough"][Math.min(4, d.tier)];
+			t.htmlText = d.name + "\n<font size='11' color='" + (gold >= price ? "#ffd75e" : "#ff8080") + "'>" + Ui.commas(price) + "g</font>  <font size='11' color='#9a9a9a'>" + diff + "</font>";
+			t.x = 36; t.y = 1;
+			b.addChild(t);
+			b.buttonMode = true;
+			b.mouseChildren = false;
+			b.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { b.alpha = 0.8; });
+			b.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { b.alpha = 1; });
+			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { buyKey(idx); });
+			return b;
+		}
+
+		private function buyKey(idx:int):void {
+			var price:int = Data.keyPrice(idx);
+			var key:Object = Data.makeDungeonKey(idx);
+			if (gold < price) { msg("Not enough gold for the " + key.name + " (" + Ui.commas(price) + "g).", 0xff8080); return; }
+			var slot:int = player.freeSlot();
+			if (slot < 0) { msg("Inventory full!", 0xff8080); return; }
+			player.inv[slot] = key;
+			addGold(-price);
+			Save.flush();
+			saveCharacter();
+			msg("Bought a " + key.name + ". Click it to open the portal.", key.color);
+			Sfx.play("coin");
+			refreshStation();
+		}
+
+		/** Using a dungeon key: its portal opens beside you. Returns true when the key was used up. */
+		public function useDungeonKey(item:Object):Boolean {
+			var i:int = Data.keyDungeon(item);
+			if (i < 0) return false;
+			if (world.kind == "dungeon" || world == vaultWorld || world == arenaWorld) { msg("Use dungeon keys in the Nexus or a realm.", 0xff8080); return false; }
+			var d:Object = Data.DUNGEONS[i];
+			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
+			var px:Number = player.x + 1.2, py:Number = player.y;
+			if (!world.canStand(px, py, 0.4, false)) px = player.x;
+			addPortal(world, px, py, "dungeon", i, d.color, PORTAL_TIME, seed);
+			if (inNexus && net.online) net.sendWorld("all", {t: "portal", x: Math.round(px * 100) / 100, y: Math.round(py * 100) / 100, k: "dungeon", i: i, c: d.color, l: PORTAL_TIME, s: seed});
+			msg("The " + item.name + " opened a portal to the " + d.name + "! (30 seconds)", d.color);
+			ring(px, py, d.color, 24);
+			Sfx.play("portal");
+			closeStation();
+			return true;
 		}
 
 		private function buyFn(e:Object):Function {

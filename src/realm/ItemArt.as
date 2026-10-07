@@ -97,10 +97,13 @@ package realm {
 				[["GBBBBBB.", "GbbbbbbW", "GbbbbbbW", "GbbbbbbW", "GbbbbbbW", "GbbbbbbW", "GBBBBBBW", ".GGGGGG."], 3, 2],
 				[[".B....B.", "BWWBBWWB", "BWWWBWWB", "BWWWBWWB", "BWWWBWWB", "BWWWBWWB", "BBBBBBBB", ".b....b."], 2, 2]
 			],
+			// cloaks: hoods, clasps and flowing hems (no emblem, so they never read as shields)
 			cloak: [
-				[["..BBBB..", ".BBBBBB.", "BBbGGbBB", "BBbbbbBB", "BBBBBBBB", "BBbBBbBB", "BbBBBBbB", "b.bBBb.b"], 2, 3],
-				[["...BB...", "..BbbB..", ".BbHHbB.", ".BBbbBB.", "BBBBBBBB", "BBBBBBBB", "BbBBBBbB", "bb.bb.bb"], 2, 4],
-				[["B......B", "BB.BB.BB", "BBBBBBBB", ".BBGGBB.", ".BBBBBB.", "..BBBB..", "..BbbB..", "...bb..."], 2, 2]
+				[["...HH...", "..HBBH..", "..BbbB..", ".BBGGBB.", ".BbBBbB.", "BBbBBbBB", "BbBBBBbB", "B.bBBb.B"], -99, 0],
+				[["..HHH...", ".HBbBH..", ".BbbbB..", "BBGGBBB.", "BbBBBbBB", ".BbBBBbB", "..BbBBbB", "...B.BbB"], -99, 0],
+				[[".WWWWWW.", "WWBGGBWW", ".BBRRBB.", "BBbBBbBB", "BbBBBBbB", "BbBbbBbB", "BBbBBbBB", "B.B.B.B."], -99, 0],
+				[["...HH...", "..BbbB..", "B.BbbB.B", "BBBGGBBB", "BbBBBBbB", ".BbBBbB.", ".B.BB.B.", "B..B..B."], -99, 0],
+				[["..HBBH..", ".HBbbBH.", ".BbRRbB.", ".BBbbBB.", "BBBGGBBB", "BbBBBBbB", "BbBBBBbB", "bBbBBbBb"], -99, 0]
 			],
 			helm: [
 				[["...HH...", "..HBBH..", ".HBBBBb.", "HBBBBBBb", "BBbbbbBb", "BB.bb.Bb", ".B.bb.b.", "........"], 2, 1],
@@ -311,7 +314,7 @@ package realm {
 				case "ability":
 					var ab:Array = ABILITY[it.sub] || ABILITY.tome;
 					t = Math.min(6, t);
-					shape = named ? ab[h % 3] : ab[t < 2 ? 0 : t < 4 ? 1 : 2];
+					shape = named ? ab[h % ab.length] : ab[t < 2 ? 0 : t < 4 ? 1 : 2];
 					e = named ? 1 + (h >>> 3) % (EMBLEMS.length - 1) : t;
 					rows = stamp(shape[0], EMBLEMS[e], shape[1], shape[2]);
 					if (named) pal = namedPal(mainColour(it, h), h);

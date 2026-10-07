@@ -40,7 +40,7 @@ package realm {
 		 */
 		public static function get serverName():String {
 			if (welcome && welcome.serverName) return String(welcome.serverName);
-			return ServerConfig.HOME ? "the game server" : address;
+			return ServerConfig.home ? "the game server" : address;
 		}
 		public static var connected:Boolean = false;
 		/** The server's welcome: {id, name, realms: [{name, seed}], online}. */
@@ -58,7 +58,7 @@ package realm {
 
 		/** Saved server address (shared by all accounts on this computer). */
 		public static function get lastAddress():String {
-			return ServerConfig.HOME || Accounts.setting("server") || "localhost:" + DEFAULT_PORT;
+			return ServerConfig.home || Accounts.setting("server") || "localhost:" + DEFAULT_PORT;
 		}
 
 		/** How the next connection logs in: {name, password, register} or null for the remembered session. */
@@ -270,7 +270,7 @@ package realm {
 		}
 
 		private static function onError(e:Event):void {
-			fail("Couldn't reach " + (ServerConfig.HOME ? "the game server" : "the server at " + address) + ". " + (ServerConfig.HOME ? "It may be down for an update; try again in a minute." : "Check the address and that the server is running."));
+			fail("Couldn't reach " + (ServerConfig.home ? "the game server" : "the server at " + address) + ". " + (ServerConfig.home ? "It may be down for an update; try again in a minute." : "Check the address and that the server is running."));
 		}
 	}
 }

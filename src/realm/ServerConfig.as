@@ -9,5 +9,10 @@ package realm {
 	 */
 	public class ServerConfig {
 		public static const HOME:String = "";
+		/** The server the Eldmere launcher started this game for (the launcher passes it in). */
+		public static var launched:String = "";
+
+		/** The server this game joins by itself: baked in, or handed over by the launcher. */
+		public static function get home():String { return HOME || launched; }
 	}
 }

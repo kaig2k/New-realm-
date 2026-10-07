@@ -287,7 +287,9 @@ around yourself).
 ## Playing with friends (multiplayer)
 
 **Hand out a ready-to-join game:** build with your server address (`build.bat your.server:2050`)
-and players who open the .swf join your server automatically. See DEPLOY.md, step 9.
+and players who open the .swf join your server automatically. It also builds
+`bin/EldmereLauncher.swf`: give players that once and it always downloads the latest game from
+your server, so updates reach everyone after a `git pull` there. See DEPLOY.md, step 9.
 
 One person hosts the server; everyone (the host too) joins it from the title screen.
 

@@ -125,22 +125,33 @@ mkdir -p ~/backups
 
 Copy the backups somewhere off the server now and then (or use your provider's snapshots).
 
-## 9. Give players a .swf that joins your server automatically
+## 9. Give players the Eldmere launcher (updates reach everyone by themselves)
 
-Build the game with your server's address:
+Build once with your server's address:
 
 ```
 build.bat play.example.com:2050        (Windows)
 AIR_SDK=~/AIRSDK ./build.sh play.example.com:2050
 ```
 
-This writes the address into `src/realm/ServerConfig.as` and builds `bin/NewRealm.swf`. Send that
-file to your players. When they open it, they create an account (or log in) and the game
-connects to your server by itself; PLAY then goes straight online, with no address to type.
-If the server can't be reached they get a Retry button, or can play offline instead.
+This builds `bin/EldmereLauncher.swf` (a few KB). **Give that file to your players once.** They
+open it the same way they opened the game before. Every time it starts it downloads the latest
+game from your server and runs it, already pointed at your server: no address to type, and
+nobody ever needs a new file again.
 
-To go back to an offline-first build, set `HOME` in `src/realm/ServerConfig.as` back to `""`
-and build again. Remember to send players a new .swf whenever the network version changes.
+The server hands out the game from its own copy of the repo (`bin/NewRealm.swf`, at
+`http://your-server:2050/NewRealm.swf`, on the same port as the game). So to update everyone:
+
+```
+cd /home/newrealm/New-realm- && sudo -u newrealm git pull && systemctl restart newrealm
+```
+
+Players get the new version the next time they open the launcher. If the server is down (for
+example mid-restart), the launcher says so and tries again every 10 seconds.
+
+To hand out a game from somewhere else, set `NEWREALM_GAME_SWF=/path/to/NewRealm.swf` for the
+server. The same build also writes the address into `src/realm/ServerConfig.as` and makes a
+`bin/NewRealm.swf` that joins your server on its own, if you'd rather send the game itself.
 
 Online and offline progress are always kept apart: every account starts fresh on your server,
 and offline characters, items and currencies can't be brought in. (Older servers had an

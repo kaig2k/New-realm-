@@ -25,8 +25,14 @@ package {
 			else addEventListener(Event.ADDED_TO_STAGE, init);
 		}
 
+		/** The Eldmere launcher hands over its server (also passed as the "server" parameter). */
+		public function useServer(addr:String):void {
+			if (addr) realm.ServerConfig.launched = addr;
+		}
+
 		private function init(e:Event = null):void {
 			removeEventListener(Event.ADDED_TO_STAGE, init);
+			try { useServer(String(loaderInfo.parameters.server || "")); } catch (err:Error) {}
 			stage.scaleMode = StageScaleMode.SHOW_ALL;
 			stage.align = "";
 			stage.frameRate = 60;

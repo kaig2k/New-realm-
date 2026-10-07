@@ -275,7 +275,7 @@ const handlers = {
   hello(c, m) {
     if (c.authed) return;
     if (m.ver !== VERSION) return c.fail('Version mismatch: this server runs New Realm network version ' + VERSION +
-      ' and your game uses version ' + m.ver + '. Get the same game build as the host.');
+      ' and your game uses version ' + m.ver + '. Open the game with the Eldmere launcher to get the latest version.');
     // accounts live on the server: register, log in with a password, or resume a remembered session
     const name = str(m.name, 12);
     const password = typeof m.password === 'string' ? m.password.slice(0, 64) : '';
@@ -1031,12 +1031,40 @@ function closeClient(c) {
   };
 }
 
+/**
+ * Plain web requests on the game port. The launcher downloads the latest game
+ * from here (/NewRealm.swf), so players never need a new file after an update:
+ * a git pull on the server is enough. Flash also asks for /crossdomain.xml.
+ */
+const GAME_SWF = process.env.NEWREALM_GAME_SWF || path.join(__dirname, '..', 'bin', 'NewRealm.swf');
+function serveHttp(sock, req) {
+  const url = (/^GET\s+(\S+)/.exec(req) || [])[1] || '/';
+  const pathOnly = url.split('?')[0];
+  const head = (type, len) => 'HTTP/1.1 200 OK\r\nContent-Type: ' + type + '\r\nContent-Length: ' + len +
+    '\r\nCache-Control: no-cache\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n';
+  if (pathOnly === '/NewRealm.swf') {
+    fs.readFile(GAME_SWF, (err, data) => {
+      if (err) { sock.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return; }
+      sock.write(head('application/x-shockwave-flash', data.length));
+      sock.end(data);
+    });
+    return;
+  }
+  if (pathOnly === '/crossdomain.xml') {
+    const xml = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*"/></cross-domain-policy>';
+    sock.end(head('text/x-cross-domain-policy', Buffer.byteLength(xml)) + xml);
+    return;
+  }
+  const msg = 'New Realm server is running.\n';
+  sock.end(head('text/plain', msg.length) + msg);
+}
+
 const POLICY = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*" to-ports="*"/></cross-domain-policy>\0';
 
 const server = net.createServer((sock) => {
   sock.setNoDelay(true);
   const c = { id: nextId++, authed: false, world: '', x: 0, y: 0, profile: {}, party: 0, ip: String(sock.remoteAddress || '') };
-  let mode = null; // 'tcp' | 'ws'
+  let mode = null; // 'tcp' | 'ws' | 'http'
   let buf = Buffer.alloc(0);
   let text = '';
   const decoder = new StringDecoder('utf8');
@@ -1064,6 +1092,7 @@ const server = net.createServer((sock) => {
   attach(c);
 
   sock.on('data', (chunk) => {
+    if (mode === 'http') return;
     buf = Buffer.concat([buf, chunk]);
     // never buffer more than one message's worth (a fake frame length or an endless header)
     if (buf.length > MAX_LINE * 2 + 16 || (!mode && buf.length > 16384)) return sock.destroy();
@@ -1075,7 +1104,7 @@ const server = net.createServer((sock) => {
         if (end < 0) return;
         const req = buf.toString('latin1', 0, end);
         const keyM = /Sec-WebSocket-Key:\s*(.+)/i.exec(req);
-        if (!keyM) { sock.end('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nNew Realm server is running.\n'); return; }
+        if (!keyM) { mode = 'http'; serveHttp(sock, req); return; }
         const accept = crypto.createHash('sha1').update(keyM[1].trim() + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
         const proto = /Sec-WebSocket-Protocol:\s*([^,\r\n]+)/i.exec(req);
         sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept +

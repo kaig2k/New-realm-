@@ -355,6 +355,27 @@ async function run() {
     }
   }
 
+  console.log('launcher downloads');
+  {
+    const get = (pathName) => new Promise((resolve) => {
+      const s = net.connect(PORT, '127.0.0.1');
+      const parts = [];
+      s.on('data', (d) => parts.push(d));
+      s.on('end', () => resolve(Buffer.concat(parts)));
+      s.on('error', () => resolve(Buffer.alloc(0)));
+      s.on('connect', () => s.write('GET ' + pathName + ' HTTP/1.1\r\nHost: localhost\r\n\r\n'));
+    });
+    const swf = await get('/NewRealm.swf?t=123');
+    const at = swf.indexOf('\r\n\r\n');
+    const body = at >= 0 ? swf.slice(at + 4) : Buffer.alloc(0);
+    const sig = body.slice(0, 3).toString('latin1');
+    check('the server hands out the latest game to the launcher', /^HTTP\/1\.1 200/.test(swf.toString('latin1', 0, 20)) &&
+      (sig === 'FWS' || sig === 'CWS' || sig === 'ZWS') && body.length === fs.statSync(path.join(__dirname, '..', 'bin', 'NewRealm.swf')).size,
+      swf.toString('latin1', 0, 40));
+    const cd = (await get('/crossdomain.xml')).toString();
+    check('and the cross-domain file Flash asks for', /allow-access-from domain="\*"/.test(cd));
+  }
+
   console.log('bad input');
   const evil = await login('Ev' + n, { password: 'pass1234', register: true });
   evil.send('{{{ not json');

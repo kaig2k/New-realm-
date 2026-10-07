@@ -265,7 +265,7 @@ package realm {
 
 		/** The server this game plays on: baked into the build, or the last one used. */
 		private function get server():String {
-			return ServerConfig.HOME || Accounts.setting("server");
+			return ServerConfig.home || Accounts.setting("server");
 		}
 
 		private function refreshOnline():void {
@@ -279,7 +279,7 @@ package realm {
 			tf.y = 478;
 			onlineLayer.addChild(tf);
 			// builds without a baked-in server can switch servers here
-			if (!ServerConfig.HOME) {
+			if (!ServerConfig.home) {
 				var b:Sprite = Ui.button(server ? "Server: " + server : "Choose server", 260, 30, showServer, 13);
 				b.x = (Ui.W - 260) / 2;
 				b.y = 508;
@@ -448,11 +448,11 @@ package realm {
 
 		/** Dialog fields, plus a server field when the build has no server baked in. */
 		private function withServer(labels:Array):Array {
-			return ServerConfig.HOME ? labels : labels.concat(["Server address"]);
+			return ServerConfig.home ? labels : labels.concat(["Server address"]);
 		}
 
 		private function serverField(i:int):String {
-			return ServerConfig.HOME || String(fields[i].text).replace(/^\s+|\s+$/g, "");
+			return ServerConfig.home || String(fields[i].text).replace(/^\s+|\s+$/g, "");
 		}
 
 		private function showLogin(error:String = null):void {

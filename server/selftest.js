@@ -305,6 +305,26 @@ async function run() {
   B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb' });
   await wait(200);
 
+  console.log('raids');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    for (const r of [0, 1]) {
+      const ws = new WorldSim('raid:' + r + ':777');
+      const got = [];
+      const c = { id: 1, x: 100, y: 100, send: (m) => got.push(m.d) };
+      ws.join(c);
+      let err = null;
+      try {
+        for (let step = 0; step < 4000; step++) {
+          ws.tick(0.05);
+          if (step % 20) continue;
+          for (const e of ws.enemies.slice()) { if (!e.dead && e.isBoss) { c.x = e.x; c.y = e.y + 2; ws.hit(c, { id: e.id, d: 6000 }); } }
+        }
+      } catch (e) { err = e.message; }
+      check('raid ' + r + ': every stage starts and every wall opens', !err && got.filter((m) => m.t === 'rstage').length === 3 && ws.w.gates.every((g) => !g.length), err || '');
+    }
+  }
+
   console.log('bad input');
   const evil = await login('Ev' + n, { password: 'pass1234', register: true });
   evil.send('{{{ not json');

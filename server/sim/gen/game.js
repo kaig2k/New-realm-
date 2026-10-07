@@ -1813,19 +1813,11 @@ class World {
 				this.tiles[c.i] = c.t;
 				this.zones[c.i] = World.DUNGEON_ZONE;
 				var x = __int(c.i % this.N), y = __int(__int(c.i / this.N));
-				if (minimap) minimap.setPixel(x, y, MINI_COL[c.t]);
-				for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) this.dropChunk(__int((x + dx) / World.CHUNK), __int((y + dy) / World.CHUNK));
+				
+				
 			}
 			this.gates[k] = [];
 			return true;
-		}
-	dropChunk(cx, cy) { cx = __int(cx); cy = __int(cy);
-			var k = __int(cy * 1024 + cx);
-			var bd = chunks[k];
-			if (!bd) return;
-			bd.dispose();
-			delete chunks[k];
-			chunkOrder.splice(chunkOrder.indexOf(k), 1);
 		}
 	blob(cx, cy, r, t) { cx = __int(cx); cy = __int(cy); t = __int(t);
 			var ri = __int(Math.ceil(r) + 2);
@@ -1991,6 +1983,11 @@ class World {
 			
 			return (t != World.WATER || this.zones[i] >= 0) && t != World.VOID && t != World.WALL && this.objs[i] == 0;
 		}
+	blocksShot(x, y) {
+			if (x < 0 || y < 0 || x >= this.N || y >= this.N) return true;
+			var t = __int(this.tiles[__int(y) * this.N + __int(x)]);
+			return t == World.WALL || t == World.VOID;
+		}
 	inWater(x, y) {
 			return this.tileAt(x, y) == World.WATER;
 		}
@@ -2029,6 +2026,7 @@ class Enemy {
 		this.playerHit = false;
 		this.id = __int(0);
 		this.remote = false;
+		this.ownHitAt = __int(-100000);
 		this.tx = NaN;
 		this.ty = NaN;
 		this.netVx = 0;

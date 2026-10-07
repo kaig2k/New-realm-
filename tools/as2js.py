@@ -28,13 +28,16 @@ CLASSES = ['Data', 'Uniques', 'Godly', 'Bosses', 'World', 'Enemy']
 SKIP = {
     'World': {'texture', 'mark', 'blade', 'shallow', 'render', 'chunk', 'drawGround', 'releaseGround', 'drawEdges',
               'reveal', 'minimap', 'seen', 'chunks', 'chunkOrder', 'drawMtx', 'target', 'offX', 'offY', 'trng',
-              'MINI_COL', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS'},
+              'MINI_COL', 'dropChunk', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS'},
     'Enemy': {'sprite'},
     'Bosses': {'art', 'skins'},
 }
 # calls inside converted code that the server doesn't do (they become no-ops)
 STATEMENT_DROPS = {
-    'World': ['render();', 'seen = new BitmapData(N, N, true, 0);'],
+    'World': ['render();', 'seen = new BitmapData(N, N, true, 0);',
+              # openGate: the minimap and drawn ground chunks are the client's
+              'if (minimap) minimap.setPixel(x, y, MINI_COL[c.t]);',
+              'for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) dropChunk(__int((x + dx) / World.CHUNK), __int((y + dy) / World.CHUNK));'],
     'Bosses': ['art();', 'skins();'],
 }
 

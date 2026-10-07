@@ -1570,6 +1570,12 @@ package realm {
 				var remove:Boolean = s.life <= 0;
 				if (remove && s.split) splitShot(s);
 				if (remove && s.boom) abil.explode(s);
+				if (!remove && world.blocksShot(s.x, s.y)) {
+					// into a wall: it stops there (a fireball bursts against it)
+					remove = true;
+					if (s.boom) abil.explode(s);
+					else if (opt("parts") && parts.length < 400) sparks(s.x - s.vx * dt, s.y - s.vy * dt, s.enemy ? 0xc0b0a0 : s.trailCol, 2);
+				}
 				if (!remove) {
 					if (s.enemy) {
 						if (world.isSafe(s.x, s.y)) remove = true;

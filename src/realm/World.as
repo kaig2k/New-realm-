@@ -1301,6 +1301,13 @@ package realm {
 			return (t != WATER || zones[i] >= 0) && t != VOID && t != WALL && objs[i] == 0;
 		}
 
+		/** Walls stop every shot, yours and the monsters' (trees and rocks don't). */
+		public function blocksShot(x:Number, y:Number):Boolean {
+			if (x < 0 || y < 0 || x >= N || y >= N) return true;
+			var t:int = tiles[int(y) * N + int(x)];
+			return t == WALL || t == VOID;
+		}
+
 		/** Wading through water halves your speed. */
 		public function inWater(x:Number, y:Number):Boolean {
 			return tileAt(x, y) == WATER;

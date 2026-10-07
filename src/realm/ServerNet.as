@@ -111,7 +111,9 @@ package realm {
 
 		/** Sends a shop or forge request along with your latest save (the server checks and answers). */
 		override public function shopRequest(req:Object):Boolean {
-			if (!Online.connected || !Online.welcome || !Online.welcome.serverMonsters) return false;
+			if (!Online.welcome || !Online.welcome.serverMonsters) return false;
+			// the shops are on the server: nothing to buy until we're reconnected
+			if (!Online.connected) { g.msg("You're not connected right now. Try again once you're back online.", 0xff8080); return true; }
 			g.saveCharacter();
 			req.data = Save.data;
 			Online.send(req);

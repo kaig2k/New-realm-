@@ -4711,7 +4711,8 @@ package realm {
 		/** What other players see of you (sent to the server). */
 		/** Online with server-run monsters: drops come from the server. */
 		public function get serverLoot():Boolean {
-			return net && net.online && Online.welcome && Online.welcome.serverMonsters && !sync.isHost;
+			// (even while reconnecting: monsters your game runs meanwhile drop nothing the server didn't roll)
+			return net is ServerNet && Online.welcome && Online.welcome.serverMonsters;
 		}
 
 		public function myProfile():Object {

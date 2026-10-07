@@ -16,7 +16,7 @@ const { spawn } = require('child_process');
 const { checkItem, checkSave } = require('./validate');
 
 const PORT = 20000 + Math.floor(Math.random() * 20000);
-const VERSION = 10;
+const VERSION = 11;
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'newrealm-test-'));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let passed = 0, failed = 0;

@@ -47,7 +47,7 @@ const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 10;
+const VERSION = 11;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;
@@ -229,7 +229,8 @@ function applySave(c, data) {
   const prev = onlineSave(c.key);
   let why = checkSave(prev, data, c.meta, Date.now());
   // items must come from the server (admins are trusted), and stats stay within the class limits
-  if (!why && !isAdmin(c)) why = items.check(prev, data) || items.checkStats(data);
+  // (only when the server runs the monsters: otherwise players' games still roll loot)
+  if (!why && !isAdmin(c) && sims) why = items.check(prev, data) || items.checkStats(data);
   if (why) {
     log('refused save from ' + c.name + ': ' + why);
     store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);

@@ -90,7 +90,7 @@ Players then join with `play.yourgame.com:2050`.
 | `motd` | Message shown to players when they join. |
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
-| `admins` | Account names with moderator powers and the in-game admin menu, e.g. `["YourName"]`. |
+| `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 

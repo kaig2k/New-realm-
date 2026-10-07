@@ -63,18 +63,20 @@ package {
 		}
 
 		private function showTitle():void {
-			setScreen(new TitleScreen(showMenu, showCreator));
+			setScreen(new TitleScreen(showMenu));
 		}
 
 		private function showMenu():void {
 			// the game is online-only: without a connection, back to the title screen to log in
 			if (!Online.connected) { showTitle(); return; }
-			setScreen(new Menu(startGame, showTitle));
+			setScreen(new Menu(startGame, showTitle, showCreator));
 		}
 
 		/** Creator tools: Map Builder, Sprite Editor and Boss Maker (with test fights). */
 		private function showCreator(tab:String = "bosses"):void {
-			setScreen(new realm.CreatorScreen(showTitle, testFight, tab));
+			// admins only (the button is only shown to them)
+			if (!Online.connected || !Online.welcome || !Online.welcome.admin) { showMenu(); return; }
+			setScreen(new realm.CreatorScreen(showMenu, testFight, tab));
 		}
 
 		/** A Boss Maker test fight: offline, on a throwaway save. */

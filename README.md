@@ -522,7 +522,7 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
     it on or off.
 
   Resetting the tree costs 1,000 gold.
-- **Creator Tools** (the button at the top left of the home screen; no account needed):
+- **Creator Tools** (admins only; the button appears on the character screen for accounts listed under `admins` in the server's `config.json`):
   - **Boss Maker:** pick a look (any boss in the game, or your own sprite) and set its
     health, defense and speed. Then build up to 4 phases. Each phase has a health threshold,
     a movement style, a line the boss says, and up to 4 attacks: aimed shots, ring, spiral,

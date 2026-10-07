@@ -19,10 +19,16 @@ package realm {
 		private var classLayer:Sprite;
 		private var charLayer:Sprite;
 
-		public function Menu(onPick:Function, onBack:Function = null) {
+		public function Menu(onPick:Function, onBack:Function = null, onCreate:Function = null) {
 			this.onPick = onPick;
 			this.onBack = onBack;
 			addChild(new Backdrop(0.55));
+			// Creator Tools are for the server's admins only (config.json "admins")
+			if (onCreate != null && Online.connected && Online.welcome && Online.welcome.admin) {
+				var cr:Sprite = Ui.button("Creator Tools", 170, 32, function():void { onCreate(); }, 15);
+				cr.x = Ui.W - 340; cr.y = 20;
+				addChild(cr);
+			}
 
 			var title:TextField = Ui.text(68, Ui.GOLD, true, "center", Ui.W, true);
 			title.text = "NEW REALM";

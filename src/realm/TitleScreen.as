@@ -24,15 +24,9 @@ package realm {
 		private var submit:Function;
 		private var heroes:Array = [];
 
-		public function TitleScreen(onPlay:Function, onCreate:Function = null) {
+		public function TitleScreen(onPlay:Function) {
 			this.onPlay = onPlay;
 			addChild(new Backdrop(0.4));
-			if (onCreate != null) {
-				var cr:Sprite = Ui.button("Creator Tools", 170, 34, function():void { onCreate(); }, 15);
-				cr.x = 20; cr.y = 20;
-				addChild(cr);
-				creatorBtn = cr;
-			}
 
 			// a row of heroes standing under the logo
 			var ids:Array = Data.CLASS_ORDER;
@@ -86,11 +80,7 @@ package realm {
 			else if (Accounts.remembered(server)) resume(null);
 			else if (server && Accounts.setting("server")) showLogin();
 			else showRegister();
-			// the creator tools work without an account, so keep their button above the login box
-			if (creatorBtn) addChild(creatorBtn);
 		}
-
-		private var creatorBtn:Sprite;
 
 		private var t:Number = 0;
 

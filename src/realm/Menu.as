@@ -30,9 +30,9 @@ package realm {
 				addChild(cr);
 			}
 
-			var title:TextField = Ui.text(68, Ui.GOLD, true, "center", Ui.W, true);
-			title.text = "NEW REALM";
-			title.y = 18;
+			var title:Logo = new Logo(Online.connected ? Online.serverName : Data.WORLD_NAME, 68);
+			title.x = Ui.W / 2;
+			title.y = 16;
 			addChild(title);
 			var sub:TextField = Ui.text(17, 0xd8d0ff, false, "center", Ui.W, true);
 			sub.text = "A bullet-hell adventure inspired by Realm of the Mad God";

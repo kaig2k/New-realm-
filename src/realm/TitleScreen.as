@@ -5,6 +5,9 @@ package realm {
 	import flash.events.Event;
 	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
+	import flash.display.GradientType;
+	import flash.filters.GlowFilter;
+	import flash.geom.Matrix;
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
 	import flash.ui.Keyboard;
@@ -27,9 +30,22 @@ package realm {
 		public function TitleScreen(onPlay:Function) {
 			this.onPlay = onPlay;
 			addChild(new Backdrop(0.4));
+			buildArt();
 
 			// a row of heroes standing under the logo
 			var ids:Array = Data.CLASS_ORDER;
+			var ground:Shape = new Shape();
+			var gmx:Matrix = new Matrix();
+			gmx.createGradientBox(ids.length * 80, 60, 0, Ui.W / 2 - ids.length * 40, 318);
+			ground.graphics.beginGradientFill(GradientType.RADIAL, [0xffb040, 0xffb040], [0.28, 0], [0, 255], gmx);
+			ground.graphics.drawEllipse(Ui.W / 2 - ids.length * 40, 318, ids.length * 80, 60);
+			ground.graphics.endFill();
+			for (var gi:int = 0; gi < ids.length; gi++) {
+				ground.graphics.beginFill(0x000000, 0.35);
+				ground.graphics.drawEllipse(Ui.W / 2 - (ids.length * 70) / 2 + gi * 70 + 20, 350, 40, 10);
+				ground.graphics.endFill();
+			}
+			addChild(ground);
 			for (var i:int = 0; i < ids.length; i++) {
 				var hb:Bitmap = new Bitmap(Sprites.get(ids[i], 0, i >= ids.length / 2));
 				hb.scaleX = hb.scaleY = 1.1;
@@ -39,16 +55,32 @@ package realm {
 				heroes.push(hb);
 			}
 
-			var logo:TextField = Ui.text(96, Ui.GOLD, true, "center", Ui.W, true);
-			logo.text = "NEW REALM";
-			logo.y = 90;
+			logo = new Logo(Online.connected ? Online.serverName : Data.WORLD_NAME, 118);
+			logo.x = Ui.W / 2;
+			logo.y = 58;
 			addChild(logo);
-			var tag:TextField = Ui.text(19, 0xe8e0ff, true, "center", Ui.W, true);
-			tag.text = "Fight your way across the realms of " + Data.WORLD_NAME;
-			tag.y = 212;
+			var tag:TextField = Ui.text(17, 0xf0e4c0, true, "center", Ui.W, true);
+			tag.text = "FIGHT YOUR WAY ACROSS THE REALMS";
+			tag.y = 214;
 			addChild(tag);
+			// ornaments either side of the tagline
+			var orn:Shape = new Shape();
+			var half:Number = tag.textWidth / 2 + 18;
+			for (var sd:int = -1; sd <= 1; sd += 2) {
+				var ox:Number = Ui.W / 2 + sd * half, oy:Number = tag.y + tag.height / 2;
+				orn.graphics.lineStyle(2, 0xffc040, 0.8);
+				orn.graphics.moveTo(ox, oy); orn.graphics.lineTo(ox + sd * 120, oy);
+				orn.graphics.lineStyle(1, 0xffc040, 0.35);
+				orn.graphics.moveTo(ox + sd * 10, oy + 4); orn.graphics.lineTo(ox + sd * 90, oy + 4);
+				orn.graphics.lineStyle(1.5, 0x2a1200);
+				orn.graphics.beginFill(0xffd75e);
+				var dx:Number = ox + sd * 128;
+				orn.graphics.moveTo(dx, oy - 6); orn.graphics.lineTo(dx + 6, oy); orn.graphics.lineTo(dx, oy + 6); orn.graphics.lineTo(dx - 6, oy); orn.graphics.lineTo(dx, oy - 6);
+				orn.graphics.endFill();
+			}
+			addChildAt(orn, getChildIndex(tag));
 
-			var play:Sprite = Ui.button("PLAY", 260, 64, clickPlay, 32);
+			var play:Sprite = goldButton("PLAY", 260, 64, clickPlay);
 			play.x = (Ui.W - 260) / 2;
 			play.y = 400;
 			addChild(play);
@@ -63,7 +95,7 @@ package realm {
 			refreshAccount();
 
 			var ver:TextField = Ui.text(13, 0xaaaaaa, false, "left", 700, true);
-			ver.text = "New Realm " + VERSION + "  -  online: your characters are saved on the server";
+			ver.text = VERSION + "  -  your characters are saved on the server";
 			ver.x = 14; ver.y = Ui.H - 26;
 			addChild(ver);
 
@@ -83,9 +115,135 @@ package realm {
 		}
 
 		private var t:Number = 0;
+		private var logo:Logo;
+		private var rune:Sprite;
+		private var embers:Shape;
+		private var ember:Array = [];
+
+		/** Behind the name: a slowly turning ring of runes, rising embers and a dark vignette. */
+		private function buildArt():void {
+			var vig:Shape = new Shape();
+			var vm:Matrix = new Matrix();
+			vm.createGradientBox(Ui.W * 1.3, Ui.H * 1.5, 0, -Ui.W * 0.15, -Ui.H * 0.25);
+			vig.graphics.beginGradientFill(GradientType.RADIAL, [0x000000, 0x000000, 0x000000], [0, 0.15, 0.75], [0, 150, 255], vm);
+			vig.graphics.drawRect(0, 0, Ui.W, Ui.H);
+			vig.graphics.endFill();
+			// a darker band at the top so the name stands out
+			var top:Shape = new Shape();
+			var tm:Matrix = new Matrix();
+			tm.createGradientBox(Ui.W, 280, Math.PI / 2, 0, 0);
+			top.graphics.beginGradientFill(GradientType.LINEAR, [0x0a0612, 0x0a0612], [0.7, 0], [0, 255], tm);
+			top.graphics.drawRect(0, 0, Ui.W, 280);
+			top.graphics.endFill();
+			addChild(top);
+			addChild(vig);
+
+			rune = new Sprite();
+			var g:* = rune.graphics;
+			var R:Number = 190;
+			g.lineStyle(2, 0xffc040, 0.32); g.drawCircle(0, 0, R);
+			g.lineStyle(1, 0xffc040, 0.22); g.drawCircle(0, 0, R - 14);
+			g.lineStyle(1, 0xffc040, 0.16); g.drawCircle(0, 0, R + 12);
+			for (var k:int = 0; k < 48; k++) {
+				var a:Number = k / 48 * Math.PI * 2, long:Boolean = k % 6 == 0;
+				g.lineStyle(long ? 2 : 1, 0xffc040, long ? 0.4 : 0.22);
+				g.moveTo(Math.cos(a) * (R - 14), Math.sin(a) * (R - 14));
+				g.lineTo(Math.cos(a) * (R - (long ? 30 : 20)), Math.sin(a) * (R - (long ? 30 : 20)));
+			}
+			// an eight-pointed star woven through the ring
+			g.lineStyle(1.5, 0xffc040, 0.18);
+			for (k = 0; k < 8; k++) {
+				var a1:Number = k / 8 * Math.PI * 2, a2:Number = (k + 3) / 8 * Math.PI * 2;
+				g.moveTo(Math.cos(a1) * (R - 14), Math.sin(a1) * (R - 14));
+				g.lineTo(Math.cos(a2) * (R - 14), Math.sin(a2) * (R - 14));
+			}
+			for (k = 0; k < 8; k++) {
+				var da:Number = k / 8 * Math.PI * 2 + Math.PI / 8;
+				var px:Number = Math.cos(da) * R, py:Number = Math.sin(da) * R;
+				g.lineStyle(1.5, 0x2a1200, 0.6);
+				g.beginFill(0xffd75e, 0.55);
+				g.moveTo(px, py - 7); g.lineTo(px + 5, py); g.lineTo(px, py + 7); g.lineTo(px - 5, py); g.lineTo(px, py - 7);
+				g.endFill();
+			}
+			rune.x = Ui.W / 2; rune.y = 132;
+			rune.scaleY = 0.62;
+			rune.filters = [new GlowFilter(0xff9a20, 0.5, 10, 10, 1.5)];
+			addChild(rune);
+
+			embers = new Shape();
+			embers.filters = [new GlowFilter(0xff8a20, 0.9, 6, 6, 2)];
+			for (k = 0; k < 70; k++) ember.push(newEmber(true));
+			addChild(embers);
+		}
+
+		private var playGlow:GlowFilter = new GlowFilter(0xffa020, 0.5, 18, 18, 1.6, 2);
+		private var playBtn:Sprite;
+
+		/** The big gold PLAY button, glowing gently. */
+		private function goldButton(label:String, w:int, h:int, onClick:Function):Sprite {
+			var b:Sprite = new Sprite();
+			var bg:Shape = new Shape();
+			b.addChild(bg);
+			var tf:TextField = Ui.text(32, 0x3a1c00, true, "center", w);
+			tf.text = label;
+			tf.y = (h - tf.height) / 2;
+			tf.filters = [new GlowFilter(0xfff4c0, 0.8, 2, 2, 3)];
+			b.addChild(tf);
+			b.buttonMode = true;
+			b.mouseChildren = false;
+			var draw:Function = function(hover:Boolean):void {
+				var g:* = bg.graphics;
+				g.clear();
+				var m:Matrix = new Matrix();
+				m.createGradientBox(w, h, Math.PI / 2, 0, 0);
+				g.lineStyle(3, 0x4a2400);
+				g.beginGradientFill(GradientType.LINEAR, hover ? [0xfff6c8, 0xffd040, 0xe08a10] : [0xffe48a, 0xf0b428, 0xb86a10], [1, 1, 1], [0, 130, 255], m);
+				g.drawRoundRect(0, 0, w, h, 16, 16);
+				g.endFill();
+				g.lineStyle(1.5, 0xfff8d8, 0.8);
+				g.drawRoundRect(4, 4, w - 8, h - 8, 12, 12);
+				g.lineStyle();
+				g.beginFill(0xffffff, hover ? 0.3 : 0.2);
+				g.drawRoundRect(6, 6, w - 12, h * 0.38, 10, 10);
+				g.endFill();
+			};
+			draw(false);
+			b.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { draw(true); });
+			b.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { draw(false); });
+			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { onClick(); });
+			playBtn = b;
+			return b;
+		}
+
+		private function newEmber(anywhere:Boolean):Object {
+			return {x: Math.random() * Ui.W, y: anywhere ? Math.random() * Ui.H : Ui.H + 10, vy: 18 + Math.random() * 40,
+				ph: Math.random() * 6.28, r: 0.8 + Math.random() * 1.8, life: 0, col: Math.random() < 0.7 ? 0xffb040 : 0xffe9a0};
+		}
 
 		private function animate(e:Event):void {
 			t += 1 / 60;
+			if (playBtn) {
+				playGlow.alpha = 0.35 + 0.3 * Math.sin(t * 2.4);
+				playGlow.blurX = playGlow.blurY = 14 + 8 * Math.sin(t * 2.4);
+				playBtn.filters = [playGlow];
+			}
+			if (rune) {
+				rune.rotation += 0.04;
+				var eg:* = embers.graphics;
+				eg.clear();
+				for (var n:int = 0; n < ember.length; n++) {
+					var m:Object = ember[n];
+					m.life += 1 / 60;
+					m.y -= m.vy / 60;
+					m.x += Math.sin(t * 1.3 + m.ph) * 0.35;
+					if (m.y < -10) { ember[n] = newEmber(false); continue; }
+					var fa:Number = Math.min(1, m.life * 2) * Math.min(1, m.y / 200) * (0.6 + 0.4 * Math.sin(t * 5 + m.ph));
+					if (fa <= 0) continue;
+					eg.beginFill(m.col, fa);
+					eg.drawCircle(m.x, m.y, m.r);
+					eg.endFill();
+				}
+			}
 			for (var i:int = 0; i < heroes.length; i++) {
 				var walk:Boolean = int(t * 3 + i) % 4 == 0;
 				heroes[i].bitmapData = Sprites.get(Data.CLASS_ORDER[i], walk ? 1 : 0, i >= heroes.length / 2);
@@ -111,6 +269,7 @@ package realm {
 		}
 
 		private function refreshOnline():void {
+			if (logo) logo.setText(Online.connected ? Online.serverName : Data.WORLD_NAME);
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
 			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.serverName + "</font>  (" + Online.welcome.online + " playing)"

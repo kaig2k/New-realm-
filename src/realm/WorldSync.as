@@ -180,8 +180,7 @@ package realm {
 					for (i = 0; i + 4 < l.length; i += 5) {
 						e = w.eById[l[i]];
 						if (!e || e.dead) continue;
-						e.tx = l[i + 1] / 100;
-						e.ty = l[i + 2] / 100;
+						e.netTarget(l[i + 1] / 100, l[i + 2] / 100);
 						// keep our own just-landed hits until the host catches up (monsters don't heal)
 						e.hp = Math.min(e.hp, l[i + 3]);
 						e.invuln = (l[i + 4] & 1) != 0;

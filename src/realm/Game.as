@@ -4329,7 +4329,7 @@ package realm {
 			// fliers hover, walkers bob as they move and "breathe" when idle
 			var bob:int;
 			if (e.def.fly) bob = int((Math.sin(time * 3 + e.homeX) + 1) * 3);
-			else if (e.moving) bob = int(time * 5 + e.homeX) % 2 == 0 ? 2 : 0;
+			else if (e.moving) bob = int(Math.abs(Math.sin(e.stride)) * 3 + 0.5);
 			else bob = int(time * 1.6 + e.homeX) % 2 == 0 ? 1 : 0;
 			if (e.isBoss) {
 				// pulsing aura on the ground and a slow hover

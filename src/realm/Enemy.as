@@ -54,6 +54,12 @@ package realm {
 		 */
 		public var remote:Boolean = false;
 		public var tx:Number, ty:Number;
+		/** Remote copies: the host's speed between position updates (so they glide, not stop-start). */
+		private var netVx:Number = 0, netVy:Number = 0, netAt:int = 0, netAge:Number = 0;
+		/** Current velocity: monsters speed up and turn smoothly instead of snapping. */
+		private var velX:Number = 0, velY:Number = 0;
+		/** Walk cycle, advanced by distance moved (drives the stepping bob). */
+		public var stride:Number = 0;
 		/** Key into Data.ENEMIES. */
 		public var defId:String;
 		/** Endgame bosses get more health per player fighting them. */
@@ -167,7 +173,10 @@ package realm {
 			var dx:Number = p ? p.x - x : 0, dy:Number = p ? p.y - y : 0;
 			var dist:Number = p ? Math.sqrt(dx * dx + dy * dy) : 999;
 			var aggro:Boolean = p != null && dist < (def.aggro || 9);
-			facingLeft = aggro ? g.scrX(p.x, p.y) < g.scrX(x, y) : (dirX * g.camCos + dirY * g.camSin) < 0;
+			// turn to face only on a clear left/right difference, so it doesn't flicker when you're above or below
+			var side:Number = aggro ? (g.scrX(p.x, p.y) - g.scrX(x, y)) / Game.TS : (velX * g.camCos + velY * g.camSin) * 4;
+			if (side < -0.3) facingLeft = true;
+			else if (side > 0.3) facingLeft = false;
 
 			if (stunT > 0) { stunT -= dt; return; }
 
@@ -263,7 +272,11 @@ package realm {
 				if (bx * bx + by * by > leash) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
 			if (def.ai == "still" || (isBoss && shieldT > 0 && mode != "orbit")) { mvx = 0; mvy = 0; }
-			move(mvx * speed * dt, mvy * speed * dt, g.world);
+			// ease toward the wanted velocity (charges lunge, everything else turns smoothly)
+			var accel:Number = Math.min(1, dt * (mode == "charge" ? 18 : 7));
+			velX += (mvx * speed - velX) * accel;
+			velY += (mvy * speed - velY) * accel;
+			move(velX * dt, velY * dt, g.world);
 
 			if (aggro && dist < (def.range || 10) && shieldT <= 0) {
 				var ang:Number = Math.atan2(dy, dx);
@@ -298,14 +311,22 @@ package realm {
 		private function follow(dt:Number, g:Game):void {
 			if (stunT > 0) stunT -= dt;
 			if (isNaN(tx)) { tx = x; ty = y; }
-			var dx:Number = tx - x, dy:Number = ty - y;
+			// keep going the way the host was moving until the next update (at most half a second)
+			netAge += dt;
+			var ahead:Number = Math.min(netAge, 0.5);
+			var px:Number = tx + netVx * ahead, py:Number = ty + netVy * ahead;
+			var dx:Number = px - x, dy:Number = py - y;
 			var d:Number = Math.sqrt(dx * dx + dy * dy);
-			moving = d > 0.02;
-			if (d > 5) { x = tx; y = ty; }
-			else if (moving) {
-				var k:Number = Math.min(1, dt * 10);
+			moving = d > 0.02 || netVx * netVx + netVy * netVy > 0.04;
+			if (d > 5) { x = px; y = py; }
+			else {
+				var k:Number = Math.min(1, dt * 8);
+				var ox:Number = x, oy:Number = y;
 				x += dx * k; y += dy * k;
-				if (Math.abs(dx) > 0.01) facingLeft = (dx * g.camCos + dy * g.camSin) < 0;
+				stride += Math.sqrt((x - ox) * (x - ox) + (y - oy) * (y - oy)) * 3.2;
+				var side:Number = (x - ox) * g.camCos + (y - oy) * g.camSin;
+				if (side < -0.004) facingLeft = true;
+				else if (side > 0.004) facingLeft = false;
 			}
 		}
 
@@ -352,11 +373,29 @@ package realm {
 		}
 
 		private function move(mx:Number, my:Number, w:World):void {
-			moving = mx * mx + my * my > 0.000001;
+			var step:Number = Math.sqrt(mx * mx + my * my);
+			moving = step > 0.0008;
+			stride += step * 3.2;
 			var nx:Number = x + mx, ny:Number = y + my;
 			var rr:Number = Math.min(r, 0.4);
-			if (w.canStand(nx, y, rr, true)) x = nx; else { dirX = -dirX; orbitDir = -orbitDir; }
-			if (w.canStand(x, ny, rr, true)) y = ny; else { dirY = -dirY; }
+			if (w.canStand(nx, y, rr, true)) x = nx; else { dirX = -dirX; orbitDir = -orbitDir; velX *= -0.3; }
+			if (w.canStand(x, ny, rr, true)) y = ny; else { dirY = -dirY; velY *= -0.3; }
+		}
+
+		/** A position update from the world host for this remote copy. */
+		public function netTarget(nx:Number, ny:Number):void {
+			var now:int = getTimer();
+			if (!isNaN(tx) && netAt > 0) {
+				var secs:Number = (now - netAt) / 1000;
+				if (secs > 0.02 && secs < 1) {
+					// blend, so one late packet doesn't make it lurch
+					netVx = netVx * 0.4 + (nx - tx) / secs * 0.6;
+					netVy = netVy * 0.4 + (ny - ty) / secs * 0.6;
+				}
+			}
+			netAt = now;
+			netAge = 0;
+			tx = nx; ty = ny;
 		}
 
 		private function fire(i:int, ang:Number, dist:Number, g:Game):void {

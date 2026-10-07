@@ -86,7 +86,7 @@ Players then join with `play.yourgame.com:2050`.
 | Setting | What it does |
 | --- | --- |
 | `port` | Port to listen on (2050). |
-| `name` | Your server's name. Players see it in the game instead of the IP address, e.g. `"Eldmere"`. |
+| `name` | Your server's name. Players see it in the game instead of the IP address, default `"Eldmere"`. |
 | `motd` | Message shown to players when they join. |
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |

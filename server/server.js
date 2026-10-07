@@ -28,7 +28,7 @@ const CONFIG_FILE = path.join(__dirname, 'config.json');
 const DEFAULT_CONFIG = {
   port: 2050,
   // the name players see in the game (the IP address is never shown)
-  name: 'New Realm',
+  name: 'Eldmere',
   motd: 'Welcome to New Realm!',
   realmCap: 85,
   minRealms: 3,
@@ -270,7 +270,7 @@ const handlers = {
     c.meta = accountMeta.get(key) || { lastSave: Date.now(), lastGodly: 0 };
     accountMeta.set(key, c.meta);
     c.chatTimes = [];
-    c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'New Realm', realms: realmList(), online: byName.size,
+    c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
       save: onlineSave(key), motd: config.motd, admin: isAdmin(c), session, needPassword: !acc.pwHash });
     sendGuild(c.guild);
     log(c.name, 'joined (' + byName.size + ' online)');

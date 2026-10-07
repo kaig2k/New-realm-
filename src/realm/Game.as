@@ -2431,12 +2431,13 @@ package realm {
 				if (!nearBag || idx >= nearBag.items.length) return;
 				item = nearBag.items[idx];
 				if (item.kind == "material") tip("sor", "Star Shard: bring it with a Runed, Bonded or Eldritch item and 100 Aether to the Starforge to make it Starforged.");
-				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) p.hpPots++;
-				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) p.mpPots++;
+				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) { p.hpPots++; hud.flyItem(item, idx, "hp"); }
+				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) { p.mpPots++; hud.flyItem(item, idx, "mp"); }
 				else {
 					var slot:int = p.freeSlot();
 					if (slot < 0) { msg("Inventory full! Drag an item onto the ground to drop it.", 0xff8080); return; }
 					p.inv[slot] = item;
+					hud.flyItem(item, idx, slot);
 				}
 				nearBag.items.splice(idx, 1);
 				nearBag.refresh();

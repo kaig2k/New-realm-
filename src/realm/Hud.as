@@ -3,6 +3,7 @@ package realm {
 	import flash.display.BitmapData;
 	import flash.display.Shape;
 	import flash.display.Sprite;
+	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
@@ -535,6 +536,39 @@ package realm {
 			gr.lineTo(px, py - 6);
 			gr.endFill();
 			gr.lineStyle();
+		}
+		/**
+		 * Taking loot: the item's icon arcs from its bag slot to where it went
+		 * ("hp" / "mp" for the potion slots, else an inventory index).
+		 */
+		public function flyItem(item:Object, bagIdx:int, to:*):void {
+			if (bagIdx < 0 || bagIdx >= bagSlots.length) return;
+			var from:Sprite = bagSlots[bagIdx];
+			var dest:Sprite = to == "hp" ? hpPot : to == "mp" ? mpPot : null;
+			if (!dest) {
+				var k:int = int(to);
+				var p:Player = g.player;
+				dest = int(k / 8) == p.packPage && invPage.visible ? invSlots[k % 8] : packBtn;
+			}
+			var a:Point = globalToLocal(from.localToGlobal(new Point(from.width / from.scaleX / 2, from.height / from.scaleY / 2)));
+			var b:Point = globalToLocal(dest.localToGlobal(new Point(dest.width / 2, dest.height / 2)));
+			var bmp:Bitmap = new Bitmap(Sprites.icon(item));
+			addChild(bmp);
+			var t:Number = 0;
+			bmp.addEventListener(Event.ENTER_FRAME, function(e:Event):void {
+				t += 1 / 60 / 0.28;
+				if (t >= 1) {
+					bmp.removeEventListener(Event.ENTER_FRAME, arguments.callee);
+					if (bmp.parent) removeChild(bmp);
+					return;
+				}
+				var q:Number = t * t * (3 - 2 * t);
+				var sc:Number = 1 + Math.sin(t * Math.PI) * 0.35;
+				bmp.scaleX = bmp.scaleY = sc;
+				bmp.x = a.x + (b.x - a.x) * q - bmp.width / 2;
+				bmp.y = a.y + (b.y - a.y) * q - Math.sin(t * Math.PI) * 40 - bmp.height / 2;
+				bmp.alpha = t > 0.8 ? (1 - t) / 0.2 : 1;
+			});
 		}
 	}
 }

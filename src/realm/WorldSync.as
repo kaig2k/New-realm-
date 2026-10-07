@@ -1,4 +1,5 @@
 package realm {
+	import flash.utils.getTimer;
 	/**
 	 * Shared monsters online. The server makes one player in each realm or
 	 * dungeon its "host": the host's game runs the monsters (AI, attacks, spawns,
@@ -71,7 +72,7 @@ package realm {
 					var dx:Number = rp.x - e.x, dy:Number = rp.y - e.y;
 					if (dx * dx + dy * dy < SNAP_RANGE * SNAP_RANGE || e.isBoss) { near = true; break; }
 				}
-				if (near) flat.push(e.id, int(e.x * 100), int(e.y * 100), int(Math.max(0, e.hp)), flags(e));
+				if (near) flat.push(e.id, int(e.x * 100), int(e.y * 100), Math.ceil(Math.max(0, e.hp)), flags(e));
 			}
 			if (flat.length) send("all", {t: "esnap", l: flat});
 		}
@@ -100,6 +101,7 @@ package realm {
 		/** You hit a remote copy: tell the host (it decides when the monster dies). */
 		public function hit(e:Enemy, dmg:int, slow:Number, stun:Number):void {
 			if (!active || !e.remote || !e.id) return;
+			e.ownHitAt = getTimer();
 			send("host", {t: "ehit", id: e.id, d: dmg, sl: slow, st: stun});
 		}
 
@@ -181,8 +183,9 @@ package realm {
 						e = w.eById[l[i]];
 						if (!e || e.dead) continue;
 						e.netTarget(l[i + 1] / 100, l[i + 2] / 100);
-						// keep our own just-landed hits until the host catches up (monsters don't heal)
-						e.hp = Math.min(e.hp, l[i + 3]);
+						// the host's health is the truth; only right after our own hit keep the lower
+						// guess until it catches up (monsters can heal, and hits can be refused)
+						e.hp = getTimer() - e.ownHitAt < 600 ? Math.min(e.hp, l[i + 3]) : l[i + 3];
 						e.invuln = (l[i + 4] & 1) != 0;
 						if (l[i + 4] & 2) e.stunT = Math.max(e.stunT, 0.15);
 						e.setPhase(l[i + 4] >> 2, g);
@@ -213,7 +216,7 @@ package realm {
 					if (d.d > 0 && !e.immune) {
 						e.hp -= d.d;
 						e.hitT = 0.08;
-						if (e.hp <= 0) g.hostKill(e);
+						if (e.hp < 1) g.hostKill(e);
 					}
 					break;
 				case "sync":

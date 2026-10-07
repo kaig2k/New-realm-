@@ -1647,9 +1647,10 @@ package realm {
 			}
 			if (crit) raw = int(raw * p.critMult);
 			if (effect != "shard") p.shotsHit++;
-			var d:int = Math.max(raw - e.defense, int(raw * 0.15));
-			if (d > e.hp) d = Math.ceil(e.hp);
-			e.hp -= d;
+			var d:int = Math.max(1, raw - e.defense, int(raw * 0.15));
+			// a remote copy's health is only our guess: the host gets the full hit and caps it itself
+			if (!e.remote && d > e.hp) d = Math.ceil(e.hp);
+			e.hp = Math.max(0, e.hp - d);
 			e.hitT = 0.08;
 			Sfx.play("hit", 0.6, 0.06);
 			// a small shove away from the hit (monsters this game runs; bosses stand firm)

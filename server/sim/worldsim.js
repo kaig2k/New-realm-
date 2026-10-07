@@ -110,7 +110,7 @@ class WorldSim {
   }
 
   entry(e) {
-    return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, Math.trunc(e.hp), Math.trunc(e.maxHp), r2(e.dmgMult), this.flags(e),
+    return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, Math.ceil(e.hp), Math.ceil(e.maxHp), r2(e.dmgMult), this.flags(e),
       this.w.boss === e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite || ''];
   }
 
@@ -171,7 +171,8 @@ class WorldSim {
       e.hp -= dmg;
       e.hitT = 0.08;
       e.hitters.set(c.id, (e.hitters.get(c.id) || 0) + dmg);
-      if (e.hp <= 0) this.kill(e);
+      // under 1 HP left (scaled health isn't whole) counts as dead
+      if (e.hp < 1) this.kill(e);
     }
   }
 
@@ -285,7 +286,7 @@ class WorldSim {
         if (e.dead) continue;
         const dx = e.x - c.x, dy = e.y - c.y;
         if (!e.isBoss && dx * dx + dy * dy > SNAP_RANGE * SNAP_RANGE) continue;
-        flat.push(e.id, Math.trunc(e.x * 100), Math.trunc(e.y * 100), Math.trunc(Math.max(0, e.hp)), this.flags(e));
+        flat.push(e.id, Math.trunc(e.x * 100), Math.trunc(e.y * 100), Math.ceil(Math.max(0, e.hp)), this.flags(e));
       }
       if (flat.length) this.send(c, { t: 'esnap', l: flat });
     }
@@ -440,7 +441,7 @@ class WorldSim {
       e.hp = frac * e.maxHp;
       e.scaleMult = mult;
       e.scalePlayers = n;
-      this.all({ t: 'emax', id: e.id, m: Math.trunc(e.maxHp), h: Math.trunc(e.hp), n });
+      this.all({ t: 'emax', id: e.id, m: Math.ceil(e.maxHp), h: Math.ceil(e.hp), n });
     }
   }
 

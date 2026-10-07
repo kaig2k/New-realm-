@@ -53,6 +53,8 @@ package realm {
 		 * else gets "remote" copies that just follow the host's updates.
 		 */
 		public var remote:Boolean = false;
+		/** When this game last hit this (remote) monster, for matching the host's health. */
+		public var ownHitAt:int = -100000;
 		public var tx:Number, ty:Number;
 		/** Remote copies: the host's speed between position updates (so they glide, not stop-start). */
 		private var netVx:Number = 0, netVy:Number = 0, netAt:int = 0, netAge:Number = 0;

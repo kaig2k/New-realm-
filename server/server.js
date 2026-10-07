@@ -22,6 +22,7 @@ const crypto = require('crypto');
 const { StringDecoder } = require('string_decoder');
 const { Store } = require('./store');
 const { checkSave } = require('./validate');
+const { Sims } = require('./sim/worldsim');
 
 // ------------------------------------------------------------------ config
 const CONFIG_FILE = path.join(__dirname, 'config.json');
@@ -58,6 +59,8 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
 
 // ------------------------------------------------------------------ storage
 const store = new Store(DATA_DIR);
+/** Server-run monsters for every realm, dungeon, raid and Elder chamber (config "serverMonsters": false turns it off). */
+const sims = config.serverMonsters === false ? null : new Sims();
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
 /** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
@@ -286,8 +289,10 @@ const handlers = {
     if (c.trade) endTrade(c, 'The trade was cancelled.');
     updateRealms();
     // the first player in a world runs its monsters
-    if (!hosts.get(world) || hosts.get(world).world !== world) hosts.set(world, c);
-    c.send({ t: 'players', key: world, host: hosts.get(world).id, list: inWorld(world, c).map(publicInfo) });
+    // the server runs this world's monsters, or else the first player in it does
+    c.sim = sims ? sims.join(world, c) : null;
+    if (!c.sim && (!hosts.get(world) || hosts.get(world).world !== world)) hosts.set(world, c);
+    c.send({ t: 'players', key: world, host: c.sim ? 0 : hosts.get(world).id, list: inWorld(world, c).map(publicInfo) });
     for (const o of inWorld(world, c)) o.send({ t: 'join', p: publicInfo(c) });
     updateGuildMember(c);
     sendParty(c.party);
@@ -300,6 +305,7 @@ const handlers = {
 
   move(c, m) {
     c.x = num(m.x); c.y = num(m.y);
+    c.hidden = !!m.h;
     const msg = { t: 'move', id: c.id, x: c.x, y: c.y, f: m.f ? 1 : 0, a: m.a ? 1 : 0 };
     const near = new Set(nearby(c));
     if (!c.seen) c.seen = new Set();
@@ -588,6 +594,11 @@ const handlers = {
   /** Monster sync between the world host and the others (see WorldSync.as). */
   w(c, m) {
     if (!c.world || !m.d || typeof m.d !== 'object') return;
+    // server-run world: the server is the host; players may only share portals
+    if (c.sim) {
+      if (m.to === 'host') return c.sim.onClient(c, m.d);
+      if (m.to !== 'all' || m.d.t !== 'portal') return;
+    }
     if (m.to === 'all' && hosts.get(c.world) !== c && m.d.t !== 'portal' && m.d.t !== 'rstage') return;
     const out = { t: 'w', from: c.id, d: m.d };
     if (m.to === 'all') { for (const o of inWorld(c.world, c)) o.send(out); return; }
@@ -712,6 +723,7 @@ function leaveWorld(c) {
   const old = c.world;
   if (!old) return;
   c.world = '';
+  if (c.sim) { c.sim.leave(c); c.sim = null; }
   const rest = inWorld(old, c);
   for (const o of rest) { o.send({ t: 'leave', id: c.id }); if (o.seen) o.seen.delete(c.id); }
   c.seen = new Set();
@@ -1015,7 +1027,7 @@ setInterval(() => {
 }, 1000);
 
 // ------------------------------------------------------------------ console
-const HELP = 'Commands: list | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | realms (new realms) | stop';
+const HELP = 'Commands: list | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
 function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
 process.stdin.setEncoding('utf8');
@@ -1030,6 +1042,13 @@ process.stdin.on('data', (data) => {
       case 'list': case 'who': {
         const list = online();
         console.log(list.length + ' online' + (list.length ? ': ' + list.map(c => c.name + ' (' + (c.world || '-') + (hosts.get(c.world) === c ? ', host' : '') + ')').join(', ') : ''));
+        break;
+      }
+      case 'worlds': {
+        if (!sims) { console.log('Server monsters are off (config serverMonsters: false).'); break; }
+        const st = sims.stats();
+        console.log(st.worlds + ' worlds running, ' + st.monsters + ' monsters, last tick ' + st.tickMs + ' ms');
+        for (const [key, sm] of sims.map) console.log('  ' + key + ': ' + sm.players.size + ' players, ' + sm.enemies.length + ' monsters');
         break;
       }
       case 'say': if (arg) { broadcast('[Server] ' + arg); log('said: ' + arg); } break;

@@ -23,6 +23,7 @@ package realm {
 		/** Round trip to the server in ms (-1 until measured). */
 		public var latency:int = -1;
 		private var retryT:Number = 0;
+		private var lastHid:int = 0;
 		private var retries:int = 0;
 		private var reconnecting:Boolean = false;
 
@@ -70,9 +71,11 @@ package realm {
 			if (sendT <= 0) {
 				sendT = 0.1;
 				var pl:Player = g.player;
-				if (pl.x != lastX || pl.y != lastY) {
-					lastX = pl.x; lastY = pl.y;
-					Online.send({t: "move", x: Math.round(pl.x * 100) / 100, y: Math.round(pl.y * 100) / 100, f: pl.facingLeft ? 1 : 0});
+				// h: invisible (monsters, which the server runs, can't see you)
+				var hid:int = pl.invisT > 0 ? 1 : 0;
+				if (pl.x != lastX || pl.y != lastY || hid != lastHid) {
+					lastX = pl.x; lastY = pl.y; lastHid = hid;
+					Online.send({t: "move", x: Math.round(pl.x * 100) / 100, y: Math.round(pl.y * 100) / 100, f: pl.facingLeft ? 1 : 0, h: hid});
 				}
 			}
 			profT -= dt;

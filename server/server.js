@@ -200,6 +200,18 @@ function onlineSave(key) {
   return s;
 }
 
+/** Per-account anti-cheat state ({lastSave, budget}), kept across reconnects. */
+const accountMeta = new Map();
+
+/** Profiles are shown to everyone: keep only the fields the game uses, with sane types. */
+function cleanProfile(p) {
+  if (!p || typeof p !== 'object') return {};
+  const out = { cls: str(p.cls, 16), skin: str(p.skin, 24), level: Math.max(1, Math.min(20, num(p.level) | 0)),
+    fame: Math.max(0, num(p.fame) | 0), maxed: Math.max(0, Math.min(11, num(p.maxed) | 0)), guild: str(p.guild, 24) };
+  if (Array.isArray(p.equip)) out.equip = p.equip.slice(0, 4).map((it) => (it && typeof it === 'object' && JSON.stringify(it).length < 4000 ? it : null));
+  return out;
+}
+
 const handlers = {
   hello(c, m) {
     if (c.authed) return;
@@ -245,7 +257,7 @@ const handlers = {
       return c.fail('You are banned from this server' + (ban.until ? ' until ' + new Date(ban.until).toUTCString() : '') + (ban.reason ? ': ' + ban.reason : '.'));
     }
     const old = byName.get(key);
-    if (old) { old.send({ t: 'kicked', msg: 'You logged in from somewhere else.' }); old.close(); }
+    if (old) { old.send({ t: 'kicked', msg: 'You logged in from somewhere else.' }); old.replaced = true; setTimeout(() => old.close(true), 200); }
     c.authed = true;
     c.name = acc.name;
     c.key = key;
@@ -253,7 +265,8 @@ const handlers = {
     // guild membership lives on the server
     c.guild = null;
     for (const gk in guilds) if (guilds[gk].members[key]) c.guild = gk;
-    c.meta = { lastSave: Date.now(), lastGodly: 0 };
+    c.meta = accountMeta.get(key) || { lastSave: Date.now(), lastGodly: 0 };
+    accountMeta.set(key, c.meta);
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, realms: realmList(), online: byName.size,
       save: onlineSave(key), motd: config.motd, admin: isAdmin(c), session, needPassword: !acc.pwHash });
@@ -267,7 +280,7 @@ const handlers = {
     c.world = world;
     c.x = num(m.x); c.y = num(m.y);
     if (m.cid) c.charId = str(m.cid, 64);
-    if (m.profile && typeof m.profile === 'object') c.profile = m.profile;
+    if (m.profile && typeof m.profile === 'object') c.profile = cleanProfile(m.profile);
     if (c.trade) endTrade(c, 'The trade was cancelled.');
     updateRealms();
     // the first player in a world runs its monsters
@@ -287,7 +300,13 @@ const handlers = {
     c.x = num(m.x); c.y = num(m.y);
     const msg = { t: 'move', id: c.id, x: c.x, y: c.y, f: m.f ? 1 : 0, a: m.a ? 1 : 0 };
     const near = new Set(nearby(c));
-    for (const o of near) { o.send(msg); (o.seen || (o.seen = new Set())).add(c.id); }
+    if (!c.seen) c.seen = new Set();
+    for (const o of near) {
+      o.send(msg);
+      (o.seen || (o.seen = new Set())).add(c.id);
+      // someone standing still sends no moves: show them to you as you walk up
+      if (!c.seen.has(o.id)) { c.seen.add(o.id); c.send({ t: 'move', id: o.id, x: o.x, y: o.y, f: 0, a: 0 }); }
+    }
     // everyone else in the world: hide you once you're out of sight, and keep
     // party and guild members posted about once a second (minimap, teleports)
     const now = Date.now();
@@ -296,12 +315,14 @@ const handlers = {
     for (const o of inWorld(c.world, c)) {
       if (near.has(o)) continue;
       if (o.seen && o.seen.delete(c.id)) o.send({ t: 'far', id: c.id });
+      if (c.seen.delete(o.id)) c.send({ t: 'far', id: o.id });
       if (slow && friends(o, c)) o.send({ t: 'move', id: c.id, x: c.x, y: c.y, f: 0, a: 0, far: 1 });
     }
   },
 
   /** Someone opened a raid: tell everyone on the server. */
   raidOpen(c, m) {
+    if (c.world !== 'nexus') return;
     const now = Date.now();
     if (now - (c.raidT || 0) < 20000) return;
     c.raidT = now;
@@ -323,6 +344,9 @@ const handlers = {
   },
 
   shoot(c, m) {
+    const now = Date.now();
+    if (now - (c.shotAt || 0) < 40) return;
+    c.shotAt = now;
     const msg = { t: 'shoot', id: c.id, ang: num(m.ang) };
     for (const o of nearby(c)) o.send(msg);
   },
@@ -340,7 +364,7 @@ const handlers = {
 
   profile(c, m) {
     if (!m.profile || typeof m.profile !== 'object') return;
-    c.profile = m.profile;
+    c.profile = cleanProfile(m.profile);
     for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
     updateGuildMember(c);
   },
@@ -368,6 +392,7 @@ const handlers = {
   tradeReq(c, m) {
     const o = clients.get(m.to);
     if (!o || !o.authed || o.world !== c.world) return c.note('That player isn\'t here.');
+    if (o === c) return;
     if (o.trade) return c.note(o.name + ' is busy trading.');
     if (c.trade) return;
     c.tradeAsk = o.id;
@@ -380,16 +405,24 @@ const handlers = {
     o.tradeAsk = 0;
     if (!m.yes) return o.note(c.name + ' declined the trade.', 0xff8080);
     if (o.trade || c.trade) return;
-    const t = { a: o, b: c, acc: new Set(), sel: new Map() };
+    // trades run on the server's copies of both inventories (each side saves just before)
+    if (!serverInv(o) || !serverInv(c)) {
+      o.note('The trade could not start: a character has not been saved yet. Try again in a moment.');
+      return c.note('The trade could not start: a character has not been saved yet. Try again in a moment.');
+    }
+    const t = { a: o, b: c, acc: new Set(), sel: new Map(), offers: new Map() };
     o.trade = c.trade = t;
+    t.snapA = JSON.stringify(serverInv(o));
+    t.snapB = JSON.stringify(serverInv(c));
     // both sides trade from the server's copy of their inventory (saved just before)
     o.send({ t: 'tradeStart', with: c.id, inv: serverInv(c) || (Array.isArray(m.inv) ? m.inv : []), sendInv: !serverInv(o) });
     if (serverInv(o)) c.send({ t: 'tradeStart', with: o.id, inv: serverInv(o) });
   },
 
   tradeInv(c, m) {
+    // only for a side the server has no copy of (never, since trades need one): ignore fakes
     const t = c.trade;
-    if (!t || t.a !== c) return;
+    if (!t || t.a !== c || serverInv(c)) return;
     t.b.send({ t: 'tradeStart', with: c.id, inv: Array.isArray(m.inv) ? m.inv : [] });
   },
 
@@ -399,12 +432,17 @@ const handlers = {
     t.acc.clear();
     const sel = Array.isArray(m.sel) ? m.sel.slice(0, 16).map(v => v === true) : [];
     t.sel.set(c, sel);
-    partner(c).send({ t: 'tradeOffer', sel, want: Array.isArray(m.want) ? m.want.slice(0, 16) : [] });
+    // numbered, so an accept sent before this change can't count for it
+    const n = (t.offers.get(c) || 0) + 1;
+    t.offers.set(c, n);
+    partner(c).send({ t: 'tradeOffer', sel, want: Array.isArray(m.want) ? m.want.slice(0, 16) : [], n });
   },
 
-  tradeAccept(c) {
+  tradeAccept(c, m) {
     const t = c.trade;
     if (!t) return;
+    // the accept must be for the partner's latest offer
+    if ((m.seen | 0) !== (t.offers.get(partner(c)) || 0)) return;
     t.acc.add(c);
     partner(c).send({ t: 'tradeAccept' });
     if (t.acc.size === 2) finishTrade(t);
@@ -548,6 +586,7 @@ const handlers = {
   /** Monster sync between the world host and the others (see WorldSync.as). */
   w(c, m) {
     if (!c.world || !m.d || typeof m.d !== 'object') return;
+    if (m.to === 'all' && hosts.get(c.world) !== c && m.d.t !== 'portal' && m.d.t !== 'rstage') return;
     const out = { t: 'w', from: c.id, d: m.d };
     if (m.to === 'all') { for (const o of inWorld(c.world, c)) o.send(out); return; }
     const target = m.to === 'host' ? hosts.get(c.world) : clients.get(m.to);
@@ -581,6 +620,14 @@ const handlers = {
 
   /** The account's save (characters, vault, gold...). Checked, then stored. */
   save(c, m) {
+    // at most a few saves a second; a burst keeps only the newest
+    const now = Date.now();
+    if (now - (c.saveAt || 0) < 300) {
+      c.pendingSave = m;
+      if (!c.saveTimer) c.saveTimer = setTimeout(() => { c.saveTimer = null; const p = c.pendingSave; c.pendingSave = null; if (p && !c.replaced && clients.has(c.id)) handlers.save(c, p); }, 320);
+      return;
+    }
+    c.saveAt = now;
     // online progress is its own: every account starts from the empty save made at its first visit
     const prev = onlineSave(c.key);
     const why = checkSave(prev, m.data, c.meta, Date.now());
@@ -664,7 +711,8 @@ function leaveWorld(c) {
   if (!old) return;
   c.world = '';
   const rest = inWorld(old, c);
-  for (const o of rest) o.send({ t: 'leave', id: c.id });
+  for (const o of rest) { o.send({ t: 'leave', id: c.id }); if (o.seen) o.seen.delete(c.id); }
+  c.seen = new Set();
   if (hosts.get(old) === c) {
     if (rest.length) {
       const h = rest[0];
@@ -701,9 +749,13 @@ function finishTrade(t) {
   a.trade = b.trade = null;
   const ca = serverChar(a), cb = serverChar(b);
   if (!ca || !cb) {
-    // no server copy (old client or no save yet): let the games swap as before
-    a.send({ t: 'tradeDone' }); b.send({ t: 'tradeDone' });
-    log('trade (unchecked)', a.name, '<->', b.name);
+    a.send({ t: 'tradeCancel', msg: 'The trade failed. Try again.' }); b.send({ t: 'tradeCancel', msg: 'The trade failed. Try again.' });
+    return;
+  }
+  // a save during the trade could have moved items under the offered slots
+  if (JSON.stringify(ca.inv) !== t.snapA || JSON.stringify(cb.inv) !== t.snapB) {
+    const why = 'An inventory changed during the trade. Please trade again.';
+    a.send({ t: 'tradeCancel', msg: why }); b.send({ t: 'tradeCancel', msg: why });
     return;
   }
   const sa = t.sel.get(a) || [], sb = t.sel.get(b) || [];
@@ -720,9 +772,16 @@ function finishTrade(t) {
   };
   apply(ca, sa, gb);
   apply(cb, sb, ga);
-  for (const [cl, ch] of [[a, ca], [b, cb]]) {
+  for (const [cl, ch, gave] of [[a, ca, ga], [b, cb, gb]]) {
     const sv = store.getSave(cl.key);
     sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    // what left this account may not reappear in its next save (a client that ignores the swap)
+    const meta = accountMeta.get(cl.key);
+    if (meta) {
+      meta.tradedOut = (meta.tradedOut || []).filter((e) => Date.now() - e.at < 15 * 60 * 1000);
+      // (potions and shards are all alike, so a new one found later can't be told apart: skip those)
+      for (const it of gave) if (!['hp', 'mp', 'stat', 'material'].includes(it.kind)) meta.tradedOut.push({ at: Date.now(), item: JSON.stringify(it) });
+    }
     store.putSave(cl.key, sv);
     cl.send({ t: 'tradeDone', inv: ch.inv, seq: sv.tradeSeq });
   }
@@ -810,13 +869,22 @@ function attach(c) {
     let m;
     try { m = JSON.parse(line); } catch (e) { return; }
     if (!m || typeof m.t !== 'string') return;
+    if (line.length > 64 * 1024 && m.t !== 'save') return;
     if (!c.authed && m.t !== 'hello') return;
+    // a connection replaced by a newer login may not save over it
+    if (c.replaced) return;
     const h = handlers[m.t];
     if (h) {
       try { h(c, m); } catch (e) { log('error handling', m.t, e.message); }
     }
   };
   c.onClose = () => {
+    try { closeClient(c); } catch (e) { log('error closing', c.name, e.message); }
+  };
+}
+
+function closeClient(c) {
+  {
     if (!clients.has(c.id)) return;
     clients.delete(c.id);
     if (!c.authed) return;
@@ -854,6 +922,8 @@ const server = net.createServer((sock) => {
 
   c.send = (obj) => {
     if (sock.destroyed) return;
+    // a client that stops reading would make us hold its messages forever
+    if (sock.writableLength > 4 * 1024 * 1024) return sock.destroy();
     const data = Buffer.from(JSON.stringify(obj) + '\n', 'utf8');
     if (mode === 'ws') sock.write(wsFrame(data));
     else sock.write(data);
@@ -863,6 +933,8 @@ const server = net.createServer((sock) => {
 
   sock.on('data', (chunk) => {
     buf = Buffer.concat([buf, chunk]);
+    // never buffer more than one message's worth (a fake frame length or an endless header)
+    if (buf.length > MAX_LINE * 2 + 16 || (!mode && buf.length > 16384)) return sock.destroy();
     if (!mode) {
       const head = buf.toString('latin1', 0, Math.min(buf.length, 23));
       if (head.startsWith('<policy-file-request/>')) { sock.end(POLICY); return; }
@@ -893,6 +965,7 @@ const server = net.createServer((sock) => {
       let len = buf[1] & 0x7f, off = 2;
       if (len === 126) { if (buf.length < 4) return; len = buf.readUInt16BE(2); off = 4; }
       else if (len === 127) { if (buf.length < 10) return; len = Number(buf.readBigUInt64BE(2)); off = 10; }
+      if (len > MAX_LINE) return sock.destroy();
       const masked = (buf[1] & 0x80) !== 0;
       if (buf.length < off + (masked ? 4 : 0) + len) return;
       let payload = buf.slice(off + (masked ? 4 : 0), off + (masked ? 4 : 0) + len);
@@ -936,6 +1009,7 @@ setInterval(() => {
     c.budget = MAX_MSGS_PER_SEC;
     if (now - c.lastSeen > IDLE_KICK_MS) { log((c.name || 'connection ' + c.id) + ' timed out'); c.close(true); }
   }
+  for (const [ip, f] of failedLogins) if (now - f.t > 5 * 60 * 1000) failedLogins.delete(ip);
 }, 1000);
 
 // ------------------------------------------------------------------ console

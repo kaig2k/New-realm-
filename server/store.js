@@ -26,7 +26,13 @@ class Store {
   file(name) { return path.join(this.dir, name); }
 
   loadTable(name, fallback) {
-    try { return JSON.parse(fs.readFileSync(this.file(name), 'utf8')); } catch (e) { return fallback; }
+    let text;
+    try { text = fs.readFileSync(this.file(name), 'utf8'); } catch (e) { return fallback; } // not made yet
+    try { return JSON.parse(text); } catch (e) {
+      // never start over on a damaged file: that would wipe every account on the next write
+      fs.copyFileSync(this.file(name), this.file(name) + '.corrupt-' + Date.now());
+      throw new Error(name + ' is damaged (a copy was kept as ' + name + '.corrupt-*). Restore it from a backup, then start the server again.');
+    }
   }
 
   /** Writes a table soon (calls within the delay are merged). */
@@ -39,8 +45,16 @@ class Store {
   /** An account's save, or null if it has none on this server. */
   getSave(key) {
     if (this.saves.has(key)) return this.saves.get(key);
-    let data = null;
-    try { data = JSON.parse(fs.readFileSync(this.savePath(key), 'utf8')); } catch (e) {}
+    let data = null, text = null;
+    try { text = fs.readFileSync(this.savePath(key), 'utf8'); } catch (e) {}
+    if (text !== null) {
+      try { data = JSON.parse(text); } catch (e) {
+        // keep the damaged file instead of replacing the player's progress with an empty save
+        const bad = this.savePath(key) + '.corrupt-' + Date.now();
+        try { fs.copyFileSync(this.savePath(key), bad); } catch (e2) {}
+        console.error('Save for ' + key + ' was damaged; kept a copy as ' + bad);
+      }
+    }
     this.saves.set(key, data);
     return data;
   }
@@ -69,7 +83,10 @@ class Store {
     delete this.pending[file];
     clearTimeout(this.timers[file]);
     try {
-      fs.writeFileSync(file + '.tmp', make());
+      const fd = fs.openSync(file + '.tmp', 'w');
+      fs.writeSync(fd, make());
+      fs.fsyncSync(fd);
+      fs.closeSync(fd);
       fs.renameSync(file + '.tmp', file);
     } catch (e) {
       console.error('Could not write ' + file + ': ' + e.message);

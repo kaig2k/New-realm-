@@ -38,7 +38,7 @@ function checkItem(it) {
     if (it[s] === undefined) continue;
     if (!isNum(it[s])) return 'bad stat';
     // a weapon's "spd" is its bullet speed (older weapons may also carry a Speed roll in it)
-    const cap = s === 'spd' && it.kind === 'weapon' ? 120 : STAT_CAP[s] || 100;
+    const cap = s === 'spd' && it.kind === 'weapon' ? 120 : STAT_CAP[s] || 150;
     if (it[s] > cap || it[s] < -60) return s + ' too high on ' + (it.name || 'an item');
   }
   if (it.kind === 'weapon') {
@@ -92,12 +92,26 @@ function checkSave(prev, next, meta, now) {
   // a save from before the last trade would undo it (and duplicate items)
   if ((next.tradeSeq || 0) < (prev.tradeSeq || 0)) return 'stale save (from before your last trade)';
 
-  const secs = Math.max(1, (now - (meta.lastSave || now)) / 1000);
+  // items this account just traded away may not come back in its save
+  const out = (meta.tradedOut || []).filter((e) => now - e.at < 15 * 60 * 1000);
+  if (out.length) {
+    const count = (save) => { const m = new Map(); eachItem(save, (it) => { if (it) { const k = JSON.stringify(it); m.set(k, (m.get(k) || 0) + 1); } }); return m; };
+    const was = count(prev), is = count(next);
+    for (const e of out) if ((is.get(e.item) || 0) > (was.get(e.item) || 0)) return 'an item you traded away is still in your save';
+  }
+
+  // currencies: a budget that refills over time, so many quick saves can't each add the full allowance
+  const secs = Math.max(0, (now - (meta.lastSave || now)) / 1000);
+  const budget = meta.budget || (meta.budget = {});
+  const spend = {};
   for (const k of ['gold', 'fame', 'onrane']) {
     const gain = (next[k] || 0) - (prev[k] || 0);
     const lim = LIMITS[k];
-    if (gain > lim[0] + lim[1] * secs) return k + ' went up too fast';
+    const have = Math.min(lim[0], (budget[k] === undefined ? lim[0] : budget[k]) + lim[1] * secs);
+    if (gain > have) return k + ' went up too fast';
+    spend[k] = have - Math.max(0, gain);
   }
+  Object.assign(budget, spend);
   return null;
 }
 

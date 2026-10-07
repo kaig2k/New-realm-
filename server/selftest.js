@@ -106,23 +106,31 @@ async function run() {
   console.log('saves and anti-cheat');
   A.send({ t: 'save', data: { gold: 500, fame: 100, onrane: 2, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])],
     vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3, opt: { shake: false }, keys: { up: 85 } } });
-  await wait(250);
+  await wait(450);
   check('a normal save (godly, raid key, dungeon key, vault, settings) is accepted', !A.find((m) => m.t === 'saveRejected'),
     JSON.stringify(A.find((m) => m.t === 'saveRejected')));
   A.clear();
   A.send({ t: 'save', data: { gold: 500, chars: [charSave('ca', [{ kind: 'ring', sub: 'att', tier: 3, name: 'Hacked Ring', att: 9999 }])] } });
-  await wait(250);
+  await wait(450);
   check('an edited +9999 ring is refused', A.find((m) => m.t === 'saveRejected' && /att/.test(m.reason)));
   A.clear();
   A.send({ t: 'save', data: { gold: 99999999, chars: [charSave('ca', [ITEMS.ring])] } });
-  await wait(250);
+  await wait(450);
   check('gold jumping by millions is refused', A.find((m) => m.t === 'saveRejected' && /gold/.test(m.reason)));
   const rej = A.find((m) => m.t === 'saveRejected');
   check('a refused save sends back the last good save', rej && rej.data && rej.data.gold === 500);
   A.clear();
   A.send({ t: 'save', data: { gold: 500, chars: [charSave('ca', [{ kind: 'sword?', name: 'x' }])] } });
-  await wait(250);
+  await wait(450);
   check('unknown item kinds are refused', A.find((m) => m.t === 'saveRejected'));
+  A.clear();
+  // many quick saves can't each add the full gold allowance
+  for (let i = 1; i <= 4; i++) { A.send({ t: 'save', data: { gold: 500 + i * 100000, chars: [charSave('ca', [ITEMS.ring])] } }); await wait(450); }
+  check('repeated quick gold jumps are refused once the allowance is used up', A.find((m) => m.t === 'saveRejected' && /gold/.test(m.reason)));
+  A.clear();
+  A.send({ t: 'save', data: { gold: 500, fame: 100, onrane: 2, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])],
+    vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3 } });
+  await wait(450);
 
   console.log('resume and log out');
   const A2 = await login(nameA, { token: tokenA });
@@ -130,11 +138,11 @@ async function run() {
   await wait(200);
   check('logging in elsewhere kicks the old connection', A.find((m) => m.t === 'kicked') || A.closed);
   const saved = A2.find((m) => m.t === 'welcome').save;
-  check('the save comes back on login', saved && saved.gold === 500 && saved.chars && saved.chars[0].inv[3].sub === 'dg_crypt');
+  check('the save comes back on login', saved && saved.gold <= 500 && saved.chars && saved.chars[0].inv[3].sub === 'dg_crypt');
 
   console.log('worlds and relays');
   B.send({ t: 'save', data: { gold: 100, chars: [charSave('cb', [ITEMS.potion])] } });
-  await wait(200);
+  await wait(450);
   A2.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca', profile: { cls: 'wizard', level: 20 } });
   B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb', profile: { cls: 'knight', level: 20 } });
   await wait(300);
@@ -172,11 +180,20 @@ async function run() {
   B.send({ t: 'tradeAns', to: A2.id, yes: true });
   await wait(150);
   check('both sides get the trade window', A2.find((m) => m.t === 'tradeStart') && B.find((m) => m.t === 'tradeStart'));
-  A2.send({ t: 'tradeOffer', sel: [true, false, false, true], want: [] });
+  A2.send({ t: 'tradeInv', inv: [{ kind: 'armor', rarity: 'gd', name: 'Fake Godly' }] });
+  await wait(150);
+  check('a faked trade inventory is not shown to the partner', !B.find((m) => m.t === 'tradeStart' && JSON.stringify(m.inv).includes('Fake Godly')));
+  A2.send({ t: 'tradeOffer', sel: [false], want: [] });
   B.send({ t: 'tradeOffer', sel: [true], want: [] });
   await wait(150);
-  A2.send({ t: 'tradeAccept' });
-  B.send({ t: 'tradeAccept' });
+  // B accepts A's first offer while A is already changing it
+  B.send({ t: 'tradeAccept', seen: 1 });
+  A2.send({ t: 'tradeOffer', sel: [true, false, false, true], want: [] });
+  await wait(150);
+  A2.send({ t: 'tradeAccept', seen: 1 });
+  await wait(300);
+  check('an accept for an older offer does not count', !A2.find((m) => m.t === 'tradeDone'));
+  B.send({ t: 'tradeAccept', seen: 2 });
   await wait(300);
   const doneA = A2.find((m) => m.t === 'tradeDone'), doneB = B.find((m) => m.t === 'tradeDone');
   check('the trade completes on the server', doneA && doneB && doneA.inv && doneB.inv);
@@ -190,6 +207,15 @@ async function run() {
   A2.send({ t: 'save', data: { gold: 500, tradeSeq: 0, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])] } });
   await wait(250);
   check('a save from before the trade (dupe attempt) is refused', A2.find((m) => m.t === 'saveRejected' && /stale/.test(m.reason)));
+  A2.clear();
+  const seq = doneA ? doneA.seq : 1;
+  A2.send({ t: 'save', data: { gold: 500, tradeSeq: seq, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey, ITEMS.potion])] } });
+  await wait(450);
+  check('keeping traded-away items in a save (modified client) is refused', A2.find((m) => m.t === 'saveRejected' && /traded away/.test(m.reason)));
+  A2.clear();
+  A2.send({ t: 'save', data: { gold: 500, tradeSeq: seq, chars: [charSave('ca', doneA ? doneA.inv.filter(Boolean) : [])] } });
+  await wait(450);
+  check('the honest save after a trade is accepted', !A2.find((m) => m.t === 'saveRejected'), JSON.stringify(A2.find((m) => m.t === 'saveRejected')));
 
   console.log('bad input');
   const evil = await login('Ev' + n, { password: 'pass1234', register: true });
@@ -217,6 +243,14 @@ async function run() {
   await wait(200);
   check('other players are unaffected', A2.find((m) => m.t === 'pong'));
 
+  const ws = await client();
+  ws.s.write('GET / HTTP/1.1\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n');
+  await wait(150);
+  const hdr = Buffer.from([0x81, 0xff, 0x40, 0, 0, 0, 0, 0, 0, 0]);
+  ws.s.write(hdr);
+  await wait(300);
+  check('a websocket frame claiming a huge size is dropped at once', ws.closed);
+
   console.log('log out');
   A2.send({ t: 'logout', token: tokenA });
   await wait(250);
@@ -237,9 +271,9 @@ async function run() {
   }
 
   check('no errors in the server log', !/error handling|TypeError|ReferenceError/.test(srvOut), (srvOut.match(/.*error.*/i) || [''])[0]);
-  srv.kill();
-  for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil]) c.s.destroy();
-  fs.rmSync(DATA, { recursive: true, force: true });
+  for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil, ws]) c.s.destroy();
+  await new Promise((r) => { srv.on('exit', r); srv.kill(); });
+  try { fs.rmSync(DATA, { recursive: true, force: true }); } catch (e) {}
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 }

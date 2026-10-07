@@ -235,6 +235,7 @@ package realm {
 					var theirs:Array = m.inv || [];
 					while (theirs.length < 8) theirs.push(null);
 					trade = new TradeSession(rp, g.player.inv, theirs);
+					theirOffers = 0;
 					sentVersion = trade.version;
 					sentAccept = false;
 					g.openTrade(trade);
@@ -243,6 +244,7 @@ package realm {
 				case "tradeOffer":
 					if (!trade) break;
 					trade.asked = m.want || [];
+					theirOffers = int(m.n);
 					trade.setTheirs(m.sel || []);
 					sentVersion = trade.version;
 					sentAccept = false;
@@ -315,6 +317,9 @@ package realm {
 			Online.send({t: "tradeAns", to: int(p.id), yes: yes, inv: yes ? g.player.inv : null});
 		}
 
+		/** How many offers the partner has made (an accept is for the latest one). */
+		private var theirOffers:int = 0;
+
 		override public function tradeChanged():void {
 			if (!trade) return;
 			if (trade.version != sentVersion) {
@@ -324,7 +329,7 @@ package realm {
 			}
 			if (trade.myAccept && !sentAccept) {
 				sentAccept = true;
-				Online.send({t: "tradeAccept"});
+				Online.send({t: "tradeAccept", seen: theirOffers});
 			}
 		}
 

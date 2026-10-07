@@ -130,10 +130,27 @@ class Data {
 			if (sub == "heavy") a.prt = __int(t / 2);
 			return Data.enchant(a, rarity);
 		}
-	static makeAbility(sub, tier, rarity = null) { tier = __int(tier);
+	static abilityId(item) {
+			if (!item) return null;
+			var ab = item.ab ? Data.ABILITIES[item.ab] : null;
+			if (ab && ab.type == item.sub) return item.ab;
+			var set = Data.ABILITY_SETS[item.sub];
+			return set ? set[0] : null;
+		}
+	static randomAbility(sub) {
+			var set = Data.ABILITY_SETS[sub];
+			return set ? set[__int(Math.random() * set.length)] : null;
+		}
+	static makeAbility(sub, tier, rarity = null, ab = null) { tier = __int(tier);
 			var t = rarity ? Data.RARITY_POWER[rarity] : tier;
 			var a = {kind: "ability", sub: sub, tier: rarity ? 8 : tier, name: Data.ABILITY_NAMES[sub][Math.min(tier, 6)], power: 1 + t * 0.18};
-			return Data.enchant(a, rarity);
+			a = Data.enchant(a, rarity);
+			var set = Data.ABILITY_SETS[sub];
+			if (ab && set && ab != set[0] && Data.ABILITIES[ab] && Data.ABILITIES[ab].type == sub) {
+				a.ab = ab;
+				a.name += " of " + Data.ABILITIES[ab].school;
+			}
+			return a;
 		}
 	static makeRing(stat, tier, rarity = null) { tier = __int(tier);
 			var t = __int(rarity ? 6 : tier);
@@ -185,7 +202,7 @@ class Data {
 	static makeForSlot(cls, slot, tier, rarity) { slot = __int(slot); tier = __int(tier);
 			switch (slot) {
 				case 0: return Data.classSet(Data.makeWeapon(cls.weapon, tier, rarity, "?"), cls);
-				case 1: return Data.classSet(Data.makeAbility(cls.abilityType, tier, rarity), cls);
+				case 1: return Data.classSet(Data.makeAbility(cls.abilityType, tier, rarity, Data.randomAbility(cls.abilityType)), cls);
 				case 2: return Data.classSet(Data.makeArmor(cls.armor, tier, rarity), cls);
 			}
 			return Data.classSet(Data.makeRing(Data.randomStat(), Math.min(5, tier), rarity), cls);
@@ -200,7 +217,7 @@ class Data {
 	static forgeLegendary(item, cls) {
 			switch (item.kind) {
 				case "weapon": return Data.makeWeapon(item.sub, 7, "lg", item.form || "?");
-				case "ability": return Data.makeAbility(item.sub, 6, "lg");
+				case "ability": return Data.makeAbility(item.sub, 6, "lg", item.ab);
 				case "armor": return Data.makeArmor(item.sub, 7, "lg");
 				case "ring": return Data.makeRing(item.sub, 5, "lg");
 			}
@@ -231,22 +248,40 @@ class Data {
 			return __int(10 + item.tier * item.tier * 12);
 		}
 	static abilityText(item) {
-			var lv = __int(Data.viewerLevel), pw = item.power;
-			var cost = __int(0);
-			for (var c of __vals( Data.CLASSES)) if (c.abilityType == item.sub) cost = __int(c.ability.cost);
+			var lv = __int(Data.viewerLevel), pw = item.power, sq = Math.sqrt(pw);
+			var id = Data.abilityId(item);
+			var ab = Data.ABILITIES[id];
+			if (!ab) return "";
+			var n = (base, per) => { return __int(__int((base + lv * per) * pw)); };
 			var t = null;
-			switch (item.sub) {
-				case "spell": t = "<b>Fireball</b>: hurls a fireball at the cursor (up to 9 tiles). It explodes on impact for " + __int((130 + lv * 16) * pw) + " damage in " + (2.6 * Math.sqrt(pw)).toFixed(1) + " tiles and scatters burning embers."; break;
-				case "quiver": t = "<b>Arrow Storm</b>: 6 arrows rain down around the cursor over a second. Each hits a small area for " + __int((40 + lv * 5) * pw) + " damage and slows."; break;
-				case "shield": t = "<b>Shield Wall</b>: plants your shield in front of you for " + (4 * Math.sqrt(pw)).toFixed(1) + "s. Bullets from the front stop on it (it shields your party too). While you stay behind it you take 60% less damage but move slower. The plant bashes and stuns enemies in front."; break;
-				case "tome": t = "<b>Sanctuary</b>: heals you " + __int((40 + lv * 4) * pw) + " HP and consecrates a 3-tile circle for " + (5 * Math.sqrt(pw)).toFixed(1) + "s. Standing in it heals " + __int((10 + lv * 1.2) * pw) + " HP every half second; monsters inside burn for " + __int((20 + lv * 2.5) * pw) + ". Works in the Nexus too."; break;
-				case "cloak": t = "<b>Shadowstep</b>: vanish in smoke and reappear at the cursor (up to 6 tiles, not through walls). You stay invisible for " + (2 * Math.sqrt(pw)).toFixed(1) + "s and your next hit is a Backstab: a guaranteed crit with +50% damage."; break;
-				case "helm": t = "<b>Berserker Charge</b>: rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + __int((60 + lv * 8) * pw) + ". Then go berserk for " + (4 * Math.sqrt(pw)).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
-				case "skull": t = "<b>Soul Harvest</b>: blasts a 3-tile area at the cursor for " + __int((70 + lv * 8) * pw) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * Math.sqrt(pw)).toFixed(1) + "s, shooting the nearest monster for " + __int((18 + lv * 2.5) * pw) + "."; break;
-				case "trap": t = "<b>Snare</b>: throws a trap at the cursor. When a monster comes close, vines root everything nearby (bosses briefly), then it bursts into slowing shards for " + __int((60 + lv * 7) * pw) + " damage."; break;
+			switch (id) {
+				case "fireball": t = "Hurls a fireball at the cursor (up to 9 tiles). It explodes on impact for " + n(130, 16) + " damage in " + (2.6 * sq).toFixed(1) + " tiles and scatters burning embers."; break;
+				case "lightning": t = "After a flash of warning, a bolt drops from the sky at the cursor for " + n(160, 18) + " damage, then jumps to up to 3 more monsters nearby, losing a third each jump."; break;
+				case "frostnova": t = "A burst of ice around you (3.5 tiles): " + n(90, 10) + " damage, freezes monsters for " + (1.2 * sq).toFixed(1) + "s and chills them, and shatters every enemy bullet close to you."; break;
+				case "arrowstorm": t = "6 arrows rain down around the cursor over a second. Each hits a small area for " + n(40, 5) + " damage and slows."; break;
+				case "pierce": t = "One huge arrow that flies 14 tiles, going through every monster in its path for " + n(110, 12) + " damage, ignoring their defense."; break;
+				case "volley": t = "Leap back 3.5 tiles, untouchable in the air, firing a fan of 7 arrows forward for " + n(35, 4) + " each."; break;
+				case "shieldwall": t = "Plants your shield in front of you for " + (4 * sq).toFixed(1) + "s. Bullets from the front stop on it (it shields your party too). Behind it you take 60% less damage but move slower. The plant bashes and stuns enemies in front."; break;
+				case "bash": t = "Charge 3 tiles behind your shield: everything you hit takes " + n(50, 6) + " damage, is knocked back and stunned for " + (1.5 * sq).toFixed(1) + "s."; break;
+				case "banner": t = "Plants a war banner for " + (6 * sq).toFixed(1) + "s. You and your allies within 4 tiles of it get +" + __int(10 * pw) + " Defense and heal " + n(4, 0.5) + " HP every half second."; break;
+				case "sanctuary": t = "Heals you " + n(40, 4) + " HP and consecrates a 3-tile circle for " + (5 * sq).toFixed(1) + "s. Standing in it heals " + n(10, 1.2) + " HP every half second; monsters inside burn for " + n(20, 2.5) + ". Works in the Nexus too."; break;
+				case "smite": t = "A pillar of light strikes the cursor: " + n(120, 14) + " damage in 1.8 tiles, and you and allies in it are healed " + n(30, 3) + " HP."; break;
+				case "ward": t = "Heals you and allies within 5 tiles " + n(60, 6) + " HP, clears bad effects, and wraps everyone in a ward that soaks up the next " + n(40, 5) + " damage for 6s."; break;
+				case "shadowstep": t = "Vanish in smoke and reappear at the cursor (up to 6 tiles, not through walls). You stay invisible for " + (2 * sq).toFixed(1) + "s and your next hit is a Backstab: a guaranteed crit with +50% damage."; break;
+				case "knives": t = "12 knives fly out all around you for " + n(30, 4) + " each and poison what they hit: " + n(8, 1) + " more damage every half second for 3s."; break;
+				case "smoke": t = "Drops a smoke cloud (3 tiles) for " + (5 * sq).toFixed(1) + "s. While you are inside you are invisible; monsters inside are slowed."; break;
+				case "charge": t = "Rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + n(60, 8) + ". Then go berserk for " + (4 * sq).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
+				case "whirlwind": t = "Spin for 2s, hitting everything within 2.2 tiles for " + n(28, 3.5) + " every quarter second. You move a little slower while spinning."; break;
+				case "warcry": t = "A roar that stuns monsters within 4.5 tiles for 1.5s (bosses briefly) and leaves them taking 25% more damage for 5s. You go berserk for 2s."; break;
+				case "harvest": t = "Blasts a 3-tile area at the cursor for " + n(70, 8) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * sq).toFixed(1) + "s, shooting the nearest monster for " + n(18, 2.5) + "."; break;
+				case "prison": t = "Bone spikes burst up in a ring at the cursor: monsters inside (2.5 tiles) are held in place for " + (2.5 * sq).toFixed(1) + "s and take " + n(16, 2) + " every half second for 3s."; break;
+				case "raise": t = "Three skeletons claw out of the ground and fight for you for " + (8 * sq).toFixed(1) + "s, throwing bones at monsters for " + n(20, 3) + "."; break;
+				case "snare": t = "Throws a trap at the cursor. When a monster comes close, vines root everything nearby (bosses briefly), then it bursts into slowing shards for " + n(60, 7) + " damage."; break;
+				case "explosive": t = "Throws a trap at the cursor that blows up when a monster comes close: " + n(150, 16) + " damage in 3 tiles. No roots, just fire."; break;
+				case "wolf": t = "A spirit wolf hunts the nearest monsters for " + (12 * sq).toFixed(1) + "s, biting for " + n(35, 4) + " and slowing them."; break;
 				default: return "";
 			}
-			return "<font color='#e8e0a0'>" + t + "</font>\n<font color='#9a9aaa'>Costs " + cost + " MP. Press SPACE to use.</font>";
+			return "<font color='#e8e0a0'><b>" + ab.name + "</b>: " + t + "</font>\n<font color='#9a9aaa'>Costs " + ab.cost + " MP. Cooldown " + ab.cd + "s. Press SPACE to use.</font>";
 		}
 	static describe(item) {
 			if (!item) return "";
@@ -461,7 +496,7 @@ class Data {
 				var roll = Math.random();
 				var lc = Data.lootClass(cls);
 				if (roll < 0.4) items.push(Data.makeWeapon(lc.weapon, tier, null, "?"));
-				else if (roll < 0.55) items.push(Data.makeAbility(lc.abilityType, Math.min(6, tier)));
+				else if (roll < 0.55) items.push(Data.makeAbility(lc.abilityType, Math.min(6, tier), null, Data.randomAbility(lc.abilityType)));
 				else if (roll < 0.82) items.push(Data.makeArmor(lc.armor, tier));
 				else items.push(Data.makeRing(Data.randomStat(), Math.min(5, __int(tier * 0.7))));
 			}
@@ -2019,6 +2054,10 @@ class Enemy {
 		this.stunT = 0;
 		this.slowT = 0;
 		this.hitT = 0;
+		this.poisonT = 0;
+		this.poisonTick = 0;
+		this.poisonDmg = __int(0);
+		this.vulnT = 0;
 		this.facingLeft = false;
 		this.invuln = false;
 		this.shieldT = 0;
@@ -2580,6 +2619,38 @@ Data.FORMS = {
 			returning: {name: "Returning", desc: "Shots fly out and come back, hitting enemies on the way out and back."}
 		};
 Data.FORM_IDS = ["heavy", "long", "brutal", "scatter", "swift", "siege", "serpent", "returning"];
+Data.ABILITIES = {
+			fireball: {type: "spell", name: "Fireball", cost: 30, cd: 3, col: 0},
+			lightning: {type: "spell", name: "Lightning Strike", cost: 40, cd: 5, school: "Storms", col: 0x3a5ad0},
+			frostnova: {type: "spell", name: "Frost Nova", cost: 45, cd: 9, school: "Frost", col: 0x3aa8d0},
+			arrowstorm: {type: "quiver", name: "Arrow Storm", cost: 30, cd: 4, col: 0},
+			pierce: {type: "quiver", name: "Piercing Shot", cost: 35, cd: 4, school: "Piercing", col: 0x8a8aa0},
+			volley: {type: "quiver", name: "Volley Leap", cost: 30, cd: 7, school: "Flight", col: 0x4a9a5a},
+			shieldwall: {type: "shield", name: "Shield Wall", cost: 30, cd: 9, col: 0},
+			bash: {type: "shield", name: "Shield Bash", cost: 30, cd: 5, school: "Bashing", col: 0x9a6a3a},
+			banner: {type: "shield", name: "Rallying Banner", cost: 45, cd: 16, school: "Rallying", col: 0xb03030},
+			sanctuary: {type: "tome", name: "Sanctuary", cost: 40, cd: 10, col: 0},
+			smite: {type: "tome", name: "Holy Smite", cost: 35, cd: 5, school: "Smiting", col: 0xd0a020},
+			ward: {type: "tome", name: "Divine Ward", cost: 50, cd: 15, school: "Warding", col: 0x60a0e0},
+			shadowstep: {type: "cloak", name: "Shadowstep", cost: 30, cd: 6, col: 0},
+			knives: {type: "cloak", name: "Fan of Knives", cost: 30, cd: 4, school: "Knives", col: 0x3a7a3a},
+			smoke: {type: "cloak", name: "Smoke Bomb", cost: 40, cd: 13, school: "Smoke", col: 0x6a6a6a},
+			charge: {type: "helm", name: "Berserker Charge", cost: 35, cd: 7, col: 0},
+			whirlwind: {type: "helm", name: "Whirlwind", cost: 35, cd: 6, school: "the Whirlwind", col: 0x7a8aa0},
+			warcry: {type: "helm", name: "War Cry", cost: 45, cd: 15, school: "War", col: 0xc04020},
+			harvest: {type: "skull", name: "Soul Harvest", cost: 35, cd: 6, col: 0},
+			prison: {type: "skull", name: "Bone Prison", cost: 35, cd: 7, school: "Bones", col: 0xc0b090},
+			raise: {type: "skull", name: "Raise Dead", cost: 50, cd: 16, school: "the Risen", col: 0x5a9a4a},
+			snare: {type: "trap", name: "Snare", cost: 25, cd: 4, col: 0},
+			explosive: {type: "trap", name: "Explosive Trap", cost: 35, cd: 5, school: "Fire", col: 0xd05020},
+			wolf: {type: "trap", name: "Spirit Wolf", cost: 45, cd: 16, school: "the Wolf", col: 0x7ab0e0}
+		};
+Data.ABILITY_SETS = {
+			spell: ["fireball", "lightning", "frostnova"], quiver: ["arrowstorm", "pierce", "volley"],
+			shield: ["shieldwall", "bash", "banner"], tome: ["sanctuary", "smite", "ward"],
+			cloak: ["shadowstep", "knives", "smoke"], helm: ["charge", "whirlwind", "warcry"],
+			skull: ["harvest", "prison", "raise"], trap: ["snare", "explosive", "wolf"]
+		};
 Data.RING_PREFIX = ["Minor", "", "Greater", "Superior", "Paramount", "Exalted"];
 Data.SHOP = [
 			{id: "hp", name: "Health Potion", price: 50},

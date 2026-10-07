@@ -37,6 +37,8 @@ package realm {
 		public var dead:Boolean = false;
 		public var isBoss:Boolean;
 		public var stunT:Number = 0, slowT:Number = 0, hitT:Number = 0;
+		/** Fan of Knives poison (time left, next tick, damage per tick) and War Cry vulnerability. */
+		public var poisonT:Number = 0, poisonTick:Number = 0, poisonDmg:int = 0, vulnT:Number = 0;
 		public var facingLeft:Boolean = false;
 		/** Bosses can be made immune (the Dark Elder while his crystals stand). */
 		public var invuln:Boolean = false;

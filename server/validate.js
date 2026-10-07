@@ -50,7 +50,15 @@ function checkItem(it) {
     if (it.motion !== undefined && it.motion !== null && !MOTIONS.has(it.motion)) return 'unknown shot motion';
   }
   if (it.kind === 'ability' && it.power !== undefined && (!isNum(it.power) || it.power > 4)) return 'impossible ability power';
+  if (it.kind === 'ability' && it.ab !== undefined && it.ab !== null && !(ABILITY_TYPES[it.ab] && ABILITY_TYPES[it.ab] === it.sub)) return 'unknown ability';
   return null;
+}
+
+/** Each ability's item type (spell, quiver...), from the game's own table. */
+const ABILITY_TYPES = {};
+{
+  const { Data } = require('./sim/gen/game');
+  for (const id in Data.ABILITIES) ABILITY_TYPES[id] = Data.ABILITIES[id].type;
 }
 
 function eachItem(save, fn) {

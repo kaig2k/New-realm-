@@ -181,7 +181,9 @@ function inWorld(world, except) {
 }
 
 /** Players near (x, y) in a world: movement and shots only go to those who can see them. */
-const FX_KINDS = new Set(['fireball', 'shield', 'storm', 'sanctuary', 'shadow', 'charge', 'harvest', 'snare']);
+const FX_KINDS = new Set(['fireball', 'shield', 'storm', 'sanctuary', 'shadow', 'charge', 'harvest', 'snare',
+  'lightning', 'frostnova', 'pierce', 'volley', 'bash', 'banner', 'smite', 'ward', 'knives', 'smoke', 'whirlwind', 'warcry',
+  'prison', 'raise', 'explosive', 'wolf']);
 
 function nearby(c) {
   const r2 = config.viewRange * config.viewRange;
@@ -418,7 +420,7 @@ const handlers = {
     c.fxAt = now;
     const k = String(m.k || '').slice(0, 12);
     if (!FX_KINDS.has(k)) return;
-    const msg = { t: 'fx', id: c.id, k, x: num(m.x), y: num(m.y), tx: num(m.tx), ty: num(m.ty), n: Math.min(30, Math.max(0, num(m.n))) };
+    const msg = { t: 'fx', id: c.id, k, x: num(m.x), y: num(m.y), tx: num(m.tx), ty: num(m.ty), n: Math.min(2000, Math.max(0, num(m.n))) };
     for (const o of nearby(c)) o.send(msg);
   },
 

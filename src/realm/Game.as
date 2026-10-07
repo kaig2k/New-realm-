@@ -1378,6 +1378,7 @@ package realm {
 			}
 			updateNexus(dt);
 			updateTraps(dt);
+			updateAfflictions(dt);
 			abil.update(dt);
 			introBosses();
 			updatePet(dt);
@@ -1641,6 +1642,8 @@ package realm {
 				return;
 			}
 			raw = int(raw * p.damageMult);
+			// War Cry: shaken monsters take a quarter more
+			if (e.vulnT > 0) raw = int(raw * 1.25);
 			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.1));
 			var crit:Boolean = Math.random() < p.critChance;
@@ -1653,7 +1656,8 @@ package realm {
 			}
 			if (crit) raw = int(raw * p.critMult);
 			if (effect != "shard") p.shotsHit++;
-			var d:int = Math.max(1, raw - e.defense, int(raw * 0.15));
+			// Piercing Shot ignores defense
+			var d:int = effect == "true" ? Math.max(1, raw) : Math.max(1, raw - e.defense, int(raw * 0.15));
 			// a remote copy's health is only our guess: the host gets the full hit and caps it itself
 			if (!e.remote && d > e.hp) d = Math.ceil(e.hp);
 			e.hp = Math.max(0, e.hp - d);
@@ -1669,6 +1673,11 @@ package realm {
 			if (e.remote) sync.hit(e, d, effect == "slow" ? 3 : 0, 0);
 			if (opt("dmg")) floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
 			if (effect == "slow") e.slowT = 3;
+			if (effect == "poison" && e.hp > 0) {
+				if (e.poisonT <= 0) floatText(e.x, e.y - e.r - 1.1, "Poisoned", 0x90f070);
+				e.poisonT = 3;
+				e.poisonDmg = p.poisonDmg;
+			}
 			// Starforged / Primordial passives (not from passive-spawned shards)
 			if (effect != "shard") {
 				switch (p.weapon ? p.weapon.passive : null) {
@@ -1707,9 +1716,39 @@ package realm {
 			return n;
 		}
 
-		/** Huntress trap: lands at the target, arms, then bursts into slowing shards. */
-		public function throwTrap(fx:Number, fy:Number, tx:Number, ty:Number, dmg:int):void {
-			traps.push({x: tx, y: ty, t: 0.5, life: 6, dmg: dmg});
+		/** Poison ticks and War Cry fading on the monsters you hit. */
+		private function updateAfflictions(dt:Number):void {
+			for each (var e:Enemy in enemies.concat()) {
+				if (e.vulnT > 0) e.vulnT -= dt;
+				if (e.poisonT <= 0 || e.dead) continue;
+				e.poisonT -= dt;
+				e.poisonTick -= dt;
+				if (e.poisonTick > 0) continue;
+				e.poisonTick = 0.5;
+				hurtEnemy(e, e.poisonDmg, "shard", e.x, e.y);
+				if (opt("parts") && parts.length < 400) parts.push(new Particle(e.x + (Math.random() - 0.5) * 0.6, e.y - 0.3, 0, -1, 0.5, Sprites.glow(0x90f070)));
+			}
+		}
+
+		/** Frost Nova: enemy bullets close to (x, y) shatter. Returns how many. */
+		public function clearEnemyShots(x:Number, y:Number, r:Number):int {
+			var n:int = 0;
+			for (var i:int = shots.length - 1; i >= 0; i--) {
+				var s:Projectile = shots[i];
+				if (!s.enemy) continue;
+				var dx:Number = s.x - x, dy:Number = s.y - y;
+				if (dx * dx + dy * dy < r * r) {
+					if (opt("parts") && parts.length < 400) parts.push(new Particle(s.x, s.y, 0, -0.6, 0.35, Sprites.glow(0xc0f0ff)));
+					shots.splice(i, 1);
+					n++;
+				}
+			}
+			return n;
+		}
+
+		/** Huntress trap: lands at the target, arms, then bursts (Snare: vines and slowing shards; Explosive: fire). */
+		public function throwTrap(fx:Number, fy:Number, tx:Number, ty:Number, dmg:int, kind:String = "snare"):void {
+			traps.push({x: tx, y: ty, t: 0.5, life: 6, dmg: dmg, kind: kind});
 			burst(tx, ty, 0xc0a060, 8);
 		}
 
@@ -1724,6 +1763,13 @@ package realm {
 						var dx:Number = e.x - t.x, dy:Number = e.y - t.y;
 						if (dx * dx + dy * dy < 2.2 * 2.2) { fire = true; break; }
 					}
+				}
+				if (fire && t.kind == "boom") {
+					abil.show("boom", t.x, t.y, 0, 0, 3, false);
+					blastAt(t.x, t.y, 3, t.dmg);
+					shake(0.3, 6);
+					traps.splice(i, 1);
+					continue;
 				}
 				if (fire) {
 					// Snare: vines root everything close, then the trap bursts

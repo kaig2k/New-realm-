@@ -305,6 +305,17 @@ async function run() {
   B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb' });
   await wait(200);
 
+  console.log('ability items');
+  {
+    const { Data } = require('./sim/gen/game');
+    const items = require('./items');
+    const storm = Data.makeAbility('spell', 3, null, 'lightning');
+    check('a Spell of Storms is a valid item', checkItem(storm) === null && storm.ab === 'lightning');
+    check('an ability from another class is refused', checkItem(Object.assign({}, storm, { ab: 'wolf' })) !== null);
+    check('changing which ability an item holds changes its fingerprint', items.fingerprint(storm) !== items.fingerprint(Object.assign({}, storm, { ab: 'frostnova' })));
+    check('starter abilities still need no id', items.STARTERS.has(items.fingerprint(Data.makeAbility('spell', 0))));
+  }
+
   console.log('raids');
   {
     const { WorldSim } = require('./sim/worldsim');

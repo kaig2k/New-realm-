@@ -42,6 +42,19 @@ package realm {
 		/** Shadowstep: the next hit is a Backstab. */
 		public var critNext:Boolean = false;
 		private var dashT:Number = 0, dashVx:Number = 0, dashVy:Number = 0, dashDmg:int = 0, dashPow:Number = 1;
+		/** What the dash is: "charge" (then berserk), "bash" (stuns and knocks back) or "leap" (no hits). */
+		private var dashKind:String = "charge";
+		/** Whirlwind: time left spinning and its damage. */
+		public var spinT:Number = 0;
+		private var spinTick:Number = 0, spinDmg:int = 0;
+		/** Divine Ward: damage it still soaks up and how long it lasts. */
+		public var wardHp:Number = 0, wardT:Number = 0;
+		/** Rallying Banner Defense, set every frame by the banners you stand near. */
+		public var auraDef:int = 0;
+		/** Fan of Knives poison damage per tick. */
+		public var poisonDmg:int = 0;
+		/** The equipped ability's full cooldown (for the sidebar). */
+		public var abilityCd:Number = 1;
 		private var dashHits:Dictionary;
 		public var hitT:Number = 0;
 		public var lastHitBy:String = "";
@@ -64,7 +77,7 @@ package realm {
 
 		private var shootT:Number = 0;
 		private var attackT:Number = 0;
-		private var abilityT:Number = 0;
+		public var abilityT:Number = 0;
 		private var walkT:Number = 0;
 		private var dustT:Number = 0;
 		private var burnTick:Number = 0;
@@ -117,7 +130,7 @@ package realm {
 		public function get maxHp():int { return stat("hp"); }
 		public function get maxMp():int { return stat("mp"); }
 		public function get att():int { return stat("att"); }
-		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def"); }
+		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef; }
 		public function get spd():int { return stat("spd"); }
 		public function get dex():int { return stat("dex"); }
 		public function get vit():int { return stat("vit"); }
@@ -244,6 +257,8 @@ package realm {
 			if (shootT > 0) shootT -= dt;
 			if (attackT > 0) attackT -= dt;
 			if (abilityT > 0) abilityT -= dt;
+			if (wardT > 0) { wardT -= dt; if (wardT <= 0) wardHp = 0; }
+			if (spinT > 0) updateSpin(dt, g);
 			for (var st:String in status) if (status[st] > 0) status[st] -= dt;
 			for (var bf:String in buffs) if (buffs[bf] > 0) buffs[bf] -= dt;
 			if (buffs.vigor > 0 && hp > 0) hp = Math.min(maxHp, hp + maxHp * 0.04 * dt);
@@ -266,7 +281,7 @@ package realm {
 			if (status.confused > 0) { mx = -mx; my = -my; }
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
 			if (dashT > 0) { mx = 0; my = 0; updateDash(dt, g); }
-			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (shielded ? 0.55 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (spinT > 0 ? 0.75 : 1) * (shielded ? 0.55 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;
@@ -376,14 +391,15 @@ package realm {
 		}
 
 		private function useAbility(g:Game):void {
-			var ab:Object = cls.ability;
 			if (abilityT > 0) return;
-			if (!ability) { g.msg("Equip an ability item first.", 0xff8080); abilityT = 0.5; return; }
+			if (!ability) { g.msg("Equip an ability item first.", 0xff8080); abilityT = 0.5; abilityCd = 0.5; return; }
+			var id:String = Data.abilityId(ability);
+			var ab:Object = Data.ABILITIES[id];
 			var cost:int = Math.ceil(ab.cost * (1 - rank("arcane") * 0.06));
-			if (mp < cost) { g.msg("Not enough MP for " + ability.name, 0x8080ff); return; }
+			if (mp < cost) { g.msg("Not enough MP for " + ab.name, 0x8080ff); return; }
 			if (g.world.isSafe(x, y) && cls.id != "priest") return;
 			mp -= cost;
-			abilityT = 0.5;
+			abilityT = abilityCd = ab.cd;
 			Sfx.play("ability", 0.5);
 			attackT = 0.3;
 			var pow:Number = ability.power;
@@ -392,8 +408,11 @@ package realm {
 			var dx:Number = aimX - x, dy:Number = aimY - y;
 			var d:Number = Math.sqrt(dx * dx + dy * dy);
 			if (d > 9) { dx *= 9 / d; dy *= 9 / d; }
-			switch (cls.abilityType) {
-				case "spell":
+			var sq:Number = Math.sqrt(pow);
+			var tx2:Number = x + dx, ty2:Number = y + dy;
+			var k:int;
+			switch (id) {
+				case "fireball":
 					// Fireball: a slow ball of flame that bursts where it hits (or at the cursor)
 					dmg = (130 + level * 16) * pow;
 					var fb:Projectile = new Projectile(x, y, ang, 12, Math.max(0.15, Math.sqrt(dx * dx + dy * dy) / 12), 0, false, 0.4,
@@ -403,7 +422,7 @@ package realm {
 					g.addShot(fb);
 					g.abil.show("fireball", x, y, x + dx, y + dy, 0, true);
 					break;
-				case "quiver":
+				case "arrowstorm":
 					// Arrow Storm: arrows rain down over the target area and slow what they hit
 					dmg = (40 + level * 5) * pow;
 					var cxs:Number = x + dx, cys:Number = y + dy;
@@ -415,7 +434,7 @@ package realm {
 						g.abil.anim("arrow", cxs + Math.cos(ra) * rr, cys + Math.sin(ra) * rr, 0.3 + i * 0.12, ao);
 					}
 					break;
-				case "shield":
+				case "shieldwall":
 					// Shield Wall: plant the shield; bullets from the front stop on it, you take less damage behind it but move slower
 					shieldT = 4 * Math.sqrt(pow);
 					shieldX = x + Math.cos(ang) * 0.9;
@@ -425,7 +444,7 @@ package realm {
 					if (n > 0) g.floatText(x, y - 1.2, "Bashed x" + n, 0xffff60);
 					g.shake(0.15, 4);
 					break;
-				case "tome":
+				case "sanctuary":
 					// Sanctuary: a holy circle that heals you while you stand in it and burns monsters inside
 					var amount:int = (40 + level * 4) * pow;
 					var heal:int = Math.min(amount, maxHp - int(hp));
@@ -435,7 +454,7 @@ package realm {
 					g.abil.addZone(x, y, 3, life, (20 + level * 2.5) * pow, (10 + level * 1.2) * pow);
 					g.abil.show("sanctuary", x, y, x, y, life, true);
 					break;
-				case "cloak":
+				case "shadowstep":
 					// Shadowstep: vanish in smoke, reappear at the cursor; your next hit is a guaranteed Backstab
 					var sx0:Number = x, sy0:Number = y;
 					var reach:Number = Math.min(6, Math.sqrt(dx * dx + dy * dy));
@@ -449,8 +468,9 @@ package realm {
 					critNext = true;
 					g.abil.show("shadow", sx0, sy0, x, y, 0, true);
 					break;
-				case "helm":
+				case "charge":
 					// Berserker Charge: rush forward through monsters, then go berserk
+					dashKind = "charge";
 					dashT = 0.3;
 					dashVx = Math.cos(ang) * 22;
 					dashVy = Math.sin(ang) * 22;
@@ -460,7 +480,7 @@ package realm {
 					invulnT = Math.max(invulnT, 0.3);
 					g.abil.show("charge", x, y, x + dashVx * dashT, y + dashVy * dashT, 0, true);
 					break;
-				case "skull":
+				case "harvest":
 					// Soul Harvest: a draining blast, and two spirit skulls circle you and shoot
 					dmg = (70 + level * 8) * pow;
 					var hits:int = g.blastAt(x + dx, y + dy, 3, dmg);
@@ -470,13 +490,160 @@ package realm {
 					g.abil.addSpirits(2, 5 * Math.sqrt(pow), (18 + level * 2.5) * pow);
 					g.abil.show("harvest", x, y, x + dx, y + dy, 0, true);
 					break;
-				case "trap":
+				case "snare":
 					// Snare: the trap roots monsters in vines, then bursts into slowing shards
 					g.abil.show("snare", x, y, x + dx, y + dy, 0, true);
 					var tdmg:int = int((60 + level * 7) * pow);
 					var tx:Number = x + dx, ty:Number = y + dy;
 					g.abil.anim("land", tx, ty, 0.35, {fn: function():void { g.throwTrap(tx, ty, tx, ty, tdmg); }});
 					break;
+
+				// ---- the second and third ability of each class
+				case "lightning":
+					dmg = (160 + level * 18) * pow;
+					g.abil.show("lightning", x, y, tx2, ty2, 0, true);
+					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.lightning(tx2, ty2, dmg); }});
+					break;
+				case "frostnova":
+					dmg = (90 + level * 10) * pow;
+					g.abil.show("frostnova", x, y, x, y, 3.5, true);
+					for each (var fe:Enemy in g.enemies.concat()) {
+						var fdx:Number = fe.x - x, fdy:Number = fe.y - y;
+						if (!fe.dead && fdx * fdx + fdy * fdy < 3.5 * 3.5) g.hurtEnemy(fe, dmg, "slow", fe.x, fe.y);
+					}
+					g.stunAround(x, y, 3.5, 1.2 * sq);
+					var shattered:int = g.clearEnemyShots(x, y, 3.5);
+					if (shattered > 0) g.floatText(x, y - 1.4, "Shattered x" + shattered, 0xa0e8ff);
+					g.shake(0.2, 4);
+					break;
+				case "pierce":
+					dmg = (110 + level * 12) * pow;
+					var pa:Projectile = new Projectile(x, y, ang, 20, 0.7, dmg, false, 0.5, Sprites.projectile("arrow", 0xd8e0ff, 6), true, name, "true");
+					pa.trailCol = 0xd8e0ff;
+					g.addShot(pa);
+					g.abil.show("pierce", x, y, x + Math.cos(ang) * 14, y + Math.sin(ang) * 14, 0, true);
+					break;
+				case "volley":
+					dashKind = "leap";
+					dashT = 0.25;
+					dashVx = -Math.cos(ang) * 14;
+					dashVy = -Math.sin(ang) * 14;
+					dashDmg = 0;
+					dashHits = new Dictionary(true);
+					invulnT = Math.max(invulnT, 0.4);
+					var vfr:Vector.<BitmapData> = Sprites.projectile("arrow", 0xc0ffa0, 4);
+					for (k = -3; k <= 3; k++) {
+						var va:Projectile = new Projectile(x, y, ang + k * 0.13, 16, 0.6, (35 + level * 4) * pow, false, 0.3, vfr, false, name, null);
+						va.trailCol = 0xc0ffa0;
+						g.addShot(va);
+					}
+					g.abil.show("volley", x, y, x + dashVx * dashT, y + dashVy * dashT, 0, true);
+					break;
+				case "bash":
+					dashKind = "bash";
+					dashT = 0.18;
+					dashVx = Math.cos(ang) * 17;
+					dashVy = Math.sin(ang) * 17;
+					dashDmg = (50 + level * 6) * pow;
+					dashPow = pow;
+					dashHits = new Dictionary(true);
+					invulnT = Math.max(invulnT, 0.2);
+					g.abil.show("bash", x, y, x + dashVx * dashT, y + dashVy * dashT, 0, true);
+					break;
+				case "banner":
+					g.abil.show("banner", x, y, x, y, 6 * sq, true);
+					g.shake(0.15, 3);
+					break;
+				case "smite":
+					dmg = (120 + level * 14) * pow;
+					var sheal:int = (30 + level * 3) * pow;
+					g.abil.show("smite", x, y, tx2, ty2, sheal, true);
+					g.abil.anim("land", tx2, ty2, 0.3, {fn: function():void {
+						g.blastAt(tx2, ty2, 1.8, dmg);
+						var hx:Number = x - tx2, hy:Number = y - ty2;
+						if (hx * hx + hy * hy < 1.8 * 1.8) healBy(sheal, g);
+					}});
+					break;
+				case "ward":
+					var wheal:int = (60 + level * 6) * pow;
+					healBy(wheal, g);
+					for (var cs:String in status) status[cs] = 0;
+					wardHp = (40 + level * 5) * pow;
+					wardT = 6;
+					g.abil.show("ward", x, y, x, y, wheal, true);
+					break;
+				case "knives":
+					dmg = (30 + level * 4) * pow;
+					poisonDmg = (8 + level) * pow;
+					var kfr:Vector.<BitmapData> = Sprites.projectile("knife", 0x90f070, 3);
+					for (k = 0; k < 12; k++) {
+						var kn:Projectile = new Projectile(x, y, k * Math.PI / 6 + ang, 11, 0.55, dmg, false, 0.25, kfr, false, name, "poison");
+						kn.trailCol = 0x90f070;
+						g.addShot(kn);
+					}
+					g.abil.show("knives", x, y, x + Math.cos(ang), y + Math.sin(ang), 0, true);
+					break;
+				case "smoke":
+					g.abil.show("smoke", x, y, x, y, 5 * sq, true);
+					invisT = Math.max(invisT, 0.3);
+					break;
+				case "whirlwind":
+					spinT = 2;
+					spinTick = 0;
+					spinDmg = (28 + level * 3.5) * pow;
+					g.abil.show("whirlwind", x, y, x, y, 2, true);
+					break;
+				case "warcry":
+					var stunned:int = g.stunAround(x, y, 4.5, 1.5);
+					for each (var we:Enemy in g.enemies) {
+						var wdx:Number = we.x - x, wdy:Number = we.y - y;
+						if (!we.dead && wdx * wdx + wdy * wdy < 4.5 * 4.5) we.vulnT = 5;
+					}
+					berserkT = Math.max(berserkT, 2);
+					g.abil.show("warcry", x, y, x, y, 4.5, true);
+					g.floatText(x, y - 1.6, stunned > 0 ? "WAR CRY! x" + stunned : "WAR CRY!", 0xff7040);
+					g.shake(0.35, 6);
+					break;
+				case "prison":
+					g.stunAround(tx2, ty2, 2.5, 2.5 * sq);
+					g.abil.addZone(tx2, ty2, 2.5, 3, (16 + level * 2) * pow, 0);
+					g.abil.show("prison", x, y, tx2, ty2, 3, true);
+					break;
+				case "raise":
+					g.abil.addMinions("risen", 3, 8 * sq, (20 + level * 3) * pow);
+					g.abil.show("raise", x, y, x, y, 0, true);
+					break;
+				case "explosive":
+					var edmg:int = int((150 + level * 16) * pow);
+					g.abil.show("explosive", x, y, tx2, ty2, 0, true);
+					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.throwTrap(tx2, ty2, tx2, ty2, edmg, "boom"); }});
+					break;
+				case "wolf":
+					g.abil.addMinions("spirit_wolf", 1, 12 * sq, (35 + level * 4) * pow);
+					g.abil.show("wolf", x, y, x, y, 0, true);
+					break;
+			}
+		}
+
+		/** Heals you (from your own or an ally's ability), with a green number. */
+		public function healBy(amount:int, g:Game):void {
+			var before:int = int(hp);
+			hp = Math.min(maxHp, hp + amount);
+			if (int(hp) > before) g.floatText(x, y - 1.2, "+" + (int(hp) - before), 0x60ff60);
+		}
+
+		/** Whirlwind: hit everything close every quarter second. */
+		private function updateSpin(dt:Number, g:Game):void {
+			spinT -= dt;
+			spinTick -= dt;
+			if (spinTick > 0) return;
+			spinTick = 0.25;
+			for each (var e:Enemy in g.enemies.concat()) {
+				var ex:Number = e.x - x, ey:Number = e.y - y;
+				if (!e.dead && ex * ex + ey * ey < 2.2 * 2.2) {
+					g.hurtEnemy(e, spinDmg, "shard", e.x, e.y);
+					g.burst(e.x, e.y, 0xd0d8e8, 3);
+				}
 			}
 		}
 
@@ -503,18 +670,30 @@ package realm {
 				if (!g.world.canStand(nx, ny, R, false)) { dashT = 0; break; }
 				x = nx; y = ny;
 			}
-			if (Game.opt("parts") && g.parts.length < 420) g.parts.push(new Particle(x, y, 0, 0, 0.25, Sprites.glow(0xff5030)));
-			for each (var e:Enemy in g.enemies.concat()) {
+			if (Game.opt("parts") && g.parts.length < 420) g.parts.push(new Particle(x, y, 0, 0, 0.25, Sprites.glow(dashKind == "leap" ? 0xc0ffa0 : dashKind == "bash" ? 0xffe0a0 : 0xff5030)));
+			if (dashDmg > 0) for each (var e:Enemy in g.enemies.concat()) {
 				if (e.dead || dashHits[e]) continue;
 				var ex:Number = e.x - x, ey:Number = e.y - y, er:Number = e.r + 0.7;
 				if (ex * ex + ey * ey < er * er) {
 					dashHits[e] = true;
 					g.hurtEnemy(e, dashDmg, null, e.x, e.y);
-					g.burst(e.x, e.y, 0xff5030, 8);
+					if (dashKind == "bash") {
+						// Shield Bash: stun, and shove what this game runs out of the way
+						g.stunAround(e.x, e.y, 0.2, 1.5 * Math.sqrt(dashPow));
+						if (!e.remote && !e.isBoss) {
+							var kd:Number = Math.sqrt(ex * ex + ey * ey) || 1;
+							for (var kk:int = 0; kk < 10; kk++) {
+								var kx:Number = e.x + ex / kd * 0.15, ky:Number = e.y + ey / kd * 0.15;
+								if (!g.world.canStand(kx, ky, e.r * 0.8, true)) break;
+								e.x = kx; e.y = ky;
+							}
+						}
+						g.burst(e.x, e.y, 0xffe0a0, 10);
+					} else g.burst(e.x, e.y, 0xff5030, 8);
 					g.shake(0.1, 3);
 				}
 			}
-			if (dashT <= 0) {
+			if (dashT <= 0 && dashKind == "charge") {
 				berserkT = 4 * Math.sqrt(dashPow);
 				g.ring(x, y, 0xff4030, 20);
 			}
@@ -681,6 +860,14 @@ package realm {
 			}
 			var d:int = Math.max(raw - def, int(raw * 0.15));
 			if (shielded) d = Math.max(1, int(d * 0.4));
+			// Divine Ward soaks up damage first
+			if (wardHp > 0) {
+				var soak:int = Math.min(int(wardHp), d);
+				wardHp -= soak;
+				d -= soak;
+				if (wardHp <= 0) { wardT = 0; g.burst(x, y, 0x90c8ff, 10); }
+				if (d <= 0) { g.floatText(x, y - 1.1, "Warded", 0x90c8ff); return; }
+			}
 			// Protection absorbs damage first
 			if (pt > 0) {
 				var absorbed:int = Math.min(int(pt), d);

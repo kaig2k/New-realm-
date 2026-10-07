@@ -216,7 +216,7 @@ package realm {
 			if (it.uid) return "u:" + it.uid;
 			if (it.set) return "s:" + it.set + ":" + it.sub;
 			if (it.rarity) return "n:" + it.rarity + ":" + it.name;
-			return "t:" + it.kind + ":" + it.sub + ":" + it.tier;
+			return "t:" + it.kind + ":" + it.sub + ":" + it.tier + (it.ab ? ":" + it.ab : "");
 		}
 
 		private static function hash(s:String):uint {
@@ -320,6 +320,8 @@ package realm {
 					if (named) pal = namedPal(mainColour(it, h), h);
 					else {
 						var ac:Array = ABIL_COL[it.sub] || [0x8a2a2a, 0xe8e0c8];
+						// the other two abilities of each type have their own colour
+						if (it.ab && Data.ABILITIES[it.ab] && Data.ABILITIES[it.ab].col) ac = [Data.ABILITIES[it.ab].col, ac[1]];
 						var base:uint = Sprites.shade(ac[0], 0.85 + t * 0.07);
 						var tp:Object = TIER_PAL[Math.min(7, t + 1)];
 						pal = {B: base, b: Sprites.shade(base, 0.6), H: ac[1], G: tp.G, g: tp.g, W: 0xe8e0c8, R: tp.R, r: tp.r};

@@ -409,6 +409,7 @@ package realm {
 
 			equip[0].setItem(p.weapon);
 			equip[1].setItem(p.ability);
+			equip[1].setCooldown(p.abilityT > 0 ? p.abilityT / p.abilityCd : 0, p.abilityT);
 			equip[2].setItem(p.armor);
 			equip[3].setItem(p.ring);
 			var i:int;
@@ -704,6 +705,50 @@ class Slot extends Sprite {
 	}
 
 	private var upArrow:Shape;
+	private var cdShape:Shape;
+	private var cdTf:TextField;
+	private var cdLast:Number = 0;
+	private var readyGlow:Number = 0;
+
+	/** Ability cooldown: a dark sweep that empties clockwise, the seconds left, and a flash when ready. */
+	public function setCooldown(frac:Number, secs:Number):void {
+		if (!cdShape) {
+			cdShape = new Shape();
+			addChild(cdShape);
+			cdTf = Ui.text(15, 0xffffff, true, "center", 48, true);
+			cdTf.y = 14;
+			addChild(cdTf);
+		}
+		if (frac <= 0 && cdLast > 0) readyGlow = 1;
+		cdLast = frac;
+		var g:* = cdShape.graphics;
+		g.clear();
+		if (frac > 0) {
+			g.beginFill(0x000000, 0.62);
+			var a0:Number = -Math.PI / 2, a1:Number = a0 + Math.PI * 2 * frac;
+			g.moveTo(24, 24);
+			for (var i:int = 0; i <= 24; i++) {
+				var a:Number = a0 + (a1 - a0) * i / 24;
+				// a square sweep: push each ray out to the slot's edge
+				var cx:Number = Math.cos(a), cy:Number = Math.sin(a);
+				var k:Number = 24 / Math.max(Math.abs(cx), Math.abs(cy));
+				g.lineTo(24 + cx * k, 24 + cy * k);
+			}
+			g.lineTo(24, 24);
+			g.endFill();
+			cdTf.text = secs >= 1 ? String(Math.ceil(secs)) : secs.toFixed(1);
+			cdTf.visible = true;
+		} else cdTf.visible = false;
+		if (readyGlow > 0) {
+			g.lineStyle(3, 0xfff0a0, readyGlow);
+			g.drawRoundRect(1, 1, 46, 46, 10, 10);
+			g.lineStyle();
+			g.beginFill(0xffffff, readyGlow * 0.25);
+			g.drawRoundRect(1, 1, 46, 46, 10, 10);
+			g.endFill();
+			readyGlow = Math.max(0, readyGlow - 1 / 30);
+		}
+	}
 
 	/** A small green arrow: better than what you have equipped. */
 	public function setUpgrade(on:Boolean):void {

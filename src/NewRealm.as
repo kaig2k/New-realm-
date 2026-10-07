@@ -32,6 +32,7 @@ package {
 			stage.frameRate = 60;
 			stage.quality = StageQuality.HIGH;
 			realm.Bosses.init();
+			realm.Cursor.install(stage);
 			Ui.loadFonts(showTitle);
 		}
 

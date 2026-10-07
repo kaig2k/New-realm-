@@ -313,7 +313,7 @@ package realm {
 			if (wantShoot && !w.isSafe(x, y)) {
 				facingLeft = inp.mx / g.zoom < g.scrX(x, y);
 				attackT = 0.25;
-				if (shootT <= 0) { shoot(g); Sfx.play("shoot", 0.5, 0.09); }
+				if (shootT <= 0) { shoot(g); Sfx.play("shoot", 0.5, 0.09); Cursor.kick(0.16); }
 			} else if (mx != 0) {
 				facingLeft = mx < 0;
 			}

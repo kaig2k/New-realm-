@@ -253,6 +253,7 @@ package realm {
 			hud = new Hud(this);
 			hud.x = VIEW_W;
 			addChild(hud);
+			Cursor.modeFn = cursorMode;
 
 			buildChatInput();
 			buildPauseMenu();
@@ -514,6 +515,7 @@ package realm {
 				add("Damage numbers: " + onOff("dmg"), toggle("dmg"), 32, 38);
 				add("Particles: " + onOff("parts"), toggle("parts"), 32, 38);
 				add("Screen shake: " + onOff("shake"), toggle("shake"), 32, 38);
+				add("Game cursor: " + onOff("cursor"), toggle("cursor"), 32, 38);
 				y += 6;
 				add("Back", function():void { menuPage = "main"; refreshPauseMenu(); }, 32, 38);
 			} else {
@@ -851,6 +853,23 @@ package realm {
 		}
 
 		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
+		/** What the game cursor should look like: a crosshair over the world, red over a monster. */
+		private function cursorMode():int {
+			if (!stage || !input || !player) return Cursor.ARROW;
+			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
+			if (mx >= VIEW_W || my < 0 || my >= VIEW_H || uiCaptured()) return Cursor.ARROW;
+			if (chatInput && chatInput.visible && chatInput.hitTestPoint(mx, my, true)) return Cursor.ARROW;
+			// in screen space, around the drawn body (sprites stand above their foot point)
+			var sx:Number = mx / zoom, sy:Number = my / zoom;
+			for each (var e:Enemy in enemies) {
+				if (e.dead) continue;
+				var rr:Number = Math.max(14, e.r * TS * 1.15);
+				var dx:Number = sx - scrX(e.x, e.y), dy:Number = sy - (scrY(e.x, e.y) - e.r * TS * 0.5);
+				if (dx * dx + dy * dy < rr * rr) return Cursor.AIM_FOE;
+			}
+			return Cursor.AIM;
+		}
+
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
@@ -1255,6 +1274,7 @@ package realm {
 
 		public function destroy():void {
 			removeEventListener(Event.ENTER_FRAME, tick);
+			if (Cursor.modeFn == cursorMode) Cursor.modeFn = null;
 			if (input) input.dispose();
 		}
 

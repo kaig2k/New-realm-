@@ -171,6 +171,9 @@ package realm {
 						var ra:Number = Math.random() * Math.PI * 2, rr:Number = Math.sqrt(Math.random()) * f.r;
 						anim("arrow", f.x + Math.cos(ra) * rr, f.y + Math.sin(ra) * rr, 0.3);
 					}
+				} else if (f.k == "pillar" && Math.random() < dt * 30 && Game.opt("parts") && g.parts.length < 420) {
+					var pp:Player = g.player;
+					g.parts.push(new Particle(pp.x + (Math.random() - 0.5) * 0.8, pp.y + 0.2, 0, -3 - Math.random() * 3, 0.7, Sprites.glow(Math.random() < 0.5 ? 0xfff080 : 0xb0ff90)));
 				} else if (f.k == "sanct" && Math.random() < dt * 14 && Game.opt("parts") && g.parts.length < 420) {
 					var sa:Number = Math.random() * Math.PI * 2, sr:Number = Math.sqrt(Math.random()) * f.r;
 					g.parts.push(new Particle(f.x + Math.cos(sa) * sr, f.y + Math.sin(sa) * sr, 0, -1.2, 0.7, Sprites.glow(0xfff0a0)));
@@ -317,6 +320,20 @@ package realm {
 						pt.x = int(cx - arrow.width / 2);
 						pt.y = int(cy - arrow.height - TS * 4 * (1 - q));
 						canvas.copyPixels(arrow, arrow.rect, pt, null, null, true);
+						break;
+					case "pillar":
+						// a column of light that follows you as it fades
+						var pl:Player = g.player;
+						var px:Number = X(pl.x, pl.y), py:Number = Y(pl.x, pl.y);
+						var pa:Number = q < 0.15 ? q / 0.15 : (1 - q) / 0.85;
+						var pw:Number = 26 + Math.sin(f.t * 12) * 3;
+						mtx.createGradientBox(pw, TS * 6, Math.PI / 2, px - pw / 2, py - TS * 6);
+						gr.beginGradientFill("linear", [f.col, f.col], [0, 0.55 * pa], [0, 255], mtx);
+						gr.drawRect(px - pw / 2, py - TS * 6, pw, TS * 6);
+						gr.endFill();
+						gr.beginFill(0xffffff, 0.35 * pa);
+						gr.drawEllipse(px - pw, py - 8, pw * 2, 16);
+						gr.endFill();
 						break;
 					case "flash":
 						var fr:Number = f.r * TS * (0.6 + q * 0.4);

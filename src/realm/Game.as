@@ -4099,7 +4099,9 @@ package realm {
 					canvas.copyPixels(beam, beam.rect, pt, null, null, true);
 				}
 				var hop:int = b.age < 0.5 ? int(Math.abs(Math.sin(b.age * 19)) * 22 * (1 - b.age / 0.5)) : 0;
-				drawEntity(Sprites.get(b.spr), bx, by, hop);
+				var btop:Number = drawEntity(Sprites.get(b.spr), bx, by, hop);
+				// good bags show their best item floating above them
+				if (!b.vault && BEAM_BAGS.indexOf(b.spr) >= 0) drawBagPreview(b, bx, btop);
 			}
 
 			// portals and labels
@@ -4341,6 +4343,25 @@ package realm {
 			}
 		}
 		private var introTick:int = -1;
+
+		private var previewMtx:Matrix = new Matrix();
+		private static const RARITY_RANK:Object = {gd: 7, ar: 6, lg: 5, fb: 4, ut: 3, st: 2};
+
+		private function drawBagPreview(b:LootBag, cx:Number, top:Number):void {
+			var best:Object = null, bestR:Number = -1;
+			for each (var it:Object in b.items) {
+				if (!it) continue;
+				var r:Number = (RARITY_RANK[it.rarity] || 0) * 10 + (it.tier || 0);
+				if (r > bestR) { bestR = r; best = it; }
+			}
+			if (!best) return;
+			var ic:BitmapData = Sprites.icon(best);
+			var sc:Number = 0.62;
+			previewMtx.identity();
+			previewMtx.scale(sc, sc);
+			previewMtx.translate(int(cx - ic.width * sc / 2), int(top - ic.height * sc - 4 + Math.sin(time * 3 + b.x) * 3));
+			canvas.draw(ic, previewMtx, null, null, null, true);
+		}
 
 		/** Monsters that just died: {bd, x, y, t, big}. */
 		private var corpses:Array = [];

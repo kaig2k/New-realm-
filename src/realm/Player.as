@@ -52,6 +52,7 @@ package realm {
 		/** Status effect timers (RotMG-style conditions). */
 		public var status:Object = {slowed: 0, paralyzed: 0, confused: 0, armorbroken: 0, bleeding: 0};
 		public static const STATUS_TIME:Object = {slowed: 3, paralyzed: 1.2, confused: 2.5, armorbroken: 4, bleeding: 3};
+		private static const STAT_SHORT:Object = {hp: "HP", mp: "MP", att: "ATT", def: "DEF", spd: "SPD", dex: "DEX", vit: "VIT", wis: "WIS", mgt: "FUR", luc: "FOC", prt: "WRD"};
 		public static const STATUS_NAMES:Object = {slowed: "Slowed", paralyzed: "Paralyzed", confused: "Confused", armorbroken: "Armor Broken", bleeding: "Bleeding"};
 		public static const STATUS_COLORS:Object = {slowed: 0x6090ff, paralyzed: 0xffe040, confused: 0xd060ff, armorbroken: 0xb0b0b0, bleeding: 0xff3030};
 		/** Saved-character id. */
@@ -623,7 +624,11 @@ package realm {
 			}
 			if (level >= MAX_LEVEL) return;
 			xp += amount;
+			var before:Object = {};
+			for each (var bs:String in Data.STATS) before[bs] = int(stats[bs]);
+			var levelled:Boolean = false;
 			while (xp >= xpNext && level < MAX_LEVEL) {
+				levelled = true;
 				xp -= xpNext;
 				level++;
 				xpNext = 30 + level * 30;
@@ -632,14 +637,26 @@ package realm {
 				}
 				hp = maxHp;
 				mp = maxMp;
-				g.floatText(x, y - 1.4, "Level Up!", 0x60ff60);
-				Sfx.play("level");
 				skillPoints++;
 				g.msg("You reached level " + level + "! +1 skill point (press T for the skill tree).", 0x60ff60);
 				if (level >= MAX_LEVEL) g.questEvent("level20");
 				if (level >= MAX_LEVEL) g.tip("max", "Level 20! Drink stat potions to max all 11 stats. Skill tree capstones (T) are now unlocked.");
+			}
+			if (levelled) {
+				g.floatText(x, y - 1.4, "Level Up!", 0x60ff60);
+				Sfx.play("level");
 				g.burst(x, y, 0x60ff60, 20);
 				g.ring(x, y, 0xffe040);
+				// a column of light, the new level across the screen and what you gained
+				g.showBanner("Level " + level + "!", 0x9cff7a, 2.2);
+				g.abil.anim("pillar", x, y, 1.4, {col: 0xfff080});
+				g.shake(0.2, 3);
+				var gains:Array = [];
+				for each (var gs:String in Data.STATS) {
+					var d:int = int(stats[gs]) - before[gs];
+					if (d > 0) gains.push("+" + d + " " + (STAT_SHORT[gs] || gs.toUpperCase()));
+				}
+				if (gains.length) g.msg("Stats: " + gains.join("   "), 0xbfffaf);
 			}
 			if (level >= MAX_LEVEL) xp = 0;
 		}

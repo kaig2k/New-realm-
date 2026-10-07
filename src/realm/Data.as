@@ -24,7 +24,7 @@ package realm {
 				base: {hp: 80, mp: 100, att: 15, def: 0, spd: 10, dex: 20, vit: 12, wis: 12, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 580, mp: 300, att: 45, def: 0, spd: 30, dex: 50, vit: 22, wis: 32, mgt: 12, luc: 2, prt: 4},
 				max: {hp: 630, mp: 385, att: 70, def: 25, spd: 50, dex: 70, vit: 40, wis: 60, mgt: 30, luc: 30, prt: 25},
-				ability: {name: "Spell", cost: 30, desc: "Ring of 20 bolts at the cursor."}
+				ability: {name: "Fireball", cost: 30, desc: "A fireball that explodes where it hits."}
 			},
 			archer: {
 				id: "archer", name: "Archer", weapon: "bow", armor: "leather", abilityType: "quiver",
@@ -32,7 +32,7 @@ package realm {
 				base: {hp: 130, mp: 100, att: 12, def: 0, spd: 12, dex: 12, vit: 12, wis: 10, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 630, mp: 200, att: 42, def: 0, spd: 32, dex: 32, vit: 22, wis: 30, mgt: 12, luc: 12, prt: 4},
 				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 80, luc: 40, prt: 25},
-				ability: {name: "Quiver", cost: 25, desc: "Huge piercing arrow that slows."}
+				ability: {name: "Arrow Storm", cost: 30, desc: "Arrows rain on an area and slow."}
 			},
 			knight: {
 				id: "knight", name: "Knight", weapon: "sword", armor: "heavy", abilityType: "shield",
@@ -40,7 +40,7 @@ package realm {
 				base: {hp: 210, mp: 100, att: 15, def: 0, spd: 7, dex: 10, vit: 10, wis: 10, mgt: 5, luc: 2, prt: 4},
 				l20: {hp: 710, mp: 200, att: 45, def: 0, spd: 27, dex: 30, vit: 40, wis: 30, mgt: 5, luc: 2, prt: 14},
 				max: {hp: 950, mp: 252, att: 50, def: 40, spd: 50, dex: 50, vit: 75, wis: 50, mgt: 50, luc: 35, prt: 40},
-				ability: {name: "Shield", cost: 30, desc: "Stuns enemies near you."}
+				ability: {name: "Shield Wall", cost: 30, desc: "Plant your shield: blocks bullets, -60% damage, slower."}
 			},
 			priest: {
 				id: "priest", name: "Priest", weapon: "wand", armor: "robe", abilityType: "tome",
@@ -48,7 +48,7 @@ package realm {
 				base: {hp: 80, mp: 100, att: 15, def: 0, spd: 12, dex: 13, vit: 10, wis: 15, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 580, mp: 300, att: 35, def: 0, spd: 42, dex: 33, vit: 20, wis: 45, mgt: 12, luc: 2, prt: 14},
 				max: {hp: 630, mp: 385, att: 65, def: 25, spd: 55, dex: 65, vit: 40, wis: 75, mgt: 50, luc: 70, prt: 60},
-				ability: {name: "Tome", cost: 35, desc: "Heal yourself and burst holy light."}
+				ability: {name: "Sanctuary", cost: 40, desc: "Holy circle: heals you inside, burns enemies."}
 			},
 			rogue: {
 				id: "rogue", name: "Rogue", weapon: "dagger", armor: "leather", abilityType: "cloak",
@@ -56,7 +56,7 @@ package realm {
 				base: {hp: 110, mp: 100, att: 10, def: 0, spd: 15, dex: 15, vit: 15, wis: 13, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 610, mp: 200, att: 30, def: 0, spd: 45, dex: 45, vit: 25, wis: 33, mgt: 22, luc: 22, prt: 4},
 				max: {hp: 680, mp: 252, att: 55, def: 25, spd: 75, dex: 75, vit: 40, wis: 55, mgt: 60, luc: 75, prt: 25},
-				ability: {name: "Cloak", cost: 30, desc: "Invisible for 3s: enemies lose you."}
+				ability: {name: "Shadowstep", cost: 30, desc: "Blink to the cursor, vanish, next hit Backstabs."}
 			},
 			warrior: {
 				id: "warrior", name: "Warrior", weapon: "sword", armor: "heavy", abilityType: "helm",
@@ -64,7 +64,7 @@ package realm {
 				base: {hp: 180, mp: 100, att: 15, def: 0, spd: 7, dex: 10, vit: 10, wis: 10, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 680, mp: 200, att: 45, def: 0, spd: 27, dex: 30, vit: 40, wis: 30, mgt: 2, luc: 2, prt: 4},
 				max: {hp: 730, mp: 385, att: 75, def: 25, spd: 50, dex: 50, vit: 75, wis: 50, mgt: 50, luc: 10, prt: 25},
-				ability: {name: "Helm", cost: 35, desc: "Berserk for 5s: +50% fire rate, +speed."}
+				ability: {name: "Berserker Charge", cost: 35, desc: "Charge through enemies, then go berserk."}
 			},
 			necromancer: {
 				id: "necromancer", name: "Necromancer", weapon: "staff", armor: "robe", abilityType: "skull",
@@ -72,7 +72,7 @@ package realm {
 				base: {hp: 100, mp: 100, att: 15, def: 0, spd: 12, dex: 12, vit: 10, wis: 15, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 600, mp: 300, att: 45, def: 0, spd: 32, dex: 42, vit: 20, wis: 40, mgt: 12, luc: 12, prt: 4},
 				max: {hp: 650, mp: 385, att: 70, def: 25, spd: 50, dex: 60, vit: 40, wis: 75, mgt: 40, luc: 40, prt: 30},
-				ability: {name: "Skull", cost: 30, desc: "Area blast at the cursor that heals you."}
+				ability: {name: "Soul Harvest", cost: 35, desc: "Draining blast + 2 spirit skulls that shoot."}
 			},
 			huntress: {
 				id: "huntress", name: "Huntress", weapon: "bow", armor: "leather", abilityType: "trap",
@@ -80,7 +80,7 @@ package realm {
 				base: {hp: 130, mp: 100, att: 12, def: 0, spd: 12, dex: 12, vit: 12, wis: 10, mgt: 2, luc: 2, prt: 4},
 				l20: {hp: 630, mp: 200, att: 42, def: 0, spd: 32, dex: 32, vit: 22, wis: 30, mgt: 12, luc: 12, prt: 4},
 				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 60, luc: 50, prt: 25},
-				ability: {name: "Trap", cost: 25, desc: "Thrown trap bursts into slowing shards."}
+				ability: {name: "Snare", cost: 25, desc: "Trap roots enemies in vines, then bursts."}
 			}
 		};
 		public static const CLASS_ORDER:Array = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress"];
@@ -430,14 +430,14 @@ package realm {
 			for each (var c:Object in CLASSES) if (c.abilityType == item.sub) cost = c.ability.cost;
 			var t:String;
 			switch (item.sub) {
-				case "spell": t = "Fires a ring of 20 bolts where you aim (up to 9 tiles away). Each bolt deals " + int((55 + lv * 7) * pw) + " damage."; break;
-				case "quiver": t = "Fires one huge arrow that pierces everything in its path for " + int((100 + lv * 12) * pw) + " damage and slows enemies for 3s."; break;
-				case "shield": t = "Stuns enemies within 3.5 tiles for " + (2.5 * Math.sqrt(pw)).toFixed(1) + "s and throws 12 blades around you (" + int((40 + lv * 5) * pw) + " damage each)."; break;
-				case "tome": t = "Heals you for " + int((80 + lv * 8) * pw) + " HP and bursts 10 orbs of holy light around you (" + int((30 + lv * 4) * pw) + " damage each). Works in the Nexus too."; break;
-				case "cloak": t = "Turns you invisible for " + (3 * Math.sqrt(pw)).toFixed(1) + "s: monsters lose track of you and stop shooting at you."; break;
-				case "helm": t = "Sends you berserk for " + (5 * Math.sqrt(pw)).toFixed(1) + "s: +50% fire rate and +25% movement speed."; break;
-				case "skull": t = "Blasts a 3-tile area where you aim for " + int((70 + lv * 8) * pw) + " damage and heals you 20 HP plus 15 per enemy hit."; break;
-				case "trap": t = "Throws a trap where you aim. It arms, then bursts into slowing shards for " + int((60 + lv * 7) * pw) + " damage."; break;
+				case "spell": t = "<b>Fireball</b>: hurls a fireball at the cursor (up to 9 tiles). It explodes on impact for " + int((130 + lv * 16) * pw) + " damage in " + (2.6 * Math.sqrt(pw)).toFixed(1) + " tiles and scatters burning embers."; break;
+				case "quiver": t = "<b>Arrow Storm</b>: 6 arrows rain down around the cursor over a second. Each hits a small area for " + int((40 + lv * 5) * pw) + " damage and slows."; break;
+				case "shield": t = "<b>Shield Wall</b>: plants your shield in front of you for " + (4 * Math.sqrt(pw)).toFixed(1) + "s. Bullets from the front stop on it (it shields your party too). While you stay behind it you take 60% less damage but move slower. The plant bashes and stuns enemies in front."; break;
+				case "tome": t = "<b>Sanctuary</b>: heals you " + int((40 + lv * 4) * pw) + " HP and consecrates a 3-tile circle for " + (5 * Math.sqrt(pw)).toFixed(1) + "s. Standing in it heals " + int((10 + lv * 1.2) * pw) + " HP every half second; monsters inside burn for " + int((20 + lv * 2.5) * pw) + ". Works in the Nexus too."; break;
+				case "cloak": t = "<b>Shadowstep</b>: vanish in smoke and reappear at the cursor (up to 6 tiles, not through walls). You stay invisible for " + (2 * Math.sqrt(pw)).toFixed(1) + "s and your next hit is a Backstab: a guaranteed crit with +50% damage."; break;
+				case "helm": t = "<b>Berserker Charge</b>: rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + int((60 + lv * 8) * pw) + ". Then go berserk for " + (4 * Math.sqrt(pw)).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
+				case "skull": t = "<b>Soul Harvest</b>: blasts a 3-tile area at the cursor for " + int((70 + lv * 8) * pw) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * Math.sqrt(pw)).toFixed(1) + "s, shooting the nearest monster for " + int((18 + lv * 2.5) * pw) + "."; break;
+				case "trap": t = "<b>Snare</b>: throws a trap at the cursor. When a monster comes close, vines root everything nearby (bosses briefly), then it bursts into slowing shards for " + int((60 + lv * 7) * pw) + " damage."; break;
 				default: return "";
 			}
 			return "<font color='#e8e0a0'>" + t + "</font>\n<font color='#9a9aaa'>Costs " + cost + " MP. Press SPACE to use.</font>";

@@ -170,6 +170,8 @@ function inWorld(world, except) {
 }
 
 /** Players near (x, y) in a world: movement and shots only go to those who can see them. */
+const FX_KINDS = new Set(['fireball', 'shield', 'storm', 'sanctuary', 'shadow', 'charge', 'harvest', 'snare']);
+
 function nearby(c) {
   const r2 = config.viewRange * config.viewRange;
   return inWorld(c.world, c).filter(o => (o.x - c.x) * (o.x - c.x) + (o.y - c.y) * (o.y - c.y) < r2);
@@ -322,6 +324,17 @@ const handlers = {
 
   shoot(c, m) {
     const msg = { t: 'shoot', id: c.id, ang: num(m.ang) };
+    for (const o of nearby(c)) o.send(msg);
+  },
+
+  /** An ability cast: only its animation is shown to the players around. */
+  fx(c, m) {
+    const now = Date.now();
+    if (now - (c.fxAt || 0) < 300) return;
+    c.fxAt = now;
+    const k = String(m.k || '').slice(0, 12);
+    if (!FX_KINDS.has(k)) return;
+    const msg = { t: 'fx', id: c.id, k, x: num(m.x), y: num(m.y), tx: num(m.tx), ty: num(m.ty), n: Math.min(30, Math.max(0, num(m.n))) };
     for (const o of nearby(c)) o.send(msg);
   },
 

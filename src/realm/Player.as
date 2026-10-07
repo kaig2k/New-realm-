@@ -1,6 +1,7 @@
 package realm {
 	import flash.display.BitmapData;
 	import flash.ui.Keyboard;
+	import flash.utils.Dictionary;
 
 	public class Player {
 		public static const MAX_LEVEL:int = 20;
@@ -36,6 +37,12 @@ package realm {
 		public var invulnT:Number = 2;
 		public var invisT:Number = 0;
 		public var berserkT:Number = 0;
+		/** Shield Wall: time left and where the shield stands. */
+		public var shieldT:Number = 0, shieldX:Number = 0, shieldY:Number = 0;
+		/** Shadowstep: the next hit is a Backstab. */
+		public var critNext:Boolean = false;
+		private var dashT:Number = 0, dashVx:Number = 0, dashVy:Number = 0, dashDmg:int = 0, dashPow:Number = 1;
+		private var dashHits:Dictionary;
 		public var hitT:Number = 0;
 		public var lastHitBy:String = "";
 		public var aimX:Number = 0, aimY:Number = 0;
@@ -197,6 +204,7 @@ package realm {
 			if (invulnT > 0) invulnT -= dt;
 			if (invisT > 0) invisT -= dt;
 			if (berserkT > 0) berserkT -= dt;
+			if (shieldT > 0) shieldT -= dt;
 			if (hitT > 0) hitT -= dt;
 			if (shootT > 0) shootT -= dt;
 			if (attackT > 0) attackT -= dt;
@@ -222,7 +230,8 @@ package realm {
 			}
 			if (status.confused > 0) { mx = -mx; my = -my; }
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
-			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
+			if (dashT > 0) { mx = 0; my = 0; updateDash(dt, g); }
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (shielded ? 0.55 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;
@@ -335,63 +344,129 @@ package realm {
 			if (d > 9) { dx *= 9 / d; dy *= 9 / d; }
 			switch (cls.abilityType) {
 				case "spell":
-					dmg = (55 + level * 7) * pow;
-					var bolt:Vector.<BitmapData> = Sprites.projectile("bolt", 0xff8040, 4);
-					for (i = 0; i < 20; i++) {
-						a = i * Math.PI * 2 / 20;
-						g.addShot(new Projectile(x + dx, y + dy, a, 8, 0.4, dmg, false, 0.25, bolt, false, name, null));
-					}
-					g.burst(x + dx, y + dy, 0xff8040, 16);
+					// Fireball: a slow ball of flame that bursts where it hits (or at the cursor)
+					dmg = (130 + level * 16) * pow;
+					var fb:Projectile = new Projectile(x, y, ang, 12, Math.max(0.15, Math.sqrt(dx * dx + dy * dy) / 12), 0, false, 0.4,
+						Sprites.projectile("fire", 0xff7020, 5), false, name, null);
+					fb.ghost = true;
+					fb.boom = {r: 2.6 * Math.sqrt(pow), dmg: dmg};
+					g.addShot(fb);
+					g.abil.show("fireball", x, y, x + dx, y + dy, 0, true);
 					break;
 				case "quiver":
-					dmg = (100 + level * 12) * pow;
-					g.addShot(new Projectile(x, y, ang, 17, 0.75, dmg, false, 0.4, Sprites.projectile("arrow", 0xffff80, 7), true, name, "slow"));
+					// Arrow Storm: arrows rain down over the target area and slow what they hit
+					dmg = (40 + level * 5) * pow;
+					var cxs:Number = x + dx, cys:Number = y + dy;
+					g.abil.show("storm", x, y, cxs, cys, 0, true);
+					for (i = 0; i < 6; i++) {
+						var ra:Number = Math.random() * Math.PI * 2, rr:Number = Math.sqrt(Math.random()) * 2.2;
+						var ao:Object = {dmg: dmg};
+						ao.fn = arrowHit(g, ao);
+						g.abil.anim("arrow", cxs + Math.cos(ra) * rr, cys + Math.sin(ra) * rr, 0.3 + i * 0.12, ao);
+					}
 					break;
 				case "shield":
-					var n:int = g.stunAround(x, y, 3.5, 2.5 * Math.sqrt(pow));
-					dmg = (40 + level * 5) * pow;
-					var blade:Vector.<BitmapData> = Sprites.projectile("blade", 0xffffff, 4);
-					for (i = 0; i < 12; i++) {
-						a = i * Math.PI * 2 / 12;
-						g.addShot(new Projectile(x, y, a, 10, 0.35, dmg, false, 0.25, blade, true, name, null));
-					}
-					g.burst(x, y, 0xffffff, 16);
-					if (n > 0) g.floatText(x, y - 1.2, "Stunned x" + n, 0xffff60);
+					// Shield Wall: plant the shield; bullets from the front stop on it, you take less damage behind it but move slower
+					shieldT = 4 * Math.sqrt(pow);
+					shieldX = x + Math.cos(ang) * 0.9;
+					shieldY = y + Math.sin(ang) * 0.9;
+					g.abil.show("shield", x, y, shieldX, shieldY, shieldT, true);
+					var n:int = g.stunAround(shieldX + Math.cos(ang) * 1.2, shieldY + Math.sin(ang) * 1.2, 2.2, 1.5 * Math.sqrt(pow));
+					if (n > 0) g.floatText(x, y - 1.2, "Bashed x" + n, 0xffff60);
+					g.shake(0.15, 4);
 					break;
 				case "tome":
-					var amount:int = (80 + level * 8) * pow;
+					// Sanctuary: a holy circle that heals you while you stand in it and burns monsters inside
+					var amount:int = (40 + level * 4) * pow;
 					var heal:int = Math.min(amount, maxHp - int(hp));
 					hp = Math.min(maxHp, hp + amount);
-					g.floatText(x, y - 1.2, "+" + heal, 0x60ff60);
-					dmg = (30 + level * 4) * pow;
-					var orb:Vector.<BitmapData> = Sprites.projectile("orb", 0xffffa0, 4);
-					for (i = 0; i < 10; i++) {
-						a = i * Math.PI * 2 / 10;
-						g.addShot(new Projectile(x, y, a, 9, 0.5, dmg, false, 0.25, orb, false, name, null));
-					}
-					g.burst(x, y, 0xffffa0, 16);
+					if (heal > 0) g.floatText(x, y - 1.2, "+" + heal, 0x60ff60);
+					var life:Number = 5 * Math.sqrt(pow);
+					g.abil.addZone(x, y, 3, life, (20 + level * 2.5) * pow, (10 + level * 1.2) * pow);
+					g.abil.show("sanctuary", x, y, x, y, life, true);
 					break;
 				case "cloak":
-					invisT = 3 * Math.sqrt(pow);
-					g.floatText(x, y - 1.2, "Invisible", 0xc0a0ff);
-					g.burst(x, y, 0x8060c0, 14);
+					// Shadowstep: vanish in smoke, reappear at the cursor; your next hit is a guaranteed Backstab
+					var sx0:Number = x, sy0:Number = y;
+					var reach:Number = Math.min(6, Math.sqrt(dx * dx + dy * dy));
+					var stx:Number = Math.cos(ang), sty:Number = Math.sin(ang);
+					for (var st:Number = 0.1; st <= reach; st += 0.1) {
+						if (!g.world.canStand(sx0 + stx * st, sy0 + sty * st, R, false)) break;
+						x = sx0 + stx * st;
+						y = sy0 + sty * st;
+					}
+					invisT = 2 * Math.sqrt(pow);
+					critNext = true;
+					g.abil.show("shadow", sx0, sy0, x, y, 0, true);
 					break;
 				case "helm":
-					berserkT = 5 * Math.sqrt(pow);
-					g.floatText(x, y - 1.2, "Berserk!", 0xff5040);
-					g.burst(x, y, 0xff4030, 14);
+					// Berserker Charge: rush forward through monsters, then go berserk
+					dashT = 0.3;
+					dashVx = Math.cos(ang) * 22;
+					dashVy = Math.sin(ang) * 22;
+					dashDmg = (60 + level * 8) * pow;
+					dashPow = pow;
+					dashHits = new Dictionary(true);
+					invulnT = Math.max(invulnT, 0.3);
+					g.abil.show("charge", x, y, x + dashVx * dashT, y + dashVy * dashT, 0, true);
 					break;
 				case "skull":
+					// Soul Harvest: a draining blast, and two spirit skulls circle you and shoot
 					dmg = (70 + level * 8) * pow;
 					var hits:int = g.blastAt(x + dx, y + dy, 3, dmg);
 					var drain:int = Math.min(maxHp - int(hp), 15 * hits + 20);
 					hp = Math.min(maxHp, hp + drain);
 					if (drain > 0) g.floatText(x, y - 1.2, "+" + drain, 0x60ff60);
-					g.burst(x + dx, y + dy, 0xa0ff60, 24);
+					g.abil.addSpirits(2, 5 * Math.sqrt(pow), (18 + level * 2.5) * pow);
+					g.abil.show("harvest", x, y, x + dx, y + dy, 0, true);
 					break;
 				case "trap":
-					g.throwTrap(x, y, x + dx, y + dy, int((60 + level * 7) * pow));
+					// Snare: the trap roots monsters in vines, then bursts into slowing shards
+					g.abil.show("snare", x, y, x + dx, y + dy, 0, true);
+					var tdmg:int = int((60 + level * 7) * pow);
+					var tx:Number = x + dx, ty:Number = y + dy;
+					g.abil.anim("land", tx, ty, 0.35, {fn: function():void { g.throwTrap(tx, ty, tx, ty, tdmg); }});
 					break;
+			}
+		}
+
+		/** One Arrow Storm arrow landing. */
+		private function arrowHit(g:Game, af:Object):Function {
+			return function():void {
+				g.blastAt(af.x, af.y, 1.3, af.dmg, "slow");
+				g.burst(af.x, af.y, 0xffffa0, 6);
+			};
+		}
+
+		/** True while you stand behind your planted Shield Wall. */
+		public function get shielded():Boolean {
+			if (shieldT <= 0) return false;
+			var sx:Number = x - shieldX, sy:Number = y - shieldY;
+			return sx * sx + sy * sy < 2.2 * 2.2;
+		}
+
+		/** Berserker Charge in progress: you rush forward and hit what you touch. */
+		private function updateDash(dt:Number, g:Game):void {
+			dashT -= dt;
+			for (var k:int = 0; k < 3; k++) {
+				var nx:Number = x + dashVx * dt / 3, ny:Number = y + dashVy * dt / 3;
+				if (!g.world.canStand(nx, ny, R, false)) { dashT = 0; break; }
+				x = nx; y = ny;
+			}
+			if (Game.opt("parts") && g.parts.length < 420) g.parts.push(new Particle(x, y, 0, 0, 0.25, Sprites.glow(0xff5030)));
+			for each (var e:Enemy in g.enemies.concat()) {
+				if (e.dead || dashHits[e]) continue;
+				var ex:Number = e.x - x, ey:Number = e.y - y, er:Number = e.r + 0.7;
+				if (ex * ex + ey * ey < er * er) {
+					dashHits[e] = true;
+					g.hurtEnemy(e, dashDmg, null, e.x, e.y);
+					g.burst(e.x, e.y, 0xff5030, 8);
+					g.shake(0.1, 3);
+				}
+			}
+			if (dashT <= 0) {
+				berserkT = 4 * Math.sqrt(dashPow);
+				g.ring(x, y, 0xff4030, 20);
 			}
 		}
 
@@ -538,6 +613,7 @@ package realm {
 				status[effect] = STATUS_TIME[effect];
 			}
 			var d:int = Math.max(raw - def, int(raw * 0.15));
+			if (shielded) d = Math.max(1, int(d * 0.4));
 			// Protection absorbs damage first
 			if (pt > 0) {
 				var absorbed:int = Math.min(int(pt), d);

@@ -34,6 +34,8 @@ package realm {
 		public var accel:Number = 0;
 		/** Bursts into a ring when it expires: {n, spd, life, dmg, shape, col}. */
 		public var split:Object;
+		/** Explodes where it hits or lands (Fireball): {r, dmg}. */
+		public var boom:Object;
 		/** Where "home" shots steer (your character; set every frame). */
 		public static var homeX:Number = 0, homeY:Number = 0;
 

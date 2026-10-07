@@ -63,6 +63,8 @@ package realm {
 		private var stationPanel:Sprite;
 		private var openStation:Object;
 		private var traps:Array = [];
+		/** Lingering class ability effects and their animations. */
+		public var abil:Abilities;
 		private var petX:Number = 0, petY:Number = 0, petHealT:Number = 3;
 		private var petMoving:Boolean = false;
 		private var releaseArmed:Boolean = false;
@@ -157,6 +159,7 @@ package realm {
 			world = nexusWorld = new World("nexus", "Nexus");
 			nexusWorld.key = "nexus";
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
+			abil = new Abilities(this);
 			if (saved) player.restore(saved);
 			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			Data.viewerClass = player.cls.id;
@@ -1116,6 +1119,7 @@ package realm {
 			}
 			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
 			traps.length = 0;
+			if (abil) abil.clear();
 			closeStation();
 			closePlayerMenu();
 			closeInspect();
@@ -1249,6 +1253,7 @@ package realm {
 			}
 			updateNexus(dt);
 			updateTraps(dt);
+			abil.update(dt);
 			updatePet(dt);
 			updateBossHelpers(dt);
 
@@ -1438,9 +1443,11 @@ package realm {
 					parts.push(new Particle(s.x, s.y, 0, 0, 0.14, Sprites.glow(s.trailCol)));
 				var remove:Boolean = s.life <= 0;
 				if (remove && s.split) splitShot(s);
+				if (remove && s.boom) abil.explode(s);
 				if (!remove) {
 					if (s.enemy) {
 						if (world.isSafe(s.x, s.y)) remove = true;
+						else if (abil.fx.length && abil.blocked(s)) remove = true;
 						else {
 							var dx:Number = s.x - p.x, dy:Number = s.y - p.y, rr:Number = s.r + Player.R;
 							if (dx * dx + dy * dy < rr * rr && p.invulnT <= 0) {
@@ -1463,7 +1470,13 @@ package realm {
 								if (!s.pierce) { remove = true; break; }
 							}
 						}
+					} else if (s.boom) {
+						for each (var ge:Enemy in enemies) {
+							var gx:Number = s.x - ge.x, gy:Number = s.y - ge.y;
+							if (!ge.dead && gx * gx + gy * gy < (s.r + ge.r) * (s.r + ge.r)) { remove = true; break; }
+						}
 					}
+					if (remove && s.boom) abil.explode(s);
 				}
 				if (remove) {
 					shots[i] = shots[shots.length - 1];
@@ -1498,6 +1511,13 @@ package realm {
 			raw = int(raw * p.damageMult);
 			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			var crit:Boolean = Math.random() < p.critChance;
+			if (p.critNext && effect != "shard") {
+				// Shadowstep: the first hit out of the shadows always crits, and harder
+				p.critNext = false;
+				crit = true;
+				raw = int(raw * 1.5);
+				floatText(e.x, e.y - e.r - 1.1, "Backstab!", 0xc0a0ff);
+			}
 			if (crit) raw = int(raw * p.critMult);
 			if (effect != "shard") p.shotsHit++;
 			var d:int = Math.max(raw - e.defense, int(raw * 0.15));
@@ -1534,13 +1554,13 @@ package realm {
 		}
 
 		/** Area damage (Necromancer skull). Returns number of enemies hit. */
-		public function blastAt(x:Number, y:Number, radius:Number, dmg:int):int {
+		public function blastAt(x:Number, y:Number, radius:Number, dmg:int, effect:String = null):int {
 			shake(0.15, 4);
 			var n:int = 0;
 			for each (var e:Enemy in enemies.concat()) {
 				var dx:Number = e.x - x, dy:Number = e.y - y;
 				if (!e.dead && dx * dx + dy * dy < radius * radius) {
-					hurtEnemy(e, dmg, null, e.x, e.y);
+					hurtEnemy(e, dmg, effect, e.x, e.y);
 					n++;
 				}
 			}
@@ -1566,6 +1586,10 @@ package realm {
 					}
 				}
 				if (fire) {
+					// Snare: vines root everything close, then the trap bursts
+					var rooted:int = stunAround(t.x, t.y, 2.6, 1.6);
+					abil.show("vines", t.x, t.y, 0, 0, 2.6, false);
+					if (rooted > 0) floatText(t.x, t.y - 1, "Rooted x" + rooted, 0x80e060);
 					var fr:Vector.<BitmapData> = Sprites.projectile("dart", 0xe0c070, 3);
 					for (var k:int = 0; k < 16; k++) {
 						shots.push(new Projectile(t.x, t.y, k * Math.PI / 8, 8, 0.45, t.dmg, false, 0.25, fr, true, player.name, "slow"));
@@ -3797,6 +3821,7 @@ package realm {
 			}
 
 			drawMarkers();
+			abil.drawGround(canvas);
 			drawShrineGlow();
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
@@ -3864,6 +3889,7 @@ package realm {
 				if (pt.x < -bd.width || pt.y < -bd.height || pt.x > vw || pt.y > vh) continue;
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
+			abil.drawTop(canvas);
 			for each (var q:Particle in parts) {
 				pt.x = scrX(q.x, q.y) - 3;
 				pt.y = scrY(q.x, q.y) - 3;

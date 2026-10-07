@@ -42,6 +42,8 @@ package realm {
 
 		/** You fired your weapon (so others see your shots). */
 		public function shoot(ang:Number):void {}
+		/** Shows your ability cast to the players around you. */
+		public function abilityFx(k:String, x:Number, y:Number, tx:Number, ty:Number, n:Number):void {}
 
 		/** World key ("nexus", "realm:...", "dg:...") a party or guild member is in, or null. */
 		public function worldOf(name:String):String { return null; }

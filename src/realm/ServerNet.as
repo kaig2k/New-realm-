@@ -115,6 +115,10 @@ package realm {
 
 		override public function chat(text:String):void { Online.send({t: "chat", text: text}); }
 		override public function shoot(ang:Number):void { Online.send({t: "shoot", ang: Math.round(ang * 1000) / 1000}); }
+		override public function abilityFx(k:String, x:Number, y:Number, tx:Number, ty:Number, n:Number):void {
+			var r:Function = function(v:Number):Number { return Math.round(v * 100) / 100; };
+			Online.send({t: "fx", k: k, x: r(x), y: r(y), tx: r(tx), ty: r(ty), n: r(n)});
+		}
 
 		// ------------------------------------------------------------ players
 		private function meet(info:Object):RemotePlayer {
@@ -186,6 +190,13 @@ package realm {
 					break;
 				case "tppos":
 					g.teleportArrive(m.x, m.y, m.name);
+					break;
+				case "fx":
+					rp = byId(m.id);
+					if (rp && g.shown(rp)) {
+						rp.attacking = 0.3;
+						g.abil.show(String(m.k), Number(m.x), Number(m.y), Number(m.tx), Number(m.ty), Number(m.n), false);
+					}
 					break;
 				case "shoot":
 					rp = byId(m.id);

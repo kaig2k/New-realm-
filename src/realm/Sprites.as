@@ -203,7 +203,9 @@ package realm {
 		private static const P_RING:Array = ["..CCCC..", ".CaaaaC.", "Ca....aC", "Ca....aC", "Ca....aC", "Ca....aC", ".CaaaaC.", "..CCCC.."];
 		private static const P_DART:Array = ["........", "........", "...aC...", "aaaCWWC.", "aaaCWWC.", "...aC...", "........", "........"];
 		private static const P_KNIFE:Array = ["........", "........", "........", "SSGHHHHL", "........", "........", "........", "........"];
-		private static const PROJ:Object = {knife: P_KNIFE, arrow: P_ARROW, bolt: P_BOLT, blade: P_BLADE, orb: P_ORB, star: P_STAR, ring: P_RING, dart: P_DART};
+		private static const P_FIRE:Array = ["........", "..a.CC..", ".a.CWWC.", "aaCWWWWC", "aaCWWWWC", ".a.CWWC.", "..a.CC..", "........"];
+		private static const P_SOUL:Array = ["..CCCC..", ".CWWWWC.", "CWaWWaWC", "CWaWWaWC", "CWWWWWWC", ".CWaaWC.", "..C..C..", "........"];
+		private static const PROJ:Object = {fire: P_FIRE, soul: P_SOUL, knife: P_KNIFE, arrow: P_ARROW, bolt: P_BOLT, blade: P_BLADE, orb: P_ORB, star: P_STAR, ring: P_RING, dart: P_DART};
 
 		// ================================================================ item icons
 		private static const I_STAFF:Array = ["......TT", ".....TLT", "....TTT.", "...W....", "..W.....", ".W......", "W.......", "........"];

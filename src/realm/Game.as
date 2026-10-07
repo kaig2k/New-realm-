@@ -3056,6 +3056,46 @@ package realm {
 			}
 		}
 
+		// ---- cloud shadows: soft dark shapes drifting over the realms and the Nexus
+		private static var cloudBds:Array;
+		/** Where each cloud sits in a 64-tile square that repeats across the world. */
+		private static const CLOUDS:Array = [[3, 5, 0], [27, 14, 1], [49, 3, 2], [14, 33, 2], [40, 41, 0], [58, 27, 1], [22, 55, 1], [51, 58, 2]];
+		private static const CLOUD_PERIOD:Number = 64;
+
+		private static function makeCloud(seed:int):BitmapData {
+			var sh:Shape = new Shape();
+			var r:Number = seed * 7 + 3;
+			var rnd:Function = function():Number { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+			sh.graphics.beginFill(0x000000);
+			for (var i:int = 0; i < 7; i++) {
+				var a:Number = i / 7 * Math.PI * 2 + rnd();
+				sh.graphics.drawEllipse(150 + Math.cos(a) * 70 * rnd() - 60, 95 + Math.sin(a) * 30 * rnd() - 38, 120 + rnd() * 50, 76 + rnd() * 24);
+			}
+			sh.graphics.endFill();
+			var bd:BitmapData = new BitmapData(330, 200, true, 0);
+			bd.draw(sh, null, new ColorTransform(1, 1, 1, 0.15));
+			bd.applyFilter(bd, bd.rect, new Point(), new flash.filters.BlurFilter(28, 28, 2));
+			return bd;
+		}
+
+		private function drawCloudShadows():void {
+			if (world.kind != "realm" && world.kind != "nexus") return;
+			if (!cloudBds) cloudBds = [makeCloud(1), makeCloud(2), makeCloud(3)];
+			var t:Number = getTimer() / 1000;
+			var drift:Number = t * 0.55;
+			for each (var c:Array in CLOUDS) {
+				// nearest repeat of this cloud to the camera
+				var wx:Number = c[0] + drift, wy:Number = c[1] + drift * 0.35;
+				wx += Math.round((viewX - wx) / CLOUD_PERIOD) * CLOUD_PERIOD;
+				wy += Math.round((viewY - wy) / CLOUD_PERIOD) * CLOUD_PERIOD;
+				var bd:BitmapData = cloudBds[c[2]];
+				pt.x = int(scrX(wx, wy) - bd.width / 2);
+				pt.y = int(scrY(wx, wy) - bd.height / 2);
+				if (pt.x > vw || pt.y > vh || pt.x < -bd.width || pt.y < -bd.height) continue;
+				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
+			}
+		}
+
 		private function drawAmbient():void {
 			for each (var a:Object in amb) {
 				var f:Number = a.life / a.max;
@@ -4242,6 +4282,7 @@ package realm {
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
 			drawCorpses();
+			drawCloudShadows();
 			abil.drawTop(canvas);
 			for each (var q:Particle in parts) {
 				pt.x = scrX(q.x, q.y) - 3;

@@ -107,6 +107,7 @@ package realm {
 			mpBar = new Bar(228, 22, 0x3d6fe8, 0x1a2244, 15, "MP");
 			mpBar.x = 6; mpBar.y = y + 48;
 			addChild(mpBar);
+			hpBar.trail = mpBar.trail = true;
 			// Ward (WD, from Warding) and Fervor (FV) bars
 			ptBar = new Bar(110, 18, 0xe8e8f0, 0x2a2a2a, 12, "WD", "left", 0x222222);
 			ptBar.x = 6; ptBar.y = y + 74;
@@ -383,7 +384,9 @@ package realm {
 		private function showTip(s:Slot):void {
 			if (!s || !s.item) { tip.visible = false; return; }
 			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up, or drag into a slot") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Drag onto the ground to drop.") : "Equipped. Drag into your inventory to take it off.";
-			tip.show(s.item, hint);
+			var worn:Object = null;
+			if ((s.kind == "inv" || s.kind == "bag") && Data.isGear(s.item) && Data.canUse(s.item, g.player.cls.id)) worn = g.player[s.item.kind];
+			tip.show(s.item, hint, worn);
 			var lp:Point = globalToLocal(s.localToGlobal(new Point(0, 0)));
 			tip.x = lp.x - tip.width - 8;
 			tip.y = Math.max(4, Math.min(Ui.H - tip.height - 4, lp.y - 10));
@@ -415,6 +418,7 @@ package realm {
 			for (i = 0; i < 8; i++) {
 				invSlots[i].idx = p.packPage * 8 + i;
 				invSlots[i].setItem(p.inv[p.packPage * 8 + i]);
+				invSlots[i].setUpgrade(isUpgrade(p, invSlots[i].item));
 			}
 			hpPot.setCount(p.hpPots, "F");
 			mpPot.setCount(p.mpPots, "G");
@@ -436,13 +440,23 @@ package realm {
 			var bag:LootBag = g.nearBag;
 			if ((bag != null) != (lastBag != null)) drawBagBox(bag != null);
 			lastBag = bag;
-			for (i = 0; i < 8; i++) bagSlots[i].setItem(bag && i < bag.items.length ? bag.items[i] : null);
+			for (i = 0; i < 8; i++) {
+				bagSlots[i].setItem(bag && i < bag.items.length ? bag.items[i] : null);
+				bagSlots[i].setUpgrade(isUpgrade(p, bagSlots[i].item));
+			}
 			if (hover && (!hover.item || (hover.kind == "bag" && !bag))) {
 				tip.visible = false;
 				hover = null;
 			}
 
 			if (++frameN % 4 == 0) drawMinimap();
+		}
+
+		/** Gear your class can use that beats what you have on in that slot. */
+		private function isUpgrade(p:Player, it:Object):Boolean {
+			if (!it || !Data.isGear(it) || !Data.canUse(it, p.cls.id)) return false;
+			var worn:Object = p[it.kind];
+			return !worn || Tooltip.score(it) > Tooltip.score(worn) * 1.02 + 0.5;
 		}
 
 		private function statLine(key:String):String {
@@ -577,6 +591,7 @@ import flash.display.Bitmap;
 import flash.display.Shape;
 import flash.display.Sprite;
 import flash.text.TextField;
+import flash.utils.getTimer;
 
 import realm.Data;
 import realm.Sprites;
@@ -585,6 +600,13 @@ import realm.Ui;
 /** RotMG-style bar: short label on the left, value centred (or after the label). */
 class Bar extends Sprite {
 	private var fill:Shape = new Shape();
+	/** What was just lost: a pale piece that waits a moment, then drains away. */
+	private var ghost:Shape = new Shape();
+	private var ghostFrac:Number = -1;
+	private var ghostHold:Number = 0;
+	private var lastT:int = 0;
+	/** Show the drain-behind piece (HP and MP). */
+	public var trail:Boolean = false;
 	private var labelTf:TextField;
 	private var valueTf:TextField;
 	private var w:int, h:int;
@@ -601,6 +623,11 @@ class Bar extends Sprite {
 		graphics.beginFill(back);
 		graphics.drawRoundRect(0, 0, w, h, 6, 6);
 		graphics.endFill();
+		ghost.graphics.beginFill(0xfff0d0, 0.75);
+		ghost.graphics.drawRoundRect(1, 1, w - 1, h - 1, 5, 5);
+		ghost.graphics.endFill();
+		ghost.visible = false;
+		addChild(ghost);
 		fill.graphics.beginFill(color);
 		fill.graphics.drawRoundRect(1, 1, w - 1, h - 1, 5, 5);
 		fill.graphics.beginFill(0xffffff, 0.14);
@@ -619,6 +646,15 @@ class Bar extends Sprite {
 	public function set(frac:Number, label:String, value:String):void {
 		if (frac < 0) frac = 0;
 		if (frac > 1) frac = 1;
+		var now:int = getTimer();
+		var dt:Number = lastT ? Math.min(0.1, (now - lastT) / 1000) : 0;
+		lastT = now;
+		if (!trail || ghostFrac < 0 || frac >= ghostFrac) { ghostFrac = frac; ghostHold = 0.4; }
+		else if (lastFrac >= 0 && frac < lastFrac) ghostHold = Math.max(ghostHold, 0.25);
+		else if (ghostHold > 0) ghostHold -= dt;
+		else ghostFrac = Math.max(frac, ghostFrac - dt * (0.25 + (ghostFrac - frac) * 2));
+		ghost.visible = ghostFrac - frac > 0.002;
+		if (ghost.visible) { ghost.scaleX = ghostFrac; ghost.alpha = Math.min(1, ghostHold > 0 ? 1 : 0.4 + (ghostFrac - frac) * 6); }
 		if (frac != lastFrac) { fill.scaleX = frac; lastFrac = frac; }
 		if (label != lastLabel) {
 			labelTf.text = label;
@@ -665,6 +701,24 @@ class Slot extends Sprite {
 		addChild(tierTf);
 		mouseChildren = false;
 		buttonMode = true;
+	}
+
+	private var upArrow:Shape;
+
+	/** A small green arrow: better than what you have equipped. */
+	public function setUpgrade(on:Boolean):void {
+		if (!on && !upArrow) return;
+		if (!upArrow) {
+			upArrow = new Shape();
+			var g:* = upArrow.graphics;
+			g.lineStyle(1.5, 0x0e2a0e);
+			g.beginFill(0x6cff6c);
+			g.moveTo(0, -6); g.lineTo(6, 1); g.lineTo(2.5, 1); g.lineTo(2.5, 6); g.lineTo(-2.5, 6); g.lineTo(-2.5, 1); g.lineTo(-6, 1); g.lineTo(0, -6);
+			g.endFill();
+			upArrow.x = 10; upArrow.y = 11;
+			addChild(upArrow);
+		}
+		upArrow.visible = on;
 	}
 
 	public function setItem(it:Object):void {

@@ -32,7 +32,8 @@ package realm {
 			addChild(hint);
 		}
 
-		public function show(item:Object, hintText:String):void {
+		/** Item tooltip; with `worn`, also how it compares to what is equipped in that slot. */
+		public function show(item:Object, hintText:String, worn:Object = null):void {
 			icon.bitmapData = Sprites.icon(item);
 			title.text = item.name;
 			var label:String = Data.tierLabel(item);
@@ -40,7 +41,7 @@ package realm {
 			tier.textColor = Data.tierColor(item);
 			title.textColor = item.rarity ? Data.tierColor(item) : item.kind == "stat" ? Ui.GOLD : item.kind == "key" ? item.color : 0xffffff;
 			var top:Number = Math.max(icon.y + icon.height, title.y + title.height) + 6;
-			body.htmlText = Data.describe(item);
+			body.htmlText = Data.describe(item) + (worn && worn != item ? compareText(item, worn) : "");
 			body.y = top + 4;
 			hint.text = hintText;
 			hint.y = body.y + body.height + 4;
@@ -52,6 +53,48 @@ package realm {
 			graphics.lineTo(W - 8, top);
 			graphics.lineStyle();
 			visible = true;
+		}
+
+		private static function signed(v:Number, suffix:String = ""):String {
+			var t:String = (v > 0 ? "+" : "") + (Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1)) + suffix;
+			return "<font color='" + (v > 0 ? "#7cff7c" : "#ff7070") + "'>" + t + "</font>";
+		}
+
+		/** A rough worth for comparing two items of the same slot. */
+		public static function score(it:Object):Number {
+			var v:Number = 0;
+			for each (var k:String in Data.STATS.concat(Data.GEAR_STATS)) {
+				if (k == "spd" && it.kind == "weapon") continue;
+				var n:Number = Number(it[k]) || 0;
+				v += k == "hp" || k == "mp" ? n / 5 : n;
+			}
+			if (it.kind == "weapon") v += (it.dmin + it.dmax) / 2 * Math.max(1, it.shots || 1) * (it.rate || 1) * 0.6;
+			if (it.kind == "ability") v += (it.power || 0) * 20;
+			if (it.passive) v += 6;
+			return v;
+		}
+
+		/** Gains in green and losses in red against the equipped item. */
+		public static function compareText(it:Object, worn:Object):String {
+			var lines:Array = [];
+			if (it.kind == "weapon") {
+				var dps:Function = function(w:Object):Number { return (w.dmin + w.dmax) / 2 * Math.max(1, w.shots || 1) * (w.rate || 1); };
+				var a:Number = dps(it), b:Number = dps(worn);
+				if (b > 0 && Math.abs(a - b) / b > 0.005) lines.push("Damage " + signed(Math.round((a - b) / b * 100), "%"));
+				var ra:Number = it.spd * it.life - worn.spd * worn.life;
+				if (Math.abs(ra) >= 0.1) lines.push("Range " + signed(ra, " tiles"));
+			}
+			if (it.kind == "ability" && it.power != worn.power) lines.push("Ability power " + signed(Math.round((it.power - worn.power) * 100), "%"));
+			for each (var k:String in Data.STATS.concat(Data.GEAR_STATS)) {
+				if (k == "spd" && it.kind == "weapon") continue;
+				var d:Number = (Number(it[k]) || 0) - (Number(worn[k]) || 0);
+				if (d != 0) lines.push(Data.STAT_SHORT[k] + " " + signed(d));
+			}
+			var head:String = "<font color='#8a8a9a'>vs. your " + worn.name + ":</font>";
+			if (!lines.length) return head + " <font color='#b8b8b8'>same stats</font>\n";
+			var rows:Array = [];
+			for (var i:int = 0; i < lines.length; i += 2) rows.push("  " + lines.slice(i, i + 2).join("    "));
+			return head + "\n" + rows.join("\n") + "\n";
 		}
 	}
 }

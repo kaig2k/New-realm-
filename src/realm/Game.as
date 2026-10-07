@@ -86,6 +86,8 @@ package realm {
 		private var thresholdTf:TextField;
 		/** Your private vault room (built when you first visit). */
 		public var vaultWorld:World;
+		/** The Nexus's inlays, lights, banners and the Sealed Gate. */
+		private var decor:NexusDecor;
 		/** Class statues around the Nexus plaza: {x, y, cls}. */
 		private var statues:Array = [];
 		/** Vault chests: how many there are, and the price of the next one. */
@@ -640,7 +642,7 @@ package realm {
 
 		/** Dropped and opened portals close after this many seconds. */
 		public static const PORTAL_TIME:Number = 30;
-		private static const KEYS_X:Number = 122.5, KEYS_Y:Number = 112.5;
+		private static const KEYS_X:Number = 130.5, KEYS_Y:Number = 112.5;
 		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a, 0xffb040, 0xc080ff, 0x40e0e0];
 
 		private function buildNexus():void {
@@ -667,6 +669,7 @@ package realm {
 				var sa:Number = (si + 0.5) * Math.PI * 2 / Data.CLASS_ORDER.length;
 				statues.push({x: 100.5 + Math.cos(sa) * 9, y: 98.5 + Math.sin(sa) * 9, cls: Data.CLASS_ORDER[si]});
 			}
+			decor = new NexusDecor(this, nexusWorld, makeLabel);
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
@@ -1240,6 +1243,7 @@ package realm {
 				if (ow) for each (var p:Object in ow.portals) p.label.visible = ow == world;
 			}
 			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
+			if (decor) decor.setVisible(nx);
 			traps.length = 0;
 			corpses.length = 0;
 			if (abil) abil.clear();
@@ -1389,6 +1393,7 @@ package realm {
 			abil.update(dt);
 			introBosses();
 			updatePet(dt);
+			if (inNexus && decor) decor.update(dt);
 			updateBossHelpers(dt);
 
 			revealT -= dt;
@@ -4309,6 +4314,7 @@ package realm {
 			if (camAngle != 0) mtx.rotate(-camAngle);
 			mtx.translate(cx + shx, cy + shy);
 			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw + vh * vh) / 2 / TS + 1);
+			if (inNexus && decor) decor.drawGround(canvas);
 
 			var bd:BitmapData;
 			// loot bags lie on the ground
@@ -4448,6 +4454,7 @@ package realm {
 			}
 			drawCorpses();
 			drawCloudShadows();
+			if (inNexus && decor) decor.drawTop(canvas);
 			abil.drawTop(canvas);
 			for each (var q:Particle in parts) {
 				pt.x = scrX(q.x, q.y) - 3;

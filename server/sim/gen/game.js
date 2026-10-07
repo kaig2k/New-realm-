@@ -1555,18 +1555,24 @@ class World {
 					if (d <= 3) this.tiles[i] = World.FOUNTAIN;
 					else if (d <= 5.6 && d > 4.4) this.tiles[i] = World.CARPET;
 					else if (d <= 12.5) this.tiles[i] = World.PLAZA;
+					else if (d <= 13.6) this.tiles[i] = World.RUIN;
 				}
 			}
 			for (var br of __vals( [[89, 87], [111, 87], [89, 109], [111, 109]])) this.objs[br[1] * this.N + br[0]] = 7;
 			
-			for (var gd of __vals( [[78, 82], [122, 82], [78, 114], [122, 114]])) {
-				this.fillN(gd[0] - 4, gd[1] - 3, 9, 7, World.GRASS);
-				this.fillN(gd[0] - 1, gd[1], 3, 2, World.WATER);
-				this.objs[(gd[1] - 2) * this.N + gd[0] - 3] = 1;
-				this.objs[(gd[1] - 2) * this.N + gd[0] + 3] = 2;
-				this.objs[(gd[1] + 2) * this.N + gd[0] - 3] = 2;
-				this.objs[(gd[1] + 2) * this.N + gd[0] + 3] = 1;
+			for (var gd of __vals( [[79, 82], [121, 82], [79, 113], [121, 113]])) {
+				this.fillN(gd[0] - 7, gd[1] - 5, 15, 11, World.RUIN);
+				this.fillN(gd[0] - 6, gd[1] - 4, 13, 9, World.GRASS);
+				this.fillN(gd[0] - 2, gd[1] - 1, 5, 3, World.WATER);
+				for (var tr of __vals( [[-5, -3, 1], [5, -3, 2], [-5, 3, 2], [5, 3, 1], [0, -3, 2], [0, 3, 1]])) this.objs[(gd[1] + tr[1]) * this.N + gd[0] + tr[0]] = tr[2];
 			}
+			
+			for (y = __int(76); y <= 84; y++) { this.tiles[y * this.N + 98] = World.RUIN; this.tiles[y * this.N + 102] = World.RUIN; }
+			for (x = __int(67); x <= 87; x++) { this.tiles[96 * this.N + x] = World.RUIN; this.tiles[100 * this.N + x] = World.RUIN; }
+			for (x = __int(113); x <= 133; x++) { this.tiles[96 * this.N + x] = World.RUIN; this.tiles[100 * this.N + x] = World.RUIN; }
+			for (var cx of __vals( [77, 82, 118, 123])) { this.objs[95 * this.N + cx] = 8; this.objs[101 * this.N + cx] = 8; }
+			
+			for (y = __int(78); y <= 84; y = __int(y + (3))) { this.objs[y * this.N + 96] = 2; this.objs[y * this.N + 104] = 2; }
 			
 			this.fillN(67, 93, 7, 11, World.CARPET);
 			this.objs[94 * this.N + 68] = 8; this.objs[102 * this.N + 68] = 8;
@@ -1577,7 +1583,6 @@ class World {
 			this.fillN(84, 117, 33, 10, World.RUIN);
 			this.fillN(99, 117, 3, 10, World.CARPET);
 			
-			for (var bn of __vals( [[70, 65], [76, 65], [124, 65], [130, 65], [67, 108], [133, 108], [67, 88], [133, 88]])) this.objs[bn[1] * this.N + bn[0]] = 19;
 			for (var lp of __vals( [[84, 118], [116, 118], [70, 122], [130, 122]])) this.objs[lp[1] * this.N + lp[0]] = 7;
 			this.spawnX = 100.5;
 			this.spawnY = 124.5;

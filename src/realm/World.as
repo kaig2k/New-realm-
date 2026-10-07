@@ -448,18 +448,24 @@ package realm {
 					if (d <= 3) tiles[i] = FOUNTAIN;
 					else if (d <= 5.6 && d > 4.4) tiles[i] = CARPET;
 					else if (d <= 12.5) tiles[i] = PLAZA;
+					else if (d <= 13.6) tiles[i] = RUIN;
 				}
 			}
 			for each (var br:Array in [[89, 87], [111, 87], [89, 109], [111, 109]]) objs[br[1] * N + br[0]] = 7;
-			// four gardens with trees and a little pond
-			for each (var gd:Array in [[78, 82], [122, 82], [78, 114], [122, 114]]) {
-				fillN(gd[0] - 4, gd[1] - 3, 9, 7, GRASS);
-				fillN(gd[0] - 1, gd[1], 3, 2, WATER);
-				objs[(gd[1] - 2) * N + gd[0] - 3] = 1;
-				objs[(gd[1] - 2) * N + gd[0] + 3] = 2;
-				objs[(gd[1] + 2) * N + gd[0] - 3] = 2;
-				objs[(gd[1] + 2) * N + gd[0] + 3] = 1;
+			// four gardens with trees, a pond and a stone rim
+			for each (var gd:Array in [[79, 82], [121, 82], [79, 113], [121, 113]]) {
+				fillN(gd[0] - 7, gd[1] - 5, 15, 11, RUIN);
+				fillN(gd[0] - 6, gd[1] - 4, 13, 9, GRASS);
+				fillN(gd[0] - 2, gd[1] - 1, 5, 3, WATER);
+				for each (var tr:Array in [[-5, -3, 1], [5, -3, 2], [-5, 3, 2], [5, 3, 1], [0, -3, 2], [0, 3, 1]]) objs[(gd[1] + tr[1]) * N + gd[0] + tr[0]] = tr[2];
 			}
+			// pale stone kerbs along the avenues, and colonnades down the east-west one
+			for (y = 76; y <= 84; y++) { tiles[y * N + 98] = RUIN; tiles[y * N + 102] = RUIN; }
+			for (x = 67; x <= 87; x++) { tiles[96 * N + x] = RUIN; tiles[100 * N + x] = RUIN; }
+			for (x = 113; x <= 133; x++) { tiles[96 * N + x] = RUIN; tiles[100 * N + x] = RUIN; }
+			for each (var cx:int in [77, 82, 118, 123]) { objs[95 * N + cx] = 8; objs[101 * N + cx] = 8; }
+			// hedges of pines along the avenue up to the Realm Gate
+			for (y = 78; y <= 84; y += 3) { objs[y * N + 96] = 2; objs[y * N + 104] = 2; }
 			// west wing: a gold-trimmed alcove around the vault portal
 			fillN(67, 93, 7, 11, CARPET);
 			objs[94 * N + 68] = 8; objs[102 * N + 68] = 8;
@@ -469,8 +475,7 @@ package realm {
 			// south entrance hall
 			fillN(84, 117, 33, 10, RUIN);
 			fillN(99, 117, 3, 10, CARPET);
-			// banners along the walls
-			for each (var bn:Array in [[70, 65], [76, 65], [124, 65], [130, 65], [67, 108], [133, 108], [67, 88], [133, 88]]) objs[bn[1] * N + bn[0]] = 19;
+			// (the eight class banners along the walls are drawn by NexusDecor)
 			for each (var lp:Array in [[84, 118], [116, 118], [70, 122], [130, 122]]) objs[lp[1] * N + lp[0]] = 7;
 			spawnX = 100.5;
 			spawnY = 124.5;

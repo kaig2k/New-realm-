@@ -159,6 +159,16 @@ package realm {
 		public function get leech():int { return rank("leech"); }
 		public function rank(id:String):int { return int(skills[id] || 0); }
 
+		/** Skill points earned past level 20 (each one costs more XP than the last). */
+		public function get bonusPoints():int {
+			var n:int = skillPoints;
+			for (var k:String in skills) n += int(skills[k]);
+			return Math.max(0, n - (level - 1));
+		}
+
+		/** XP needed for the next skill point at level 20. */
+		public function get nextPointXp():int { return Data.skillPointXp(bonusPoints); }
+
 		/** Ascension: level 20 with all 11 stats maxed. */
 		public function get ascended():Boolean { return level >= MAX_LEVEL && maxedCount >= 11; }
 
@@ -170,7 +180,7 @@ package realm {
 			var par:Object = Data.skillParent(id);
 			if (par && rank(par.id) < 2) return "Needs 2 ranks in " + par.name + " first.";
 			if (sk.cap && level < MAX_LEVEL) return "Capstones unlock at level 20.";
-			if (skillPoints <= 0) return "No skill points. You get one per level, then one every " + Data.XP_PER_SKILL_POINT + " XP at level 20.";
+			if (skillPoints <= 0) return "No skill points. You get one per level, then at level 20 one per " + nextPointXp + " XP (more for each one after).";
 			return null;
 		}
 
@@ -590,7 +600,7 @@ package realm {
 				case "whirlwind":
 					spinT = 2;
 					spinTick = 0;
-					spinDmg = (28 + level * 3.5) * pow;
+					spinDmg = (45 + level * 5.5) * pow;
 					g.abil.show("whirlwind", x, y, x, y, 2, true);
 					break;
 				case "warcry":
@@ -637,10 +647,10 @@ package realm {
 			spinT -= dt;
 			spinTick -= dt;
 			if (spinTick > 0) return;
-			spinTick = 0.25;
+			spinTick = 0.2;
 			for each (var e:Enemy in g.enemies.concat()) {
 				var ex:Number = e.x - x, ey:Number = e.y - y;
-				if (!e.dead && ex * ex + ey * ey < 2.2 * 2.2) {
+				if (!e.dead && ex * ex + ey * ey < (3.2 + e.r) * (3.2 + e.r)) {
 					g.hurtEnemy(e, spinDmg, "shard", e.x, e.y);
 					g.burst(e.x, e.y, 0xd0d8e8, 3);
 				}
@@ -794,8 +804,8 @@ package realm {
 			totalXp += amount;
 			if (level >= MAX_LEVEL) {
 				ascXp += amount;
-				while (ascXp >= Data.XP_PER_SKILL_POINT) {
-					ascXp -= Data.XP_PER_SKILL_POINT;
+				while (ascXp >= nextPointXp) {
+					ascXp -= nextPointXp;
 					skillPoints++;
 					g.floatText(x, y - 1.4, "+1 Skill Point", 0x80e0ff);
 					g.msg("You earned a skill point! Spend it in the Skills tab.", 0x80e0ff);

@@ -716,7 +716,7 @@ package realm {
 						for (i = 0; i < 3; i++) {
 							a = f.t * 14 + i * Math.PI * 2 / 3;
 							gr.lineStyle(5, 0xd0d8e8, 0.7 * sfa);
-							var srx:Number = TS * 1.6, sry:Number = TS * 1.0;
+							var srx:Number = TS * 3.2, sry:Number = TS * 2.0;
 							gr.moveTo(scx + Math.cos(a) * srx, scy + Math.sin(a) * sry);
 							for (var st:int = 1; st <= 6; st++) {
 								var aa:Number = a - st * 0.12;

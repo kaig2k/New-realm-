@@ -214,6 +214,41 @@ class Data {
 			}
 			return item;
 		}
+	static canRerollForm(item) {
+			return item && item.kind == "weapon" && !item.uid && !item.gid && Data.FORM_IDS.length > 1;
+		}
+	static canRerollStats(item) {
+			return item && Data.isGear(item) && item.rarity && item.rarity != "gd" && !item.uid && !item.gid;
+		}
+	static rerollForm(item) {
+			var forms = Data.FORM_IDS.filter((f, i, a) => { i = __int(i); return f != item.form; });
+			var form = forms[__int(Math.random() * forms.length)];
+			var w = Data.makeWeapon(item.sub, item.rarity ? 7 : item.tier, item.rarity, form);
+			for (var k of __vals( Data.ROLLED)) {
+				if (k == "spd") continue;
+				if (item[k]) w[k] = item[k]; else delete w[k];
+			}
+			if (item.passive) w.passive = item.passive; else delete w.passive;
+			if (item.set) w.set = item.set; else delete w.set;
+			if (item.col) w.col = item.col;
+			var base = item.name;
+			if (item.form && Data.FORMS[item.form] && base.indexOf(Data.FORMS[item.form].name + " ") == 0) base = base.substr(Data.FORMS[item.form].name.length + 1);
+			w.name = Data.FORMS[form].name + " " + base;
+			return w;
+		}
+	static rerollStats(item) {
+			var n = null;
+			switch (item.kind) {
+				case "weapon": n = Data.makeWeapon(item.sub, 7, item.rarity, item.form || ""); break;
+				case "ability": n = Data.makeAbility(item.sub, 6, item.rarity, item.ab); break;
+				case "armor": n = Data.makeArmor(item.sub, 7, item.rarity); break;
+				default: n = Data.makeRing(item.sub, 5, item.rarity);
+			}
+			n.name = item.name;
+			if (item.set) n.set = item.set; else delete n.set;
+			if (item.col && item.kind == "weapon") n.col = item.col;
+			return n;
+		}
 	static forgeLegendary(item, cls) {
 			switch (item.kind) {
 				case "weapon": return Data.makeWeapon(item.sub, 7, "lg", item.form || "?");
@@ -271,7 +306,7 @@ class Data {
 				case "knives": t = "12 knives fly out all around you for " + n(30, 4) + " each and poison what they hit: " + n(8, 1) + " more damage every half second for 3s."; break;
 				case "smoke": t = "Drops a smoke cloud (3 tiles) for " + (5 * sq).toFixed(1) + "s. While you are inside you are invisible; monsters inside are slowed."; break;
 				case "charge": t = "Rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + n(60, 8) + ". Then go berserk for " + (4 * sq).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
-				case "whirlwind": t = "Spin for 2s, hitting everything within 2.2 tiles for " + n(28, 3.5) + " every quarter second. You move a little slower while spinning."; break;
+				case "whirlwind": t = "Spin for 2s, hitting everything within 3.2 tiles for " + n(45, 5.5) + " five times a second. You move a little slower while spinning."; break;
 				case "warcry": t = "A roar that stuns monsters within 4.5 tiles for 1.5s (bosses briefly) and leaves them taking 25% more damage for 5s. You go berserk for 2s."; break;
 				case "harvest": t = "Blasts a 3-tile area at the cursor for " + n(70, 8) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * sq).toFixed(1) + "s, shooting the nearest monster for " + n(18, 2.5) + "."; break;
 				case "prison": t = "Bone spikes burst up in a ring at the cursor: monsters inside (2.5 tiles) are held in place for " + (2.5 * sq).toFixed(1) + "s and take " + n(16, 2) + " every half second for 3s."; break;
@@ -364,6 +399,10 @@ class Data {
 	static petXpNeeded(level) { level = __int(level); return __int(8 + level * 2); }
 	static petHeal(pet) { return __int(__int(4 + pet.level * 1.2)); }
 	static petMagic(pet) { return __int(__int(1 + pet.level * 0.4)); }
+	static petAttack(pet) {
+			var mul = pet.rarity == "legendary" ? 1.3 : pet.rarity == "rare" ? 1.15 : 1;
+			return __int(__int((8 + pet.level * 2.2) * mul));
+		}
 	static dungeonIndex(id) {
 			for (var i = __int(0); i < Data.DUNGEONS.length; i++) if (Data.DUNGEONS[i].id == id) return __int(i);
 			return __int(-1);
@@ -380,6 +419,7 @@ class Data {
 			}
 			return null;
 		}
+	static skillPointXp(n) { n = __int(n); return __int(Data.XP_PER_SKILL_POINT + Math.max(0, n) * 300); }
 	static quest(id) {
 			for (var q of __vals( Data.QUESTS)) if (q.id == id) return q;
 			return null;
@@ -528,6 +568,22 @@ class Uniques {
 	constructor() {
 
 	}
+	static rarityOf(id) {
+			var bid = Uniques.bossOf[id];
+			var d = bid ? Data.ENEMIES[bid] : null;
+			if (!d) return "ut";
+			if (d.raid) {
+				for (var rd of __vals( Bosses.RAIDS)) {
+					var last = rd.stages[rd.stages.length - 1];
+					if (last.indexOf(bid) >= 0) return "ar";
+				}
+				return "lg";
+			}
+			if (d.final || d.finale) return "lg";
+			if (d.dungeon) return d.dtier >= 5 ? "lg" : d.dtier != undefined && d.dtier <= 2 ? "ut" : "fb";
+			
+			return d.xp >= 1800 ? "lg" : "fb";
+		}
 	static make(id) {
 			var u = Uniques.ALL[id];
 			if (!u) return null;
@@ -539,18 +595,24 @@ class Uniques {
 				case "armor": it = Data.makeArmor(sub, 7, null); break;
 				default: it = Data.makeRing(sub, 5, null);
 			}
-			it.rarity = "ut";
+			var rar = Uniques.rarityOf(id);
+			it.rarity = rar;
 			it.tier = 8;
 			it.name = u[0];
 			it.uid = id;
 			it.lore = u[5];
 			var st = u[3];
 			for (var k in st) it[k] = (it[k] || 0) + st[k];
+			
+			if (rar != "ut") for (var sk of __vals( Data.STATS.concat(Data.GEAR_STATS))) {
+				if (sk == "spd" && kind == "weapon") continue;
+				if (it[sk]) it[sk] = Math.round(it[sk] * Uniques.STAT_MUL[rar]);
+			}
 			var x = u[4];
 			if (kind == "weapon") {
 				
-				it.dmin = __int(it.dmin * 1.12);
-				it.dmax = __int(it.dmax * 1.12);
+				it.dmin = __int(it.dmin * Uniques.DMG_MUL[rar]);
+				it.dmax = __int(it.dmax * Uniques.DMG_MUL[rar]);
 				if (x) {
 					if (x.shots) it.shots = x.shots;
 					if (x.arc != undefined) it.arc = x.arc;
@@ -570,13 +632,14 @@ class Uniques {
 			} else if (kind == "ability" && x && x.power) {
 				it.power = x.power;
 			}
+			if (kind == "ability") it.power = Math.round((it.power + Uniques.POWER_ADD[rar]) * 100) / 100;
 			return it;
 		}
 	static describe(it) {
 			var s = "";
 			if (it.lore) s += "<font color='#c8b080'><i>" + it.lore + "</i></font>\n";
 			var src = Uniques.source[it.uid];
-			if (src) s += "<font color='#ff9a2e'>Unique: only " + src + " drops this.</font>\n";
+			if (src) s += "<font color='#ff9a2e'>Unique " + Data.RARITY_NAMES[Uniques.rarityOf(it.uid)] + ": only " + src + " drops this.</font>\n";
 			return s;
 		}
 }
@@ -627,7 +690,7 @@ class Godly {
 		}
 	static describe(it) {
 			var src = Godly.source[it.gid];
-			return "<font color='#fff6e0'>Godly: 1 in 5,000" + (src ? " from " + src : "") + ".</font>\n";
+			return "<font color='#fff6e0'>Godly: 1 in 3,000" + (src ? " from " + src : "") + ".</font>\n";
 		}
 }
 
@@ -670,7 +733,7 @@ class Bosses {
 			for (var k in fields) d[k] = fields[k];
 			if (uniques) {
 				d.uniques = uniques;
-				for (var u of __vals( uniques)) Uniques.source[u] = d.name;
+				for (var u of __vals( uniques)) { Uniques.source[u] = d.name; Uniques.bossOf[u] = id; }
 			}
 		}
 	static mob(id, fields) {
@@ -2660,6 +2723,9 @@ Data.SHOP = [
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
+Data.REROLL_FORM_GOLD = __int(400);
+Data.REROLL_STATS_AETHER = __int(60);
+Data.ROLLED = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt", "frt"];
 Data.viewerLevel = __int(1);
 Data.ENEMIES = {
 			pirate: {name: "Pirate", spr: "pirate", hp: 30, def: 0, spd: 1.6, xp: 10, ai: "chase", keep: 3, drop: 0.12, col: 0xc02020,
@@ -3125,6 +3191,8 @@ Data.PET_RARITIES = {
 Data.PET_EGG_PRICE = __int(1000);
 Data.PET_FEED_PRICE = __int(200);
 Data.PET_FEED_XP = __int(20);
+Data.PET_SHOTS = {pup: ["orb", 0xffd080], slime: ["orb", 0x60ff60], owl: ["dart", 0xc0a0ff],
+			drake: ["fire", 0xff7020], wisp: ["star", 0x80e0ff], golem: ["orb", 0xb0a090]};
 Data.ZONE_SPAWNS = [
 			["pirate", "pirate", "pirate_brawler", "snake", "scorpion", "crab", "slime", "pirate_captain"],
 			["goblin", "goblin", "hobbit", "bandit", "wolf", "green_slime", "goblin_chief", "bandit_leader"],
@@ -3343,7 +3411,11 @@ Uniques.ALL = {
 			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."]
 		};
 Uniques.source = {};
-Godly.CHANCE = 1 / 5000;
+Uniques.bossOf = {};
+Uniques.STAT_MUL = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
+Uniques.DMG_MUL = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
+Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
+Godly.CHANCE = 1 / 3000;
 Godly.SETS = {
 			wizard: {name: "Astral Archmage", items: ["Staff of the Endless Cosmos", "Grimoire of Creation", "Robes of the Astral Archmage", "Ring of Infinite Stars"],
 				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 18, wis: 15, dex: 10, frt: 15}},

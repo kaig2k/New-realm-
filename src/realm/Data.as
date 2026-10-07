@@ -468,6 +468,55 @@ package realm {
 			return item;
 		}
 
+		// ---- Starforge rerolls ------------------------------------------
+		public static const REROLL_FORM_GOLD:int = 400;
+		public static const REROLL_STATS_AETHER:int = 60;
+
+		/** Weapons (but not uniques or Godly items) can get a new prefix (form). */
+		public static function canRerollForm(item:Object):Boolean {
+			return item && item.kind == "weapon" && !item.uid && !item.gid && FORM_IDS.length > 1;
+		}
+
+		/** Special-rarity gear (but not uniques or Godly items) can roll its bonus stats again. */
+		public static function canRerollStats(item:Object):Boolean {
+			return item && isGear(item) && item.rarity && item.rarity != "gd" && !item.uid && !item.gid;
+		}
+
+		private static const ROLLED:Array = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt", "frt"];
+
+		/** The same weapon with a different prefix: everything else it rolled stays. */
+		public static function rerollForm(item:Object):Object {
+			var forms:Array = FORM_IDS.filter(function(f:*, i:int, a:Array):Boolean { return f != item.form; });
+			var form:String = forms[int(Math.random() * forms.length)];
+			var w:Object = makeWeapon(item.sub, item.rarity ? 7 : item.tier, item.rarity, form);
+			for each (var k:String in ROLLED) {
+				if (k == "spd") continue;
+				if (item[k]) w[k] = item[k]; else delete w[k];
+			}
+			if (item.passive) w.passive = item.passive; else delete w.passive;
+			if (item.set) w.set = item.set; else delete w.set;
+			if (item.col) w.col = item.col;
+			var base:String = item.name;
+			if (item.form && FORMS[item.form] && base.indexOf(FORMS[item.form].name + " ") == 0) base = base.substr(FORMS[item.form].name.length + 1);
+			w.name = FORMS[form].name + " " + base;
+			return w;
+		}
+
+		/** The same item with its bonus stats (and a weapon's passive) rolled again. */
+		public static function rerollStats(item:Object):Object {
+			var n:Object;
+			switch (item.kind) {
+				case "weapon": n = makeWeapon(item.sub, 7, item.rarity, item.form || ""); break;
+				case "ability": n = makeAbility(item.sub, 6, item.rarity, item.ab); break;
+				case "armor": n = makeArmor(item.sub, 7, item.rarity); break;
+				default: n = makeRing(item.sub, 5, item.rarity);
+			}
+			n.name = item.name;
+			if (item.set) n.set = item.set; else delete n.set;
+			if (item.col && item.kind == "weapon") n.col = item.col;
+			return n;
+		}
+
 		/** Turn an item into a Starforged item of the same kind (Starforge). */
 		public static function forgeLegendary(item:Object, cls:Object):Object {
 			switch (item.kind) {
@@ -537,7 +586,7 @@ package realm {
 				case "knives": t = "12 knives fly out all around you for " + n(30, 4) + " each and poison what they hit: " + n(8, 1) + " more damage every half second for 3s."; break;
 				case "smoke": t = "Drops a smoke cloud (3 tiles) for " + (5 * sq).toFixed(1) + "s. While you are inside you are invisible; monsters inside are slowed."; break;
 				case "charge": t = "Rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + n(60, 8) + ". Then go berserk for " + (4 * sq).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
-				case "whirlwind": t = "Spin for 2s, hitting everything within 2.2 tiles for " + n(28, 3.5) + " every quarter second. You move a little slower while spinning."; break;
+				case "whirlwind": t = "Spin for 2s, hitting everything within 3.2 tiles for " + n(45, 5.5) + " five times a second. You move a little slower while spinning."; break;
 				case "warcry": t = "A roar that stuns monsters within 4.5 tiles for 1.5s (bosses briefly) and leaves them taking 25% more damage for 5s. You go berserk for 2s."; break;
 				case "harvest": t = "Blasts a 3-tile area at the cursor for " + n(70, 8) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * sq).toFixed(1) + "s, shooting the nearest monster for " + n(18, 2.5) + "."; break;
 				case "prison": t = "Bone spikes burst up in a ring at the cursor: monsters inside (2.5 tiles) are held in place for " + (2.5 * sq).toFixed(1) + "s and take " + n(16, 2) + " every half second for 3s."; break;
@@ -1112,6 +1161,14 @@ package realm {
 		/** HP and MP the pet heals every 3 seconds. */
 		public static function petHeal(pet:Object):int { return int(4 + pet.level * 1.2); }
 		public static function petMagic(pet:Object):int { return int(1 + pet.level * 0.4); }
+		/** Damage of each of the pet's shots (pets shoot the nearest monster about once a second). */
+		public static function petAttack(pet:Object):int {
+			var mul:Number = pet.rarity == "legendary" ? 1.3 : pet.rarity == "rare" ? 1.15 : 1;
+			return int((8 + pet.level * 2.2) * mul);
+		}
+		/** How each kind of pet shoots: [projectile shape, colour]. */
+		public static const PET_SHOTS:Object = {pup: ["orb", 0xffd080], slime: ["orb", 0x60ff60], owl: ["dart", 0xc0a0ff],
+			drake: ["fire", 0xff7020], wisp: ["star", 0x80e0ff], golem: ["orb", 0xb0a090]};
 
 		/** Which enemies spawn in each biome (repeats make a monster more common). */
 		public static const ZONE_SPAWNS:Array = [
@@ -1198,7 +1255,8 @@ package realm {
 		/**
 		 * Skill tree: three branches of stat upgrades, each ending in a capstone.
 		 * A skill needs 2 ranks in the one above it; capstones also need level 20.
-		 * You get a point per level, then one per XP_PER_SKILL_POINT XP at level 20.
+		 * You get a point per level, then at level 20 one per skillPointXp(n) XP,
+		 * which grows with every point earned that way.
 		 */
 		public static const SKILL_BRANCHES:Array = [
 			{name: "Might", col: 0xff6a50, desc: "Damage and critical hits"},
@@ -1240,6 +1298,8 @@ package realm {
 		}
 
 		public static const XP_PER_SKILL_POINT:int = 1000;
+		/** XP for the next level-20 skill point after already earning n of them. */
+		public static function skillPointXp(n:int):int { return XP_PER_SKILL_POINT + Math.max(0, n) * 300; }
 
 		/** Daily quests (daily contracts / battle pass missions); 3 are picked per day. */
 		public static const QUESTS:Array = [

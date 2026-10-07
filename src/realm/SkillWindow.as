@@ -52,7 +52,7 @@ package realm {
 		public function refresh():void {
 			var p:Player = g.player;
 			head.htmlText = "<font color='#80e0ff'><b>" + p.skillPoints + "</b> skill point" + (p.skillPoints == 1 ? "" : "s") + "</font>" +
-				(p.level >= Player.MAX_LEVEL ? "   next point " + p.ascXp + "/" + Data.XP_PER_SKILL_POINT + " XP" : "   +1 per level up");
+				(p.level >= Player.MAX_LEVEL ? "   next point " + p.ascXp + "/" + p.nextPointXp + " XP" : "   +1 per level up");
 			while (body.numChildren) body.removeChildAt(0);
 			body.graphics.clear();
 			for (var b:int = 0; b < Data.SKILL_BRANCHES.length; b++) {

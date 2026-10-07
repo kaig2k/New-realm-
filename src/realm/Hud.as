@@ -254,7 +254,7 @@ package realm {
 			for each (var sk:Object in Data.SKILLS) key += p.rank(sk.id);
 			if (key == lastSkills) return;
 			lastSkills = key;
-			var out:String = "<b>Skill points: " + p.skillPoints + "</b>" + (p.level >= Player.MAX_LEVEL ? "  (next " + p.ascXp + "/" + Data.XP_PER_SKILL_POINT + " XP)" : "") + "\n";
+			var out:String = "<b>Skill points: " + p.skillPoints + "</b>" + (p.level >= Player.MAX_LEVEL ? "  (next " + p.ascXp + "/" + p.nextPointXp + " XP)" : "") + "\n";
 			for (var b:int = 0; b < Data.SKILL_BRANCHES.length; b++) {
 				var br:Object = Data.SKILL_BRANCHES[b], n:int = 0, caps:String = "";
 				for each (sk in Data.SKILLS) if (sk.b == b) {
@@ -383,7 +383,8 @@ package realm {
 
 		private function showTip(s:Slot):void {
 			if (!s || !s.item) { tip.visible = false; return; }
-			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up, or drag into a slot") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Drag onto the ground to drop.") : "Equipped. Drag into your inventory to take it off.";
+			var drinkable:Boolean = s.item.kind == "stat" || s.item.kind == "hp" || s.item.kind == "mp";
+			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up, or drag into a slot") + (drinkable ? ". Shift+click to drink it here." : "") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Drag onto the ground to drop.") : "Equipped. Drag into your inventory to take it off.";
 			var worn:Object = null;
 			if ((s.kind == "inv" || s.kind == "bag") && Data.isGear(s.item) && Data.canUse(s.item, g.player.cls.id)) worn = g.player[s.item.kind];
 			tip.show(s.item, hint, worn);
@@ -426,11 +427,10 @@ package realm {
 
 			if (skillPage.visible) refreshSkills(p);
 			if (statPage.visible) {
-				var st:String = "<font color='#ffd75e'>Maxed " + p.maxedCount + "/11</font>\n" +
-					statLine("att") + statLine("def") + "\n" + statLine("spd") + statLine("dex") + "\n" +
+				var st:String = statLine("hp") + statLine("mp") + "\n" + statLine("att") + statLine("def") + "\n" + statLine("spd") + statLine("dex") + "\n" +
 					statLine("vit") + statLine("wis") + "\n" + statLine("mgt") + statLine("luc") + "\n" +
 					statLine("prt") + "<font color='#9a9a9a'>BNT</font> " + p.frt + "\n" +
-					"<font color='#aaaaaa' size='12'>Crit " + Math.round(p.critChance * 100) + "%  x" + p.critMult.toFixed(2) +
+					"<font color='#ffd75e' size='12'>Maxed " + p.maxedCount + "/11</font>   <font color='#aaaaaa' size='12'>Crit " + Math.round(p.critChance * 100) + "%  x" + p.critMult.toFixed(2) +
 					(p.setPieces >= 4 ? "   <font color='#4ee08a'>Set bonus</font>" : "") + "</font>";
 				if (st != lastStats) {
 					lastStats = st;
@@ -466,8 +466,11 @@ package realm {
 			var maxed:Boolean = p.stats[key] >= p.cls.max[key];
 			var v:String = String(p.stat(key));
 			while (v.length < 4) v += " ";
+			// how far the base stat is from the class maximum
+			var left:int = Math.ceil(p.cls.max[key] - p.stats[key]);
 			return "<font color='#9a9a9a'>" + Data.STAT_SHORT[key] + "</font> <font color='" + (maxed ? "#ffd75e" : "#ffffff") + "'>" + p.stat(key) + "</font>" +
-				(b > 0 ? "<font color='#6fd06f'>+" + b + "</font>" : "") + "      ";
+				(b > 0 ? "<font color='#6fd06f'>+" + b + "</font>" : "") +
+				(maxed ? "" : " <font color='#8a8a9a' size='11'>" + left + " left</font>") + "    ";
 		}
 
 		private function drawMinimap():void {

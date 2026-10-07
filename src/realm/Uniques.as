@@ -118,8 +118,36 @@ package realm {
 			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."]
 		};
 
-		/** Boss name for each unique (filled in by Bosses.init). */
+		/** Boss name and id for each unique (filled in by Bosses.init). */
 		public static var source:Object = {};
+		public static var bossOf:Object = {};
+
+		/**
+		 * A unique's rarity follows where it comes from: early dungeons give
+		 * Runed, later dungeons and realm events Eldritch, the toughest events,
+		 * endgame dungeons and realm finales Starforged, and raid masters Primordial.
+		 */
+		public static function rarityOf(id:String):String {
+			var bid:String = bossOf[id];
+			var d:Object = bid ? Data.ENEMIES[bid] : null;
+			if (!d) return "ut";
+			if (d.raid) {
+				for each (var rd:Object in Bosses.RAIDS) {
+					var last:Array = rd.stages[rd.stages.length - 1];
+					if (last.indexOf(bid) >= 0) return "ar";
+				}
+				return "lg";
+			}
+			if (d.final || d.finale) return "lg";
+			if (d.dungeon) return d.dtier >= 5 ? "lg" : d.dtier != undefined && d.dtier <= 2 ? "ut" : "fb";
+			// realm events: the biggest ones (worth 1,800 XP and more) give Starforged
+			return d.xp >= 1800 ? "lg" : "fb";
+		}
+
+		/** How much stronger each rarity makes a unique (stats, then weapon damage). */
+		private static const STAT_MUL:Object = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
+		private static const DMG_MUL:Object = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
+		private static const POWER_ADD:Object = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 
 		public static function make(id:String):Object {
 			var u:Array = ALL[id];
@@ -132,18 +160,24 @@ package realm {
 				case "armor": it = Data.makeArmor(sub, 7, null); break;
 				default: it = Data.makeRing(sub, 5, null);
 			}
-			it.rarity = "ut";
+			var rar:String = rarityOf(id);
+			it.rarity = rar;
 			it.tier = 8;
 			it.name = u[0];
 			it.uid = id;
 			it.lore = u[5];
 			var st:Object = u[3];
 			for (var k:String in st) it[k] = (it[k] || 0) + st[k];
+			// rarer uniques: every stat on it is stronger
+			if (rar != "ut") for each (var sk:String in Data.STATS.concat(Data.GEAR_STATS)) {
+				if (sk == "spd" && kind == "weapon") continue;
+				if (it[sk]) it[sk] = Math.round(it[sk] * STAT_MUL[rar]);
+			}
 			var x:Object = u[4];
 			if (kind == "weapon") {
 				// a little above a top-tier weapon, then shaped by its extras
-				it.dmin = int(it.dmin * 1.12);
-				it.dmax = int(it.dmax * 1.12);
+				it.dmin = int(it.dmin * DMG_MUL[rar]);
+				it.dmax = int(it.dmax * DMG_MUL[rar]);
 				if (x) {
 					if (x.shots) it.shots = x.shots;
 					if (x.arc != undefined) it.arc = x.arc;
@@ -163,6 +197,7 @@ package realm {
 			} else if (kind == "ability" && x && x.power) {
 				it.power = x.power;
 			}
+			if (kind == "ability") it.power = Math.round((it.power + POWER_ADD[rar]) * 100) / 100;
 			return it;
 		}
 
@@ -171,7 +206,7 @@ package realm {
 			var s:String = "";
 			if (it.lore) s += "<font color='#c8b080'><i>" + it.lore + "</i></font>\n";
 			var src:String = source[it.uid];
-			if (src) s += "<font color='#ff9a2e'>Unique: only " + src + " drops this.</font>\n";
+			if (src) s += "<font color='#ff9a2e'>Unique " + Data.RARITY_NAMES[rarityOf(it.uid)] + ": only " + src + " drops this.</font>\n";
 			return s;
 		}
 	}

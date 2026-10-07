@@ -89,7 +89,7 @@ async function run() {
   // saves from before the item ledger (items without ids), as on a server being upgraded
   fs.mkdirSync(path.join(DATA, 'saves'), { recursive: true });
   fs.writeFileSync(path.join(DATA, 'saves', nameA.toLowerCase() + '.json'), JSON.stringify({ gold: 5000, fame: 100, onrane: 300,
-    chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])], vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3 }));
+    chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey, ITEMS.weapon])], vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3 }));
   fs.writeFileSync(path.join(DATA, 'saves', nameB.toLowerCase() + '.json'), JSON.stringify({ gold: 3000, chars: [charSave('cb', [ITEMS.potion])] }));
   await wait(900);
 
@@ -174,6 +174,25 @@ async function run() {
   A.send({ t: 'forge', slot: invA.indexOf(invA.find((it) => it && it.kind === 'stat')), data: withInv() });
   await wait(400);
   check('the Starforge on the server refuses items that cannot be forged', A.find((m) => m.t === 'shopFail' && /cannot be forged/.test(m.msg)));
+  const wi = invA.findIndex((it) => it && it.kind === 'weapon');
+  check('test setup: a weapon to reroll', wi >= 0);
+  if (wi >= 0) {
+    A.clear();
+    A.send({ t: 'reroll', slot: wi, what: 'form', data: withInv() });
+    await wait(400);
+    sd = A.find((m) => m.t === 'shopDone');
+    const nw = sd && sd.inv[wi];
+    check('a new weapon prefix on the server: new id, new prefix, gold taken', nw && sd.rerolled && nw.sid && nw.sid !== invA[wi].sid && nw.form && nw.form !== invA[wi].form && sd.gold === gA - 400,
+      sd ? JSON.stringify({ g: sd.gold, f: nw && nw.form }) : JSON.stringify(A.find((m) => m.t === 'shopFail')));
+    if (sd) { invA = sd.inv; gA = sd.gold; seqA = sd.seq; }
+  }
+  const gi = invA.findIndex((it) => it && it.rarity === 'gd');
+  if (gi >= 0) {
+    A.clear();
+    A.send({ t: 'reroll', slot: gi, what: 'stats', data: withInv() });
+    await wait(400);
+    check('Godly items cannot be rerolled', A.find((m) => m.t === 'shopFail' && /cannot be rerolled/.test(m.msg)));
+  }
   A.clear();
   A.send({ t: 'save', data: Object.assign(withInv(), { tradeSeq: 0 }) });
   await wait(450);

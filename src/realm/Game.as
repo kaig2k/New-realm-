@@ -66,7 +66,7 @@ package realm {
 		private var traps:Array = [];
 		/** Lingering class ability effects and their animations. */
 		public var abil:Abilities;
-		private var petX:Number = 0, petY:Number = 0, petHealT:Number = 3;
+		private var petX:Number = 0, petY:Number = 0, petHealT:Number = 3, petShootT:Number = 1;
 		private var petMoving:Boolean = false;
 		private var releaseArmed:Boolean = false;
 		private var showAch:Boolean = false;
@@ -1970,7 +1970,7 @@ package realm {
 					// a 1 in 5,000 drop: make a scene
 					for each (var gi:Object in items) if (gi.rarity == "gd") {
 						showBanner("GODLY DROP: " + gi.name + "!", Data.RARITY_COLORS.gd, 6);
-						msg("*** You found a Godly item: " + gi.name + "! (1 in 5,000) ***", Data.RARITY_COLORS.gd);
+						msg("*** You found a Godly item: " + gi.name + "! (1 in 3,000) ***", Data.RARITY_COLORS.gd);
 						if (net.online) net.chat("I just found a Godly " + gi.name + "!!!");
 					}
 					Sfx.play("rare"); Sfx.play("level");
@@ -2518,6 +2518,18 @@ package realm {
 			if (kind == "bag") {
 				if (!nearBag || idx >= nearBag.items.length) return;
 				item = nearBag.items[idx];
+				// potions can be drunk straight from the bag: shift+click, or a plain click when your inventory is full
+				var drinkable:Boolean = item.kind == "stat" || item.kind == "hp" || item.kind == "mp";
+				if (drinkable && (shift || (p.freeSlot() < 0 && item.kind == "stat"))) {
+					var drank:Boolean = item.kind == "stat" ? p.drinkStat(item.sub, this) : item.kind == "hp" ? p.drinkHp(this, true) : p.drinkMp(this, true);
+					if (drank) {
+						nearBag.items.splice(idx, 1);
+						nearBag.refresh();
+						if (nearBag.vault) saveVault();
+						saveCharacter();
+					}
+					return;
+				}
 				if (item.kind == "material") tip("sor", "Star Shard: bring it with a Runed, Bonded or Eldritch item and 100 Aether to the Starforge to make it Starforged.");
 				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) { p.hpPots++; hud.flyItem(item, idx, "hp"); }
 				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) { p.mpPots++; hud.flyItem(item, idx, "mp"); }
@@ -2680,6 +2692,44 @@ package realm {
 			sp.addChild(info);
 			var i:int;
 			if (openStation.kind == "forge") {
+				// two tabs: forge a Starforged item, or reroll a prefix / bonus stats
+				var tabs:Array = [["forge", "Starforge"], ["reroll", "Reroll"]];
+				for (var ti:int = 0; ti < tabs.length; ti++) {
+					var tb:Sprite = Ui.button((forgeMode == tabs[ti][0] ? "> " : "") + tabs[ti][1], 150, 26, forgeTabFn(tabs[ti][0]), 13);
+					tb.x = w / 2 - 154 + ti * 158; tb.y = y;
+					tb.alpha = forgeMode == tabs[ti][0] ? 1 : 0.7;
+					sp.addChild(tb);
+				}
+				y += 34;
+			}
+			if (openStation.kind == "forge" && forgeMode == "reroll") {
+				info.htmlText = "<b>New prefix</b> (weapons): <font color='#ffd75e'>" + Data.REROLL_FORM_GOLD + " gold</font>. Everything else the weapon rolled stays.\n" +
+					"<b>Reroll stats</b> (Runed, Bonded, Eldritch, Starforged, Primordial): <font color='#c080ff'>" + Data.REROLL_STATS_AETHER + " Aether</font>. " +
+					"Uniques and Godly items are fixed.\nYou have <b>" + gold + "</b> gold and <b>" + onrane + "</b> Aether.";
+				info.y = y;
+				y += info.height + 6;
+				for (var rr:int = 0; rr < 2; rr++) {
+					var rl:TextField = Ui.text(13, rr ? 0xc080ff : Ui.GOLD, true, "left", w - 30, true);
+					rl.text = rr ? "Reroll stats" : "New prefix";
+					rl.x = 16; rl.y = y;
+					sp.addChild(rl);
+					y += 20;
+					var rn:int = 0;
+					for (i = 0; i < player.inv.length; i++) {
+						var ri:Object = player.inv[i];
+						if (!(rr ? Data.canRerollStats(ri) : Data.canRerollForm(ri))) continue;
+						sp.addChild(itemButton(ri, 16 + (rn % 8) * 52, y + int(rn / 8) * 52, rerollFn(i, rr ? "stats" : "form")));
+						rn++;
+					}
+					if (rn == 0) {
+						var rnone:TextField = Ui.text(12, 0x888888, false, "left", w - 30);
+						rnone.x = 16; rnone.y = y + 4;
+						rnone.text = rr ? "No special-rarity gear in your inventory." : "No weapons in your inventory.";
+						sp.addChild(rnone);
+						y += 26;
+					} else y += (int((rn - 1) / 8) + 1) * 52 + 4;
+				}
+			} else if (openStation.kind == "forge") {
 				var sors:int = 0;
 				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
 				info.htmlText = "Forge a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Starforged</b></font> item: Runed, Bonded or Eldritch item + 1 Star Shard + 100 Aether\n" +
@@ -3557,6 +3607,41 @@ package realm {
 			};
 		}
 
+		/** Which Starforge tab is open: "forge" or "reroll". */
+		private var forgeMode:String = "forge";
+
+		private function forgeTabFn(mode:String):Function {
+			return function():void { forgeMode = mode; refreshStation(); };
+		}
+
+		private function rerollFn(slot:int, what:String):Function {
+			return function():void { reroll(slot, what); };
+		}
+
+		/** Starforge reroll: a weapon's prefix for gold, or a special item's bonus stats for Aether. */
+		private function reroll(slot:int, what:String):void {
+			var item:Object = player.inv[slot];
+			if (!item || shopWaiting) return;
+			if (what == "form" ? !Data.canRerollForm(item) : !Data.canRerollStats(item)) return;
+			if (what == "form" && gold < Data.REROLL_FORM_GOLD) { msg("You need " + Data.REROLL_FORM_GOLD + " gold for a new prefix.", 0xff8080); return; }
+			if (what == "stats" && onrane < Data.REROLL_STATS_AETHER) { msg("You need " + Data.REROLL_STATS_AETHER + " Aether to reroll stats.", 0xff8080); return; }
+			if (net.shopRequest({t: "reroll", slot: slot, what: what})) { shopWaiting = true; return; }
+			var n:Object = what == "form" ? Data.rerollForm(item) : Data.rerollStats(item);
+			if (what == "form") addGold(-Data.REROLL_FORM_GOLD); else addOnrane(-Data.REROLL_STATS_AETHER);
+			player.inv[slot] = n;
+			Save.flush();
+			rerolled(n.name);
+			saveCharacter();
+			refreshStation();
+		}
+
+		private function rerolled(name:String):void {
+			Sfx.play("rare");
+			msg("The Starforge hums... " + name + " is reforged.", 0xc080ff);
+			floatText(player.x, player.y - 1.4, "Rerolled!", 0xc080ff);
+			burst(player.x, player.y, 0xc080ff, 18);
+		}
+
 		private function forgeFn(slot:int):Function {
 			return function():void { forge(slot); };
 		}
@@ -3575,6 +3660,24 @@ package realm {
 			if (petMoving) {
 				var sp:Number = Math.min(d - 1.2, (4 + 5.6 * (player.spd / 75)) * 1.15 * dt);
 				petX += dx / d * sp; petY += dy / d * sp;
+			}
+			// the pet fights too: a shot at the nearest monster about once a second
+			petShootT -= dt;
+			if (petShootT <= 0 && !world.isSafe(petX, petY) && player.hp > 0) {
+				var target:Enemy = null, best:Number = 7 * 7;
+				for each (var e:Enemy in enemies) {
+					if (e.dead || e.def.crate) continue;
+					var ex:Number = e.x - petX, ey:Number = e.y - petY;
+					if (ex * ex + ey * ey < best) { best = ex * ex + ey * ey; target = e; }
+				}
+				petShootT = target ? 1 : 0.25;
+				if (target) {
+					var look:Array = Data.PET_SHOTS[pt.species] || ["orb", 0xffffff];
+					var ps:Projectile = new Projectile(petX, petY - 0.3, Math.atan2(target.y - petY, target.x - petX), 11, 0.75, Data.petAttack(pt), false, 0.25,
+						Sprites.projectile(look[0], look[1], 3), false, player.name, "shard");
+					ps.trailCol = look[1];
+					shots.push(ps);
+				}
 			}
 			petHealT -= dt;
 			if (petHealT <= 0) {
@@ -3624,7 +3727,7 @@ package realm {
 			var max:Boolean = pt.level >= r.max;
 			info.htmlText = "<font size='17' color='" + Ui.hex(r.col) + "'><b>" + pt.name + "</b></font>  <font color='" + Ui.hex(r.col) + "'>" + r.name + "</font>\n" +
 				"Level <b>" + pt.level + "</b> / " + r.max + (max ? "  (max)" : "   XP " + pt.xp + " / " + Data.petXpNeeded(pt.level)) + "\n" +
-				"Heals <font color='#80ff80'>" + Data.petHeal(pt) + " HP</font> and <font color='#80a0ff'>" + Data.petMagic(pt) + " MP</font> every 3 seconds";
+				"Heals <font color='#80ff80'>" + Data.petHeal(pt) + " HP</font> and <font color='#80a0ff'>" + Data.petMagic(pt) + " MP</font> every 3 seconds, and shoots monsters for <font color='#ff9a70'>" + Data.petAttack(pt) + "</font>";
 			info.x = 80; info.width = w - 90;
 			info.autoSize = "left";
 			info.y = y;
@@ -3863,7 +3966,9 @@ package realm {
 			Save.data.tradeSeq = int(m.seq);
 			saveCharacter();
 			Save.flush();
-			if (m.forged) {
+			if (m.rerolled) {
+				rerolled(m.rerolled);
+			} else if (m.forged) {
 				questEvent("legendary");
 				showBanner("Forged " + m.forged + "!", Data.RARITY_COLORS.lg, 3);
 				Sfx.play("rare");

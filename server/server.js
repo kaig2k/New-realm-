@@ -750,6 +750,25 @@ const handlers = {
     shopDone(c, sv, ch, { forged: lg.name, slot });
   },
 
+  /** Starforge reroll: a weapon's prefix for gold, or a special item's bonus stats for Aether. */
+  reroll(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was rerolled.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const slot = num(m.slot) | 0, item = ch.inv[slot];
+    const form = m.what === 'form';
+    if (!item || !(form ? Data.canRerollForm(item) : Data.canRerollStats(item))) return c.send({ t: 'shopFail', msg: 'That item cannot be rerolled.' });
+    if (form && (sv.gold || 0) < Data.REROLL_FORM_GOLD) return c.send({ t: 'shopFail', msg: 'Not enough gold.' });
+    if (!form && (sv.onrane || 0) < Data.REROLL_STATS_AETHER) return c.send({ t: 'shopFail', msg: 'Not enough Aether.' });
+    const made = items.issue(sv, form ? Data.rerollForm(item) : Data.rerollStats(item));
+    // the old item is gone for good
+    if (item.sid && sv._ledger) delete sv._ledger[item.sid];
+    ch.inv[slot] = made;
+    if (form) sv.gold = (sv.gold || 0) - Data.REROLL_FORM_GOLD;
+    else sv.onrane = (sv.onrane || 0) - Data.REROLL_STATS_AETHER;
+    shopDone(c, sv, ch, { rerolled: made.name, slot });
+  },
+
   /** A realm closed in someone's game: replace it with a fresh one. */
   realmClosed(c, m) {
     const key = str(m.key, 80);

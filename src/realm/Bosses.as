@@ -47,7 +47,7 @@ package realm {
 			for (var k:String in fields) d[k] = fields[k];
 			if (uniques) {
 				d.uniques = uniques;
-				for each (var u:String in uniques) Uniques.source[u] = d.name;
+				for each (var u:String in uniques) { Uniques.source[u] = d.name; Uniques.bossOf[u] = id; }
 			}
 		}
 

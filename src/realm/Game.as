@@ -1800,7 +1800,7 @@ package realm {
 			}
 			if (e.def.treasure) {
 				questEvent("treasure");
-				msg("You cracked open the treasure chest! (+" + g + " gold)", Ui.GOLD);
+				msg("You cracked open the treasure chest!" + (g > 0 ? " (+" + g + " gold)" : ""), Ui.GOLD);
 				burst(e.x, e.y, Ui.GOLD, 30);
 			}
 			if (e.isBoss) {
@@ -4186,11 +4186,13 @@ package realm {
 		/** Dark dungeons: you only see a pool of light around yourself. */
 		private function drawDarkness():void {
 			var px:Number = scrX(player.x, player.y), py:Number = scrY(player.x, player.y);
-			var R:Number = TS * 9;
+			// your torch flickers a little, with a warm glow close by
+			var flick:Number = 1 + Math.sin(time * 9) * 0.015 + Math.sin(time * 23.7) * 0.01;
+			var R:Number = TS * 9 * flick;
 			darkMtx.createGradientBox(R * 2, R * 2, 0, px - R, py - R);
 			var g:* = darkShape.graphics;
 			g.clear();
-			g.beginGradientFill("radial", [0, 0, 0], [0, 0.55, 0.94], [0, 140, 255], darkMtx);
+			g.beginGradientFill("radial", [0xffa040, 0x000000, 0x000000, 0x000000], [0.07, 0, 0.55, 0.94], [0, 70, 140, 255], darkMtx);
 			g.drawRect(0, 0, vw, vh);
 			g.endFill();
 			canvas.draw(darkShape);
@@ -4779,7 +4781,7 @@ package realm {
 			var p:Player = player;
 			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
-			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, 0, world.inWater(p.x, p.y));
+			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, p.moving ? 0 : int(time * 1.6) % 2, world.inWater(p.x, p.y));
 			nameTag.x = int(cx - nameTag.width / 2);
 			nameTag.y = int(cy + TS * 0.4 + 1);
 			hpBar(cx - 20, cy + TS * 0.4 + 21, 40, p.hp / p.maxHp);

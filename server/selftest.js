@@ -1,0 +1,247 @@
+'use strict';
+/*
+ * Server self-test: starts a private copy of the server on a spare port with
+ * a throwaway data folder, plays through the protocol with fake clients and
+ * checks the answers. Your real accounts and saves are never touched.
+ *
+ *   node server/selftest.js                 run every check
+ *   node server/selftest.js items.json      also check that every item in
+ *                                           the file passes the save checks
+ */
+const net = require('net');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawn } = require('child_process');
+const { checkItem, checkSave } = require('./validate');
+
+const PORT = 20000 + Math.floor(Math.random() * 20000);
+const VERSION = 10;
+const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'newrealm-test-'));
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+let passed = 0, failed = 0;
+
+function check(name, ok, detail) {
+  if (ok) { passed++; console.log('  ok   ' + name); }
+  else { failed++; console.log('  FAIL ' + name + (detail ? '  (' + detail + ')' : '')); }
+}
+
+/** A fake game client speaking newline-separated JSON. */
+function client() {
+  return new Promise((resolve) => {
+    const s = net.connect(PORT, '127.0.0.1');
+    const c = { s, msgs: [], id: 0, closed: false };
+    let buf = '';
+    s.on('data', (d) => {
+      buf += d;
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i);
+        buf = buf.slice(i + 1);
+        try {
+          const m = JSON.parse(line);
+          c.msgs.push(m);
+          if (m.t === 'welcome') c.id = m.id;
+        } catch (e) {}
+      }
+    });
+    s.on('close', () => { c.closed = true; });
+    s.on('error', () => {});
+    c.send = (o) => { if (!c.closed) s.write((typeof o === 'string' ? o : JSON.stringify(o)) + '\n'); };
+    c.find = (fn) => c.msgs.find(fn);
+    c.clear = () => { c.msgs.length = 0; };
+    s.on('connect', () => resolve(c));
+  });
+}
+
+async function login(name, opts) {
+  const c = await client();
+  c.send(Object.assign({ t: 'hello', ver: VERSION, name }, opts));
+  await wait(250);
+  return c;
+}
+
+const ITEMS = {
+  weapon: { kind: 'weapon', sub: 'staff', tier: 5, name: 'Staff', dmin: 40, dmax: 70, shots: 2, rate: 1, life: 0.8, spd: 14 },
+  ring: { kind: 'ring', sub: 'att', tier: 3, name: 'Ring of Attack', att: 6 },
+  godly: { kind: 'armor', sub: 'robe', tier: 8, rarity: 'gd', name: 'Godly Robe', def: 30, hp: 80 },
+  raidKey: { kind: 'key', sub: 'conclave', tier: 0, name: 'Raid Key', color: 0xff3050 },
+  dungeonKey: { kind: 'key', sub: 'dg_crypt', tier: 0, name: 'Sunken Crypt Key', color: 0x6ad0ff },
+  potion: { kind: 'stat', sub: 'att', tier: 0, name: 'Potion of Attack', color: 0xff0000 }
+};
+
+function charSave(id, inv) {
+  const pad = inv.concat(); while (pad.length < 8) pad.push(null);
+  return { id, cls: 'wizard', name: 'Hero', level: 20, stats: { hp: 600, att: 75 }, weapon: ITEMS.weapon, ability: null, armor: null, ring: null,
+    inv: pad, skills: { brutality: 2, highstakes: 1 }, skillPoints: 3, highStakes: true, tree2: true };
+}
+
+async function run() {
+  console.log('New Realm server self-test (port ' + PORT + ')');
+  const srv = spawn(process.execPath, [path.join(__dirname, 'server.js'), String(PORT)], {
+    env: Object.assign({}, process.env, { NEWREALM_DATA: DATA }), stdio: ['ignore', 'pipe', 'pipe']
+  });
+  let srvOut = '';
+  srv.stdout.on('data', (d) => { srvOut += d; });
+  srv.stderr.on('data', (d) => { srvOut += d; });
+  await wait(900);
+  const n = Math.floor(Math.random() * 9000 + 1000);
+  const nameA = 'Ta' + n, nameB = 'Tb' + n;
+
+  console.log('accounts');
+  const old = await login('Old' + n, { password: 'x', ver: 3 });
+  check('old game version is refused', old.find((m) => m.t === 'error' && /Version/.test(m.msg)));
+  const A = await login(nameA, { password: 'pass1234', register: true });
+  check('register works', A.id > 0 && A.find((m) => m.t === 'welcome' && m.session));
+  const tokenA = A.find((m) => m.t === 'welcome').session;
+  const dup = await login(nameA.toLowerCase(), { password: 'pass1234', register: true });
+  check('a taken name is refused', dup.find((m) => m.t === 'error' && /taken/.test(m.msg)));
+  const wrong = await login(nameA, { password: 'nope1234' });
+  check('a wrong password is refused', wrong.find((m) => m.t === 'error' && /Wrong password/.test(m.msg)));
+  const bad = await login('x!', { password: 'pass1234', register: true });
+  check('a bad username is refused', bad.find((m) => m.t === 'error'));
+  const B = await login(nameB, { password: 'pass1234', register: true });
+  check('second account registers', B.id > 0);
+
+  console.log('saves and anti-cheat');
+  A.send({ t: 'save', data: { gold: 500, fame: 100, onrane: 2, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])],
+    vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3, opt: { shake: false }, keys: { up: 85 } } });
+  await wait(250);
+  check('a normal save (godly, raid key, dungeon key, vault, settings) is accepted', !A.find((m) => m.t === 'saveRejected'),
+    JSON.stringify(A.find((m) => m.t === 'saveRejected')));
+  A.clear();
+  A.send({ t: 'save', data: { gold: 500, chars: [charSave('ca', [{ kind: 'ring', sub: 'att', tier: 3, name: 'Hacked Ring', att: 9999 }])] } });
+  await wait(250);
+  check('an edited +9999 ring is refused', A.find((m) => m.t === 'saveRejected' && /att/.test(m.reason)));
+  A.clear();
+  A.send({ t: 'save', data: { gold: 99999999, chars: [charSave('ca', [ITEMS.ring])] } });
+  await wait(250);
+  check('gold jumping by millions is refused', A.find((m) => m.t === 'saveRejected' && /gold/.test(m.reason)));
+  const rej = A.find((m) => m.t === 'saveRejected');
+  check('a refused save sends back the last good save', rej && rej.data && rej.data.gold === 500);
+  A.clear();
+  A.send({ t: 'save', data: { gold: 500, chars: [charSave('ca', [{ kind: 'sword?', name: 'x' }])] } });
+  await wait(250);
+  check('unknown item kinds are refused', A.find((m) => m.t === 'saveRejected'));
+
+  console.log('resume and log out');
+  const A2 = await login(nameA, { token: tokenA });
+  check('a remembered session logs back in', A2.id > 0);
+  await wait(200);
+  check('logging in elsewhere kicks the old connection', A.find((m) => m.t === 'kicked') || A.closed);
+  const saved = A2.find((m) => m.t === 'welcome').save;
+  check('the save comes back on login', saved && saved.gold === 500 && saved.chars && saved.chars[0].inv[3].sub === 'dg_crypt');
+
+  console.log('worlds and relays');
+  B.send({ t: 'save', data: { gold: 100, chars: [charSave('cb', [ITEMS.potion])] } });
+  await wait(200);
+  A2.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca', profile: { cls: 'wizard', level: 20 } });
+  B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb', profile: { cls: 'knight', level: 20 } });
+  await wait(300);
+  A2.clear();
+  B.send({ t: 'move', x: 102, y: 100 });
+  await wait(200);
+  check('nearby movement is relayed', A2.find((m) => m.t === 'move' && m.id === B.id && !m.far));
+  A2.clear();
+  B.send({ t: 'move', x: 190, y: 100 });
+  await wait(200);
+  check('moving out of view sends "far" and no exact position',
+    A2.find((m) => m.t === 'far' && m.id === B.id) && !A2.find((m) => m.t === 'move' && m.id === B.id && !m.far));
+  B.send({ t: 'move', x: 101, y: 100 });
+  await wait(200);
+  A2.clear();
+  B.send({ t: 'fx', k: 'fireball', x: 101, y: 100, tx: 105, ty: 100, n: 0 });
+  await wait(150);
+  check('ability casts are shown to nearby players', A2.find((m) => m.t === 'fx' && m.k === 'fireball'));
+  A2.clear();
+  await wait(350);
+  B.send({ t: 'fx', k: '<script>', x: 1, y: 1 });
+  await wait(150);
+  check('unknown ability effects are dropped', !A2.find((m) => m.t === 'fx'));
+  B.send({ t: 'raidOpen', name: 'The Conclave', color: 0xff3050 });
+  await wait(150);
+  check('raid openings are announced to everyone', A2.find((m) => m.t === 'banner' && /Conclave/.test(m.text)));
+  A2.send({ t: 'tpreq', id: B.id });
+  await wait(150);
+  check('teleport to a stranger is refused', A2.find((m) => m.t === 'msg' && /party and guild/.test(m.text)));
+
+  console.log('trades');
+  A2.clear(); B.clear();
+  A2.send({ t: 'tradeReq', to: B.id });
+  await wait(150);
+  B.send({ t: 'tradeAns', to: A2.id, yes: true });
+  await wait(150);
+  check('both sides get the trade window', A2.find((m) => m.t === 'tradeStart') && B.find((m) => m.t === 'tradeStart'));
+  A2.send({ t: 'tradeOffer', sel: [true, false, false, true], want: [] });
+  B.send({ t: 'tradeOffer', sel: [true], want: [] });
+  await wait(150);
+  A2.send({ t: 'tradeAccept' });
+  B.send({ t: 'tradeAccept' });
+  await wait(300);
+  const doneA = A2.find((m) => m.t === 'tradeDone'), doneB = B.find((m) => m.t === 'tradeDone');
+  check('the trade completes on the server', doneA && doneB && doneA.inv && doneB.inv);
+  if (doneA && doneB && doneA.inv && doneB.inv) {
+    const subsA = doneA.inv.filter(Boolean).map((i) => i.sub).sort().join(',');
+    const subsB = doneB.inv.filter(Boolean).map((i) => i.sub).sort().join(',');
+    check('items moved: A gave its ring and dungeon key, got the potion', subsA === 'att,conclave,robe' && doneA.inv.filter(Boolean).length === 3, subsA);
+    check('B got the ring and the dungeon key', /dg_crypt/.test(subsB) && doneB.inv.filter(Boolean).length === 2, subsB);
+  }
+  A2.clear();
+  A2.send({ t: 'save', data: { gold: 500, tradeSeq: 0, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])] } });
+  await wait(250);
+  check('a save from before the trade (dupe attempt) is refused', A2.find((m) => m.t === 'saveRejected' && /stale/.test(m.reason)));
+
+  console.log('bad input');
+  const evil = await login('Ev' + n, { password: 'pass1234', register: true });
+  evil.send('{{{ not json');
+  evil.send('[1,2,3]');
+  evil.send({ t: 'move' });
+  evil.send({ t: 'enter' });
+  evil.send({ t: 'fx' });
+  evil.send({ t: 'tradeOffer', sel: 'x' });
+  evil.send({ t: 'tradeAccept' });
+  evil.send({ t: 'save', data: [] });
+  evil.send({ t: 'save' });
+  evil.send({ t: 'chat', text: { a: 1 } });
+  evil.send({ t: 'w', to: 5, text: null });
+  evil.send({ t: 'nonexistent' });
+  for (let i = 0; i < 400; i++) evil.send({ t: 'ping', at: i });
+  await wait(400);
+  evil.clear();
+  await wait(1100);
+  evil.send({ t: 'ping', at: 7 });
+  await wait(200);
+  check('the server survives junk and floods, and still answers', evil.find((m) => m.t === 'pong' && m.at === 7));
+  A2.clear();
+  A2.send({ t: 'ping', at: 1 });
+  await wait(200);
+  check('other players are unaffected', A2.find((m) => m.t === 'pong'));
+
+  console.log('log out');
+  A2.send({ t: 'logout', token: tokenA });
+  await wait(250);
+  const A3 = await login(nameA, { token: tokenA });
+  check('a logged-out session can no longer log in', A3.find((m) => m.t === 'error'));
+
+  if (process.argv[2]) {
+    console.log('items from ' + process.argv[2]);
+    const items = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+    let bad = 0;
+    for (const it of items) {
+      const why = checkItem(it);
+      if (why) { bad++; if (bad <= 10) console.log('       refused: ' + (it.name || it.kind) + ': ' + why); }
+    }
+    check(items.length + ' items made by the game all pass the save checks', bad === 0, bad + ' refused');
+    const why = checkSave({}, { chars: [{ inv: items.slice(0, 16), level: 20 }], vault: items.slice(0, 80) }, { lastSave: Date.now() }, Date.now());
+    check('a save full of them is accepted', !why, why);
+  }
+
+  check('no errors in the server log', !/error handling|TypeError|ReferenceError/.test(srvOut), (srvOut.match(/.*error.*/i) || [''])[0]);
+  srv.kill();
+  for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil]) c.s.destroy();
+  fs.rmSync(DATA, { recursive: true, force: true });
+  console.log('\n' + passed + ' passed, ' + failed + ' failed');
+  process.exit(failed ? 1 : 0);
+}
+
+run().catch((e) => { console.error(e); fs.rmSync(DATA, { recursive: true, force: true }); process.exit(1); });

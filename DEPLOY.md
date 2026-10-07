@@ -62,6 +62,20 @@ sudo systemctl restart newrealm
 Players also need the matching game build. The server turns away old builds with an
 "update" message.
 
+### Check the server works
+
+After an update you can run the self-test:
+
+```
+cd /home/newrealm/New-realm- && node server/selftest.js
+```
+
+It starts a private copy of the server on a spare port, using a throwaway data folder, so
+your players and saves are never touched. Then it plays through the protocol with fake
+players: accounts, saves, the anti-cheat checks, trades (including a duplication attempt),
+movement, ability effects, raid announcements and junk input. Every line should say `ok`,
+ending with `0 failed`.
+
 ## 5. A name instead of an IP
 
 Buy a domain and add an **A record**, for example `play` pointing to your server's IP.

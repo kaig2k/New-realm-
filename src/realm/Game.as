@@ -4055,7 +4055,14 @@ package realm {
 				if (p.kind == "realm" && !realmNames[p.idx]) { p.label.visible = false; continue; }
 				var pcx:Number = scrX(p.x, p.y), pcy:Number = scrY(p.x, p.y);
 				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
-				var ptop:Number = drawEntity(pbd, pcx, pcy, 0);
+				// a glow on the ground and motes drifting in; it flickers in its last seconds
+				var closing:Boolean = p.life > 0 && p.life < 5;
+				drawAura(pcx, pcy + TS * 0.4, p.color, closing ? 0.3 + Math.abs(Math.sin(time * 10)) * 0.5 : 0.6);
+				if (opt("parts") && parts.length < 380 && Math.random() < 0.35 && pcx > -40 && pcx < vw + 40 && pcy > -40 && pcy < vh + 40) {
+					var pa:Number = Math.random() * Math.PI * 2;
+					parts.push(new Particle(p.x + Math.cos(pa) * 1.1, p.y - 0.4 + Math.sin(pa) * 0.7, -Math.cos(pa) * 2.2, -Math.sin(pa) * 1.4, 0.45, Sprites.glow(Sprites.tint(p.color, 0.4))));
+				}
+				var ptop:Number = closing && int(time * 10) % 3 == 0 ? pcy + TS * 0.4 - pbd.height : drawEntity(pbd, pcx, pcy, 0);
 				var lab:TextField = p.label;
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"

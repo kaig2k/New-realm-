@@ -59,6 +59,7 @@ package realm {
 					}
 					break;
 				case "boom":
+					Sfx.play("boom", 0.9, 0.08);
 					anim("nova", x, y, 0.45, {col: 0xff7020, r: n});
 					anim("flash", x, y, 0.18, {col: 0xffe0a0, r: n * 0.7});
 					g.burst(x, y, 0xff9030, 22);
@@ -66,26 +67,31 @@ package realm {
 					puff(x, y, 0x504038, 8, 2);
 					break;
 				case "shield":
+					Sfx.play("clang", 0.8);
 					anim("shield", tx, ty, n, {a: Math.atan2(ty - y, tx - x), mine: mine});
 					anim("nova", tx, ty, 0.35, {col: 0xc0e0ff, r: 2.2});
 					g.burst(tx, ty, 0xd0e8ff, 14);
 					puff(tx, ty, 0x9a8a70, 8, 3);
 					break;
 				case "storm":
+					Sfx.play("arrows", 0.7);
 					anim("storm", tx, ty, 1.1, {r: 2.4, spawn: 0, fake: !mine});
 					anim("cast", x, y, 0.35, {col: 0xffff80, r: 1});
 					break;
 				case "sanctuary":
+					Sfx.play("holy", 0.8);
 					anim("sanct", x, y, n, {r: 3});
 					anim("nova", x, y, 0.5, {col: 0xfff0a0, r: 3});
 					g.ring(x, y, 0xfff0a0, 24);
 					break;
 				case "shadow":
+					Sfx.play("whoosh", 0.9);
 					puff(x, y, 0x302838, 14, 4);
 					puff(tx, ty, 0x302838, 14, 4);
 					anim("streak", x, y, 0.3, {tx: tx, ty: ty, col: 0x8060c0, w: 10});
 					break;
 				case "charge":
+					Sfx.play("whoosh", 1);
 					anim("streak", x, y, 0.45, {tx: tx, ty: ty, col: 0xff5030, w: 14});
 					puff(x, y, 0x8a7a60, 10, 4);
 					break;
@@ -98,6 +104,7 @@ package realm {
 					anim("throw", x, y, 0.35, {tx: tx, ty: ty});
 					break;
 				case "vines":
+					Sfx.play("vines", 0.8);
 					anim("vines", x, y, 1.6, {r: n, seed: Math.random() * 100});
 					g.burst(x, y, 0x60c040, 14);
 					break;

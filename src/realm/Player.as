@@ -383,7 +383,7 @@ package realm {
 			if (g.world.isSafe(x, y) && cls.id != "priest") return;
 			mp -= cost;
 			abilityT = 0.5;
-			Sfx.play("ability");
+			Sfx.play("ability", 0.5);
 			attackT = 0.3;
 			var pow:Number = ability.power;
 			var i:int, a:Number, dmg:int;

@@ -48,6 +48,32 @@ package realm {
 				var f:Number = [784, 988, 1175][int(p * 3)];
 				return (sin(t, f) + sin(t, f * 1.5) * 0.25) * 0.22 * (1 - p * 0.6);
 			});
+			// ability sounds
+			var lp:Number = 0;
+			buffers.boom = synth(0.55, function(t:Number, p:Number):Number {
+				lp += (noise() - lp) * (0.25 - p * 0.2);
+				return (lp * 1.6 + sin(t, 70 - 40 * p) * 0.5) * 0.55 * Math.pow(1 - p, 1.6);
+			});
+			var lw:Number = 0;
+			buffers.whoosh = synth(0.3, function(t:Number, p:Number):Number {
+				lw += (noise() - lw) * (0.05 + Math.sin(p * Math.PI) * 0.3);
+				return lw * 0.9 * Math.sin(p * Math.PI);
+			});
+			buffers.clang = synth(0.6, function(t:Number, p:Number):Number {
+				return (sin(t, 523) * 0.5 + sin(t, 787) * 0.35 + sin(t, 1311) * 0.2 + (p < 0.03 ? noise() * 0.6 : 0)) * 0.3 * Math.pow(1 - p, 2.2);
+			});
+			buffers.holy = synth(0.9, function(t:Number, p:Number):Number {
+				return (sin(t, 659) + sin(t, 831) * 0.7 + sin(t, 988) * 0.6 + sin(t, 1318) * 0.3 * (1 - p)) * 0.12 * Math.min(1, p * 12) * (1 - p);
+			});
+			buffers.arrows = synth(0.5, function(t:Number, p:Number):Number {
+				var ph:Number = (p * 6) % 1;
+				return (ph < 0.15 ? noise() * (1 - ph / 0.15) : 0) * 0.35 + sin(t, 1800 - 1200 * ph) * 0.05 * (1 - ph);
+			});
+			var lv:Number = 0;
+			buffers.vines = synth(0.6, function(t:Number, p:Number):Number {
+				lv += (noise() - lv) * 0.12;
+				return lv * 0.8 * (0.6 + 0.4 * Math.sin(t * 60)) * Math.sin(p * Math.PI);
+			});
 			buffers.status = synth(0.2, function(t:Number, p:Number):Number { return sq(t, 220 + 40 * Math.sin(p * 40)) * 0.15 * (1 - p); });
 		}
 

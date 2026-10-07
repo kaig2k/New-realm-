@@ -97,7 +97,7 @@ package realm {
 					if (retries >= 10) g.lostConnection(err);
 					return;
 				}
-				g.msg("Reconnected to " + Online.address + ".", 0x5ae06a);
+				g.msg("Reconnected to " + Online.serverName + ".", 0x5ae06a);
 				lastX = NaN;
 				lastProfile = "";
 				enterWorld(g.world);

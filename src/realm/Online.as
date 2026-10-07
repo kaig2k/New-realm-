@@ -28,6 +28,15 @@ package realm {
 		public static var onSaveRejected:Function;
 
 		public static var address:String = "";
+
+		/**
+		 * What players see instead of the address: the name the server gives
+		 * itself (config.json "name"). The IP is never shown in the game.
+		 */
+		public static function get serverName():String {
+			if (welcome && welcome.serverName) return String(welcome.serverName);
+			return ServerConfig.HOME ? "the game server" : address;
+		}
 		public static var connected:Boolean = false;
 		/** The server's welcome: {id, name, realms: [{name, seed}], online}. */
 		public static var welcome:Object;
@@ -249,7 +258,7 @@ package realm {
 		}
 
 		private static function onError(e:Event):void {
-			fail("Couldn't reach the server at " + address + ". Check the address and that the server is running.");
+			fail("Couldn't reach " + (ServerConfig.HOME ? "the game server" : "the server at " + address) + ". " + (ServerConfig.HOME ? "It may be down for an update; try again in a minute." : "Check the address and that the server is running."));
 		}
 	}
 }

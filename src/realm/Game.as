@@ -362,7 +362,7 @@ package realm {
 					var who:Array = [];
 					for each (var rp:RemotePlayer in net.players) who.push(rp.name);
 					msg(who.length ? "Players here (" + who.length + "): " + who.join(", ") : "Nobody else is here.", 0x8fd0ff);
-					msg(net.online ? "Online on " + Online.address + "." : "Playing offline (other players are simulated).", 0x8fd0ff);
+					msg(net.online ? "Online on " + Online.serverName + "." : "Playing offline (other players are simulated).", 0x8fd0ff);
 					break;
 				case "/trade": case "/tr":
 				case "/inspect": case "/in":
@@ -1220,7 +1220,7 @@ package realm {
 			if (net.online) {
 				var self:Game = this;
 				Online.onSaveRejected = function(reason:String):void { self.saveRejected(reason); };
-				if (Online.welcome.motd) msg("[" + Online.address + "] " + Online.welcome.motd, Ui.GOLD);
+				if (Online.welcome.motd) msg("[" + Online.serverName + "] " + Online.welcome.motd, Ui.GOLD);
 			}
 		}
 

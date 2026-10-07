@@ -123,7 +123,7 @@ package realm {
 		private function refreshOnline():void {
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
-			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.address + "</font>  (" + Online.welcome.online + " playing)"
+			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.serverName + "</font>  (" + Online.welcome.online + " playing)"
 				: connecting ? "Connecting to the server..."
 				: netError ? "<font color='#ff8080'>Couldn't reach the server.</font> Press PLAY to try again."
 				: "Log in or create an account to play.";

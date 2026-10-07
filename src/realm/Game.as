@@ -81,8 +81,12 @@ package realm {
 		private var admin:AdminMenu;
 		private var goldTf:TextField, onraneTf:TextField;
 		private var thresholdTf:TextField;
-		private var vaultBag:LootBag;
-		private var vaultLabel:TextField;
+		/** Your private vault room (built when you first visit). */
+		public var vaultWorld:World;
+		/** Class statues around the Nexus plaza: {x, y, cls}. */
+		private var statues:Array = [];
+		/** Vault chests: how many there are, and the price of the next one. */
+		public static const VAULT_CHESTS:int = 10, VAULT_START:int = 3;
 		private var promptPanel:Sprite;
 		private var promptTf:TextField;
 		public var camX:Number, camY:Number;
@@ -563,24 +567,27 @@ package realm {
 
 		private function buildNexus():void {
 			// online servers can run up to 6 realms at once
-			var px:Array = Online.connected ? [88.5, 93.5, 98.5, 103.5, 108.5, 113.5] : [90.5, 100.5, 110.5];
-			for (var i:int = 0; i < px.length; i++) addPortal(nexusWorld, px[i], 84.2, "realm", i, PORTAL_COLORS[i]);
-			var saved:Array = Save.data.vault as Array;
-			var items:Array = [];
-			if (saved) for each (var it:Object in saved) if (it && items.length < LootBag.MAX) items.push(it);
-			vaultBag = new LootBag(83.5, 100.5, items);
-			vaultBag.vault = true;
-			vaultBag.refresh();
-			nexusWorld.bags.push(vaultBag);
-			vaultLabel = makeLabel("Vault", Ui.GOLD);
+			// the Realm Gate along the north wall
+			var px:Array = Online.connected ? [85.5, 91.5, 97.5, 103.5, 109.5, 115.5] : [91.5, 100.5, 109.5];
+			for (var i:int = 0; i < px.length; i++) addPortal(nexusWorld, px[i], 70.5, "realm", i, PORTAL_COLORS[i]);
+			// the vault: a portal in the west wing to your own treasury
+			addPortal(nexusWorld, 70.5, 98.5, "vault", 0, 0xf0c030, 0, 0, false);
 
-			// nexus stations: the Starforge (east) and the Marketplace (by the spawn)
-			stations.push({x: 116.5, y: 100.5, kind: "forge", spr: "anvil", label: makeLabel("Starforge", 0xc080ff)});
-			stations.push({x: 106.5, y: 111.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f)});
-			stations.push({x: 94.5, y: 111.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080)});
-			stations.push({x: 84.5, y: 93.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e)});
-			stations.push({x: 116.5, y: 93.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff)});
-			stations.push({x: 116.5, y: 107.5, kind: "raids", spr: "raidtable", label: makeLabel("Raid Table", 0xff3050)});
+			// east wing: the Starforge and Raid Table; west wing: Fame Store and Pet Yard; south: Marketplace and Quest Board
+			stations.push({x: 127.5, y: 92.5, kind: "forge", spr: "anvil", label: makeLabel("Starforge", 0xc080ff), w: "nexus"});
+			stations.push({x: 127.5, y: 104.5, kind: "raids", spr: "raidtable", label: makeLabel("Raid Table", 0xff3050), w: "nexus"});
+			stations.push({x: 74.5, y: 88.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e), w: "nexus"});
+			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
+			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
+			stations.push({x: 92.5, y: 120.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080), w: "nexus"});
+			// the Vault Keeper sells more chests
+			stations.push({x: 94.5, y: 107.5, kind: "vaultkeeper", spr: "merchant", label: makeLabel("Vault Keeper", Ui.GOLD), w: "vault"});
+			stations[stations.length - 1].label.visible = false;
+			// the eight heroes of Eldmere, in stone, around the fountain
+			for (var si:int = 0; si < Data.CLASS_ORDER.length; si++) {
+				var sa:Number = (si + 0.5) * Math.PI * 2 / Data.CLASS_ORDER.length;
+				statues.push({x: 100.5 + Math.cos(sa) * 9, y: 98.5 + Math.sin(sa) * 9, cls: Data.CLASS_ORDER[si]});
+			}
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
@@ -643,9 +650,75 @@ package realm {
 			else world.pendingPopulate = fn;
 		}
 
+		// ------------------------------------------------------------ the vault
+		/** Chests you own (3 to start, up to 10). */
+		private function get vaultChests():int { return Math.max(VAULT_START, Math.min(VAULT_CHESTS, int(Save.data.vaultChests || VAULT_START))); }
+
+		/** Gold for the next chest: 1,000 for the 4th, rising by 500 each. */
+		private function nextChestCost():int { return 1000 + (vaultChests - VAULT_START) * 500; }
+
+		/** Where chest k stands: two rows of five. */
+		private static function chestSpot(k:int):Array { return [90.5 + (k % 5) * 5, k < 5 ? 93.5 : 99.5]; }
+
+		/** Walk through the vault portal into your own vault. */
+		private function enterVault():void {
+			if (!vaultWorld) {
+				vaultWorld = new World("vault", "Vault");
+				vaultWorld.key = soloKey();
+				addPortal(vaultWorld, 100.5, 112.2, "nexus", 0, 0xffffff, 0, 0, false);
+			}
+			fillVault();
+			Sfx.play("portal");
+			switchWorld(vaultWorld, vaultWorld.spawnX, vaultWorld.spawnY);
+			showBanner("Vault", Ui.GOLD, 2);
+			tip("vault", "Stand by a chest to see what's inside. Drag items between it and your inventory. The Vault Keeper sells more chests.");
+		}
+
+		/** Lays out a chest for every one you own, filled from your save (8 slots each). */
+		private function fillVault():void {
+			var w:World = vaultWorld;
+			w.bags.length = 0;
+			var saved:Array = (Save.data.vault as Array) || [];
+			for (var k:int = 0; k < vaultChests; k++) {
+				var items:Array = [];
+				for (var i:int = k * LootBag.MAX; i < (k + 1) * LootBag.MAX && i < saved.length; i++) if (saved[i]) items.push(saved[i]);
+				var at:Array = chestSpot(k);
+				var b:LootBag = new LootBag(at[0], at[1], items);
+				b.vault = true;
+				b.chest = k;
+				b.refresh();
+				w.bags.push(b);
+			}
+		}
+
+		/** Writes every chest back into the save: 8 slots per chest, empty slots as nulls. */
 		private function saveVault():void {
-			Save.data.vault = vaultBag.items.concat();
+			if (!vaultWorld) return;
+			var out:Array = [];
+			for (var k:int = 0; k < vaultChests; k++) {
+				var b:LootBag = null;
+				for each (var vb:LootBag in vaultWorld.bags) if (vb.chest == k) b = vb;
+				for (var i:int = 0; i < LootBag.MAX; i++) out.push(b && b.items[i] ? b.items[i] : null);
+			}
+			while (out.length && out[out.length - 1] == null) out.pop();
+			Save.data.vault = out;
 			Save.flush();
+		}
+
+		private function buyChest():void {
+			if (vaultChests >= VAULT_CHESTS) { msg("Your vault already has every chest.", Ui.GOLD); return; }
+			var cost:int = nextChestCost();
+			if (gold < cost) { msg("The next chest costs " + cost + " gold.", 0xff8080); return; }
+			addGold(-cost);
+			saveVault();
+			Save.data.vaultChests = vaultChests + 1;
+			Save.flush();
+			fillVault();
+			var at:Array = chestSpot(vaultChests - 1);
+			ring(at[0], at[1], Ui.GOLD, 24);
+			Sfx.play("level", 0.7);
+			msg("A new chest is yours (" + vaultChests + "/" + VAULT_CHESTS + "). +8 vault slots.", Ui.GOLD);
+			refreshStation();
 		}
 
 		private function realmStatus(i:int):String {
@@ -662,6 +735,7 @@ package realm {
 			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
 			if (p.kind == "elder") return "Dark Elder's Chamber";
 			if (p.kind == "raid") return Bosses.RAIDS[p.idx].name;
+			if (p.kind == "vault") return "Your Vault";
 			return "Nexus";
 		}
 
@@ -674,6 +748,7 @@ package realm {
 			else if (p.kind == "dungeon") enterDungeon(p.idx, p.seed);
 			else if (p.kind == "elder") enterArena();
 			else if (p.kind == "raid") enterRaid(p.idx, p.seed);
+			else if (p.kind == "vault") enterVault();
 			else nexusNow();
 		}
 
@@ -1029,11 +1104,10 @@ package realm {
 			camY = y;
 			world.reveal(x, y, 14);
 			var nx:Boolean = inNexus;
-			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld, dungeonWorld]) {
+			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld, dungeonWorld, vaultWorld]) {
 				if (ow) for each (var p:Object in ow.portals) p.label.visible = ow == world;
 			}
-			for each (var st:Object in stations) st.label.visible = nx;
-			vaultLabel.visible = nx;
+			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
 			traps.length = 0;
 			closeStation();
 			closePlayerMenu();
@@ -1059,7 +1133,7 @@ package realm {
 			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
 			saveCharacter();
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
-			msg("The fountain heals you. Vault (west) stores items, Starforge (east) crafts Starforged gear, Marketplace (south) buys and sells.", 0xcccccc);
+			msg("The fountain heals you. The gold portal (west) leads to your vault; the Starforge and Raid Table are east; the Marketplace is by the entrance.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 			msg("Click another player to inspect them or trade.", 0xcccccc);
 			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
@@ -1263,9 +1337,13 @@ package realm {
 					player.mp = Math.min(player.maxMp, player.mp + player.maxMp * 0.6 * dt);
 					player.pt = player.maxPt;
 				}
+			}
+			if (inNexus || world == vaultWorld) {
+				var here:String = inNexus ? "nexus" : "vault";
 				var was:Object = nearStation;
 				nearStation = null;
 				for each (var st:Object in stations) {
+					if (st.w != here) continue;
 					var sx:Number = st.x - player.x, sy:Number = st.y - player.y;
 					if (sx * sx + sy * sy < 1.7 * 1.7) nearStation = st;
 				}
@@ -1668,7 +1746,7 @@ package realm {
 
 		private function updateBags(dt:Number):void {
 			nearBag = null;
-			var best:Number = 1.0;
+			var best:Number = 1.6;
 			for (var i:int = bags.length - 1; i >= 0; i--) {
 				var b:LootBag = bags[i];
 				if (!b.vault) b.life -= dt;
@@ -1680,7 +1758,8 @@ package realm {
 				}
 				var dx:Number = b.x - player.x, dy:Number = b.y - player.y;
 				var d:Number = Math.sqrt(dx * dx + dy * dy);
-				if (d < best) { best = d; nearBag = b; }
+				// loot bags open when you stand on them; vault chests from a step away
+				if (d < best && d < (b.vault ? 1.6 : 1.0)) { best = d; nearBag = b; }
 			}
 		}
 
@@ -2314,8 +2393,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050}[openStation.kind], true, "center", w, true);
-			title.text = {forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table"}[openStation.kind];
+			var title:TextField = Ui.text(20, {forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD}[openStation.kind], true, "center", w, true);
+			title.text = {forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -2366,6 +2445,19 @@ package realm {
 						nk.x = w - 186; nk.y = y + 9;
 						sp.addChild(nk);
 					}
+					y += 46;
+				}
+			} else if (openStation.kind == "vaultkeeper") {
+				var full:Boolean = vaultChests >= VAULT_CHESTS;
+				info.htmlText = "Your vault has <b>" + vaultChests + " of " + VAULT_CHESTS + "</b> chests (" + vaultChests * LootBag.MAX + " slots). " +
+					"Items in the vault are shared by all your characters and are safe when a character dies." +
+					(full ? "" : "\nThe next chest costs <b>" + nextChestCost() + "</b> gold. You have " + gold + ".");
+				info.y = y;
+				y += info.height + 10;
+				if (!full) {
+					var vb:Sprite = Ui.button("Buy a chest (" + nextChestCost() + " gold)", 260, 34, buyChest, 14);
+					vb.x = (w - 260) / 2; vb.y = y;
+					sp.addChild(vb);
 					y += 46;
 				}
 			} else if (openStation.kind == "skins") {
@@ -3653,14 +3745,24 @@ package realm {
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
 					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
-					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : "Nexus";
+					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>" : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);
 			}
 			if (inNexus) {
-				vaultLabel.x = int(scrX(vaultBag.x, vaultBag.y) - vaultLabel.width / 2);
-				vaultLabel.y = int(scrY(vaultBag.x, vaultBag.y) - 58);
+				for each (var su:Object in statues) drawEntity(Sprites.statue(su.cls), scrX(su.x, su.y), scrY(su.x, su.y), 0);
+			}
+			if (world == vaultWorld) {
+				// chests you haven't bought yet stand locked
+				for (var lk:int = vaultChests; lk < VAULT_CHESTS; lk++) {
+					var lat:Array = chestSpot(lk);
+					drawEntity(Sprites.get("chest_locked"), scrX(lat[0], lat[1]), scrY(lat[0], lat[1]), 0);
+				}
+			}
+			if (inNexus || world == vaultWorld) {
+				var stw:String = inNexus ? "nexus" : "vault";
 				for each (var st:Object in stations) {
+					if (st.w != stw) continue;
 					var stx:Number = scrX(st.x, st.y);
 					var stop:Number = drawEntity(Sprites.get(st.spr), stx, scrY(st.x, st.y), 0);
 					st.label.x = int(stx - st.label.width / 2);

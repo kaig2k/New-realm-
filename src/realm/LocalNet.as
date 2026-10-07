@@ -286,8 +286,8 @@ package realm {
 					if (!(trade && trade.partner == lv) && !lv.inParty && !inGuild(lv)) {
 						// walk off through one of the realm portals
 						lv.leaving = true;
-						lv.goalX = [90.5, 100.5, 110.5][int(Math.random() * 3)];
-						lv.goalY = 84.2;
+						lv.goalX = [91.5, 100.5, 109.5][int(Math.random() * 3)];
+						lv.goalY = 70.5;
 					}
 				} else if (players.length < 14) {
 					var nb:Bot = makeBot(Math.random() < 0.6 ? 20 : 1 + int(Math.random() * 20), world.spawnX, world.spawnY);

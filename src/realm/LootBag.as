@@ -9,6 +9,8 @@ package realm {
 		public var spr:String;
 		/** The nexus vault: never expires, persists between characters. */
 		public var vault:Boolean = false;
+		/** Which vault chest this is (0-9), for vault bags. */
+		public var chest:int = -1;
 
 		public function LootBag(x:Number, y:Number, items:Array) {
 			this.x = x;

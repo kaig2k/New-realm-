@@ -29,7 +29,7 @@ package realm {
 		public static const ARENA_ZONE:int = 6;
 		public static const DUNGEON_ZONE:int = 7;
 		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall", "tent", "grave", "campfire", "totem",
-			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana"];
+			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner"];
 		/** Shrine kinds, in the order of their objects (14-18). */
 		public static const SHRINES:Array = ["might", "haste", "fortune", "vigor", "arcana"];
 		public static const NEXUS_ZONE:int = 5;
@@ -143,6 +143,7 @@ package realm {
 			objs = new Vector.<int>(N * N, true);
 			zones = new Vector.<int>(N * N, true);
 			if (kind == "nexus") generateNexus();
+			else if (kind == "vault") generateVault();
 			else if (kind == "arena") generateArena();
 			else if (kind == "dungeon") generateDungeon(theme);
 			else generate();
@@ -413,13 +414,16 @@ package realm {
 		}
 
 		/**
-		 * The Nexus: a walled stone hall with a healing fountain, a red carpet
-		 * cross, braziers, realm portals to the north and the vault to the west.
+		 * The Nexus: a great walled hall. The Realm Gate (portals) runs along the
+		 * north wall; the healing fountain sits in a round plaza ringed by class
+		 * statues and four gardens; the vault portal, Fame Store and Pet Yard are in
+		 * the west wing, the Starforge and Raid Table in the east, and the
+		 * Marketplace and Quest Board by the south entrance.
 		 */
 		private function generateNexus():void {
-			var x:int, y:int, i:int;
+			var x:int, y:int, i:int, d:Number;
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
-			var x0:int = 78, x1:int = 122, y0:int = 82, y1:int = 116;
+			var x0:int = 66, x1:int = 134, y0:int = 64, y1:int = 128;
 			for (y = y0; y <= y1; y++) {
 				for (x = x0; x <= x1; x++) {
 					i = y * N + x;
@@ -427,26 +431,78 @@ package realm {
 					tiles[i] = (x == x0 || x == x1 || y == y0 || y == y1) ? WALL : STONE;
 				}
 			}
-			// pillars
-			var pillars:Array = [[83, 87], [117, 87], [83, 111], [117, 111], [92, 93], [108, 93], [92, 107], [108, 107]];
-			for each (var pp:Array in pillars) tiles[pp[1] * N + pp[0]] = WALL;
-			// carpets: north-south and east-west
-			for (y = 88; y <= 115; y++) for (x = 99; x <= 101; x++) tiles[y * N + x] = CARPET;
-			for (x = 82; x <= 118; x++) for (y = 99; y <= 101; y++) tiles[y * N + x] = CARPET;
-			// portal alcove along the north wall
-			for (x = 86; x <= 114; x++) for (y = 83; y <= 87; y++) tiles[y * N + x] = CARPET;
-			// healing fountain
-			for (y = 96; y <= 104; y++) {
-				for (x = 96; x <= 104; x++) {
-					var d:Number = Math.sqrt((x - 100) * (x - 100) + (y - 100) * (y - 100));
-					if (d <= 2.9) tiles[y * N + x] = FOUNTAIN;
+			// the Realm Gate: a carpeted dais along the north wall, pillars between the portals
+			fillN(80, 65, 41, 10, CARPET);
+			fillN(80, 75, 41, 1, RUIN);
+			for (x = 82; x <= 118; x += 6) objs[66 * N + x] = 8;
+			objs[70 * N + 78] = 7; objs[70 * N + 122] = 7;
+			// avenues: gate to plaza to the south entrance, and out to both wings
+			fillN(99, 76, 3, 52, CARPET);
+			fillN(67, 97, 66, 3, CARPET);
+			// the round plaza with the healing fountain
+			for (y = 85; y <= 111; y++) {
+				for (x = 87; x <= 113; x++) {
+					d = Math.sqrt((x - 100) * (x - 100) + (y - 98) * (y - 98));
+					i = y * N + x;
+					if (d <= 3) tiles[i] = FOUNTAIN;
+					else if (d <= 5.6 && d > 4.4) tiles[i] = CARPET;
+					else if (d <= 12.5) tiles[i] = PLAZA;
 				}
 			}
-			// braziers
-			var lights:Array = [[95, 95], [105, 95], [95, 105], [105, 105], [80, 84], [120, 84], [80, 114], [120, 114], [97, 113], [103, 113]];
-			for each (var lp:Array in lights) objs[lp[1] * N + lp[0]] = 7;
+			for each (var br:Array in [[89, 87], [111, 87], [89, 109], [111, 109]]) objs[br[1] * N + br[0]] = 7;
+			// four gardens with trees and a little pond
+			for each (var gd:Array in [[78, 82], [122, 82], [78, 114], [122, 114]]) {
+				fillN(gd[0] - 4, gd[1] - 3, 9, 7, GRASS);
+				fillN(gd[0] - 1, gd[1], 3, 2, WATER);
+				objs[(gd[1] - 2) * N + gd[0] - 3] = 1;
+				objs[(gd[1] - 2) * N + gd[0] + 3] = 2;
+				objs[(gd[1] + 2) * N + gd[0] - 3] = 2;
+				objs[(gd[1] + 2) * N + gd[0] + 3] = 1;
+			}
+			// west wing: a gold-trimmed alcove around the vault portal
+			fillN(67, 93, 7, 11, CARPET);
+			objs[94 * N + 68] = 8; objs[102 * N + 68] = 8;
+			// east wing: a brick workshop floor for the Starforge and Raid Table
+			fillN(124, 87, 10, 21, BRICK);
+			fillN(124, 97, 10, 3, CARPET);
+			// south entrance hall
+			fillN(84, 117, 33, 10, RUIN);
+			fillN(99, 117, 3, 10, CARPET);
+			// banners along the walls
+			for each (var bn:Array in [[70, 65], [76, 65], [124, 65], [130, 65], [67, 108], [133, 108], [67, 88], [133, 88]]) objs[bn[1] * N + bn[0]] = 19;
+			for each (var lp:Array in [[84, 118], [116, 118], [70, 122], [130, 122]]) objs[lp[1] * N + lp[0]] = 7;
 			spawnX = 100.5;
-			spawnY = 110.5;
+			spawnY = 124.5;
+		}
+
+		/** Your vault: a private treasury of chests (see Game.enterVault). */
+		private function generateVault():void {
+			var x:int, y:int, i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			for (y = 86; y <= 114; y++) {
+				for (x = 86; x <= 114; x++) {
+					i = y * N + x;
+					zones[i] = NEXUS_ZONE;
+					tiles[i] = (x == 86 || x == 114 || y == 86 || y == 114) ? WALL : STONE;
+				}
+			}
+			fillN(88, 90, 25, 13, CARPET);
+			fillN(89, 91, 23, 11, PLAZA);
+			fillN(99, 102, 3, 12, CARPET);
+			for each (var p:Array in [[88, 88], [112, 88], [88, 104], [112, 104]]) objs[p[1] * N + p[0]] = 8;
+			for each (var b:Array in [[90, 88], [110, 88], [90, 112], [110, 112]]) objs[b[1] * N + b[0]] = 7;
+			for each (var bn:Array in [[96, 87], [104, 87]]) objs[bn[1] * N + bn[0]] = 19;
+			spawnX = 100.5;
+			spawnY = 109.5;
+		}
+
+		/** Fills a rectangle of the hub maps with one tile. */
+		private function fillN(x0:int, y0:int, w:int, h:int, t:int):void {
+			for (var y:int = y0; y < y0 + h; y++) for (var x:int = x0; x < x0 + w; x++) {
+				var i:int = y * N + x;
+				tiles[i] = t;
+				objs[i] = 0;
+			}
 		}
 
 		/**

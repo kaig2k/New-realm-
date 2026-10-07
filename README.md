@@ -451,7 +451,16 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
   | **Starforged** | SF | gold | Made at the forge, or very rare drops. Weapons carry passives such as Lifebloom, Shardstorm, Frostbite, Executioner and Rampage |
   | **Primordial** | PR | ember red | The rarest drops |
 - **Currencies**: account-wide **Gold** and **Aether**, plus account Fame.
-- **The Nexus**: realm portals, a healing fountain, the vault, the Pet Yard, the Fame Store, the **Starforge** (a Runed, Bonded
+- **The Nexus** is a great hall. The **Realm Gate** of portals runs along the north wall. A
+  round plaza in the middle holds the healing fountain, ringed by stone statues of the eight
+  classes, with a garden in each corner. The **east wing** has the Starforge and Raid Table; the
+  **west wing** has the Fame Store, the Pet Yard and the gold **vault portal**; the Marketplace
+  and Quest Board stand by the south entrance.
+- **The Vault** is your own private room behind the gold portal: up to 10 chests of 8 slots
+  (80 in all), shared by all your characters and safe when one dies. You start with 3 chests;
+  the **Vault Keeper** sells the rest (1,000 gold for the 4th, then 500 more each). Stand by
+  a chest to see inside and drag items between it and your inventory.
+- Nexus stations: the Pet Yard, the Fame Store, the **Starforge** (a Runed, Bonded
   or Eldritch item + a Star Shard + 100 Aether = a Starforged item) and the **Marketplace** (buy
   potions, stat potions, Star Shards, mystery Runed items and a **Backpack**, and shift+click items to sell them). A
   backpack gives that character 8 more inventory slots. Switch pages with the button by

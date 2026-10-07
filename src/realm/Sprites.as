@@ -75,6 +75,7 @@ package realm {
 		private static const BOULDER:Array = [["...kKKKk...", "..kKLLKKk..", ".kKLLKKKKd.", "kKKLKKKKKdd", "kKKKKKKKddd", ".kKKKKKdddd", "..kkkdddd.."]];
 		private static const DEADTREE:Array = [["W....W..W...", ".W...W.W..W.", "..W..WW..W..", "...WWW..W...", "W...WW.W....", ".WW.WWW.....", "...WWW......", "....WW......", "....WW......", "....WW......", "...wWWw....."]];
 		private static const PILLAR:Array = [[".L.LL...", "LLLLLLl.", ".SSSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SLSSs..", ".SSSSs..", "LLLLLLl.", "sssssss."]];
+		private static const BANNER:Array = [["SSSSSSSS", ".RRRRRR.", ".RYYYYR.", ".RYRRYR.", ".RRYYRR.", ".RYRRYR.", ".RRRRRR.", ".RR..RR.", ".R....R.", "...ss..."]];
 		private static const CRATE:Array = [["KKKKKKKK", "KCCCCCCK", "KCKCCKCK", "KCCKKCCK", "KCCKKCCK", "KCKCCKCK", "KCCCCCCK", "KKKKKKKK"]];
 		private static const SHRINE:Array = [["...OO...", "..OHOo..", "..OOOo..", "...oo...", "..SSSS..", "...ss...", "...SS...", "...ss...", ".SSSSSS.", "ssssssss"]];
 		private static const TENT:Array = [["....K....", "...KCK...", "..KCCcK..", "..KCCcK..", ".KCCDccK.", ".KCCDDcK.", "KCCCDDccK", "KKKKDDKKK"]];
@@ -287,6 +288,8 @@ package realm {
 			pillar: [PILLAR, {L: 0xc8c8cc, l: 0x8a8a90, S: 0xa8a8b0, s: 0x6a6a72}],
 			ruinwall: [RUINWALL, {L: 0xc8c8cc, S: 0xa0a0a8, l: 0x6a6a72}],
 			crate: [CRATE, {K: 0x5a3a1a, C: 0xa0703a}],
+			banner: [BANNER, {S: 0xc8a050, s: 0x8a6a30, R: 0x8a1a2a, Y: 0xf0c030}],
+			chest_locked: [CHEST, {K: 0x2a2a30, C: 0x6a6a72, c: 0x4a4a52, Y: 0x9a9aa2}, 6],
 			mimic: [CHEST, {K: 0x3a0a0a, C: 0x9a1a1a, c: 0x6a0a0a, Y: 0xffffff}, 6],
 			shrine_might: [SHRINE, {O: 0xff4040, o: 0xa01818, H: 0xffd0d0, S: 0xb0b0b8, s: 0x6a6a72}],
 			shrine_haste: [SHRINE, {O: 0x40e0ff, o: 0x1880a0, H: 0xd0f8ff, S: 0xb0b0b8, s: 0x6a6a72}],
@@ -434,6 +437,27 @@ package realm {
 			if (bd) return bd;
 			bd = get(name, frame, flip).clone();
 			bd.colorTransform(bd.rect, new ColorTransform(0.5, 0.5, 0.5, 1, 140, 60, 60, 0));
+			cache[key] = bd;
+			return bd;
+		}
+
+		/** A class hero carved in stone (Nexus statues). */
+		public static function statue(name:String):BitmapData {
+			var key:String = name + ":statue";
+			var bd:BitmapData = cache[key];
+			if (bd) return bd;
+			var src:BitmapData = get(name, 0, false);
+			bd = src.clone();
+			var px:Vector.<uint> = bd.getVector(bd.rect);
+			for (var i:int = 0; i < px.length; i++) {
+				var c:uint = px[i];
+				if ((c >>> 24) == 0) continue;
+				// greyscale, warmed a little like old marble
+				var l:int = ((c >> 16 & 255) * 0.3 + (c >> 8 & 255) * 0.59 + (c & 255) * 0.11);
+				l = 70 + l * 0.6;
+				px[i] = (c & 0xff000000) | (Math.min(255, l + 12) << 16) | (Math.min(255, l + 8) << 8) | l;
+			}
+			bd.setVector(bd.rect, px);
 			cache[key] = bd;
 			return bd;
 		}

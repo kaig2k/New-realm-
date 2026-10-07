@@ -7,6 +7,7 @@ package realm {
 	import flash.filters.ColorMatrixFilter;
 	import flash.events.MouseEvent;
 	import flash.events.KeyboardEvent;
+	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
@@ -215,6 +216,8 @@ package realm {
 			flashShape.visible = false;
 			addChild(flashShape);
 			addChild(makeVignette());
+			lowHp = makeLowHp();
+			addChild(lowHp);
 			streakTf = Ui.text(22, Ui.GOLD, true, "center", 360, true);
 			streakTf.x = VIEW_W / 2 - 180; streakTf.y = 78;
 			streakTf.visible = false;
@@ -283,14 +286,14 @@ package realm {
 			chatInput.visible = true;
 			input.blocked = true;
 			stage.focus = chatInput;
-			chat.y = VIEW_H - chat.height - 36;
+			refreshChat();
 		}
 
 		private function closeChat():void {
 			chatInput.visible = false;
 			input.blocked = false;
 			stage.focus = stage;
-			chat.y = VIEW_H - chat.height - 6;
+			refreshChat();
 		}
 
 		private function onChatKey(e:KeyboardEvent):void {
@@ -1004,6 +1007,31 @@ package realm {
 			return t == World.SAND ? 0xe8d8a0 : t == World.GRASS || t == World.DARK || t == World.HIGH ? 0x9ab070 : 0xb0b0b8;
 		}
 
+		/** Red pulse around the screen edges when your health is low. */
+		private var lowHp:Bitmap;
+		private function makeLowHp():Bitmap {
+			var sh:Shape = new Shape();
+			var m:Matrix = new Matrix();
+			m.createGradientBox(VIEW_W * 1.2, VIEW_H * 1.4, 0, -VIEW_W * 0.1, -VIEW_H * 0.2);
+			sh.graphics.beginGradientFill("radial", [0xff0000, 0xb00000], [0, 0.6], [140, 255], m);
+			sh.graphics.drawRect(0, 0, VIEW_W, VIEW_H);
+			sh.graphics.endFill();
+			var bd:BitmapData = new BitmapData(VIEW_W, VIEW_H, true, 0);
+			bd.draw(sh);
+			var b:Bitmap = new Bitmap(bd);
+			b.alpha = 0;
+			b.visible = false;
+			return b;
+		}
+
+		private function updateLowHp():void {
+			var f:Number = player.hp / player.maxHp;
+			var want:Number = f < 0.35 && player.hp > 0 && dyingT <= 0 ? (0.35 - f) / 0.35 : 0;
+			if (want > 0) want = 0.35 + want * 0.45 + Math.sin(getTimer() / 1000 * (4 + want * 5)) * 0.15;
+			lowHp.alpha += (want - lowHp.alpha) * 0.2;
+			lowHp.visible = lowHp.alpha > 0.02;
+		}
+
 		private function makeVignette():Bitmap {
 			var sh:Shape = new Shape();
 			var m:Matrix = new Matrix();
@@ -1187,6 +1215,7 @@ package realm {
 			}
 			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
 			traps.length = 0;
+			corpses.length = 0;
 			if (abil) abil.clear();
 			closeStation();
 			closePlayerMenu();
@@ -1260,6 +1289,8 @@ package realm {
 			if (dyingT > 0) updateDying(dt);
 			else update(dt);
 			updateFade(dt);
+			updateChat();
+			updateLowHp();
 			render();
 			hud.refresh();
 			updateOverlays();
@@ -1708,6 +1739,8 @@ package realm {
 		private function killEnemy(e:Enemy, remote:Boolean = false):void {
 			if (e.dead) return;
 			e.dead = true;
+			// a quick squash-and-fade where it fell
+			if (corpses.length < 40) corpses.push({bd: e.sprite, x: e.x, y: e.y, t: 0, big: e.isBoss});
 			if (sandbox && e.defId == "custom_test") {
 				showBanner("Victory!  " + sandbox.name + " is down.", Ui.GOLD, 4);
 				msg("You won the test fight in " + Math.round(time) + "s of play. R fights it again.", Ui.GOLD);
@@ -3713,11 +3746,57 @@ package realm {
 			say(SOVEREIGN, text);
 		}
 
+		/** Chat log: new lines show for CHAT_SECS, then fade; opening chat (Enter) shows the history. */
+		private static const CHAT_SECS:Number = 12;
+		private var chatBg:Shape;
+		private var chatFadeAt:Number = 0;
+
 		private function pushChat(line:String):void {
-			chatLines.push(line);
-			while (chatLines.length > 7) chatLines.shift();
-			chat.htmlText = chatLines.join("\n");
-			chat.y = VIEW_H - chat.height - 6;
+			chatLines.push({h: line, at: getTimer() / 1000});
+			while (chatLines.length > 40) chatLines.shift();
+			refreshChat();
+		}
+
+		private function refreshChat():void {
+			var now:Number = getTimer() / 1000;
+			var open:Boolean = chatInput && chatInput.visible;
+			var show:Array = [];
+			var oldest:Number = 1e9;
+			for (var i:int = chatLines.length - 1; i >= 0 && show.length < (open ? 12 : 7); i--) {
+				var l:Object = chatLines[i];
+				if (!open && now - l.at > CHAT_SECS) break;
+				show.unshift(l.h);
+				oldest = Math.min(oldest, l.at);
+			}
+			chat.htmlText = show.join("\n");
+			chat.visible = show.length > 0;
+			chat.alpha = 1;
+			chatFadeAt = open ? 0 : oldest + CHAT_SECS;
+			chat.y = VIEW_H - chat.height - (open ? 36 : 6);
+			if (!chatBg) {
+				chatBg = new Shape();
+				addChildAt(chatBg, getChildIndex(chat));
+			}
+			chatBg.graphics.clear();
+			if (open && show.length) {
+				chatBg.graphics.beginFill(0x000000, 0.45);
+				chatBg.graphics.drawRoundRect(4, chat.y - 4, 632, chat.height + 8, 10, 10);
+				chatBg.graphics.endFill();
+			}
+		}
+
+		/** Each frame: the oldest line fades out over its last second, then drops off. */
+		private function updateChat():void {
+			if (!chatFadeAt || !chat.visible) return;
+			var left:Number = chatFadeAt - getTimer() / 1000;
+			if (left <= 0) refreshChat();
+			else if (left < 1 && chatLines.length && countShown() == 1) chat.alpha = left;
+		}
+
+		private function countShown():int {
+			var now:Number = getTimer() / 1000, n:int = 0;
+			for each (var l:Object in chatLines) if (now - l.at <= CHAT_SECS) n++;
+			return n;
 		}
 
 		public function showBanner(text:String, color:uint, secs:Number):void {
@@ -4070,6 +4149,7 @@ package realm {
 				if (pt.x < -bd.width || pt.y < -bd.height || pt.x > vw || pt.y > vh) continue;
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
+			drawCorpses();
 			abil.drawTop(canvas);
 			for each (var q:Particle in parts) {
 				pt.x = scrX(q.x, q.y) - 3;
@@ -4169,6 +4249,32 @@ package realm {
 			g.drawEllipse(-rx * 0.8, -ry * 0.8, rx * 1.6, ry * 1.6);
 			auraMtx.tx = cx; auraMtx.ty = cy;
 			canvas.draw(auraShape, auraMtx);
+		}
+
+		/** Monsters that just died: {bd, x, y, t, big}. */
+		private var corpses:Array = [];
+		private var corpseMtx:Matrix = new Matrix();
+		private var corpseCt:ColorTransform = new ColorTransform();
+
+		private function drawCorpses():void {
+			for (var i:int = corpses.length - 1; i >= 0; i--) {
+				var c:Object = corpses[i];
+				var life:Number = c.big ? 0.9 : 0.35;
+				c.t += 1 / 60;
+				var f:Number = c.t / life;
+				if (f >= 1) { corpses.splice(i, 1); continue; }
+				var bd:BitmapData = c.bd;
+				var sx:Number = 1 + f * 0.35, sy:Number = 1 - f * 0.85;
+				var cx:Number = scrX(c.x, c.y), foot:Number = scrY(c.x, c.y) + TS * 0.4;
+				corpseMtx.identity();
+				corpseMtx.scale(sx, sy);
+				corpseMtx.translate(cx - bd.width * sx / 2, foot - bd.height * sy);
+				// flash white, then fade
+				var w:Number = Math.max(0, 1 - f * 3) * 200;
+				corpseCt.redOffset = corpseCt.greenOffset = corpseCt.blueOffset = w;
+				corpseCt.alphaMultiplier = 1 - f;
+				canvas.draw(bd, corpseMtx, corpseCt, null, null, false);
+			}
 		}
 
 		private function drawEnemy(e:Enemy):void {

@@ -65,6 +65,7 @@ package realm {
 		private var attackT:Number = 0;
 		private var abilityT:Number = 0;
 		private var walkT:Number = 0;
+		private var dustT:Number = 0;
 		private var burnTick:Number = 0;
 
 		public function Player(clsId:String, name:String, x:Number, y:Number) {
@@ -274,7 +275,16 @@ package realm {
 				if (w.canStand(x, ny, R, false)) y = ny;
 			}
 			moving = mx != 0 || my != 0;
-			if (moving) walkT += dt;
+			if (moving) {
+				walkT += dt;
+				// little puffs of dust from your feet
+				dustT -= dt;
+				if (dustT <= 0 && !w.inWater(x, y) && Game.opt("parts") && g.parts.length < 380) {
+					dustT = 0.2;
+					var ground:uint = World.MINI_COL[w.tileAt(x, y)] || 0x808080;
+					g.parts.push(new Particle(x + (Math.random() - 0.5) * 0.3, y + 0.3, -mx * 0.8, -0.5, 0.35, Sprites.glow(Sprites.tint(ground, 0.35))));
+				}
+			}
 
 			// --- lava
 			burning = w.tileAt(x, y) == World.LAVA;

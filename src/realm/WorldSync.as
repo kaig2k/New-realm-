@@ -233,6 +233,10 @@ package realm {
 					if (d.rs != undefined && w.raid && d.rs >= 0) g.raidStageReached(Math.min(d.rs, w.raid.stages.length - 1));
 					if (d.ct > 0 && w.closeT <= 0) w.closeT = d.ct;
 					break;
+				case "loot":
+					// the server rolled your drops from a monster you helped kill
+					if (!isHost && d.l is Array) g.serverDrop(Number(d.x), Number(d.y), d.l, String(d.n || ""));
+					break;
 				case "portal":
 					if (isHost && d.k != "raid") return;
 					g.netPortal(d.x, d.y, d.k, d.i, d.c, d.l, uint(d.s));

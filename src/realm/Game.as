@@ -1862,20 +1862,27 @@ package realm {
 				}
 			}
 			var lootZone:int = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
-			var items:Array = mine ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck()) : [];
+			// online, the server rolls drops and sends each player theirs (see serverDrop)
+			var roll:Boolean = mine && !serverLoot;
+			var items:Array = roll ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck()) : [];
 			// elites drop twice; the treasure goblin spills its whole sack
-			if (mine && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + 50));
-			if (mine && e.def.goblin) items = items.concat(goblinLoot(lootZone));
+			if (roll && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + 50));
+			if (roll && e.def.goblin) items = items.concat(goblinLoot(lootZone));
 			if (mine && e.def.crate) items = items.concat(crateLoot(lootZone));
-			if (mine && e.def.mimic) items = items.concat(mimicLoot());
+			if (roll && e.def.mimic) items = items.concat(mimicLoot());
 			var hoard:Array = siteCleared(e, mine);
-			if (hoard) items = items.concat(hoard);
-			if (items.length && p.highStakes && p.rank("highstakes") > 0) items = highStakes(items, e.x, e.y);
+			if (hoard && roll) items = items.concat(hoard);
+			dropLoot(items, e.x, e.y, e.def.name);
+		}
+
+		/** Loot bags for items that dropped at (x, y): rare-drop alerts, High Stakes and all. */
+		private function dropLoot(items:Array, x:Number, y:Number, from:String):void {
+			if (items.length && player.highStakes && player.rank("highstakes") > 0) items = highStakes(items, x, y);
 			if (items.length) {
 				// more than one bag's worth spills into extra bags beside it
 				var spill:Array = items.splice(LootBag.MAX);
-				for (var sb:int = 0; spill.length && sb < 3; sb++) bags.push(new LootBag(e.x + 0.9 * (sb + 1), e.y + 0.4 * (sb % 2), spill.splice(0, LootBag.MAX)));
-				var bag:LootBag = new LootBag(e.x, e.y, items);
+				for (var sb:int = 0; spill.length && sb < 3; sb++) bags.push(new LootBag(x + 0.9 * (sb + 1), y + 0.4 * (sb % 2), spill.splice(0, LootBag.MAX)));
+				var bag:LootBag = new LootBag(x, y, items);
 				bags.push(bag);
 				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
 				// rare drop alerts
@@ -1883,7 +1890,7 @@ package realm {
 					showBanner(ki.name + " dropped!", ki.color, 4);
 					msg("A raid key dropped: " + ki.name + "! Use it in the Nexus to open the raid.", ki.color);
 					Sfx.play("rare");
-					ring(e.x, e.y, ki.color, 30);
+					ring(x, y, ki.color, 30);
 				}
 				if (bag.spr == "bag_godly") {
 					// a 1 in 5,000 drop: make a scene
@@ -1894,8 +1901,8 @@ package realm {
 					}
 					Sfx.play("rare"); Sfx.play("level");
 					shake(0.8, 10);
-					burst(e.x, e.y, Data.RARITY_COLORS.gd, 60);
-					ring(e.x, e.y, Data.RARITY_COLORS.gd, 40);
+					burst(x, y, Data.RARITY_COLORS.gd, 60);
+					ring(x, y, Data.RARITY_COLORS.gd, 40);
 					questEvent("legendary");
 				}
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary") questEvent("legendary");
@@ -1903,12 +1910,17 @@ package realm {
 					var kind:String = bag.spr == "bag_relic" ? Data.RARITY_NAMES.ar : bag.spr == "bag_legendary" ? Data.RARITY_NAMES.lg : Data.RARITY_NAMES.fb;
 					var kc:uint = bag.spr == "bag_relic" ? Data.RARITY_COLORS.ar : bag.spr == "bag_legendary" ? Data.RARITY_COLORS.lg : Data.RARITY_COLORS.fb;
 					showBanner(kind + " drop!", kc, 3);
-					msg((/^[AEIOU]/.test(kind) ? "An " : "A ") + kind + " bag dropped from " + e.def.name + "!", kc);
+					msg((/^[AEIOU]/.test(kind) ? "An " : "A ") + kind + " bag dropped from " + from + "!", kc);
 					Sfx.play("rare");
-					burst(e.x, e.y, kc, 30);
+					burst(x, y, kc, 30);
 				} else if (bag.spr != "bag_brown") Sfx.play("loot", 0.7);
 				if (bag.spr != "bag_brown") questEvent("rare");
 			}
+		}
+
+		/** Online, the server rolls each player's drops: these are yours. */
+		public function serverDrop(x:Number, y:Number, items:Array, from:String):void {
+			if (items && items.length) dropLoot(items, x, y, from);
 		}
 
 		private function removeEnemyAt(i:int):void {
@@ -3205,7 +3217,9 @@ package realm {
 		/** What's in a crate: mostly a little gold, sometimes potions. */
 		private function crateLoot(zone:int):Array {
 			var r:Number = Math.random();
-			if (r < 0.55) {
+			if (r < 0.55 || serverLoot) {
+				// (online the server rolls the crate's items; the gold is counted here)
+				if (r >= 0.55) return [];
 				var gold:int = (8 + int(Math.random() * 18)) * (Math.max(0, zone) + 1);
 				addGold(gold);
 				floatText(player.x, player.y - 1.4, "+" + gold + " gold", Ui.GOLD);
@@ -4665,9 +4679,14 @@ package realm {
 		}
 
 		/** What other players see of you (sent to the server). */
+		/** Online with server-run monsters: drops come from the server. */
+		public function get serverLoot():Boolean {
+			return net && net.online && Online.welcome && Online.welcome.serverMonsters && !sync.isHost;
+		}
+
 		public function myProfile():Object {
 			var p:Player = player;
-			return {cls: p.cls.id, skin: p.skin, level: p.level, fame: p.fame, maxed: p.maxedCount,
+			return {lk: p.frt + lootLuck(), cls: p.cls.id, skin: p.skin, level: p.level, fame: p.fame, maxed: p.maxedCount,
 				equip: [p.weapon, p.ability, p.armor, p.ring], guild: net && net.guild ? net.guild.name : ""};
 		}
 

@@ -212,7 +212,9 @@ const accountMeta = new Map();
 function cleanProfile(p) {
   if (!p || typeof p !== 'object') return {};
   const out = { cls: str(p.cls, 16), skin: str(p.skin, 24), level: Math.max(1, Math.min(20, num(p.level) | 0)),
-    fame: Math.max(0, num(p.fame) | 0), maxed: Math.max(0, Math.min(11, num(p.maxed) | 0)), guild: str(p.guild, 24) };
+    fame: Math.max(0, num(p.fame) | 0), maxed: Math.max(0, Math.min(11, num(p.maxed) | 0)), guild: str(p.guild, 24),
+    // loot luck (Bounty + streak + shrine), capped at what the game can reach
+    lk: Math.max(0, Math.min(160, num(p.lk) | 0)) };
   if (Array.isArray(p.equip)) out.equip = p.equip.slice(0, 4).map((it) => (it && typeof it === 'object' && JSON.stringify(it).length < 4000 ? it : null));
   return out;
 }
@@ -274,7 +276,7 @@ const handlers = {
     accountMeta.set(key, c.meta);
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-      save: onlineSave(key), motd: config.motd, admin: isAdmin(c), session, needPassword: !acc.pwHash });
+      save: onlineSave(key), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash });
     sendGuild(c.guild);
     log(c.name, 'joined (' + byName.size + ' online)');
   },

@@ -130,31 +130,60 @@ package realm {
 		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon && weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
 		/** Base x1.5, +0.1 per 10 Might. */
 		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.1; }
-		public function get damageMult():Number { return (1 + rank("brutality") * 0.05) * (buffs.might > 0 ? 1.3 : 1); }
+		public function get damageMult():Number { return (1 + rank("brutality") * 0.05) * (buffs.might > 0 ? 1.3 : 1) * (bloodT > 0 ? 1 + bloodStacks * 0.06 : 1); }
+		/** Bloodlust stacks (from kills) and how long they last. */
+		public var bloodStacks:int = 0, bloodT:Number = 0;
+		public var lastStandT:Number = 0;
+		/** High Stakes is switched on (needs the skill). */
+		public var highStakes:Boolean = false;
+		/** Characters made before the skill tree rework get their level-up points once. */
+		public var tree2:Boolean = true;
 
 		/** Shrine blessings: seconds left of might, haste, fortune, vigor and arcana. */
 		public var buffs:Object = {};
 		public function get leech():int { return rank("leech"); }
 		public function rank(id:String):int { return int(skills[id] || 0); }
 
-		/** Ascension: level 20 with all 11 stats maxed unlocks the skill tree. */
+		/** Ascension: level 20 with all 11 stats maxed. */
 		public function get ascended():Boolean { return level >= MAX_LEVEL && maxedCount >= 11; }
 
-		public function spendSkill(id:String, g:Game):void {
-			if (!ascended) { g.msg("The skill tree unlocks at level 20 with 11/11 stats.", 0xaaaaaa); return; }
-			if (skillPoints <= 0) { g.msg("No skill points. Keep earning XP to gain more.", 0xaaaaaa); return; }
-			for each (var sk:Object in Data.SKILLS) {
-				if (sk.id != id) continue;
-				if (rank(id) >= sk.max) { g.msg(sk.name + " is already at max rank.", Ui.GOLD); return; }
-				skills[id] = rank(id) + 1;
-				skillPoints--;
-				g.msg(sk.name + " rank " + skills[id] + "/" + sk.max + " (" + sk.desc + ")", 0x80e0ff);
-			}
+		/** Why this skill can't take another rank right now, or null. */
+		public function skillBlock(id:String):String {
+			var sk:Object = Data.skill(id);
+			if (!sk) return "Unknown skill.";
+			if (rank(id) >= sk.max) return sk.name + " is already at max rank.";
+			var par:Object = Data.skillParent(id);
+			if (par && rank(par.id) < 2) return "Needs 2 ranks in " + par.name + " first.";
+			if (sk.cap && level < MAX_LEVEL) return "Capstones unlock at level 20.";
+			if (skillPoints <= 0) return "No skill points. You get one per level, then one every " + Data.XP_PER_SKILL_POINT + " XP at level 20.";
+			return null;
+		}
+
+		public function spendSkill(id:String, g:Game):Boolean {
+			var why:String = skillBlock(id);
+			if (why) { g.msg(why, 0xaaaaaa); return false; }
+			var sk:Object = Data.skill(id);
+			skills[id] = rank(id) + 1;
+			skillPoints--;
+			if (id == "highstakes") highStakes = true;
+			g.msg(sk.name + (sk.max > 1 ? " rank " + skills[id] + "/" + sk.max : " unlocked") + " (" + sk.desc + ")", 0x80e0ff);
+			Sfx.play("level", 0.6);
+			return true;
+		}
+
+		/** Gives back every point spent in the tree. */
+		public function resetSkills():int {
+			var n:int = 0;
+			for (var id:String in skills) n += rank(id);
+			skills = {};
+			skillPoints += n;
+			highStakes = false;
+			return n;
 		}
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
@@ -164,7 +193,9 @@ package realm {
 
 		public function restore(o:Object):void {
 			o = Save.clone(o);
+			o.tree2 = o.tree2 || false;
 			for each (var f:String in SAVE_FIELDS) if (o[f] != undefined) this[f] = o[f];
+			if (!tree2) { tree2 = true; skillPoints += level - 1; }
 			while (inv.length < (backpack ? 16 : 8)) inv.push(null);
 			// items saved before the renames keep their old names; refresh them
 			for each (var it:Object in inv) if (it && it.kind == "material") it.name = "Star Shard";
@@ -204,6 +235,8 @@ package realm {
 			if (invulnT > 0) invulnT -= dt;
 			if (invisT > 0) invisT -= dt;
 			if (berserkT > 0) berserkT -= dt;
+			if (bloodT > 0) { bloodT -= dt; if (bloodT <= 0) bloodStacks = 0; }
+			if (lastStandT > 0) lastStandT -= dt;
 			if (shieldT > 0) shieldT -= dt;
 			if (hitT > 0) hitT -= dt;
 			if (shootT > 0) shootT -= dt;
@@ -330,9 +363,10 @@ package realm {
 			var ab:Object = cls.ability;
 			if (abilityT > 0) return;
 			if (!ability) { g.msg("Equip an ability item first.", 0xff8080); abilityT = 0.5; return; }
-			if (mp < ab.cost) { g.msg("Not enough MP for " + ability.name, 0x8080ff); return; }
+			var cost:int = Math.ceil(ab.cost * (1 - rank("arcane") * 0.06));
+			if (mp < cost) { g.msg("Not enough MP for " + ability.name, 0x8080ff); return; }
 			if (g.world.isSafe(x, y) && cls.id != "priest") return;
-			mp -= ab.cost;
+			mp -= cost;
 			abilityT = 0.5;
 			Sfx.play("ability");
 			attackT = 0.3;
@@ -563,7 +597,7 @@ package realm {
 
 		public function gainXp(amount:int, g:Game):void {
 			totalXp += amount;
-			if (ascended) {
+			if (level >= MAX_LEVEL) {
 				ascXp += amount;
 				while (ascXp >= Data.XP_PER_SKILL_POINT) {
 					ascXp -= Data.XP_PER_SKILL_POINT;
@@ -585,9 +619,10 @@ package realm {
 				mp = maxMp;
 				g.floatText(x, y - 1.4, "Level Up!", 0x60ff60);
 				Sfx.play("level");
-				g.msg("You reached level " + level + "!", 0x60ff60);
+				skillPoints++;
+				g.msg("You reached level " + level + "! +1 skill point (press T for the skill tree).", 0x60ff60);
 				if (level >= MAX_LEVEL) g.questEvent("level20");
-				if (level >= MAX_LEVEL) g.tip("max", "Level 20! Drink stat potions to max all 11 stats; 11/11 unlocks the skill tree (star tab).");
+				if (level >= MAX_LEVEL) g.tip("max", "Level 20! Drink stat potions to max all 11 stats. Skill tree capstones (T) are now unlocked.");
 				g.burst(x, y, 0x60ff60, 20);
 				g.ring(x, y, 0xffe040);
 			}
@@ -625,6 +660,14 @@ package realm {
 				}
 			}
 			hp -= d;
+			if (hp <= 0 && rank("laststand") > 0 && lastStandT <= 0) {
+				hp = 1;
+				invulnT = 2;
+				lastStandT = 60;
+				g.floatText(x, y - 1.5, "Last Stand!", 0x60a8ff);
+				g.ring(x, y, 0x60a8ff, 24);
+				Sfx.play("level");
+			}
 			if (d >= maxHp * 0.15) g.shake(0.25, Math.min(10, 3 + d / maxHp * 20));
 			hitT = 0.12;
 			lastHitBy = src;

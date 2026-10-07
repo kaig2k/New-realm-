@@ -152,6 +152,7 @@ package realm {
 		private var netT:Number = 0;
 		private var social:SocialWindow;
 		private var wiki:WikiWindow;
+		private var skillWin:SkillWindow;
 		private var tpT:Number = 0;
 
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
@@ -783,7 +784,7 @@ package realm {
 		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social, wiki]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1172,8 +1173,9 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social || wiki)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
+				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
 				else if (social) toggleSocial();
 				else if (inspectWin) closeInspect();
@@ -1220,6 +1222,7 @@ package realm {
 			if (tpT > 0) tpT -= dt;
 			if (input.pressed(Keyboard.L)) toggleSocial();
 			if (input.pressed(Keyboard.K)) toggleWiki();
+			if (input.pressed(Keyboard.T)) toggleSkills();
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -1510,6 +1513,7 @@ package realm {
 			}
 			raw = int(raw * p.damageMult);
 			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
+			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.1));
 			var crit:Boolean = Math.random() < p.critChance;
 			if (p.critNext && effect != "shard") {
 				// Shadowstep: the first hit out of the shadows always crits, and harder
@@ -1600,6 +1604,23 @@ package realm {
 			}
 		}
 
+		/** High Stakes capstone: the drop is doubled or lost on a coin flip. */
+		private function highStakes(items:Array, x:Number, y:Number):Array {
+			if (Math.random() < 0.5) {
+				var copy:Array = [];
+				for each (var it:Object in items) copy.push(Save.clone(it));
+				floatText(x, y - 1.5, "DOUBLED!", 0xffd040);
+				msg("High Stakes: you won! The drop was doubled.", 0xffd040);
+				ring(x, y, 0xffd040, 26);
+				Sfx.play("coin");
+				return items.concat(copy);
+			}
+			floatText(x, y - 1.5, "LOST!", 0xff5050);
+			msg("High Stakes: you lost. The drop crumbled to dust.", 0xff8080);
+			abil.puff(x, y, 0x605850, 18, 3);
+			return [];
+		}
+
 		/** The host says a monster died (online). */
 		public function remoteKill(e:Enemy):void { killEnemy(e, true); }
 		/** Host: another player's hit finished a monster. */
@@ -1634,6 +1655,10 @@ package realm {
 				petGainXp(e.isBoss ? 20 : 1);
 			}
 			if (mine && !e.def.treasure && !e.def.crate) addStreak(e);
+			if (mine && p.rank("bloodlust") > 0 && !e.def.crate) {
+				p.bloodStacks = Math.min(5, p.bloodStacks + 1);
+				p.bloodT = 5;
+			}
 			if (e.def.crate) crateBroken(e, mine, remote);
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
 			if (mine || near) p.gainXp(int(e.def.xp * xpMult), this);
@@ -1645,6 +1670,7 @@ package realm {
 
 			// currencies (account-wide gold and Aether)
 			var g:int = mine ? e.def.gold || int(e.def.xp / 6) : 0;
+			g = int(g * (1 + p.rank("scavenger") * 0.08));
 			if (g > 0) addGold(g);
 			if (mine && e.def.onrane) addOnrane(e.def.onrane);
 			if (mine && e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " Aether", Ui.GOLD);
@@ -1729,6 +1755,7 @@ package realm {
 			if (mine && e.def.mimic) items = items.concat(mimicLoot());
 			var hoard:Array = siteCleared(e, mine);
 			if (hoard) items = items.concat(hoard);
+			if (items.length && p.highStakes && p.rank("highstakes") > 0) items = highStakes(items, e.x, e.y);
 			if (items.length) {
 				// more than one bag's worth spills into extra bags beside it
 				var spill:Array = items.splice(LootBag.MAX);
@@ -4210,6 +4237,15 @@ package realm {
 				addChild(social);
 			}
 			if (tab >= 0) social.show(tab);
+		}
+
+		/** T / star tab: the skill tree. */
+		public function toggleSkills():void {
+			if (skillWin) { removeChild(skillWin); skillWin = null; refocus(); return; }
+			skillWin = new SkillWindow(this);
+			skillWin.x = int((VIEW_W - SkillWindow.W) / 2);
+			skillWin.y = 30;
+			addChild(skillWin);
 		}
 
 		/** Book button / K / /wiki: every boss and its drops. */

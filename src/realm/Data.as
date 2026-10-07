@@ -1085,20 +1085,51 @@ package realm {
 		}
 		public static const DUNGEON_DROP_CHANCE:Number = 0.7;
 
-		/** Skill tree ("Awakening"): unlocked at level 20 with 11/11 stats. */
+		/**
+		 * Skill tree: three branches of stat upgrades, each ending in a capstone.
+		 * A skill needs 2 ranks in the one above it; capstones also need level 20.
+		 * You get a point per level, then one per XP_PER_SKILL_POINT XP at level 20.
+		 */
+		public static const SKILL_BRANCHES:Array = [
+			{name: "Might", col: 0xff6a50, desc: "Damage and critical hits"},
+			{name: "Guard", col: 0x60a8ff, desc: "Health, defense and survival"},
+			{name: "Fortune", col: 0xffd040, desc: "Speed, loot and gambling"}
+		];
 		public static const SKILLS:Array = [
-			{id: "brutality", name: "Brutality", desc: "+5% damage", max: 5},
-			{id: "precision", name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", name: "Ferocity", desc: "+0.1x crit damage", max: 5},
-			{id: "vigor", name: "Vigor", desc: "+40 max HP", max: 5},
-			{id: "bulwark", name: "Bulwark", desc: "+4 Defense", max: 5},
-			{id: "aegis", name: "Aegis", desc: "+5 Warding", max: 5},
-			{id: "swiftness", name: "Swiftness", desc: "+4 Speed", max: 5},
-			{id: "leech", name: "Leech", desc: "+1 HP per hit", max: 5},
-			{id: "fortune", name: "Prosperity", desc: "+5 Bounty", max: 5}
+			{id: "brutality", b: 0, name: "Brutality", desc: "+5% damage", max: 5},
+			{id: "precision", b: 0, name: "Precision", desc: "+2% crit chance", max: 5},
+			{id: "ferocity", b: 0, name: "Ferocity", desc: "+0.1x crit damage", max: 5},
+			{id: "executioner", b: 0, name: "Executioner", desc: "+10% damage to monsters under 30% HP", max: 3},
+			{id: "bloodlust", b: 0, name: "Bloodlust", desc: "Every kill gives +6% damage for 5s, stacking up to 5 times", max: 1, cap: true},
+			{id: "vigor", b: 1, name: "Vigor", desc: "+40 max HP", max: 5},
+			{id: "bulwark", b: 1, name: "Bulwark", desc: "+4 Defense", max: 5},
+			{id: "aegis", b: 1, name: "Aegis", desc: "+5 Warding", max: 5},
+			{id: "leech", b: 1, name: "Leech", desc: "+1 HP per hit", max: 5},
+			{id: "laststand", b: 1, name: "Last Stand", desc: "Once a minute, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true},
+			{id: "swiftness", b: 2, name: "Swiftness", desc: "+4 Speed", max: 5},
+			{id: "fortune", b: 2, name: "Prosperity", desc: "+5 Bounty (better loot)", max: 5},
+			{id: "arcane", b: 2, name: "Arcane Flow", desc: "-6% ability MP cost", max: 5},
+			{id: "scavenger", b: 2, name: "Scavenger", desc: "+8% gold from monsters", max: 3},
+			{id: "highstakes", b: 2, name: "High Stakes", desc: "Every loot bag: 50% doubled, 50% gone. Toggle it any time.", max: 1, cap: true}
 		];
 		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5}};
-		public static const XP_PER_SKILL_POINT:int = 600;
+
+		public static function skill(id:String):Object {
+			for each (var s:Object in SKILLS) if (s.id == id) return s;
+			return null;
+		}
+
+		/** The skill above this one in its branch (needs 2 ranks), or null. */
+		public static function skillParent(id:String):Object {
+			var prev:Object = null;
+			for each (var s:Object in SKILLS) {
+				if (s.id == id) return prev;
+				prev = s.b == skill(id).b ? s : prev;
+			}
+			return null;
+		}
+
+		public static const XP_PER_SKILL_POINT:int = 1000;
 
 		/** Daily quests (daily contracts / battle pass missions); 3 are picked per day. */
 		public static const QUESTS:Array = [

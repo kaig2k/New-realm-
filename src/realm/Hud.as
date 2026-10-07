@@ -35,7 +35,6 @@ package realm {
 		private var hpPot:PotSlot, mpPot:PotSlot;
 		private var invPage:Sprite, statPage:Sprite, skillPage:Sprite;
 		private var skillTf:TextField;
-		private var skillRows:Array = [];
 		private var lastSkills:String = "";
 		private var statTf:TextField;
 		private var tabs:Array = [];
@@ -181,18 +180,12 @@ package realm {
 			// --- skill tree page (Awakening)
 			skillPage = new Sprite();
 			Ui.panel(skillPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
-			skillTf = Ui.text(11, 0x80e0ff, true, "left", 220);
+			skillTf = Ui.text(12, 0x80e0ff, false, "left", 220);
 			skillTf.x = 10; skillTf.y = y;
 			skillPage.addChild(skillTf);
-			for (i = 0; i < Data.SKILLS.length; i++) {
-				var row:TextField = Ui.text(11, 0xdddddd, false, "left", 200);
-				row.x = 10; row.y = y + 14 + i * 13;
-				skillPage.addChild(row);
-				var plus:Sprite = skillButton(Data.SKILLS[i].id);
-				plus.x = 214; plus.y = y + 16 + i * 13;
-				skillPage.addChild(plus);
-				skillRows.push(row);
-			}
+			var openTree:Sprite = Ui.button("Open Skill Tree  [T]", 200, 26, function():void { g.toggleSkills(); }, 13);
+			openTree.x = 20; openTree.y = y + 104;
+			skillPage.addChild(openTree);
 			skillPage.visible = false;
 			addChild(skillPage);
 
@@ -254,33 +247,23 @@ package realm {
 			return b;
 		}
 
-		private function skillButton(id:String):Sprite {
-			var b:Sprite = new Sprite();
-			Ui.panel(b.graphics, 0, 0, 14, 12, 0x3a5a3a, 0x6aa06a);
-			var t:TextField = Ui.text(11, 0xffffff, true, "center", 14);
-			t.text = "+";
-			t.y = -3;
-			b.addChild(t);
-			b.buttonMode = true;
-			b.mouseChildren = false;
-			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.player.spendSkill(id, g); lastSkills = ""; });
-			return b;
-		}
-
 		private function refreshSkills(p:Player):void {
-			var key:String = p.skillPoints + "|" + p.ascXp + "|" + p.ascended + "|" + p.maxedCount;
+			var key:String = p.skillPoints + "|" + p.ascXp + "|" + p.level + "|" + p.highStakes + "|" + p.bloodStacks;
 			for each (var sk:Object in Data.SKILLS) key += p.rank(sk.id);
 			if (key == lastSkills) return;
 			lastSkills = key;
-			skillTf.text = p.ascended ? "Skill points: " + p.skillPoints + "   next " + p.ascXp + "/" + Data.XP_PER_SKILL_POINT + " XP"
-				: "Locked: needs Lvl 20 and 11/11 (" + p.maxedCount + "/11)";
-			skillTf.textColor = p.ascended ? 0x80e0ff : 0xff8080;
-			for (var i:int = 0; i < Data.SKILLS.length; i++) {
-				var s:Object = Data.SKILLS[i];
-				var r:int = p.rank(s.id);
-				skillRows[i].htmlText = "<b><font color='" + (r >= s.max ? "#ffd75e" : "#ffffff") + "'>" + s.name + "</font></b> " + r + "/" + s.max +
-					"  <font color='#9a9a9a'>" + s.desc + "</font>";
+			var out:String = "<b>Skill points: " + p.skillPoints + "</b>" + (p.level >= Player.MAX_LEVEL ? "  (next " + p.ascXp + "/" + Data.XP_PER_SKILL_POINT + " XP)" : "") + "\n";
+			for (var b:int = 0; b < Data.SKILL_BRANCHES.length; b++) {
+				var br:Object = Data.SKILL_BRANCHES[b], n:int = 0, caps:String = "";
+				for each (sk in Data.SKILLS) if (sk.b == b) {
+					n += p.rank(sk.id);
+					if (sk.cap && p.rank(sk.id) > 0) caps = sk.name;
+				}
+				out += "<font color='" + Ui.hex(br.col) + "'><b>" + br.name + "</b></font>  " + n + " pts" + (caps ? "  <font color='#ffd75e'>" + caps + "</font>" : "") + "\n";
 			}
+			if (p.rank("highstakes") > 0) out += "<font color='#ffd040'>High Stakes: " + (p.highStakes ? "ON" : "off") + "</font>\n";
+			if (p.bloodStacks > 0) out += "<font color='#ff6a50'>Bloodlust x" + p.bloodStacks + "</font>";
+			skillTf.htmlText = out;
 		}
 
 		private function makeTab(rows:Array, x:int, y:int, idx:int):Sprite {

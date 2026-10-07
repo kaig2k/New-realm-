@@ -1359,6 +1359,7 @@ package realm {
 			updateNexus(dt);
 			updateTraps(dt);
 			abil.update(dt);
+			introBosses();
 			updatePet(dt);
 			updateBossHelpers(dt);
 
@@ -2997,10 +2998,16 @@ package realm {
 			}
 			if (!opt("parts")) return;
 			var k:Array = ambientKind();
-			// sparkles on water near you
-			if (Math.random() < 0.35) {
+			// water glints and bubbling lava near you (a few random tiles each frame)
+			for (var tries:int = 0; tries < 4 && amb.length < 200; tries++) {
 				var gx:int = int(viewX + (Math.random() - 0.5) * vw / TS), gy:int = int(viewY + (Math.random() - 0.5) * vh / TS);
-				if (world.tileAt(gx, gy) == World.WATER) amb.push({x: gx + Math.random(), y: gy + Math.random(), vx: 0, vy: 0, life: 0.6, max: 0.6, bd: ambBit("glint", 0xffffff)});
+				var gt:int = world.tileAt(gx, gy);
+				if (gt == World.WATER && Math.random() < 0.3) amb.push({x: gx + Math.random(), y: gy + Math.random(), vx: 0.15, vy: 0, life: 0.7, max: 0.7, bd: ambBit("glint", 0xffffff)});
+				else if (gt == World.LAVA) {
+					if (Math.random() < 0.5) amb.push({x: gx + Math.random(), y: gy + Math.random(), vx: 0, vy: 0, life: 0.45, max: 0.45, bd: ambBit("glint", 0xffd040)});
+					else amb.push({x: gx + Math.random(), y: gy + Math.random(), vx: (Math.random() - 0.5) * 0.4, vy: -1 - Math.random(), life: 1.2, max: 1.2, sway: Math.random() * 6,
+						bd: ambBit("mote", Math.random() < 0.5 ? 0xff7020 : 0xffb040)});
+				}
 			}
 			if (!k) return;
 			ambAcc += dt * k[2];
@@ -4270,6 +4277,25 @@ package realm {
 			auraMtx.tx = cx; auraMtx.ty = cy;
 			canvas.draw(auraShape, auraMtx);
 		}
+
+		/** The first time you come near a boss: its name across the screen, a roar and a shake. */
+		private function introBosses():void {
+			if (int(time * 4) == introTick) return;
+			introTick = int(time * 4);
+			for each (var e:Enemy in enemies) {
+				if (!e.isBoss || e.dead || e.introduced) continue;
+				var dx:Number = e.x - player.x, dy:Number = e.y - player.y;
+				if (dx * dx + dy * dy > 11 * 11) continue;
+				e.introduced = true;
+				var col:uint = uint(e.def.col) || 0xff6060;
+				showBanner(e.def.name, Sprites.tint(col, 0.3), 2.8);
+				Sfx.play("boss", 0.9, 1);
+				shake(0.45, 6);
+				ring(e.x, e.y, col, 32);
+				abil.anim("nova", e.x, e.y, 0.6, {col: col, r: 4});
+			}
+		}
+		private var introTick:int = -1;
 
 		/** Monsters that just died: {bd, x, y, t, big}. */
 		private var corpses:Array = [];

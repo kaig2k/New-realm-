@@ -68,6 +68,8 @@ package realm {
 		public var site:Object;
 		/** Seconds alive (treasure goblins escape after a while). */
 		public var age:Number = 0;
+		/** You've had the boss's entrance (name banner, roar) for this one. */
+		public var introduced:Boolean = false;
 
 		private var attacks:Array;
 		private var timers:Array;

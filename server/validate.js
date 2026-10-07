@@ -6,7 +6,6 @@
  *   - items with unknown kinds or rarities, or stats far beyond what the game
  *     can ever roll (an edited "+9999 attack" ring)
  *   - currencies jumping faster than play allows (gold set to 9,999,999)
- *   - Godly items appearing faster than their 1 in 5,000 drop rate allows
  *   - inventories older than the last trade (an attempt to undo a trade and
  *     keep both sides' items)
  * The limits are generous on purpose: honest players should never hit them.
@@ -21,8 +20,8 @@ const STATS = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis', 'mgt', 'luc
 const LIMITS = {
   chars: 20, inv: 16, vault: 80,
   // currency gain allowed per save: a flat allowance plus a rate per second since the last save
-  gold: [25000, 60], fame: [400000, 200], onrane: [150, 1],
-  godlyCooldownMs: 5 * 60 * 1000
+  // generous: selling a Godly item alone is worth 25,000 gold
+  gold: [150000, 200], fame: [400000, 200], onrane: [300, 2]
 };
 
 function isNum(v) { return typeof v === 'number' && isFinite(v); }
@@ -99,10 +98,6 @@ function checkSave(prev, next, meta, now) {
     const lim = LIMITS[k];
     if (gain > lim[0] + lim[1] * secs) return k + ' went up too fast';
   }
-  const newGodly = godlyCount(next) - godlyCount(prev);
-  if (newGodly > 1) return 'too many new Godly items at once';
-  if (newGodly === 1 && meta.lastGodly && now - meta.lastGodly < LIMITS.godlyCooldownMs) return 'Godly items appearing too fast';
-  if (newGodly === 1) meta.lastGodly = now;
   return null;
 }
 

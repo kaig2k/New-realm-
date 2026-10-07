@@ -46,6 +46,9 @@ package realm {
 		/** World key ("nexus", "realm:...", "dg:...") a party or guild member is in, or null. */
 		public function worldOf(name:String):String { return null; }
 
+		/** Teleport to a party or guild member (offline: they are where we see them). */
+		public function requestTeleport(p:RemotePlayer):void { g.teleportArrive(p.x, p.y, p.name); }
+
 		/** A slash command the server handles (/report, moderation). */
 		public function serverCommand(text:String):void {}
 

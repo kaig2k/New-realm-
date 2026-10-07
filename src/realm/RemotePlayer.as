@@ -29,6 +29,8 @@ package realm {
 		public var bubbleT:Number = 0;
 		/** Set by the connection when the player leaves the world. */
 		public var gone:Boolean = false;
+		/** Out of your sight: not drawn (party and guild members still show on the minimap). */
+		public var far:Boolean = false;
 		private var walkT:Number = 0;
 
 		public function RemotePlayer(id:String, name:String, x:Number, y:Number, profile:Object) {

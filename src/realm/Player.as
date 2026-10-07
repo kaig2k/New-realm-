@@ -87,7 +87,7 @@ package realm {
 
 		/** The set whose 4-piece bonus is active, or null. */
 		public function get activeSet():String {
-			return setPieces >= 4 ? weapon.set : null;
+			return setPieces >= 4 && weapon ? weapon.set : null;
 		}
 
 		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
@@ -120,7 +120,7 @@ package realm {
 		/** Every +1 Protection gives about +3 PT. */
 		public function get maxPt():int { return prt * 3; }
 		/** Base 5%, +1% per 10 Luck (and +10% from the Executioner passive). */
-		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
+		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon && weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
 		/** Base x1.5, +0.1 per 10 Might. */
 		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.1; }
 		public function get damageMult():Number { return (1 + rank("brutality") * 0.05) * (buffs.might > 0 ? 1.3 : 1); }
@@ -188,7 +188,7 @@ package realm {
 		}
 
 		public function get fireRate():Number {
-			return (1.5 + 6.5 * dex / 75) * weapon.rate * (berserkT > 0 ? 1.5 : 1);
+			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1);
 		}
 
 		public function update(dt:Number, g:Game):void {
@@ -283,6 +283,7 @@ package realm {
 
 		private function shoot(g:Game):void {
 			var w:Object = weapon;
+			if (!w) { shootT = 0.5; g.tip("noweapon", "You have no weapon equipped. Click or drag one into your weapon slot."); return; }
 			shootT = 1 / fireRate;
 			var ang:Number = Math.atan2(aimY - y, aimX - x);
 			var mult:Number = 0.5 + att / 50;

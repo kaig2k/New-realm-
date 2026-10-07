@@ -525,7 +525,7 @@ package realm {
 			}
 			// other players are yellow, like RotMG
 			for each (var rp:RemotePlayer in g.net.players) {
-				if (!g.shown(rp)) continue;
+				if (!g.shown(rp) && !g.net.isFriend(rp)) continue;
 				var rx:Number = ox + rp.x * z, ry:Number = oy + rp.y * z;
 				if (rx < 0 || ry < 0 || rx > mw || ry > mh) continue;
 				gr.beginFill(g.net.inParty(rp) ? 0x7fd8ff : g.net.inGuild(rp) ? 0x60ff60 : 0xffe040);

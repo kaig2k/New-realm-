@@ -250,7 +250,7 @@ realm (online, the same one for everyone from that realm):
 
 Bounty raises these chances like other loot. Keys can be traded, stored in the vault and sold.
 Click a key in the Nexus, or use it at the **Raid Table** (east, below the Starforge), to open
-its raid portal. Everyone in the Nexus sees the portal, and it lasts 2 minutes. A raid is three
+its raid portal. Everyone on the server is told, and the portal lasts 30 seconds. A raid is three
 full dungeon of its own and the hardest content in the game: guarded halls full of elite
 raid monsters, then three boss stages behind seals that open as each stage falls.
 - **The Crimson Conclave**, a blood cathedral: a pillared nave of Crimson Cultists, Bone
@@ -482,7 +482,7 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
   **Azrakor's Citadel** and then the **Dark Elder's Chamber**, a white arena ringed in red bloodstone, to fight him
   for Eldritch, Starforged and Primordial loot. At a third of his health he becomes immune and
   summons four Elder Crystals. Destroy them all to make him vulnerable again.
-- **Dungeons**: event bosses often drop a portal (open for 90 seconds) to one of four
+- **Dungeons**: event bosses often drop a portal (open for 30 seconds) to one of four
   dungeons: the Sunken Crypt, the Ember Depths (lava pools), the Storm Spire or the
   Forgotten Cellar. Each is a chain of monster rooms with a boss at the end (the Crypt
   Warden, Pyrelord Ignaar, the Tempest Seraph or the Cellar Sorcerer). Most dungeons also

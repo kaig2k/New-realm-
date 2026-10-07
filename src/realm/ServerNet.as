@@ -57,6 +57,9 @@ package realm {
 
 		override public function get online():Boolean { return Online.connected; }
 
+		/** Asks the server where a party or guild member is right now (it answers with tppos). */
+		override public function requestTeleport(p:RemotePlayer):void { Online.send({t: "tpreq", id: p.id}); }
+
 		override public function update(dt:Number):void {
 			for each (var p:RemotePlayer in players) p.update(dt);
 			if (trade) trade.update(dt);
@@ -160,9 +163,29 @@ package realm {
 				case "move":
 					rp = byId(m.id);
 					if (rp) {
-						rp.moveTo(m.x, m.y);
-						if (!rp.moving) rp.facingLeft = m.f == 1;
+						if (m.far) {
+							// a friend out of sight: just keep their spot up to date
+							rp.x = rp.tx = m.x; rp.y = rp.ty = m.y;
+							rp.far = true;
+						} else {
+							if (rp.far) { rp.x = m.x; rp.y = m.y; }
+							rp.far = false;
+							rp.moveTo(m.x, m.y);
+							if (!rp.moving) rp.facingLeft = m.f == 1;
+						}
 					}
+					break;
+				case "banner":
+					g.showBanner(m.text, m.color || 0xffd75e, 4);
+					g.msg(m.msg || m.text, m.color || 0xffd75e);
+					Sfx.play("portal");
+					break;
+				case "far":
+					rp = byId(m.id);
+					if (rp) rp.far = true;
+					break;
+				case "tppos":
+					g.teleportArrive(m.x, m.y, m.name);
 					break;
 				case "shoot":
 					rp = byId(m.id);

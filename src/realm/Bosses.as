@@ -67,8 +67,47 @@ package realm {
 			finales();
 			raids();
 			harden();
+			fair();
 			Godly.init();
 			skins();
+		}
+
+		/**
+		 * Every boss must be dodgeable: no teleporting on top of you, gaps you
+		 * can actually fit through, bullets you can react to. Hard, never unfair.
+		 */
+		private static function fair():void {
+			for (var id:String in Data.ENEMIES) {
+				var d:Object = Data.ENEMIES[id];
+				if (d.ai != "boss") continue;
+				var seen:Dictionary = new Dictionary();
+				for each (var ph:Object in d.phases) {
+					if (ph is Array) { fairList(ph as Array, seen); continue; }
+					// bosses circle their arena instead of blinking around it
+					if (ph.move == "teleport" || ph.move == "blink") ph.move = "orbit";
+					if (ph.attacks) fairList(ph.attacks, seen);
+					for each (var cl:Array in ph.cycle || []) fairList(cl, seen);
+				}
+			}
+		}
+
+		private static function fairList(list:Array, seen:Dictionary):void {
+			for each (var a:Object in list) {
+				if (!a || seen[a] || a.p == "summon") continue;
+				seen[a] = true;
+				// rings and flowers leave lanes to slip through
+				if ((a.p == "ring" || a.p == "flower") && a.n > 28) a.n = 28;
+				if (a.p == "spiral" && a.n > 10) a.n = 10;
+				// walls always have a gap at least three bullets wide
+				if (a.p == "wall" && (a.hole || 0) < 3) a.hole = 3;
+				// fast enough to be scary, slow enough to see coming
+				if (a.spd > 12) { a.spd = 12; a.life = 11 / 12; }
+				if (a.motion == "home" && a.spd > 7) a.spd = 7;
+				// a breath between volleys
+				var floor:Number = a.p == "spiral" ? 0.08 : a.p == "aimed" ? 0.25 : 0.5;
+				if (a.cd < floor) a.cd = floor;
+				if (a.waves && a.gap && a.gap < 0.15) a.gap = 0.15;
+			}
 		}
 
 		/**

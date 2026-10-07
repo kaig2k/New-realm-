@@ -282,9 +282,9 @@ package realm {
 					if (t == WATER || t == ROAD || t == BRIDGE || z < 0) continue;
 					var r:Number = rnd(), f:Number = fbm(6, x, y), o:int = 0;
 					if (z == SHORE_ZONE) o = r < 0.012 ? 3 : r < 0.018 ? 4 : 0;
-					else if (z == LOW_ZONE) o = r < (f > 0.62 ? 0.14 : 0.025) ? 1 : r < 0.03 ? 4 : 0;
-					else if (z == MID_ZONE) o = r < (f > 0.55 ? 0.22 : 0.04) ? (rnd() < 0.6 ? 2 : 1) : r < 0.05 ? 4 : 0;
-					else if (z == HIGH_ZONE) o = r < (f > 0.6 ? 0.1 : 0.025) ? 2 : r < 0.045 ? 5 : r < 0.055 ? 6 : 0;
+					else if (z == LOW_ZONE) o = r < (f > 0.66 ? 0.06 : 0.01) ? 1 : r < 0.016 ? 4 : 0;
+					else if (z == MID_ZONE) o = r < (f > 0.6 ? 0.09 : 0.015) ? (rnd() < 0.6 ? 2 : 1) : r < 0.024 ? 4 : 0;
+					else if (z == HIGH_ZONE) o = r < (f > 0.64 ? 0.045 : 0.01) ? 2 : r < 0.028 ? 5 : r < 0.034 ? 6 : 0;
 					else o = r < 0.035 ? 5 : r < 0.05 ? 6 : 0;
 					objs[i] = o;
 				}
@@ -564,8 +564,8 @@ package realm {
 			var prev:Object = null;
 			for (var k:int = 0; k < count; k++) {
 				var boss:Boolean = k == count - 1;
-				var w:int = boss ? 17 : 9 + int(rnd() * 5);
-				var h:int = boss ? 15 : 8 + int(rnd() * 4);
+				var w:int = boss ? 23 : 9 + int(rnd() * 5);
+				var h:int = boss ? 19 : 8 + int(rnd() * 4);
 				var room:Object = {x: cx, y: cy, w: w, h: h};
 				carve(cx - int(w / 2), cy - int(h / 2), w, h, floor);
 				// accent pattern in the middle of bigger rooms (lava pools, carpets...)
@@ -590,7 +590,7 @@ package realm {
 			var prev:Object = null;
 			for (var k:int = 0; k < count; k++) {
 				var boss:Boolean = k == count - 1;
-				var r:Number = boss ? 9 : 5 + rnd() * 2.5;
+				var r:Number = boss ? 12.5 : 5 + rnd() * 2.5;
 				blob(cx, cy, r, floor);
 				if (!boss && k > 0 && rnd() < 0.5) blob(cx + int(rnd() * 4) - 2, cy + int(rnd() * 4) - 2, 1.6, accent);
 				if (prev) tunnel(prev.x, prev.y, cx, cy, floor);
@@ -628,11 +628,11 @@ package realm {
 			}
 			// the boss hall above the grid
 			var bx:int = prev.x, by:int = gy - rowsN * step - 6;
-			carve(bx - 9, by - 8, 19, 17, floor);
-			for each (var bp:Array in [[-5, -4], [5, -4], [-5, 4], [5, 4]]) tiles[(by + bp[1]) * N + bx + bp[0]] = WALL;
+			carve(bx - 12, by - 10, 25, 21, floor);
+			for each (var bp:Array in [[-8, -6], [8, -6], [-8, 6], [8, 6]]) tiles[(by + bp[1]) * N + bx + bp[0]] = WALL;
 			carve(bx - 2, by - 2, 5, 5, accent);
 			corridor(prev.x, prev.y, bx, by, floor);
-			rooms.push({x: bx, y: by, w: 19, h: 17});
+			rooms.push({x: bx, y: by, w: 25, h: 21});
 		}
 
 		/** Floating platforms over the abyss, joined by narrow bridges. */
@@ -642,7 +642,7 @@ package realm {
 			var prev:Object = null;
 			for (var k:int = 0; k < count; k++) {
 				var boss:Boolean = k == count - 1;
-				var r:Number = boss ? 9.5 : k == 0 ? 5 : 4.5 + rnd() * 2;
+				var r:Number = boss ? 13 : k == 0 ? 5 : 4.5 + rnd() * 2;
 				blob(cx, cy, r, floor);
 				if (!boss && k > 0) blob(cx, cy, 1.5, accent);
 				if (prev) bridge(prev.x, prev.y, cx, cy);
@@ -673,10 +673,10 @@ package realm {
 				prev = room;
 			}
 			// the inner sanctum, reached from the last chamber
-			blob(ccx, ccy, 10, floor);
+			blob(ccx, ccy, 13.5, floor);
 			blob(ccx, ccy, 3, accent);
 			corridor(prev.x, prev.y, ccx, ccy, floor);
-			rooms.push({x: ccx, y: ccy, w: 18, h: 18});
+			rooms.push({x: ccx, y: ccy, w: 24, h: 24});
 		}
 
 		/** A real labyrinth: twisting 3-wide passages, the boss beyond its far corner. */
@@ -721,11 +721,11 @@ package realm {
 			}
 			// the boss lair past the far corner
 			var ex:int = x0 + (W - 1) * cell + 2, ey:int = y0 + 2;
-			var lx2:int = ex + 14, ly2:int = ey - 4;
-			carve(lx2 - 8, ly2 - 7, 17, 15, floor);
+			var lx2:int = ex + 18, ly2:int = ey - 4;
+			carve(lx2 - 11, ly2 - 9, 23, 19, floor);
 			carve(lx2 - 1, ly2 - 1, 3, 3, accent);
 			corridor(ex, ey, lx2, ly2, floor);
-			rooms.push({x: lx2, y: ly2, w: 17, h: 15});
+			rooms.push({x: lx2, y: ly2, w: 23, h: 19});
 		}
 
 		// ------------------------------------------------------------ raids
@@ -763,14 +763,14 @@ package realm {
 			corridor(93, 160, 80, 160, STONE); corridor(107, 160, 120, 160, STONE);
 			for each (var c:Object in [wc, ec]) for (var g:int = 0; g < 5; g++) objs[(c.y - 3 + (g % 2) * 6) * N + c.x - 3 + int(g / 2) * 3] = 11;
 			// the Zealots' chapels
-			var wch:Object = hall(74, 140, 13, 11, BLOODSTONE), ech:Object = hall(126, 140, 13, 11, BLOODSTONE);
+			var wch:Object = hall(72, 140, 17, 13, BLOODSTONE), ech:Object = hall(128, 140, 17, 13, BLOODSTONE);
 			carve(73, 139, 3, 3, CARPET); carve(125, 139, 3, 3, CARPET);
 			corridor(93, 145, 74, 145, STONE); corridor(107, 145, 126, 145, STONE);
 			for each (c in [wch, ech]) { objs[(c.y - 4) * N + c.x - 5] = 7; objs[(c.y - 4) * N + c.x + 5] = 7; }
 			// the Matron's sanctum, behind the first seal
 			corridor(100, 143, 100, 119, STONE);
 			gateRows(0, 100, 133, 134, WALL);
-			var sanct:Object = hall(100, 112, 19, 15, BLOODSTONE);
+			var sanct:Object = hall(100, 112, 25, 17, BLOODSTONE);
 			pool(93, 107, 1.5); pool(107, 107, 1.5); pool(93, 117, 1.5); pool(107, 117, 1.5);
 			for each (var b:Array in [[91, 105], [109, 105], [91, 119], [109, 119]]) objs[b[1] * N + b[0]] = 7;
 			// Archon Vesper's altar, behind the second seal
@@ -783,7 +783,7 @@ package realm {
 			for each (var p:Array in [[91, 64], [109, 64], [91, 80], [109, 80], [95, 61], [105, 61]]) objs[p[1] * N + p[0]] = 8;
 			for each (b in [[89, 62], [111, 62], [89, 82], [111, 82]]) objs[b[1] * N + b[0]] = 7;
 			rooms.push(nave, wc, ec, wch, ech, sanct, altar);
-			stageSpots = [[[74.5, 139.5], [126.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
+			stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
 			mobRooms = [{x: 100, y: 157, w: 13, h: 26, n: 11}, {x: 80, y: 160, w: 7, h: 7, n: 5}, {x: 120, y: 160, w: 7, h: 7, n: 5},
 				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
 		}
@@ -812,7 +812,7 @@ package realm {
 			for each (var py:Array in [[60, 128], [100, 136], [140, 128]])
 				for each (var o:Array in [[-3, -3], [3, -3], [-3, 3], [3, 3]]) objs[(py[1] + o[1]) * N + py[0] + o[0]] = 8;
 			// the Galecaller's terrace and the eye, joined by bridges that only form later
-			blob(100, 104, 8.5, F);
+			blob(100, 104, 10.5, F);
 			blob(100, 104, 2, A);
 			blob(100, 66, 12, F);
 			blob(100, 66, 4, PLAZA);

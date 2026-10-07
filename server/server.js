@@ -42,7 +42,7 @@ const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 9;
+const VERSION = 10;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;
@@ -181,6 +181,11 @@ function publicInfo(c) {
 
 function guildOf(c) { return c.guild ? guilds[c.guild] : null; }
 
+/** Same party or same guild. */
+function friends(a, b) {
+  return (a.party && a.party === b.party) || (a.guild && a.guild === b.guild);
+}
+
 // ------------------------------------------------------------------ messages
 /**
  * An account's online save. Online and offline progress never mix: a new
@@ -279,7 +284,40 @@ const handlers = {
   move(c, m) {
     c.x = num(m.x); c.y = num(m.y);
     const msg = { t: 'move', id: c.id, x: c.x, y: c.y, f: m.f ? 1 : 0, a: m.a ? 1 : 0 };
-    for (const o of nearby(c)) o.send(msg);
+    const near = new Set(nearby(c));
+    for (const o of near) { o.send(msg); (o.seen || (o.seen = new Set())).add(c.id); }
+    // everyone else in the world: hide you once you're out of sight, and keep
+    // party and guild members posted about once a second (minimap, teleports)
+    const now = Date.now();
+    const slow = now - (c.farT || 0) > 1000;
+    if (slow) c.farT = now;
+    for (const o of inWorld(c.world, c)) {
+      if (near.has(o)) continue;
+      if (o.seen && o.seen.delete(c.id)) o.send({ t: 'far', id: c.id });
+      if (slow && friends(o, c)) o.send({ t: 'move', id: c.id, x: c.x, y: c.y, f: 0, a: 0, far: 1 });
+    }
+  },
+
+  /** Someone opened a raid: tell everyone on the server. */
+  raidOpen(c, m) {
+    const now = Date.now();
+    if (now - (c.raidT || 0) < 20000) return;
+    c.raidT = now;
+    const name = str(m.name, 40);
+    const color = Number(m.color) & 0xffffff;
+    for (const o of clients.values()) {
+      if (!o.authed || o === c) continue;
+      o.send({ t: 'banner', text: name + ' is open!', color,
+        msg: c.name + ' opened a portal to ' + name + ' in the Nexus! It closes in 30 seconds.' });
+    }
+  },
+
+  /** Teleport: the exact spot of a party or guild member in your world, straight from the server. */
+  tpreq(c, m) {
+    const o = clients.get(Number(m.id));
+    if (!o || !o.authed || o.world !== c.world) return c.note('They are not in this world.');
+    if (!friends(c, o)) return c.note('You can only teleport to party and guild members.');
+    c.send({ t: 'tppos', id: o.id, name: o.name, x: o.x, y: o.y });
   },
 
   shoot(c, m) {

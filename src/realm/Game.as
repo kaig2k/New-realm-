@@ -563,6 +563,8 @@ package realm {
 		public function get nearMarket():Boolean { return nearStation != null && nearStation.kind == "market"; }
 		public function get inNexus():Boolean { return world == nexusWorld; }
 
+		/** Dropped and opened portals close after this many seconds. */
+		public static const PORTAL_TIME:Number = 30;
 		private static const PORTAL_COLORS:Array = [0x4aa8ff, 0xff5ac8, 0x5ae06a, 0xffb040, 0xc080ff, 0x40e0e0];
 
 		private function buildNexus():void {
@@ -618,7 +620,10 @@ package realm {
 			var lab:TextField = makeLabel("", 0xffffff);
 			lab.visible = w == world;
 			if (kind == "dungeon" && !seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
-			var p:Object = {x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life, seed: seed};
+			// a portal the world already has (shared again by another player) is not added twice
+			if (seed) for each (var dup:Object in w.portals) if (dup.kind == kind && dup.seed == seed) { lab.parent.removeChild(lab); return; }
+			// timed portals close at a fixed moment, whether or not anyone is watching
+			var p:Object = {x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life, seed: seed, until: life > 0 ? getTimer() + life * 1000 : 0};
 			w.portals.push(p);
 			// dropped dungeon portals are shared: everyone here can enter the same dungeon
 			if (share && kind == "dungeon" && w == world && w.key != "nexus") sync.portal(p);
@@ -839,13 +844,13 @@ package realm {
 		}
 
 		public function adminDungeonPortal(i:int):void {
-			addPortal(world, player.x + 1.5, player.y, "dungeon", i, Data.DUNGEONS[i].color, 120);
+			addPortal(world, player.x + 1.5, player.y, "dungeon", i, Data.DUNGEONS[i].color, PORTAL_TIME);
 			msg("Opened a portal to the " + Data.DUNGEONS[i].name + ".", Data.DUNGEONS[i].color);
 		}
 
 		public function adminRealmPortal():void {
 			var i:int = int(Math.random() * 3);
-			addPortal(world, player.x + 1.5, player.y, "realm", i, PORTAL_COLORS[i], 120);
+			addPortal(world, player.x + 1.5, player.y, "realm", i, PORTAL_COLORS[i], PORTAL_TIME);
 		}
 
 		public function adminEnterDungeon(i:int):void {
@@ -1059,6 +1064,8 @@ package realm {
 		/** The server refused our save: carry on from its copy. */
 		public function saveRejected(reason:String):void {
 			msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
+			// everything goes back to the server's copy together, so nothing can exist twice
+			if (vaultWorld) fillVault();
 			for each (var c:Object in Save.chars) if (c && c.id == player.id) { player.restore(c); hud.refresh(); return; }
 			msg("This character isn't on the server. Save & Quit and pick a character.", 0xff8080);
 		}
@@ -1308,8 +1315,8 @@ package realm {
 			// timed portals (dungeon entrances) vanish
 			for (var pi:int = world.portals.length - 1; pi >= 0; pi--) {
 				var tp:Object = world.portals[pi];
-				if (tp.life > 0) {
-					tp.life -= dt;
+				if (tp.until > 0) {
+					tp.life = (tp.until - getTimer()) / 1000;
 					if (tp.life <= 0) {
 						if (tp.label.parent) tp.label.parent.removeChild(tp.label);
 						world.portals.splice(pi, 1);
@@ -1504,7 +1511,7 @@ package realm {
 			if (effect == "slow") e.slowT = 3;
 			// Starforged / Primordial passives (not from passive-spawned shards)
 			if (effect != "shard") {
-				switch (p.weapon.passive) {
+				switch (p.weapon ? p.weapon.passive : null) {
 					case "lifesteal":
 						p.hp = Math.min(p.maxHp, p.hp + 4);
 						break;
@@ -1664,8 +1671,8 @@ package realm {
 					if (!remote && Math.random() < Data.DUNGEON_DROP_CHANCE) {
 						var di:int = int(Math.random() * Data.EVENT_DUNGEONS);
 						if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
-						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, 90);
-						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (90s)", Data.DUNGEONS[di].color);
+						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, PORTAL_TIME);
+						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (30s)", Data.DUNGEONS[di].color);
 						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 					}
 					say(SOVEREIGN, e.def.name + " has been killed! [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "][Realm: " + world.name + "]");
@@ -1683,8 +1690,8 @@ package realm {
 				var pi:int = Data.dungeonIndex(e.def.portal);
 				if (pi >= 0) {
 					var dd:Object = Data.DUNGEONS[pi];
-					addPortal(world, e.x, e.y, "dungeon", pi, dd.color, 60);
-					msg(e.def.name + " dropped a portal to the " + dd.name + "! (60s)", dd.color);
+					addPortal(world, e.x, e.y, "dungeon", pi, dd.color, PORTAL_TIME);
+					msg(e.def.name + " dropped a portal to the " + dd.name + "! (30s)", dd.color);
 					Sfx.play("portal", 0.6);
 					tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 				}
@@ -2275,6 +2282,18 @@ package realm {
 				}
 			} else if (kind == "pot") {
 				if (idx == 0) p.drinkHp(this); else p.drinkMp(this);
+			} else if (EQUIP_KINDS.indexOf(kind) >= 0) {
+				// click an equipped item to take it off
+				item = p[kind];
+				if (!item) return;
+				var free:int = p.freeSlot();
+				if (free < 0) { msg("Your inventory is full.", 0xff8080); return; }
+				p[kind] = null;
+				p.inv[free] = item;
+				p.hp = Math.min(p.hp, p.maxHp);
+				p.mp = Math.min(p.mp, p.maxMp);
+				msg("Unequipped " + item.name + ".", 0xcccccc);
+				saveCharacter();
 			}
 		}
 
@@ -2320,7 +2339,6 @@ package realm {
 			} else if (EQUIP_KINDS.indexOf(sk) >= 0 && dk == "inv") {
 				target = p.inv[di];
 				if (!target) {
-					if (sk == "weapon") { msg("You can't fight without a weapon! Swap it for another one instead.", 0xff8080); return; }
 					p[sk] = null;
 					p.inv[di] = item;
 					p.hp = Math.min(p.hp, p.maxHp);
@@ -2580,10 +2598,12 @@ package realm {
 			Save.flush();
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
 			var px:Number = 113.5, py:Number = 107.5;
-			addPortal(nexusWorld, px, py, "raid", i, rd.color, 120, seed, false);
-			if (net.online) net.sendWorld("all", {t: "portal", x: px, y: py, k: "raid", i: i, c: rd.color, l: 120, s: seed});
+			addPortal(nexusWorld, px, py, "raid", i, rd.color, PORTAL_TIME, seed, false);
+			if (net.online) net.sendWorld("all", {t: "portal", x: px, y: py, k: "raid", i: i, c: rd.color, l: PORTAL_TIME, s: seed});
 			showBanner(rd.name + " is open!", rd.color, 3);
-			msg(player.name + " opened a portal to " + rd.name + "! (2 minutes)", rd.color);
+			msg(player.name + " opened a portal to " + rd.name + "! (30 seconds)", rd.color);
+			// everyone on the server hears about it, wherever they are
+			if (net.online) Online.send({t: "raidOpen", name: rd.name, color: rd.color});
 			Sfx.play("portal");
 			closeStation();
 			hud.refresh();
@@ -3495,7 +3515,7 @@ package realm {
 			chat.y = VIEW_H - chat.height - 6;
 		}
 
-		private function showBanner(text:String, color:uint, secs:Number):void {
+		public function showBanner(text:String, color:uint, secs:Number):void {
 			banner.text = text;
 			banner.textColor = color;
 			banner.visible = true;
@@ -4143,6 +4163,10 @@ package realm {
 
 		/** Hidden players (the "Party & guild" setting) are not drawn and can't be clicked. */
 		public function shown(rp:RemotePlayer):Boolean {
+			if (rp.far) return false;
+			// anyone farther than the server shares positions for is only a stale guess
+			var dx:Number = rp.x - player.x, dy:Number = rp.y - player.y;
+			if (dx * dx + dy * dy > 34 * 34) return false;
 			return opt("allplayers") || net.isFriend(rp);
 		}
 
@@ -4176,14 +4200,21 @@ package realm {
 			if (!net.isFriend(rp)) { msg("You can only teleport to party and guild members.", 0xff8080); return; }
 			if (net.players.indexOf(rp) < 0) { msg(rp.name + " isn't in this world.", 0xff8080); return; }
 			if (tpT > 0) { msg("Teleport is ready in " + Math.ceil(tpT) + "s.", 0xff8080); return; }
+			// where they really are comes from the server, not from our (possibly old) copy
+			net.requestTeleport(rp);
+		}
+
+		/** The teleport target's real position arrived. */
+		public function teleportArrive(x:Number, y:Number, name:String):void {
+			if (tpT > 0 || player.hp <= 0) return;
 			tpT = 10;
 			burst(player.x, player.y, 0x9a7cff, 14);
-			player.x = rp.x; player.y = rp.y;
+			player.x = x; player.y = y;
 			player.invulnT = Math.max(player.invulnT, 1);
 			camX = player.x; camY = player.y;
 			burst(player.x, player.y, 0x9a7cff, 18);
 			Sfx.play("portal", 0.5);
-			msg("Teleported to " + rp.name + ".", 0x9a7cff);
+			msg("Teleported to " + name + ".", 0x9a7cff);
 		}
 
 		/** Starts a guild (costs gold). */

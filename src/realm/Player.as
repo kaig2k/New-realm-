@@ -359,6 +359,11 @@ package realm {
 				shotsFired++;
 			}
 			g.net.shoot(ang);
+			// muzzle flash at the tip of the weapon
+			if (Game.opt("parts") && g.parts.length < 400) {
+				var mf:BitmapData = Sprites.glow(Sprites.tint(w.col, 0.5));
+				for (k = 0; k < 2; k++) g.parts.push(new Particle(x + Math.cos(ang) * 0.45, y + Math.sin(ang) * 0.45, Math.cos(ang + (Math.random() - 0.5)) * 3, Math.sin(ang + (Math.random() - 0.5)) * 3, 0.1, mf));
+			}
 			// Rampage passive: every 12th shot also fires a ring
 			if (w.passive == "rampage" && ++shotCount % 12 == 0) {
 				var ring:Vector.<BitmapData> = Sprites.projectile("star", w.col, 3);

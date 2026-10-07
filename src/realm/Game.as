@@ -1631,6 +1631,12 @@ package realm {
 			e.hp -= d;
 			e.hitT = 0.08;
 			Sfx.play("hit", 0.6, 0.06);
+			// a small shove away from the hit (monsters this game runs; bosses stand firm)
+			if (!e.isBoss && !e.remote && e.hp > 0) {
+				var kx:Number = e.x - hx, ky:Number = e.y - hy, kd:Number = Math.sqrt(kx * kx + ky * ky) || 1;
+				var push:Number = crit ? 0.14 : 0.07;
+				if (world.canStand(e.x + kx / kd * push, e.y + ky / kd * push, e.r * 0.8, true)) { e.x += kx / kd * push; e.y += ky / kd * push; }
+			}
 			if (e.isBoss) p.bossDmg += d;
 			if (e.remote) sync.hit(e, d, effect == "slow" ? 3 : 0, 0);
 			if (opt("dmg")) floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
@@ -1949,6 +1955,11 @@ package realm {
 				if (!f.tf.visible) continue;
 				f.life -= dt;
 				f.y -= dt * 1.4;
+				f.x += f.vx * dt;
+				// pop in big, settle quickly
+				var age:Number = 0.9 - f.life;
+				var sc:Number = f.size * (1 + Math.max(0, 0.14 - age) / 0.14 * 0.7);
+				f.tf.scaleX = f.tf.scaleY = sc;
 				if (f.life <= 0) f.tf.visible = false;
 				else if (f.life < 0.3) f.tf.alpha = f.life / 0.3;
 			}

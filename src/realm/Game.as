@@ -161,6 +161,7 @@ package realm {
 			nexusWorld.key = "nexus";
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
 			abil = new Abilities(this);
+			Keys.reload();
 			if (saved) player.restore(saved);
 			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			Data.viewerClass = player.cls.id;
@@ -428,14 +429,14 @@ package realm {
 			msg("[Tip] " + text, 0x8fd0ff);
 		}
 
-		/** Screen shake (can be turned off in the pause menu). */
+		/** Screen shake (can be turned off in Menu > Settings). */
 		public function shake(secs:Number, amp:Number):void {
 			if (!opt("shake")) return;
 			if (amp >= shakeAmp || shakeT <= 0) shakeAmp = amp;
 			shakeT = Math.max(shakeT, secs);
 		}
 
-		// ------------------------------------------------------------ pause / options
+		// ------------------------------------------------------------ menu / options
 		public static function opt(name:String):Boolean {
 			var o:Object = Save.data.opt || {};
 			return o[name] !== false;
@@ -447,64 +448,126 @@ package realm {
 			Save.flush();
 		}
 
+		/**
+		 * The menu (Esc / P) is an overlay: the game keeps running behind it.
+		 * Pages: the main menu, Settings and Controls (rebind every key).
+		 */
+		private var menuPage:String = "main";
+		private var rebinding:String = null;
+		private static const MENU_W:int = 460;
+
 		private function buildPauseMenu():void {
 			pauseLayer = new Sprite();
-			pauseLayer.graphics.beginFill(0x000000, 0.6);
-			pauseLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
-			pauseLayer.graphics.endFill();
-			Ui.panel(pauseLayer.graphics, Ui.W / 2 - 190, 20, 380, 600, 0x262626, 0x6a6a6a);
-			var pt1:TextField = Ui.text(30, 0xffffff, true, "center", Ui.W, true);
-			pt1.text = "Paused - Settings";
-			pt1.y = 28;
-			pauseLayer.addChild(pt1);
 			pauseButtons = new Sprite();
 			pauseLayer.addChild(pauseButtons);
 			pauseLayer.visible = false;
 			addChild(pauseLayer);
-			refreshPauseMenu();
 		}
 
 		private function refreshPauseMenu():void {
 			pauseButtons.removeChildren();
-			var onOff:Function = function(name:String):String { return opt(name) ? "On" : "Off"; };
-			var toggle:Function = function(name:String):Function {
-				return function():void { setOpt(name, !opt(name)); refreshPauseMenu(); };
-			};
-			var rows:Array = [
-				["Resume", function():void { setPaused(false); }],
-				["slider"],
-				["Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }],
-				["Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers")],
-				["Player names: " + onOff("names"), toggle("names")],
-				["Chat bubbles: " + onOff("bubbles"), toggle("bubbles")],
-				["Damage numbers: " + onOff("dmg"), toggle("dmg")],
-				["Particles: " + onOff("parts"), toggle("parts")],
-				["Screen shake: " + onOff("shake"), toggle("shake")],
-				["Save & Quit to Menu", function():void { saveCharacter(); Online.sendSave(); quitRequested = true; }]
-			];
-			var y:int = 76;
-			for (var i:int = 0; i < rows.length; i++) {
-				if (rows[i][0] == "slider") {
-					var sl:Sprite = Ui.slider("Volume", 280, Sfx.volume, function(v:Number):void { Sfx.volume = v; });
-					sl.addEventListener(MouseEvent.MOUSE_UP, function(e:MouseEvent):void { Sfx.play("coin"); });
-					sl.x = Ui.W / 2 - 140;
-					sl.y = y;
-					pauseButtons.addChild(sl);
-					y += 56;
-					continue;
-				}
-				var b:Sprite = Ui.button(rows[i][0], 300, 40, rows[i][1], 16);
-				b.x = Ui.W / 2 - 150;
-				b.y = y;
+			var gr:* = pauseLayer.graphics;
+			gr.clear();
+			var w:int = menuPage == "controls" ? 640 : MENU_W;
+			var x0:int = int((VIEW_W - w) / 2);
+			var title:TextField = Ui.text(26, 0xffffff, true, "center", w, true);
+			title.text = {main: "Menu", settings: "Settings", controls: "Controls"}[menuPage];
+			title.x = x0; title.y = 50;
+			pauseButtons.addChild(title);
+			var sub:TextField = Ui.text(12, 0x9a9a9a, false, "center", w - 20);
+			sub.x = x0 + 10; sub.y = 86;
+			pauseButtons.addChild(sub);
+			var y:int = 112;
+			var bx:int = x0 + (w - 300) / 2;
+			var add:Function = function(label:String, fn:Function, h:int = 38, gap:int = 46):void {
+				var b:Sprite = Ui.button(label, 300, h, fn, 16);
+				b.x = bx; b.y = y;
 				pauseButtons.addChild(b);
-				y += i == rows.length - 2 ? 58 : 50;
+				y += gap;
+			};
+			if (menuPage == "main") {
+				sub.text = "The game keeps running while this menu is open.";
+				add("Resume", function():void { setPaused(false); });
+				add("Settings", function():void { menuPage = "settings"; refreshPauseMenu(); });
+				add("Controls", function():void { menuPage = "controls"; refreshPauseMenu(); });
+				y += 10;
+				add("Save & Quit to Menu", function():void { saveCharacter(); Online.sendSave(); quitRequested = true; });
+			} else if (menuPage == "settings") {
+				sub.text = "Saved with your account.";
+				var onOff:Function = function(name:String):String { return opt(name) ? "On" : "Off"; };
+				var toggle:Function = function(name:String):Function {
+					return function():void { setOpt(name, !opt(name)); refreshPauseMenu(); };
+				};
+				var sl:Sprite = Ui.slider("Volume", 280, Sfx.volume, function(v:Number):void { Sfx.volume = v; });
+				sl.addEventListener(MouseEvent.MOUSE_UP, function(e:MouseEvent):void { Sfx.play("coin"); });
+				sl.x = x0 + (w - 280) / 2; sl.y = y;
+				pauseButtons.addChild(sl);
+				y += 54;
+				add("Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }, 32, 38);
+				add("Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers"), 32, 38);
+				add("Player names: " + onOff("names"), toggle("names"), 32, 38);
+				add("Chat bubbles: " + onOff("bubbles"), toggle("bubbles"), 32, 38);
+				add("Damage numbers: " + onOff("dmg"), toggle("dmg"), 32, 38);
+				add("Particles: " + onOff("parts"), toggle("parts"), 32, 38);
+				add("Screen shake: " + onOff("shake"), toggle("shake"), 32, 38);
+				y += 6;
+				add("Back", function():void { menuPage = "main"; refreshPauseMenu(); }, 32, 38);
+			} else {
+				sub.text = rebinding ? "Press the new key for \"" + Keys.action(rebinding).name + "\" (Esc cancels)."
+					: "Click a key to change it. Esc, Enter and ` can't be changed; the arrow keys always move too.";
+				sub.textColor = rebinding ? 0xffd75e : 0x9a9a9a;
+				var col:int = 0, ry:int = y;
+				var half:int = Math.ceil(Keys.ACTIONS.length / 2);
+				for (var i:int = 0; i < Keys.ACTIONS.length; i++) {
+					var act:Object = Keys.ACTIONS[i];
+					col = i < half ? 0 : 1;
+					var cy:int = y + (i % half) * 27;
+					var lab:TextField = Ui.text(13, 0xdddddd, false, "left", 180);
+					lab.text = act.name;
+					lab.x = x0 + 20 + col * 310; lab.y = cy + 3;
+					pauseButtons.addChild(lab);
+					var kb:Sprite = Ui.button(rebinding == act.id ? "..." : Keys.name(Keys.k(act.id)), 100, 24, rebindFn(act.id), 13);
+					kb.x = x0 + 200 + col * 310; kb.y = cy;
+					pauseButtons.addChild(kb);
+					ry = Math.max(ry, cy + 27);
+				}
+				y = ry + 12;
+				var rs:Sprite = Ui.button("Reset to defaults", 200, 32, function():void { Keys.resetAll(); rebinding = null; refreshPauseMenu(); }, 14);
+				rs.x = x0 + w / 2 - 210; rs.y = y;
+				pauseButtons.addChild(rs);
+				var bk:Sprite = Ui.button("Back", 200, 32, function():void { rebinding = null; menuPage = "main"; refreshPauseMenu(); }, 14);
+				bk.x = x0 + w / 2 + 10; bk.y = y;
+				pauseButtons.addChild(bk);
+				y += 46;
 			}
+			Ui.panel(gr, x0, 40, w, y - 40 + 10, 0x1e2026, 0x8a8a9a, 0.93);
+		}
+
+		private function rebindFn(id:String):Function {
+			return function():void {
+				rebinding = id;
+				input.capture = function(code:uint):void {
+					if (code == 27) { rebinding = null; refreshPauseMenu(); return; }
+					if (!Keys.bind(id, code)) msg(Keys.name(code) + " can't be bound.", 0xff8080);
+					else msg(Keys.action(id).name + ": " + Keys.name(code), 0x80e0ff);
+					rebinding = null;
+					refreshPauseMenu();
+				};
+				refreshPauseMenu();
+			};
 		}
 
 		private function setPaused(v:Boolean):void {
 			paused = v;
 			pauseLayer.visible = v;
-			if (v) refreshPauseMenu();
+			rebinding = null;
+			input.capture = null;
+			if (v) {
+				menuPage = "main";
+				addChild(pauseLayer);
+				refreshPauseMenu();
+			}
+			refocus();
 		}
 
 		private function buildCounters():void {
@@ -786,6 +849,7 @@ package realm {
 		/** True while the mouse is over a panel that should swallow clicks (no shooting through it). */
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
+			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
 			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
@@ -1170,9 +1234,9 @@ package realm {
 			lastT = now;
 			if (dt > 0.05) dt = 0.05;
 
-			if (input.pressed(Keyboard.M)) {
+			if (input.pressed(Keys.k("mute"))) {
 				Sfx.muted = !Sfx.muted;
-				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (M)", 0xaaaaaa);
+				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
 			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social || wiki || skillWin)) {
@@ -1187,9 +1251,12 @@ package realm {
 			if (tradeWin) tradeWin.update();
 			if (!(chatInput && chatInput.visible)) updateZoom();
 			if (admin && admin.visible && input.pressed(Keyboard.ESCAPE)) toggleAdmin();
-			else if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keyboard.P)) setPaused(!paused);
+			else if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keys.k("menu"))) {
+				if (paused && menuPage != "main") { menuPage = "main"; refreshPauseMenu(); }
+				else setPaused(!paused);
+			}
 			if (dyingT > 0) updateDying(dt);
-			else if (!paused) update(dt);
+			else update(dt);
 			updateFade(dt);
 			render();
 			hud.refresh();
@@ -1222,9 +1289,9 @@ package realm {
 			net.update(dt);
 			updatePlayerClicks(dt);
 			if (tpT > 0) tpT -= dt;
-			if (input.pressed(Keyboard.L)) toggleSocial();
-			if (input.pressed(Keyboard.K)) toggleWiki();
-			if (input.pressed(Keyboard.T)) toggleSkills();
+			if (input.pressed(Keys.k("social"))) toggleSocial();
+			if (input.pressed(Keys.k("wiki"))) toggleWiki();
+			if (input.pressed(Keys.k("skills"))) toggleSkills();
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -2871,7 +2938,7 @@ package realm {
 				a.x += a.vx * dt; a.y += a.vy * dt;
 				if (a.sway) a.x += Math.sin(time * 2 + a.sway) * dt * 0.6;
 			}
-			if (!opt("parts") || paused) return;
+			if (!opt("parts")) return;
 			var k:Array = ambientKind();
 			// sparkles on water near you
 			if (Math.random() < 0.35) {
@@ -2933,7 +3000,7 @@ package realm {
 		}
 
 		private function updateStreak(dt:Number):void {
-			if (streakN > 0 && !paused) {
+			if (streakN > 0) {
 				streakT -= dt;
 				if (streakT <= 0) endStreak();
 			}
@@ -3725,8 +3792,8 @@ package realm {
 
 		private function updateZoom():void {
 			var steps:Number = input.wheel;
-			if (input.pressed(189) || input.pressed(109)) steps -= 1;
-			if (input.pressed(187) || input.pressed(107)) steps += 1;
+			if (input.pressed(Keys.k("zoomout")) || input.pressed(109)) steps -= 1;
+			if (input.pressed(Keys.k("zoomin")) || input.pressed(107)) steps += 1;
 			if (steps == 0) return;
 			// the wheel over the sidebar or a window doesn't zoom
 			if (input.wheel != 0 && (input.mx >= VIEW_W || uiCaptured())) return;
@@ -3755,9 +3822,9 @@ package realm {
 		}
 
 		private function updateCameraRotation(dt:Number):void {
-			if (input.isDown(Keyboard.Q)) { camAngle -= dt * 2.2; camZeroing = false; }
-			if (input.isDown(Keyboard.E)) { camAngle += dt * 2.2; camZeroing = false; }
-			if (input.pressed(Keyboard.Z)) { camAngle = 0; camZeroing = false; }
+			if (input.isDown(Keys.k("rotl"))) { camAngle -= dt * 2.2; camZeroing = false; }
+			if (input.isDown(Keys.k("rotr"))) { camAngle += dt * 2.2; camZeroing = false; }
+			if (input.pressed(Keys.k("camreset"))) { camAngle = 0; camZeroing = false; }
 			if (camZeroing) {
 				while (camAngle > Math.PI) camAngle -= Math.PI * 2;
 				while (camAngle < -Math.PI) camAngle += Math.PI * 2;
@@ -3814,7 +3881,7 @@ package realm {
 				questTarget = pickQuest();
 			}
 			var q:Enemy = questTarget;
-			questArrow.visible = questTf.visible = q != null && !q.dead && !paused;
+			questArrow.visible = questTf.visible = q != null && !q.dead;
 			if (!questArrow.visible) return;
 			var sx:Number = scrX(q.x, q.y), sy:Number = scrY(q.x, q.y);
 			var m:Number = 34;
@@ -3845,7 +3912,7 @@ package realm {
 			rc = Math.cos(camAngle);
 			rs = Math.sin(camAngle);
 			shx = shy = 0;
-			if (shakeT > 0 && !paused) {
+			if (shakeT > 0) {
 				shakeT -= 1 / 30;
 				var sa:Number = shakeAmp * Math.min(1, shakeT * 4);
 				shx = Math.round((Math.random() * 2 - 1) * sa);

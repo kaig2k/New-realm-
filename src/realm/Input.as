@@ -47,7 +47,16 @@ package realm {
 
 		public function endFrame():void { hit = {}; clicked = rightClicked = false; wheel = 0; }
 
+		/** Set by the Controls menu: the next key goes here instead of the game. */
+		public var capture:Function = null;
+
 		private function onKeyDown(e:KeyboardEvent):void {
+			if (capture != null) {
+				var fn:Function = capture;
+				capture = null;
+				fn(e.keyCode);
+				return;
+			}
 			if (!down[e.keyCode]) hit[e.keyCode] = true;
 			down[e.keyCode] = true;
 			shift = e.shiftKey;

@@ -249,10 +249,10 @@ package realm {
 
 			// --- movement
 			var mx:Number = 0, my:Number = 0;
-			if (inp.isDown(Keyboard.W) || inp.isDown(Keyboard.UP)) my -= 1;
-			if (inp.isDown(Keyboard.S) || inp.isDown(Keyboard.DOWN)) my += 1;
-			if (inp.isDown(Keyboard.A) || inp.isDown(Keyboard.LEFT)) mx -= 1;
-			if (inp.isDown(Keyboard.D) || inp.isDown(Keyboard.RIGHT)) mx += 1;
+			if (inp.isDown(Keys.k("up")) || inp.isDown(Keyboard.UP)) my -= 1;
+			if (inp.isDown(Keys.k("down")) || inp.isDown(Keyboard.DOWN)) my += 1;
+			if (inp.isDown(Keys.k("left")) || inp.isDown(Keyboard.LEFT)) mx -= 1;
+			if (inp.isDown(Keys.k("right")) || inp.isDown(Keyboard.RIGHT)) mx += 1;
 			if (mx != 0 && my != 0) { mx *= 0.7071; my *= 0.7071; }
 			// movement is relative to the (possibly rotated) screen
 			if (g.camAngle != 0 && (mx != 0 || my != 0)) {
@@ -294,7 +294,7 @@ package realm {
 			aimY = g.screenToWorldY(inp.my, inp.mx);
 
 			// --- shooting
-			if (inp.pressed(Keyboard.I)) {
+			if (inp.pressed(Keys.k("autofire"))) {
 				autoFire = !autoFire;
 				g.msg("Auto-fire " + (autoFire ? "enabled" : "disabled"), 0xaaaaaa);
 			}
@@ -308,11 +308,11 @@ package realm {
 			}
 
 			// --- ability / potions / misc
-			if (inp.pressed(Keyboard.SPACE)) useAbility(g);
-			if (inp.pressed(Keyboard.F)) drinkHp(g);
-			if (inp.pressed(Keyboard.G)) drinkMp(g);
-			if (!g.trading) for (var k:int = 0; k < 8; k++) if (inp.pressed(49 + k)) useItem(packPage * 8 + k, g);
-			if (inp.pressed(Keyboard.R)) g.nexus();
+			if (inp.pressed(Keys.k("ability"))) useAbility(g);
+			if (inp.pressed(Keys.k("hp"))) drinkHp(g);
+			if (inp.pressed(Keys.k("mp"))) drinkMp(g);
+			if (!g.trading) for (var k:int = 0; k < 8; k++) if (inp.pressed(Keys.k("slot" + (k + 1)))) useItem(packPage * 8 + k, g);
+			if (inp.pressed(Keys.k("nexus"))) g.nexus();
 
 			// --- regen (bleeding drains instead)
 			if (status.bleeding > 0) {

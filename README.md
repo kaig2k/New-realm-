@@ -75,6 +75,8 @@ New Realm is **online-only**. Accounts, characters and items all live on the gam
 
 ## Controls
 
+These are the defaults. You can change any of them in Menu (Esc) > Controls.
+
 | Key | Action |
 | --- | --- |
 | WASD / arrows | Move |
@@ -94,7 +96,7 @@ New Realm is **online-only**. Accounts, characters and items all live on the gam
 | T | Skill tree |
 | I | Toggle auto-fire |
 | M | Mute / unmute sound |
-| P / Esc | Pause menu and settings: volume slider, mute, show players (everyone or party and guild only), player names, chat bubbles, damage numbers, particles, screen shake, Save & Quit |
+| Esc / P | Menu: an overlay over the game. The game does not pause, so you can still move and dodge. It has Resume, **Settings** (volume, sound, show players, names, chat bubbles, damage numbers, particles, screen shake), **Controls** (rebind every key) and Save & Quit |
 
 **Items work like RotMG, with drag and drop:**
 - **Drop:** drag an inventory item onto the ground (anywhere in the game view) to drop it in
@@ -535,7 +537,7 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
   Hunter, Bane of Azrakor and Perfection (11/11). Each pays gold and Aether once. See them
   at the Quest Board, or type `/achievements`.
 - **Screen shake** on heavy hits, explosions and boss deaths.
-- **Pause menu** with Resume, sound, damage numbers, particle and screen shake toggles, and Save & Quit
+- **Menu overlay** (Esc). The game keeps running behind it. It has Settings, Controls and Save & Quit. In Controls you can rebind every action. If you pick a key another action uses, the two swap. Esc, Enter and the admin key are fixed.
   to the title screen.
 - **Boss damage meter** with your damage share and the loot threshold.
 - **RotMG-style realms**: a big procedurally generated island (320x320 tiles) with five

@@ -72,7 +72,7 @@ package realm {
 
 			var help:TextField = Ui.text(14, 0xcccccc, false, "center", Ui.W, true);
 			help.htmlText = "<b>WASD</b> move   <b>Mouse</b> aim + shoot   <b>Space</b> ability   <b>F / G</b> health / magic potion   " +
-				"<b>1-8</b> use item   <b>R</b> return to Nexus   <b>I</b> auto-fire   <b>P</b> pause\n" +
+				"<b>1-8</b> use item   <b>R</b> return to Nexus   <b>I</b> auto-fire   <b>Esc</b> menu (change keys under Controls)\n" +
 				"Start in the Nexus, step into a realm portal, clear the realm events, then face the Dark Elder in his chamber.";
 			help.y = 538;
 			addChild(help);

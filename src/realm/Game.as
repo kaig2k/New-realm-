@@ -244,7 +244,7 @@ package realm {
 			buildBossPanel();
 			buildNexus();
 			sync = new WorldSync(this);
-			net = Online.connected ? new ServerNet(this) : new LocalNet(this);
+			net = Online.connected && !sandbox ? new ServerNet(this) : new LocalNet(this);
 			net.enterWorld(world);
 
 			hud = new Hud(this);
@@ -422,6 +422,7 @@ package realm {
 
 		/** One-time hint for new players. */
 		public function tip(id:String, text:String):void {
+			if (sandbox) return;
 			if (!Save.data.tips) Save.data.tips = {};
 			if (Save.data.tips[id]) return;
 			Save.data.tips[id] = true;
@@ -1207,6 +1208,7 @@ package realm {
 			addChild(fadeShape);
 			lastT = getTimer();
 			addEventListener(Event.ENTER_FRAME, tick);
+			if (sandbox) { startSandbox(); return; }
 			showBanner("Nexus", 0xffffff, 2.5);
 			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
 			saveCharacter();
@@ -1706,6 +1708,10 @@ package realm {
 		private function killEnemy(e:Enemy, remote:Boolean = false):void {
 			if (e.dead) return;
 			e.dead = true;
+			if (sandbox && e.defId == "custom_test") {
+				showBanner("Victory!  " + sandbox.name + " is down.", Ui.GOLD, 4);
+				msg("You won the test fight in " + Math.round(time) + "s of play. R fights it again.", Ui.GOLD);
+			}
 			if (!remote) sync.killed(e);
 			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
 			var p:Player = player;
@@ -2298,6 +2304,12 @@ package realm {
 
 		private function die():void {
 			var p:Player = player;
+			if (sandbox) {
+				showBanner("Defeated! Restarting the fight...", 0xff6060, 2.5);
+				burst(p.x, p.y, 0xd02020, 30);
+				restartSandbox();
+				return;
+			}
 			dyingT = DYING_TIME;
 			burst(p.x, p.y, 0xd02020, 30);
 			ring(p.x, p.y, 0xffffff, 20);
@@ -2350,6 +2362,7 @@ package realm {
 
 		/** R key / temple button: return to the Nexus (full heal). */
 		public function nexus():void {
+			if (sandbox) { restartSandbox(); return; }
 			travel(nexusNow);
 		}
 
@@ -4387,6 +4400,67 @@ package realm {
 			skillWin.x = int((VIEW_W - SkillWindow.W) / 2);
 			skillWin.y = 30;
 			addChild(skillWin);
+		}
+
+		// ------------------------------------------------------------ test fights (creator tools)
+		/**
+		 * Set by the Boss Maker before a test fight starts: {name, def (an enemy
+		 * definition), map (Map Builder arena or null), cls}. The fight runs
+		 * offline on a throwaway save.
+		 */
+		public static var sandbox:Object;
+
+		/** The arena used when a test fight has no map of its own. */
+		public static function defaultArena():Object {
+			var w:int = 31, h:int = 27;
+			var m:Object = {w: w, h: h, tiles: [], objs: [], spawn: [15, 22], boss: [15, 7]};
+			for (var y:int = 0; y < h; y++) for (var x:int = 0; x < w; x++) {
+				var edge:int = Math.min(Math.min(x, w - 1 - x), Math.min(y, h - 1 - y));
+				m.tiles.push(edge == 0 ? World.WALL : edge <= 2 ? World.BLOODSTONE : World.ARENA);
+				m.objs.push(0);
+			}
+			for each (var b:Array in [[3, 3], [27, 3], [3, 23], [27, 23]]) m.objs[b[1] * w + b[0]] = 7;
+			return m;
+		}
+
+		private function startSandbox():void {
+			var sb:Object = sandbox;
+			World.customMap = sb.map || defaultArena();
+			var w:World = new World("custom", sb.name);
+			w.key = soloKey();
+			arenaWorld = w;
+			// a strong test hero: level 20, maxed stats and good gear
+			var p:Player = player;
+			p.level = Player.MAX_LEVEL;
+			for each (var s:String in Data.STATS) p.stats[s] = p.cls.max[s];
+			p.weapon = Data.makeWeapon(p.cls.weapon, 6);
+			p.ability = Data.makeAbility(p.cls.abilityType, 5);
+			p.armor = Data.makeArmor(p.cls.armor, 6);
+			p.ring = Data.makeRing("def", 4);
+			p.hpPots = p.mpPots = Player.MAX_POTS;
+			Data.ENEMIES["custom_test"] = sb.def;
+			restartSandbox();
+			msg("Test fight: " + sb.name + ". R restarts the fight; Esc > Save & Quit goes back to the creator.", Ui.GOLD);
+			msg("Nothing here touches your account: no loot, gold or fame is kept.", 0xaaaaaa);
+		}
+
+		private function restartSandbox():void {
+			var w:World = arenaWorld;
+			var m:Object = World.customMap;
+			for each (var old:Enemy in w.enemies) old.dead = true;
+			w.enemies.length = 0;
+			w.bags.length = 0;
+			shots.length = 0;
+			switchWorld(w, w.spawnX, w.spawnY);
+			player.hp = player.maxHp;
+			player.mp = player.maxMp;
+			player.invulnT = 2;
+			for (var st:String in player.status) player.status[st] = 0;
+			var e:Enemy = new Enemy("custom_test", w.mapX + m.boss[0] + 0.5, w.mapY + m.boss[1] + 0.5, World.ARENA_ZONE);
+			w.boss = e;
+			w.enemies.push(e);
+			player.bossDmg = 0;
+			showBanner(sandbox.name, sandbox.def.col || 0xff6060, 2.5);
 		}
 
 		/** Book button / K / /wiki: every boss and its drops. */

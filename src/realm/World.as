@@ -34,7 +34,7 @@ package realm {
 		public static const SHRINES:Array = ["might", "haste", "fortune", "vigor", "arcana"];
 		public static const NEXUS_ZONE:int = 5;
 
-		private static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
+		public static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
 			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
@@ -145,6 +145,7 @@ package realm {
 			if (kind == "nexus") generateNexus();
 			else if (kind == "vault") generateVault();
 			else if (kind == "arena") generateArena();
+			else if (kind == "custom") generateCustom();
 			else if (kind == "dungeon") generateDungeon(theme);
 			else generate();
 			render();
@@ -946,6 +947,30 @@ package realm {
 		}
 
 		/** The Dark Elder's chamber: white patterned floor ringed by red striped stone. */
+		/** A boss arena drawn in the Map Builder: {w, h, tiles, objs, spawn: [x, y], boss: [x, y]}. */
+		public static var customMap:Object;
+		/** Where the custom map's top-left corner lands in the world. */
+		public var mapX:int = 0, mapY:int = 0;
+
+		private function generateCustom():void {
+			var m:Object = customMap;
+			var i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			mapX = int((N - m.w) / 2);
+			mapY = int((N - m.h) / 2);
+			for (var y:int = 0; y < m.h; y++) {
+				for (var x:int = 0; x < m.w; x++) {
+					var t:int = int(m.tiles[y * m.w + x]);
+					i = (mapY + y) * N + mapX + x;
+					tiles[i] = t;
+					objs[i] = int(m.objs[y * m.w + x]);
+					zones[i] = t == VOID ? -1 : ARENA_ZONE;
+				}
+			}
+			spawnX = mapX + m.spawn[0] + 0.5;
+			spawnY = mapY + m.spawn[1] + 0.5;
+		}
+
 		private function generateArena():void {
 			var x:int, y:int, i:int;
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }

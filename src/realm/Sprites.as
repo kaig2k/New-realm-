@@ -376,6 +376,15 @@ package realm {
 			if (d) DEFS[name] = [d[0], pal, scale || d[2]];
 		}
 
+		/** A sprite drawn in the Sprite Editor (16x16, letters a-p); replaces any older copy. */
+		public static function custom(name:String, rows:Array, pal:Object):void {
+			// walking: the same picture bobbed up a pixel
+			var bob:Array = rows.slice(1);
+			bob.push(String(rows[0]).replace(/./g, "."));
+			DEFS[name] = [[rows, bob], pal, 3];
+			for (var k:String in cache) if (k.indexOf(name + ":") == 0) delete cache[k];
+		}
+
 		/** Animation frame `frame` of a sprite (0 stand, 1 walk, 2 attack). */
 		public static function get(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var d:Array = DEFS[name] || skinDef(name) || DEFS["cubelet"];

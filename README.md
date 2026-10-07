@@ -522,6 +522,22 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
     it on or off.
 
   Resetting the tree costs 1,000 gold.
+- **Creator Tools** (the button at the top left of the home screen; no account needed):
+  - **Boss Maker:** pick a look (any boss in the game, or your own sprite) and set its
+    health, defense and speed. Then build up to 4 phases. Each phase has a health threshold,
+    a movement style, a line the boss says, and up to 4 attacks: aimed shots, ring, spiral,
+    flower, a wall with a gap, ground blasts, meteor rain or summoned minions. You can set the
+    count, speed, damage, cooldown, colour, bullet shape and on-hit effect. Values stay within
+    the limits the game's own bosses use, so every boss you make can be dodged.
+    **Test Fight** puts you in its arena with a level 20 hero of the class you choose. R
+    restarts the fight, and dying restarts it too. Test fights run offline on a throwaway save,
+    so nothing reaches your account.
+  - **Map Builder:** paint a boss arena up to 60x60 with 16 floor types (including water,
+    lava, walls and void) and 13 decorations, then mark the start point and the boss spot.
+  - **Sprite Editor:** draw a 16x16 sprite with 16 colours you choose. It has a pen, an
+    eraser, fill, mirror drawing and a live preview.
+
+  Everything you make is saved on this PC.
 - **Saved characters**: characters are saved automatically and live until they die. The
   title screen lists them under "Your Characters".
 - **Status effects**: bosses and dungeon enemies can leave you Slowed, Paralyzed, Confused

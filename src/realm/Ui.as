@@ -87,6 +87,26 @@ package realm {
 			g.lineStyle();
 		}
 
+		/** A one-line text box. */
+		public static function input(w:int, value:String, maxChars:int = 20, size:int = 14):TextField {
+			var f:TextField = text(size, 0xffffff, true, "left", w);
+			f.autoSize = "none";
+			f.width = w;
+			f.height = size + 10;
+			f.type = "input";
+			f.multiline = false;
+			f.wordWrap = false;
+			f.selectable = true;
+			f.mouseEnabled = true;
+			f.background = true;
+			f.backgroundColor = 0x141418;
+			f.border = true;
+			f.borderColor = 0x5a5a6a;
+			f.maxChars = maxChars;
+			f.text = value || "";
+			return f;
+		}
+
 		public static function button(label:String, w:int, h:int, onClick:Function, size:int = 18):Sprite {
 			var b:Sprite = new Sprite();
 			var bg:Shape = new Shape();

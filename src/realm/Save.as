@@ -16,6 +16,7 @@ package realm {
 
 		/** The save in use: the server's copy when online, otherwise this PC's. */
 		public static function get data():Object {
+			if (box) return box;
 			if (remote) return remote;
 			return local;
 		}
@@ -33,7 +34,19 @@ package realm {
 			remote = d;
 		}
 
-		public static function get isRemote():Boolean { return remote != null; }
+		public static function get isRemote():Boolean { return remote != null && !box; }
+
+		/**
+		 * Test fights (creator tools) play on a throwaway save, so nothing
+		 * they do reaches your account. Settings and key bindings come along.
+		 */
+		private static var box:Object = null;
+		public static function beginSandbox():void {
+			var real:Object = data;
+			box = {opt: clone(real.opt || {}), keys: clone(real.keys || {}), tips: {all: true}, gold: 0};
+		}
+		public static function endSandbox():void { box = null; }
+		public static function get sandboxed():Boolean { return box != null; }
 
 		/** Switches to an account's own save file. */
 		public static function useAccount(key:String):void {
@@ -88,6 +101,7 @@ package realm {
 		}
 
 		public static function flush():void {
+			if (box) return;
 			if (remote) { if (onRemoteChange != null) onRemoteChange(); return; }
 			try { if (so) so.flush(); } catch (e:Error) {}
 		}

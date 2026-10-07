@@ -343,6 +343,16 @@ package realm {
 			return {kind: "key", sub: rd.id, tier: 0, name: rd.name + " Key", color: rd.color};
 		}
 
+		/** The Marketplace (online, the server sells these and checks the gold). */
+		public static const SHOP:Array = [
+			{id: "hp", name: "Health Potion", price: 50},
+			{id: "mp", name: "Magic Potion", price: 50},
+			{id: "stat", name: "Random Stat Potion", price: 450},
+			{id: "sor", name: "Star Shard", price: 900},
+			{id: "ut", name: "Mystery T7 item", price: 2500},
+			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
+		];
+
 		/** A dungeon key (Key Merchant): opens a portal to that dungeon. */
 		public static function makeDungeonKey(idx:int):Object {
 			var d:Object = DUNGEONS[idx];

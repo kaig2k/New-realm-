@@ -53,6 +53,8 @@ package realm {
 
 		/** A slash command the server handles (/report, moderation). */
 		public function serverCommand(text:String):void {}
+		/** Online, the Marketplace, Key Merchant and Starforge run on the server: false offline. */
+		public function shopRequest(req:Object):Boolean { return false; }
 
 		/** A realm closed in your game (the server replaces it). */
 		public function realmClosed(key:String):void {}

@@ -2583,6 +2583,14 @@ Data.FORMS = {
 		};
 Data.FORM_IDS = ["heavy", "long", "brutal", "scatter", "swift", "siege", "serpent", "returning"];
 Data.RING_PREFIX = ["Minor", "", "Greater", "Superior", "Paramount", "Exalted"];
+Data.SHOP = [
+			{id: "hp", name: "Health Potion", price: 50},
+			{id: "mp", name: "Magic Potion", price: 50},
+			{id: "stat", name: "Random Stat Potion", price: 450},
+			{id: "sor", name: "Star Shard", price: 900},
+			{id: "ut", name: "Mystery T7 item", price: 2500},
+			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
+		];
 Data.viewerLevel = __int(1);
 Data.ENEMIES = {
 			pirate: {name: "Pirate", spr: "pirate", hp: 30, def: 0, spd: 1.6, xp: 10, ai: "chase", keep: 3, drop: 0.12, col: 0xc02020,

@@ -157,6 +157,13 @@ and offline characters, items and currencies can't be brought in. (Older servers
 - **Monsters:** the server runs every monster, boss and event, decides kills (hits from far
   away are ignored), and rolls the loot. Players can't kill monsters instantly or roll their
   own drops.
-- **Not yet covered:** dodging is worked out in each player's game. Items from the
-  Marketplace, Starforge, Key Merchant and quests still come from the game itself. The save
-  checks only catch *impossible* items, not believable ones.
+- **Items:** every item comes from the server: loot, the Marketplace, the Key Merchant and the
+  Starforge. When the server hands out an item, it gives it an id and writes it into the
+  account's private ledger (kept in the save, never sent to the game). A save may only hold
+  items from its own ledger, unchanged and each once. Made-up, edited and copied items are
+  refused, and trades move items from one ledger to the other. Each character's base stats
+  must also stay within its class's limits. Starter gear needs no id, and admins are trusted.
+  Saves from before the ledger: their items get ids the first time this version loads them,
+  so nobody loses anything.
+- **Not yet covered:** dodging is worked out in each player's game. Gold, fame and Aether
+  totals come from the game, limited by a refilling allowance per account.

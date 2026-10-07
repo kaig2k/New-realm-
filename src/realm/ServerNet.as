@@ -108,6 +108,15 @@ package realm {
 		}
 
 		override public function serverCommand(text:String):void { Online.send({t: "cmd", text: text}); }
+
+		/** Sends a shop or forge request along with your latest save (the server checks and answers). */
+		override public function shopRequest(req:Object):Boolean {
+			if (!Online.connected || !Online.welcome || !Online.welcome.serverMonsters) return false;
+			g.saveCharacter();
+			req.data = Save.data;
+			Online.send(req);
+			return true;
+		}
 		override public function realmClosed(key:String):void { Online.send({t: "realmClosed", key: key}); }
 
 		/** The server trades from its copy of your inventory, so it gets your latest save first. */
@@ -258,6 +267,10 @@ package realm {
 					break;
 				case "realms":
 					g.realmsUpdated(m.list);
+					break;
+				case "shopDone":
+				case "shopFail":
+					g.shopResult(m);
 					break;
 				case "tradeDone":
 					if (!trade) break;

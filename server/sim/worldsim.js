@@ -519,7 +519,14 @@ class WorldSim {
       if (e.def.crate && Math.random() < 0.45) items.push(Math.random() < 0.67 ? Data.makePotion(Math.random() < 0.5 ? 'hp' : 'mp') : Data.makePotion('stat', Data.randomStat()));
       if (e.def.mimic) items = items.concat(mimicLoot(cls));
       if (siteHoard) items = items.concat(Data.rollLoot(e.def, zone, cls, lk));
-      if (items.length) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name });
+      // High Stakes (a skill): the drop is doubled or lost on a coin flip
+      let hs = '';
+      if (items.length && prof.hs) {
+        if (Math.random() < 0.5) { items = items.concat(items.map((it) => JSON.parse(JSON.stringify(it)))); hs = 'won'; }
+        else { items = []; hs = 'lost'; }
+      }
+      if (this.issuer) for (const it of items) this.issuer(c, it);
+      if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
   }
 
@@ -572,7 +579,7 @@ class Sims {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); s.issuer = this.issuer; } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);
@@ -585,7 +592,7 @@ class Sims {
     for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
     for (const key of want) {
       if (this.map.has(key)) continue;
-      try { const s = new WorldSim(key); s.keep = true; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
     }
   }
 

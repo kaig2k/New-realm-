@@ -23,6 +23,8 @@ const { StringDecoder } = require('string_decoder');
 const { Store } = require('./store');
 const { checkSave } = require('./validate');
 const { Sims } = require('./sim/worldsim');
+const items = require('./items');
+const { Data } = require('./sim/gen/game');
 
 // ------------------------------------------------------------------ config
 const CONFIG_FILE = path.join(__dirname, 'config.json');
@@ -61,6 +63,8 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
 const store = new Store(DATA_DIR);
 /** Server-run monsters for every realm, dungeon, raid and Elder chamber (config "serverMonsters": false turns it off). */
 const sims = config.serverMonsters === false ? null : new Sims();
+// loot the server rolls is written into the looter's ledger
+if (sims) sims.issuer = (c, it) => { const sv = onlineSave(c.key); items.issue(sv, it); store.putSave(c.key, sv); };
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
 /** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
@@ -204,7 +208,50 @@ function friends(a, b) {
 function onlineSave(key) {
   let s = store.getSave(key);
   if (!s) { s = {}; store.putSave(key, s); }
+  // saves from before the item ledger: their items get ids once
+  if (items.migrate(s)) store.putSave(key, s);
   return s;
+}
+
+/** A save as the player's game sees it (without the server's private ledger). */
+function publicSave(s) {
+  const o = Object.assign({}, s);
+  delete o._ledger;
+  delete o._ledgerV;
+  return o;
+}
+
+/**
+ * Checks a save from the player's game and stores it. Returns true if it was accepted;
+ * otherwise the game gets its last good save back.
+ */
+function applySave(c, data) {
+  const prev = onlineSave(c.key);
+  let why = checkSave(prev, data, c.meta, Date.now());
+  // items must come from the server (admins are trusted), and stats stay within the class limits
+  if (!why && !isAdmin(c)) why = items.check(prev, data) || items.checkStats(data);
+  if (why) {
+    log('refused save from ' + c.name + ': ' + why);
+    store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);
+    c.send({ t: 'saveRejected', reason: why, data: publicSave(prev) });
+    return false;
+  }
+  c.meta.lastSave = Date.now();
+  data.tradeSeq = Math.max(data.tradeSeq || 0, prev ? prev.tradeSeq || 0 : 0);
+  // the ledger is the server's: the game's copy is never trusted
+  data._ledger = prev._ledger || {};
+  data._ledgerV = prev._ledgerV || 1;
+  // admins' own new items join their ledger
+  if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
+  store.putSave(c.key, data);
+  return true;
+}
+
+/** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
+function shopDone(c, sv, ch, extra) {
+  sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+  store.putSave(c.key, sv);
+  c.send(Object.assign({ t: 'shopDone', inv: ch.inv, gold: sv.gold || 0, onrane: sv.onrane || 0, seq: sv.tradeSeq }, extra));
 }
 
 /** Per-account anti-cheat state ({lastSave, budget}), kept across reconnects. */
@@ -216,7 +263,7 @@ function cleanProfile(p) {
   const out = { cls: str(p.cls, 16), skin: str(p.skin, 24), level: Math.max(1, Math.min(20, num(p.level) | 0)),
     fame: Math.max(0, num(p.fame) | 0), maxed: Math.max(0, Math.min(11, num(p.maxed) | 0)), guild: str(p.guild, 24),
     // loot luck (Bounty + streak + shrine), capped at what the game can reach
-    lk: Math.max(0, Math.min(160, num(p.lk) | 0)) };
+    lk: Math.max(0, Math.min(160, num(p.lk) | 0)), hs: p.hs ? 1 : 0 };
   if (Array.isArray(p.equip)) out.equip = p.equip.slice(0, 4).map((it) => (it && typeof it === 'object' && JSON.stringify(it).length < 4000 ? it : null));
   return out;
 }
@@ -278,7 +325,7 @@ const handlers = {
     accountMeta.set(key, c.meta);
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-      save: onlineSave(key), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash });
+      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash });
     sendGuild(c.guild);
     log(c.name, 'joined (' + byName.size + ' online)');
   },
@@ -645,17 +692,59 @@ const handlers = {
       return;
     }
     c.saveAt = now;
-    // online progress is its own: every account starts from the empty save made at its first visit
-    const prev = onlineSave(c.key);
-    const why = checkSave(prev, m.data, c.meta, Date.now());
-    if (why) {
-      log('refused save from ' + c.name + ': ' + why);
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);
-      return c.send({ t: 'saveRejected', reason: why, data: prev });
+    applySave(c, m.data);
+  },
+
+  /** Marketplace and Key Merchant: the server checks the gold and hands out the item. */
+  buy(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const what = str(m.what, 12);
+    let price, make;
+    if (what === 'key') {
+      const di = num(m.dg) | 0;
+      if (!Data.DUNGEONS[di]) return;
+      price = Data.keyPrice(di);
+      make = () => Data.makeDungeonKey(di);
+    } else {
+      const e = Data.SHOP.find((x) => x.id === what);
+      const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+      const makers = { hp: () => Data.makePotion('hp'), mp: () => Data.makePotion('mp'), stat: () => Data.makePotion('stat', Data.randomStat()),
+        sor: () => Data.makeSor(), ut: () => Data.makeForSlot(cls, Math.floor(Math.random() * 3), 7, null) };
+      if (!e || !makers[what]) return;
+      price = e.price;
+      make = makers[what];
     }
-    c.meta.lastSave = Date.now();
-    m.data.tradeSeq = Math.max(m.data.tradeSeq || 0, prev ? prev.tradeSeq || 0 : 0);
-    store.putSave(c.key, m.data);
+    if ((sv.gold || 0) < price) return c.send({ t: 'shopFail', msg: 'Not enough gold.' });
+    const slot = ch.inv.indexOf(null);
+    if (slot < 0) return c.send({ t: 'shopFail', msg: 'Inventory full!' });
+    const item = items.issue(sv, make());
+    ch.inv[slot] = item;
+    sv.gold = (sv.gold || 0) - price;
+    shopDone(c, sv, ch, { bought: item.name });
+  },
+
+  /** Starforge: a Runed, Bonded or Eldritch item + a Star Shard + 100 Aether = a Starforged item. */
+  forge(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was forged.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const slot = num(m.slot) | 0, item = ch.inv[slot];
+    if (!item || !item.rarity || item.rarity === 'lg' || item.rarity === 'ar' || item.rarity === 'gd') return c.send({ t: 'shopFail', msg: 'That item cannot be forged.' });
+    const sor = ch.inv.findIndex((it) => it && it.kind === 'material');
+    if (sor < 0) return c.send({ t: 'shopFail', msg: 'You need a Star Shard.' });
+    if ((sv.onrane || 0) < 100) return c.send({ t: 'shopFail', msg: 'You need 100 Aether.' });
+    const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+    const lg = items.issue(sv, Data.forgeLegendary(item, cls));
+    // the two items it was made from are used up for good
+    const l = sv._ledger || {};
+    delete l[item.sid];
+    delete l[ch.inv[sor].sid];
+    ch.inv[sor] = null;
+    ch.inv[slot] = lg;
+    sv.onrane = (sv.onrane || 0) - 100;
+    shopDone(c, sv, ch, { forged: lg.name, slot });
   },
 
   /** A realm closed in someone's game: replace it with a fresh one. */
@@ -790,6 +879,9 @@ function finishTrade(t) {
   };
   apply(ca, sa, gb);
   apply(cb, sb, ga);
+  const svA = store.getSave(a.key), svB = store.getSave(b.key);
+  for (const it of ga) items.transfer(svA, svB, it);
+  for (const it of gb) items.transfer(svB, svA, it);
   for (const [cl, ch, gave] of [[a, ca, ga], [b, cb, gb]]) {
     const sv = store.getSave(cl.key);
     sv.tradeSeq = (sv.tradeSeq || 0) + 1;

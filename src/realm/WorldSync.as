@@ -235,7 +235,7 @@ package realm {
 					break;
 				case "loot":
 					// the server rolled your drops from a monster you helped kill
-					if (!isHost && d.l is Array) g.serverDrop(Number(d.x), Number(d.y), d.l, String(d.n || ""));
+					if (!isHost && d.l is Array) g.serverDrop(Number(d.x), Number(d.y), d.l, String(d.n || ""), String(d.hs || ""));
 					break;
 				case "portal":
 					if (isHost && d.k != "raid") return;

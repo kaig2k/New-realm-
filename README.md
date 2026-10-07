@@ -367,8 +367,10 @@ Nexus portals show how many players are in each.
 - Whether a monster's bullet hits *you* is still worked out in your own game, so dodging never
   waits on the network. A laggy player's view of a monster can be a few tiles behind the
   server's.
-- The server rolls loot, but the Marketplace, Starforge, Key Merchant and quests still hand out
-  items from the game itself. The save checks catch impossible items, not believable ones.
+- Items can only come from the server: loot, the Marketplace, the Key Merchant and the
+  Starforge. Each one carries an id from the server's ledger, so a modified game can't make up,
+  improve or copy items. Gold, fame and Aether still come from the game, but they can only rise
+  as fast as the server's allowance lets them.
 - Your name on a server is protected by a secret key your game makes the first time you
   join. If you change PC or wipe your game data, the host can free the name by deleting
   your entry from `server/data/accounts.json` (with the server stopped).

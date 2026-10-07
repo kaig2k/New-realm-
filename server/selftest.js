@@ -72,7 +72,7 @@ const ITEMS = {
 
 function charSave(id, inv) {
   const pad = inv.concat(); while (pad.length < 8) pad.push(null);
-  return { id, cls: 'wizard', name: 'Hero', level: 20, stats: { hp: 600, att: 75 }, weapon: ITEMS.weapon, ability: null, armor: null, ring: null,
+  return { id, cls: 'wizard', name: 'Hero', level: 20, stats: { hp: 600, att: 70 }, weapon: ITEMS.weapon, ability: null, armor: null, ring: null,
     inv: pad, skills: { brutality: 2, highstakes: 1 }, skillPoints: 3, highStakes: true, tree2: true };
 }
 
@@ -84,9 +84,14 @@ async function run() {
   let srvOut = '';
   srv.stdout.on('data', (d) => { srvOut += d; });
   srv.stderr.on('data', (d) => { srvOut += d; });
-  await wait(900);
   const n = Math.floor(Math.random() * 9000 + 1000);
   const nameA = 'Ta' + n, nameB = 'Tb' + n;
+  // saves from before the item ledger (items without ids), as on a server being upgraded
+  fs.mkdirSync(path.join(DATA, 'saves'), { recursive: true });
+  fs.writeFileSync(path.join(DATA, 'saves', nameA.toLowerCase() + '.json'), JSON.stringify({ gold: 5000, fame: 100, onrane: 300,
+    chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])], vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3 }));
+  fs.writeFileSync(path.join(DATA, 'saves', nameB.toLowerCase() + '.json'), JSON.stringify({ gold: 3000, chars: [charSave('cb', [ITEMS.potion])] }));
+  await wait(900);
 
   console.log('accounts');
   const old = await login('Old' + n, { password: 'x', ver: 3 });
@@ -103,34 +108,76 @@ async function run() {
   const B = await login(nameB, { password: 'pass1234', register: true });
   check('second account registers', B.id > 0);
 
-  console.log('saves and anti-cheat');
-  A.send({ t: 'save', data: { gold: 500, fame: 100, onrane: 2, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])],
-    vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3, opt: { shake: false }, keys: { up: 85 } } });
+  console.log('item ledger and anti-cheat');
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const wA = A.find((m) => m.t === 'welcome').save;
+  const all = [].concat(wA.chars[0].inv.filter(Boolean), [wA.chars[0].weapon], wA.vault.filter(Boolean));
+  check('items from before the ledger got ids when the server first loaded the save', all.length >= 7 && all.every((it) => it.sid), all.length + ' items');
+  check("the server's private ledger is not sent to the game", !wA._ledger);
+  const goodA = () => ({ gold: 5000, fame: 100, onrane: 300, chars: [clone(wA.chars[0])], vault: clone(wA.vault), vaultChests: 3, opt: { shake: false }, keys: { up: 85 } });
+  A.send({ t: 'save', data: goodA() });
   await wait(450);
   check('a normal save (godly, raid key, dungeon key, vault, settings) is accepted', !A.find((m) => m.t === 'saveRejected'),
     JSON.stringify(A.find((m) => m.t === 'saveRejected')));
-  A.clear();
-  A.send({ t: 'save', data: { gold: 500, chars: [charSave('ca', [{ kind: 'ring', sub: 'att', tier: 3, name: 'Hacked Ring', att: 9999 }])] } });
-  await wait(450);
-  check('an edited +9999 ring is refused', A.find((m) => m.t === 'saveRejected' && /att/.test(m.reason)));
-  A.clear();
-  A.send({ t: 'save', data: { gold: 99999999, chars: [charSave('ca', [ITEMS.ring])] } });
-  await wait(450);
-  check('gold jumping by millions is refused', A.find((m) => m.t === 'saveRejected' && /gold/.test(m.reason)));
+  const tryA = async (fn, re, name) => {
+    A.clear();
+    const d = goodA(); fn(d);
+    A.send({ t: 'save', data: d });
+    await wait(450);
+    const r = A.find((m) => m.t === 'saveRejected');
+    check(name, r && re.test(r.reason), r ? r.reason : 'accepted');
+  };
+  await tryA((d) => { d.chars[0].inv[5] = clone(ITEMS.ring); }, /not given out/, 'an item the server never gave out is refused');
+  await tryA((d) => { d.chars[0].inv[0].att = 20; }, /was changed/, 'an edited item (better stats) is refused');
+  await tryA((d) => { d.chars[0].inv[5] = clone(d.chars[0].inv[1]); }, /appears twice/, 'a copied item (same id twice) is refused');
+  await tryA((d) => { d.chars[0].inv[5] = { kind: 'ring', sub: 'att', tier: 3, name: 'Hacked Ring', att: 9999 }; }, /att/, 'an edited +9999 ring is refused');
+  await tryA((d) => { d.chars[0].stats.att = 500; }, /impossible att/, 'stats above the class maximum are refused');
+  await tryA((d) => { d.gold = 99999999; }, /gold/, 'gold jumping by millions is refused');
   const rej = A.find((m) => m.t === 'saveRejected');
-  check('a refused save sends back the last good save', rej && rej.data && rej.data.gold === 500);
+  check('a refused save sends back the last good save (without the ledger)', rej && rej.data && rej.data.gold === 5000 && !rej.data._ledger);
+  await tryA((d) => { d.chars[0].inv[5] = { kind: 'sword?', name: 'x' }; }, /unknown item kind/, 'unknown item kinds are refused');
   A.clear();
-  A.send({ t: 'save', data: { gold: 500, chars: [charSave('ca', [{ kind: 'sword?', name: 'x' }])] } });
-  await wait(450);
-  check('unknown item kinds are refused', A.find((m) => m.t === 'saveRejected'));
-  A.clear();
-  // many quick saves can't each add the full gold allowance
-  for (let i = 1; i <= 4; i++) { A.send({ t: 'save', data: { gold: 500 + i * 100000, chars: [charSave('ca', [ITEMS.ring])] } }); await wait(450); }
+  for (let i = 1; i <= 4; i++) { const d = goodA(); d.gold = 5000 + i * 100000; A.send({ t: 'save', data: d }); await wait(450); }
   check('repeated quick gold jumps are refused once the allowance is used up', A.find((m) => m.t === 'saveRejected' && /gold/.test(m.reason)));
   A.clear();
-  A.send({ t: 'save', data: { gold: 500, fame: 100, onrane: 2, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])],
-    vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3 } });
+  A.send({ t: 'save', data: goodA() });
   await wait(450);
+
+  console.log('shops on the server');
+  A.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca' });
+  await wait(150);
+  A.clear();
+  A.send({ t: 'buy', what: 'stat', data: goodA() });
+  await wait(400);
+  let sd = A.find((m) => m.t === 'shopDone');
+  const bought = sd && sd.inv.find((it) => it && it.kind === 'stat' && it.sid && !all.some((o) => o.sid === it.sid));
+  check('the Marketplace sells through the server: the item has an id and the gold is taken', bought && sd.gold === 5000 - 450, sd ? sd.gold : 'no reply');
+  let invA = sd ? sd.inv : [];
+  let gA = sd ? sd.gold : 5000, seqA = sd ? sd.seq : 0;
+  A.clear();
+  const withInv = () => { const d = goodA(); d.chars[0].inv = clone(invA); d.gold = gA; d.tradeSeq = seqA; return d; };
+  A.send({ t: 'buy', what: 'key', dg: 0, data: withInv() });
+  await wait(400);
+  sd = A.find((m) => m.t === 'shopDone');
+  const key = sd && sd.inv.find((it) => it && it.kind === 'key' && /^dg_/.test(it.sub) && it.sid && !invA.some((o) => o && o.sid === it.sid));
+  check('the Key Merchant sells through the server, at the right price', key && sd.gold === gA - 1800, sd ? sd.gold : 'no reply');
+  if (sd) { invA = sd.inv; gA = sd.gold; seqA = sd.seq; }
+  A.clear();
+  A.send({ t: 'buy', what: 'ut', data: Object.assign(withInv(), { gold: 10 }) });
+  await wait(400);
+  check('buying without enough gold is refused', A.find((m) => m.t === 'shopFail'));
+  A.clear();
+  A.send({ t: 'save', data: withInv() });
+  await wait(450);
+  check('a save holding the bought items is accepted', !A.find((m) => m.t === 'saveRejected'), JSON.stringify(A.find((m) => m.t === 'saveRejected')));
+  A.clear();
+  A.send({ t: 'forge', slot: invA.indexOf(invA.find((it) => it && it.kind === 'stat')), data: withInv() });
+  await wait(400);
+  check('the Starforge on the server refuses items that cannot be forged', A.find((m) => m.t === 'shopFail' && /cannot be forged/.test(m.msg)));
+  A.clear();
+  A.send({ t: 'save', data: Object.assign(withInv(), { tradeSeq: 0 }) });
+  await wait(450);
+  check('a save from before a purchase (would undo it) is refused', A.find((m) => m.t === 'saveRejected' && /stale/.test(m.reason)));
 
   console.log('resume and log out');
   const A2 = await login(nameA, { token: tokenA });
@@ -138,11 +185,13 @@ async function run() {
   await wait(200);
   check('logging in elsewhere kicks the old connection', A.find((m) => m.t === 'kicked') || A.closed);
   const saved = A2.find((m) => m.t === 'welcome').save;
-  check('the save comes back on login', saved && saved.gold <= 500 && saved.chars && saved.chars[0].inv[3].sub === 'dg_crypt');
+  check('the save comes back on login', saved && saved.chars && saved.chars[0].inv.some((it) => it && /^dg_/.test(it.sub)));
 
   console.log('worlds and relays');
-  B.send({ t: 'save', data: { gold: 100, chars: [charSave('cb', [ITEMS.potion])] } });
+  const wB = B.find((m) => m.t === 'welcome').save;
+  B.send({ t: 'save', data: { gold: 3000, chars: [clone(wB.chars[0])] } });
   await wait(450);
+  check("the other account's save is accepted too", !B.find((m) => m.t === 'saveRejected'));
   A2.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca', profile: { cls: 'wizard', level: 20 } });
   B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb', profile: { cls: 'knight', level: 20 } });
   await wait(300);
@@ -197,23 +246,23 @@ async function run() {
   await wait(300);
   const doneA = A2.find((m) => m.t === 'tradeDone'), doneB = B.find((m) => m.t === 'tradeDone');
   check('the trade completes on the server', doneA && doneB && doneA.inv && doneB.inv);
+  const ringSid = invA[0] && invA[0].sid;
   if (doneA && doneB && doneA.inv && doneB.inv) {
-    const subsA = doneA.inv.filter(Boolean).map((i) => i.sub).sort().join(',');
-    const subsB = doneB.inv.filter(Boolean).map((i) => i.sub).sort().join(',');
-    check('items moved: A gave its ring and dungeon key, got the potion', subsA === 'att,conclave,robe' && doneA.inv.filter(Boolean).length === 3, subsA);
-    check('B got the ring and the dungeon key', /dg_crypt/.test(subsB) && doneB.inv.filter(Boolean).length === 2, subsB);
+    check('items moved: A gave its ring and dungeon key and got the potion', !doneA.inv.some((i) => i && i.sid === ringSid) && doneA.inv.some((i) => i && i.sid === wB.chars[0].inv[0].sid));
+    check('B got the ring and the dungeon key', doneB.inv.some((i) => i && i.sid === ringSid) && doneB.inv.some((i) => i && i.sub === 'dg_crypt'));
   }
+  const seq = doneA ? doneA.seq : 1;
+  const saveA = (inv, sq) => { const d = goodA(); d.chars[0].inv = clone(inv); d.gold = gA; d.tradeSeq = sq; return d; };
   A2.clear();
-  A2.send({ t: 'save', data: { gold: 500, tradeSeq: 0, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey])] } });
-  await wait(250);
+  A2.send({ t: 'save', data: saveA(invA, 0) });
+  await wait(450);
   check('a save from before the trade (dupe attempt) is refused', A2.find((m) => m.t === 'saveRejected' && /stale/.test(m.reason)));
   A2.clear();
-  const seq = doneA ? doneA.seq : 1;
-  A2.send({ t: 'save', data: { gold: 500, tradeSeq: seq, chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey, ITEMS.potion])] } });
+  A2.send({ t: 'save', data: saveA(invA, seq) });
   await wait(450);
-  check('keeping traded-away items in a save (modified client) is refused', A2.find((m) => m.t === 'saveRejected' && /traded away/.test(m.reason)));
+  check('keeping traded-away items in a save (modified client) is refused', A2.find((m) => m.t === 'saveRejected' && /traded away|does not belong/.test(m.reason)));
   A2.clear();
-  A2.send({ t: 'save', data: { gold: 500, tradeSeq: seq, chars: [charSave('ca', doneA ? doneA.inv.filter(Boolean) : [])] } });
+  A2.send({ t: 'save', data: saveA(doneA ? doneA.inv : [], seq) });
   await wait(450);
   check('the honest save after a trade is accepted', !A2.find((m) => m.t === 'saveRejected'), JSON.stringify(A2.find((m) => m.t === 'saveRejected')));
 
@@ -240,6 +289,8 @@ async function run() {
     await wait(400);
     check('hits from a player kill a server monster, and everyone hears it', A2.find((m) => m.t === 'w' && m.d.t === 'ekill' && m.d.id === target[0]) && B.find((m) => m.t === 'w' && m.d.t === 'ekill' && m.d.id === target[0]));
     check('only the player who hit it can get its loot', !B.find((m) => m.t === 'w' && m.d.t === 'loot'));
+    const lootMsg = A2.find((m) => m.t === 'w' && m.d.t === 'loot');
+    check('server loot carries ids from the ledger', !lootMsg || lootMsg.d.l.every((it) => it.sid), lootMsg ? lootMsg.d.l.length + ' items' : 'no drop this time');
   }
   const boss = mons.find((e) => e[9] === 1);
   if (boss) {

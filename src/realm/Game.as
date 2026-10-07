@@ -1877,7 +1877,8 @@ package realm {
 
 		/** Loot bags for items that dropped at (x, y): rare-drop alerts, High Stakes and all. */
 		private function dropLoot(items:Array, x:Number, y:Number, from:String):void {
-			if (items.length && player.highStakes && player.rank("highstakes") > 0) items = highStakes(items, x, y);
+			// (online the server flips High Stakes' coin: see serverDrop)
+			if (items.length && !serverLoot && player.highStakes && player.rank("highstakes") > 0) items = highStakes(items, x, y);
 			if (items.length) {
 				// more than one bag's worth spills into extra bags beside it
 				var spill:Array = items.splice(LootBag.MAX);
@@ -1919,7 +1920,9 @@ package realm {
 		}
 
 		/** Online, the server rolls each player's drops: these are yours. */
-		public function serverDrop(x:Number, y:Number, items:Array, from:String):void {
+		public function serverDrop(x:Number, y:Number, items:Array, from:String, hs:String = ""):void {
+			if (hs == "won") { floatText(x, y - 1.5, "DOUBLED!", 0xffd040); msg("High Stakes: you won! The drop was doubled.", 0xffd040); ring(x, y, 0xffd040, 26); Sfx.play("coin"); }
+			else if (hs == "lost") { floatText(x, y - 1.5, "LOST!", 0xff5050); msg("High Stakes: you lost. The drop crumbled to dust.", 0xff8080); abil.puff(x, y, 0x605850, 18, 3); }
 			if (items && items.length) dropLoot(items, x, y, from);
 		}
 
@@ -2572,14 +2575,6 @@ package realm {
 		}
 
 		// ------------------------------------------------------------- nexus stations
-		private static const SHOP:Array = [
-			{id: "hp", name: "Health Potion", price: 50},
-			{id: "mp", name: "Magic Potion", price: 50},
-			{id: "stat", name: "Random Stat Potion", price: 450},
-			{id: "sor", name: "Star Shard", price: 900},
-			{id: "ut", name: "Mystery T7 item", price: 2500},
-			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
-		];
 
 		private function openStationPanel(st:Object):void {
 			openStation = st;
@@ -2748,14 +2743,14 @@ package realm {
 				info.htmlText = "You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.  Shift+click inventory items to sell them.";
 				info.y = y;
 				y += info.height + 8;
-				for (i = 0; i < SHOP.length; i++) {
-					var e:Object = SHOP[i];
+				for (i = 0; i < Data.SHOP.length; i++) {
+					var e:Object = Data.SHOP[i];
 					var b:Sprite = Ui.button(e.name + "  -  " + Ui.commas(e.price) + "g", 205, 30, buyFn(e), 13);
 					b.x = 12 + (i % 2) * 211;
 					b.y = y + int(i / 2) * 36;
 					sp.addChild(b);
 				}
-				y += int((SHOP.length + 1) / 2) * 36 + 4;
+				y += int((Data.SHOP.length + 1) / 2) * 36 + 4;
 			}
 			Ui.panel(sp.graphics, 0, 0, w, y + 6, 0x222222, 0x6a6a6a, 0.95);
 			sp.x = (VIEW_W - w) / 2;
@@ -3648,6 +3643,7 @@ package realm {
 			if (gold < price) { msg("Not enough gold for the " + key.name + " (" + Ui.commas(price) + "g).", 0xff8080); return; }
 			var slot:int = player.freeSlot();
 			if (slot < 0) { msg("Inventory full!", 0xff8080); return; }
+			if (net.shopRequest({t: "buy", what: "key", dg: idx})) { shopWaiting = true; return; }
 			player.inv[slot] = key;
 			addGold(-price);
 			Save.flush();
@@ -3687,6 +3683,7 @@ package realm {
 			for (var i:int = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "material") { sorSlot = i; break; }
 			if (sorSlot < 0) { msg("You need a Star Shard (event bosses drop them, or buy one at the Marketplace).", 0xff8080); return; }
 			if (onrane < 100) { msg("You need 100 Aether (" + onrane + " now). Event bosses drop Aether.", 0xff8080); return; }
+			if (net.shopRequest({t: "forge", slot: slot})) { shopWaiting = true; return; }
 			addOnrane(-100);
 			player.inv[sorSlot] = null;
 			var lg:Object = Data.forgeLegendary(item, player.cls);
@@ -3703,6 +3700,12 @@ package realm {
 
 		private function buy(e:Object):void {
 			if (gold < e.price) { msg("Not enough gold for " + e.name + ".", 0xff8080); return; }
+			// items for sale come from the server online (potions that fit your potion slots and backpacks don't)
+			var potionSlot:Boolean = (e.id == "hp" && player.hpPots < Player.MAX_POTS) || (e.id == "mp" && player.mpPots < Player.MAX_POTS);
+			if (e.id != "backpack" && !potionSlot) {
+				if (player.freeSlot() < 0) { msg("Inventory full!", 0xff8080); return; }
+				if (net.shopRequest({t: "buy", what: e.id})) { shopWaiting = true; return; }
+			}
 			var item:Object;
 			switch (e.id) {
 				case "hp":
@@ -3730,6 +3733,33 @@ package realm {
 			Save.flush();
 			msg("Bought " + (item ? item.name : e.name) + ".", Ui.GOLD);
 			Sfx.play("coin");
+			refreshStation();
+		}
+
+		/** A shop or forge request is with the server. */
+		private var shopWaiting:Boolean = false;
+
+		/** The server's answer to a purchase or a forge: take its inventory and currencies. */
+		public function shopResult(m:Object):void {
+			shopWaiting = false;
+			if (m.t == "shopFail") { msg(m.msg || "That didn't go through.", 0xff8080); refreshStation(); return; }
+			var inv:Array = m.inv || [];
+			for (var i:int = 0; i < player.inv.length; i++) player.inv[i] = i < inv.length ? inv[i] : null;
+			Save.data.gold = int(m.gold);
+			Save.data.onrane = int(m.onrane);
+			Save.data.tradeSeq = int(m.seq);
+			saveCharacter();
+			Save.flush();
+			if (m.forged) {
+				questEvent("legendary");
+				showBanner("Forged " + m.forged + "!", Data.RARITY_COLORS.lg, 3);
+				Sfx.play("rare");
+				msg("The Starforge blazes... you forged " + m.forged + "!", Data.RARITY_COLORS.lg);
+				burst(player.x, player.y, 0xd8e040, 30);
+			} else {
+				msg("Bought " + m.bought + ".", Ui.GOLD);
+				Sfx.play("coin");
+			}
 			refreshStation();
 		}
 
@@ -4686,7 +4716,7 @@ package realm {
 
 		public function myProfile():Object {
 			var p:Player = player;
-			return {lk: p.frt + lootLuck(), cls: p.cls.id, skin: p.skin, level: p.level, fame: p.fame, maxed: p.maxedCount,
+			return {lk: p.frt + lootLuck(), hs: p.highStakes && p.rank("highstakes") > 0, cls: p.cls.id, skin: p.skin, level: p.level, fame: p.fame, maxed: p.maxedCount,
 				equip: [p.weapon, p.ability, p.armor, p.ring], guild: net && net.guild ? net.guild.name : ""};
 		}
 

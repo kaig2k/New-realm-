@@ -217,6 +217,43 @@ async function run() {
   await wait(450);
   check('the honest save after a trade is accepted', !A2.find((m) => m.t === 'saveRejected'), JSON.stringify(A2.find((m) => m.t === 'saveRejected')));
 
+  console.log('server-run monsters');
+  A2.send({ t: 'enter', key: 'dg:4:777', x: 100, y: 180, cid: 'ca' });
+  B.send({ t: 'enter', key: 'dg:4:777', x: 100, y: 180, cid: 'cb' });
+  await wait(300);
+  A2.clear(); B.clear();
+  A2.send({ t: 'w', to: 'host', d: { t: 'sync' } });
+  await wait(300);
+  const spawnMsg = A2.find((m) => m.t === 'w' && m.d.t === 'espawn');
+  const mons = spawnMsg ? spawnMsg.d.l : [];
+  check('the server fills a dungeon with its monsters (and its boss)', mons.length > 5 && mons.some((e) => e[9] === 1), mons.length + ' monsters');
+  // B fakes a monster's death to everyone: ignored
+  B.send({ t: 'w', to: 'all', d: { t: 'ekill', id: mons[0] && mons[0][0] } });
+  await wait(200);
+  check('players cannot fake monster deaths', !A2.find((m) => m.t === 'w' && m.d.t === 'ekill'));
+  const target = mons.find((e) => !/crate|treasure/.test(e[1]) && e[9] !== 1);
+  if (target) {
+    A2.send({ t: 'move', x: target[2], y: target[3] + 1 });
+    await wait(150);
+    A2.clear(); B.clear();
+    for (let k = 0; k < 30; k++) A2.send({ t: 'w', to: 'host', d: { t: 'ehit', id: target[0], d: 800 } });
+    await wait(400);
+    check('hits from a player kill a server monster, and everyone hears it', A2.find((m) => m.t === 'w' && m.d.t === 'ekill' && m.d.id === target[0]) && B.find((m) => m.t === 'w' && m.d.t === 'ekill' && m.d.id === target[0]));
+    check('only the player who hit it can get its loot', !B.find((m) => m.t === 'w' && m.d.t === 'loot'));
+  }
+  const boss = mons.find((e) => e[9] === 1);
+  if (boss) {
+    A2.send({ t: 'move', x: boss[2] + 60, y: boss[3] + 60 });
+    await wait(150);
+    A2.clear();
+    for (let k = 0; k < 10; k++) A2.send({ t: 'w', to: 'host', d: { t: 'ehit', id: boss[0], d: 6000 } });
+    await wait(300);
+    check('hits from too far away are ignored', !A2.find((m) => m.t === 'w' && m.d.t === 'ekill' && m.d.id === boss[0]));
+  }
+  A2.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca' });
+  B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb' });
+  await wait(200);
+
   console.log('bad input');
   const evil = await login('Ev' + n, { password: 'pass1234', register: true });
   evil.send('{{{ not json');

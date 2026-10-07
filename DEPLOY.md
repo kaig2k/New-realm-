@@ -86,6 +86,7 @@ Players then join with `play.yourgame.com:2050`.
 | Setting | What it does |
 | --- | --- |
 | `port` | Port to listen on (2050). |
+| `serverMonsters` | `true` (the default): the server runs all monsters. `false` goes back to the first player in each area running them. |
 | `name` | Your server's name. Players see it in the game instead of the IP address, default `"Eldmere"`. |
 | `motd` | Message shown to players when they join. |
 | `realmCap` | Players per realm (85). |
@@ -106,7 +107,7 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/unmute name`
   - `/announce message`
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
-- **Server console** (when running it by hand): `list`, `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
+- **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
 
 ## 8. Backups
@@ -153,6 +154,9 @@ and offline characters, items and currencies can't be brought in. (Older servers
   can't be faked or used to duplicate items.
 - **Checks:** the server refuses impossible items (stats beyond what the game can roll),
   currencies rising too fast, and Godly items appearing faster than their 1 in 5,000 rate.
-- **Not yet covered:** combat and loot are still worked out in the players' games. A
-  determined cheater with a modified game could still give themselves *plausible* loot.
-  Closing that gap is Phase 3: the server runs monsters and loot itself.
+- **Monsters:** the server runs every monster, boss and event, decides kills (hits from far
+  away are ignored), and rolls the loot. Players can't kill monsters instantly or roll their
+  own drops.
+- **Not yet covered:** dodging is worked out in each player's game. Items from the
+  Marketplace, Starforge, Key Merchant and quests still come from the game itself. The save
+  checks only catch *impossible* items, not believable ones.

@@ -579,6 +579,16 @@ class Sims {
     return s;
   }
 
+  /** Realms in the Nexus list: built ahead of time and kept even while empty. */
+  keepOnly(keys) {
+    const want = new Set(keys);
+    for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
+    for (const key of want) {
+      if (this.map.has(key)) continue;
+      try { const s = new WorldSim(key); s.keep = true; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+    }
+  }
+
   leave(key, c) {
     const s = this.map.get(key);
     if (s) s.leave(c);
@@ -589,7 +599,7 @@ class Sims {
     for (const [key, s] of this.map) {
       try { s.tick(TICK); } catch (e) { console.error('world', key, e.stack); }
       // empty dungeons end after a minute, empty realms after ten
-      if (!s.players.size && s.emptyFor > (s.kind === 'realm' ? 600 : 60)) this.map.delete(key);
+      if (!s.players.size && !s.keep && s.emptyFor > (s.kind === 'realm' ? 600 : 60)) this.map.delete(key);
     }
     this.lastMs = Date.now() - t0;
   }

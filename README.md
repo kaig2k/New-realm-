@@ -341,13 +341,19 @@ Servers run 3-6 realms with up to 85 players each. New realms open as they fill 
 Nexus portals show how many players are in each.
 
 ### What's shared online
-- **Monsters, bosses and events.** The first player in a realm or dungeon is its *host*:
-  their game runs the monsters and the server streams them to everyone else there. You
-  fight the same monsters, dodge the same bullets and see the same bosses. If the host
-  leaves, someone else takes over automatically. The online line under the gold counter
-  says "(host)" on the player who's running the area.
-- **Kills and loot.** Everyone near a kill shares its XP. Loot drops for each player who hit
-  the monster (RotMG-style: your bags are yours).
+- **Monsters, bosses and events run on the server**, like in RotMG. For every realm, dungeon,
+  raid and Dark Elder chamber, the server generates the same map the game does and runs all
+  of these itself:
+  - monster AI and boss phases;
+  - spawning, landmarks, realm events and treasure goblins;
+  - elites and raid stages.
+
+  Every player sees and fights the same monsters. Your game draws them and replays their
+  bullets, so dodging never waits on the network.
+- **Kills and loot.** Your game sends your hits to the server. The server decides when a
+  monster dies and ignores hits from too far away. It then rolls the loot for each player
+  who damaged it and sends each of you your own bag (RotMG-style). Everyone near a kill
+  shares its XP.
 - **Dungeons.** Portals that drop in a realm appear for everyone there and lead to the same
   dungeon. `/join name` follows a party or guild member wherever they are. When a realm
   closes, everyone from it goes to the same Citadel and the same Dark Elder fight.
@@ -358,11 +364,11 @@ Nexus portals show how many players are in each.
   The online line shows your ping.
 
 ### Known limits for the playtest
-- Combat and loot are still worked out in each player's game. The server refuses impossible
-  saves, but a modified game could still award itself believable loot. Phase 3 (the server
-  running monsters and loot itself) closes that.
-- Each player's monster hits are checked by their own game (no lag when dodging), so a laggy
-  player's view of a monster can be a few tiles behind the host's.
+- Whether a monster's bullet hits *you* is still worked out in your own game, so dodging never
+  waits on the network. A laggy player's view of a monster can be a few tiles behind the
+  server's.
+- The server rolls loot, but the Marketplace, Starforge, Key Merchant and quests still hand out
+  items from the game itself. The save checks catch impossible items, not believable ones.
 - Your name on a server is protected by a secret key your game makes the first time you
   join. If you change PC or wipe your game data, the host can free the name by deleting
   your entry from `server/data/accounts.json` (with the server stopped).
@@ -632,6 +638,9 @@ src/realm/Bosses.as      every boss fight script, new bosses, raids and realm fi
 src/realm/Uniques.as     unique items and which boss drops each one
 src/realm/Godly.as       Godly sets (1 in 5,000) and which boss drops each piece
 server/server.js         the multiplayer server (Node.js, no dependencies)
+server/sim/worldsim.js   server-run monsters: one simulation per realm, dungeon, raid and chamber
+server/sim/gen/game.js   GENERATED: Data, Bosses, Uniques, Godly, World and Enemy converted from AS3
+tools/as2js.py           the AS3 -> JavaScript converter that writes server/sim/gen/game.js
 src/realm/LocalNet.as    offline Net: simulated players who chat, fight and trade
 src/realm/RemotePlayer.as another player (position smoothing, public profile)
 src/realm/TradeSession.as trade rules (offers, accept lock, space check, swap)
@@ -645,6 +654,13 @@ src/realm/DeathScreen.as death + fame screen
 src/realm/Sfx.as         synthesised sound effects
 src/realm/Save.as        local save data (characters, vault, currencies, options)
 ```
+
+**Server code generated from the game:** the server runs the game's own monster, boss, loot
+and map code. After changing `Data.as`, `Bosses.as`, `Uniques.as`, `Godly.as`, `World.as` or
+`Enemy.as`, run `python3 tools/as2js.py` and commit the regenerated
+`server/sim/gen/game.js`. Then `node server/sim/worldhash.js` prints map fingerprints. The
+game's `/thash` test command prints the same ones, so you can check the two still build
+identical maps.
 
 To add a monster, add an entry to `Data.ENEMIES` (and optionally a sprite to
 `Sprites.DEFS`), then list it in `Data.ZONE_SPAWNS`.

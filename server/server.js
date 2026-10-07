@@ -146,6 +146,8 @@ function updateRealms() {
   for (const r of realms) r.count = 0;
   const byKey = new Map(realms.map(r => [realmKey(r), r]));
   for (const c of clients.values()) { const r = c.authed && byKey.get(c.world); if (r) r.count++; }
+  // build open realms' maps ahead of time, and keep them while they're open
+  if (sims) sims.keepOnly(realms.map(realmKey));
   const full = realms.every(r => r.count >= config.realmCap * 0.75);
   if (full && realms.length < config.maxRealms) { const r = newRealm(); realms.push(r); log('Opened a new realm: ' + r.name); }
   const js = JSON.stringify(realmList());

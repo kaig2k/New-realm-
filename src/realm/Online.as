@@ -24,6 +24,11 @@ package realm {
 		private static var timeout:Timer;
 		private static var queue:Array = [];
 		private static var saveTimer:Timer;
+		/**
+		 * Keeps the connection alive on every screen (title, character select,
+		 * death screen): the server drops connections that stay quiet for 45s.
+		 */
+		private static var keepAlive:Timer;
 		/** Called when the server refused our save and sent its own copy back. */
 		public static var onSaveRejected:Function;
 
@@ -224,6 +229,11 @@ package realm {
 					cred = null;
 					useServerSave(m);
 					if (timeout) { timeout.stop(); timeout = null; }
+					if (!keepAlive) {
+						keepAlive = new Timer(10000);
+						keepAlive.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { if (connected) send({t: "ping", at: -1}); });
+						keepAlive.start();
+					}
 					Accounts.setSetting("server", address);
 					var cb:Function = connectDone;
 					connectDone = null;
@@ -245,6 +255,8 @@ package realm {
 				return;
 			}
 			if (m.t == "realms" && welcome) welcome.realms = m.list;
+			// the answer to a keep-alive: nothing to do
+			if (m.t == "pong" && m.at == -1) return;
 			if (_onMessage != null) _onMessage(m);
 			else queue.push(m);
 		}

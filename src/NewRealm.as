@@ -95,6 +95,14 @@ package {
 		}
 
 		private function startGame(clsId:String, name:String, saved:Object = null):void {
+			// the connection dropped while on the menu: get it back first, so the game starts online
+			if (!Online.connected && Online.address) {
+				Online.connect(Online.address, function(err:String):void {
+					if (err) { showTitle(); return; }
+					startGame(clsId, name, saved);
+				});
+				return;
+			}
 			var g:Game = new Game(clsId, name, onDeath, saved);
 			g.onQuit = showMenu;
 			setScreen(g);

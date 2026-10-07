@@ -247,7 +247,9 @@ package realm {
 			buildBossPanel();
 			buildNexus();
 			sync = new WorldSync(this);
-			net = Online.connected && !sandbox ? new ServerNet(this) : new LocalNet(this);
+			// an online account always plays online (ServerNet reconnects by itself if the
+			// connection dropped); only offline accounts and test fights get simulated players
+			net = !sandbox && (Online.connected || Save.isRemote) ? new ServerNet(this) : new LocalNet(this);
 			net.enterWorld(world);
 
 			hud = new Hud(this);
@@ -1188,7 +1190,12 @@ package realm {
 			msg("This character isn't on the server. Save & Quit and pick a character.", 0xff8080);
 		}
 
+		/** Playing online but the connection is down for a moment (reconnecting). */
+		private function get reconnecting():Boolean { return net is ServerNet && !net.online; }
+
 		public function enterPortal(i:int):void {
+			// never make a private offline realm while the connection is coming back
+			if (reconnecting) { msg("Reconnecting to the server... try the portal again in a moment.", 0xff8080); return; }
 			if (net.online && realmCounts[i] >= realmCap && world != realms[i]) {
 				msg(realmNames[i] + " is full (" + realmCap + " players). Try another realm.", 0xff8080);
 				return;
@@ -1545,7 +1552,7 @@ package realm {
 		private function enterArena():void {
 			arenaWorld = new World("arena", "Dark Elder's Chamber");
 			// everyone coming from the same Citadel shares the chamber
-			arenaWorld.key = net.online && world.kind == "dungeon" ? "arena:" + world.seed : soloKey();
+			arenaWorld.key = net is ServerNet && world.kind == "dungeon" ? "arena:" + world.seed : soloKey();
 			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
 			player.invulnT = 3;
 			var aw:World = arenaWorld;

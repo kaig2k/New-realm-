@@ -391,6 +391,28 @@ class Data {
 			}
 			return null;
 		}
+	static findDye(id) {
+			for (var d of __vals( Data.DYES)) if (d.id == id) return d;
+			return null;
+		}
+	static findPetSkin(id) {
+			for (var d of __vals( Data.PET_SKINS)) if (d.id == id) return d;
+			return null;
+		}
+	static findTitle(id) {
+			if (!id) return null;
+			for (var t of __vals( Data.TITLES)) if (t.id == id) return t;
+			if (id.indexOf("slayer_") == 0 && Data.SLAYER[id.substr(7)]) {
+				var ev = id.substr(7);
+				return {id: id, name: Data.SLAYER[ev], earn: "A top-5 time against " + (Data.ENEMIES[ev] ? Data.ENEMIES[ev].name : ev) + " on the Records board", col: 0xff9a2e};
+			}
+			return null;
+		}
+	static allTitles() {
+			var out = Data.TITLES.slice();
+			for (var ev of __vals( Data.EVENTS)) if (Data.SLAYER[ev]) out.push(Data.findTitle("slayer_" + ev));
+			return out;
+		}
 	static hatchPet() {
 			var sp = Data.pick(Data.PET_SPECIES);
 			var r = Math.random();
@@ -3521,6 +3543,38 @@ Data.SKINS = {
 				{id: "necro_plague", name: "Plague Doctor", cost: 1000, pal: {D: 0x3a5a2a, d: 0x203a14, K: 0x6ad040, E: 0xffe040}}],
 			huntress: [{id: "huntress_snow", name: "Snow Huntress", cost: 400, pal: {R: 0xe8f0ff, r: 0xa8b8d0, G: 0x6a8aa8, g: 0x4a6080}},
 				{id: "huntress_jungle", name: "Jungle Huntress", cost: 1000, pal: {R: 0x2a8a3a, r: 0x145a20, G: 0xc0a040, g: 0x8a7020}}]
+		};
+Data.DYES = [
+			{id: "dye_crimson", name: "Crimson", cost: 150, col: 0xc82828}, {id: "dye_ocean", name: "Ocean", cost: 150, col: 0x2a6ad8},
+			{id: "dye_forest", name: "Forest", cost: 150, col: 0x2e9a3a}, {id: "dye_violet", name: "Violet", cost: 150, col: 0x8a3ad0},
+			{id: "dye_sunset", name: "Sunset", cost: 250, col: 0xf07a20}, {id: "dye_rose", name: "Rose", cost: 250, col: 0xf070b0},
+			{id: "dye_teal", name: "Teal", cost: 250, col: 0x20b8b0}, {id: "dye_snow", name: "Snow", cost: 400, col: 0xeef2ff},
+			{id: "dye_midnight", name: "Midnight", cost: 400, col: 0x30304a}, {id: "dye_gold", name: "Royal Gold", cost: 800, col: 0xf0c030},
+			{id: "dye_void", name: "Void", cost: 1500, col: 0x5a10a0}, {id: "dye_ember", name: "Living Ember", cost: 1500, col: 0xff4a10}
+		];
+Data.DYE_KEYS = {
+			wizard: ["R", "r"], archer: ["G", "g"], knight: ["K"], priest: ["W", "w"], rogue: ["P", "p"],
+			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"]
+		};
+Data.PET_SKINS = [
+			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
+			{id: "pskin_shadow", name: "Shadow", cost: 1200, col: 0x3a2a5a}, {id: "pskin_ember", name: "Ember", cost: 1200, col: 0xff5a20},
+			{id: "pskin_spectral", name: "Spectral", cost: 2500, col: 0x70ffd0}
+		];
+Data.TITLES = [
+			{id: "t_bold", name: "the Bold", cost: 500}, {id: "t_wanderer", name: "the Wanderer", cost: 500},
+			{id: "t_lucky", name: "the Lucky", cost: 800}, {id: "t_starborn", name: "Starborn", cost: 2000},
+			{id: "t_unbroken", name: "the Unbroken", cost: 5000}, {id: "t_eternal", name: "the Eternal", cost: 12000},
+			{id: "record", name: "Record Holder", earn: "Hold the #1 time for any realm event on the Records board", col: 0xffd75e},
+			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
+			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
+			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
+			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080}
+		];
+Data.SLAYER = {
+			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
+			ev_regent: "Regent's Bane", ev_sphinx: "Riddle Breaker", ev_lord: "Tidebreaker", ev_hermit: "Hermit Hunter", ev_shrine: "Shrine Breaker",
+			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
 		};
 Data.PET_SPECIES = [
 			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},

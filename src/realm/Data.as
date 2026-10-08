@@ -1137,6 +1137,71 @@ package realm {
 			return null;
 		}
 
+		// ---- cosmetics: dyes, pet skins and nameplate titles (Fame Store) ---------
+		/** Cloth dyes: recolour a hero's robe / tunic / tabard, on any class and any skin. */
+		public static const DYES:Array = [
+			{id: "dye_crimson", name: "Crimson", cost: 150, col: 0xc82828}, {id: "dye_ocean", name: "Ocean", cost: 150, col: 0x2a6ad8},
+			{id: "dye_forest", name: "Forest", cost: 150, col: 0x2e9a3a}, {id: "dye_violet", name: "Violet", cost: 150, col: 0x8a3ad0},
+			{id: "dye_sunset", name: "Sunset", cost: 250, col: 0xf07a20}, {id: "dye_rose", name: "Rose", cost: 250, col: 0xf070b0},
+			{id: "dye_teal", name: "Teal", cost: 250, col: 0x20b8b0}, {id: "dye_snow", name: "Snow", cost: 400, col: 0xeef2ff},
+			{id: "dye_midnight", name: "Midnight", cost: 400, col: 0x30304a}, {id: "dye_gold", name: "Royal Gold", cost: 800, col: 0xf0c030},
+			{id: "dye_void", name: "Void", cost: 1500, col: 0x5a10a0}, {id: "dye_ember", name: "Living Ember", cost: 1500, col: 0xff4a10}
+		];
+		/** Which palette keys a dye recolours, per class: main colour first, then its shade. */
+		public static const DYE_KEYS:Object = {
+			wizard: ["R", "r"], archer: ["G", "g"], knight: ["K"], priest: ["W", "w"], rogue: ["P", "p"],
+			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"]
+		};
+		public static function findDye(id:String):Object {
+			for each (var d:Object in DYES) if (d.id == id) return d;
+			return null;
+		}
+
+		/** Pet skins: a colour wash over any pet species. */
+		public static const PET_SKINS:Array = [
+			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
+			{id: "pskin_shadow", name: "Shadow", cost: 1200, col: 0x3a2a5a}, {id: "pskin_ember", name: "Ember", cost: 1200, col: 0xff5a20},
+			{id: "pskin_spectral", name: "Spectral", cost: 2500, col: 0x70ffd0}
+		];
+		public static function findPetSkin(id:String):Object {
+			for each (var d:Object in PET_SKINS) if (d.id == id) return d;
+			return null;
+		}
+
+		/** Nameplate titles: bought with fame, or earned (the server hands those out). */
+		public static const TITLES:Array = [
+			{id: "t_bold", name: "the Bold", cost: 500}, {id: "t_wanderer", name: "the Wanderer", cost: 500},
+			{id: "t_lucky", name: "the Lucky", cost: 800}, {id: "t_starborn", name: "Starborn", cost: 2000},
+			{id: "t_unbroken", name: "the Unbroken", cost: 5000}, {id: "t_eternal", name: "the Eternal", cost: 12000},
+			{id: "record", name: "Record Holder", earn: "Hold the #1 time for any realm event on the Records board", col: 0xffd75e},
+			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
+			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
+			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
+			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080}
+		];
+		/** Short names for the "<boss> Slayer" titles earned with a top-5 Records time. */
+		public static const SLAYER:Object = {
+			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
+			ev_regent: "Regent's Bane", ev_sphinx: "Riddle Breaker", ev_lord: "Tidebreaker", ev_hermit: "Hermit Hunter", ev_shrine: "Shrine Breaker",
+			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
+		};
+		/** A title by id: {id, name, cost} for bought ones, {id, name, earn, col} for earned ones; null if unknown. */
+		public static function findTitle(id:String):Object {
+			if (!id) return null;
+			for each (var t:Object in TITLES) if (t.id == id) return t;
+			if (id.indexOf("slayer_") == 0 && SLAYER[id.substr(7)]) {
+				var ev:String = id.substr(7);
+				return {id: id, name: SLAYER[ev], earn: "A top-5 time against " + (ENEMIES[ev] ? ENEMIES[ev].name : ev) + " on the Records board", col: 0xff9a2e};
+			}
+			return null;
+		}
+		/** Every title there is, slayer titles included. */
+		public static function allTitles():Array {
+			var out:Array = TITLES.slice();
+			for each (var ev:String in EVENTS) if (SLAYER[ev]) out.push(findTitle("slayer_" + ev));
+			return out;
+		}
+
 		// ---- pets (account-wide, like RotMG's pet yard) ---------------------------
 		public static const PET_SPECIES:Array = [
 			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},

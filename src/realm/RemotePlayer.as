@@ -42,7 +42,7 @@ package realm {
 		}
 
 		public function get cls():Object { return Data.CLASSES[profile.cls]; }
-		public function get spriteId():String { return profile.skin || profile.cls; }
+		public function get spriteId():String { return Sprites.dyed(profile.skin || profile.cls, profile.dye); }
 
 		public function moveTo(nx:Number, ny:Number):void {
 			tx = nx;

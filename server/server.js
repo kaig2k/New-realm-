@@ -87,6 +87,8 @@ function eventKilled(id, ms, team) {
   list.length = Math.min(list.length, RECORDS_KEPT);
   const place = list.findIndex((r) => r.at && r.names === names) + 1;
   if (place) for (const c of team) questProgress(c, ['record']);
+  // a top-5 time earns the boss's Slayer title, the best time Record Holder
+  if (place) for (const c of team) if (c.key) { grantTitle(c.key, 'slayer_' + id); if (place === 1) grantTitle(c.key, 'record'); }
   save('records.json', records);
   const boss = (Data.ENEMIES[id] && Data.ENEMIES[id].name) || id;
   const who = names.length > 3 ? names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more' : names.join(', ');
@@ -103,10 +105,30 @@ function eventKilled(id, ms, team) {
 }
 if (sims) sims.onEventKill = eventKilled;
 
+// ------------------------------------------------------------------ earned titles
+/** Gives account `key` an earned nameplate title (see Data.TITLES / Data.SLAYER) for good, and tells them if they're on. */
+function grantTitle(key, id) {
+  const t = Data.findTitle(id);
+  if (!key || !t || !t.earn) return false;
+  const sv = onlineSave(key);
+  if (!sv._titles || typeof sv._titles !== 'object') sv._titles = {};
+  if (sv._titles[id]) return false;
+  sv._titles[id] = Date.now();
+  store.putSave(key, sv);
+  const c = byName.get(key);
+  if (c) {
+    c.send({ t: 'title', id, earned: Object.keys(sv._titles) });
+    c.send({ t: 'banner', text: 'Title earned: ' + t.name + '!', color: t.col || 0xff9a2e, msg: 'Wear it from the Fame Store in the Nexus.' });
+  }
+  return true;
+}
+
 // ------------------------------------------------------------------ quests
 /** Something the server saw counts toward c's quests (evs: what happened, see WorldSim.questKill). */
 function questProgress(c, evs) {
   if (!c || !c.key || !c.authed) return;
+  if (evs.includes('darkelder')) grantTitle(c.key, 'elder');
+  if (evs.includes('raid:starfall')) grantTitle(c.key, 'vault');
   const sv = onlineSave(c.key);
   const done = quests.progress(sv, evs);
   if (done === null) return;
@@ -284,6 +306,8 @@ function publicSave(s) {
   delete o._ledgerV;
   delete o._quests;
   delete o._market;
+  delete o._titles;
+  o.earned = Object.keys(s._titles || {});
   return o;
 }
 
@@ -311,9 +335,20 @@ function applySave(c, data) {
   // so is quest progress, and the Marketplace box (takings, returned items)
   if (prev._quests) data._quests = prev._quests; else delete data._quests;
   if (prev._market) data._market = prev._market; else delete data._market;
+  // and earned titles (the game's list is only a copy)
+  if (prev._titles) data._titles = prev._titles; else delete data._titles;
+  data.earned = Object.keys(data._titles || {});
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
+  // a cosmetic bought just now: the profile that came before this save can wear it now
+  if (c.rawProfile && !isAdmin(c)) {
+    const p = cleanProfile(c.rawProfile, data);
+    if (p.dye !== c.profile.dye || p.title !== c.profile.title || p.skin !== c.profile.skin) {
+      c.profile = p;
+      for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
+    }
+  }
   return true;
 }
 
@@ -327,13 +362,23 @@ function shopDone(c, sv, ch, extra) {
 /** Per-account anti-cheat state ({lastSave, budget}), kept across reconnects. */
 const accountMeta = new Map();
 
-/** Profiles are shown to everyone: keep only the fields the game uses, with sane types. */
-function cleanProfile(p) {
+/** Profiles are shown to everyone: keep only the fields the game uses, with sane types. sv: the account's save, to check cosmetics are owned. */
+function cleanProfile(p, sv) {
   if (!p || typeof p !== 'object') return {};
-  const out = { cls: str(p.cls, 16), skin: str(p.skin, 24), level: Math.max(1, Math.min(20, num(p.level) | 0)),
+  const out = { cls: str(p.cls, 16), skin: str(p.skin, 24), dye: str(p.dye, 24), title: str(p.title, 32), level: Math.max(1, Math.min(20, num(p.level) | 0)),
     fame: Math.max(0, num(p.fame) | 0), maxed: Math.max(0, Math.min(11, num(p.maxed) | 0)), guild: str(p.guild, 24),
     // loot luck (Bounty + streak + shrine), capped at what the game can reach
     lk: Math.max(0, Math.min(160, num(p.lk) | 0)), hs: p.hs ? 1 : 0 };
+  // cosmetics: only ones this account owns (earned titles from the server's own list)
+  if (sv) {
+    const own = sv.cosmetics && typeof sv.cosmetics === 'object' ? sv.cosmetics : {};
+    if (out.skin && !(sv.skins && sv.skins[out.skin])) out.skin = '';
+    if (out.dye && !(Data.findDye(out.dye) && own[out.dye])) out.dye = '';
+    const t = out.title && Data.findTitle(out.title);
+    if (out.title && !(t && (t.earn ? sv._titles && sv._titles[out.title] : own[out.title]))) out.title = '';
+  }
+  if (!out.dye) delete out.dye;
+  if (!out.title) delete out.title;
   if (Array.isArray(p.equip)) out.equip = p.equip.slice(0, 4).map((it) => (it && typeof it === 'object' && JSON.stringify(it).length < 4000 ? it : null));
   return out;
 }
@@ -408,7 +453,8 @@ const handlers = {
     c.x = num(m.x); c.y = num(m.y);
     c.mv = null; // a new world: movement checks start again from where you arrive
     if (m.cid) c.charId = str(m.cid, 64);
-    if (m.profile && typeof m.profile === 'object') c.profile = cleanProfile(m.profile);
+    if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
+    c.profile = cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key));
     if (c.trade) endTrade(c, 'The trade was cancelled.');
     updateRealms();
     // the first player in a world runs its monsters
@@ -499,7 +545,8 @@ const handlers = {
 
   profile(c, m) {
     if (!m.profile || typeof m.profile !== 'object') return;
-    c.profile = cleanProfile(m.profile);
+    c.rawProfile = m.profile;
+    c.profile = cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key));
     for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
     updateGuildMember(c);
   },
@@ -853,6 +900,7 @@ const handlers = {
     const r = market.buy(sv, c.key, ch.inv, l.id, sellerSv);
     if (typeof r === 'string') return c.send({ t: 'shopFail', msg: r });
     if (sellerSv) store.putSave(l.seller, sellerSv);
+    if (sellerSv && Market.box(sellerSv).sold >= 10) grantTitle(l.seller, 'merchant');
     shopDone(c, sv, ch, { market: 'Bought ' + (l.item.name || 'an item') + ' from ' + l.sellerName + ' for ' + r.paid.toLocaleString('en') + ' gold.' });
     sendMarket(c);
     const seller = byName.get(l.seller);
@@ -901,6 +949,7 @@ const handlers = {
     sv.tradeSeq = (sv.tradeSeq || 0) + 1;
     store.putSave(c.key, sv);
     c.send({ t: 'questDone', gold: sv.gold || 0, onrane: sv.onrane || 0, seq: sv.tradeSeq, got, q: quests.view(sv) });
+    if (sv._quests.wk >= 4) grantTitle(c.key, 'questor');
   },
 
   /** The fastest event kills, for the Records page. */

@@ -4152,7 +4152,7 @@ package realm {
 				return y + 42;
 			}
 			var r:Object = Data.PET_RARITIES[pt.rarity];
-			var icon:Bitmap = new Bitmap(Sprites.get("pet_" + pt.species));
+			var icon:Bitmap = new Bitmap(Sprites.get(Sprites.petSprite(pt.species, Save.data.petSkin)));
 			icon.x = 24; icon.y = y;
 			sp.addChild(icon);
 			var max:Boolean = pt.level >= r.max;
@@ -4174,51 +4174,160 @@ package realm {
 			return y + 38;
 		}
 
-		// ------------------------------------------------------------- fame store (skins)
+		// ------------------------------------------------------------- fame store (cosmetics)
+		private var fameMode:String = "skins";
+
 		private function buildSkinPanel(sp:Sprite, info:TextField, y:int, w:int):int {
 			var fame:int = int(Save.data.fame || 0);
-			info.htmlText = "Spend account fame (earned when heroes die) on " + player.cls.name + " skins.\n" +
-				"You have <font color='#ff9a2e'><b>" + Ui.commas(fame) + "</b></font> fame.";
+			var tabs:Array = [["skins", "Skins"], ["dyes", "Dyes"], ["titles", "Titles"], ["pets", "Pet skins"]];
+			for (var ti:int = 0; ti < tabs.length; ti++) {
+				var tb:Sprite = Ui.button((fameMode == tabs[ti][0] ? "> " : "") + tabs[ti][1], 100, 26, fameTabFn(tabs[ti][0]), 13);
+				tb.x = 14 + ti * 104; tb.y = y;
+				tb.alpha = fameMode == tabs[ti][0] ? 1 : 0.7;
+				sp.addChild(tb);
+			}
+			y += 34;
+			var have:String = "You have <font color='#ff9a2e'><b>" + Ui.commas(fame) + "</b></font> fame (earned when heroes die).";
+			var opts:Array, i:int, cols:int, bw:int, bh:int;
+			if (fameMode == "titles") return buildTitles(sp, info, y, w, have);
+			if (fameMode == "skins") {
+				info.htmlText = player.cls.name + " skins change your hero's whole look. " + have;
+				opts = [{id: "", name: "Classic " + player.cls.name, cost: 0}].concat(Data.SKINS[player.cls.id] || []);
+				cols = 3; bw = 132; bh = 150;
+			} else if (fameMode == "dyes") {
+				info.htmlText = "Dyes recolour your hero's cloth, on every class and skin. " + have;
+				opts = [{id: "", name: "No dye", cost: 0}].concat(Data.DYES);
+				cols = 5; bw = 80; bh = 106;
+			} else {
+				if (!pet) {
+					info.htmlText = "Pet skins recolour your pet. Hatch one at the Pet Yard first. " + have;
+					info.y = y;
+					return y + info.height + 10;
+				}
+				info.htmlText = "Pet skins recolour your pet, whatever its species. " + have;
+				opts = [{id: "", name: "Natural", cost: 0}].concat(Data.PET_SKINS);
+				cols = 3; bw = 132; bh = 128;
+			}
 			info.y = y;
 			y += info.height + 8;
-			var opts:Array = [{id: "", name: "Classic " + player.cls.name, cost: 0}].concat(Data.SKINS[player.cls.id] || []);
-			var owned:Object = Save.data.skins || {};
-			for (var i:int = 0; i < opts.length; i++) {
-				var sk:Object = opts[i];
-				var x:int = 14 + (i % 3) * 140;
+			var gap:int = int((w - 28 - cols * bw) / (cols - 1));
+			for (i = 0; i < opts.length; i++) {
+				var c:Object = opts[i];
 				var box:Sprite = new Sprite();
-				var on:Boolean = player.skin == sk.id;
-				Ui.panel(box.graphics, 0, 0, 132, 150, on ? 0x3e3424 : 0x2c2c2c, on ? 0xff9a2e : 0x4a4a4a);
-				var bmp:Bitmap = new Bitmap(Sprites.get(sk.id || player.cls.id));
-				bmp.x = (132 - bmp.width) / 2; bmp.y = 6;
+				var on:Boolean = cosmeticWorn(c.id);
+				Ui.panel(box.graphics, 0, 0, bw, bh, on ? 0x3e3424 : 0x2c2c2c, on ? 0xff9a2e : 0x4a4a4a);
+				var spr:String = fameMode == "skins" ? (c.id || player.cls.id) : fameMode == "dyes" ? Sprites.dyed(player.skin || player.cls.id, c.id) : Sprites.petSprite(pet.species, c.id);
+				var bmp:Bitmap = new Bitmap(Sprites.get(spr));
+				bmp.x = (bw - bmp.width) / 2; bmp.y = 4;
+				if (bmp.height > bh - 60) { bmp.scaleX = bmp.scaleY = (bh - 60) / bmp.height; bmp.x = (bw - bmp.width) / 2; }
 				box.addChild(bmp);
-				var nm:TextField = Ui.text(13, 0xffffff, true, "center", 132, true);
-				nm.text = sk.name;
-				nm.y = 66;
+				if (c.col !== undefined && fameMode == "dyes") {
+					box.graphics.beginFill(c.col);
+					box.graphics.drawRect(6, 6, 10, 10);
+					box.graphics.endFill();
+				}
+				var nm:TextField = Ui.text(bw < 100 ? 11 : 13, 0xffffff, true, "center", bw, true);
+				nm.text = c.name;
+				nm.y = bh - 58;
 				box.addChild(nm);
-				var have:Boolean = !sk.id || owned[sk.id];
-				var label:String = on ? "Equipped" : have ? "Equip" : Ui.commas(sk.cost) + " fame";
-				var b:Sprite = Ui.button(label, 112, 30, skinFn(sk), 14);
-				b.x = 10; b.y = 108;
+				var label:String = on ? "Worn" : !c.id || cosmeticOwned(c.id) ? "Wear" : Ui.commas(c.cost) + (bw < 100 ? "" : " fame");
+				var b:Sprite = Ui.button(label, bw - 16, 26, cosmeticFn(fameMode, c), bw < 100 ? 12 : 14);
+				b.x = 8; b.y = bh - 32;
 				box.addChild(b);
-				box.x = x; box.y = y + int(i / 3) * 158;
+				box.x = 14 + (i % cols) * (bw + gap); box.y = y + int(i / cols) * (bh + 8);
 				sp.addChild(box);
 			}
-			return y + Math.ceil(opts.length / 3) * 158;
+			return y + Math.ceil(opts.length / cols) * (bh + 8);
 		}
 
-		private function skinFn(sk:Object):Function {
+		private function buildTitles(sp:Sprite, info:TextField, y:int, w:int, have:String):int {
+			info.htmlText = "A title shows under your name for everyone to see. Buy one, or earn the rare ones. " + have;
+			info.y = y;
+			y += info.height + 6;
+			var earned:Object = earnedTitles();
+			var list:Array = [{id: "", name: "No title", cost: 0}].concat(Data.TITLES);
+			var slayers:int = 0, ev:String;
+			for each (ev in Data.EVENTS) if (earned["slayer_" + ev]) { list.push(Data.findTitle("slayer_" + ev)); slayers++; }
+			for (var i:int = 0; i < list.length; i++) {
+				var t:Object = list[i];
+				var x:int = 14 + (i % 2) * 210;
+				var ty:int = y + int(i / 2) * 34;
+				var on:Boolean = player.title == t.id;
+				var ok:Boolean = !t.id || cosmeticOwned(t.id);
+				var row:Sprite = new Sprite();
+				Ui.panel(row.graphics, 0, 0, 202, 30, on ? 0x3e3424 : 0x2c2c2c, on ? 0xff9a2e : 0x4a4a4a);
+				var nm:TextField = Ui.text(12, t.earn ? (ok ? t.col : 0x888888) : 0xffffff, true, "left", 120, true);
+				nm.text = t.name;
+				nm.x = 6; nm.y = 6;
+				row.addChild(nm);
+				if (t.earn && !ok) {
+					var how:TextField = Ui.text(10, 0x999999, false, "right", 76, true);
+					how.text = "how? (click)";
+					how.x = 120; how.y = 8;
+					row.addChild(how);
+					row.buttonMode = true;
+					row.mouseChildren = false;
+					row.addEventListener(MouseEvent.CLICK, titleTipFn(t));
+				} else {
+					var b:Sprite = Ui.button(on ? "Worn" : ok ? "Wear" : Ui.commas(t.cost), 70, 22, cosmeticFn("titles", t), 11);
+					b.x = 128; b.y = 4;
+					row.addChild(b);
+				}
+				row.x = x; row.y = ty;
+				sp.addChild(row);
+			}
+			y += Math.ceil(list.length / 2) * 34 + 2;
+			var sl:TextField = Ui.text(12, 0xff9a2e, false, "left", w - 28, true);
+			sl.htmlText = "<b>Slayer titles</b> (like <i>Kraken Slayer</i>): a top-5 time for a realm event on the Records board. " +
+				"You have " + slayers + " of " + Data.EVENTS.length + ". Earned titles are kept for good." + (net.online ? "" : " <font color='#888888'>(Earned online.)</font>");
+			sl.x = 14; sl.y = y;
+			sp.addChild(sl);
+			return y + sl.height + 6;
+		}
+
+		private function titleTipFn(t:Object):Function {
+			return function(e:MouseEvent):void { msg("\"" + t.name + "\": " + t.earn + ".", t.col || 0xff9a2e); };
+		}
+
+		private function fameTabFn(mode:String):Function {
+			return function():void { fameMode = mode; refreshStation(); };
+		}
+
+		/** Titles the server gave this account (Save.data.earned, kept up to date by the server). */
+		private function earnedTitles():Object {
+			var out:Object = {};
+			for each (var id:String in (Save.data.earned as Array) || []) out[id] = true;
+			return out;
+		}
+
+		private function cosmeticOwned(id:String):Boolean {
+			if (Data.findSkin(id)) return Save.data.skins && Save.data.skins[id];
+			var t:Object = Data.findTitle(id);
+			if (t && t.earn) return earnedTitles()[id];
+			return Save.data.cosmetics && Save.data.cosmetics[id];
+		}
+
+		private function cosmeticWorn(id:String):Boolean {
+			return fameMode == "skins" ? player.skin == id : fameMode == "dyes" ? player.dye == id : fameMode == "pets" ? (Save.data.petSkin || "") == id : player.title == id;
+		}
+
+		/** Buys (with account fame) and/or wears a skin, dye, title or pet skin. */
+		private function cosmeticFn(mode:String, c:Object):Function {
 			return function():void {
-				var owned:Object = Save.data.skins || (Save.data.skins = {});
-				if (sk.id && !owned[sk.id]) {
+				if (c.id && !cosmeticOwned(c.id)) {
+					if (c.earn) return;
 					var fame:int = int(Save.data.fame || 0);
-					if (fame < sk.cost) { msg("You need " + Ui.commas(sk.cost) + " fame for " + sk.name + ". Fame is earned when heroes die.", 0xff8080); return; }
-					Save.data.fame = fame - sk.cost;
-					owned[sk.id] = true;
-					showBanner("Unlocked " + sk.name + "!", 0xff9a2e, 3);
+					if (fame < c.cost) { msg("You need " + Ui.commas(c.cost) + " fame for " + c.name + ". Fame is earned when heroes die.", 0xff8080); return; }
+					Save.data.fame = fame - c.cost;
+					if (mode == "skins") (Save.data.skins || (Save.data.skins = {}))[c.id] = true;
+					else (Save.data.cosmetics || (Save.data.cosmetics = {}))[c.id] = true;
+					showBanner("Unlocked " + (mode == "titles" ? "the title \"" + c.name + "\"" : c.name + (mode == "dyes" ? " dye" : mode == "pets" ? " pet skin" : "")) + "!", 0xff9a2e, 3);
 					Sfx.play("rare");
 				}
-				player.skin = sk.id;
+				if (mode == "skins") player.skin = c.id;
+				else if (mode == "dyes") Save.data.dye = c.id;
+				else if (mode == "titles") Save.data.title = c.id;
+				else Save.data.petSkin = c.id;
 				burst(player.x, player.y, 0xff9a2e, 20);
 				saveCharacter();
 				Save.flush();
@@ -4847,7 +4956,7 @@ package realm {
 				if (d.o == -2) {
 					drawRemote(d.r);
 				} else if (d.o < 0) {
-					drawEntity(Sprites.get("pet_" + pet.species, 0, scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY),
+					drawEntity(Sprites.get(Sprites.petSprite(pet.species, Save.data.petSkin), 0, scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY),
 						petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
 				} else if (d.o) {
 					bd = Sprites.get(World.OBJ_NAMES[d.o]);
@@ -5108,12 +5217,11 @@ package realm {
 				if (names || rp == hoverRemote || friend) {
 				var tf:TextField = tags[n];
 				if (!tf) {
-					tf = tags[n] = Ui.text(12, 0xffffff, true, "center", 120, true);
+					tf = tags[n] = Ui.text(12, 0xffffff, true, "center", 160, true);
 					tagLayer.addChild(tf);
 				}
 				n++;
-				if (tf.text != rp.name) tf.text = rp.name;
-				tf.textColor = rp == hoverRemote ? Ui.GOLD : friend || 0xe8e8e8;
+				tagText(tf, rp.name, rp == hoverRemote ? Ui.GOLD : friend || 0xe8e8e8, rp.profile.title);
 				tf.visible = true;
 				tf.x = int(cx - tf.width / 2);
 				tf.y = int(cy + TS * 0.4 + 1);
@@ -5401,7 +5509,7 @@ package realm {
 
 		public function myProfile():Object {
 			var p:Player = player;
-			return {lk: p.frt + lootLuck(), hs: p.highStakes && p.rank("highstakes") > 0, cls: p.cls.id, skin: p.skin, level: p.level, fame: p.fame, maxed: p.maxedCount,
+			return {lk: p.frt + lootLuck(), hs: p.highStakes && p.rank("highstakes") > 0, cls: p.cls.id, skin: p.skin, dye: p.dye, title: p.title, level: p.level, fame: p.fame, maxed: p.maxedCount,
 				equip: [p.weapon, p.ability, p.armor, p.ring], guild: net && net.guild ? net.guild.name : ""};
 		}
 
@@ -5545,14 +5653,25 @@ package realm {
 			if (e.hp <= 0) killEnemy(e);
 		}
 
+		/** A name plate: the name, and under it the player's title if they wear one (only redrawn when it changes). */
+		private function tagText(tf:TextField, who:String, col:uint, title:String):void {
+			var key:String = who + "|" + col + "|" + (title || "");
+			if (tf.name == key) return;
+			tf.name = key;
+			var t:Object = Data.findTitle(title);
+			tf.htmlText = "<font color='" + Ui.hex(col) + "'>" + who + "</font>" +
+				(t ? "\n<font size='10' color='" + Ui.hex(t.col || 0xc8c8d8) + "'>" + t.name + "</font>" : "");
+		}
+
 		private function drawPlayer():void {
 			var p:Player = player;
 			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
 			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, p.moving ? 0 : int(time * 1.6) % 2, world.inWater(p.x, p.y));
+			tagText(nameTag, p.name, 0xffe36e, p.title);
 			nameTag.x = int(cx - nameTag.width / 2);
 			nameTag.y = int(cy + TS * 0.4 + 1);
-			hpBar(cx - 20, cy + TS * 0.4 + 21, 40, p.hp / p.maxHp);
+			hpBar(cx - 20, cy + TS * 0.4 + (p.title ? 35 : 21), 40, p.hp / p.maxHp);
 		}
 
 		private function statusPip(cx:Number, y:Number, color:uint):void {

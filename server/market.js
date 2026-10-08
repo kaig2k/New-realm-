@@ -68,6 +68,7 @@ class Market {
     if (sellerSv) {
       const b = Market.box(sellerSv);
       b.earned += earned;
+      b.sold = (b.sold || 0) + 1;
       b.sales.unshift({ name: l.item.name || 'an item', price: l.price, got: earned, at: Date.now() });
       if (b.sales.length > 20) b.sales.length = 20;
     }

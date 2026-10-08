@@ -603,6 +603,10 @@ class WorldSim {
     }
     if (e.elite) evs.push('elites');
     if (e.isBoss) {
+      if (e.def.final) evs.push('darkelder');
+      // a raid's last boss (titles)
+      if (this.kind === 'raid' && this.w.raidStage === this.w.raid.stages.length - 1 &&
+        !this.enemies.some((o) => o !== e && !o.dead && o.isBoss)) evs.push('raid:' + this.w.raid.id);
       if (e.def.final || e.def.finale) evs.push('elder');
       else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
       else if (this.kind === 'realm' && e.def.setpiece) {

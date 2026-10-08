@@ -656,6 +656,38 @@ async function run() {
     check('no new realm events start just before a restart', noneSoon && !!ws.w.boss);
   }
 
+  console.log('cosmetics');
+  {
+    const C = await login('Tc' + n, { password: 'pass1234', register: true });
+    const D = await login('Td' + n, { password: 'pass1234', register: true });
+    const wC = C.find((m) => m.t === 'welcome');
+    check('the game gets its earned titles (none yet) with the save', wC && Array.isArray(wC.save.earned) && wC.save.earned.length === 0);
+    C.send({ t: 'enter', key: 'nexus', cid: 'cc', x: 100, y: 100, profile: { cls: 'wizard' } });
+    D.send({ t: 'enter', key: 'nexus', cid: 'cd', x: 101, y: 100, profile: { cls: 'knight' } });
+    await wait(300);
+    D.clear();
+    const worn = { cls: 'wizard', dye: 'dye_ocean', title: 't_bold', level: 3 };
+    C.send({ t: 'profile', profile: worn });
+    await wait(250);
+    const p1 = D.find((m) => m.t === 'profile' && m.id === C.id);
+    check('nobody can wear a dye or title they don\'t own', p1 && !p1.profile.dye && !p1.profile.title, JSON.stringify(p1));
+    D.clear();
+    C.send({ t: 'save', data: { fame: 0, cosmetics: { dye_ocean: true, t_bold: true, elder: true }, chars: [] } });
+    await wait(400);
+    const p2 = D.find((m) => m.t === 'profile' && m.id === C.id);
+    check('once bought (the save arrives), others see the dye and title', p2 && p2.profile.dye === 'dye_ocean' && p2.profile.title === 't_bold',
+      JSON.stringify(p2 || C.find((m) => m.t === 'saveRejected')));
+    D.clear();
+    C.send({ t: 'profile', profile: Object.assign({}, worn, { title: 'elder' }) });
+    await wait(250);
+    const p3 = D.find((m) => m.t === 'profile' && m.id === C.id);
+    check('earned titles can\'t be bought or faked in the save', p3 && !p3.profile.title && p3.profile.dye === 'dye_ocean');
+    const { Data } = require('./sim/gen/game');
+    check('a top-5 Records time has a Slayer title for every realm event', Data.EVENTS.every((ev) => { const t = Data.findTitle('slayer_' + ev); return t && t.earn && /\w/.test(t.name); }) &&
+      Data.findTitle('slayer_ev_kraken').name === 'Kraken Slayer');
+    C.s.destroy(); D.s.destroy();
+  }
+
   console.log('bad input');
   const evil = await login('Ev' + n, { password: 'pass1234', register: true });
   evil.send('{{{ not json');

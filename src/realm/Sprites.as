@@ -422,6 +422,7 @@ package realm {
 		/** Flashed version used when something gets hit. */
 		/** Builds (once) the sprite definition for a class skin: the class frames with a recoloured palette. */
 		private static function skinDef(name:String):Array {
+			if (name.indexOf("~") > 0) return cosmeticDef(name);
 			var f:Object = Data.findSkin(name);
 			if (!f) return null;
 			var base:Array = DEFS[f.base];
@@ -430,6 +431,51 @@ package realm {
 			for (k in base[1]) pal[k] = base[1][k];
 			for (k in f.skin.pal) pal[k] = f.skin.pal[k];
 			return DEFS[name] = [base[0], pal, base[2]];
+		}
+
+		/** The sprite id for a hero (class or skin) wearing a dye ("" for none). */
+		public static function dyed(base:String, dye:String):String {
+			return dye && Data.findDye(dye) ? base + "~" + dye : base;
+		}
+
+		/** The sprite id for a pet species in a pet skin ("" for none). */
+		public static function petSprite(species:String, skin:String):String {
+			return "pet_" + species + (skin && Data.findPetSkin(skin) ? "~" + skin : "");
+		}
+
+		/** "base~dye" (a hero in a dye) or "pet_x~pskin" (a pet in a skin): the base design with a merged palette. */
+		private static function cosmeticDef(name:String):Array {
+			var parts:Array = name.split("~");
+			var base:Array = DEFS[parts[0]] || skinDef(parts[0]);
+			if (!base) return null;
+			var pal:Object = {};
+			var k:String;
+			for (k in base[1]) pal[k] = base[1][k];
+			var dye:Object = Data.findDye(parts[1]);
+			var ps:Object = Data.findPetSkin(parts[1]);
+			if (dye) {
+				var f:Object = Data.findSkin(parts[0]);
+				var keys:Array = Data.DYE_KEYS[f ? f.base : parts[0]];
+				if (!keys) return null;
+				// the first key takes the dye; the others keep their brightness relative to it
+				var l0:Number = Math.max(0.05, lum(pal[keys[0]]));
+				for (var i:int = 0; i < keys.length; i++) {
+					var ratio:Number = i == 0 ? 1 : lum(pal[keys[i]]) / l0;
+					pal[keys[i]] = ratio <= 1 ? shade(dye.col, Math.max(0.35, ratio)) : tint(dye.col, Math.min(0.5, ratio - 1));
+				}
+			} else if (ps) {
+				// a wash over every colour but the eyes, keeping light and dark parts apart
+				for (k in pal) {
+					if (k == "E") continue;
+					var l:Number = lum(pal[k]);
+					pal[k] = l < 0.55 ? shade(ps.col, 0.35 + l * 1.2) : tint(ps.col, (l - 0.55) * 1.4);
+				}
+			} else return null;
+			return DEFS[name] = [base[0], pal, base[2]];
+		}
+
+		private static function lum(c:uint):Number {
+			return (((c >> 16) & 255) * 0.3 + ((c >> 8) & 255) * 0.59 + (c & 255) * 0.11) / 255;
 		}
 
 		/** Red-hot tint used while a boss is enraged. */

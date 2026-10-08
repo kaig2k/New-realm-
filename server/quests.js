@@ -77,6 +77,7 @@ function claim(sv, weekly, i, now) {
   if (e.q.c) return 'You already claimed that one.';
   if (e.q.p < e.def.goal) return 'That quest is not finished yet.';
   e.q.c = true;
+  if (weekly) q.wk = (q.wk || 0) + 1; // weekly quests ever claimed (Questmaster title)
   sv.gold = (sv.gold || 0) + (e.def.gold || 0);
   sv.onrane = (sv.onrane || 0) + (e.def.onrane || 0);
   return { gold: e.def.gold || 0, onrane: e.def.onrane || 0 };

@@ -24,6 +24,9 @@ package realm {
 		public var backpack:Boolean = false;
 		/** Equipped skin id, or "" for the class's default look. */
 		public var skin:String = "";
+		/** Account-wide cosmetics worn by this hero: cloth dye id and nameplate title id ("" for none). */
+		public function get dye():String { return Save.data.dye || ""; }
+		public function get title():String { return Save.data.title || ""; }
 		/** Which 8-slot page of the inventory the HUD shows (and keys 1-8 use). */
 		public var packPage:int = 0;
 		public var hpPots:int = 2, mpPots:int = 0;
@@ -280,7 +283,7 @@ package realm {
 		}
 
 		public function get spriteId():String {
-			return skin || cls.id;
+			return Sprites.dyed(skin || cls.id, dye);
 		}
 
 		public function get fireRate():Number {

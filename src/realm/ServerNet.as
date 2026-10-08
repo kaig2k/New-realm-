@@ -182,6 +182,10 @@ package realm {
 				case "questDone":
 					g.questClaimed(m);
 					break;
+				case "title":
+					// the server gave this account a title: keep its list (the banner comes separately)
+					if (m.earned is Array) Save.data.earned = m.earned;
+					break;
 				case "questComplete":
 					g.questComplete(m.text);
 					break;

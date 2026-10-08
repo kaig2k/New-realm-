@@ -190,19 +190,9 @@ package realm {
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."}
 		};
 
-		/** Where a boss's set-piece pieces stand: evenly round it, pulled in where the ground is blocked. */
+		/** Where a boss's set-piece pieces stand: the P tiles of its layout (x, y is the boss's tile centre). */
 		public static function setPieceSpots(id:String, x:Number, y:Number, w:World):Array {
-			var sp:Object = SETPIECES[id];
-			var out:Array = [];
-			if (!sp) return out;
-			for (var i:int = 0; i < sp.n; i++) {
-				var a:Number = i * Math.PI * 2 / sp.n + Math.PI / 4;
-				for (var r:Number = sp.r; r >= 2; r -= 0.5) {
-					var px:Number = x + Math.cos(a) * r, py:Number = y + Math.sin(a) * r;
-					if (w.canStand(px, py, 0.5, true)) { out.push({what: sp.prop, x: px, y: py}); break; }
-				}
-			}
-			return out;
+			return SetPieces.spots(id, int(x), int(y));
 		}
 
 		private static function setPieces():void {
@@ -242,6 +232,7 @@ package realm {
 		}
 
 		private static function art():void {
+			SetPieces.art();
 			// realm event set-piece pieces
 			Sprites.recolor("cube_pylon", "crystal", {W: 0xffe0ff, C: 0xff60ff, c: 0xa020c0, D: 0x50106a, S: 0x2a1a3a}, 6);
 			Sprites.recolor("royal_effigy", "pillar", {L: 0xffe080, l: 0xb08a30, S: 0xd8b050, s: 0x806020});

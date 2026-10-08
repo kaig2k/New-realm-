@@ -367,6 +367,7 @@ async function run() {
     const all = Data.EVENTS.slice();
     for (const ev of Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece)) {
       ws.w.eventT = 0; ws.w.eventsDone = 0; ws.closeT = 0; ws.w.closed = false; ws.w.recentEvents = [];
+      const before = Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',');
       Data.EVENTS.length = 0; Data.EVENTS.push(ev);
       try { ws.updateEvents(0.1); } finally { Data.EVENTS.length = 0; Data.EVENTS.push(...all); }
       const b = ws.w.boss;
@@ -375,6 +376,8 @@ async function run() {
       c.x = b.x; c.y = b.y + 3;
       ws.tick(0.05);
       if (!b.props || b.props.length !== sp.n) { bad.push(ev + ': ' + (b.props ? b.props.length : 0) + ' pieces'); continue; }
+      if (!b.arena || b.arena.length < 150) bad.push(ev + ': no structure laid down');
+      for (const p of b.props) if (!ws.w.canStand(p.x, p.y, 0.3, true)) bad.push(ev + ': a piece stands in a wall');
       if (sp.ward) {
         ws.hit(c, { id: b.id, d: 1000 });
         if (b.hp < b.maxHp) bad.push(ev + ': hurt while warded');
@@ -387,9 +390,10 @@ async function run() {
       for (let k = 0; k < 40 && !b.dead; k++) { b.invuln = false; b.shieldT = 0; ws.hit(c, { id: b.id, d: 6000 }); ws.tick(0.05); }
       if (!b.dead) bad.push(ev + ': boss did not die');
       else if (b.props.some((p) => !p.dead)) bad.push(ev + ': pieces left after the boss died');
+      else if (Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',') !== before) bad.push(ev + ': the ground was not put back');
       ws.tick(0.05);
     }
-    check('every event boss brings its set piece, wards hold, and it all goes when the boss dies', !bad.length, bad.join('; '));
+    check('every event boss raises its set piece, wards hold, and it all goes (ground restored) when the boss dies', !bad.length, bad.join('; '));
   }
 
   console.log('launcher downloads');

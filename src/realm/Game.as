@@ -1540,10 +1540,11 @@ package realm {
 			var id:String;
 			do id = Data.EVENTS[int(Math.random() * Data.EVENTS.length)]; while (world.recentEvents.indexOf(id) >= 0);
 			for (var tries:int = 0; tries < 500; tries++) {
-				var x:Number = world.N / 2 + (Math.random() - 0.5) * world.N * 0.6;
-				var y:Number = world.N / 2 + (Math.random() - 0.5) * world.N * 0.6;
+				// the boss stands in the middle of a tile, at the centre of its set piece
+				var x:Number = int(world.N / 2 + (Math.random() - 0.5) * world.N * 0.6) + 0.5;
+				var y:Number = int(world.N / 2 + (Math.random() - 0.5) * world.N * 0.6) + 0.5;
 				var z:int = world.zoneAt(x, y);
-				if (z >= World.MID_ZONE && z <= World.GOD_ZONE && world.canStand(x, y, 0.6, true)) {
+				if (z >= World.MID_ZONE && z <= World.GOD_ZONE && world.canStand(x, y, 0.6, true) && SetPieces.fits(id, world, int(x), int(y))) {
 					world.nextEvent++;
 					world.recentEvents.push(id);
 					if (world.recentEvents.length > 4) world.recentEvents.shift();
@@ -4333,7 +4334,6 @@ package realm {
 			mtx.translate(cx + shx, cy + shy);
 			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw + vh * vh) / 2 / TS + 1);
 			if (inNexus && decor) decor.drawGround(canvas);
-			if (arenas) arenas.drawGround(canvas);
 
 			var bd:BitmapData;
 			// loot bags lie on the ground

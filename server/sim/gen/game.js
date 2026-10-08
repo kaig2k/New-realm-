@@ -814,17 +814,7 @@ class Bosses {
 			}
 		}
 	static setPieceSpots(id, x, y, w) {
-			var sp = Bosses.SETPIECES[id];
-			var out = [];
-			if (!sp) return out;
-			for (var i = __int(0); i < sp.n; i++) {
-				var a = i * Math.PI * 2 / sp.n + Math.PI / 4;
-				for (var r = sp.r; r >= 2; r -= 0.5) {
-					var px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
-					if (w.canStand(px, py, 0.5, true)) { out.push({what: sp.prop, x: px, y: py}); break; }
-				}
-			}
-			return out;
+			return SetPieces.spots(id, __int(x), __int(y));
 		}
 	static setPieces() {
 			var still = {ai: "still", spd: 0, r: 0.6, aggro: 13, range: 12, drop: 0, xp: 90, keep: 0, prop: true};
@@ -2151,6 +2141,99 @@ class World {
 			if (!this.walkable(x - r, y - r) || !this.walkable(x + r, y - r) || !this.walkable(x - r, y + r) || !this.walkable(x + r, y + r)) return false;
 			if (enemy && (this.isSafe(x - r, y - r) || this.isSafe(x + r, y + r) || this.isSafe(x + r, y - r) || this.isSafe(x - r, y + r))) return false;
 			return true;
+		}
+}
+
+class SetPieces {
+	constructor() {
+
+	}
+	static layoutOf(id) {
+			var sp = Bosses.SETPIECES[id];
+			return sp ? SetPieces.LAYOUTS[sp.style] : null;
+		}
+	static fits(id, w, cx, cy) { cx = __int(cx); cy = __int(cy);
+			var rows = SetPieces.layoutOf(id);
+			if (!rows) return true;
+			if (w.siteAt(cx + 0.5, cy + 0.5, SetPieces.HALF + 1)) return false;
+			var sea = __int(0), total = __int(0);
+			for (var r = __int(0); r < SetPieces.SIZE; r++) {
+				var row = rows[r];
+				for (var c = __int(0); c < SetPieces.SIZE; c++) {
+					if (row.charAt(c) == " ") continue;
+					var x = __int(cx - SetPieces.HALF + c), y = __int(cy - SetPieces.HALF + r);
+					if (x < 3 || y < 3 || x >= w.N - 3 || y >= w.N - 3) return false;
+					var i = __int(y * w.N + x);
+					var t = __int(w.tiles[i]), z = __int(w.zones[i]), o = __int(w.objs[i]);
+					if (t == World.VOID || t == World.WALL || z == World.SAFE_ZONE || z == World.NEXUS_ZONE) return false;
+					if (o >= 14 && o <= 18) return false;
+					total++;
+					if (t == World.WATER && z < 0) sea++;
+				}
+			}
+			return sea * 10 < total;
+		}
+	static plan(id, w, cx, cy) { cx = __int(cx); cy = __int(cy);
+			var out = [];
+			var rows = SetPieces.layoutOf(id);
+			if (!rows) return out;
+			var st = SetPieces.STYLES[Bosses.SETPIECES[id].style];
+			for (var r = __int(0); r < SetPieces.SIZE; r++) {
+				var row = rows[r];
+				for (var c = __int(0); c < SetPieces.SIZE; c++) {
+					var ch = row.charAt(c);
+					if (ch == " ") continue;
+					
+					if (ch == "-" && (c * 7 + r * 13) % 10 >= 6) continue;
+					var x = __int(cx - SetPieces.HALF + c), y = __int(cy - SetPieces.HALF + r);
+					if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
+					var i = __int(y * w.N + x);
+					var nt = __int(st.floor), no = __int(0);
+					if (ch == ",") nt = __int(st.alt);
+					else if (ch == ":") nt = __int(st.trim);
+					else if (ch == "~") nt = __int(st.hz);
+					else if (ch == "#") nt = __int(World.WALL);
+					else if (ch == "a") no = __int(st.a);
+					else if (ch == "b") no = __int(st.b);
+					else if (ch == "c") no = __int(st.c);
+					var dx = __int(c - SetPieces.HALF), dy = __int(r - SetPieces.HALF);
+					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false});
+				}
+			}
+			return out;
+		}
+	static apply(w, cells, upto = 99) {
+			var n = __int(0);
+			for (var k of __vals( cells)) {
+				if (k.on || k.d > upto) continue;
+				k.on = true;
+				w.tiles[k.i] = k.nt;
+				w.objs[k.i] = k.no;
+				n++;
+			}
+			return __int(n);
+		}
+	static undo(w, cells, from = 0) {
+			var n = __int(0);
+			for (var k of __vals( cells)) {
+				if (!k.on || k.d < from) continue;
+				k.on = false;
+				w.tiles[k.i] = k.t;
+				w.objs[k.i] = k.o;
+				n++;
+			}
+			return __int(n);
+		}
+	static spots(id, cx, cy) { cx = __int(cx); cy = __int(cy);
+			var out = [];
+			var rows = SetPieces.layoutOf(id);
+			if (!rows) return out;
+			var prop = Bosses.SETPIECES[id].prop;
+			for (var r = __int(0); r < SetPieces.SIZE; r++) {
+				var row = rows[r];
+				for (var c = __int(0); c < SetPieces.SIZE; c++) if (row.charAt(c) == "P") out.push({what: prop, x: cx - SetPieces.HALF + c + 0.5, y: cy - SetPieces.HALF + r + 0.5});
+			}
+			return out;
 		}
 }
 
@@ -3576,6 +3659,16 @@ World.HIGH = __int(15);
 World.ROAD = __int(16);
 World.BRIDGE = __int(17);
 World.RUIN = __int(18);
+World.ICE = __int(19);
+World.OBSIDIAN = __int(20);
+World.SANDSTONE = __int(21);
+World.HEXSTONE = __int(22);
+World.REEF = __int(23);
+World.METAL = __int(24);
+World.BONE = __int(25);
+World.GOLD = __int(26);
+World.ASH = __int(27);
+World.SPECTRAL = __int(28);
 World.SHORE_ZONE = __int(0);
 World.LOW_ZONE = __int(1);
 World.MID_ZONE = __int(2);
@@ -3585,13 +3678,345 @@ World.SAFE_ZONE = __int(9);
 World.ARENA_ZONE = __int(6);
 World.DUNGEON_ZONE = __int(7);
 World.OBJ_NAMES = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall", "tent", "grave", "campfire", "totem",
-			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner"];
+			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner",
+			
+			"sp_crystal_cube", "sp_spike_ice", "sp_pillar_ice", "sp_pillar_gold", "sp_pillar_dark", "sp_brazier_blue", "sp_pillar_sand",
+			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex"];
 World.SHRINES = ["might", "haste", "fortune", "vigor", "arcana"];
 World.NEXUS_ZONE = __int(5);
 World.customMap = null;
+SetPieces.SIZE = __int(21);
+SetPieces.HALF = __int(10);
+SetPieces.OBJ_FIRST = __int(20);
+SetPieces.STYLES = {
+			cube: {floor: World.METAL, alt: World.STONE, trim: World.FOUNTAIN, hz: World.FOUNTAIN, a: 20, b: 20, c: 20},
+			lava: {floor: World.ASH, alt: World.OBSIDIAN, trim: World.LAVA, hz: World.LAVA, a: 7, b: 5, c: 4},
+			frost: {floor: World.ICE, alt: World.PLAZA, trim: World.ICE, hz: World.WATER, a: 21, b: 22, c: 21},
+			throne: {floor: World.PLAZA, alt: World.CARPET, trim: World.GOLD, hz: World.GOLD, a: 23, b: 19, c: 7},
+			bone: {floor: World.SAND, alt: World.BONE, trim: World.BONE, hz: World.BONE, a: 13, b: 10, c: 12},
+			ghost: {floor: World.SPECTRAL, alt: World.STONE, trim: World.STONE, hz: World.SPECTRAL, a: 11, b: 25, c: 24},
+			sand: {floor: World.SANDSTONE, alt: World.SAND, trim: World.GOLD, hz: World.GOLD, a: 26, b: 3, c: 26},
+			sunken: {floor: World.REEF, alt: World.RUIN, trim: World.RUIN, hz: World.WATER, a: 8, b: 27, c: 8},
+			shell: {floor: World.SAND, alt: World.REEF, trim: World.REEF, hz: World.WATER, a: 3, b: 3, c: 28},
+			skull: {floor: World.BONE, alt: World.BLOODSTONE, trim: World.BLOODSTONE, hz: World.BLOODSTONE, a: 29, b: 30, c: 11},
+			obsidian: {floor: World.OBSIDIAN, alt: World.GOD, trim: World.LAVA, hz: World.LAVA, a: 31, b: 5, c: 4},
+			fire: {floor: World.ASH, alt: World.BRICK, trim: World.LAVA, hz: World.LAVA, a: 7, b: 6, c: 7},
+			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
+			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4}
+		};
+SetPieces.LAYOUTS = {
+			cube: [
+				"                     ",
+				"    -------------    ",
+				"  --.............--  ",
+				"  -##.,,,,,,,,,.##-  ",
+				" -.#a.,.......,.a#.- ",
+				" -..,P,...:...,P,..- ",
+				" -.,,,,...:...,,,,.- ",
+				" -.,......:......,.- ",
+				" -.,......:......,.- ",
+				" -.,......,......,.- ",
+				" -.,::::,,B,,::::,.- ",
+				" -.,......,......,.- ",
+				" -.,......:......,.- ",
+				" -.,......:......,.- ",
+				" -.,,,,...:...,,,,.- ",
+				" -..,P,...:...,P,..- ",
+				" -.#a.,.......,.a#.- ",
+				"  -##.,,,,,,,,,.##-  ",
+				"  --.............--  ",
+				"    -------------    ",
+				"                     "],
+			lava: [
+				"      ---------      ",
+				"   ---.........---   ",
+				"  -~~.....-.....~~-  ",
+				"  -~~~..b...b..~~~-  ",
+				" -..~~~.......~~~..- ",
+				" -..,~P~.....~P~,..- ",
+				" -.b..~~,...,~~..b.- ",
+				" -.....~,...,~.....- ",
+				" -.a.,,,.....,,,.a.- ",
+				" -.....,.....,.....- ",
+				" -..,.....B.....,..- ",
+				" -.....,.....,.....- ",
+				" -.a.,,,.....,,,.a.- ",
+				" -.....~,...,~.....- ",
+				" -.b..~~,...,~~..b.- ",
+				" -..,~P~.....~P~,..- ",
+				" -..~~~.......~~~..- ",
+				"  -~~~..b...b..~~~-  ",
+				"  -~~.....-.....~~-  ",
+				"   ---.........---   ",
+				"      ---------      "],
+			frost: [
+				"       -------       ",
+				"     --.......--     ",
+				"    -.....,.....-    ",
+				"   -.b.,,,,,,,.b.-   ",
+				"  -....,,.P.,,....-  ",
+				"  -.a..,,,,,,,..a.-  ",
+				" -.................- ",
+				" -.b.............b.- ",
+				" -.................- ",
+				"-....,.........,....-",
+				"-...,,,...B...,,,...-",
+				"-....,.........,....-",
+				"-...................-",
+				" -.................- ",
+				" -..,P,.......,P,..- ",
+				" -..,,,.......,,,..- ",
+				"  -.b...........b.-  ",
+				"  -......a.a......-  ",
+				"   -.............-   ",
+				"    --.........--    ",
+				"      ---------      "],
+			throne: [
+				"                     ",
+				"  -----------------  ",
+				" -#######...#######- ",
+				" -#b.a.........a.b#- ",
+				" -#.......:.......#- ",
+				" -#..,P,..:..,P,..#- ",
+				" -#.......:.......#- ",
+				" -#a......:......a#- ",
+				" -........:........- ",
+				" -........:........- ",
+				" -.:::::::B:::::::.- ",
+				" -........:........- ",
+				" -........:........- ",
+				" -#a......:......a#- ",
+				" -#.......:.......#- ",
+				" -#..,P,..:..,P,..#- ",
+				" -#.......:.......#- ",
+				" -#b.a.........a.b#- ",
+				" -#######...#######- ",
+				"  -----------------  ",
+				"                     "],
+			bone: [
+				"       -------       ",
+				"     --,,,,,,,--     ",
+				"    -,,,,,,,,,,,-    ",
+				"   -,b,,c,.,c,,b,-   ",
+				"  -,,,,...P...,,,,-  ",
+				"  -,,,.........,,,-  ",
+				" -,c,...........,c,- ",
+				" -,,.............,,- ",
+				" -,...............,- ",
+				"-,,...............,,-",
+				"-,a.......B.......a,-",
+				"-,,...............,,-",
+				"-,b...............b,-",
+				" -,...............,- ",
+				" -,,.P.........P.,,- ",
+				" -,,,...........,,,- ",
+				"  -,c,,.......,,c,-  ",
+				"  -,,,,,,a,a,,,,,,-  ",
+				"   -,,,,,,,,,,,,,-   ",
+				"    --,,,,,,,,,--    ",
+				"      ---------      "],
+			ghost: [
+				"     -----------     ",
+				"   --...........--   ",
+				"  -..a.........a..-  ",
+				"  -.b....a.a....b.-  ",
+				" -........,........- ",
+				" -..a,P,.....,P,a..- ",
+				" -.....,.....,.....- ",
+				" -...a.........a...- ",
+				" -.b.............b.- ",
+				" -.................- ",
+				" -,,,,,,,,B,,,,,,,,- ",
+				" -.................- ",
+				" -.b.............b.- ",
+				" -...a.........a...- ",
+				" -.....,.....,.....- ",
+				" -..a,P,.....,P,a..- ",
+				" -........,........- ",
+				"  -.b....a.a....b.-  ",
+				"  -..a.........a..-  ",
+				"   --...........--   ",
+				"     -----------     "],
+			sand: [
+				"                     ",
+				"  -----------------  ",
+				" -,,,,,,,,,,,,,,,,,- ",
+				" -,a..a..a.a..a..a,- ",
+				" -,.......:.......,- ",
+				" -,a..P...:...P..a,- ",
+				" -,.......:.......,- ",
+				" -,a......:......a,- ",
+				" -,......:::......,- ",
+				" -,.......:.......,- ",
+				" -,.::::::B::::::.,- ",
+				" -,.......:.......,- ",
+				" -,......:::......,- ",
+				" -,a......:......a,- ",
+				" -,.......:.......,- ",
+				" -,a..P...:...P..a,- ",
+				" -,.......:.......,- ",
+				" -,a..a..a.a..a..a,- ",
+				" -,,,,,,,,,,,,,,,,,- ",
+				"  -----------------  ",
+				"                     "],
+			sunken: [
+				"       ~~~~~~~       ",
+				"     ~~-.....-~~     ",
+				"    ~-.........-~    ",
+				"   ~-.a.,,,,,.a.-~   ",
+				"  ~-..,,,,P,,,,..-~  ",
+				"  ~-..,,,,,,,,,..-~  ",
+				" ~-.~~.........~~.-~ ",
+				" ~-.~~.........~~.-~ ",
+				" ~-...............-~ ",
+				"~-....,.......,....-~",
+				"~-.b..,...B...,..b.-~",
+				"~-....,.......,....-~",
+				"~-.................-~",
+				" ~-...............-~ ",
+				" ~-.,,P,.....,P,,.-~ ",
+				" ~-.,,,~~...~~,,,.-~ ",
+				"  ~-.a.~~...~~.a.-~  ",
+				"  ~-.............-~  ",
+				"   ~-.....b.....-~   ",
+				"    ~~-.......-~~    ",
+				"      ~~~~~~~~~      "],
+			shell: [
+				"      ---------      ",
+				"    --,,,,,,,,,--    ",
+				"  --,,,,,,,,,,,,,--  ",
+				"  -,b,,,,...,,,,b,-  ",
+				" -,,,c....~....c,,,- ",
+				" -,,,.P..~~~..P.,,,- ",
+				" -,,....~~.~~....,,- ",
+				" -,,...~~...~~...,,- ",
+				" -,,..~~.....~~..,,- ",
+				" -,..~~.......~~..,- ",
+				" -,..~....B....~..,- ",
+				" -,..~~.......~~..,- ",
+				" -,,..~~.....~~..,,- ",
+				" -,,...~~...~~...,,- ",
+				" -,,....~~.~~....,,- ",
+				" -,,,.P..~~~..P.,,,- ",
+				" -,,,c....~....c,,,- ",
+				"  -,b,,,,...,,,,b,-  ",
+				"  --,,,,,,,,,,,,,--  ",
+				"    --,,,,,,,,,--    ",
+				"      ---------      "],
+			skull: [
+				"                     ",
+				"  -----------------  ",
+				" -##.a.a.###.a.a.##- ",
+				" -#...............#- ",
+				" -....,,,,,,,,,....- ",
+				" -a..,P,..:..,P,..a- ",
+				" -...,,...:...,,...- ",
+				" -a..,....:....,..a- ",
+				" -...,....:....,...- ",
+				" -#..,....:....,..#- ",
+				" -#..,::::B::::,..#- ",
+				" -#..,....:....,..#- ",
+				" -...,....:....,...- ",
+				" -a..,....:....,..a- ",
+				" -...,,...:...,,...- ",
+				" -a..,P,..:..,P,..a- ",
+				" -....,,,,,,,,,....- ",
+				" -#...............#- ",
+				" -##.a.a.###.a.a.##- ",
+				"  -----------------  ",
+				"                     "],
+			obsidian: [
+				"      ---------      ",
+				"   ---,,,,,,,,,---   ",
+				"  -,,b,,,...,,,b,,-  ",
+				"  -,~~,.......,~~,-  ",
+				" -,,~~~.......~~~,,- ",
+				" -,,,~P,.....,P~,,,- ",
+				" -,a,.,,.....,,.,a,- ",
+				" -,,......~......,,- ",
+				" -,.......~.......,- ",
+				" -,...............,- ",
+				" -,...~~..B..~~...,- ",
+				" -,...............,- ",
+				" -,.......~.......,- ",
+				" -,,......~......,,- ",
+				" -,a,.,,.....,,.,a,- ",
+				" -,,,~P,.....,P~,,,- ",
+				" -,,~~~.......~~~,,- ",
+				"  -,~~,.......,~~,-  ",
+				"  -,,b,,,...,,,b,,-  ",
+				"   ---,,,,,,,,,---   ",
+				"      ---------      "],
+			fire: [
+				"       -------       ",
+				"     --,,,,,,,--     ",
+				"    -,,b,,,,,b,,-    ",
+				"   -,,,..,,,..,,,-   ",
+				"  -,~~..,,P,,..~~,-  ",
+				"  -,~~...,,,...~~,-  ",
+				" -,,......~......,,- ",
+				" -,.......~.......,- ",
+				" -,a.............a,- ",
+				"-,,...............,,-",
+				"-,,.......B.......,,-",
+				"-,,...............,,-",
+				"-,a.......~.......a,-",
+				" -,.......~.......,- ",
+				" -,,.P.........P.,,- ",
+				" -,~~...........~~,- ",
+				"  -~~,.........,~~-  ",
+				"  -,b,,.......,,b,-  ",
+				"   -,,,,,,,,,,,,,-   ",
+				"    --,,,,,,,,,--    ",
+				"      ---------      "],
+			hex: [
+				"     -----------     ",
+				"   --,,,,,,,,,,,--   ",
+				"  -,,b,,.....,,b,,-  ",
+				"  -,b,.........,b,-  ",
+				" -,,..:.......:..,,- ",
+				" -,..:P:.....:P:..,- ",
+				" -,...:.......:...,- ",
+				" -,a.............a,- ",
+				" -,...............,- ",
+				" -,......:::......,- ",
+				" -,......:B:......,- ",
+				" -,......:::......,- ",
+				" -,...............,- ",
+				" -,a.............a,- ",
+				" -,...:.......:...,- ",
+				" -,..:P:.....:P:..,- ",
+				" -,,..:.......:..,,- ",
+				"  -,b,.........,b,-  ",
+				"  -,,b,,.....,,b,,-  ",
+				"   --,,,,,,,,,,,--   ",
+				"     -----------     "],
+			reef: [
+				"     ~~~~~~~~~~~     ",
+				"   ~~~----~----~~~   ",
+				"  ~~-,,,,,-,,,,,-~~  ",
+				"  ~-,b,,.....,,b,-~  ",
+				" ~-,,,.........,,,-~ ",
+				" ~-,,.P.......P.,,-~ ",
+				" ~-,...~.....~...,-~ ",
+				" ~-,..~~.....~~..,-~ ",
+				" ~-,.............,-~ ",
+				" ~-,.............,-~ ",
+				" ~-,......B......,-~ ",
+				" ~-,.............,-~ ",
+				" ~-,.............,-~ ",
+				" ~-,..~~.....~~..,-~ ",
+				" ~-,...~.....~...,-~ ",
+				" ~-,,.P.......P.,,-~ ",
+				" ~-,,,.........,,,-~ ",
+				"  ~-,b,,.....,,b,-~  ",
+				"  ~~-,,,,,-,,,,,-~~  ",
+				"   ~~~----~----~~~   ",
+				"     ~~~~~~~~~~~     "]
+		};
 Enemy.DEG = Math.PI / 180;
 Enemy.LEGACY_HP = [1, 0.66, 0.33];
 Enemy.FLYERS = ["ghost", "ghost_god", "sprite", "sprite_god", "harpy", "djinn", "gazer", "beholder",
 			"lich", "shade", "mothling", "cubelet", "crystal"];
 
-module.exports = { Data, Uniques, Godly, Bosses, World, Enemy };
+module.exports = { Data, Uniques, Godly, Bosses, World, SetPieces, Enemy };

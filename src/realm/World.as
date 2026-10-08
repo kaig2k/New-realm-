@@ -23,19 +23,26 @@ package realm {
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
 		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12, ARENA:int = 13, BLOODSTONE:int = 14;
 		public static const HIGH:int = 15, ROAD:int = 16, BRIDGE:int = 17, RUIN:int = 18;
+		/** Set-piece floors (laid down round realm event bosses). */
+		public static const ICE:int = 19, OBSIDIAN:int = 20, SANDSTONE:int = 21, HEXSTONE:int = 22, REEF:int = 23, METAL:int = 24;
+		public static const BONE:int = 25, GOLD:int = 26, ASH:int = 27, SPECTRAL:int = 28;
 		/** Realm biomes, from the coast inwards (RotMG order). */
 		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
 		public static const SAFE_ZONE:int = 9;
 		public static const ARENA_ZONE:int = 6;
 		public static const DUNGEON_ZONE:int = 7;
 		public static const OBJ_NAMES:Array = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", "brazier", "pillar", "ruinwall", "tent", "grave", "campfire", "totem",
-			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner"];
+			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner",
+			// 20+: set-piece decorations (see SetPieces)
+			"sp_crystal_cube", "sp_spike_ice", "sp_pillar_ice", "sp_pillar_gold", "sp_pillar_dark", "sp_brazier_blue", "sp_pillar_sand",
+			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex"];
 		/** Shrine kinds, in the order of their objects (14-18). */
 		public static const SHRINES:Array = ["might", "haste", "fortune", "vigor", "arcana"];
 		public static const NEXUS_ZONE:int = 5;
 
 		public static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
-			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96];
+			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96,
+			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -860,6 +867,20 @@ package realm {
 			return true;
 		}
 
+		/** Redraws the ground and minimap over tiles (x0, y0)-(x1, y1) after they changed (the game's, not the server's). */
+		public function redrawArea(x0:int, y0:int, x1:int, y1:int):void {
+			x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(N - 1, x1); y1 = Math.min(N - 1, y1);
+			if (minimap) for (var y:int = y0; y <= y1; y++) for (var x:int = x0; x <= x1; x++) {
+				var i:int = y * N + x;
+				var mc:uint = MINI_COL[tiles[i]];
+				if (objs[i] == 1 || objs[i] == 2) mc = 0x1e4a18;
+				else if (objs[i] == 4 || objs[i] == 5) mc = 0x7a7a7a;
+				minimap.setPixel(x, y, mc);
+			}
+			for (var cy:int = int((y0 - 1) / CHUNK); cy <= int((y1 + 1) / CHUNK); cy++)
+				for (var cx:int = int((x0 - 1) / CHUNK); cx <= int((x1 + 1) / CHUNK); cx++) if (cx >= 0 && cy >= 0) dropChunk(cx, cy);
+		}
+
 		private function dropChunk(cx:int, cy:int):void {
 			var k:int = cy * 1024 + cx;
 			var bd:BitmapData = chunks[k];
@@ -1123,6 +1144,59 @@ package realm {
 							c = bs == 0 ? 0x7a1010 : bs == 1 ? 0xc02a2a : 0xa01c1c;
 							if (r < 0.06) c = 0xd04040;
 							break;
+						case ICE:
+							// pale ice slabs with a white glint and the odd crack
+							var ic:String = String(PLAZA_PAT[y]).charAt((x + (ty & 1) * 4) % PX);
+							c = ic == "L" ? 0xcdeaf8 : ic == "M" ? 0xb4dcf2 : 0x9ccbe8;
+							if (mark(gx, gy, 11, hs)) c = 0xffffff;
+							else if (mark(gx + 2, gy + 1, 13, hs)) c = 0x7aa8cc;
+							break;
+						case OBSIDIAN:
+							// black glass with faint purple sheen and ember specks
+							var oc:String = String(STONE_PAT[y]).charAt(x);
+							c = oc == "S" ? 0x241a2c : oc == "H" ? 0x34283e : oc == "h" ? 0x2c2234 : 0x120c16;
+							if (mark(gx, gy, 17, hs)) c = 0xff6a20;
+							break;
+						case SANDSTONE:
+							var sb:String = String(BRICK_PAT[y]).charAt(x);
+							c = sb == "A" ? 0xd8b478 : sb == "a" ? 0xa47c48 : sb == "h" ? 0xe8c890 : sb == "B" ? 0xc8a064 : sb == "H" ? 0xdcbc80 : 0x8a6a3c;
+							if (r < 0.1) c = Sprites.shade(c, 0.94);
+							break;
+						case HEXSTONE:
+							// dark violet flagstones with glowing green rune marks
+							var hc:String = String(STONE_PAT[y]).charAt(x);
+							c = hc == "S" ? 0x3c2846 : hc == "H" ? 0x4a3256 : hc == "h" ? 0x42304e : 0x1e1424;
+							if (mark(gx, gy, 13, hs) && hc != "m") c = 0x70e050;
+							break;
+						case REEF:
+							// shallow teal sand with pebbles and bits of coral
+							c = mark(gx, gy, 9, hs) ? 0x2a7a72 : mark(gx + 3, gy + 5, 15, hs) ? 0xff8aa0 : mark(gx + 1, gy + 2, 11, hs) ? 0x6ac0b4 : 0x3c968c;
+							break;
+						case METAL:
+							// dark plating with glowing seams every four pixels
+							c = (gx % 8 == 0 || gy % 8 == 0) ? 0x46c0e8 : (gx % 8 == 1 || gy % 8 == 1) ? 0x1a2038 : r < 0.08 ? 0x323a5c : 0x283050;
+							break;
+						case BONE:
+							// packed bone and old skulls
+							var bn:String = String(PLAZA_PAT[(y + 2) % PX]).charAt((x + (tx & 1) * 3) % PX);
+							c = bn == "L" ? 0xece4cc : bn == "M" ? 0xd8ceb0 : 0xbcb090;
+							if (mark(gx, gy, 10, hs)) c = 0x8a8068;
+							break;
+						case GOLD:
+							var gc:String = String(PLAZA_PAT[y]).charAt(x);
+							c = gc == "L" ? 0xf0cc50 : gc == "M" ? 0xdcb43c : 0xb88e24;
+							if (r < 0.05) c = 0xfff0a0;
+							break;
+						case ASH:
+							// grey ash, cinders glowing here and there
+							c = mark(gx, gy, 8, hs) ? 0x1a1210 : mark(gx + 2, gy + 3, 13, hs) ? 0xff7a28 : mark(gx + 1, gy, 7, hs) ? 0x4a3026 : 0x30221c;
+							break;
+						case SPECTRAL:
+							// cold blue-violet stone with drifting pale motes
+							var spc:String = String(STONE_PAT[y]).charAt(x);
+							c = spc == "S" ? 0x34325a : spc == "H" ? 0x403e6a : spc == "h" ? 0x3a3862 : 0x1c1a34;
+							if (mark(gx, gy, 15, hs)) c = 0xa0c0ff;
+							break;
 						case LAVA:
 							var ls:int = (gx + gy) & 3;
 							c = ls == 0 ? 0x8a1a0e : ls == 1 ? 0xe04a22 : 0xc0301a;
@@ -1245,6 +1319,13 @@ package realm {
 			else if (t == CARPET) { col = 0xd8a830; dark = 0x8a6a18; }
 			else if (t == FOUNTAIN) { col = 0xd0d0d8; dark = 0x8a8a92; }
 			else if (t == ARENA) { col = 0x9a9a9a; dark = 0x6a6a6a; }
+			else if (t == ICE) { col = 0xffffff; dark = 0x7aa8cc; }
+			else if (t == SANDSTONE || t == GOLD) { col = 0xfff0b0; dark = 0x8a6a3c; }
+			else if (t == METAL) { col = 0x46c0e8; dark = 0x1a2038; }
+			else if (t == HEXSTONE) { col = 0x70e050; dark = 0x1e1424; }
+			else if (t == OBSIDIAN) { col = 0x6a4a7a; dark = 0x0a060c; }
+			else if (t == SPECTRAL) { col = 0x8090e0; dark = 0x1c1a34; }
+			else if (t == BONE) { col = 0xfff8e0; dark = 0x8a8068; }
 			else return;
 			var px:int = x * PX - offX, py:int = y * PX - offY;
 			var bitmap:BitmapData = target;

@@ -12,7 +12,7 @@
  * bullets), "ekill", "edel", "emax", "wstate", "rstage" and "portal". Games
  * send their hits as "ehit"; the server decides when a monster dies.
  */
-const { Bosses, Data, World, Enemy } = require('./gen/game');
+const { Bosses, Data, World, Enemy, SetPieces } = require('./gen/game');
 
 Bosses.init();
 
@@ -377,15 +377,21 @@ class WorldSim {
     let id;
     do id = Data.EVENTS[Math.floor(Math.random() * Data.EVENTS.length)]; while (w.recentEvents.indexOf(id) >= 0);
     for (let tries = 0; tries < 500; tries++) {
-      const x = w.N / 2 + (Math.random() - 0.5) * w.N * 0.6, y = w.N / 2 + (Math.random() - 0.5) * w.N * 0.6;
+      // the boss stands in the middle of a tile, at the centre of its set piece
+      const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5;
       const z = w.zoneAt(x, y);
-      if (z >= World.MID_ZONE && z <= World.GOD_ZONE && w.canStand(x, y, 0.6, true)) {
+      if (z >= World.MID_ZONE && z <= World.GOD_ZONE && w.canStand(x, y, 0.6, true) && SetPieces.fits(id, w, Math.floor(x), Math.floor(y))) {
         w.nextEvent++;
         w.recentEvents.push(id);
         if (w.recentEvents.length > 4) w.recentEvents.shift();
+        // its arena: the structure goes down first, so the boss and its pieces stand on it
+        const cells = SetPieces.plan(id, w, Math.floor(x), Math.floor(y));
+        SetPieces.apply(w, cells);
         w.boss = new Enemy(id, x, y, z);
+        w.boss.arena = cells;
         this.add(w.boss);
-        // its arena: wards, menders or hazards around it
+        this.unstick(cells);
+        // and its wards, menders or hazards
         w.boss.props = [];
         for (const sp of Bosses.setPieceSpots(id, x, y, w)) {
           const pr = this.spawn(sp.what, sp.x, sp.y, z, true);
@@ -395,6 +401,23 @@ class WorldSim {
       }
     }
     w.eventT = 5;
+  }
+
+  /** Monsters caught inside a set piece's new walls or decorations are moved to open ground nearby. */
+  unstick(cells) {
+    const w = this.w;
+    for (const e of this.enemies) {
+      if (e.dead || e.def.prop || w.canStand(e.x, e.y, Math.min(0.45, e.def.r || 0.45), true)) continue;
+      if (!cells.some((k) => Math.abs(k.x + 0.5 - e.x) < 2 && Math.abs(k.y + 0.5 - e.y) < 2)) continue;
+      for (let r = 1; r <= 6; r++) {
+        let done = false;
+        for (let a = 0; a < 8 && !done; a++) {
+          const nx = e.x + Math.cos(a * Math.PI / 4) * r, ny = e.y + Math.sin(a * Math.PI / 4) * r;
+          if (w.canStand(nx, ny, 0.45, true)) { e.x = nx; e.y = ny; done = true; }
+        }
+        if (done) break;
+      }
+    }
   }
 
   updateGoblin(dt) {
@@ -491,6 +514,7 @@ class WorldSim {
       if (w.boss === e) w.boss = null;
       // the boss's arena goes with it
       if (e.props) for (const pr of e.props) if (!pr.dead) { pr.dead = true; this.all({ t: 'edel', id: pr.id }); }
+      if (e.arena) { SetPieces.undo(w, e.arena); e.arena = null; }
       if (e.def.guardian) this.guardianDown();
       else if (e.def.trio && this.enemies.some((o) => !o.dead && o.def.trio)) this.kingDown();
       else if (this.kind === 'realm' && !e.def.dungeon && !e.def.raid && !e.def.final) {

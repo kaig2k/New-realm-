@@ -4,3 +4,4 @@ cert.p12
 airsdk.txt
 server/data/
 server/config.json
+__pycache__/

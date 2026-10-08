@@ -1362,6 +1362,12 @@ package realm {
 			}
 		}
 
+		/** The server put us back where it last had us (a move it couldn't allow). */
+		public function serverPosition(x:Number, y:Number):void {
+			if (!player || isNaN(x) || isNaN(y)) return;
+			player.x = x; player.y = y;
+		}
+
 		/** The connection dropped (usually a server restart): everyone leaves to the title screen and rejoins from there. */
 		public function serverGone():void {
 			if (quitRequested) return;

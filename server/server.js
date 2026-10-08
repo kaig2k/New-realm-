@@ -389,6 +389,7 @@ const handlers = {
     leaveWorld(c);
     c.world = world;
     c.x = num(m.x); c.y = num(m.y);
+    c.mv = null; // a new world: movement checks start again from where you arrive
     if (m.cid) c.charId = str(m.cid, 64);
     if (m.profile && typeof m.profile === 'object') c.profile = cleanProfile(m.profile);
     if (c.trade) endTrade(c, 'The trade was cancelled.');
@@ -409,7 +410,9 @@ const handlers = {
   },
 
   move(c, m) {
-    c.x = num(m.x); c.y = num(m.y);
+    const nx = num(m.x), ny = num(m.y);
+    if (!moveAllowed(c, nx, ny)) return;
+    c.x = nx; c.y = ny;
     c.hidden = !!m.h;
     const msg = { t: 'move', id: c.id, x: c.x, y: c.y, f: m.f ? 1 : 0, a: m.a ? 1 : 0 };
     const near = new Set(nearby(c));
@@ -454,6 +457,8 @@ const handlers = {
     if (!o || !o.authed || o.world !== c.world) return c.note('They are not in this world.');
     if (!friends(c, o)) return c.note('You can only teleport to party and guild members.');
     c.send({ t: 'tppos', id: o.id, name: o.name, x: o.x, y: o.y });
+    // the jump to them is expected
+    c.tpTo = { x: o.x, y: o.y, until: Date.now() + 8000 };
   },
 
   shoot(c, m) {
@@ -919,6 +924,48 @@ const handlers = {
     c.note('Unknown command.');
   }
 };
+
+// ------------------------------------------------------------------ movement checks
+/** Fastest anyone can move (tiles a second, with every speed boost and some lag), and the most saved up for dashes and blinks. */
+const MOVE_SPEED = 20, MOVE_BURST = 14;
+/**
+ * Where the server runs a world it knows its map (walls included, and every set
+ * piece), so a move there must be possible: no faster than anyone can go (dashes
+ * and blinks come out of a small allowance), never through a wall in a normal step,
+ * and never ending inside a wall. A refused move puts the player back where the
+ * server last had them.
+ */
+function moveAllowed(c, nx, ny) {
+  const w = c.sim && c.sim.w;
+  if (!w || isAdmin(c)) return true;
+  const now = Date.now();
+  if (!c.mv) { c.mv = { t: now, budget: MOVE_BURST }; return true; }
+  const mv = c.mv;
+  mv.budget = Math.min(MOVE_BURST, mv.budget + MOVE_SPEED * Math.min(2, (now - mv.t) / 1000));
+  mv.t = now;
+  const dx = nx - c.x, dy = ny - c.y, dist = Math.sqrt(dx * dx + dy * dy);
+  // a teleport to a party or guild member the server handed out
+  if (c.tpTo && now < c.tpTo.until && Math.abs(nx - c.tpTo.x) < 3 && Math.abs(ny - c.tpTo.y) < 3) { c.tpTo = null; return true; }
+  let why = null;
+  if (dist > mv.budget + 0.5) why = 'too fast (' + dist.toFixed(1) + ' tiles)';
+  else if (!w.walkable(nx, ny) && w.walkable(c.x, c.y)) why = 'into a wall';
+  else if (dist <= 2.5 && w.walkable(c.x, c.y)) {
+    // a normal step: every point on the way must be open ground
+    const steps = Math.ceil(dist / 0.2);
+    for (let k = 1; k < steps && !why; k++) if (!w.walkable(c.x + dx * k / steps, c.y + dy * k / steps)) why = 'through a wall';
+  }
+  if (process.env.NEWREALM_MOVE_DEBUG) log('move ' + c.name + ' ' + dist.toFixed(2) + ' budget ' + mv.budget.toFixed(1) + (why ? ' REFUSED ' + why : ''));
+  if (!why) { mv.budget -= dist; return true; }
+  // back to where the server last had you
+  c.send({ t: 'pos', x: Math.round(c.x * 100) / 100, y: Math.round(c.y * 100) / 100 });
+  mv.strikes = (now - (mv.strikeT || 0) > 60000 ? 0 : mv.strikes || 0) + 1;
+  if (mv.strikes === 1) mv.strikeT = now;
+  if (mv.strikes === 15) {
+    log('movement refused for ' + c.name + ': ' + why);
+    store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': 15 impossible moves in a minute (' + why + ') in ' + c.world);
+  }
+  return false;
+}
 
 /** Leaving a world: tell the others, and hand its monsters to someone else if we ran them. */
 function leaveWorld(c) {

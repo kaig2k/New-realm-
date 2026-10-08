@@ -185,6 +185,10 @@ package realm {
 				case "questComplete":
 					g.questComplete(m.text);
 					break;
+				case "pos":
+					// the server refused a move (too fast, or through a wall): back to where it has us
+					g.serverPosition(Number(m.x), Number(m.y));
+					break;
 				case "restartIn":
 					Online.setRestart(Number(m.s));
 					if (Number(m.s) < 0) g.msg("The server restart was called off.", 0x9cff7a);

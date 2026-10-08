@@ -505,6 +505,51 @@ async function run() {
     check('and the cross-domain file Flash asks for', /allow-access-from domain="\*"/.test(cd));
   }
 
+  console.log('movement');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const key = 'realm:MoveTest:4242';
+    const w = new WorldSim(key).w;
+    // a spot with open ground, something solid one tile east, and open ground again past it
+    let spot = null;
+    for (let y = 60; y < w.N - 60 && !spot; y++) for (let x = 60; x < w.N - 60 && !spot; x++) {
+      if (w.walkable(x + 0.5, y + 0.5) && w.walkable(x - 0.5, y + 0.5) && w.walkable(x - 1.5, y + 0.5) && !w.walkable(x + 1.5, y + 0.5) && w.walkable(x + 2.5, y + 0.5)) spot = [x + 0.5, y + 0.5];
+    }
+    check('found a test spot beside a wall or tree', !!spot);
+    if (spot) {
+      const [sx, sy] = spot;
+      B.send({ t: 'enter', key, x: sx, y: sy, profile: {} });
+      await wait(300);
+      B.clear();
+      B.send({ t: 'move', x: sx - 0.4, y: sy });
+      await wait(200);
+      check('an ordinary step is allowed', !B.find((m) => m.t === 'pos'));
+      B.send({ t: 'move', x: sx, y: sy });
+      await wait(150);
+      B.clear();
+      B.send({ t: 'move', x: sx + 2, y: sy });
+      await wait(200);
+      const back = B.find((m) => m.t === 'pos');
+      check('walking through a wall or tree is refused (put back)', back && Math.abs(back.x - sx) < 0.01);
+      B.clear();
+      B.send({ t: 'move', x: sx - 30, y: sy });
+      await wait(200);
+      check('a 30-tile jump is refused', B.find((m) => m.t === 'pos'));
+      // walking at an honest pace keeps working
+      B.clear();
+      for (let k = 1; k <= 8; k++) { B.send({ t: 'move', x: sx - k * 0.15, y: sy }); await wait(100); }
+      check('walking along at a normal speed is never refused', !B.find((m) => m.t === 'pos'));
+      // a speed hack: many quick steps far faster than anyone can go
+      B.clear();
+      let x = sx - 1.2;
+      for (let k = 0; k < 12; k++) { x -= 3; B.send({ t: 'move', x, y: sy }); await wait(40); }
+      await wait(150);
+      check('moving far faster than anyone can is refused', B.find((m) => m.t === 'pos'));
+      B.send({ t: 'enter', key: 'nexus', x: 100, y: 100, profile: {} });
+      await wait(150);
+    }
+  }
+
   console.log('restart countdown');
   {
     const get = (pathName) => new Promise((resolve) => {

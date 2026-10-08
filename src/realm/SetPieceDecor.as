@@ -36,7 +36,8 @@ package realm {
 			obsidian: {part: 0xff9050, move: "rise", beam: 0xff7030, dust: 0x34283e},
 			fire: {part: 0xffb040, move: "rise", beam: 0xffa040, dust: 0xff7a28},
 			hex: {part: 0x90ff70, move: "drift", beam: 0x70e050, dust: 0x4a3256},
-			reef: {part: 0xc0f0ff, move: "rise", beam: 0xff80a0, dust: 0x3c968c}
+			reef: {part: 0xc0f0ff, move: "rise", beam: 0xff80a0, dust: 0x3c968c},
+			star: {part: 0xffe080, move: "rise", beam: 0xffd060, dust: 0x34325a}
 		};
 
 		public function SetPieceDecor(g:Game) { this.g = g; }
@@ -136,7 +137,7 @@ package realm {
 			if (!ph) return;
 			ar.pend.push({k: k, t: warn, max: Math.max(0.1, warn), sel: SetPieces.phaseCells(e.defId, ar.cells, k), col: ph.col});
 			g.msg(ph.msg, ph.col);
-			g.showBanner(ph.when == "low" ? "The arena shifts!" : "The ward is broken!", ph.col, 2.2);
+			g.showBanner(ph.when == "broken" ? "The ward is broken!" : "The arena shifts!", ph.col, 2.2);
 			g.shake(0.4, 3);
 			Sfx.play("boss");
 		}

@@ -38,6 +38,12 @@ package realm {
 			stormcall_bow: ["Stormcall Bow", "weapon", "bow", {dex: 4}, {shots: 5, arc: 30, mult: 0.55, rate: 1.15, col: 0xfff060}, "Five bolts of lightning per draw."],
 			tempest_quiver: ["Tempest Quiver", "ability", "quiver", {spd: 6}, {power: 1.9}, "The wind itself carries these arrows."],
 			thunderhide: ["Thunderhide", "armor", "leather", {dex: 8, spd: 6}, null, "Crackles when you move."],
+			// ---- the Starfall Vault
+			ignis_brand: ["Brand of Ignis", "weapon", "sword", {att: 5}, {shots: 3, arc: 20, mult: 0.72, col: 0xffb040}, "Still warm from the Hall of Embers."],
+			drowned_codex: ["The Drowned Codex", "ability", "tome", {wis: 9, vit: 4}, {power: 1.9}, "Every page is wet, and every word still works."],
+			sovereign_signet: ["Bone Sovereign's Signet", "ring", "hp", {hp: 90, def: 6, vit: 4}, null, "Morvath wore it for a thousand years. It remembers."],
+			starfall_staff: ["Starfall", "weapon", "staff", {att: 6, wis: 4}, {shots: 4, arc: 24, mult: 0.62, motion: "wave", col: 0xfff0a0}, "A shard of the star itself, still falling."],
+			fallen_star_mantle: ["Mantle of the Fallen Star", "armor", "robe", {hp: 80, mp: 60, wis: 8}, null, "It glows faintly in the dark, like a memory of the sky."],
 			// ---- The Cellar Sorcerer (Forgotten Cellar)
 			illusionist_wand: ["Illusionist's Wand", "weapon", "wand", {wis: 4}, {shots: 3, arc: 20, motion: "wave", mult: 0.6, col: 0x80c0ff}, "Which bolt is real? All of them."],
 			mirror_cloak: ["Cloak of Mirrors", "ability", "cloak", {dex: 6}, {power: 1.9}, "You were never there."],

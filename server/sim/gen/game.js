@@ -888,6 +888,10 @@ class Bosses {
 				attacks: [Bosses.aim(4, 40, 8, 65, 1.4, 0xe8d0a0), Bosses.aim(1, 0, 10, 90, 2.4, 0xff6040, {eff: "bleeding"})]});
 			Bosses.mob("temple_scorpion", {name: "Temple Scorpion", spr: "temple_scorpion", hp: 1200, def: 16, spd: 3.6, xp: 90, col: 0xffe080, keep: 1,
 				attacks: [Bosses.aim(2, 20, 10, 55, 0.9, 0xc0ff60, {eff: "slowed"})]});
+			Bosses.mob("star_pylon", Bosses.o(Bosses.o({}, still), {name: "Star Pylon", spr: "star_pylon", hp: 4000, def: 22, col: 0xffd060, ward: true,
+				attacks: [Bosses.ring(8, 22, 5, 80, 1.6, 0xffd060, {shape: "star"}), Bosses.aim(2, 14, 9, 70, 1.2, 0xfff0a0)]}));
+			Bosses.mob("star_guard", {name: "Star Guard", spr: "star_guard", hp: 3600, def: 26, spd: 2.6, xp: 160, col: 0xffd060, keep: 2,
+				attacks: [Bosses.aim(3, 22, 9, 85, 1.2, 0xfff0a0, {shape: "blade"}), Bosses.ring(10, 0, 5, 70, 2.6, 0xffd060, {shape: "star"})]});
 			for (var id in Bosses.SETPIECES) Data.ENEMIES[id].setpiece = Bosses.SETPIECES[id];
 		}
 	static minions() {
@@ -1292,6 +1296,43 @@ class Bosses {
 					attacks: [Bosses.spiral(10, 9, 7, 90, 0.09, 0xffffff), Bosses.aim(7, 60, 10, 100, 0.9, 0x80ffff, {shape: "blade", waves: 3, gap: 0.15}),
 						Bosses.rain(8, 6, 130, 1.6, 0xffff60, {burst: 8})]})
 			]}, raid), ["heart_of_storm", "stormbreaker"]);
+
+			
+			Bosses.boss("ignis", Bosses.o({name: "Ignis, Warden of Embers", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
+				Bosses.P(1, {say: "Who disturbs the vault?", move: "orbit",
+					attacks: [Bosses.aim(3, 26, 8, 80, 0.9, 0xffb040), Bosses.ring(14, 13, 4.5, 70, 1.8, 0xff6020)]}),
+				Bosses.P(0.6, {say: "Burn!", shield: 2, move: "chase",
+					attacks: [Bosses.spiral(4, 17, 6, 80, 0.12, 0xffe060), Bosses.rain(5, 4, 100, 2, 0xff7020, {burst: 6})]}),
+				Bosses.P(0.25, {say: "THE EMBERS RISE!", banner: "Ignis blazes!", move: "center",
+					attacks: [Bosses.flower(24, 7, 5.5, 85, 0.8, 0xffb040), Bosses.nova(3, 1.1, 150, 2.4, 0xff6020, {burst: 12})]})
+			]}, raid), ["ignis_brand"]);
+			Bosses.boss("archivist", Bosses.o({name: "The Drowned Archivist", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
+				Bosses.P(1, {say: "Silence in the archive.", move: "orbit",
+					attacks: [Bosses.aim(5, 50, 7, 75, 1.1, 0x40ffd0, {motion: "wave"}), Bosses.ring(12, 0, 4, 70, 2, 0xa0fff0, {motion: "return"})]}),
+				Bosses.P(0.6, {say: "Overdue. All of you.", shield: 2, move: "teleport", summon: [{what: "grave_wraith", n: 3}],
+					attacks: [Bosses.wall(15, 5, 85, 1.8, 0x40ffd0, {hole: 3}), Bosses.aim(1, 0, 6, 95, 1.4, 0xffffff, {motion: "home", eff: "slowed"})]}),
+				Bosses.P(0.3, {say: "Let the tide take the pages!", move: "center",
+					attacks: [Bosses.spiral(6, 13, 6, 80, 0.1, 0x60c0a0, {motion: "wave"}), Bosses.rain(6, 5, 110, 2, 0x40ffd0)]})
+			]}, raid), ["drowned_codex"]);
+			Bosses.boss("sovereign", Bosses.o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
+				Bosses.P(1, {say: "Kneel before the Sovereign.", move: "orbit",
+					attacks: [Bosses.aim(4, 30, 8, 85, 1.0, 0xe8e0c8, {shape: "blade"}), Bosses.ring(16, 11, 4, 75, 1.7, 0xc060ff)]}),
+				Bosses.P(0.55, {say: "Rise, my thralls!", shield: 2.5, summon: [{what: "bone_thrall", n: 2}], move: "chase",
+					attacks: [Bosses.spiral(4, -19, 6.5, 85, 0.12, 0xc060ff), Bosses.aim(1, 0, 7, 110, 1.3, 0xff4060, {motion: "home", eff: "bleeding", r: 0.3})]}),
+				Bosses.P(0.25, {say: "BONE AND BLOOD!", banner: "The crypt awakens!", move: "teleport",
+					attacks: [Bosses.flower(28, 6, 6, 90, 0.7, 0xe8e0c8), Bosses.rain(8, 6, 120, 1.8, 0xc060ff, {burst: 8})]})
+			]}, raid), ["sovereign_signet"]);
+			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
+				Bosses.P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
+					attacks: [Bosses.spiral(4, 12, 6.5, 80, 0.11, 0xffd060, {shape: "star"}), Bosses.aim(3, 20, 10, 95, 1.0, 0xffffff, {shape: "blade"})]}),
+				Bosses.P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
+					cycle: [[Bosses.flower(30, 5.6, 5.5, 85, 0.7, 0xffd060)], [Bosses.wall(21, 5.5, 95, 1.3, 0xfff0a0, {hole: 2, waves: 2, gap: 0.6})], [Bosses.rain(10, 7, 130, 1.6, 0xffb040, {burst: 6})]]}),
+				Bosses.P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "teleport",
+					attacks: [Bosses.spiral(6, -11, 7, 90, 0.1, 0xffe080, {motion: "wave"}), Bosses.nova(3, 1.2, 170, 2.2, 0xffb040, {burst: 16})]}),
+				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
+					attacks: [Bosses.spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), Bosses.aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "blade", waves: 3, gap: 0.2}),
+						Bosses.nova(4, 1.4, 190, 2.4, 0xffe080, {burst: 20})]})
+			]}, raid), ["starfall_staff", "fallen_star_mantle"]);
 		}
 }
 
@@ -1704,6 +1745,7 @@ class World {
 				case "maze": this.layoutMaze(th, floor, accent); break;
 				case "conclave": this.layoutConclave(th); break;
 				case "spire": this.layoutSpire(th); break;
+				case "starfall": this.layoutStarfall(th); break;
 				default: this.layoutRooms(th, floor, accent);
 			}
 			if (th.hazard) this.addHazards(th.hazard);
@@ -1945,6 +1987,43 @@ class World {
 			this.stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
 			this.mobRooms = [{x: 100, y: 157, w: 13, h: 26, n: 11}, {x: 80, y: 160, w: 7, h: 7, n: 5}, {x: 120, y: 160, w: 7, h: 7, n: 5},
 				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
+		}
+	layoutStarfall(th) {
+			var F = __int(th.floor), A = __int(th.accent);
+			var entry = this.hall(100, 188, 13, 9, F);
+			this.carve(99, 184, 3, 9, A);
+			this.rooms.push(entry);
+			var cys = [160, 118, 76, 34];
+			for (var k = __int(0); k < cys.length; k++) {
+				var cy = __int(cys[k]), last = k == cys.length - 1;
+				var w = __int(last ? 29 : 27), h = __int(last ? 27 : 25);
+				this.rooms.push(this.hall(100, cy, w, h, F));
+				
+				for (var b of __vals( [[-1, -1], [1, -1], [-1, 1], [1, 1]])) this.objs[(cy + b[1] * (__int(h / 2) - 1)) * this.N + 100 + b[0] * (__int(w / 2) - 1)] = 7;
+				
+				if (!last) {
+					for (var sd = __int(-1); sd <= 1; sd = __int(sd + (2))) {
+						var ax = __int(100 + sd * 24);
+						this.rooms.push(this.hall(ax, cy, 9, 9, F));
+						this.corridor(100 + sd * 13, cy, ax, cy, F);
+						this.objs[(cy - 3) * this.N + ax] = 8;
+						this.mobRooms.push({x: ax, y: cy, w: 7, h: 7, n: 4});
+					}
+				}
+				
+				var top = __int(cy - __int(h / 2) - 1);
+				if (k == 0) this.corridor(100, 183, 100, cy + __int(h / 2) + 1, F);
+				if (!last) {
+					var next = __int(cys[k + 1] + __int(13) + 1);
+					this.corridor(100, top, 100, next, F);
+					var gy = __int(__int((top + next) / 2));
+					this.gateRows(k, 100, gy, gy + 1, World.WALL);
+				}
+			}
+			
+			this.carve(99, 22, 3, 25, A);
+			this.stageSpots = [[[100.5, 160.5]], [[100.5, 118.5]], [[100.5, 76.5]], [[100.5, 34.5]]];
+			this.mobRooms.push({x: 100, y: 188, w: 9, h: 5, n: 0});
 		}
 	pool(cx, cy, r) { cx = __int(cx); cy = __int(cy);
 			for (var y = __int(-2); y <= 2; y++) for (var x = __int(-2); x <= 2; x++) {
@@ -2272,6 +2351,7 @@ class SetPieces {
 			for (var k = __int(0); k < ph.length; k++) {
 				if (mask & (1 << k)) continue;
 				if (ph[k].when == "low" && e.hp > 0 && e.hp < e.maxHp * SetPieces.LOW) return __int(k);
+				if (ph[k].when == "hp" && e.hp > 0 && e.hp < e.maxHp * ph[k].at) return __int(k);
 				if (ph[k].when == "broken" && e.props && e.props.length) {
 					var left = false;
 					for (var p of __vals( e.props)) if (!p.dead) { left = true; break; }
@@ -3604,6 +3684,12 @@ Uniques.ALL = {
 			tempest_quiver: ["Tempest Quiver", "ability", "quiver", {spd: 6}, {power: 1.9}, "The wind itself carries these arrows."],
 			thunderhide: ["Thunderhide", "armor", "leather", {dex: 8, spd: 6}, null, "Crackles when you move."],
 			
+			ignis_brand: ["Brand of Ignis", "weapon", "sword", {att: 5}, {shots: 3, arc: 20, mult: 0.72, col: 0xffb040}, "Still warm from the Hall of Embers."],
+			drowned_codex: ["The Drowned Codex", "ability", "tome", {wis: 9, vit: 4}, {power: 1.9}, "Every page is wet, and every word still works."],
+			sovereign_signet: ["Bone Sovereign's Signet", "ring", "hp", {hp: 90, def: 6, vit: 4}, null, "Morvath wore it for a thousand years. It remembers."],
+			starfall_staff: ["Starfall", "weapon", "staff", {att: 6, wis: 4}, {shots: 4, arc: 24, mult: 0.62, motion: "wave", col: 0xfff0a0}, "A shard of the star itself, still falling."],
+			fallen_star_mantle: ["Mantle of the Fallen Star", "armor", "robe", {hp: 80, mp: 60, wis: 8}, null, "It glows faintly in the dark, like a memory of the sky."],
+			
 			illusionist_wand: ["Illusionist's Wand", "weapon", "wand", {wis: 4}, {shots: 3, arc: 20, motion: "wave", mult: 0.6, col: 0x80c0ff}, "Which bolt is real? All of them."],
 			mirror_cloak: ["Cloak of Mirrors", "ability", "cloak", {dex: 6}, {power: 1.9}, "You were never there."],
 			arcane_vestments: ["Arcane Vestments", "armor", "robe", {mp: 80, wis: 10}, null, "Stitched with runes that hum softly."],
@@ -3742,7 +3828,12 @@ Bosses.SETPIECES = {
 			ev_colossus: {style: "obsidian", prop: "obsidian_spire", n: 4, r: 6, hint: "Obsidian spires fire on anyone near the Colossus. Shatter them to make room."},
 			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
-			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."}
+			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
+			
+			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
+			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
+			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
+			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne!"}
 		};
 Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
 Bosses.RAIDS = [
@@ -3757,7 +3848,13 @@ Bosses.RAIDS = [
 				places: ["the three pylons", "the Galecaller's terrace", "the eye of the storm"],
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
-					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}}
+					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060,
+				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
+				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
+				intro: "Deep beneath Eldmere lies the vault where a star fell. Four chambers guard it, and each one fights back: break what feeds its master, and mind the floor.",
+				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, layout: "starfall",
+					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 World.DEFAULT_N = __int(200);
 World.REALM_N = __int(512);
@@ -3826,9 +3923,32 @@ SetPieces.STYLES = {
 			obsidian: {floor: World.OBSIDIAN, alt: World.GOD, trim: World.LAVA, hz: World.LAVA, a: 31, b: 5, c: 4},
 			fire: {floor: World.ASH, alt: World.BRICK, trim: World.LAVA, hz: World.LAVA, a: 7, b: 6, c: 7},
 			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
-			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4}
+			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
+			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23}
 		};
 SetPieces.LAYOUTS = {
+			star: [
+				"                     ",
+				"  -----------------  ",
+				" -####....:....####- ",
+				" -#a,,,,,,,,,,,,,a#- ",
+				" -#,,...........,,#- ",
+				" -.,.P.~.....~.P.,.- ",
+				" -.,...~.....~...,.- ",
+				" -.,.~~~..:..~~~.,.- ",
+				" -.,......:......,.- ",
+				" -..b.....:.....b..- ",
+				" -.,,:::::B:::::,,.- ",
+				" -..b.....:.....b..- ",
+				" -.,......:......,.- ",
+				" -.,.~~~..:..~~~.,.- ",
+				" -.,...~.....~...,.- ",
+				" -.,.P.~.....~.P.,.- ",
+				" -#,,...........,,#- ",
+				" -#a,,,,,,,,,,,,,a#- ",
+				" -####....:....####- ",
+				"  -----------------  ",
+				"                     "],
 			cube: [
 				"                     ",
 				"    -------------    ",
@@ -4170,7 +4290,14 @@ SetPieces.PHASES = {
 			hex: [{when: "low", sel: "ring", a: 4.5, b: 5.6, chars: ":", to: "hexfire", col: 0x70e050,
 				msg: "Mother Hexis speaks the last words! The runes burn anyone standing on them!"}],
 			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
-				msg: "The Kraken drags the reef under! The water floods inward!"}]
+				msg: "The Kraken drags the reef under! The water floods inward!"}],
+			
+			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
+				msg: "The throne room's walls shatter! Star Guards pour in!"},
+				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
+				msg: "A ring of starfire ignites around Astraeon!"},
+				{when: "hp", at: 0.25, sel: "ring", a: 8.5, b: 99, to: "hz", col: 0xff6020,
+				msg: "The edges of the throne burn away! Stay close to the fallen star!"}]
 		};
 Enemy.DEG = Math.PI / 180;
 Enemy.LEGACY_HP = [1, 0.66, 0.33];

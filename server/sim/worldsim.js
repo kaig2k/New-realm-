@@ -261,11 +261,11 @@ class WorldSim {
     if (this.kind === 'realm') {
       this.updateSpawns(dt);
       this.updateEvents(dt);
-      this.updateArena(dt);
       this.updateGoblin(dt);
       if (this.closeT > 0) { this.closeT -= dt; if (this.closeT <= 0) this.w.closed = true; }
     }
     if (this.w.raid) this.updateRaid(dt);
+    this.updateArena(dt);
     for (const e of this.enemies) {
       if (e.elite === 'Vampiric' && !e.dead && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.03 * dt);
     }
@@ -520,6 +520,18 @@ class WorldSim {
       const at = spots[k] || spots[0] || [100.5, 100.5];
       const b = this.spawn(st[k], at[0], at[1], World.DUNGEON_ZONE, true);
       if (b && k === 0) w.boss = b;
+      // a chamber master raises its set piece (structure, then its wards, menders or hazards)
+      if (b && b.def.setpiece) {
+        const cells = SetPieces.plan(st[k], w, Math.floor(at[0]), Math.floor(at[1]));
+        SetPieces.apply(w, cells);
+        b.arena = cells;
+        this.unstick(cells);
+        b.props = [];
+        for (const sp of Bosses.setPieceSpots(st[k], at[0], at[1], w)) {
+          const pr = this.spawn(sp.what, sp.x, sp.y, World.DUNGEON_ZONE, true);
+          if (pr) b.props.push(pr);
+        }
+      }
     }
     for (let k = 0; k < n; k++) w.openGate(k);
     this.all({ t: 'rstage', n });

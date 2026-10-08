@@ -34,10 +34,33 @@ package realm {
 			obsidian: {floor: World.OBSIDIAN, alt: World.GOD, trim: World.LAVA, hz: World.LAVA, a: 31, b: 5, c: 4},
 			fire: {floor: World.ASH, alt: World.BRICK, trim: World.LAVA, hz: World.LAVA, a: 7, b: 6, c: 7},
 			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
-			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4}
+			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
+			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23}
 		};
 
 		public static const LAYOUTS:Object = {
+			star: [
+				"                     ",
+				"  -----------------  ",
+				" -####....:....####- ",
+				" -#a,,,,,,,,,,,,,a#- ",
+				" -#,,...........,,#- ",
+				" -.,.P.~.....~.P.,.- ",
+				" -.,...~.....~...,.- ",
+				" -.,.~~~..:..~~~.,.- ",
+				" -.,......:......,.- ",
+				" -..b.....:.....b..- ",
+				" -.,,:::::B:::::,,.- ",
+				" -..b.....:.....b..- ",
+				" -.,......:......,.- ",
+				" -.,.~~~..:..~~~.,.- ",
+				" -.,...~.....~...,.- ",
+				" -.,.P.~.....~.P.,.- ",
+				" -#,,...........,,#- ",
+				" -#a,,,,,,,,,,,,,a#- ",
+				" -####....:....####- ",
+				"  -----------------  ",
+				"                     "],
 			cube: [
 				"                     ",
 				"    -------------    ",
@@ -440,7 +463,7 @@ package realm {
 		// ------------------------------------------------------------ phases
 		/** Seconds the floor flashes before a phase changes the arena. */
 		public static const WARN:Number = 2.5;
-		/** A phase starts at 30% health ("low") or once every set-piece piece is broken ("broken"). */
+		/** A phase starts at 30% health ("low"), below its own health fraction ("hp", at), or once every set-piece piece is broken ("broken"). */
 		public static const LOW:Number = 0.3;
 
 		/**
@@ -480,7 +503,14 @@ package realm {
 			hex: [{when: "low", sel: "ring", a: 4.5, b: 5.6, chars: ":", to: "hexfire", col: 0x70e050,
 				msg: "Mother Hexis speaks the last words! The runes burn anyone standing on them!"}],
 			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
-				msg: "The Kraken drags the reef under! The water floods inward!"}]
+				msg: "The Kraken drags the reef under! The water floods inward!"}],
+			// the Star Throne changes three times as Astraeon weakens
+			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
+				msg: "The throne room's walls shatter! Star Guards pour in!"},
+				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
+				msg: "A ring of starfire ignites around Astraeon!"},
+				{when: "hp", at: 0.25, sel: "ring", a: 8.5, b: 99, to: "hz", col: 0xff6020,
+				msg: "The edges of the throne burn away! Stay close to the fallen star!"}]
 		};
 
 		/** The phases of an event boss's arena (may be empty). */
@@ -495,6 +525,7 @@ package realm {
 			for (var k:int = 0; k < ph.length; k++) {
 				if (mask & (1 << k)) continue;
 				if (ph[k].when == "low" && e.hp > 0 && e.hp < e.maxHp * LOW) return k;
+				if (ph[k].when == "hp" && e.hp > 0 && e.hp < e.maxHp * ph[k].at) return k;
 				if (ph[k].when == "broken" && e.props && e.props.length) {
 					var left:Boolean = false;
 					for each (var p:Enemy in e.props) if (!p.dead) { left = true; break; }

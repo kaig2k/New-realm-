@@ -345,8 +345,9 @@ async function run() {
   console.log('raids');
   {
     const { WorldSim } = require('./sim/worldsim');
-    for (const r of [0, 1]) {
+    for (const r of [0, 1, 2]) {
       const ws = new WorldSim('raid:' + r + ':777');
+      const arenas = [];
       const got = [];
       const c = { id: 1, x: 100, y: 100, send: (m) => got.push(m.d) };
       ws.join(c);
@@ -355,10 +356,16 @@ async function run() {
         for (let step = 0; step < 4000; step++) {
           ws.tick(0.05);
           if (step % 20) continue;
-          for (const e of ws.enemies.slice()) { if (!e.dead && e.isBoss) { c.x = e.x; c.y = e.y + 2; ws.hit(c, { id: e.id, d: 6000 }); } }
+          for (const e of ws.enemies.slice()) {
+            if (!e.dead && e.isBoss && e.arena && arenas.indexOf(e.defId) < 0) arenas.push(e.defId);
+            if (!e.dead && (e.isBoss || e.def.prop)) { c.x = e.x; c.y = e.y + 2; ws.hit(c, { id: e.id, d: 6000 }); }
+          }
         }
       } catch (e) { err = e.message; }
-      check('raid ' + r + ': every stage starts and every wall opens', !err && got.filter((m) => m.t === 'rstage').length === 3 && ws.w.gates.every((g) => !g.length), err || '');
+      const nst = ws.w.raid.stages.length;
+      check('raid ' + r + ' (' + ws.w.raid.name + '): every stage starts and every wall opens', !err && got.filter((m) => m.t === 'rstage').length === nst && ws.w.gates.every((g) => !g.length), err || '');
+      if (r === 2) check('the Starfall Vault: every chamber raises its set piece, and the Star Throne changes three times',
+        arenas.length === 4 && got.filter((m) => m.t === 'sphase' && m.go).length >= 3 + 2 + 1 + 1, arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
     }
   }
 
@@ -375,7 +382,7 @@ async function run() {
     ws.onEventKill = (id, ms, team) => kills.push({ id, ms, team });
     c.name = 'Tester';
     const all = Data.EVENTS.slice();
-    for (const ev of Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece)) {
+    for (const ev of Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece && Data.EVENTS.indexOf(k) >= 0)) {
       ws.w.eventT = 0; ws.w.eventsDone = 0; ws.closeT = 0; ws.w.closed = false; ws.w.recentEvents = [];
       const before = Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',');
       Data.EVENTS.length = 0; Data.EVENTS.push(ev);
@@ -417,7 +424,7 @@ async function run() {
       else if (Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',') !== before) bad.push(ev + ': the ground was not put back');
       ws.tick(0.05);
     }
-    const evCount = Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece).length;
+    const evCount = Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece && Data.EVENTS.indexOf(k) >= 0).length;
     check('every event kill reaches the records with its time and team', kills.length === evCount && kills.every((k) => k.ms >= 0 && k.team.length === 1 && k.team[0].name === 'Tester'),
       kills.length + ' of ' + evCount);
     check('every event boss raises its set piece, wards hold, its arena changes mid-fight, and it all goes (ground restored) when the boss dies', !bad.length, bad.join('; '));

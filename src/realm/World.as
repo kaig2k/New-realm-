@@ -537,6 +537,7 @@ package realm {
 				case "maze": layoutMaze(th, floor, accent); break;
 				case "conclave": layoutConclave(th); break;
 				case "spire": layoutSpire(th); break;
+				case "starfall": layoutStarfall(th); break;
 				default: layoutRooms(th, floor, accent);
 			}
 			if (th.hazard) addHazards(th.hazard);
@@ -801,6 +802,50 @@ package realm {
 			stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
 			mobRooms = [{x: 100, y: 157, w: 13, h: 26, n: 11}, {x: 80, y: 160, w: 7, h: 7, n: 5}, {x: 120, y: 160, w: 7, h: 7, n: 5},
 				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
+		}
+
+		/**
+		 * The Starfall Vault: an entrance, then four great chambers in a line,
+		 * each sealed until the one before it falls. Every chamber's master
+		 * raises a set piece of its own in the middle of it, so the chambers
+		 * are plain stone halls (with braziers and side alcoves) until then.
+		 */
+		private function layoutStarfall(th:Object):void {
+			var F:int = th.floor, A:int = th.accent;
+			var entry:Object = hall(100, 188, 13, 9, F);
+			carve(99, 184, 3, 9, A);
+			rooms.push(entry);
+			var cys:Array = [160, 118, 76, 34];
+			for (var k:int = 0; k < cys.length; k++) {
+				var cy:int = cys[k], last:Boolean = k == cys.length - 1;
+				var w:int = last ? 29 : 27, h:int = last ? 27 : 25;
+				rooms.push(hall(100, cy, w, h, F));
+				// braziers in the corners, outside where the set piece will rise
+				for each (var b:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) objs[(cy + b[1] * (int(h / 2) - 1)) * N + 100 + b[0] * (int(w / 2) - 1)] = 7;
+				// alcoves either side, with the vault's guards
+				if (!last) {
+					for (var sd:int = -1; sd <= 1; sd += 2) {
+						var ax:int = 100 + sd * 24;
+						rooms.push(hall(ax, cy, 9, 9, F));
+						corridor(100 + sd * 13, cy, ax, cy, F);
+						objs[(cy - 3) * N + ax] = 8;
+						mobRooms.push({x: ax, y: cy, w: 7, h: 7, n: 4});
+					}
+				}
+				// the way on, sealed until this chamber's master falls
+				var top:int = cy - int(h / 2) - 1;
+				if (k == 0) corridor(100, 183, 100, cy + int(h / 2) + 1, F);
+				if (!last) {
+					var next:int = cys[k + 1] + int(13) + 1;
+					corridor(100, top, 100, next, F);
+					var gy:int = int((top + next) / 2);
+					gateRows(k, 100, gy, gy + 1, WALL);
+				}
+			}
+			// gold runner up the middle of the entrance and the last chamber
+			carve(99, 22, 3, 25, A);
+			stageSpots = [[[100.5, 160.5]], [[100.5, 118.5]], [[100.5, 76.5]], [[100.5, 34.5]]];
+			mobRooms.push({x: 100, y: 188, w: 9, h: 5, n: 0});
 		}
 
 		/** A pool of blood (burns like lava). */

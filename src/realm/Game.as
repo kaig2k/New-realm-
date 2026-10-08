@@ -2818,7 +2818,7 @@ package realm {
 				}
 				y += 56;
 			} else if (openStation.kind == "raids") {
-				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are three boss fights in a row, best with friends, " +
+				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are boss fights one after another (the Starfall Vault has four chambers, each a structure that fights back), best with friends, " +
 					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder.";
 				info.y = y;
 				y += info.height + 10;
@@ -3292,6 +3292,14 @@ package realm {
 				var at:Array = spots[k] || spots[0] || [100.5, 100.5];
 				var b:Enemy = spawnEnemy(st[k], at[0], at[1], World.DUNGEON_ZONE);
 				if (b && k == 0) w.boss = b;
+				// a chamber master's set-piece pieces (the structure itself rises in SetPieceDecor)
+				if (b && b.def.setpiece) {
+					b.props = [];
+					for each (var sp:Object in Bosses.setPieceSpots(st[k], at[0], at[1], w)) {
+						var pr:Enemy = spawnEnemy(sp.what, sp.x, sp.y, World.DUNGEON_ZONE);
+						if (pr) b.props.push(pr);
+					}
+				}
 			}
 			raidStageReached(n);
 			if (net.online) net.sendWorld("all", {t: "rstage", n: n});

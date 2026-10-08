@@ -130,7 +130,7 @@ package realm {
 			var abilities:Array = [];
 			for each (var cid:String in Data.CLASS_ORDER) abilities.push({cls: cid});
 			var recs:Array = [];
-			for (var rid2:String in Bosses.SETPIECES) if (Data.ENEMIES[rid2]) recs.push({rec: rid2});
+			for (var rid2:String in Bosses.SETPIECES) if (Data.ENEMIES[rid2] && Data.EVENTS.indexOf(rid2) >= 0) recs.push({rec: rid2});
 			recs.sortOn("rec");
 			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs];
 		}

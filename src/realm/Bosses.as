@@ -187,7 +187,12 @@ package realm {
 			ev_colossus: {style: "obsidian", prop: "obsidian_spire", n: 4, r: 6, hint: "Obsidian spires fire on anyone near the Colossus. Shatter them to make room."},
 			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
-			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."}
+			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
+			// the Starfall Vault (a raid): each chamber is a set piece of its own
+			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
+			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
+			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
+			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne!"}
 		};
 
 		/** Where a boss's set-piece pieces stand: the P tiles of its layout (x, y is the boss's tile centre). */
@@ -239,11 +244,22 @@ package realm {
 				attacks: [aim(4, 40, 8, 65, 1.4, 0xe8d0a0), aim(1, 0, 10, 90, 2.4, 0xff6040, {eff: "bleeding"})]});
 			mob("temple_scorpion", {name: "Temple Scorpion", spr: "temple_scorpion", hp: 1200, def: 16, spd: 3.6, xp: 90, col: 0xffe080, keep: 1,
 				attacks: [aim(2, 20, 10, 55, 0.9, 0xc0ff60, {eff: "slowed"})]});
+			mob("star_pylon", o(o({}, still), {name: "Star Pylon", spr: "star_pylon", hp: 4000, def: 22, col: 0xffd060, ward: true,
+				attacks: [ring(8, 22, 5, 80, 1.6, 0xffd060, {shape: "star"}), aim(2, 14, 9, 70, 1.2, 0xfff0a0)]}));
+			mob("star_guard", {name: "Star Guard", spr: "star_guard", hp: 3600, def: 26, spd: 2.6, xp: 160, col: 0xffd060, keep: 2,
+				attacks: [aim(3, 22, 9, 85, 1.2, 0xfff0a0, {shape: "blade"}), ring(10, 0, 5, 70, 2.6, 0xffd060, {shape: "star"})]});
 			for (var id:String in SETPIECES) Data.ENEMIES[id].setpiece = SETPIECES[id];
 		}
 
 		private static function art():void {
 			SetPieces.art();
+			// the Starfall Vault
+			Sprites.recolor("star_pylon", "crystal", {W: 0xffffff, C: 0xffd060, c: 0xb08020, D: 0x5a3a08, S: 0x34325a}, 6);
+			Sprites.recolor("star_guard", "bandit", {H: 0xe8e0ff, h: 0x8a80c0, S: 0xfff4d0, E: 0xffd060, B: 0x5a50a0, b: 0x34306a, A: 0xffd060, L: 0x2a2850, W: 0xfff6a0});
+			Sprites.recolor("vault_ignis", "flame_warden", {H: 0xffb040, h: 0xa04010, E: 0xffffff, G: 0xffffa0, A: 0x2a0800, M: 0xff6a20, m: 0x8a2a10, L: 0xffe060, l: 0xd0d0d0});
+			Sprites.recolor("vault_archivist", "sunken_lord", {S: 0x3a7a8a, s: 0x1a4050, B: 0xe8f0d8, E: 0x40ffd0, G: 0xa0fff0, W: 0x60c0a0, H: 0x2a6a5a});
+			Sprites.recolor("vault_sovereign", "lich_king", {Y: 0xe8e0c8, B: 0xe8e0c8, E: 0xc060ff, R: 0x9a2030, T: 0x4a4050, P: 0x6a1a2a, p: 0x3a0a14, G: 0xb060ff});
+			Sprites.recolor("astraeon", "star_prince", {H: 0xf0c840, h: 0x9a7020, S: 0xfff4d0, E: 0x2a1060, W: 0xffffff, R: 0xd0a030, r: 0x6a4a10, O: 0xfff6a0, o: 0xffffff}, 6);
 			Sprites.recolor("cube_shard", "cubelet", {P: 0xff60ff, p: 0xa020c0, Q: 0xffc0ff, E: 0x46c0e8});
 			Sprites.recolor("royal_guard", "bandit", {H: 0xd8b050, h: 0x8a6a20, S: 0xe8e0c0, E: 0x40c0ff, B: 0xc8c8d0, b: 0x8a8a96, A: 0x8a1a2a, L: 0x5a5a66, W: 0xffe080});
 			Sprites.recolor("grave_wraith", "ghost", {W: 0x9ab0ff, w: 0x5a6aa8, E: 0xffffff}, 4);
@@ -664,7 +680,13 @@ package realm {
 				places: ["the three pylons", "the Galecaller's terrace", "the eye of the storm"],
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
-					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}}
+					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060,
+				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
+				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
+				intro: "Deep beneath Eldmere lies the vault where a star fell. Four chambers guard it, and each one fights back: break what feeds its master, and mind the floor.",
+				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, layout: "starfall",
+					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 
 		private static function raids():void {
@@ -722,6 +744,43 @@ package realm {
 					attacks: [spiral(10, 9, 7, 90, 0.09, 0xffffff), aim(7, 60, 10, 100, 0.9, 0x80ffff, {shape: "blade", waves: 3, gap: 0.15}),
 						rain(8, 6, 130, 1.6, 0xffff60, {burst: 8})]})
 			]}, raid), ["heart_of_storm", "stormbreaker"]);
+
+			// ---- the Starfall Vault: four chambers, each a set piece that changes as you fight
+			boss("ignis", o({name: "Ignis, Warden of Embers", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
+				P(1, {say: "Who disturbs the vault?", move: "orbit",
+					attacks: [aim(3, 26, 8, 80, 0.9, 0xffb040), ring(14, 13, 4.5, 70, 1.8, 0xff6020)]}),
+				P(0.6, {say: "Burn!", shield: 2, move: "chase",
+					attacks: [spiral(4, 17, 6, 80, 0.12, 0xffe060), rain(5, 4, 100, 2, 0xff7020, {burst: 6})]}),
+				P(0.25, {say: "THE EMBERS RISE!", banner: "Ignis blazes!", move: "center",
+					attacks: [flower(24, 7, 5.5, 85, 0.8, 0xffb040), nova(3, 1.1, 150, 2.4, 0xff6020, {burst: 12})]})
+			]}, raid), ["ignis_brand"]);
+			boss("archivist", o({name: "The Drowned Archivist", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
+				P(1, {say: "Silence in the archive.", move: "orbit",
+					attacks: [aim(5, 50, 7, 75, 1.1, 0x40ffd0, {motion: "wave"}), ring(12, 0, 4, 70, 2, 0xa0fff0, {motion: "return"})]}),
+				P(0.6, {say: "Overdue. All of you.", shield: 2, move: "teleport", summon: [{what: "grave_wraith", n: 3}],
+					attacks: [wall(15, 5, 85, 1.8, 0x40ffd0, {hole: 3}), aim(1, 0, 6, 95, 1.4, 0xffffff, {motion: "home", eff: "slowed"})]}),
+				P(0.3, {say: "Let the tide take the pages!", move: "center",
+					attacks: [spiral(6, 13, 6, 80, 0.1, 0x60c0a0, {motion: "wave"}), rain(6, 5, 110, 2, 0x40ffd0)]})
+			]}, raid), ["drowned_codex"]);
+			boss("sovereign", o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
+				P(1, {say: "Kneel before the Sovereign.", move: "orbit",
+					attacks: [aim(4, 30, 8, 85, 1.0, 0xe8e0c8, {shape: "blade"}), ring(16, 11, 4, 75, 1.7, 0xc060ff)]}),
+				P(0.55, {say: "Rise, my thralls!", shield: 2.5, summon: [{what: "bone_thrall", n: 2}], move: "chase",
+					attacks: [spiral(4, -19, 6.5, 85, 0.12, 0xc060ff), aim(1, 0, 7, 110, 1.3, 0xff4060, {motion: "home", eff: "bleeding", r: 0.3})]}),
+				P(0.25, {say: "BONE AND BLOOD!", banner: "The crypt awakens!", move: "teleport",
+					attacks: [flower(28, 6, 6, 90, 0.7, 0xe8e0c8), rain(8, 6, 120, 1.8, 0xc060ff, {burst: 8})]})
+			]}, raid), ["sovereign_signet"]);
+			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
+				P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
+					attacks: [spiral(4, 12, 6.5, 80, 0.11, 0xffd060, {shape: "star"}), aim(3, 20, 10, 95, 1.0, 0xffffff, {shape: "blade"})]}),
+				P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
+					cycle: [[flower(30, 5.6, 5.5, 85, 0.7, 0xffd060)], [wall(21, 5.5, 95, 1.3, 0xfff0a0, {hole: 2, waves: 2, gap: 0.6})], [rain(10, 7, 130, 1.6, 0xffb040, {burst: 6})]]}),
+				P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "teleport",
+					attacks: [spiral(6, -11, 7, 90, 0.1, 0xffe080, {motion: "wave"}), nova(3, 1.2, 170, 2.2, 0xffb040, {burst: 16})]}),
+				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
+					attacks: [spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "blade", waves: 3, gap: 0.2}),
+						nova(4, 1.4, 190, 2.4, 0xffe080, {burst: 20})]})
+			]}, raid), ["starfall_staff", "fallen_star_mantle"]);
 		}
 	}
 }

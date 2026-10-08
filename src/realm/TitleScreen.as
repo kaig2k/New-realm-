@@ -6,6 +6,7 @@ package realm {
 	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
 	import flash.display.GradientType;
+	import flash.filters.DropShadowFilter;
 	import flash.filters.GlowFilter;
 	import flash.geom.Matrix;
 	import flash.text.TextField;
@@ -18,6 +19,9 @@ package realm {
 	 */
 	public class TitleScreen extends Sprite {
 		public static const VERSION:String = "v1.1";
+		/** Eldmere's pixel-art title (castle in the portal over the name band), shown when this is the Eldmere server. */
+		[Embed(source="../../assets/branding/title_logo.png")]
+		private static const TITLE_ART:Class;
 
 		private var onPlay:Function;
 		private var accountLayer:Sprite;
@@ -59,9 +63,17 @@ package realm {
 			logo.x = Ui.W / 2;
 			logo.y = 58;
 			addChild(logo);
+			art = new TITLE_ART() as Bitmap;
+			art.smoothing = false;
+			art.scaleX = art.scaleY = 2;
+			art.x = int((Ui.W - art.width) / 2);
+			art.y = 6;
+			art.filters = [artGlow, artShadow];
+			addChild(art);
+			showTitle();
 			var tag:TextField = Ui.text(17, 0xf0e4c0, true, "center", Ui.W, true);
 			tag.text = "FIGHT YOUR WAY ACROSS THE REALMS";
-			tag.y = 214;
+			tag.y = 266;
 			addChild(tag);
 			// ornaments either side of the tagline
 			var orn:Shape = new Shape();
@@ -116,6 +128,17 @@ package realm {
 
 		private var t:Number = 0;
 		private var logo:Logo;
+		private var art:Bitmap;
+		private var artGlow:GlowFilter = new GlowFilter(0xff4dff, 0.45, 18, 18, 1.4, 2);
+		private var artShadow:DropShadowFilter = new DropShadowFilter(6, 90, 0x000000, 0.6, 8, 8, 1, 2);
+
+		/** Eldmere gets its pixel-art title; any other server shows its own name in gold. */
+		private function showTitle():void {
+			var name:String = Online.connected ? Online.serverName : Data.WORLD_NAME;
+			var ours:Boolean = String(name).toUpperCase() == Data.WORLD_NAME.toUpperCase();
+			if (art) art.visible = ours;
+			if (logo) { logo.visible = !ours; logo.setText(name); }
+		}
 		private var rune:Sprite;
 		private var embers:Shape;
 		private var ember:Array = [];
@@ -227,6 +250,11 @@ package realm {
 				playGlow.blurX = playGlow.blurY = 14 + 8 * Math.sin(t * 2.4);
 				playBtn.filters = [playGlow];
 			}
+			if (art && art.visible) {
+				// the portal's neon breathes
+				artGlow.alpha = 0.38 + 0.18 * Math.sin(t * 1.7);
+				art.filters = [artGlow, artShadow];
+			}
 			if (rune) {
 				rune.rotation += 0.04;
 				var eg:* = embers.graphics;
@@ -269,7 +297,7 @@ package realm {
 		}
 
 		private function refreshOnline():void {
-			if (logo) logo.setText(Online.connected ? Online.serverName : Data.WORLD_NAME);
+			showTitle();
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
 			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.serverName + "</font>  (" + Online.welcome.online + " playing)"

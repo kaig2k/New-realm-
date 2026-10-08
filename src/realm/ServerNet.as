@@ -198,6 +198,15 @@ package realm {
 					g.msg(m.msg || m.text, m.color || 0xffd75e);
 					Sfx.play("portal");
 					break;
+				case "quests":
+					g.questsArrived(m.q);
+					break;
+				case "questDone":
+					g.questClaimed(m);
+					break;
+				case "questComplete":
+					g.questComplete(m.text);
+					break;
 				case "records":
 					g.recordsArrived(m.r);
 					break;

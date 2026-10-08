@@ -1,6 +1,7 @@
 package realm {
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
+	import flash.filters.GlowFilter;
 	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.Event;
@@ -247,7 +248,12 @@ package realm {
 			netTf = Ui.text(12, 0x9ad0ff, true, "right", 300, true);
 			netTf.x = VIEW_W - 312; netTf.y = 50;
 			netTf.mouseEnabled = false;
+			trackerTf = Ui.text(12, 0xe8e0c8, true, "right", 400, true);
+			trackerTf.x = VIEW_W - 412; trackerTf.y = 68;
+			trackerTf.mouseEnabled = false;
+			trackerTf.filters = [new GlowFilter(0x000000, 0.9, 3, 3, 4)];
 			addChild(netTf);
+			addChild(trackerTf);
 			buildBossPanel();
 			buildNexus();
 			sync = new WorldSync(this);
@@ -406,10 +412,8 @@ package realm {
 						", crit " + Math.round(player.critChance * 100) + "% x" + player.critMult.toFixed(2), 0x8fd0ff);
 					break;
 				case "/quests":
-					for each (var qs:Object in questState().list) {
-						var q:Object = Data.quest(qs.id);
-						msg(q.text + "  " + qs.progress + "/" + q.goal + (qs.claimed ? "  (claimed)" : ""), 0x9cff7a);
-					}
+					for each (var qe:Object in questList())
+						msg((qe.weekly ? "Weekly: " : "") + qe.text + "  " + qe.p + "/" + qe.goal + (qe.claimed ? "  (claimed)" : ""), 0x9cff7a);
 					break;
 				case "/achievements":
 				case "/ach":
@@ -522,6 +526,7 @@ package realm {
 				add("Particles: " + onOff("parts"), toggle("parts"), 32, 38);
 				add("Screen shake: " + onOff("shake"), toggle("shake"), 32, 38);
 				add("Game cursor: " + onOff("cursor"), toggle("cursor"), 32, 38);
+				add("Quest tracker: " + onOff("tracker"), function():void { setOpt("tracker", !opt("tracker")); refreshTracker(); refreshPauseMenu(); }, 32, 38);
 				y += 6;
 				add("Back", function():void { menuPage = "main"; refreshPauseMenu(); }, 32, 38);
 			} else {
@@ -1257,6 +1262,7 @@ package realm {
 			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
 			if (decor) decor.setVisible(nx);
 			if (arenas) arenas.clear();
+			refreshTracker();
 			traps.length = 0;
 			corpses.length = 0;
 			if (abil) abil.clear();
@@ -1867,7 +1873,10 @@ package realm {
 			var dx:Number = e.x - p.x, dy:Number = e.y - p.y;
 			var near:Boolean = dx * dx + dy * dy < 15 * 15;
 			if (mine) {
-				if (!e.def.crate) questEvent("kills");
+				if (e.def.prop) questEvent("pieces");
+				else if (!e.def.crate) questEvent("kills");
+				if (e.elite) questEvent("elites");
+				if (e.isBoss && e.def.setpiece && world.kind == "realm") questEvent("event:" + e.defId);
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
 				if (e.def.final || e.def.finale) { questEvent("elder"); p.elders++; }
@@ -2869,28 +2878,36 @@ package realm {
 				sp.addChild(bk);
 				y += 36;
 			} else if (openStation.kind == "quests") {
-				info.htmlText = "Complete these missions with any character. New quests every day.";
+				title.text = "Quests";
+				info.htmlText = "Complete these with any character. New daily quests in <font color='#ffd75e'>" + questTimeLeft(false) +
+					"</font>, a new weekly one in <font color='#d090ff'>" + questTimeLeft(true) + "</font>.";
 				info.y = y;
 				y += info.height + 6;
-				for each (var qs:Object in questState().list) {
-					var q:Object = Data.quest(qs.id);
-					var done:Boolean = qs.progress >= q.goal;
-					var row:TextField = Ui.text(14, done ? 0x9cff7a : 0xffffff, true, "left", 290, true);
-					row.htmlText = q.text + "  <font color='#aaaaaa'>" + qs.progress + "/" + q.goal + "</font>\n<font size='12' color='#ffd75e'>" +
-						(q.gold ? q.gold + " gold  " : "") + (q.onrane ? q.onrane + " Aether" : "") + "</font>";
+				var qlist:Array = questList();
+				if (!qlist.length) {
+					var wait:TextField = Ui.text(14, 0xaaaaaa, true, "center", w, true);
+					wait.text = "Asking the server for today's quests...";
+					wait.y = y; sp.addChild(wait); y += 30;
+					if (net.online) Online.send({t: "quests"});
+				}
+				for each (var qe:Object in qlist) {
+					var done:Boolean = qe.p >= qe.goal;
+					var row:TextField = Ui.text(14, done ? 0x9cff7a : 0xffffff, true, "left", 300, true);
+					row.htmlText = (qe.weekly ? "<font color='#d090ff'>WEEKLY  </font>" : "") + qe.text + "  <font color='#aaaaaa'>" + Ui.commas(qe.p) + "/" + Ui.commas(qe.goal) +
+						"</font>\n<font size='12' color='#ffd75e'>" + (qe.gold ? Ui.commas(qe.gold) + " gold  " : "") + (qe.onrane ? qe.onrane + " Aether" : "") + "</font>";
 					row.x = 16; row.y = y;
 					sp.addChild(row);
-					if (qs.claimed) {
+					if (qe.claimed) {
 						var c:TextField = Ui.text(14, 0x888888, true, "center", 110);
 						c.text = "Claimed";
 						c.x = 316; c.y = y + 8;
 						sp.addChild(c);
 					} else if (done) {
-						var cb:Sprite = Ui.button("Claim", 100, 30, claimFn(qs), 15);
+						var cb:Sprite = Ui.button("Claim", 100, 30, claimFn(qe), 15);
 						cb.x = 320; cb.y = y + 4;
 						sp.addChild(cb);
 					}
-					y += 44;
+					y += row.height > 40 ? row.height + 6 : 44;
 				}
 				var nDone:int = 0;
 				for each (var a2:Object in Data.ACHIEVEMENTS) if (achState().done[a2.id]) nDone++;
@@ -3568,43 +3585,131 @@ package realm {
 		}
 
 		// ------------------------------------------------------------- daily quests
+		/**
+		 * The server's quests, when it keeps them (it counts its own kills, so they can't be faked):
+		 * {list: [{text, p, goal, gold, onrane, claimed, weekly, i}], dayLeft, weekLeft (ms when sent)}.
+		 */
+		private var serverQuests:Object;
+		private var questsAt:int = 0;
+		/** The quest tracker under the connection status. */
+		private var trackerTf:TextField;
+
+		/** True when the server keeps the quests (online on a server that runs the monsters). */
+		private function get serverKeepsQuests():Boolean { return net && net.online && Online.welcome && Online.welcome.serverMonsters; }
+
+		/** Today in UTC (2026-10-08), the day the quests change on. */
 		private static function today():String {
 			var d:Date = new Date();
-			return d.fullYear + "-" + (d.month + 1) + "-" + d.date;
+			return d.fullYearUTC + "-" + (d.monthUTC < 9 ? "0" : "") + (d.monthUTC + 1) + "-" + (d.dateUTC < 10 ? "0" : "") + d.dateUTC;
 		}
+		/** This week (Monday to Sunday, UTC), numbered like the server does. */
+		private static function thisWeek():String { return String(int((Math.floor(new Date().time / 86400000) + 3) / 7)); }
 
-		/** Today's 3 quests (picked deterministically from the date), stored account-wide. */
+		/** Offline: today's 3 quests and the week's, kept in the save. */
 		public function questState():Object {
 			var st:Object = Save.data.quests;
-			var day:String = today();
-			if (!st || st.day != day) {
-				var seed:int = 0;
-				for (var i:int = 0; i < day.length; i++) seed = (seed * 31 + day.charCodeAt(i)) & 0x7fffffff;
-				var pool:Array = Data.QUESTS.concat();
+			var day:String = today(), week:String = thisWeek();
+			if (!st || st.day != day || !st.list) {
 				var list:Array = [];
-				for (i = 0; i < 3; i++) {
-					seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-					var q:Object = pool.splice(seed % pool.length, 1)[0];
-					list.push({id: q.id, progress: 0, claimed: false});
-				}
-				st = Save.data.quests = {day: day, list: list};
+				for each (var dq:Object in Data.dailyQuests(day)) list.push({id: dq.id, arg: dq.arg, progress: 0, claimed: false});
+				st = {day: day, list: list, week: st ? st.week : null, w: st ? st.w : null};
 			}
+			if (st.week != week || !st.w) {
+				st.week = week;
+				st.w = {id: Data.weeklyQuest(week).id, arg: "", progress: 0, claimed: false};
+			}
+			Save.data.quests = st;
 			return st;
+		}
+
+		/** The quests to show: [{text, p, goal, gold, onrane, claimed, weekly, i, ref}]. */
+		public function questList():Array {
+			if (serverKeepsQuests) return serverQuests ? serverQuests.list : [];
+			var st:Object = questState(), out:Array = [];
+			var all:Array = st.list.concat([st.w]);
+			for (var k:int = 0; k < all.length; k++) {
+				var qs:Object = all[k], q:Object = Data.quest(qs.id);
+				if (!q) continue;
+				var weekly:Boolean = k == all.length - 1;
+				out.push({text: Data.questText(q, qs.arg), p: qs.progress, goal: q.goal, gold: q.gold, onrane: q.onrane, claimed: qs.claimed,
+					weekly: weekly, i: weekly ? 0 : k, ref: qs});
+			}
+			return out;
+		}
+
+		/** "5h 12m" until the daily (or weekly) quests change. */
+		private function questTimeLeft(weekly:Boolean):String {
+			var ms:Number;
+			if (serverQuests && serverKeepsQuests) ms = (weekly ? serverQuests.weekLeft : serverQuests.dayLeft) - (getTimer() - questsAt);
+			else {
+				var now:Number = new Date().time, days:Number = Math.floor(now / 86400000);
+				ms = weekly ? (int((days + 3) / 7) * 7 - 3 + 7) * 86400000 - now : (days + 1) * 86400000 - now;
+			}
+			var m:int = Math.max(0, int(ms / 60000));
+			return (m >= 1440 ? int(m / 1440) + "d " : "") + int(m / 60) % 24 + "h " + m % 60 + "m";
 		}
 
 		public function questEvent(id:String, n:int = 1):void {
 			achievementEvent(id, n);
-			for each (var qs:Object in questState().list) {
-				if (qs.id != id || qs.claimed) continue;
-				var q:Object = Data.quest(id);
-				if (qs.progress >= q.goal) continue;
+			// online, the server counts quests from what it sees
+			if (serverKeepsQuests) return;
+			var st:Object = questState();
+			for each (var qs:Object in st.list.concat([st.w])) {
+				var q:Object = Data.quest(qs.id);
+				if (!q || qs.claimed || qs.progress >= q.goal) continue;
+				if (!(q.ev == "event" ? id == "event:" + qs.arg : q.ev == id)) continue;
 				qs.progress = Math.min(q.goal, qs.progress + n);
 				if (qs.progress >= q.goal) {
-					msg("Quest complete: " + q.text + "! Claim it at the Quest Board.", 0x9cff7a);
+					msg("Quest complete: " + Data.questText(q, qs.arg) + "! Claim it at the Quest Board.", 0x9cff7a);
 					Sfx.play("coin");
 					Save.flush();
 				}
 			}
+			refreshTracker();
+		}
+
+		/** The server sent our quests (on login, and whenever they move on). */
+		public function questsArrived(q:Object):void {
+			serverQuests = q;
+			questsAt = getTimer();
+			if (openStation && openStation.kind == "quests") refreshStation();
+			refreshTracker();
+		}
+
+		/** The server says a quest was just finished. */
+		public function questComplete(text:String):void {
+			msg(text, 0x9cff7a);
+			showBanner("Quest complete!", 0x9cff7a, 2);
+			Sfx.play("coin");
+		}
+
+		/** The server paid out a quest: take its gold and Aether. */
+		public function questClaimed(m:Object):void {
+			shopWaiting = false;
+			Save.data.gold = int(m.gold);
+			Save.data.onrane = int(m.onrane);
+			Save.data.tradeSeq = int(m.seq);
+			saveCharacter();
+			Save.flush();
+			if (m.q) questsArrived(m.q);
+			var got:Object = m.got || {};
+			msg("Quest reward: " + (got.gold ? got.gold + " gold " : "") + (got.onrane ? got.onrane + " Aether" : ""), Ui.GOLD);
+			Sfx.play("rare");
+			refreshStation();
+		}
+
+		/** The little list of quests under the connection status. */
+		public function refreshTracker():void {
+			if (!trackerTf) return;
+			if (!opt("tracker") || !world) { trackerTf.htmlText = ""; return; }
+			var lines:Array = [];
+			for each (var qe:Object in questList()) {
+				if (qe.claimed) continue;
+				var tag:String = qe.weekly ? "<font color='#d090ff'>Weekly: </font>" : "";
+				if (qe.p >= qe.goal) lines.push(tag + "<font color='#9cff7a'>" + qe.text + " - done! Claim it in the Nexus</font>");
+				else lines.push(tag + qe.text + "  <font color='#b8b8c0'>" + Ui.commas(qe.p) + "/" + Ui.commas(qe.goal) + "</font>");
+			}
+			trackerTf.htmlText = lines.length ? "<font color='#ffd75e'>QUESTS</font>\n" + lines.join("\n") : "";
 		}
 
 		/** Account achievement progress: {counts: {event: n}, done: {id: true}}. */
@@ -3629,17 +3734,24 @@ package realm {
 			}
 		}
 
-		private function claimFn(qs:Object):Function {
+		private function claimFn(qe:Object):Function {
 			return function():void {
-				if (qs.claimed) return;
-				var q:Object = Data.quest(qs.id);
+				if (qe.claimed || shopWaiting) return;
+				// online the server pays out (it checks the quest really is finished)
+				if (serverKeepsQuests) {
+					if (net.shopRequest({t: "questClaim", w: qe.weekly ? 1 : 0, i: qe.i})) shopWaiting = true;
+					return;
+				}
+				var qs:Object = qe.ref;
+				if (!qs || qs.claimed) return;
 				qs.claimed = true;
-				if (q.gold) addGold(q.gold);
-				if (q.onrane) addOnrane(q.onrane);
+				if (qe.gold) addGold(qe.gold);
+				if (qe.onrane) addOnrane(qe.onrane);
 				Save.flush();
-				msg("Quest reward: " + (q.gold ? q.gold + " gold " : "") + (q.onrane ? q.onrane + " Aether" : ""), Ui.GOLD);
+				msg("Quest reward: " + (qe.gold ? qe.gold + " gold " : "") + (qe.onrane ? qe.onrane + " Aether" : ""), Ui.GOLD);
 				Sfx.play("rare");
 				refreshStation();
+				refreshTracker();
 			};
 		}
 

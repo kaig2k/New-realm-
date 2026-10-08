@@ -90,7 +90,14 @@ async function run() {
   fs.mkdirSync(path.join(DATA, 'saves'), { recursive: true });
   fs.writeFileSync(path.join(DATA, 'saves', nameA.toLowerCase() + '.json'), JSON.stringify({ gold: 5000, fame: 100, onrane: 300,
     chars: [charSave('ca', [ITEMS.ring, ITEMS.godly, ITEMS.raidKey, ITEMS.dungeonKey, ITEMS.weapon])], vault: [ITEMS.potion, null, ITEMS.godly], vaultChests: 3 }));
-  fs.writeFileSync(path.join(DATA, 'saves', nameB.toLowerCase() + '.json'), JSON.stringify({ gold: 3000, chars: [charSave('cb', [ITEMS.potion])] }));
+  // B finished today's first quest already (kept by the server, in _quests)
+  const Q = require('./quests');
+  const qsv = {};
+  const qst = Q.state(qsv);
+  const { Data: QD } = require('./sim/gen/game');
+  qst.d[0].p = QD.quest(qst.d[0].id).goal;
+  const questReward = QD.quest(qst.d[0].id);
+  fs.writeFileSync(path.join(DATA, 'saves', nameB.toLowerCase() + '.json'), JSON.stringify({ gold: 3000, chars: [charSave('cb', [ITEMS.potion])], _quests: qsv._quests }));
   await wait(900);
 
   console.log('accounts');
@@ -414,6 +421,58 @@ async function run() {
     check('every event kill reaches the records with its time and team', kills.length === evCount && kills.every((k) => k.ms >= 0 && k.team.length === 1 && k.team[0].name === 'Tester'),
       kills.length + ' of ' + evCount);
     check('every event boss raises its set piece, wards hold, its arena changes mid-fight, and it all goes (ground restored) when the boss dies', !bad.length, bad.join('; '));
+  }
+
+  console.log('quests');
+  {
+    const Q2 = require('./quests');
+    const { Data: D2 } = require('./sim/gen/game');
+    // the module: counting, finishing, claiming once, a new day
+    const sv = {}, day1 = Date.UTC(2026, 9, 8, 12), day2 = Date.UTC(2026, 9, 9, 1);
+    const st = Q2.state(sv, day1);
+    const goals = st.d.map((x) => D2.quest(x.id));
+    const evOf = (x, def) => def.ev === 'event' ? 'event:' + x.arg : def.ev;
+    const evs = [];
+    for (let k = 0; k < goals[0].goal; k++) evs.push(evOf(st.d[0], goals[0]));
+    const done = Q2.progress(sv, evs, day1);
+    check('a quest finishes when the server counts enough', done && done.length >= 1 && sv._quests.d[0].p === goals[0].goal);
+    check('an unfinished quest cannot be claimed', typeof Q2.claim(sv, false, 1, day1) === 'string' || sv._quests.d[1].p >= goals[1].goal);
+    const r = Q2.claim(sv, false, 0, day1);
+    check('a finished quest pays its gold and Aether once', typeof r === 'object' && sv.gold === (goals[0].gold || 0) && sv.onrane === (goals[0].onrane || 0) &&
+      typeof Q2.claim(sv, false, 0, day1) === 'string');
+    Q2.state(sv, day2);
+    check('a new day brings new quests', sv._quests.day === '2026-10-09' && sv._quests.d.every((x) => x.p === 0 && !x.c));
+    check('everyone gets the same quests on the same day', JSON.stringify(D2.dailyQuests('2026-10-08')) === JSON.stringify(D2.dailyQuests('2026-10-08')) &&
+      D2.dailyQuests('2026-10-08').length === 3 && new Set(D2.dailyQuests('2026-10-08').map((x) => x.id)).size === 3);
+    // the simulation reports kills to the quest keeper
+    const { WorldSim } = require('./sim/worldsim');
+    const ws = new WorldSim('realm:Quest:99');
+    const seen = [];
+    ws.onQuest = (c, e) => seen.push(...e);
+    const cq = { id: 7, x: ws.w.spawnX, y: ws.w.spawnY, send: () => {} };
+    ws.join(cq);
+    const mob = ws.spawn('orc', cq.x + 3, cq.y, 2, true);
+    if (mob) { cq.x = mob.x; cq.y = mob.y + 2; for (let k = 0; k < 40 && !mob.dead; k++) ws.hit(cq, { id: mob.id, d: 6000 }); }
+    check('the server counts your kills for quests', seen.includes('kills'), seen.join(','));
+    // over the wire: B's finished quest
+    B.clear();
+    B.send({ t: 'quests' });
+    await wait(300);
+    const qv = B.find((m) => m.t === 'quests');
+    check('the server sends your quests (3 daily and a weekly)', qv && qv.q.list.length === 4 && qv.q.list.filter((x) => x.weekly).length === 1);
+    B.clear();
+    B.send({ t: 'questClaim', w: 0, i: 0 });
+    await wait(400);
+    const qd = B.find((m) => m.t === 'questDone');
+    check('claiming a finished quest pays out on the server', qd && qd.gold >= 3000 + (questReward.gold || 0) && qd.got.gold === (questReward.gold || 0), JSON.stringify(qd || B.find((m) => m.t === 'shopFail')));
+    B.clear();
+    B.send({ t: 'questClaim', w: 0, i: 0 });
+    await wait(300);
+    check('the same quest cannot be claimed twice', !B.find((m) => m.t === 'questDone') && B.find((m) => m.t === 'shopFail'));
+    B.clear();
+    B.send({ t: 'questClaim', w: 1, i: 0 });
+    await wait(300);
+    check('an unfinished weekly quest cannot be claimed', !B.find((m) => m.t === 'questDone'));
   }
 
   console.log('records');

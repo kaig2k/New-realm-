@@ -3,6 +3,7 @@ package realm {
 	import flash.display.BitmapData;
 	import flash.display.Shape;
 	import flash.display.Sprite;
+	import flash.filters.GlowFilter;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.geom.Matrix;
@@ -11,6 +12,8 @@ package realm {
 
 	/** Title screen: scrolling realm backdrop, hero name and class selection. */
 	public class Menu extends Sprite {
+		[Embed(source="../../assets/branding/name_band.png")]
+		private static const NAME_BAND:Class;
 		private static const NAMES:Array = ["Ezra", "Vex", "Lyra", "Thorn", "Kael", "Mira", "Orin", "Sable", "Rook", "Nyx", "Bram", "Iris"];
 
 		private var onPick:Function;
@@ -30,13 +33,25 @@ package realm {
 				addChild(cr);
 			}
 
-			var title:Logo = new Logo(Online.connected ? Online.serverName : Data.WORLD_NAME, 68);
-			title.x = Ui.W / 2;
-			title.y = 16;
-			addChild(title);
+			var serverName:String = Online.connected ? Online.serverName : Data.WORLD_NAME;
+			if (String(serverName).toUpperCase() == Data.WORLD_NAME.toUpperCase()) {
+				// Eldmere's pixel-art name band
+				var band:Bitmap = new NAME_BAND() as Bitmap;
+				band.smoothing = false;
+				band.scaleX = band.scaleY = 2;
+				band.x = int((Ui.W - band.width) / 2);
+				band.y = 14;
+				band.filters = [new GlowFilter(0xff4dff, 0.45, 16, 16, 1.3, 2)];
+				addChild(band);
+			} else {
+				var title:Logo = new Logo(serverName, 68);
+				title.x = Ui.W / 2;
+				title.y = 16;
+				addChild(title);
+			}
 			var sub:TextField = Ui.text(17, 0xd8d0ff, false, "center", Ui.W, true);
 			sub.text = "A bullet-hell adventure inspired by Realm of the Mad God";
-			sub.y = 100;
+			sub.y = 104;
 			addChild(sub);
 
 			classLayer = new Sprite();

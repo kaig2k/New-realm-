@@ -1301,16 +1301,65 @@ package realm {
 		/** XP for the next level-20 skill point after already earning n of them. */
 		public static function skillPointXp(n:int):int { return XP_PER_SKILL_POINT + Math.max(0, n) * 300; }
 
-		/** Daily quests (daily contracts / battle pass missions); 3 are picked per day. */
+		/**
+		 * Daily quests: 3 are picked each day (UTC), the same for everyone. ev is what
+		 * counts toward it (the server counts these from its own kills, so they can't be
+		 * faked); {boss} is filled in with the day's event boss.
+		 */
 		public static const QUESTS:Array = [
-			{id: "kills", text: "Slay 60 monsters", goal: 60, gold: 300, onrane: 0},
-			{id: "godkills", text: "Slay 25 Godlands monsters", goal: 25, gold: 0, onrane: 3},
-			{id: "events", text: "Defeat 2 realm event bosses", goal: 2, gold: 500, onrane: 2},
-			{id: "dungeon", text: "Clear a dungeon", goal: 1, gold: 200, onrane: 4},
-			{id: "pots", text: "Drink 3 stat potions", goal: 3, gold: 400, onrane: 0},
-			{id: "rare", text: "Find 2 purple-or-better loot bags", goal: 2, gold: 300, onrane: 1},
-			{id: "elder", text: "Defeat the Dark Elder", goal: 1, gold: 1000, onrane: 8}
+			{id: "kills", ev: "kills", text: "Slay 80 monsters", goal: 80, gold: 300, onrane: 0},
+			{id: "godkills", ev: "godkills", text: "Slay 30 Godlands monsters", goal: 30, gold: 0, onrane: 3},
+			{id: "events", ev: "events", text: "Defeat 2 realm event bosses", goal: 2, gold: 500, onrane: 2},
+			{id: "boss", ev: "event", text: "Defeat {boss}", goal: 1, gold: 600, onrane: 3},
+			{id: "pieces", ev: "pieces", text: "Break 8 set-piece wards, menders or hazards", goal: 8, gold: 400, onrane: 2},
+			{id: "fast", ev: "fastevent", text: "Defeat an event boss in under 90 seconds", goal: 1, gold: 700, onrane: 4},
+			{id: "elites", ev: "elites", text: "Slay 5 elite monsters", goal: 5, gold: 400, onrane: 2},
+			{id: "dungeon", ev: "dungeon", text: "Clear a dungeon", goal: 1, gold: 200, onrane: 4},
+			{id: "elder", ev: "elder", text: "Defeat the Dark Elder", goal: 1, gold: 1000, onrane: 8}
 		];
+		/** Weekly quests: one a week (weeks start on Monday, UTC), with a bigger reward. */
+		public static const WEEKLY_QUESTS:Array = [
+			{id: "w_events", ev: "events", text: "Defeat 15 realm event bosses", goal: 15, gold: 3000, onrane: 15},
+			{id: "w_party", ev: "partyevent", text: "Defeat 6 event bosses with at least one other player", goal: 6, gold: 2500, onrane: 15},
+			{id: "w_record", ev: "record", text: "Set a top-5 time on the Records board", goal: 1, gold: 3000, onrane: 20},
+			{id: "w_dungeons", ev: "dungeon", text: "Clear 8 dungeons", goal: 8, gold: 2500, onrane: 20},
+			{id: "w_pieces", ev: "pieces", text: "Break 40 set-piece wards, menders or hazards", goal: 40, gold: 2500, onrane: 15}
+		];
+
+		/** A number from a text, then a simple random sequence from it (the same on the server). */
+		private static function questSeed(key:String):Number {
+			var h:Number = 7;
+			for (var i:int = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 2147483647;
+			return h || 1;
+		}
+		private static function questNext(h:Number):Number { return (h * 16807) % 2147483647; }
+
+		/** The day's 3 quests for everyone: [{id, arg}] (arg: the event boss for "Defeat {boss}"). */
+		public static function dailyQuests(day:String):Array {
+			var h:Number = questSeed("d" + day);
+			var pool:Array = QUESTS.concat(), out:Array = [];
+			for (var k:int = 0; k < 3; k++) {
+				h = questNext(h);
+				var q:Object = pool.splice(int(h % pool.length), 1)[0];
+				var arg:String = "";
+				if (q.ev == "event") { h = questNext(h); arg = EVENTS[int(h % EVENTS.length)]; }
+				out.push({id: q.id, arg: arg});
+			}
+			return out;
+		}
+
+		/** The week's quest: {id, arg}. */
+		public static function weeklyQuest(week:String):Object {
+			var h:Number = questNext(questSeed("w" + week));
+			return {id: WEEKLY_QUESTS[int(h % WEEKLY_QUESTS.length)].id, arg: ""};
+		}
+
+		/** A quest's wording, with the day's boss filled in. */
+		public static function questText(q:Object, arg:String):String {
+			var t:String = q.text;
+			if (t.indexOf("{boss}") >= 0) t = t.split("{boss}").join(arg && ENEMIES[arg] ? ENEMIES[arg].name : "the day's event boss");
+			return t;
+		}
 
 		/** Account achievements: counted from the same events as quests, rewarded once. */
 		public static const ACHIEVEMENTS:Array = [
@@ -1334,6 +1383,7 @@ package realm {
 
 		public static function quest(id:String):Object {
 			for each (var q:Object in QUESTS) if (q.id == id) return q;
+			for each (q in WEEKLY_QUESTS) if (q.id == id) return q;
 			return null;
 		}
 

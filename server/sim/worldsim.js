@@ -529,6 +529,7 @@ class WorldSim {
     e.dead = true;
     const w = this.w;
     this.all({ t: 'ekill', id: e.id });
+    this.questKill(e);
     this.dropLoot(e);
     if (e.def.crate && Math.random() < 0.12) {
       const m = this.spawn('mimic', e.x, e.y, e.zone, true);
@@ -568,6 +569,35 @@ class WorldSim {
       const pi = Data.dungeonIndex(e.def.portal);
       if (pi >= 0) this.portal(e.x, e.y, 'dungeon', pi, Data.DUNGEONS[pi].color);
     }
+  }
+
+  /**
+   * Tells the quest keeper what this kill counts for, for everyone who hurt it:
+   * kills, godkills, elites, pieces (set pieces), events and event:<id> (realm
+   * event bosses), fastevent (under 90 seconds), partyevent (2+ players),
+   * dungeon (a dungeon's last boss) and elder.
+   */
+  questKill(e) {
+    if (!this.onQuest) return;
+    const team = [...(e.hitters || [])].filter((h) => h[1] > 0).map((h) => this.players.get(h[0])).filter(Boolean);
+    if (!team.length) return;
+    const evs = [];
+    if (e.def.prop) evs.push('pieces');
+    else if (!e.def.crate) {
+      evs.push('kills');
+      if (this.kind === 'realm' && e.zone === World.GOD_ZONE) evs.push('godkills');
+    }
+    if (e.elite) evs.push('elites');
+    if (e.isBoss) {
+      if (e.def.final || e.def.finale) evs.push('elder');
+      else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
+      else if (this.kind === 'realm' && e.def.setpiece) {
+        evs.push('events', 'event:' + e.defId);
+        if (e.firstHit && Date.now() - e.firstHit < 90000) evs.push('fastevent');
+        if (team.length >= 2) evs.push('partyevent');
+      }
+    }
+    for (const c of team) this.onQuest(c, evs);
   }
 
   /** Everyone who hurt the monster gets their own roll (sent only to them). */
@@ -646,7 +676,7 @@ class Sims {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);
@@ -659,7 +689,7 @@ class Sims {
     for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
     for (const key of want) {
       if (this.map.has(key)) continue;
-      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
     }
   }
 

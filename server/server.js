@@ -25,6 +25,7 @@ const { checkSave } = require('./validate');
 const { Sims } = require('./sim/worldsim');
 const items = require('./items');
 const { Data } = require('./sim/gen/game');
+const quests = require('./quests');
 
 // ------------------------------------------------------------------ config
 const CONFIG_FILE = path.join(__dirname, 'config.json');
@@ -84,6 +85,7 @@ function eventKilled(id, ms, team) {
   list.sort((a, b) => a.ms - b.ms);
   list.length = Math.min(list.length, RECORDS_KEPT);
   const place = list.findIndex((r) => r.at && r.names === names) + 1;
+  if (place) for (const c of team) questProgress(c, ['record']);
   save('records.json', records);
   const boss = (Data.ENEMIES[id] && Data.ENEMIES[id].name) || id;
   const who = names.length > 3 ? names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more' : names.join(', ');
@@ -99,6 +101,19 @@ function eventKilled(id, ms, team) {
   }
 }
 if (sims) sims.onEventKill = eventKilled;
+
+// ------------------------------------------------------------------ quests
+/** Something the server saw counts toward c's quests (evs: what happened, see WorldSim.questKill). */
+function questProgress(c, evs) {
+  if (!c || !c.key || !c.authed) return;
+  const sv = onlineSave(c.key);
+  const done = quests.progress(sv, evs);
+  if (done === null) return;
+  store.putSave(c.key, sv);
+  c.send({ t: 'quests', q: quests.view(sv) });
+  for (const text of done) c.send({ t: 'questComplete', text: text + ' Claim it at the Quest Board in the Nexus.' });
+}
+if (sims) sims.onQuest = questProgress;
 /** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
 const accounts = load('accounts.json', {});
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
@@ -252,6 +267,7 @@ function publicSave(s) {
   const o = Object.assign({}, s);
   delete o._ledger;
   delete o._ledgerV;
+  delete o._quests;
   return o;
 }
 
@@ -276,6 +292,8 @@ function applySave(c, data) {
   // the ledger is the server's: the game's copy is never trusted
   data._ledger = prev._ledger || {};
   data._ledgerV = prev._ledgerV || 1;
+  // so is quest progress
+  if (prev._quests) data._quests = prev._quests; else delete data._quests;
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
@@ -362,6 +380,7 @@ const handlers = {
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
       save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash });
     sendGuild(c.guild);
+    c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
     log(c.name, 'joined (' + byName.size + ' online)');
   },
 
@@ -780,6 +799,25 @@ const handlers = {
     ch.inv[slot] = lg;
     sv.onrane = (sv.onrane || 0) - 100;
     shopDone(c, sv, ch, { forged: lg.name, slot });
+  },
+
+  /** Today's quests and the week's, for the Quest Board. */
+  quests(c) {
+    const now = Date.now();
+    if (now - (c.questsT || 0) < 1000) return;
+    c.questsT = now;
+    c.send({ t: 'quests', q: quests.view(onlineSave(c.key)) });
+  },
+
+  /** Claims a finished quest: the reward goes into the server's copy of the save, then the game takes it. */
+  questClaim(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so the reward was not claimed.' });
+    const sv = onlineSave(c.key);
+    const got = quests.claim(sv, !!m.w, num(m.i) | 0);
+    if (typeof got === 'string') return c.send({ t: 'shopFail', msg: got });
+    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    store.putSave(c.key, sv);
+    c.send({ t: 'questDone', gold: sv.gold || 0, onrane: sv.onrane || 0, seq: sv.tradeSeq, got, q: quests.view(sv) });
   },
 
   /** The fastest event kills, for the Records page. */

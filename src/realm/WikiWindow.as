@@ -59,7 +59,11 @@ package realm {
 			"one after takes 300 XP more than the last.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Pets (Pet Yard, Nexus)</b></font>\n" +
 			"Your pet follows you, heals HP and MP every few seconds and shoots the nearest monster about once a second. " +
-			"Feed it to level it up: its healing and damage grow with its level, and rare and legendary pets hit harder."
+			"Feed it to level it up: its healing and damage grow with its level, and rare and legendary pets hit harder.\n\n" +
+			"<font size='15' color='#ffd75e'><b>Quests (Quest Board, Nexus)</b></font>\n" +
+			"Three daily quests (new every day at 00:00 UTC, the same for everyone) and one bigger weekly quest (new every Monday). " +
+			"The server counts them from what really happens, like your kills, set pieces broken and Records times, and pays out gold and Aether " +
+			"when you claim them at the Quest Board. The tracker under the connection status shows what's left (Menu > Settings to hide it)."
 		];
 
 		private var g:Game;

@@ -420,8 +420,36 @@ class Data {
 			return null;
 		}
 	static skillPointXp(n) { n = __int(n); return __int(Data.XP_PER_SKILL_POINT + Math.max(0, n) * 300); }
+	static questSeed(key) {
+			var h = 7;
+			for (var i = __int(0); i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 2147483647;
+			return h || 1;
+		}
+	static questNext(h) { return (h * 16807) % 2147483647; }
+	static dailyQuests(day) {
+			var h = Data.questSeed("d" + day);
+			var pool = Data.QUESTS.concat(), out = [];
+			for (var k = __int(0); k < 3; k++) {
+				h = Data.questNext(h);
+				var q = pool.splice(__int(h % pool.length), 1)[0];
+				var arg = "";
+				if (q.ev == "event") { h = Data.questNext(h); arg = Data.EVENTS[__int(h % Data.EVENTS.length)]; }
+				out.push({id: q.id, arg: arg});
+			}
+			return out;
+		}
+	static weeklyQuest(week) {
+			var h = Data.questNext(Data.questSeed("w" + week));
+			return {id: Data.WEEKLY_QUESTS[__int(h % Data.WEEKLY_QUESTS.length)].id, arg: ""};
+		}
+	static questText(q, arg) {
+			var t = q.text;
+			if (t.indexOf("{boss}") >= 0) t = t.split("{boss}").join(arg && Data.ENEMIES[arg] ? Data.ENEMIES[arg].name : "the day's event boss");
+			return t;
+		}
 	static quest(id) {
 			for (var q of __vals( Data.QUESTS)) if (q.id == id) return q;
+			for (q of __vals( Data.WEEKLY_QUESTS)) if (q.id == id) return q;
 			return null;
 		}
 	static lootClass(cls) {
@@ -3497,13 +3525,22 @@ Data.SKILLS = [
 Data.SKILL_STATS = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5}};
 Data.XP_PER_SKILL_POINT = __int(1000);
 Data.QUESTS = [
-			{id: "kills", text: "Slay 60 monsters", goal: 60, gold: 300, onrane: 0},
-			{id: "godkills", text: "Slay 25 Godlands monsters", goal: 25, gold: 0, onrane: 3},
-			{id: "events", text: "Defeat 2 realm event bosses", goal: 2, gold: 500, onrane: 2},
-			{id: "dungeon", text: "Clear a dungeon", goal: 1, gold: 200, onrane: 4},
-			{id: "pots", text: "Drink 3 stat potions", goal: 3, gold: 400, onrane: 0},
-			{id: "rare", text: "Find 2 purple-or-better loot bags", goal: 2, gold: 300, onrane: 1},
-			{id: "elder", text: "Defeat the Dark Elder", goal: 1, gold: 1000, onrane: 8}
+			{id: "kills", ev: "kills", text: "Slay 80 monsters", goal: 80, gold: 300, onrane: 0},
+			{id: "godkills", ev: "godkills", text: "Slay 30 Godlands monsters", goal: 30, gold: 0, onrane: 3},
+			{id: "events", ev: "events", text: "Defeat 2 realm event bosses", goal: 2, gold: 500, onrane: 2},
+			{id: "boss", ev: "event", text: "Defeat {boss}", goal: 1, gold: 600, onrane: 3},
+			{id: "pieces", ev: "pieces", text: "Break 8 set-piece wards, menders or hazards", goal: 8, gold: 400, onrane: 2},
+			{id: "fast", ev: "fastevent", text: "Defeat an event boss in under 90 seconds", goal: 1, gold: 700, onrane: 4},
+			{id: "elites", ev: "elites", text: "Slay 5 elite monsters", goal: 5, gold: 400, onrane: 2},
+			{id: "dungeon", ev: "dungeon", text: "Clear a dungeon", goal: 1, gold: 200, onrane: 4},
+			{id: "elder", ev: "elder", text: "Defeat the Dark Elder", goal: 1, gold: 1000, onrane: 8}
+		];
+Data.WEEKLY_QUESTS = [
+			{id: "w_events", ev: "events", text: "Defeat 15 realm event bosses", goal: 15, gold: 3000, onrane: 15},
+			{id: "w_party", ev: "partyevent", text: "Defeat 6 event bosses with at least one other player", goal: 6, gold: 2500, onrane: 15},
+			{id: "w_record", ev: "record", text: "Set a top-5 time on the Records board", goal: 1, gold: 3000, onrane: 20},
+			{id: "w_dungeons", ev: "dungeon", text: "Clear 8 dungeons", goal: 8, gold: 2500, onrane: 20},
+			{id: "w_pieces", ev: "pieces", text: "Break 40 set-piece wards, menders or hazards", goal: 40, gold: 2500, onrane: 15}
 		];
 Data.ACHIEVEMENTS = [
 			{id: "first_blood", ev: "kills", goal: 1, name: "First Blood", desc: "Slay a monster", gold: 50, onrane: 0},

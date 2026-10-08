@@ -51,6 +51,8 @@ package realm {
 		/** The build of the game the server handed out when we first connected, and whether it has changed since. */
 		public static var firstBuild:String = null;
 		public static var outdated:Boolean = false;
+		/** Set by the Eldmere launcher: downloads and starts the latest game in place of this one (null with an older launcher). */
+		public static var reloader:Function = null;
 		/** When the server restarts (getTimer() ms), or 0 when no restart is coming. */
 		public static var restartAt:int = 0;
 		/** The server said it restarts in `s` seconds (-1: called off). */
@@ -137,6 +139,15 @@ package realm {
 		public static function sendSave():void {
 			if (saveTimer) saveTimer.stop();
 			if (connected && Save.isRemote) send({t: "save", data: Save.data});
+		}
+
+		/** This copy of the game is being replaced (an update): stop talking to the server and every timer. */
+		public static function stopAll():void {
+			if (saveTimer) { saveTimer.stop(); saveTimer = null; }
+			if (keepAlive) { keepAlive.stop(); keepAlive = null; }
+			onClose = null;
+			onDropped = null;
+			disconnect();
 		}
 
 		/** Leaving online play: back to this PC's saves. */

@@ -30,6 +30,20 @@ package {
 			if (addr) realm.ServerConfig.launched = addr;
 		}
 
+		/** The Eldmere launcher hands over a way to download and start the latest game (for updates). */
+		public function setReloader(fn:Function):void { Online.reloader = fn; }
+
+		/** A newer copy of the game is taking over: let go of the server, timers and the shared stage. */
+		public function shutdown():void {
+			Online.stopAll();
+			realm.Cursor.uninstall();
+			if (screen) {
+				if (screen is Game) Game(screen).destroy();
+				removeChild(screen);
+				screen = null;
+			}
+		}
+
 		private function init(e:Event = null):void {
 			removeEventListener(Event.ADDED_TO_STAGE, init);
 			try { useServer(String(loaderInfo.parameters.server || "")); } catch (err:Error) {}

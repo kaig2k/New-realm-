@@ -147,6 +147,21 @@ package {
 			retryTimer.start();
 		}
 
+		/** The game says a newer version is out: put it away and start the new one. */
+		private function reload():void {
+			var old:Loader = game;
+			game = null;
+			if (old) {
+				try { Object(old.content).shutdown(); } catch (err:Error) {}
+				try { old.unloadAndStop(true); } catch (err:Error) {}
+				if (old.parent) old.parent.removeChild(old);
+			}
+			if (problem && problem.parent) problem.parent.removeChild(problem);
+			if (!ui.parent) addChild(ui);
+			download();
+			status.text = "Getting the new version of Eldmere...";
+		}
+
 		private var problem:TextField;
 
 		/** A small red note in the corner with what went wrong (to send to the server's owner). */
@@ -179,6 +194,8 @@ package {
 			game = new Loader();
 			game.contentLoaderInfo.addEventListener(Event.INIT, function(ev:Event):void {
 				try { Object(game.content).useServer(server); } catch (err:Error) {}
+				// when the server is updated, the game asks for the new version through this
+				try { Object(game.content).setReloader(reload); } catch (err:Error) {}
 			});
 			game.contentLoaderInfo.addEventListener(Event.COMPLETE, function(ev:Event):void {
 				removeChild(ui);

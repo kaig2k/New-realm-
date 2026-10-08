@@ -247,9 +247,23 @@ package realm {
 
 		/** Seconds until we next look for the server after a restart. */
 		private var retryT:Number = 3;
+		/** Waiting to hand over to the new version of the game. */
+		private var updateT:Number = 0;
+		private var updating:Boolean = false;
 
 		private function animate(e:Event):void {
 			t += 1 / 60;
+			// out of date, under a launcher that can fetch the new version: let it (after a moment to read why)
+			if (Online.outdated && Online.reloader != null) {
+				updateT += 1 / 60;
+				if (updateT > 2 && !updating) {
+					updating = true;
+					var reload:Function = Online.reloader;
+					Online.reloader = null;
+					try { reload(); } catch (err:Error) { updating = false; }
+				}
+				return;
+			}
 			// dropped out of a game: keep knocking until the server is back, then log in again
 			if (Online.dropped && !Online.connected && !connecting && !dialog && server && Accounts.remembered(server)) {
 				retryT -= 1 / 60;
@@ -310,7 +324,8 @@ package realm {
 			showTitle();
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
-			tf.htmlText = Online.outdated ? "<font color='#ffd75e'>" + Online.serverName + " has been updated!</font> Close the game and open it again to play the new version."
+			tf.htmlText = Online.outdated && (Online.reloader != null || updating) ? "<font color='#ffd75e'>" + Online.serverName + " has been updated!</font> Getting the new version..."
+				: Online.outdated ? "<font color='#ffd75e'>" + Online.serverName + " has been updated!</font> Close the game and open it again to play the new version."
 				: Online.dropped && !Online.connected ? "<font color='#ffd75e'>The server is restarting</font> (probably for an update). Waiting for it to come back..."
 				: Online.dropped ? "<font color='#5ae06a'>" + Online.serverName + " is back!</font> Press PLAY to rejoin."
 				: Online.connected ? "Online: <font color='#5ae06a'>" + Online.serverName + "</font>  (" + Online.welcome.online + " playing)"

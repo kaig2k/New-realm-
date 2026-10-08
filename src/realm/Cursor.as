@@ -40,6 +40,22 @@ package realm {
 			stage.addEventListener(Event.MOUSE_LEAVE, inst.leave);
 		}
 
+		/** Takes the cursor off the stage again (the game is being replaced by a newer copy). */
+		public static function uninstall():void {
+			if (!inst) return;
+			var st:Stage = inst.stage;
+			if (st) {
+				st.removeEventListener(Event.ENTER_FRAME, inst.tick);
+				st.removeEventListener(MouseEvent.MOUSE_MOVE, inst.move);
+				st.removeEventListener(MouseEvent.MOUSE_DOWN, inst.press);
+				st.removeEventListener(MouseEvent.MOUSE_UP, inst.release);
+				st.removeEventListener(Event.MOUSE_LEAVE, inst.leave);
+				st.removeChild(inst);
+			}
+			Mouse.show();
+			inst = null;
+		}
+
 		/** A shot or hit: the crosshair kicks out a little. */
 		public static function kick(amount:Number = 0.35):void {
 			if (inst) inst.spread = Math.min(1.8, inst.spread + amount);

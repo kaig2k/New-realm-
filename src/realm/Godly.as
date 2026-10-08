@@ -24,7 +24,13 @@ package realm {
 			necromancer: {name: "Soulforge", items: ["Staff of a Thousand Souls", "Skull of the Lich Emperor", "Shroud of the Soulforge", "Ring of the Grave"],
 				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 15, wis: 18, mgt: 12, frt: 15}},
 			huntress: {name: "Wildheart Eternal", items: ["Bow of the Wild Hunt", "Snare of the World Tree", "Hide of the Primal Beast", "Ring of the Pack"],
-				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15}}
+				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15}},
+			bard: {name: "Choir Eternal", items: ["Harpstring of the Choir", "Lyre of the Last Verse", "Mantle of the Grand Chorus", "Ring of Perfect Pitch"],
+				weapon: {shots: 3, arc: 14, motion: "wave", pierce: true, passive: "frost", col: 0xffe090}, bonus: {hp: 120, mp: 120, wis: 15, luc: 20, frt: 15}},
+			alchemist: {name: "Magnum Opus", items: ["Kris of Quicksilver", "Flask of the Great Work", "Apron of the Red Stone", "Ring of Transmutation"],
+				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 15, vit: 18, mgt: 15, frt: 15}},
+			chronomancer: {name: "Endless Hour", items: ["Wand of the Endless Hour", "Hourglass of Eternity", "Robes of Stopped Time", "Ring of the Last Second"],
+				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 15, dex: 15, wis: 18, frt: 15}}
 		};
 
 		/** Which boss drops which piece: [class, slot] (slot 0 weapon, 1 ability, 2 armor, 3 ring). */
@@ -33,10 +39,7 @@ package realm {
 			tide_empress: [["priest", 2], ["huntress", 0]],
 			gearmind: [["knight", 2], ["warrior", 3]],
 			void_dragon: [["rogue", 0], ["wizard", 3]],
-			archon: [["warrior", 0], ["necromancer", 0]],
-			tempestus: [["archer", 0], ["priest", 0]],
 			matron: [["priest", 1], ["necromancer", 2]],
-			galecaller: [["archer", 1], ["huntress", 1]],
 			shattered_seraph: [["wizard", 1], ["priest", 3]],
 			sun_king: [["knight", 0], ["knight", 1]],
 			moon_queen: [["wizard", 2], ["huntress", 2]],
@@ -46,7 +49,15 @@ package realm {
 			frost_warden: [["archer", 2]],
 			flame_warden: [["knight", 3]],
 			zealot_a: [["rogue", 3]],
-			sentinel_a: [["huntress", 3]]
+			sentinel_a: [["huntress", 3]],
+			// the Starfall Vault's masters carry Eldmere's own classes' sets
+			ignis: [["alchemist", 0], ["bard", 3]],
+			archivist: [["chronomancer", 1], ["bard", 1]],
+			sovereign: [["alchemist", 2], ["chronomancer", 3]],
+			astraeon: [["chronomancer", 0], ["bard", 0], ["alchemist", 1]],
+			galecaller: [["archer", 1], ["huntress", 1], ["bard", 2]],
+			tempestus: [["archer", 0], ["priest", 0], ["chronomancer", 2]],
+			archon: [["warrior", 0], ["necromancer", 0], ["alchemist", 3]]
 		};
 
 		/** Boss name for each piece (for tooltips and the wiki). */

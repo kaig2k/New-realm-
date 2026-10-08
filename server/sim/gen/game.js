@@ -6,6 +6,13 @@ class Data {
 	constructor() {
 
 	}
+	static classUnlocked(id, bestLevel) {
+			var u = Data.CLASS_UNLOCK[id];
+			if (!u) return true;
+			var n = __int(0);
+			for (var k in bestLevel || {}) if (__int(bestLevel[k]) >= u.need) n++;
+			return n >= u.classes;
+		}
 	static grow(cls, s) {
 			return (cls.l20[s] - cls.base[s]) / 19;
 		}
@@ -313,6 +320,15 @@ class Data {
 				case "raise": t = "Three skeletons claw out of the ground and fight for you for " + (8 * sq).toFixed(1) + "s, throwing bones at monsters for " + n(20, 3) + "."; break;
 				case "snare": t = "Throws a trap at the cursor. When a monster comes close, vines root everything nearby (bosses briefly), then it bursts into slowing shards for " + n(60, 7) + " damage."; break;
 				case "explosive": t = "Throws a trap at the cursor that blows up when a monster comes close: " + n(150, 16) + " damage in 3 tiles. No roots, just fire."; break;
+				case "valor": t = "A rousing ballad: you and every ally within 6 tiles deal +30% damage for " + (5 * sq).toFixed(1) + "s."; break;
+				case "lullaby": t = "A soft song at the cursor puts monsters within 3 tiles to sleep for " + (2.5 * sq).toFixed(1) + "s (bosses only nod off briefly)."; break;
+				case "requiem": t = "A wave of sound rolls out 5 tiles around you: " + n(95, 11) + " damage to everything it reaches, and they're slowed."; break;
+				case "acidflask": t = "Throws a flask at the cursor that bursts into an acid pool (2.5 tiles) for " + (4 * sq).toFixed(1) + "s. Monsters in it take " + n(22, 3) + " every half second."; break;
+				case "elixir": t = "Drink and share: heals you and allies within 5 tiles " + n(50, 5) + " HP at once, clears bad effects, and regenerates health quickly for 4s."; break;
+				case "philbomb": t = "Lobs a bomb at the cursor. After a 1.5 second fuse it levels everything within 3.2 tiles for " + n(260, 28) + " damage."; break;
+				case "rewind": t = "Snap back to where you were 3 seconds ago (up to 10 tiles), and get back the health you had then, up to " + n(80, 9) + " HP."; break;
+				case "timestop": t = "Stops time around you (4 tiles): enemy bullets freeze in the air for " + (2.5 * sq).toFixed(1) + "s and monsters are held still for " + (1.2 * sq).toFixed(1) + "s (bosses briefly)."; break;
+				case "hastefield": t = "A field of quickened time (4 tiles) for " + (5 * sq).toFixed(1) + "s: you and allies in it shoot 40% faster and move 35% faster."; break;
 				case "wolf": t = "A spirit wolf hunts the nearest monsters for " + (12 * sq).toFixed(1) + "s, biting for " + n(35, 4) + " and slowing them."; break;
 				default: return "";
 			}
@@ -1334,7 +1350,7 @@ class Bosses {
 					attacks: [Bosses.spiral(4, 17, 6, 80, 0.12, 0xffe060), Bosses.rain(5, 4, 100, 2, 0xff7020, {burst: 6})]}),
 				Bosses.P(0.25, {say: "THE EMBERS RISE!", banner: "Ignis blazes!", move: "center",
 					attacks: [Bosses.flower(24, 7, 5.5, 85, 0.8, 0xffb040), Bosses.nova(3, 1.1, 150, 2.4, 0xff6020, {burst: 12})]})
-			]}, raid), ["ignis_brand"]);
+			]}, raid), ["ignis_brand", "everburning_flask"]);
 			Bosses.boss("archivist", Bosses.o({name: "The Drowned Archivist", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
 				Bosses.P(1, {say: "Silence in the archive.", move: "orbit",
 					attacks: [Bosses.aim(5, 50, 7, 75, 1.1, 0x40ffd0, {motion: "wave"}), Bosses.ring(12, 0, 4, 70, 2, 0xa0fff0, {motion: "return"})]}),
@@ -1342,7 +1358,7 @@ class Bosses {
 					attacks: [Bosses.wall(15, 5, 85, 1.8, 0x40ffd0, {hole: 3}), Bosses.aim(1, 0, 6, 95, 1.4, 0xffffff, {motion: "home", eff: "slowed"})]}),
 				Bosses.P(0.3, {say: "Let the tide take the pages!", move: "center",
 					attacks: [Bosses.spiral(6, 13, 6, 80, 0.1, 0x60c0a0, {motion: "wave"}), Bosses.rain(6, 5, 110, 2, 0x40ffd0)]})
-			]}, raid), ["drowned_codex"]);
+			]}, raid), ["drowned_codex", "siren_lyre"]);
 			Bosses.boss("sovereign", Bosses.o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
 				Bosses.P(1, {say: "Kneel before the Sovereign.", move: "orbit",
 					attacks: [Bosses.aim(4, 30, 8, 85, 1.0, 0xe8e0c8, {shape: "blade"}), Bosses.ring(16, 11, 4, 75, 1.7, 0xc060ff)]}),
@@ -1361,7 +1377,7 @@ class Bosses {
 				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [Bosses.spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), Bosses.aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "blade", waves: 3, gap: 0.2}),
 						Bosses.nova(4, 1.4, 190, 2.4, 0xffe080, {burst: 20})]})
-			]}, raid), ["starfall_staff", "fallen_star_mantle"]);
+			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star"]);
 		}
 }
 
@@ -3044,9 +3060,39 @@ Data.CLASSES = {
 				l20: {hp: 630, mp: 200, att: 42, def: 0, spd: 32, dex: 32, vit: 22, wis: 30, mgt: 12, luc: 12, prt: 4},
 				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 60, luc: 50, prt: 25},
 				ability: {name: "Snare", cost: 25, desc: "Trap roots enemies in vines, then bursts."}
+			},
+			
+			bard: {
+				id: "bard", name: "Bard", weapon: "bow", armor: "leather", abilityType: "lyre",
+				desc: "The party's heart. Songs that make allies hit harder, lull monsters to sleep or shatter them.",
+				base: {hp: 120, mp: 110, att: 12, def: 0, spd: 13, dex: 13, vit: 11, wis: 14, mgt: 2, luc: 6, prt: 4},
+				l20: {hp: 610, mp: 280, att: 38, def: 0, spd: 36, dex: 34, vit: 22, wis: 38, mgt: 10, luc: 20, prt: 8},
+				max: {hp: 660, mp: 340, att: 65, def: 25, spd: 60, dex: 55, vit: 40, wis: 65, mgt: 50, luc: 75, prt: 35},
+				ability: {name: "Ballad of Valor", cost: 40, desc: "You and nearby allies deal +30% damage."}
+			},
+			alchemist: {
+				id: "alchemist", name: "Alchemist", weapon: "dagger", armor: "leather", abilityType: "flask",
+				desc: "Brews trouble. Acid pools, healing elixirs and a bomb that levels a room.",
+				base: {hp: 115, mp: 105, att: 12, def: 0, spd: 13, dex: 14, vit: 14, wis: 12, mgt: 4, luc: 2, prt: 4},
+				l20: {hp: 615, mp: 260, att: 36, def: 0, spd: 38, dex: 42, vit: 32, wis: 32, mgt: 18, luc: 10, prt: 8},
+				max: {hp: 680, mp: 320, att: 60, def: 25, spd: 65, dex: 70, vit: 60, wis: 55, mgt: 60, luc: 45, prt: 30},
+				ability: {name: "Volatile Flask", cost: 35, desc: "An acid pool that eats away at monsters."}
+			},
+			chronomancer: {
+				id: "chronomancer", name: "Chronomancer", weapon: "wand", armor: "robe", abilityType: "hourglass",
+				desc: "Bends time. Rewind a mistake, freeze bullets in the air, speed up your party.",
+				base: {hp: 90, mp: 120, att: 14, def: 0, spd: 12, dex: 15, vit: 10, wis: 16, mgt: 2, luc: 4, prt: 4},
+				l20: {hp: 590, mp: 320, att: 42, def: 0, spd: 36, dex: 40, vit: 20, wis: 44, mgt: 12, luc: 14, prt: 10},
+				max: {hp: 640, mp: 400, att: 70, def: 25, spd: 60, dex: 65, vit: 40, wis: 75, mgt: 40, luc: 50, prt: 40},
+				ability: {name: "Rewind", cost: 40, desc: "Snap back 3 seconds: place and health."}
 			}
 		};
-Data.CLASS_ORDER = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress"];
+Data.CLASS_ORDER = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress", "bard", "alchemist", "chronomancer"];
+Data.CLASS_UNLOCK = {
+			bard: {need: 10, classes: 1, text: "Reach level 10 with any hero"},
+			alchemist: {need: 20, classes: 1, text: "Reach level 20 with any hero"},
+			chronomancer: {need: 20, classes: 3, text: "Reach level 20 with 3 different classes"}
+		};
 Data.RARITIES = ["ut", "st", "fb", "lg", "ar", "gd"];
 Data.RARITY_NAMES = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial", gd: "Godly"};
 Data.RARITY_LABELS = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR", gd: "GD"};
@@ -3072,10 +3118,13 @@ Data.ABILITY_NAMES = {
 			cloak: ["Dusky Cloak", "Shadow Cloak", "Night Cloak", "Cloak of Shades", "Wraith Cloak", "Cloak of Silence", "Cloak of the Void"],
 			helm: ["Iron Helm", "Bronze Helm", "Steel Helm", "Horned Helm", "War Helm", "Helm of Rage", "Helm of the Titan"],
 			skull: ["Bone Skull", "Spirit Skull", "Grim Skull", "Wraith Skull", "Lich Skull", "Skull of Ruin", "Skull of the Damned"],
-			trap: ["Snare Trap", "Spike Trap", "Thorn Trap", "Barbed Trap", "Hunter's Trap", "Trap of Vines", "Trap of the Wild"]
+			trap: ["Snare Trap", "Spike Trap", "Thorn Trap", "Barbed Trap", "Hunter's Trap", "Trap of Vines", "Trap of the Wild"],
+			lyre: ["Reed Lyre", "Oak Lyre", "Silver Lyre", "Siren's Lyre", "Lyre of Echoes", "Starstrung Lyre", "Lyre of the First Song"],
+			flask: ["Cracked Flask", "Glass Flask", "Bubbling Flask", "Fuming Flask", "Quicksilver Flask", "Dragonbile Flask", "Flask of the Magnum Opus"],
+			hourglass: ["Sand Glass", "Brass Hourglass", "Silver Hourglass", "Moonsand Hourglass", "Hourglass of Ages", "Aeon Hourglass", "Hourglass of the End of Time"]
 		};
 Data.NOUNS = {staff: "Staff", bow: "Longbow", sword: "Greatsword", wand: "Wand", dagger: "Kris",
-			spell: "Grimoire", quiver: "Quiver", shield: "Aegis", tome: "Codex", cloak: "Shroud", helm: "Crown", skull: "Skull", trap: "Snare",
+			spell: "Grimoire", quiver: "Quiver", shield: "Aegis", tome: "Codex", cloak: "Shroud", helm: "Crown", skull: "Skull", trap: "Snare", lyre: "Lyre", flask: "Alembic", hourglass: "Hourglass",
 			robe: "Vestments", leather: "Hide", heavy: "Plate", ring: "Signet"};
 Data.UT_PREFIX = ["Runed", "Ember-Runed", "Frostrune", "Bloodrune", "Stormrune", "Graverune", "Tiderune", "Hollowrune"];
 Data.LG_PREFIX = ["Starforged", "Starfall", "Comet-Forged", "Nova", "Sunforged", "Moonforged", "Starlit", "Celestial"];
@@ -3099,7 +3148,10 @@ Data.SETS = {
 			rogue: {name: "Nightblade's", bonus: {hp: 60, dex: 12, spd: 12, mgt: 12, frt: 10}},
 			warrior: {name: "Warlord's", bonus: {hp: 100, att: 15, vit: 10, mgt: 10, frt: 10}},
 			necromancer: {name: "Gravecaller's", bonus: {mp: 80, att: 10, wis: 12, mgt: 12, frt: 10}},
-			huntress: {name: "Wildheart's", bonus: {hp: 60, att: 10, dex: 10, spd: 10, luc: 10, frt: 10}}
+			huntress: {name: "Wildheart's", bonus: {hp: 60, att: 10, dex: 10, spd: 10, luc: 10, frt: 10}},
+			bard: {name: "Troubadour's", bonus: {hp: 60, mp: 60, wis: 12, luc: 15, frt: 10}},
+			alchemist: {name: "Transmuter's", bonus: {hp: 80, dex: 12, vit: 12, mgt: 12, frt: 10}},
+			chronomancer: {name: "Timekeeper's", bonus: {mp: 80, att: 10, dex: 10, wis: 15, frt: 10}}
 		};
 Data.FORMS = {
 			heavy: {name: "Heavy", desc: "One big, slow-firing shot that hits very hard. Great against armored enemies."},
@@ -3136,13 +3188,23 @@ Data.ABILITIES = {
 			raise: {type: "skull", name: "Raise Dead", cost: 50, cd: 16, school: "the Risen", col: 0x5a9a4a},
 			snare: {type: "trap", name: "Snare", cost: 25, cd: 4, col: 0},
 			explosive: {type: "trap", name: "Explosive Trap", cost: 35, cd: 5, school: "Fire", col: 0xd05020},
-			wolf: {type: "trap", name: "Spirit Wolf", cost: 45, cd: 16, school: "the Wolf", col: 0x7ab0e0}
+			wolf: {type: "trap", name: "Spirit Wolf", cost: 45, cd: 16, school: "the Wolf", col: 0x7ab0e0},
+			valor: {type: "lyre", name: "Ballad of Valor", cost: 40, cd: 8, col: 0},
+			lullaby: {type: "lyre", name: "Lullaby", cost: 45, cd: 7, school: "Slumber", col: 0x8a7ad0},
+			requiem: {type: "lyre", name: "Requiem", cost: 45, cd: 5, school: "Echoes", col: 0xc04a6a},
+			acidflask: {type: "flask", name: "Volatile Flask", cost: 35, cd: 4, col: 0},
+			elixir: {type: "flask", name: "Elixir of Renewal", cost: 50, cd: 12, school: "Renewal", col: 0xd04a8a},
+			philbomb: {type: "flask", name: "Philosopher's Bomb", cost: 55, cd: 7, school: "Ruin", col: 0xe0a020},
+			rewind: {type: "hourglass", name: "Rewind", cost: 40, cd: 8, col: 0},
+			timestop: {type: "hourglass", name: "Time Stop", cost: 55, cd: 12, school: "Stasis", col: 0x7ab8e0},
+			hastefield: {type: "hourglass", name: "Haste Field", cost: 45, cd: 14, school: "Acceleration", col: 0xe0c040}
 		};
 Data.ABILITY_SETS = {
 			spell: ["fireball", "lightning", "frostnova"], quiver: ["arrowstorm", "pierce", "volley"],
 			shield: ["shieldwall", "bash", "banner"], tome: ["sanctuary", "smite", "ward"],
 			cloak: ["shadowstep", "knives", "smoke"], helm: ["charge", "whirlwind", "warcry"],
-			skull: ["harvest", "prison", "raise"], trap: ["snare", "explosive", "wolf"]
+			skull: ["harvest", "prison", "raise"], trap: ["snare", "explosive", "wolf"],
+			lyre: ["valor", "lullaby", "requiem"], flask: ["acidflask", "elixir", "philbomb"], hourglass: ["rewind", "timestop", "hastefield"]
 		};
 Data.RING_PREFIX = ["Minor", "", "Greater", "Superior", "Paramount", "Exalted"];
 Data.SHOP = [
@@ -3607,7 +3669,13 @@ Data.SKINS = {
 			necromancer: [{id: "necro_lich", name: "Lichlord", cost: 400, pal: {D: 0x2a4a6a, d: 0x142a40, E: 0x60e0ff, K: 0x2a8ad0}},
 				{id: "necro_plague", name: "Plague Doctor", cost: 1000, pal: {D: 0x3a5a2a, d: 0x203a14, K: 0x6ad040, E: 0xffe040}}],
 			huntress: [{id: "huntress_snow", name: "Snow Huntress", cost: 400, pal: {R: 0xe8f0ff, r: 0xa8b8d0, G: 0x6a8aa8, g: 0x4a6080}},
-				{id: "huntress_jungle", name: "Jungle Huntress", cost: 1000, pal: {R: 0x2a8a3a, r: 0x145a20, G: 0xc0a040, g: 0x8a7020}}]
+				{id: "huntress_jungle", name: "Jungle Huntress", cost: 1000, pal: {R: 0x2a8a3a, r: 0x145a20, G: 0xc0a040, g: 0x8a7020}}],
+			bard: [{id: "bard_jester", name: "Jester", cost: 600, pal: {V: 0xd0302a, v: 0x8a1a14, H: 0xf0c030, h: 0xa08010}},
+				{id: "bard_siren", name: "Siren", cost: 1500, pal: {V: 0x2a9ab0, v: 0x14606e, H: 0xc0f0ff, h: 0x70b0c0, L: 0xe0e8ff}}],
+			alchemist: [{id: "alch_plague", name: "Plague Brewer", cost: 600, pal: {A: 0x3a3a34, a: 0x22221e, G: 0x9aff40, M: 0x6a6a5a}},
+				{id: "alch_gold", name: "Goldmaker", cost: 1500, pal: {A: 0xa07a20, a: 0x6a4e10, G: 0xffe060, M: 0xfff0b0}}],
+			chronomancer: [{id: "chrono_dusk", name: "Dusk Weaver", cost: 600, pal: {T: 0x4a2a7a, t: 0x2a1448, Y: 0xff9ad8}},
+				{id: "chrono_aeon", name: "Aeon Warden", cost: 1500, pal: {T: 0xe8e8f0, t: 0xa8a8b8, Y: 0x40e0ff, O: 0x40e0ff}}]
 		};
 Data.DYES = [
 			{id: "dye_crimson", name: "Crimson", cost: 150, col: 0xc82828}, {id: "dye_ocean", name: "Ocean", cost: 150, col: 0x2a6ad8},
@@ -3619,7 +3687,8 @@ Data.DYES = [
 		];
 Data.DYE_KEYS = {
 			wizard: ["R", "r"], archer: ["G", "g"], knight: ["K"], priest: ["W", "w"], rogue: ["P", "p"],
-			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"]
+			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"],
+			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.PET_SKINS = [
 			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
@@ -3803,6 +3872,10 @@ Uniques.ALL = {
 			tempest_quiver: ["Tempest Quiver", "ability", "quiver", {spd: 6}, {power: 1.9}, "The wind itself carries these arrows."],
 			thunderhide: ["Thunderhide", "armor", "leather", {dex: 8, spd: 6}, null, "Crackles when you move."],
 			
+			
+			everburning_flask: ["Everburning Flask", "ability", "flask", {att: 4, dex: 5}, {power: 1.7}, "Ignis's own fire, corked. It is never quite cool."],
+			siren_lyre: ["Lyre of the Drowned Siren", "ability", "lyre", {wis: 6, mp: 40}, {power: 1.7}, "Pulled from the Archive's flooded stacks, still dripping. Its song carries underwater."],
+			hourglass_fallen_star: ["Hourglass of the Fallen Star", "ability", "hourglass", {wis: 6, dex: 5}, {power: 1.8}, "The sand inside is starlight. It falls upward."],
 			ignis_brand: ["Brand of Ignis", "weapon", "sword", {att: 5}, {shots: 3, arc: 20, mult: 0.72, col: 0xffb040}, "Still warm from the Hall of Embers."],
 			drowned_codex: ["The Drowned Codex", "ability", "tome", {wis: 9, vit: 4}, {power: 1.9}, "Every page is wet, and every word still works."],
 			sovereign_signet: ["Bone Sovereign's Signet", "ring", "hp", {hp: 90, def: 6, vit: 4}, null, "Morvath wore it for a thousand years. It remembers."],
@@ -3909,17 +3982,20 @@ Godly.SETS = {
 			necromancer: {name: "Soulforge", items: ["Staff of a Thousand Souls", "Skull of the Lich Emperor", "Shroud of the Soulforge", "Ring of the Grave"],
 				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 15, wis: 18, mgt: 12, frt: 15}},
 			huntress: {name: "Wildheart Eternal", items: ["Bow of the Wild Hunt", "Snare of the World Tree", "Hide of the Primal Beast", "Ring of the Pack"],
-				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15}}
+				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15}},
+			bard: {name: "Choir Eternal", items: ["Harpstring of the Choir", "Lyre of the Last Verse", "Mantle of the Grand Chorus", "Ring of Perfect Pitch"],
+				weapon: {shots: 3, arc: 14, motion: "wave", pierce: true, passive: "frost", col: 0xffe090}, bonus: {hp: 120, mp: 120, wis: 15, luc: 20, frt: 15}},
+			alchemist: {name: "Magnum Opus", items: ["Kris of Quicksilver", "Flask of the Great Work", "Apron of the Red Stone", "Ring of Transmutation"],
+				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 15, vit: 18, mgt: 15, frt: 15}},
+			chronomancer: {name: "Endless Hour", items: ["Wand of the Endless Hour", "Hourglass of Eternity", "Robes of Stopped Time", "Ring of the Last Second"],
+				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 15, dex: 15, wis: 18, frt: 15}}
 		};
 Godly.DROPS = {
 			elder: [["wizard", 0], ["necromancer", 1]],
 			tide_empress: [["priest", 2], ["huntress", 0]],
 			gearmind: [["knight", 2], ["warrior", 3]],
 			void_dragon: [["rogue", 0], ["wizard", 3]],
-			archon: [["warrior", 0], ["necromancer", 0]],
-			tempestus: [["archer", 0], ["priest", 0]],
 			matron: [["priest", 1], ["necromancer", 2]],
-			galecaller: [["archer", 1], ["huntress", 1]],
 			shattered_seraph: [["wizard", 1], ["priest", 3]],
 			sun_king: [["knight", 0], ["knight", 1]],
 			moon_queen: [["wizard", 2], ["huntress", 2]],
@@ -3929,7 +4005,15 @@ Godly.DROPS = {
 			frost_warden: [["archer", 2]],
 			flame_warden: [["knight", 3]],
 			zealot_a: [["rogue", 3]],
-			sentinel_a: [["huntress", 3]]
+			sentinel_a: [["huntress", 3]],
+			
+			ignis: [["alchemist", 0], ["bard", 3]],
+			archivist: [["chronomancer", 1], ["bard", 1]],
+			sovereign: [["alchemist", 2], ["chronomancer", 3]],
+			astraeon: [["chronomancer", 0], ["bard", 0], ["alchemist", 1]],
+			galecaller: [["archer", 1], ["huntress", 1], ["bard", 2]],
+			tempestus: [["archer", 0], ["priest", 0], ["chronomancer", 2]],
+			archon: [["warrior", 0], ["necromancer", 0], ["alchemist", 3]]
 		};
 Godly.source = {};
 Bosses.done = false;

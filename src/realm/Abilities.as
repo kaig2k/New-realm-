@@ -232,6 +232,89 @@ package realm {
 					anim("nova", x, y, 0.45, {col: 0xb8e0ff, r: 1.6});
 					puff(x, y, 0xb8e0ff, 14, 3);
 					break;
+
+				// ---- Bard
+				case "valor":
+					Sfx.play("holy", 0.8);
+					anim("nova", x, y, 0.6, {col: 0xffd060, r: 6});
+					anim("notes", x, y, 1.2, {col: 0xffd060, seed: Math.random() * 100});
+					g.ring(x, y, 0xffd060, 24);
+					if (!mine && near(x, y, 6)) {
+						g.player.buffs.might = Math.max(g.player.buffs.might || 0, n);
+						g.floatText(g.player.x, g.player.y - 1.4, "Inspired!", 0xffd060);
+					}
+					break;
+				case "lullaby":
+					Sfx.play("holy", 0.5);
+					anim("notes", tx, ty, 1.4, {col: 0xb8a8ff, seed: Math.random() * 100});
+					anim("nova", tx, ty, 0.8, {col: 0xb8a8ff, r: n});
+					puff(tx, ty, 0x8a7ad0, 10, 2);
+					break;
+				case "requiem":
+					Sfx.play("boom", 0.7, 0.1);
+					anim("nova", x, y, 0.45, {col: 0xff6a90, r: n});
+					anim("nova", x, y, 0.7, {col: 0xc04a6a, r: n * 0.7});
+					anim("notes", x, y, 0.9, {col: 0xff8aa8, seed: Math.random() * 100});
+					break;
+
+				// ---- Alchemist
+				case "acid":
+					anim("throw", x, y, 0.35, {tx: tx, ty: ty});
+					anim("land", tx, ty, 0.35, {fn: function():void {
+						Sfx.play("vines", 0.8);
+						anim("nova", tx, ty, 0.4, {col: 0x80ff40, r: 2.5});
+						puff(tx, ty, 0x60c020, 12, 3);
+						g.burst(tx, ty, 0xa0ff60, 16);
+						// everyone sees the pool; only the thrower's game hurts monsters with it
+						anim("pool", tx, ty, n, {r: 2.5, col: 0x70e030, seed: Math.random() * 100});
+					}});
+					break;
+				case "elixir":
+					Sfx.play("holy", 0.9);
+					anim("nova", x, y, 0.55, {col: 0xff70c0, r: 5});
+					g.ring(x, y, 0xff90d0, 22);
+					if (!mine && near(x, y, 5)) {
+						var ep:Player = g.player;
+						ep.healBy(int(n), g);
+						for (var ecs:String in ep.status) ep.status[ecs] = 0;
+						ep.buffs.vigor = Math.max(ep.buffs.vigor || 0, 4);
+					}
+					break;
+				case "philbomb":
+					anim("throw", x, y, 0.35, {tx: tx, ty: ty});
+					anim("mark", tx, ty, 1.85, {col: 0xffb030, r: 3.2});
+					anim("land", tx, ty, 1.85, {fn: function():void {
+						Sfx.play("boom", 1, 0.05);
+						anim("nova", tx, ty, 0.5, {col: 0xffa020, r: 3.2});
+						anim("flash", tx, ty, 0.25, {col: 0xfff0b0, r: 2.6});
+						g.burst(tx, ty, 0xffc040, 34);
+						puff(tx, ty, 0x504038, 14, 4);
+						g.flash(0.2);
+					}});
+					break;
+
+				// ---- Chronomancer
+				case "rewind":
+					Sfx.play("whoosh", 0.9);
+					anim("streak", tx, ty, 0.45, {tx: x, ty: y, col: 0x80e0ff, w: 8});
+					anim("nova", x, y, 0.4, {col: 0x80e0ff, r: 1.4});
+					anim("nova", tx, ty, 0.5, {col: 0xf0c040, r: 1.6});
+					g.burst(tx, ty, 0xf0c040, 16);
+					break;
+				case "timestop":
+					Sfx.play("clang", 0.6);
+					anim("nova", x, y, 0.6, {col: 0x9ad8ff, r: 4});
+					anim("flash", x, y, 0.25, {col: 0xe0f4ff, r: 3});
+					anim("clock", x, y, n, {r: 4});
+					// every game freezes its own copy of the bullets
+					g.freezeShots(x, y, 4, n);
+					break;
+				case "hastefield":
+					Sfx.play("holy", 0.7);
+					auras.push({x: x, y: y, r: 4, life: n, max: n, def: 0, pow: 0, tick: 0, haste: true});
+					anim("nova", x, y, 0.5, {col: 0xf0d050, r: 4});
+					g.ring(x, y, 0xf0d050, 20);
+					break;
 			}
 		}
 
@@ -430,7 +513,7 @@ package realm {
 				}
 				if (z.life <= 0) zones.splice(i, 1);
 			}
-			// Rallying Banners: Defense and healing while you stand near one
+			// Rallying Banners: Defense and healing while you stand near one (Haste Fields: speed and fire rate)
 			p.auraDef = 0;
 			for (i = auras.length - 1; i >= 0; i--) {
 				var au:Object = auras[i];
@@ -438,6 +521,11 @@ package realm {
 				if (au.life <= 0) { auras.splice(i, 1); continue; }
 				dx = p.x - au.x; dy = p.y - au.y;
 				if (dx * dx + dy * dy >= au.r * au.r || p.hp <= 0) continue;
+				if (au.haste) {
+					p.buffs.haste = Math.max(p.buffs.haste || 0, 0.25);
+					p.buffs.quick = Math.max(p.buffs.quick || 0, 0.25);
+					continue;
+				}
 				p.auraDef = Math.max(p.auraDef, au.def);
 				au.tick -= dt;
 				if (au.tick <= 0) {
@@ -526,6 +614,57 @@ package realm {
 						gr.endFill();
 						gr.lineStyle();
 						break;
+					case "pool":
+						// bubbling acid: a green puddle with bubbles popping
+						var pf:Number = Math.min(1, (f.d - f.t) / 0.5, f.t / 0.2);
+						rx = f.r * TS; ry = rx * 0.6;
+						gr.beginFill(f.col, 0.28 * pf);
+						gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+						gr.endFill();
+						gr.lineStyle(2, 0xb0ff70, 0.7 * pf);
+						gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+						gr.lineStyle();
+						for (i = 0; i < 7; i++) {
+							var bph:Number = (f.t * 1.7 + i * 0.37 + f.seed) % 1;
+							var bba:Number = i * 2.4 + f.seed, bbr:Number = ((i * 0.31 + f.seed * 0.01) % 0.8);
+							gr.beginFill(0xd0ff90, (1 - bph) * 0.8 * pf);
+							gr.drawCircle(cx + Math.cos(bba) * rx * bbr, cy + Math.sin(bba) * ry * bbr, 1.5 + bph * 3.5);
+							gr.endFill();
+						}
+						break;
+					case "clock":
+						// Time Stop: a pale clock face, its hand frozen
+						var cf:Number = Math.min(1, (f.d - f.t) / 0.4, f.t / 0.15);
+						rx = f.r * TS; ry = rx * 0.6;
+						gr.beginFill(0x9ad8ff, 0.1 * cf);
+						gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+						gr.endFill();
+						gr.lineStyle(2, 0xd0f0ff, 0.75 * cf);
+						gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+						for (i = 0; i < 12; i++) {
+							a = i / 12 * Math.PI * 2;
+							gr.moveTo(cx + Math.cos(a) * rx * 0.82, cy + Math.sin(a) * ry * 0.82);
+							gr.lineTo(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry);
+						}
+						gr.lineStyle(3, 0xffffff, 0.8 * cf);
+						gr.moveTo(cx, cy); gr.lineTo(cx + rx * 0.5, cy - ry * 0.55);
+						gr.lineStyle();
+						break;
+					case "notes":
+						// music: little notes drifting up and out
+						for (i = 0; i < 8; i++) {
+							var na:Number = i * Math.PI / 4 + f.seed;
+							var nr:Number = (0.4 + q * 1.8) * TS;
+							var nx:Number = cx + Math.cos(na) * nr, ny:Number = cy + Math.sin(na) * nr * 0.6 - q * TS * 1.2;
+							gr.beginFill(f.col, 1 - q);
+							gr.drawEllipse(nx - 3, ny - 2, 6, 4);
+							gr.endFill();
+							gr.lineStyle(1.5, f.col, 1 - q);
+							gr.moveTo(nx + 2.5, ny); gr.lineTo(nx + 2.5, ny - 9);
+							if (i % 2) gr.lineTo(nx + 6, ny - 7);
+							gr.lineStyle();
+						}
+						break;
 					case "sanct":
 						var fade:Number = Math.min(1, (f.d - f.t) / 0.4, f.t / 0.2);
 						rx = f.r * TS; ry = rx * 0.6;
@@ -576,6 +715,25 @@ package realm {
 				var af:Number = Math.min(1, au.life / 0.5, (au.max - au.life) / 0.3);
 				cx = X(au.x, au.y); cy = Y(au.x, au.y);
 				rx = au.r * TS; ry = rx * 0.6;
+				if (au.haste) {
+					// a golden clock face whose hands race round
+					gr.beginFill(0xf0d050, 0.08 * af);
+					gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+					gr.endFill();
+					gr.lineStyle(2, 0xf0d050, 0.6 * af);
+					gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+					for (i = 0; i < 12; i++) {
+						a = i / 12 * Math.PI * 2;
+						gr.moveTo(cx + Math.cos(a) * rx * 0.85, cy + Math.sin(a) * ry * 0.85);
+						gr.lineTo(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry);
+					}
+					gr.lineStyle(3, 0xfff0a0, 0.7 * af);
+					gr.moveTo(cx, cy); gr.lineTo(cx + Math.cos(g.time * 9) * rx * 0.7, cy + Math.sin(g.time * 9) * ry * 0.7);
+					gr.lineStyle(2, 0xfff0a0, 0.7 * af);
+					gr.moveTo(cx, cy); gr.lineTo(cx + Math.cos(g.time * 2.2) * rx * 0.45, cy + Math.sin(g.time * 2.2) * ry * 0.45);
+					gr.lineStyle();
+					continue;
+				}
 				gr.beginFill(0xff5040, 0.07 * af);
 				gr.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
 				gr.endFill();
@@ -765,6 +923,7 @@ package realm {
 			}
 			// Rallying Banners: a pole with a flag in the wind
 			for each (var au:Object in auras) {
+				if (au.haste) continue;
 				var bfa:Number = Math.min(1, au.life / 0.5);
 				var pcx:Number = X(au.x, au.y), pcy:Number = Y(au.x, au.y);
 				gr.lineStyle(3, 0x3a2410, bfa);

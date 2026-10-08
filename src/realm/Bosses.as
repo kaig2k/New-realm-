@@ -753,7 +753,7 @@ package realm {
 					attacks: [spiral(4, 17, 6, 80, 0.12, 0xffe060), rain(5, 4, 100, 2, 0xff7020, {burst: 6})]}),
 				P(0.25, {say: "THE EMBERS RISE!", banner: "Ignis blazes!", move: "center",
 					attacks: [flower(24, 7, 5.5, 85, 0.8, 0xffb040), nova(3, 1.1, 150, 2.4, 0xff6020, {burst: 12})]})
-			]}, raid), ["ignis_brand"]);
+			]}, raid), ["ignis_brand", "everburning_flask"]);
 			boss("archivist", o({name: "The Drowned Archivist", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
 				P(1, {say: "Silence in the archive.", move: "orbit",
 					attacks: [aim(5, 50, 7, 75, 1.1, 0x40ffd0, {motion: "wave"}), ring(12, 0, 4, 70, 2, 0xa0fff0, {motion: "return"})]}),
@@ -761,7 +761,7 @@ package realm {
 					attacks: [wall(15, 5, 85, 1.8, 0x40ffd0, {hole: 3}), aim(1, 0, 6, 95, 1.4, 0xffffff, {motion: "home", eff: "slowed"})]}),
 				P(0.3, {say: "Let the tide take the pages!", move: "center",
 					attacks: [spiral(6, 13, 6, 80, 0.1, 0x60c0a0, {motion: "wave"}), rain(6, 5, 110, 2, 0x40ffd0)]})
-			]}, raid), ["drowned_codex"]);
+			]}, raid), ["drowned_codex", "siren_lyre"]);
 			boss("sovereign", o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
 				P(1, {say: "Kneel before the Sovereign.", move: "orbit",
 					attacks: [aim(4, 30, 8, 85, 1.0, 0xe8e0c8, {shape: "blade"}), ring(16, 11, 4, 75, 1.7, 0xc060ff)]}),
@@ -780,7 +780,7 @@ package realm {
 				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "blade", waves: 3, gap: 0.2}),
 						nova(4, 1.4, 190, 2.4, 0xffe080, {burst: 20})]})
-			]}, raid), ["starfall_staff", "fallen_star_mantle"]);
+			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star"]);
 		}
 	}
 }

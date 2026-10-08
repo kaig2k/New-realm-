@@ -357,6 +357,31 @@ async function run() {
     check('starter abilities still need no id', items.STARTERS.has(items.fingerprint(Data.makeAbility('spell', 0))));
   }
 
+  console.log('classes');
+  {
+    const { Data, Godly } = require('./sim/gen/game');
+    const items = require('./items');
+    const missing = [];
+    for (const id of Data.CLASS_ORDER) {
+      const c = Data.CLASSES[id];
+      if (!c) { missing.push(id + ': no class'); continue; }
+      for (const t of ['base', 'l20', 'max']) for (const st of Data.STATS) if (typeof c[t][st] !== 'number') missing.push(id + ' ' + t + '.' + st);
+      if (!Data.SETS[id]) missing.push(id + ': Bonded set');
+      if (!Godly.SETS[id]) missing.push(id + ': Godly set');
+      if (!Data.SKINS[id] || !Data.SKINS[id].length) missing.push(id + ': skins');
+      if (!Data.DYE_KEYS[id]) missing.push(id + ': dye keys');
+      const abs = Data.ABILITY_SETS[c.abilityType] || [];
+      if (abs.length !== 3 || !abs.every((a) => Data.ABILITIES[a] && Data.ABILITIES[a].type === c.abilityType)) missing.push(id + ': abilities');
+      if (!Data.ABILITY_NAMES[c.abilityType] || Data.ABILITY_NAMES[c.abilityType].length !== 7) missing.push(id + ': ability names');
+      for (const a of abs) if (!Data.abilityText(Data.makeAbility(c.abilityType, 3, null, a))) missing.push(id + ': ' + a + ' tooltip');
+      if (!items.STARTERS.has(items.fingerprint(Data.makeAbility(c.abilityType, 0)))) missing.push(id + ': starter ability');
+      if (!Object.values(Godly.DROPS).some((l) => l.some((d) => d[0] === id))) missing.push(id + ': Godly drops');
+    }
+    check('all ' + Data.CLASS_ORDER.length + ' classes are complete (stats, sets, skins, dyes, 3 abilities, tooltips, starter gear)', missing.length === 0, missing.join('; '));
+    check('Eldmere\'s own classes unlock by playing', !Data.classUnlocked('chronomancer', { wizard: 20, priest: 20 }) && Data.classUnlocked('chronomancer', { wizard: 20, priest: 20, rogue: 20 }) &&
+      Data.classUnlocked('bard', { knight: 12 }) && !Data.classUnlocked('alchemist', { knight: 19 }) && Data.classUnlocked('wizard', {}));
+  }
+
   console.log('raids');
   {
     const { WorldSim } = require('./sim/worldsim');

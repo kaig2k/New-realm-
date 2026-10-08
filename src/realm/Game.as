@@ -1631,6 +1631,8 @@ package realm {
 			var p:Player = player;
 			for (var i:int = shots.length - 1; i >= 0; i--) {
 				var s:Projectile = shots[i];
+				// held by a Time Stop: it neither moves, ages nor hits until time flows again
+				if (s.frozenT > 0) { s.frozenT -= dt; continue; }
 				s.move(dt);
 				s.life -= dt;
 				// glowing trail behind your own shots
@@ -1799,6 +1801,17 @@ package realm {
 		}
 
 		/** Frost Nova: enemy bullets close to (x, y) shatter. Returns how many. */
+		/** Time Stop: enemy bullets within r of (x, y) freeze for secs. Returns how many. */
+		public function freezeShots(x:Number, y:Number, r:Number, secs:Number):int {
+			var n:int = 0;
+			for each (var s:Projectile in shots) {
+				if (!s.enemy) continue;
+				var dx:Number = s.x - x, dy:Number = s.y - y;
+				if (dx * dx + dy * dy < r * r) { s.frozenT = Math.max(s.frozenT, secs); n++; }
+			}
+			return n;
+		}
+
 		public function clearEnemyShots(x:Number, y:Number, r:Number):int {
 			var n:int = 0;
 			for (var i:int = shots.length - 1; i >= 0; i--) {

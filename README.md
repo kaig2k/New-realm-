@@ -223,9 +223,12 @@ players fighting them**:
 | Warrior | Titanslayer |
 | Necromancer | Soulforge |
 | Huntress | Wildheart Eternal |
+| Bard | Choir Eternal |
+| Alchemist | Magnum Opus |
+| Chronomancer | Endless Hour |
 
 - Every hard-dungeon boss, realm finale boss and raid boss carries one or two pieces. Each
-  piece rolls 1 in 3,000 per kill (Bounty helps a little).
+  boss rolls once per kill: 1 in 3,000 (Bounty helps a little), then which piece.
 - Each set has a big 4-piece bonus.
 - A Godly drop comes in a cyan bag with a screen-wide announcement, and online it's
   announced in chat.
@@ -447,10 +450,10 @@ waist). The open sea is still impassable.
 The game is set on **Eldmere**, an island of realms ruled by Azrakor the Dark Elder. It plays
 like Realm of the Mad God, but its names, systems and pixel art are New Realm's own.
 
-- **8 classes**, each with three abilities (Space, aimed at the cursor). An ability item holds
+- **11 classes**, each with three abilities (Space, aimed at the cursor). An ability item holds
   one of them (its name says which, e.g. "Comet Spell of Storms" is Lightning Strike); each has
   its own MP cost and cooldown, shown on the ability slot. Other players see your casts. The
-  first ability of each class is listed below; the in-game wiki's Abilities tab lists all 24.
+  first ability of each class is listed below; the in-game wiki's Abilities tab lists all 33.
   - **Wizard, Fireball:** a fireball that explodes where it hits and scatters embers.
   - **Archer, Arrow Storm:** arrows rain on an area and slow what they hit.
   - **Knight, Shield Wall:** plants the shield in front of you. Bullets from the front stop
@@ -464,6 +467,16 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
     and shoot.
   - **Huntress, Snare:** a trap that roots nearby monsters in vines, then bursts into
     slowing shards.
+  - Eldmere's own classes, earned by playing:
+    - **Bard** (bow, Lyre; unlocks at level 10 with any hero): *Ballad of Valor* (+30%
+      damage for you and nearby allies), *Lullaby* (puts monsters to sleep), *Requiem* (a
+      wave of sound all around you).
+    - **Alchemist** (dagger, Flask; level 20 with any hero): *Volatile Flask* (an acid
+      pool), *Elixir of Renewal* (heals and cleanses the party), *Philosopher's Bomb* (a huge
+      blast after a fuse).
+    - **Chronomancer** (wand, Hourglass; level 20 with 3 different classes): *Rewind* (snap
+      back 3 seconds, health too), *Time Stop* (enemy bullets freeze in the air), *Haste
+      Field* (faster shooting and moving for everyone in it).
 - **11 maxable stats ("11/11")**: the classic 8 plus **Fury** (crit damage, +0.1x per
   10), **Focus** (crit chance, +1% per 10) and **Warding**. Gear can also add **Bounty**
   (+1% loot chance per point).

@@ -295,7 +295,8 @@ function inWorld(world, except) {
 /** Players near (x, y) in a world: movement and shots only go to those who can see them. */
 const FX_KINDS = new Set(['fireball', 'shield', 'storm', 'sanctuary', 'shadow', 'charge', 'harvest', 'snare',
   'lightning', 'frostnova', 'pierce', 'volley', 'bash', 'banner', 'smite', 'ward', 'knives', 'smoke', 'whirlwind', 'warcry',
-  'prison', 'raise', 'explosive', 'wolf']);
+  'prison', 'raise', 'explosive', 'wolf',
+  'valor', 'lullaby', 'requiem', 'acid', 'elixir', 'philbomb', 'rewind', 'timestop', 'hastefield']);
 
 function nearby(c) {
   const r2 = config.viewRange * config.viewRange;

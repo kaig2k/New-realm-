@@ -81,9 +81,52 @@ package realm {
 				l20: {hp: 630, mp: 200, att: 42, def: 0, spd: 32, dex: 32, vit: 22, wis: 30, mgt: 12, luc: 12, prt: 4},
 				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 60, luc: 50, prt: 25},
 				ability: {name: "Snare", cost: 25, desc: "Trap roots enemies in vines, then bursts."}
+			},
+			// ---- Eldmere's own classes (unlocked by playing: see CLASS_UNLOCK)
+			bard: {
+				id: "bard", name: "Bard", weapon: "bow", armor: "leather", abilityType: "lyre",
+				desc: "The party's heart. Songs that make allies hit harder, lull monsters to sleep or shatter them.",
+				base: {hp: 120, mp: 110, att: 12, def: 0, spd: 13, dex: 13, vit: 11, wis: 14, mgt: 2, luc: 6, prt: 4},
+				l20: {hp: 610, mp: 280, att: 38, def: 0, spd: 36, dex: 34, vit: 22, wis: 38, mgt: 10, luc: 20, prt: 8},
+				max: {hp: 660, mp: 340, att: 65, def: 25, spd: 60, dex: 55, vit: 40, wis: 65, mgt: 50, luc: 75, prt: 35},
+				ability: {name: "Ballad of Valor", cost: 40, desc: "You and nearby allies deal +30% damage."}
+			},
+			alchemist: {
+				id: "alchemist", name: "Alchemist", weapon: "dagger", armor: "leather", abilityType: "flask",
+				desc: "Brews trouble. Acid pools, healing elixirs and a bomb that levels a room.",
+				base: {hp: 115, mp: 105, att: 12, def: 0, spd: 13, dex: 14, vit: 14, wis: 12, mgt: 4, luc: 2, prt: 4},
+				l20: {hp: 615, mp: 260, att: 36, def: 0, spd: 38, dex: 42, vit: 32, wis: 32, mgt: 18, luc: 10, prt: 8},
+				max: {hp: 680, mp: 320, att: 60, def: 25, spd: 65, dex: 70, vit: 60, wis: 55, mgt: 60, luc: 45, prt: 30},
+				ability: {name: "Volatile Flask", cost: 35, desc: "An acid pool that eats away at monsters."}
+			},
+			chronomancer: {
+				id: "chronomancer", name: "Chronomancer", weapon: "wand", armor: "robe", abilityType: "hourglass",
+				desc: "Bends time. Rewind a mistake, freeze bullets in the air, speed up your party.",
+				base: {hp: 90, mp: 120, att: 14, def: 0, spd: 12, dex: 15, vit: 10, wis: 16, mgt: 2, luc: 4, prt: 4},
+				l20: {hp: 590, mp: 320, att: 42, def: 0, spd: 36, dex: 40, vit: 20, wis: 44, mgt: 12, luc: 14, prt: 10},
+				max: {hp: 640, mp: 400, att: 70, def: 25, spd: 60, dex: 65, vit: 40, wis: 75, mgt: 40, luc: 50, prt: 40},
+				ability: {name: "Rewind", cost: 40, desc: "Snap back 3 seconds: place and health."}
 			}
 		};
-		public static const CLASS_ORDER:Array = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress"];
+		public static const CLASS_ORDER:Array = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress", "bard", "alchemist", "chronomancer"];
+
+		/**
+		 * Classes you earn (RotMG style): {need: best level to reach, classes: how many different classes must reach it, text}.
+		 * The rest are open from the start.
+		 */
+		public static const CLASS_UNLOCK:Object = {
+			bard: {need: 10, classes: 1, text: "Reach level 10 with any hero"},
+			alchemist: {need: 20, classes: 1, text: "Reach level 20 with any hero"},
+			chronomancer: {need: 20, classes: 3, text: "Reach level 20 with 3 different classes"}
+		};
+		/** Is class id open for this save? (bestLevel: class id -> best level reached) */
+		public static function classUnlocked(id:String, bestLevel:Object):Boolean {
+			var u:Object = CLASS_UNLOCK[id];
+			if (!u) return true;
+			var n:int = 0;
+			for (var k:String in bestLevel || {}) if (int(bestLevel[k]) >= u.need) n++;
+			return n >= u.classes;
+		}
 
 		/** Per-level growth, derived from the level 1 and level 20 stat tables. */
 		public static function grow(cls:Object, s:String):Number {
@@ -121,11 +164,14 @@ package realm {
 			cloak: ["Dusky Cloak", "Shadow Cloak", "Night Cloak", "Cloak of Shades", "Wraith Cloak", "Cloak of Silence", "Cloak of the Void"],
 			helm: ["Iron Helm", "Bronze Helm", "Steel Helm", "Horned Helm", "War Helm", "Helm of Rage", "Helm of the Titan"],
 			skull: ["Bone Skull", "Spirit Skull", "Grim Skull", "Wraith Skull", "Lich Skull", "Skull of Ruin", "Skull of the Damned"],
-			trap: ["Snare Trap", "Spike Trap", "Thorn Trap", "Barbed Trap", "Hunter's Trap", "Trap of Vines", "Trap of the Wild"]
+			trap: ["Snare Trap", "Spike Trap", "Thorn Trap", "Barbed Trap", "Hunter's Trap", "Trap of Vines", "Trap of the Wild"],
+			lyre: ["Reed Lyre", "Oak Lyre", "Silver Lyre", "Siren's Lyre", "Lyre of Echoes", "Starstrung Lyre", "Lyre of the First Song"],
+			flask: ["Cracked Flask", "Glass Flask", "Bubbling Flask", "Fuming Flask", "Quicksilver Flask", "Dragonbile Flask", "Flask of the Magnum Opus"],
+			hourglass: ["Sand Glass", "Brass Hourglass", "Silver Hourglass", "Moonsand Hourglass", "Hourglass of Ages", "Aeon Hourglass", "Hourglass of the End of Time"]
 		};
 		/** Nouns used to name special-rarity items. */
 		private static const NOUNS:Object = {staff: "Staff", bow: "Longbow", sword: "Greatsword", wand: "Wand", dagger: "Kris",
-			spell: "Grimoire", quiver: "Quiver", shield: "Aegis", tome: "Codex", cloak: "Shroud", helm: "Crown", skull: "Skull", trap: "Snare",
+			spell: "Grimoire", quiver: "Quiver", shield: "Aegis", tome: "Codex", cloak: "Shroud", helm: "Crown", skull: "Skull", trap: "Snare", lyre: "Lyre", flask: "Alembic", hourglass: "Hourglass",
 			robe: "Vestments", leather: "Hide", heavy: "Plate", ring: "Signet"};
 		private static const UT_PREFIX:Array = ["Runed", "Ember-Runed", "Frostrune", "Bloodrune", "Stormrune", "Graverune", "Tiderune", "Hollowrune"];
 		private static const LG_PREFIX:Array = ["Starforged", "Starfall", "Comet-Forged", "Nova", "Sunforged", "Moonforged", "Starlit", "Celestial"];
@@ -193,7 +239,10 @@ package realm {
 			rogue: {name: "Nightblade's", bonus: {hp: 60, dex: 12, spd: 12, mgt: 12, frt: 10}},
 			warrior: {name: "Warlord's", bonus: {hp: 100, att: 15, vit: 10, mgt: 10, frt: 10}},
 			necromancer: {name: "Gravecaller's", bonus: {mp: 80, att: 10, wis: 12, mgt: 12, frt: 10}},
-			huntress: {name: "Wildheart's", bonus: {hp: 60, att: 10, dex: 10, spd: 10, luc: 10, frt: 10}}
+			huntress: {name: "Wildheart's", bonus: {hp: 60, att: 10, dex: 10, spd: 10, luc: 10, frt: 10}},
+			bard: {name: "Troubadour's", bonus: {hp: 60, mp: 60, wis: 12, luc: 15, frt: 10}},
+			alchemist: {name: "Transmuter's", bonus: {hp: 80, dex: 12, vit: 12, mgt: 12, frt: 10}},
+			chronomancer: {name: "Timekeeper's", bonus: {mp: 80, att: 10, dex: 10, wis: 15, frt: 10}}
 		};
 
 		public static function setName(id:String):String {
@@ -338,14 +387,24 @@ package realm {
 			raise: {type: "skull", name: "Raise Dead", cost: 50, cd: 16, school: "the Risen", col: 0x5a9a4a},
 			snare: {type: "trap", name: "Snare", cost: 25, cd: 4, col: 0},
 			explosive: {type: "trap", name: "Explosive Trap", cost: 35, cd: 5, school: "Fire", col: 0xd05020},
-			wolf: {type: "trap", name: "Spirit Wolf", cost: 45, cd: 16, school: "the Wolf", col: 0x7ab0e0}
+			wolf: {type: "trap", name: "Spirit Wolf", cost: 45, cd: 16, school: "the Wolf", col: 0x7ab0e0},
+			valor: {type: "lyre", name: "Ballad of Valor", cost: 40, cd: 8, col: 0},
+			lullaby: {type: "lyre", name: "Lullaby", cost: 45, cd: 7, school: "Slumber", col: 0x8a7ad0},
+			requiem: {type: "lyre", name: "Requiem", cost: 45, cd: 5, school: "Echoes", col: 0xc04a6a},
+			acidflask: {type: "flask", name: "Volatile Flask", cost: 35, cd: 4, col: 0},
+			elixir: {type: "flask", name: "Elixir of Renewal", cost: 50, cd: 12, school: "Renewal", col: 0xd04a8a},
+			philbomb: {type: "flask", name: "Philosopher's Bomb", cost: 55, cd: 7, school: "Ruin", col: 0xe0a020},
+			rewind: {type: "hourglass", name: "Rewind", cost: 40, cd: 8, col: 0},
+			timestop: {type: "hourglass", name: "Time Stop", cost: 55, cd: 12, school: "Stasis", col: 0x7ab8e0},
+			hastefield: {type: "hourglass", name: "Haste Field", cost: 45, cd: 14, school: "Acceleration", col: 0xe0c040}
 		};
 		/** Each ability type's three abilities, the first being the original. */
 		public static const ABILITY_SETS:Object = {
 			spell: ["fireball", "lightning", "frostnova"], quiver: ["arrowstorm", "pierce", "volley"],
 			shield: ["shieldwall", "bash", "banner"], tome: ["sanctuary", "smite", "ward"],
 			cloak: ["shadowstep", "knives", "smoke"], helm: ["charge", "whirlwind", "warcry"],
-			skull: ["harvest", "prison", "raise"], trap: ["snare", "explosive", "wolf"]
+			skull: ["harvest", "prison", "raise"], trap: ["snare", "explosive", "wolf"],
+			lyre: ["valor", "lullaby", "requiem"], flask: ["acidflask", "elixir", "philbomb"], hourglass: ["rewind", "timestop", "hastefield"]
 		};
 
 		/** Which of its type's abilities an ability item holds. */
@@ -593,6 +652,15 @@ package realm {
 				case "raise": t = "Three skeletons claw out of the ground and fight for you for " + (8 * sq).toFixed(1) + "s, throwing bones at monsters for " + n(20, 3) + "."; break;
 				case "snare": t = "Throws a trap at the cursor. When a monster comes close, vines root everything nearby (bosses briefly), then it bursts into slowing shards for " + n(60, 7) + " damage."; break;
 				case "explosive": t = "Throws a trap at the cursor that blows up when a monster comes close: " + n(150, 16) + " damage in 3 tiles. No roots, just fire."; break;
+				case "valor": t = "A rousing ballad: you and every ally within 6 tiles deal +30% damage for " + (5 * sq).toFixed(1) + "s."; break;
+				case "lullaby": t = "A soft song at the cursor puts monsters within 3 tiles to sleep for " + (2.5 * sq).toFixed(1) + "s (bosses only nod off briefly)."; break;
+				case "requiem": t = "A wave of sound rolls out 5 tiles around you: " + n(95, 11) + " damage to everything it reaches, and they're slowed."; break;
+				case "acidflask": t = "Throws a flask at the cursor that bursts into an acid pool (2.5 tiles) for " + (4 * sq).toFixed(1) + "s. Monsters in it take " + n(22, 3) + " every half second."; break;
+				case "elixir": t = "Drink and share: heals you and allies within 5 tiles " + n(50, 5) + " HP at once, clears bad effects, and regenerates health quickly for 4s."; break;
+				case "philbomb": t = "Lobs a bomb at the cursor. After a 1.5 second fuse it levels everything within 3.2 tiles for " + n(260, 28) + " damage."; break;
+				case "rewind": t = "Snap back to where you were 3 seconds ago (up to 10 tiles), and get back the health you had then, up to " + n(80, 9) + " HP."; break;
+				case "timestop": t = "Stops time around you (4 tiles): enemy bullets freeze in the air for " + (2.5 * sq).toFixed(1) + "s and monsters are held still for " + (1.2 * sq).toFixed(1) + "s (bosses briefly)."; break;
+				case "hastefield": t = "A field of quickened time (4 tiles) for " + (5 * sq).toFixed(1) + "s: you and allies in it shoot 40% faster and move 35% faster."; break;
 				case "wolf": t = "A spirit wolf hunts the nearest monsters for " + (12 * sq).toFixed(1) + "s, biting for " + n(35, 4) + " and slowing them."; break;
 				default: return "";
 			}
@@ -1126,7 +1194,13 @@ package realm {
 			necromancer: [{id: "necro_lich", name: "Lichlord", cost: 400, pal: {D: 0x2a4a6a, d: 0x142a40, E: 0x60e0ff, K: 0x2a8ad0}},
 				{id: "necro_plague", name: "Plague Doctor", cost: 1000, pal: {D: 0x3a5a2a, d: 0x203a14, K: 0x6ad040, E: 0xffe040}}],
 			huntress: [{id: "huntress_snow", name: "Snow Huntress", cost: 400, pal: {R: 0xe8f0ff, r: 0xa8b8d0, G: 0x6a8aa8, g: 0x4a6080}},
-				{id: "huntress_jungle", name: "Jungle Huntress", cost: 1000, pal: {R: 0x2a8a3a, r: 0x145a20, G: 0xc0a040, g: 0x8a7020}}]
+				{id: "huntress_jungle", name: "Jungle Huntress", cost: 1000, pal: {R: 0x2a8a3a, r: 0x145a20, G: 0xc0a040, g: 0x8a7020}}],
+			bard: [{id: "bard_jester", name: "Jester", cost: 600, pal: {V: 0xd0302a, v: 0x8a1a14, H: 0xf0c030, h: 0xa08010}},
+				{id: "bard_siren", name: "Siren", cost: 1500, pal: {V: 0x2a9ab0, v: 0x14606e, H: 0xc0f0ff, h: 0x70b0c0, L: 0xe0e8ff}}],
+			alchemist: [{id: "alch_plague", name: "Plague Brewer", cost: 600, pal: {A: 0x3a3a34, a: 0x22221e, G: 0x9aff40, M: 0x6a6a5a}},
+				{id: "alch_gold", name: "Goldmaker", cost: 1500, pal: {A: 0xa07a20, a: 0x6a4e10, G: 0xffe060, M: 0xfff0b0}}],
+			chronomancer: [{id: "chrono_dusk", name: "Dusk Weaver", cost: 600, pal: {T: 0x4a2a7a, t: 0x2a1448, Y: 0xff9ad8}},
+				{id: "chrono_aeon", name: "Aeon Warden", cost: 1500, pal: {T: 0xe8e8f0, t: 0xa8a8b8, Y: 0x40e0ff, O: 0x40e0ff}}]
 		};
 
 		/** Skin definition by id, with its base class id, or null. */
@@ -1150,7 +1224,8 @@ package realm {
 		/** Which palette keys a dye recolours, per class: main colour first, then its shade. */
 		public static const DYE_KEYS:Object = {
 			wizard: ["R", "r"], archer: ["G", "g"], knight: ["K"], priest: ["W", "w"], rogue: ["P", "p"],
-			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"]
+			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"],
+			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 		public static function findDye(id:String):Object {
 			for each (var d:Object in DYES) if (d.id == id) return d;

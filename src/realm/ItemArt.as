@@ -119,6 +119,24 @@ package realm {
 				[["H..H..H.", ".HBBBBH.", ".BBbbBB.", "HBbbbbBH", "HBbbbbBH", ".BBbbBB.", ".HBBBBH.", "H..H..H."], 2, 2],
 				[["..H..H..", ".HBBBBH.", "HBbbbbBH", ".BbbbbB.", ".BbbbbB.", "HBbbbbBH", ".HBBBBH.", "..H..H.."], 2, 2],
 				[["HH.HH.HH", "BBBBBBBB", "bBbbbbBb", "..bbbb..", "..bbbb..", "bBbbbbBb", "BBBBBBBB", "HH.HH.HH"], 2, 2]
+			],
+			// lyres: a curved frame with strings
+			lyre: [
+				[["B......B", "BB....BB", ".BHHHHB.", ".BH.H.B.", ".BH.H.B.", ".BH.H.B.", "..BHHB..", "...bb..."], -99, 0],
+				[["GB....BG", ".BB..BB.", ".BHHHHB.", ".BHHHHB.", ".B.HH.B.", ".B.HH.B.", "..BBBB..", "..bbbb.."], -99, 0],
+				[["B.G..G.B", "BB....BB", "BHHHHHHB", "BH.HH.HB", "BH.HH.HB", ".BH..HB.", "..BHHB..", "..GbbG.."], -99, 0]
+			],
+			// flasks: a stoppered bottle with something bubbling inside
+			flask: [
+				[["...bb...", "...HH...", "...BB...", "..BHHB..", ".BGGGGB.", "BGGGGGGB", "BGGGGGGB", ".BBBBBB."], -99, 0],
+				[["..bb....", "..HH....", "..BB....", ".BHHB...", "BGGGGB..", "BGGGGB.G", "BGGGGB.G", ".BBBB.GG"], -99, 0],
+				[["...GG...", "..bHHb..", "...BB...", "..BGGB..", ".BGHGGB.", "BGGGGHGB", "BGHGGGGB", ".BBBBBB."], -99, 0]
+			],
+			// hourglasses: two bulbs, sand and a frame
+			hourglass: [
+				[["BBBBBBBB", ".BHHHHB.", "..BHHB..", "...GG...", "...GG...", "..BGGB..", ".BGGGGB.", "BBBBBBBB"], -99, 0],
+				[["GBBBBBBG", "GBHHHHBG", "G.BHHB.G", "G..GG..G", "G..GG..G", "G.BGGB.G", "GBGGGGBG", "GBBBBBBG"], -99, 0],
+				[["BBBBBBBB", "BHHHHHHB", ".BHHHHB.", "..BGGB..", "..BGHB..", ".BGGHGB.", "BGGGGGGB", "BBBBBBBB"], -99, 0]
 			]
 		};
 
@@ -194,7 +212,8 @@ package realm {
 		];
 		/** Ability base colours [main, light] by type. */
 		private static const ABIL_COL:Object = {spell: [0x6a3a8a, 0xe8e0c8], quiver: [0x8a5a2a, 0xc0c0c0], shield: [0x5a6a9a, 0xd8d8e0], tome: [0x9a2a2a, 0xe8e0c8],
-			cloak: [0x4a2a6a, 0xc8c8c8], helm: [0x9a9aa6, 0xe0e0e8], skull: [0x8a8070, 0xe8e0c8], trap: [0x5a5a62, 0xa0a0a8]};
+			cloak: [0x4a2a6a, 0xc8c8c8], helm: [0x9a9aa6, 0xe0e0e8], skull: [0x8a8070, 0xe8e0c8], trap: [0x5a5a62, 0xa0a0a8],
+			lyre: [0xc09030, 0xf0f0e0], flask: [0x8ab0c0, 0xe8f8ff], hourglass: [0x8a6a2a, 0xe8e0c8]};
 		/** Armor colours per tier. */
 		private static const ARMOR_COL:Object = {
 			robe: [0x7a6a5a, 0x3a5ab0, 0x5a3a9a, 0x2a7a8a, 0x3a3aa0, 0x8a2a6a, 0xa02a3a, 0x202034],

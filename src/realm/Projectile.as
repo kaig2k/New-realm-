@@ -38,6 +38,8 @@ package realm {
 		public var split:Object;
 		/** Explodes where it hits or lands (Fireball): {r, dmg}. */
 		public var boom:Object;
+		/** Time Stop: seconds this enemy bullet still hangs frozen in the air. */
+		public var frozenT:Number = 0;
 		/** Where "home" shots steer (your character; set every frame). */
 		public static var homeX:Number = 0, homeY:Number = 0;
 

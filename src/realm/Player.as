@@ -192,6 +192,9 @@ package realm {
 
 		/** Shrine blessings: seconds left of might, haste, fortune, vigor and arcana. */
 		public var buffs:Object = {};
+		/** Rewind's memory: [{x, y, hp}] every 0.1s, oldest first. */
+		private var hist:Array = [];
+		private var histT:Number = 0;
 		public function get leech():int { return rank("leech"); }
 		public function rank(id:String):int { return int(skills[id] || 0); }
 
@@ -287,7 +290,7 @@ package realm {
 		}
 
 		public function get fireRate():Number {
-			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1);
+			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1);
 		}
 
 		public function update(dt:Number, g:Game):void {
@@ -308,6 +311,13 @@ package realm {
 			if (spinT > 0) updateSpin(dt, g);
 			for (var st:String in status) if (status[st] > 0) status[st] -= dt;
 			for (var bf:String in buffs) if (buffs[bf] > 0) buffs[bf] -= dt;
+			// Rewind: where you were and how healthy, ten times a second for the last 3.5 seconds
+			histT -= dt;
+			if (histT <= 0) {
+				histT = 0.1;
+				hist.push({x: x, y: y, hp: hp});
+				if (hist.length > 35) hist.shift();
+			}
 			if (buffs.vigor > 0 && hp > 0) hp = Math.min(maxHp, hp + maxHp * 0.04 * dt);
 			if (buffs.arcana > 0) mp = Math.min(maxMp, mp + maxMp * 0.1 * dt);
 
@@ -673,6 +683,73 @@ package realm {
 				case "wolf":
 					g.abil.addMinions("spirit_wolf", 1, 12 * sq, (35 + level * 4) * pow);
 					g.abil.show("wolf", x, y, x, y, 0, true);
+					break;
+
+				// ---- Bard (Lyre)
+				case "valor":
+					// Ballad of Valor: +30% damage for you and everyone near (their games apply it from the cast)
+					buffs.might = Math.max(buffs.might || 0, 5 * sq);
+					g.abil.show("valor", x, y, x, y, 5 * sq, true);
+					g.floatText(x, y - 1.4, "Ballad of Valor!", 0xffd060);
+					break;
+				case "lullaby":
+					var slept:int = g.stunAround(tx2, ty2, 3, 2.5 * sq);
+					g.abil.show("lullaby", x, y, tx2, ty2, 3, true);
+					if (slept > 0) g.floatText(tx2, ty2 - 1, "Zzz x" + slept, 0xc0b0ff);
+					break;
+				case "requiem":
+					dmg = (95 + level * 11) * pow;
+					for each (var rqe:Enemy in g.enemies.concat()) {
+						var rdx:Number = rqe.x - x, rdy:Number = rqe.y - y;
+						if (!rqe.dead && rdx * rdx + rdy * rdy < 5 * 5) g.hurtEnemy(rqe, dmg, "slow", rqe.x, rqe.y);
+					}
+					g.abil.show("requiem", x, y, x, y, 5, true);
+					g.shake(0.25, 4);
+					break;
+
+				// ---- Alchemist (Flask)
+				case "acidflask":
+					var adm:int = int((22 + level * 3) * pow), alife:Number = 4 * sq;
+					g.abil.show("acid", x, y, tx2, ty2, alife, true);
+					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.addZone(tx2, ty2, 2.5, alife, adm, 0); }});
+					break;
+				case "elixir":
+					var eheal:int = (50 + level * 5) * pow;
+					healBy(eheal, g);
+					for (var ecs:String in status) status[ecs] = 0;
+					buffs.vigor = Math.max(buffs.vigor || 0, 4);
+					g.abil.show("elixir", x, y, x, y, eheal, true);
+					break;
+				case "philbomb":
+					var bdmg:int = int((260 + level * 28) * pow);
+					g.abil.show("philbomb", x, y, tx2, ty2, 0, true);
+					g.abil.anim("land", tx2, ty2, 1.85, {fn: function():void { g.blastAt(tx2, ty2, 3.2, bdmg); g.shake(0.4, 8); }});
+					break;
+
+				// ---- Chronomancer (Hourglass)
+				case "rewind":
+					// the oldest moment within 10 tiles (the last 3 seconds), where you can still stand
+					var back:Object = null;
+					for each (var hp0:Object in hist) {
+						var hx2:Number = hp0.x - x, hy2:Number = hp0.y - y;
+						if (hx2 * hx2 + hy2 * hy2 <= 100 && g.world.canStand(hp0.x, hp0.y, R, false)) { back = hp0; break; }
+					}
+					if (!back) back = {x: x, y: y, hp: hp};
+					var fromX:Number = x, fromY:Number = y;
+					x = back.x; y = back.y;
+					var regain:int = Math.min(int(back.hp - hp), int((80 + level * 9) * pow));
+					if (regain > 0) healBy(regain, g);
+					hist.length = 0;
+					invulnT = Math.max(invulnT, 0.4);
+					g.abil.show("rewind", fromX, fromY, x, y, 0, true);
+					break;
+				case "timestop":
+					g.abil.show("timestop", x, y, x, y, 2.5 * sq, true);
+					var held:int = g.stunAround(x, y, 4, 1.2 * sq);
+					if (held > 0) g.floatText(x, y - 1.6, "Time Stop! x" + held, 0x9ad8ff);
+					break;
+				case "hastefield":
+					g.abil.show("hastefield", x, y, x, y, 5 * sq, true);
 					break;
 			}
 		}

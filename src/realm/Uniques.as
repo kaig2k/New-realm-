@@ -39,6 +39,10 @@ package realm {
 			tempest_quiver: ["Tempest Quiver", "ability", "quiver", {spd: 6}, {power: 1.9}, "The wind itself carries these arrows."],
 			thunderhide: ["Thunderhide", "armor", "leather", {dex: 8, spd: 6}, null, "Crackles when you move."],
 			// ---- the Starfall Vault
+			// abilities for Eldmere's own classes
+			everburning_flask: ["Everburning Flask", "ability", "flask", {att: 4, dex: 5}, {power: 1.7}, "Ignis's own fire, corked. It is never quite cool."],
+			siren_lyre: ["Lyre of the Drowned Siren", "ability", "lyre", {wis: 6, mp: 40}, {power: 1.7}, "Pulled from the Archive's flooded stacks, still dripping. Its song carries underwater."],
+			hourglass_fallen_star: ["Hourglass of the Fallen Star", "ability", "hourglass", {wis: 6, dex: 5}, {power: 1.8}, "The sand inside is starlight. It falls upward."],
 			ignis_brand: ["Brand of Ignis", "weapon", "sword", {att: 5}, {shots: 3, arc: 20, mult: 0.72, col: 0xffb040}, "Still warm from the Hall of Embers."],
 			drowned_codex: ["The Drowned Codex", "ability", "tome", {wis: 9, vit: 4}, {power: 1.9}, "Every page is wet, and every word still works."],
 			sovereign_signet: ["Bone Sovereign's Signet", "ring", "hp", {hp: 90, def: 6, vit: 4}, null, "Morvath wore it for a thousand years. It remembers."],

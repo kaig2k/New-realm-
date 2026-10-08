@@ -53,6 +53,20 @@ package realm {
 			["..RRRr.W", ".RRRRRrW", "RrSESErW", "R.SSSS.W", "gGGGGGgS", ".gGLLGgW", ".gGGGGg.", "..B..B.."],
 			["..RRRr.W", ".RRRRRrW", "RrSESErW", "R.SSSS.W", "gGGGGGgS", ".gGLLGgW", ".gGGGGg.", ".B....B."],
 			["..RRRr..", ".RRRRRr.", "RrSESErW", "R.SSSSW.", "gGGGGGSW", ".gGLLGW.", ".gGGGGg.", "..B..B.."]];
+		// Eldmere's own classes: the Bard (feathered cap and lyre), the Alchemist (goggles, apron
+		// and a bubbling flask) and the Chronomancer (star-blue hood and a golden hourglass)
+		private static const BARD:Array = [
+			["..VVVH..", ".VVVVVhH", ".vSESEv.", "..SSSS.L", "vVVLVVvS", ".vVVVVvL", ".vVVVVv.", "..B..B.."],
+			["..VVVH..", ".VVVVVhH", ".vSESEv.", "..SSSS.L", "vVVLVVvS", ".vVVVVvL", ".vVVVVv.", ".B....B."],
+			["..VVVH..", ".VVVVVhH", ".vSESEvL", "..SSSSL.", "vVVLVVSL", ".vVVVVL.", ".vVVVVv.", "..B..B.."]];
+		private static const ALCHEMIST:Array = [
+			["..AAAa..", ".AGAAGa.", ".aSESEa.", "..SSSS.F", "aAMMMMaS", ".aMMMMaF", ".aAAAAa.", "..B..B.."],
+			["..AAAa..", ".AGAAGa.", ".aSESEa.", "..SSSS.F", "aAMMMMaS", ".aMMMMaF", ".aAAAAa.", ".B....B."],
+			["..AAAa.F", ".AGAAGaF", ".aSESEa.", "..SSSSS.", "aAMMMMS.", ".aMMMMa.", ".aAAAAa.", "..B..B.."]];
+		private static const CHRONO:Array = [
+			[".TTTTt.O", "TTTTTTtY", ".tSESEt.", "..SSSS.Y", "tTTYTTtS", ".tTYYTtO", ".tTTTTt.", "..B..B.."],
+			[".TTTTt.O", "TTTTTTtY", ".tSESEt.", "..SSSS.Y", "tTTYTTtS", ".tTYYTtO", ".tTTTTt.", ".B....B."],
+			[".TTTTt..", "TTTTTTt.", ".tSESEtO", "..SSSSYY", "tTTYTTSO", ".tTYYTt.", ".tTTTTt.", "..B..B.."]];
 
 		// ================================================================ enemies
 		private static const HUMANOID:Array = [["..HHHh..", ".HHHHHh.", ".hSESEh.", "..SSSS.W", "bBBBBBbS", ".bBAABbW", ".bBBBBb.", "..L..L.."]];
@@ -243,6 +257,9 @@ package realm {
 			warrior: [WARRIOR, {Y: 0xf0e0b0, H: 0xc0a060, h: 0x806a30, E: 0x101010, R: 0xb02020, M: 0xc83030, m: 0x802020, S: 0xf5dc72, A: 0xc89030, W: 0xf0f0ff, B: 0x2a1a10}],
 			necromancer: [NECRO, {D: 0x2e2e36, d: 0x18181c, S: 0xd8d0c0, E: 0xff3030, K: 0x9a1a1a, G: 0xe8e0c8, W: 0x5a3a2a, B: 0x101010}],
 			huntress: [HUNTRESS, {R: 0xd04a20, r: 0x8a2a10, S: 0xf5dc72, E: 0x101010, G: 0x4a8a3a, g: 0x2e5a24, L: 0x8a5a2a, W: 0xc08040, B: 0x3a2a14}],
+			bard: [BARD, {V: 0x3a6ad0, v: 0x1e3a8a, H: 0xff4040, h: 0xa02020, S: 0xf5dc72, E: 0x101010, L: 0xe0b040, B: 0x5a3a1a}],
+			alchemist: [ALCHEMIST, {A: 0x2e7a6a, a: 0x184a40, G: 0x80ffe0, M: 0xc8a878, S: 0xf5dc72, E: 0x101010, F: 0x70ff50, B: 0x3a2a14}],
+			chronomancer: [CHRONO, {T: 0x2a3a8a, t: 0x141e4a, Y: 0xf0c040, O: 0x80e0ff, S: 0xf5dc72, E: 0x101010, B: 0x1a1a2a}],
 			titan: [BOSS_TITAN, {R: 0x7a4a30, r: 0x3e2418, Y: 0xffd040, L: 0xff5a10}, 5],
 			wyrm: [BOSS_WYRM, {C: 0x7ac8f0, c: 0x3a78b0, W: 0xe8f8ff, w: 0xa8d8f0, E: 0x1a2a6a, K: 0xffffff}, 5],
 			hollowking: [BOSS_HOLLOWKING, {Y: 0xf0c030, G: 0x6aff4a, B: 0xe8e0c8, T: 0x9a9280, E: 0x2a2a2a, P: 0x4a1a6a, W: 0xffffff}, 5],

@@ -96,7 +96,7 @@ Players then join with `play.yourgame.com:2050`.
 | `motd` | Message shown to players when they join. |
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
-| `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. |
+| `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 
@@ -111,6 +111,8 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/mute name [minutes]`
   - `/unmute name`
   - `/announce message`
+  - `/admin name` makes that account an admin straight away (saved in `config.json`, so it lasts), `/unadmin name` takes it back, `/admins` lists them. `/admin` on its own opens the admin menu.
+  - `/restart 5`, `/restart now`, `/restart cancel`
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
 - **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.

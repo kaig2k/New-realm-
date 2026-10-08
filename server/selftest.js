@@ -78,8 +78,9 @@ function charSave(id, inv) {
 
 async function run() {
   console.log('New Realm server self-test (port ' + PORT + ')');
+  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test' }));
   const srv = spawn(process.execPath, [path.join(__dirname, 'server.js'), String(PORT)], {
-    env: Object.assign({}, process.env, { NEWREALM_DATA: DATA }), stdio: ['ignore', 'pipe', 'pipe']
+    env: Object.assign({}, process.env, { NEWREALM_DATA: DATA, NEWREALM_CONFIG: path.join(DATA, 'config.json') }), stdio: ['ignore', 'pipe', 'pipe']
   });
   let srvOut = '';
   srv.stdout.on('data', (d) => { srvOut += d; });
@@ -689,6 +690,37 @@ async function run() {
     check('a top-5 Records time has a Slayer title for every realm event', Data.EVENTS.every((ev) => { const t = Data.findTitle('slayer_' + ev); return t && t.earn && /\w/.test(t.name); }) &&
       Data.findTitle('slayer_ev_kraken').name === 'Kraken Slayer');
     C.s.destroy(); D.s.destroy();
+  }
+
+  console.log('making admins in game');
+  {
+    const boss = await login('TestBoss', { password: 'pass1234', register: true });
+    const pal = await login('Tp' + n, { password: 'pass1234', register: true });
+    check('an admin from config.json is told so at login', boss.find((m) => m.t === 'welcome' && m.admin));
+    pal.clear();
+    pal.send({ t: 'cmd', text: '/admin ' + nameB });
+    await wait(250);
+    check('players who are not admins cannot make admins', pal.find((m) => m.t === 'msg' && /Only server admins/.test(m.msg || m.text || '')), JSON.stringify(pal.msgs));
+    boss.clear(); pal.clear();
+    boss.send({ t: 'cmd', text: '/admin Tp' + n });
+    await wait(300);
+    const cfg = JSON.parse(fs.readFileSync(path.join(DATA, 'config.json'), 'utf8'));
+    check('/admin name makes them an admin at once, and it is saved in config.json', pal.find((m) => m.t === 'admin' && m.on) &&
+      cfg.admins.includes('Tp' + n) && cfg.motd === 'test', JSON.stringify(cfg));
+    pal.clear();
+    pal.send({ t: 'cmd', text: '/announce hello from a new admin' });
+    await wait(250);
+    check('the new admin can use admin commands straight away', !pal.find((m) => m.t === 'msg' && /Only server admins/.test(m.msg || m.text || '')));
+    boss.clear(); pal.clear();
+    boss.send({ t: 'cmd', text: '/unadmin Tp' + n });
+    await wait(300);
+    check('/unadmin name takes it away again', pal.find((m) => m.t === 'admin' && m.on === false) &&
+      !JSON.parse(fs.readFileSync(path.join(DATA, 'config.json'), 'utf8')).admins.includes('Tp' + n));
+    boss.clear();
+    boss.send({ t: 'cmd', text: '/unadmin TestBoss' });
+    await wait(200);
+    check('an admin cannot remove themselves (no locking yourself out)', boss.find((m) => m.t === 'msg' && /yourself/.test(m.msg || m.text || '')));
+    boss.s.destroy(); pal.s.destroy();
   }
 
   console.log('bad input');

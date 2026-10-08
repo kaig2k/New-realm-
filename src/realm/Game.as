@@ -337,6 +337,8 @@ package realm {
 				case "/help":
 					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
+					if (net.online && Online.welcome && Online.welcome.admin)
+						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					break;
 				case "/p":
 					var pt:String = t.substr(3);
@@ -370,6 +372,7 @@ package realm {
 					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
+				case "/restart": case "/unadmin": case "/admins":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
 					break;
@@ -427,7 +430,11 @@ package realm {
 					msg("Achievements: " + nd + "/" + Data.ACHIEVEMENTS.length + " unlocked. See the Quest Board in the Nexus.", 0xffd75e);
 					break;
 				case "/admin":
-					toggleAdmin();
+					// "/admin" opens the admin menu; "/admin name" makes that player an admin (server admins only)
+					if (t.split(" ").length > 1 && String(t.split(" ")[1]).length) {
+						if (!net.online) { msg("/admin name works when you're playing online.", 0xff8080); break; }
+						net.serverCommand(t);
+					} else toggleAdmin();
 					break;
 				case "/tips":
 					Save.data.tips = {};

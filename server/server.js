@@ -29,7 +29,7 @@ const quests = require('./quests');
 const { Market } = require('./market');
 
 // ------------------------------------------------------------------ config
-const CONFIG_FILE = path.join(__dirname, 'config.json');
+const CONFIG_FILE = process.env.NEWREALM_CONFIG || path.join(__dirname, 'config.json');
 const DEFAULT_CONFIG = {
   port: 2050,
   // the name players see in the game (the IP address is never shown)
@@ -46,6 +46,13 @@ let config = Object.assign({}, DEFAULT_CONFIG);
 try { Object.assign(config, JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))); }
 catch (e) { try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2)); } catch (e2) {} }
 const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key);
+/** Writes the admin list back to config.json (keeping everything else in the file as it is). */
+function saveAdmins() {
+  let file = {};
+  try { file = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch (e) { file = Object.assign({}, DEFAULT_CONFIG); }
+  file.admins = config.admins;
+  try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(file, null, 2)); return true; } catch (e) { log('could not save config.json: ' + e.message); return false; }
+}
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
@@ -1038,6 +1045,31 @@ const handlers = {
       case '/announce':
         broadcast('[Server] ' + parts.slice(1).join(' '));
         return;
+      case '/admins':
+        return c.note('Admins: ' + (config.admins.join(', ') || 'none'), 0x80ff80);
+      case '/admin': {
+        // /admin name: make an account an admin (saved in config.json, so it lasts)
+        if (!who) return c.note('Usage: /admin name (also /unadmin name, /admins)');
+        if (!accounts[who]) return c.note('No account called ' + parts[1] + '.');
+        const name = accounts[who].name || parts[1];
+        if (config.admins.some((a) => String(a).toLowerCase() === who)) return c.note(name + ' is already an admin.');
+        config.admins = config.admins.concat([name]);
+        saveAdmins();
+        log(c.name + ' made ' + name + ' an admin');
+        if (target) { target.send({ t: 'admin', on: true }); target.note(c.name + ' made you a server admin. Type /help to see the admin commands.', 0x80ff80); }
+        return c.note(name + ' is now an admin.', 0x80ff80);
+      }
+      case '/unadmin': {
+        if (!who) return c.note('Usage: /unadmin name');
+        if (who === c.key) return c.note('You can\'t remove yourself (ask another admin, or edit server/config.json).');
+        const before = config.admins.length;
+        config.admins = config.admins.filter((a) => String(a).toLowerCase() !== who);
+        if (config.admins.length === before) return c.note(parts[1] + ' is not an admin.');
+        saveAdmins();
+        log(c.name + ' removed ' + parts[1] + ' from the admins');
+        if (target) { target.send({ t: 'admin', on: false }); target.note('You are no longer a server admin.'); }
+        return c.note(parts[1] + ' is no longer an admin.', 0x80ff80);
+      }
       case '/restart': {
         // /restart 5 (minutes), /restart now, /restart cancel
         const arg = (parts[1] || '5').toLowerCase();

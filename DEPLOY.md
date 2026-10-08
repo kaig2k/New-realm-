@@ -97,6 +97,7 @@ Players then join with `play.yourgame.com:2050`.
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
 | `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
+| `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, and for new #1 Records times, raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 
@@ -113,6 +114,8 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/announce message`
   - `/admin name` makes that account an admin straight away (saved in `config.json`, so it lasts), `/unadmin name` takes it back, `/admins` lists them. `/admin` on its own opens the admin menu.
   - `/restart 5`, `/restart now`, `/restart cancel`
+  - `/give name 1000 gold` (or `fame`, `aether`; a minus number takes it away), works on offline accounts too
+  - `/discord` sends a test message to the Discord feed
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
 - **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
@@ -186,5 +189,11 @@ and offline characters, items and currencies can't be brought in. (Older servers
   must also stay within its class's limits. Starter gear needs no id, and admins are trusted.
   Saves from before the ledger: their items get ids the first time this version loads them,
   so nobody loses anything.
-- **Not yet covered:** dodging is worked out in each player's game. Gold, fame and Aether
-  totals come from the game, limited by a refilling allowance per account.
+- **Gold and fame:** every kill the server decides credits each player who hit it with
+  the most gold it can pay, and the hero with the fame it can add. A save can only raise
+  gold by that credit (it runs out after 20 minutes), and account fame only goes up
+  when a hero dies, by what that hero earned. Selling to the Nexus merchant goes through
+  the server, and Fame Store purchases must be paid for. Anything above that is cut back
+  (logged in `anticheat.log`) and the game is told the real totals.
+- **Not yet covered:** dodging is worked out in each player's game. Aether totals come
+  from the game, limited by a small refilling allowance per account.

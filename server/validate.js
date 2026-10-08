@@ -78,9 +78,10 @@ function godlyCount(save) {
 /**
  * Checks a new save against the account's previous one.
  * meta: {lastSave (ms), lastGodly (ms)} kept per account by the server.
+ * skip: currencies the server checks another way (see wallet.js).
  * Returns null if fine, or the reason it was refused.
  */
-function checkSave(prev, next, meta, now) {
+function checkSave(prev, next, meta, now, skip) {
   if (!next || typeof next !== 'object' || Array.isArray(next)) return 'not a save';
   if (next.chars !== undefined && !Array.isArray(next.chars)) return 'bad character list';
   if ((next.chars || []).length > LIMITS.chars) return 'too many characters';
@@ -113,6 +114,7 @@ function checkSave(prev, next, meta, now) {
   const budget = meta.budget || (meta.budget = {});
   const spend = {};
   for (const k of ['gold', 'fame', 'onrane']) {
+    if (skip && skip.includes(k)) continue;
     const gain = (next[k] || 0) - (prev[k] || 0);
     const lim = LIMITS[k];
     const have = Math.min(lim[0], (budget[k] === undefined ? lim[0] : budget[k]) + lim[1] * secs);

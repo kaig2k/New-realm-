@@ -78,7 +78,12 @@ function charSave(id, inv) {
 
 async function run() {
   console.log('New Realm server self-test (port ' + PORT + ')');
-  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test' }));
+  // a stand-in for Discord: collects what the server posts to its webhook
+  const posts = [];
+  const hook = require('http').createServer((q, r) => { let b = ''; q.on('data', (d) => { b += d; }); q.on('end', () => { try { posts.push(JSON.parse(b)); } catch (e) {} r.writeHead(204); r.end(); }); });
+  await new Promise((r) => hook.listen(0, '127.0.0.1', r));
+  const hookUrl = 'http://127.0.0.1:' + hook.address().port + '/api/webhooks/1/x';
+  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl }));
   const srv = spawn(process.execPath, [path.join(__dirname, 'server.js'), String(PORT)], {
     env: Object.assign({}, process.env, { NEWREALM_DATA: DATA, NEWREALM_CONFIG: path.join(DATA, 'config.json') }), stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -99,6 +104,8 @@ async function run() {
   qst.d[0].p = QD.quest(qst.d[0].id).goal;
   const questReward = QD.quest(qst.d[0].id);
   fs.writeFileSync(path.join(DATA, 'saves', nameB.toLowerCase() + '.json'), JSON.stringify({ gold: 3000, chars: [charSave('cb', [ITEMS.potion])], _quests: qsv._quests }));
+  // C has fame to spend in the Fame Store
+  fs.writeFileSync(path.join(DATA, 'saves', ('Tc' + n).toLowerCase() + '.json'), JSON.stringify({ fame: 1000, chars: [] }));
   await wait(900);
 
   console.log('accounts');
@@ -115,6 +122,8 @@ async function run() {
   check('a bad username is refused', bad.find((m) => m.t === 'error'));
   const B = await login(nameB, { password: 'pass1234', register: true });
   check('second account registers', B.id > 0);
+  const boss0 = await login('TestBoss', { password: 'pass1234', register: true });
+  const bossWelcome = boss0.find((m) => m.t === 'welcome');
 
   console.log('item ledger and anti-cheat');
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -140,13 +149,18 @@ async function run() {
   await tryA((d) => { d.chars[0].inv[5] = clone(d.chars[0].inv[1]); }, /appears twice/, 'a copied item (same id twice) is refused');
   await tryA((d) => { d.chars[0].inv[5] = { kind: 'ring', sub: 'att', tier: 3, name: 'Hacked Ring', att: 9999 }; }, /att/, 'an edited +9999 ring is refused');
   await tryA((d) => { d.chars[0].stats.att = 500; }, /impossible att/, 'stats above the class maximum are refused');
-  await tryA((d) => { d.gold = 99999999; }, /gold/, 'gold jumping by millions is refused');
   const rej = A.find((m) => m.t === 'saveRejected');
   check('a refused save sends back the last good save (without the ledger)', rej && rej.data && rej.data.gold === 5000 && !rej.data._ledger);
+  A.clear();
+  { const d = goodA(); d.gold = 99999999; A.send({ t: 'save', data: d }); }
+  await wait(450);
+  const cut = A.find((m) => m.t === 'wallet');
+  check('gold jumping by millions is cut back to what was earned (the game is told)', cut && cut.gold <= 5000 + 500 && !A.find((m) => m.t === 'saveRejected'), JSON.stringify(cut));
   await tryA((d) => { d.chars[0].inv[5] = { kind: 'sword?', name: 'x' }; }, /unknown item kind/, 'unknown item kinds are refused');
   A.clear();
   for (let i = 1; i <= 4; i++) { const d = goodA(); d.gold = 5000 + i * 100000; A.send({ t: 'save', data: d }); await wait(450); }
-  check('repeated quick gold jumps are refused once the allowance is used up', A.find((m) => m.t === 'saveRejected' && /gold/.test(m.reason)));
+  const cuts = A.msgs.filter((m) => m.t === 'wallet');
+  check('repeated gold jumps never add up to more than was earned', cuts.length === 4 && cuts.every((m) => m.gold <= 5000 + 505 && m.gold === Math.floor(m.gold)), cuts.map((m) => m.gold).join(','));
   A.clear();
   A.send({ t: 'save', data: goodA() });
   await wait(450);
@@ -171,7 +185,7 @@ async function run() {
   check('the Key Merchant sells through the server, at the right price', key && sd.gold === gA - 1800, sd ? sd.gold : 'no reply');
   if (sd) { invA = sd.inv; gA = sd.gold; seqA = sd.seq; }
   A.clear();
-  A.send({ t: 'buy', what: 'ut', data: Object.assign(withInv(), { gold: 10 }) });
+  A.send({ t: 'buy', what: 'key', dg: 12, data: withInv() });
   await wait(400);
   check('buying without enough gold is refused', A.find((m) => m.t === 'shopFail'));
   A.clear();
@@ -546,6 +560,18 @@ async function run() {
     check('buying takes the gold and puts the item in the buyer\'s inventory', bought && bought.inv.some((it) => it && it.name === ITEMS.potion.name) && /Bought/.test(bought.market),
       JSON.stringify(A2.find((m) => m.t === 'shopFail')));
     check('the seller is told it sold', B.find((m) => m.t === 'msg' && /bought your/.test(m.text)));
+    // selling to the Nexus merchant goes through the server, which pays
+    const si = bought ? bought.inv.findIndex((it) => it && it.kind) : -1;
+    if (si >= 0) {
+      const { Data: SD } = require('./sim/gen/game');
+      const worth = SD.sellValue(bought.inv[si]);
+      A2.clear();
+      A2.send({ t: 'sell', slot: si });
+      await wait(300);
+      const sold = A2.find((m) => m.t === 'shopDone');
+      check('selling to the merchant: the server takes the item and pays its value', sold && sold.sold && sold.inv[si] === null && sold.gold === bought.gold + worth,
+        JSON.stringify(sold || A2.find((m) => m.t === 'shopFail')));
+    }
     A2.clear();
     A2.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
     await wait(250);
@@ -676,7 +702,7 @@ async function run() {
     const p1 = D.find((m) => m.t === 'profile' && m.id === C.id);
     check('nobody can wear a dye or title they don\'t own', p1 && !p1.profile.dye && !p1.profile.title, JSON.stringify(p1));
     D.clear();
-    C.send({ t: 'save', data: { fame: 0, cosmetics: { dye_ocean: true, t_bold: true, elder: true }, chars: [] } });
+    C.send({ t: 'save', data: { fame: 350, cosmetics: { dye_ocean: true, t_bold: true, elder: true }, chars: [] } });
     await wait(400);
     const p2 = D.find((m) => m.t === 'profile' && m.id === C.id);
     check('once bought (the save arrives), others see the dye and title', p2 && p2.profile.dye === 'dye_ocean' && p2.profile.title === 't_bold',
@@ -692,11 +718,93 @@ async function run() {
     C.s.destroy(); D.s.destroy();
   }
 
+  console.log('discord feed');
+  {
+    const text = (p) => p.content || (p.embeds && p.embeds[0] && p.embeds[0].description) || '';
+    check('the server says it is online in Discord when it starts', posts.some((p) => /is online/.test(text(p)) && p.username));
+    const { Discord, names } = require('./discord');
+    check('names are escaped for Discord (no bold or hidden text from a name)', names(['a*b', 'c_d']) === 'a\\*b and c\\_d');
+    const off = new Discord('', 'X');
+    off.post('nothing');
+    check('with no webhook set, nothing is sent', !off.on && off.queue.length === 0);
+    const before = posts.length;
+    const { WorldSim } = require('./sim/worldsim');
+    const { Bosses: DB } = require('./sim/gen/game');
+    const feats = [];
+    const ws = new WorldSim('raid:' + DB.RAIDS.findIndex((r) => r.id === 'starfall') + ':5');
+    ws.onQuest = () => {}; ws.onFeat = (k, d) => feats.push([k, d]);
+    ws.players.set(1, { id: 1, name: 'Hero', x: 0, y: 0 });
+    ws.w.raidStage = ws.w.raid.stages.length - 1;
+    const fin = { def: { name: 'Astraeon', raid: true }, isBoss: true, hitters: new Map([[1, 100]]), defId: 'astraeon' };
+    ws.enemies.length = 0; ws.enemies.push(fin);
+    ws.questKill(fin);
+    check('clearing the Starfall Vault is a moment for the feed (with the team)', feats.some(([k, d]) => k === 'raid' && d.names[0] === 'Hero' && /Starfall/.test(d.raid)));
+    boss0.clear();
+    boss0.send({ t: 'cmd', text: '/discord' });
+    await wait(2600);
+    check('/discord (admins) sends a test message', posts.length > before && /Test message/.test(text(posts[posts.length - 1])) && boss0.find((m) => m.t === 'msg' && /Sent a test/.test(m.text)));
+  }
+
+  console.log('gold and fame (wallet)');
+  {
+    const wallet = require('./wallet');
+    const meta = {}, now = Date.now();
+    const prev = { gold: 100, fame: 50, chars: [{ id: 'h1', totalXp: 0 }], _fame: {} };
+    const orc = { def: { xp: 300 }, zone: 2, hitters: [] };
+    for (let i = 0; i < 10; i++) wallet.credit(meta, prev, 'h1', orc, now);
+    const per = wallet.killValue(orc).gold;
+    const ok = { gold: 100 + 10 * per, fame: 50, chars: [{ id: 'h1' }] };
+    check('gold earned from kills the server saw is accepted', wallet.settle(prev, ok, meta, now) === null && ok.gold === 100 + 10 * per);
+    const big = { gold: ok.gold + 100000, fame: 50, chars: [{ id: 'h1' }] };
+    check('gold beyond what was earned is cut back', /gold cut back/.test(wallet.settle(ok, big, meta, now) || '') && big.gold <= ok.gold + wallet.ALLOW.gold[0]);
+    const alive = { gold: big.gold, fame: 5000, chars: [{ id: 'h1' }] };
+    check('fame does not go up while every hero lives', /fame cut back/.test(wallet.settle(big, alive, meta, now) || '') && alive.fame <= 50 + wallet.ALLOW.fame[0]);
+    const book = alive._fame.h1;
+    const died = { gold: alive.gold, fame: alive.fame + Math.floor(book), chars: [] };
+    check('when a hero dies, the account gets the fame that hero earned', book > 0 && wallet.settle(alive, died, meta, now + 600000) === null && !died._fame.h1);
+    const old = { gold: 0, fame: 0, chars: [{ id: 'v', totalXp: 80000, kills: 2000, bossKills: 10 }] };
+    const oldDied = { gold: 0, fame: 15000, chars: [] };
+    check('heroes from before this update keep the fame they already earned', wallet.settle(old, oldDied, {}, now) === null && oldDied.fame === 15000);
+    // an honest player clears a whole dungeon, then saves exactly what the game gives: nothing may be cut
+    {
+      const { WorldSim } = require('./sim/worldsim');
+      const hm = {}, hsv = { gold: 0, fame: 0, chars: [{ id: 'hh' }], _fame: {} }, t0 = Date.now();
+      const ws = new WorldSim('dg:6:4242');
+      const me = { id: 7, x: 100, y: 100, send: () => {} };
+      ws.join(me);
+      ws.onEarn = (c, e, near) => wallet.credit(hm, hsv, 'hh', e, t0, near);
+      let gold = 0, xp = 0, kills = 0, bosses = 0, n = 0;
+      for (let pass = 0; pass < 6; pass++) for (const e of ws.enemies.slice()) {
+        if (e.dead || e.immune) continue;
+        me.x = e.x; me.y = e.y + 1;
+        ws.hit(me, { id: e.id, d: 6000 });
+        if (!e.dead) continue;
+        const d = e.def;
+        // the game's own sums (Game.killEnemy, crateLoot, endStreak) at their most generous
+        gold += Math.floor((d.gold || Math.floor(d.xp / 6)) * 1.24) + 5;
+        if (e.elite) gold += Math.floor(d.xp / 2) + 20;
+        if (d.crate) gold += 25 * (Math.max(0, e.zone) + 1);
+        xp += Math.floor(d.xp * (1.5 + (e.elite ? 2 : 0)));
+        kills++; if (e.isBoss) bosses++;
+        n++;
+      }
+      const saved = { gold, fame: 0, chars: [{ id: 'hh' }] };
+      const r1 = wallet.settle(hsv, saved, hm, t0);
+      const heroFame = Math.floor(xp / 8 + kills * 0.5 + bosses * 150);
+      const died = { gold, fame: Math.floor(heroFame * 2.15), chars: [] };
+      const r2 = wallet.settle(saved, died, hm, t0 + 1000);
+      check('an honest dungeon clear (' + n + ' kills, ' + gold + ' gold, ' + died.fame + ' death fame) is never cut back', n > 10 && r1 === null && r2 === null, r1 + ' / ' + r2);
+    }
+    const poor = { gold: 0, fame: 100, chars: [], _fame: {} };
+    const buys = { gold: 0, fame: 0, chars: [], cosmetics: { t_eternal: true } };
+    check('cosmetics bought without the fame are taken back', /cosmetics refused/.test(wallet.settle(poor, buys, {}, now) || '') && !buys.cosmetics.t_eternal);
+  }
+
   console.log('making admins in game');
   {
-    const boss = await login('TestBoss', { password: 'pass1234', register: true });
+    const boss = boss0;
     const pal = await login('Tp' + n, { password: 'pass1234', register: true });
-    check('an admin from config.json is told so at login', boss.find((m) => m.t === 'welcome' && m.admin));
+    check('an admin from config.json is told so at login', bossWelcome && bossWelcome.admin);
     pal.clear();
     pal.send({ t: 'cmd', text: '/admin ' + nameB });
     await wait(250);
@@ -716,6 +824,15 @@ async function run() {
     await wait(300);
     check('/unadmin name takes it away again', pal.find((m) => m.t === 'admin' && m.on === false) &&
       !JSON.parse(fs.readFileSync(path.join(DATA, 'config.json'), 'utf8')).admins.includes('Tp' + n));
+    boss.clear(); pal.clear();
+    boss.send({ t: 'cmd', text: '/give Tp' + n + ' 1500 gold' });
+    await wait(300);
+    const gift = pal.find((m) => m.t === 'given');
+    check('/give name 1500 gold: the server hands out gold (the game gets the new total)', gift && gift.gold === 1500 && gift.seq > 0, JSON.stringify(pal.msgs));
+    pal.clear();
+    pal.send({ t: 'cmd', text: '/give TestBoss 99999 gold' });
+    await wait(200);
+    check('only admins can give', pal.find((m) => m.t === 'msg' && /Only server admins/.test(m.text || '')));
     boss.clear();
     boss.send({ t: 'cmd', text: '/unadmin TestBoss' });
     await wait(200);
@@ -778,6 +895,7 @@ async function run() {
 
   check('no errors in the server log', !/error handling|TypeError|ReferenceError/.test(srvOut), (srvOut.match(/.*error.*/i) || [''])[0]);
   for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil, ws]) c.s.destroy();
+  hook.close();
   await new Promise((r) => { srv.on('exit', r); srv.kill(); });
   try { fs.rmSync(DATA, { recursive: true, force: true }); } catch (e) {}
   console.log('\n' + passed + ' passed, ' + failed + ' failed');

@@ -24,6 +24,7 @@ const { Store } = require('./store');
 const { checkSave } = require('./validate');
 const { Sims, WorldSim } = require('./sim/worldsim');
 const items = require('./items');
+const wallet = require('./wallet');
 const { Data } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -39,6 +40,8 @@ const DEFAULT_CONFIG = {
   minRealms: 3,
   maxRealms: 6,
   admins: [],
+  // a Discord webhook address: records, raid clears, Godly drops, titles and restarts are posted there
+  discordWebhook: '',
   viewRange: 32,
   chatPerTenSeconds: 8
 };
@@ -100,6 +103,7 @@ function eventKilled(id, ms, team) {
   const boss = (Data.ENEMIES[id] && Data.ENEMIES[id].name) || id;
   const who = names.length > 3 ? names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more' : names.join(', ');
   if (place === 1) {
+    feat('record', { names, boss, time: clock(ms), old: old ? clock(old.ms) : '' });
     for (const o of clients.values()) {
       if (!o.authed) continue;
       o.send({ t: 'banner', text: 'New record: ' + boss + '!', color: 0xffd75e,
@@ -122,6 +126,7 @@ function grantTitle(key, id) {
   if (sv._titles[id]) return false;
   sv._titles[id] = Date.now();
   store.putSave(key, sv);
+  feat('title', { name: (accounts[key] && accounts[key].name) || key, title: t.name, color: t.col });
   const c = byName.get(key);
   if (c) {
     c.send({ t: 'title', id, earned: Object.keys(sv._titles) });
@@ -144,6 +149,9 @@ function questProgress(c, evs) {
   for (const text of done) c.send({ t: 'questComplete', text: text + ' Claim it at the Quest Board in the Nexus.' });
 }
 if (sims) sims.onQuest = questProgress;
+if (sims) sims.onFeat = feat;
+// every kill the server decides credits the gold and fame it can pay (see wallet.js)
+if (sims) sims.onEarn = (c, e, near) => { if (c.authed && c.key && c.meta) wallet.credit(c.meta, onlineSave(c.key), c.charId, e, Date.now(), near); };
 
 // ------------------------------------------------------------------ player marketplace
 const market = new Market(load, save);
@@ -262,6 +270,19 @@ let nextParty = 1;
 
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
 
+// ------------------------------------------------------------------ Discord feed
+const { Discord, esc: desc, names: dnames } = require('./discord');
+const discord = new Discord(config.discordWebhook, config.name || 'Eldmere', log);
+/** What the server did that's worth telling the Discord: (kind, details). */
+function feat(kind, d) {
+  if (!discord.on) return;
+  if (kind === 'record') discord.post('🏆 **New record!** ' + dnames(d.names) + ' killed **' + desc(d.boss) + '** in **' + d.time + '**' + (d.old ? ' (beating ' + d.old + ')' : '') + '.', 0xffd75e);
+  else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
+  else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
+  else if (kind === 'godly') discord.post('✨ **' + desc(d.name) + '** found a Godly item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff60ff);
+  else if (kind === 'title') discord.post('🎖️ **' + desc(d.name) + '** earned the title **' + desc(d.title) + '**.', d.color === undefined ? 0xff9a2e : d.color);
+}
+
 function str(v, max) { return typeof v === 'string' ? v.slice(0, max) : ''; }
 function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
 
@@ -314,6 +335,7 @@ function publicSave(s) {
   delete o._quests;
   delete o._market;
   delete o._titles;
+  delete o._fame;
   o.earned = Object.keys(s._titles || {});
   return o;
 }
@@ -324,7 +346,8 @@ function publicSave(s) {
  */
 function applySave(c, data) {
   const prev = onlineSave(c.key);
-  let why = checkSave(prev, data, c.meta, Date.now());
+  // (with server-run monsters, gold and fame are checked against what was earned instead of a time budget)
+  let why = checkSave(prev, data, c.meta, Date.now(), sims && !isAdmin(c) ? ['gold', 'fame'] : null);
   // items must come from the server (admins are trusted), and stats stay within the class limits
   // (only when the server runs the monsters: otherwise players' games still roll loot)
   if (!why && !isAdmin(c) && sims) why = items.check(prev, data) || items.checkStats(data);
@@ -342,6 +365,15 @@ function applySave(c, data) {
   // so is quest progress, and the Marketplace box (takings, returned items)
   if (prev._quests) data._quests = prev._quests; else delete data._quests;
   if (prev._market) data._market = prev._market; else delete data._market;
+  // gold and fame only go up by what the server saw earned
+  if (sims && !isAdmin(c)) {
+    const cut = wallet.settle(prev, data, c.meta, Date.now());
+    if (cut) {
+      log('wallet ' + c.name + ': ' + cut);
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + cut);
+      c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
+    }
+  } else if (prev._fame) data._fame = prev._fame;
   // and earned titles (the game's list is only a copy)
   if (prev._titles) data._titles = prev._titles; else delete data._titles;
   data.earned = Object.keys(data._titles || {});
@@ -855,6 +887,20 @@ const handlers = {
     shopDone(c, sv, ch, { bought: item.name });
   },
 
+  /** Selling an item to the Nexus merchant (shift-click at the Marketplace): the server pays for it. */
+  sell(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was sold.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const slot = num(m.slot) | 0, item = ch.inv[slot];
+    if (!item || typeof item !== 'object') return c.send({ t: 'shopFail', msg: 'There is nothing to sell there.' });
+    const value = Math.max(0, Data.sellValue(item) | 0);
+    ch.inv[slot] = null;
+    items.release(sv, item);
+    sv.gold = (sv.gold || 0) + value;
+    shopDone(c, sv, ch, { sold: item.name || 'an item', value });
+  },
+
   /** Starforge: a Runed, Bonded or Eldritch item + a Star Shard + 100 Aether = a Starforged item. */
   forge(c, m) {
     if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was forged.' });
@@ -1045,6 +1091,28 @@ const handlers = {
       case '/announce':
         broadcast('[Server] ' + parts.slice(1).join(' '));
         return;
+      case '/give': {
+        // /give name 1000 gold|fame|aether: gold and fame are the server's to hand out now
+        const amount = Math.floor(Number(parts[2]));
+        const what = { gold: 'gold', fame: 'fame', aether: 'onrane', onrane: 'onrane' }[(parts[3] || 'gold').toLowerCase()];
+        if (!who || !accounts[who] || !(Math.abs(amount) > 0 && Math.abs(amount) <= 10000000) || !what) return c.note('Usage: /give name amount gold|fame|aether');
+        const sv = onlineSave(who);
+        sv[what] = Math.max(0, (sv[what] || 0) + amount);
+        // (newer than any save the game has in flight, so the gift can't be overwritten)
+        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        store.putSave(who, sv);
+        const label = what === 'onrane' ? 'Aether' : what;
+        log(c.name + ' gave ' + accounts[who].name + ' ' + amount + ' ' + label);
+        if (target) {
+          target.send({ t: 'given', gold: sv.gold || 0, fame: sv.fame || 0, onrane: sv.onrane || 0, seq: sv.tradeSeq });
+          target.note(c.name + (amount > 0 ? ' gave you ' : ' took ') + Math.abs(amount).toLocaleString('en') + ' ' + label + '.', 0x80ff80);
+        }
+        return c.note((amount > 0 ? 'Gave ' : 'Took ') + Math.abs(amount).toLocaleString('en') + ' ' + label + (amount > 0 ? ' to ' : ' from ') + accounts[who].name + '.', 0x80ff80);
+      }
+      case '/discord':
+        if (!discord.on) return c.note('No Discord webhook is set. Put "discordWebhook" in server/config.json and restart.');
+        discord.post('👋 Test message from ' + desc(c.name) + ' in game.');
+        return c.note('Sent a test message to Discord (' + discord.sent + ' sent since the server started).', 0x80ff80);
       case '/admins':
         return c.note('Admins: ' + (config.admins.join(', ') || 'none'), 0x80ff80);
       case '/admin': {
@@ -1469,6 +1537,7 @@ function wsFrame(data, op = 2) {
 
 server.listen(PORT, () => {
   log('New Realm server running on port ' + PORT);
+  discord.post('🟢 **' + desc(config.name || 'Eldmere') + '** is online. Come and play!', 0x60e070);
   log('Realms: ' + realms.map(r => r.name).join(', '));
   log('Type "help" here for server commands (list, say, kick, stop).');
   const addrs = [];
@@ -1566,6 +1635,7 @@ function scheduleRestart(seconds, by) {
   cancelRestart(true);
   restartAt = Date.now() + seconds * 1000;
   log('Restart in ' + seconds + 's' + (by ? ' (by ' + by + ')' : ''));
+  if (discord.on) discord.post(seconds >= 60 ? '🔄 The server restarts for an update in **' + Math.round(seconds / 60) + ' minute' + (Math.round(seconds / 60) === 1 ? '' : 's') + '**.' : '🔄 The server is restarting for an update now.', 0x80a0ff);
   const tell = () => { for (const c of clients.values()) if (c.authed) c.send({ t: 'restartIn', s: restartLeft() }); };
   tell();
   // keep everyone's clocks right, and stop new events near the end
@@ -1582,7 +1652,7 @@ function cancelRestart(quiet) {
   clearTimeout(restartTimer); clearInterval(restartTick);
   restartAt = 0; restartTimer = restartTick = null;
   WorldSim.restartSoon = false;
-  if (!quiet) { log('Restart cancelled'); for (const c of clients.values()) if (c.authed) c.send({ t: 'restartIn', s: -1 }); }
+  if (!quiet) { log('Restart cancelled'); discord.post('The restart was called off.', 0x80a0ff); for (const c of clients.values()) if (c.authed) c.send({ t: 'restartIn', s: -1 }); }
   return true;
 }
 /** Gets the latest update (when the server runs from a git checkout), then stops for systemd to start it again. */

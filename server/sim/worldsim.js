@@ -545,6 +545,17 @@ class WorldSim {
     e.dead = true;
     const w = this.w;
     this.all({ t: 'ekill', id: e.id });
+    // what each player who hit it could earn from it (gold and fame checks)
+    // (players close by who didn't hit it share its XP, so its fame, but not its gold)
+    if (this.onEarn) {
+      const hit = new Set();
+      for (const h of e.hitters || []) if (h[1] > 0) { const c = this.players.get(h[0]); if (c) { hit.add(c); this.onEarn(c, e, false); } }
+      for (const c of this.players.values()) {
+        if (hit.has(c)) continue;
+        const dx = c.x - e.x, dy = c.y - e.y;
+        if (dx * dx + dy * dy < 16 * 16) this.onEarn(c, e, true);
+      }
+    }
     this.questKill(e);
     this.dropLoot(e);
     if (e.def.crate && Math.random() < 0.12) {
@@ -618,6 +629,13 @@ class WorldSim {
       }
     }
     for (const c of team) this.onQuest(c, evs);
+    // big moments for the Discord feed
+    if (this.onFeat) {
+      const names = team.map((c) => c.name).filter(Boolean);
+      if (evs.includes('darkelder')) this.onFeat('elder', { names });
+      const rd = evs.find((v) => v.startsWith('raid:'));
+      if (rd) this.onFeat('raid', { names, raid: this.w.raid.name, boss: e.def.name, color: this.w.raid.color });
+    }
   }
 
   /** Everyone who hurt the monster gets their own roll (sent only to them). */
@@ -643,6 +661,7 @@ class WorldSim {
         else { items = []; hs = 'lost'; }
       }
       if (this.issuer) for (const it of items) this.issuer(c, it);
+      if (this.onFeat) for (const it of items) if (it && it.rarity === 'gd') this.onFeat('godly', { name: c.name, item: it.name, from: e.def.name });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
   }
@@ -696,7 +715,7 @@ class Sims {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);
@@ -709,7 +728,7 @@ class Sims {
     for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
     for (const key of want) {
       if (this.map.has(key)) continue;
-      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
     }
   }
 

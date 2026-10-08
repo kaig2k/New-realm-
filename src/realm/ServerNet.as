@@ -182,6 +182,16 @@ package realm {
 				case "questDone":
 					g.questClaimed(m);
 					break;
+				case "given":
+					// an admin gave (or took) currency: the server's totals
+					Save.data.gold = int(m.gold); Save.data.fame = int(m.fame); Save.data.onrane = int(m.onrane);
+					Save.data.tradeSeq = int(m.seq);
+					Save.flush();
+					g.refreshStation();
+					break;
+				case "wallet":
+					g.walletFixed(m);
+					break;
 				case "admin":
 					// an admin gave (or took away) our admin powers
 					if (Online.welcome) Online.welcome.admin = !!m.on;

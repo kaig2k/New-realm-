@@ -338,7 +338,7 @@ package realm {
 					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
-						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
+						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					break;
 				case "/p":
 					var pt:String = t.substr(3);
@@ -372,7 +372,7 @@ package realm {
 					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
-				case "/restart": case "/unadmin": case "/admins":
+				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
 					break;
@@ -2619,7 +2619,10 @@ package realm {
 			} else if (kind == "inv") {
 				item = p.inv[idx];
 				if (!item) return;
-				if (shift && nearMarket) {
+				if (shift && nearMarket && (shopWaiting || net.shopRequest({t: "sell", slot: idx}))) {
+					// online the server buys it (and pays the gold); one sale at a time
+					shopWaiting = true;
+				} else if (shift && nearMarket) {
 					var value:int = Data.sellValue(item);
 					p.inv[idx] = null;
 					addGold(value);
@@ -4504,6 +4507,18 @@ package realm {
 		private var shopWaiting:Boolean = false;
 
 		/** The server's answer to a purchase or a forge: take its inventory and currencies. */
+		/** The server cut our gold or fame back to what we really earned (or refused cosmetics we couldn't afford). */
+		public function walletFixed(m:Object):void {
+			Save.data.gold = int(m.gold);
+			Save.data.fame = int(m.fame);
+			if (m.skins) Save.data.skins = m.skins;
+			if (m.cosmetics) Save.data.cosmetics = m.cosmetics;
+			if (player && player.skin && !(Save.data.skins && Save.data.skins[player.skin])) player.skin = "";
+			Save.flush();
+			msg("The server corrected your gold and fame to what you have earned.", 0xff8080);
+			refreshStation();
+		}
+
 		public function shopResult(m:Object):void {
 			shopWaiting = false;
 			if (m.t == "shopFail") { msg(m.msg || "That didn't go through.", 0xff8080); refreshStation(); return; }
@@ -4524,6 +4539,9 @@ package realm {
 				burst(player.x, player.y, 0xd8e040, 30);
 			} else if (m.market) {
 				msg(m.market, 0x6fe08f);
+				Sfx.play("coin");
+			} else if (m.sold) {
+				msg("Sold " + m.sold + " for " + m.value + " gold.", Ui.GOLD);
 				Sfx.play("coin");
 			} else {
 				msg("Bought " + m.bought + ".", Ui.GOLD);

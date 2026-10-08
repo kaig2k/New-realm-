@@ -89,7 +89,7 @@ package realm {
 		public var vaultWorld:World;
 		/** Realm event bosses' arenas (rise with the boss, crumble when it dies). */
 		private var arenas:SetPieceDecor;
-		/** The Nexus's inlays, lights, banners and the Sealed Gate. */
+		/** The Nexus's inlays, lights and banners. */
 		private var decor:NexusDecor;
 		/** Class statues around the Nexus plaza: {x, y, cls}. */
 		private var statues:Array = [];

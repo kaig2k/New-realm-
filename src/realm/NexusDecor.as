@@ -10,8 +10,7 @@ package realm {
 	 * The Nexus as the heart of Eldmere: the star of Eldmere inlaid around the
 	 * fountain, rune circles under the realm portals with light rising from them,
 	 * warm light around the braziers, the eight class banners on the walls,
-	 * flowers and fireflies in the gardens, and the Sealed Gate where Azrakor
-	 * the Dark Elder lies bound beneath the city.
+	 * flowers and fireflies in the gardens.
 	 */
 	public class NexusDecor {
 		private var g:Game;
@@ -22,11 +21,9 @@ package realm {
 		private var flowers:Array = [];
 		private var motes:Array = [];
 		private var labels:Array = [];
-		private var sealNoted:Boolean = false;
 
-		/** The fountain at the heart of the plaza, and the Sealed Gate in the entrance hall. */
+		/** The fountain at the heart of the plaza. */
 		public static const FX:Number = 100.5, FY:Number = 98.5;
-		public static const SEAL_X:Number = 100.5, SEAL_Y:Number = 121.5;
 
 		/** Banners along the walls: [x, y, class]. */
 		private static const BANNERS:Array = [[70.5, 64.9, "wizard"], [75.5, 64.9, "archer"], [125.5, 64.9, "knight"], [130.5, 64.9, "priest"],
@@ -54,7 +51,6 @@ package realm {
 			for (k = 0; k < 40; k++) motes.push(newMote(true));
 			label(makeLabel, "The Realm Gate", 0xffd75e, 100.5, 75.6);
 			label(makeLabel, "Hall of Heroes", 0xe8d8b0, 100.5, 86.2);
-			label(makeLabel, "The Sealed Gate", 0xc070ff, SEAL_X, SEAL_Y - 2.6);
 		}
 
 		private function label(makeLabel:Function, text:String, col:uint, x:Number, y:Number):void {
@@ -99,14 +95,6 @@ package realm {
 				var dx:Number = b[0] - p.x, dy:Number = b[1] - p.y;
 				if (dx * dx + dy * dy > 18 * 18 || Math.random() > dt * 5) continue;
 				g.parts.push(new Particle(b[0] + (Math.random() - 0.5) * 0.4, b[1] - 0.9, (Math.random() - 0.5) * 0.4, -1.6 - Math.random(), 0.8, Sprites.glow(Math.random() < 0.6 ? 0xffa030 : 0xffe080)));
-			}
-			// passing the Sealed Gate for the first time tells its story
-			if (!sealNoted) {
-				var sx:Number = p.x - SEAL_X, sy:Number = p.y - SEAL_Y;
-				if (sx * sx + sy * sy < 3.2 * 3.2) {
-					sealNoted = true;
-					g.tip("seal", "The Sealed Gate: Azrakor the Dark Elder lies bound beneath Eldmere. Every realm that falls weakens the seal, and when a realm closes he drags its heroes into his chamber.");
-				}
 			}
 		}
 
@@ -178,47 +166,6 @@ package realm {
 			}
 
 			// garden flowers (small cached pictures, stamped after the shapes below)
-			// the Sealed Gate: a cracked ring of violet runes over Azrakor's prison
-			var sx:Number = X(SEAL_X, SEAL_Y), sy:Number = Y(SEAL_X, SEAL_Y) - TS * 0.5;
-			var pulse:Number = 0.65 + 0.35 * Math.sin(t * 2.2);
-			var sr:Number = TS * 2.3;
-			mtx.createGradientBox(sr * 3.2, sr * 3.2, 0, sx - sr * 1.6, sy - sr * 1.6);
-			gr.beginGradientFill(GradientType.RADIAL, [0x8a30e0, 0x8a30e0], [0.5 * pulse, 0], [0, 255], mtx);
-			gr.drawCircle(sx, sy, sr * 1.6);
-			gr.endFill();
-			mtx.createGradientBox(sr * 1.64, sr * 1.64, 0, sx - sr * 0.82, sy - sr * 0.82);
-			gr.beginGradientFill(GradientType.RADIAL, [0x3a1060, 0x0e0614], [0.95, 0.95], [0, 255], mtx);
-			gr.drawCircle(sx, sy, sr * 0.82);
-			gr.endFill();
-			gr.lineStyle(4, 0xb060ff, 0.85 * pulse);
-			gr.drawCircle(sx, sy, sr);
-			gr.lineStyle(2, 0xe0b8ff, 0.8 * pulse);
-			gr.drawCircle(sx, sy, sr * 0.82);
-			// runes turning slowly around the rim
-			gr.lineStyle();
-			for (i = 0; i < 12; i++) {
-				a = i * Math.PI / 6 - t * 0.2;
-				var gx:Number = sx + Math.cos(a) * sr * 0.91, gy:Number = sy + Math.sin(a) * sr * 0.91;
-				gr.beginFill(0xf0d8ff, 0.9 * pulse);
-				gr.drawRect(gx - 2, gy - 3, 4, 6);
-				gr.endFill();
-			}
-			gr.lineStyle(2, 0xc890ff, 0.75 * pulse);
-			// the Dark Elder's sigil: two crossed triangles
-			for (k = 0; k < 2; k++) {
-				gr.moveTo(sx + Math.cos(k * Math.PI - Math.PI / 2) * sr * 0.75, sy + Math.sin(k * Math.PI - Math.PI / 2) * sr * 0.75);
-				for (i = 1; i <= 3; i++) {
-					a = k * Math.PI - Math.PI / 2 + i * Math.PI * 2 / 3;
-					gr.lineTo(sx + Math.cos(a) * sr * 0.75, sy + Math.sin(a) * sr * 0.75);
-				}
-			}
-			// cracks running out of the seal
-			gr.lineStyle(2, 0xd0a0ff, 0.5 * pulse);
-			for each (var c:Array in [[0.3, 1.0], [2.2, 0.8], [3.9, 1.1], [5.1, 0.9]]) {
-				gr.moveTo(sx + Math.cos(c[0]) * sr, sy + Math.sin(c[0]) * sr);
-				gr.lineTo(sx + Math.cos(c[0] + 0.15) * sr * (1 + c[1] * 0.35), sy + Math.sin(c[0] + 0.15) * sr * (1 + c[1] * 0.35));
-				gr.lineTo(sx + Math.cos(c[0] - 0.05) * sr * (1 + c[1] * 0.6), sy + Math.sin(c[0] - 0.05) * sr * (1 + c[1] * 0.6));
-			}
 			gr.lineStyle();
 			canvas.draw(sh);
 			for each (var f:Array in flowers) {

@@ -505,6 +505,70 @@ async function run() {
     check('and the cross-domain file Flash asks for', /allow-access-from domain="\*"/.test(cd));
   }
 
+  console.log('marketplace');
+  {
+    // B sells the potion from its first slot; A (A2) buys it
+    B.send({ t: 'enter', key: 'nexus', cid: 'cb', x: 100, y: 100, profile: {} });
+    A2.send({ t: 'enter', key: 'nexus', cid: 'ca', x: 100, y: 100, profile: {} });
+    await wait(300);
+    B.clear();
+    B.send({ t: 'mkList', slot: 0, price: 500 });
+    await wait(300);
+    const listed = B.find((m) => m.t === 'shopDone');
+    const bView = B.find((m) => m.t === 'market');
+    const lst = bView && bView.m.list.find((l) => l.mine);
+    check('a player can list an item (it leaves their inventory)', listed && listed.inv[0] === null && lst && lst.price === 500, JSON.stringify(B.find((m) => m.t === 'shopFail')));
+    B.clear();
+    B.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
+    await wait(250);
+    check('nobody can buy their own listing', B.find((m) => m.t === 'shopFail') && !B.find((m) => m.t === 'shopDone'));
+    A2.clear();
+    A2.send({ t: 'mkView' });
+    await wait(250);
+    const aView = A2.find((m) => m.t === 'market');
+    const forA = aView && aView.m.list.find((l) => lst && l.id === lst.id);
+    check('other players see it for sale, with the seller', forA && !forA.mine && forA.seller === nameB);
+    A2.clear(); B.clear();
+    A2.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
+    await wait(300);
+    const bought = A2.find((m) => m.t === 'shopDone');
+    check('buying takes the gold and puts the item in the buyer\'s inventory', bought && bought.inv.some((it) => it && it.name === ITEMS.potion.name) && /Bought/.test(bought.market),
+      JSON.stringify(A2.find((m) => m.t === 'shopFail')));
+    check('the seller is told it sold', B.find((m) => m.t === 'msg' && /bought your/.test(m.text)));
+    A2.clear();
+    A2.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
+    await wait(250);
+    check('a sold item can\'t be bought twice', A2.find((m) => m.t === 'shopFail') && !A2.find((m) => m.t === 'shopDone'));
+    B.clear();
+    B.send({ t: 'mkView' });
+    await wait(250);
+    const bv2 = B.find((m) => m.t === 'market');
+    check('the seller\'s takings wait for them (minus the 5% fee)', bv2 && bv2.m.earned === 475);
+    B.clear();
+    B.send({ t: 'mkCollect' });
+    await wait(300);
+    const col = B.find((m) => m.t === 'shopDone');
+    check('collecting adds the takings to the seller\'s gold', col && /Collected 475 gold/.test(col.market));
+    // the bought item really is the buyer's now: a save holding it is accepted
+    const { Market } = require('./market');
+    const items = require('./items');
+    const tables = {};
+    const mk = new Market((f, d) => tables[f] || d, (f, o) => { tables[f] = o; });
+    const S1 = {}, S2 = { gold: 100 };
+    const pot = items.issue(S1, { kind: 'stat', sub: 'att', name: 'Potion of Attack' });
+    const inv1 = [pot], inv2 = [null];
+    const l2 = mk.list(S1, 's1', 'One', inv1, 0, 50);
+    check('a cancelled listing comes back to its seller', mk.cancel(S1, 's1', inv1, l2.id) && inv1[0] === pot && !items.check(S1, { chars: [{ inv: inv1 }] }));
+    const l3 = mk.list(S1, 's1', 'One', inv1, 0, 50);
+    mk.buy(S2, 's2', inv2, l3.id, S1);
+    check('a bought item passes the buyer\'s item checks (and not the seller\'s)', !items.check(S2, { chars: [{ inv: inv2 }] }) && !!items.check(S1, { chars: [{ inv: [pot] }] }));
+    const l4 = mk.list(S2, 's2', 'Two', inv2, 0, 10);
+    l4.at -= 8 * 86400000;
+    mk.expire((k) => (k === 's2' ? S2 : null));
+    const back = Market.collect(S2, inv2);
+    check('listings come back after a week, to collect', back.items === 1 && inv2[0] === pot && mk.data.list.length === 0);
+  }
+
   console.log('movement');
   {
     const { WorldSim } = require('./sim/worldsim');

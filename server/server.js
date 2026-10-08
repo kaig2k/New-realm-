@@ -26,6 +26,7 @@ const { Sims, WorldSim } = require('./sim/worldsim');
 const items = require('./items');
 const { Data } = require('./sim/gen/game');
 const quests = require('./quests');
+const { Market } = require('./market');
 
 // ------------------------------------------------------------------ config
 const CONFIG_FILE = path.join(__dirname, 'config.json');
@@ -114,6 +115,20 @@ function questProgress(c, evs) {
   for (const text of done) c.send({ t: 'questComplete', text: text + ' Claim it at the Quest Board in the Nexus.' });
 }
 if (sims) sims.onQuest = questProgress;
+
+// ------------------------------------------------------------------ player marketplace
+const market = new Market(load, save);
+/** The Marketplace as c sees it (all listings, theirs marked, their takings). */
+function sendMarket(c) { c.send({ t: 'market', m: market.view(c.key, onlineSave(c.key)) }); }
+// week-old listings go back to their sellers (to collect at the Marketplace)
+setInterval(() => {
+  for (const key of market.expire((k) => store.getSave(k))) {
+    const sv = store.getSave(key);
+    if (sv) store.putSave(key, sv);
+    const c = byName.get(key);
+    if (c) c.send({ t: 'msg', color: 0x6fe08f, text: 'A Marketplace listing of yours ran out after a week. Collect the item at the Marketplace.' });
+  }
+}, 60000).unref();
 /** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
 const accounts = load('accounts.json', {});
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
@@ -268,6 +283,7 @@ function publicSave(s) {
   delete o._ledger;
   delete o._ledgerV;
   delete o._quests;
+  delete o._market;
   return o;
 }
 
@@ -292,8 +308,9 @@ function applySave(c, data) {
   // the ledger is the server's: the game's copy is never trusted
   data._ledger = prev._ledger || {};
   data._ledgerV = prev._ledgerV || 1;
-  // so is quest progress
+  // so is quest progress, and the Marketplace box (takings, returned items)
   if (prev._quests) data._quests = prev._quests; else delete data._quests;
+  if (prev._market) data._market = prev._market; else delete data._market;
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
@@ -804,6 +821,67 @@ const handlers = {
     ch.inv[slot] = lg;
     sv.onrane = (sv.onrane || 0) - 100;
     shopDone(c, sv, ch, { forged: lg.name, slot });
+  },
+
+  /** The player marketplace: what's for sale. */
+  mkView(c) {
+    const now = Date.now();
+    if (now - (c.mkT || 0) < 400) return;
+    c.mkT = now;
+    sendMarket(c);
+  },
+
+  /** Puts an inventory item up for sale. */
+  mkList(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was listed.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = market.list(sv, c.key, c.name, ch.inv, num(m.slot) | 0, num(m.price));
+    if (typeof r === 'string') return c.send({ t: 'shopFail', msg: r });
+    shopDone(c, sv, ch, { market: 'Listed ' + (r.item.name || 'your item') + ' for ' + r.price.toLocaleString('en') + ' gold.' });
+    sendMarket(c);
+  },
+
+  /** Buys a listing (the seller can be offline: their takings wait for them). */
+  mkBuy(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const l = market.find(num(m.id) | 0);
+    if (!l) { sendMarket(c); return c.send({ t: 'shopFail', msg: 'Someone else bought that first.' }); }
+    const sellerSv = l.seller === c.key ? null : onlineSave(l.seller);
+    const r = market.buy(sv, c.key, ch.inv, l.id, sellerSv);
+    if (typeof r === 'string') return c.send({ t: 'shopFail', msg: r });
+    if (sellerSv) store.putSave(l.seller, sellerSv);
+    shopDone(c, sv, ch, { market: 'Bought ' + (l.item.name || 'an item') + ' from ' + l.sellerName + ' for ' + r.paid.toLocaleString('en') + ' gold.' });
+    sendMarket(c);
+    const seller = byName.get(l.seller);
+    if (seller) {
+      seller.send({ t: 'msg', color: 0x6fe08f, text: c.name + ' bought your ' + (l.item.name || 'item') + ' for ' + r.paid.toLocaleString('en') + ' gold! Collect ' + r.earned.toLocaleString('en') + ' gold at the Marketplace.' });
+      sendMarket(seller);
+    }
+  },
+
+  /** Takes a listing back. */
+  mkCancel(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = market.cancel(sv, c.key, ch.inv, num(m.id) | 0);
+    if (typeof r === 'string') return c.send({ t: 'shopFail', msg: r });
+    shopDone(c, sv, ch, { market: 'Took ' + (r.item.name || 'your item') + ' off the market.' });
+    sendMarket(c);
+  },
+
+  /** Collects takings and returned items. */
+  mkCollect(c, m) {
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = Market.collect(sv, ch.inv);
+    shopDone(c, sv, ch, { market: 'Collected ' + r.gold.toLocaleString('en') + ' gold' + (r.items ? ' and ' + r.items + ' item' + (r.items === 1 ? '' : 's') : '') +
+      (r.left ? ' (' + r.left + ' more waiting: make room in your inventory)' : '') + '.' });
+    sendMarket(c);
   },
 
   /** Today's quests and the week's, for the Quest Board. */

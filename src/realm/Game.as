@@ -2937,7 +2937,10 @@ package realm {
 				ab.x = (w - 200) / 2; ab.y = y + 2;
 				sp.addChild(ab);
 				y += 38;
+			} else if (openStation.kind == "market" && marketMode != "shop") {
+				y = buildMarket(sp, info, y, w);
 			} else {
+				if (openStation.kind == "market") y = marketTabs(sp, y, w);
 				info.htmlText = "You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.  Shift+click inventory items to sell them.";
 				info.y = y;
 				y += info.height + 8;
@@ -2954,6 +2957,228 @@ package realm {
 			sp.x = (VIEW_W - w) / 2;
 			sp.y = 60;
 			sp.visible = true;
+		}
+
+		// ------------------------------------------------------------ player marketplace
+		/** Which Marketplace tab is open: shop (the merchant), buy, sell or mine. */
+		private var marketMode:String = "shop";
+		/** The server's Marketplace: {list: [{id, item, price, seller, mine, left}], earned, returns, sales, fee, max}. */
+		private var marketView:Object;
+		private var marketPage:int = 0;
+		private var marketKind:String = "all";
+		private var marketSel:int = -1;
+		private var marketPrice:TextField;
+		private var stationTip:Tooltip;
+
+		/** The server sent the Marketplace (after opening it, or after a sale). */
+		public function marketArrived(v:Object):void {
+			marketView = v;
+			if (openStation && openStation.kind == "market") refreshStation();
+		}
+
+		private function marketTabs(sp:Sprite, y:int, w:int):int {
+			var tabs:Array = [["shop", "Shop"], ["buy", "Buy"], ["sell", "Sell"], ["mine", "My listings"]];
+			for (var i:int = 0; i < tabs.length; i++) {
+				var b:Sprite = Ui.button((marketMode == tabs[i][0] ? "> " : "") + tabs[i][1], 100, 26, marketTabFn(tabs[i][0]), 13);
+				b.x = 12 + i * 105; b.y = y;
+				b.alpha = marketMode == tabs[i][0] ? 1 : 0.7;
+				sp.addChild(b);
+			}
+			return y + 34;
+		}
+
+		private function marketTabFn(mode:String):Function {
+			return function():void {
+				marketMode = mode;
+				marketPage = 0;
+				if (mode != "shop" && net.online) Online.send({t: "mkView"});
+				refreshStation();
+			};
+		}
+
+		/** An item icon that shows its tooltip on hover. */
+		private function marketItem(sp:Sprite, item:Object, x:int, y:int, onClick:Function, hint:String):Sprite {
+			var b:Sprite = itemButton(item, x, y, onClick);
+			b.addEventListener(MouseEvent.ROLL_OVER, function(ev:*):void {
+				if (!stationTip) { stationTip = new Tooltip(); stationTip.mouseEnabled = stationTip.mouseChildren = false; }
+				stationTip.show(item, hint, Data.isGear(item) && Data.canUse(item, player.cls.id) ? player[item.kind] : null);
+				addChild(stationTip);
+				var gp:Point = b.localToGlobal(new Point(52, 0));
+				var lp:Point = globalToLocal(gp);
+				stationTip.x = Math.min(VIEW_W - stationTip.width - 4, lp.x);
+				stationTip.y = Math.max(4, Math.min(Ui.H - stationTip.height - 4, lp.y));
+				stationTip.visible = true;
+			});
+			b.addEventListener(MouseEvent.ROLL_OUT, function(ev:*):void { if (stationTip) stationTip.visible = false; });
+			sp.addChild(b);
+			return b;
+		}
+
+		private static const MARKET_KINDS:Array = [["all", "All"], ["weapon", "Weapons"], ["ability", "Abilities"], ["armor", "Armor"], ["ring", "Rings"], ["other", "Other"]];
+
+		private function buildMarket(sp:Sprite, info:TextField, y:int, w:int):int {
+			if (stationTip) stationTip.visible = false;
+			y = marketTabs(sp, y, w);
+			var v:Object = marketView;
+			if (!net.online || !Online.welcome || !Online.welcome.serverMonsters) {
+				info.htmlText = "The player market is on the server: play online to buy and sell.";
+				info.y = y; return y + info.height + 8;
+			}
+			if (!v) {
+				info.htmlText = "Opening the market...";
+				info.y = y;
+				Online.send({t: "mkView"});
+				return y + info.height + 8;
+			}
+			var i:int, row:Object, k:int;
+			if (marketMode == "buy") {
+				// filters by kind
+				for (i = 0; i < MARKET_KINDS.length; i++) {
+					var fb:Sprite = Ui.button(MARKET_KINDS[i][1], 68, 22, marketKindFn(MARKET_KINDS[i][0]), 11);
+					fb.x = 12 + i * 70; fb.y = y;
+					fb.alpha = marketKind == MARKET_KINDS[i][0] ? 1 : 0.55;
+					sp.addChild(fb);
+				}
+				y += 30;
+				var list:Array = [];
+				for each (row in v.list) {
+					var kd:String = row.item.kind;
+					if (marketKind == "all" || kd == marketKind || (marketKind == "other" && ["weapon", "ability", "armor", "ring"].indexOf(kd) < 0)) list.push(row);
+				}
+				info.htmlText = list.length ? "You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold. Hover an item to inspect it."
+					: "Nothing for sale here yet. List something under Sell!";
+				info.y = y; y += info.height + 6;
+				var per:int = 6, pages:int = Math.max(1, Math.ceil(list.length / per));
+				if (marketPage >= pages) marketPage = pages - 1;
+				for (k = marketPage * per; k < Math.min(list.length, (marketPage + 1) * per); k++) {
+					row = list[k];
+					marketItem(sp, row.item, 12, y, function():void {}, "Sold by " + row.seller);
+					var nm:TextField = Ui.text(14, Data.RARITY_COLORS[row.item.rarity] || 0xffffff, true, "left", 220, true);
+					nm.htmlText = row.item.name + "\n<font size='12' color='#999999'>by " + row.seller + "</font>";
+					nm.x = 68; nm.y = y + 6;
+					sp.addChild(nm);
+					var pr:TextField = Ui.text(14, 0xffd75e, true, "right", 90, true);
+					pr.text = Ui.commas(row.price) + "g";
+					pr.x = 236; pr.y = y + 14;
+					sp.addChild(pr);
+					var bb:Sprite = Ui.button(row.mine ? "Yours" : "Buy", 80, 30, row.mine ? function():void {} : marketBuyFn(row), 14);
+					bb.x = w - 92; bb.y = y + 9;
+					if (row.mine || gold < row.price) bb.alpha = 0.45;
+					sp.addChild(bb);
+					y += 54;
+				}
+				if (pages > 1) y = marketPager(sp, y, w, pages);
+			} else if (marketMode == "sell") {
+				info.htmlText = "Pick an item from your inventory, set a price, and list it. Anyone can buy it, even while you're offline. " +
+					"The Marketplace keeps <font color='#ffd75e'>" + int(v.fee * 100) + "%</font> of each sale. Up to " + v.max + " listings, for a week each.";
+				info.y = y; y += info.height + 6;
+				var n:int = 0;
+				for (i = 0; i < player.inv.length; i++) {
+					var it:Object = player.inv[i];
+					if (!it || !it.sid) continue;
+					var ib:Sprite = marketItem(sp, it, 12 + (n % 8) * 52, y + int(n / 8) * 52, marketSelFn(i), "Click to sell this");
+					if (marketSel == i) { ib.graphics.lineStyle(3, 0x6fe08f); ib.graphics.drawRoundRect(-2, -2, 52, 52, 12, 12); }
+					n++;
+				}
+				if (!n) {
+					var none:TextField = Ui.text(12, 0x888888, false, "left", w - 30);
+					none.text = "Nothing in your inventory can be sold (starter gear can't).";
+					none.x = 14; none.y = y; sp.addChild(none);
+					y += 24;
+				} else y += (int((n - 1) / 8) + 1) * 52 + 6;
+				var sel:Object = marketSel >= 0 ? player.inv[marketSel] : null;
+				if (sel && sel.sid) {
+					var sl:TextField = Ui.text(13, 0xffffff, true, "left", 200, true);
+					sl.text = "Price for " + sel.name + ":";
+					sl.x = 14; sl.y = y + 4; sp.addChild(sl);
+					if (!marketPrice) { marketPrice = Ui.input(110, "", 9, 14); marketPrice.restrict = "0-9"; }
+					marketPrice.x = 220; marketPrice.y = y;
+					sp.addChild(marketPrice);
+					var lb:Sprite = Ui.button("List", 80, 28, marketListFn(), 14);
+					lb.x = w - 92; lb.y = y - 2;
+					sp.addChild(lb);
+					y += 32;
+					var gets:TextField = Ui.text(12, 0x9a9a9a, false, "left", w - 30, true);
+					var pv:int = int(marketPrice.text);
+					gets.text = pv > 0 ? "You'll get " + Ui.commas(int(pv * (1 - v.fee))) + " gold when it sells." : "Type a price in gold.";
+					gets.x = 14; gets.y = y; sp.addChild(gets);
+					y += 22;
+				}
+			} else {
+				// your listings, and what's waiting for you
+				info.htmlText = "Waiting for you: <font color='#ffd75e'><b>" + Ui.commas(v.earned) + "</b> gold</font>" +
+					(v.returns ? " and <b>" + v.returns + "</b> returned item" + (v.returns == 1 ? "" : "s") : "") + ".";
+				info.y = y; y += info.height + 6;
+				if (v.earned > 0 || v.returns > 0) {
+					var cb:Sprite = Ui.button("Collect", 120, 28, function():void {
+						if (shopWaiting) return;
+						if (net.shopRequest({t: "mkCollect"})) shopWaiting = true;
+					}, 14);
+					cb.x = (w - 120) / 2; cb.y = y; sp.addChild(cb);
+					y += 36;
+				}
+				for each (var sale:Object in v.sales || []) {
+					var st:TextField = Ui.text(12, 0x9cff7a, false, "left", w - 30, true);
+					st.text = "Sold " + sale.name + " for " + Ui.commas(sale.price) + "g (you got " + Ui.commas(sale.got) + "g)";
+					st.x = 14; st.y = y; sp.addChild(st);
+					y += 18;
+				}
+				var mine:int = 0;
+				for each (row in v.list) {
+					if (!row.mine) continue;
+					mine++;
+					marketItem(sp, row.item, 12, y, function():void {}, "Your listing");
+					var mn:TextField = Ui.text(14, Data.RARITY_COLORS[row.item.rarity] || 0xffffff, true, "left", 240, true);
+					mn.htmlText = row.item.name + "\n<font size='12' color='#999999'>" + Ui.commas(row.price) + "g  -  " + Math.ceil(row.left / 86400000) + " days left</font>";
+					mn.x = 68; mn.y = y + 6; sp.addChild(mn);
+					var xb:Sprite = Ui.button("Cancel", 80, 30, marketCancelFn(row), 14);
+					xb.x = w - 92; xb.y = y + 9; sp.addChild(xb);
+					y += 54;
+				}
+				if (!mine) {
+					var nm2:TextField = Ui.text(12, 0x888888, false, "left", w - 30);
+					nm2.text = "You have nothing for sale.";
+					nm2.x = 14; nm2.y = y; sp.addChild(nm2);
+					y += 22;
+				}
+			}
+			return y;
+		}
+
+		private function marketPager(sp:Sprite, y:int, w:int, pages:int):int {
+			var pv:Sprite = Ui.button("<", 36, 24, function():void { marketPage = (marketPage + pages - 1) % pages; refreshStation(); }, 14);
+			pv.x = w / 2 - 80; pv.y = y; sp.addChild(pv);
+			var pt:TextField = Ui.text(13, 0xcccccc, true, "center", 80, true);
+			pt.text = (marketPage + 1) + " / " + pages;
+			pt.x = w / 2 - 40; pt.y = y + 3; sp.addChild(pt);
+			var nx:Sprite = Ui.button(">", 36, 24, function():void { marketPage = (marketPage + 1) % pages; refreshStation(); }, 14);
+			nx.x = w / 2 + 44; nx.y = y; sp.addChild(nx);
+			return y + 30;
+		}
+
+		private function marketKindFn(kind:String):Function { return function():void { marketKind = kind; marketPage = 0; refreshStation(); }; }
+		private function marketSelFn(slot:int):Function { return function():void { marketSel = slot; refreshStation(); if (marketPrice && stage) stage.focus = marketPrice; }; }
+		private function marketBuyFn(row:Object):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (gold < row.price) { msg("You need " + Ui.commas(row.price) + " gold.", 0xff8080); return; }
+				if (player.inv.indexOf(null) < 0) { msg("Make room in your inventory first.", 0xff8080); return; }
+				if (net.shopRequest({t: "mkBuy", id: row.id})) shopWaiting = true;
+			};
+		}
+		private function marketCancelFn(row:Object):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (net.shopRequest({t: "mkCancel", id: row.id})) shopWaiting = true;
+			};
+		}
+		private function marketListFn():Function {
+			return function():void {
+				if (shopWaiting || marketSel < 0) return;
+				var price:int = int(marketPrice ? marketPrice.text : "0");
+				if (price < 1) { msg("Type a price in gold first.", 0xff8080); return; }
+				if (net.shopRequest({t: "mkList", slot: marketSel, price: price})) { shopWaiting = true; marketSel = -1; if (marketPrice) marketPrice.text = ""; }
+			};
 		}
 
 		// ------------------------------------------------------------ raids
@@ -4172,6 +4397,9 @@ package realm {
 				Sfx.play("rare");
 				msg("The Starforge blazes... you forged " + m.forged + "!", Data.RARITY_COLORS.lg);
 				burst(player.x, player.y, 0xd8e040, 30);
+			} else if (m.market) {
+				msg(m.market, 0x6fe08f);
+				Sfx.play("coin");
 			} else {
 				msg("Bought " + m.bought + ".", Ui.GOLD);
 				Sfx.play("coin");

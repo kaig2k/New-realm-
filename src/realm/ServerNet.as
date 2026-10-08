@@ -198,6 +198,9 @@ package realm {
 					Online.sendSave();
 					g.msg("The server is restarting. You'll be able to rejoin in a moment.", 0xffd75e);
 					break;
+				case "market":
+					g.marketArrived(m.m);
+					break;
 				case "records":
 					g.recordsArrived(m.r);
 					break;

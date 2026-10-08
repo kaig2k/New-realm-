@@ -128,4 +128,20 @@ function checkStats(save) {
   return null;
 }
 
-module.exports = { fingerprint, issue, migrate, transfer, check, checkStats, eachItem, STARTERS };
+/** Takes an item's entry out of an account's ledger (it's leaving for the market). Returns the entry, or null. */
+function release(save, item) {
+  if (!item || !item.sid) return null;
+  const l = ledger(save), e = l[item.sid];
+  if (!e) return null;
+  delete l[item.sid];
+  return e;
+}
+
+/** Writes a market item's entry into an account's ledger (bought, or coming back to its seller). */
+function adopt(save, item, entry) {
+  if (!item || !item.sid || !entry) return;
+  ledger(save)[item.sid] = { f: entry.f, t: Date.now() };
+  trim(save);
+}
+
+module.exports = { fingerprint, issue, migrate, transfer, check, checkStats, eachItem, release, adopt, STARTERS };

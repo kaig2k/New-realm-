@@ -58,6 +58,39 @@ package realm {
 		private var dashHits:Dictionary;
 		public var hitT:Number = 0;
 		public var lastHitBy:String = "";
+		/** The attack that last hurt you ("homing blade volley"). */
+		public var lastHitWith:String = "";
+		/** Damage taken lately, for the death recap: {t, src, atk, d, eff}. */
+		public var recentHits:Array = [];
+		/** Seconds since this character entered the game (the recap's clock). */
+		private var clock:Number = 0;
+		private var bleedAcc:Number = 0;
+
+		/** Notes damage taken (the death recap shows the last few seconds of it). */
+		public function noteHit(src:String, atk:String, d:int, eff:String = null):void {
+			if (d <= 0) return;
+			var last:Object = recentHits.length ? recentHits[recentHits.length - 1] : null;
+			// ticks of the same thing close together become one line (lava, bleeding)
+			if (last && last.src == src && last.atk == atk && !atk && clock - last.t < 1.1) { last.d += d; last.t = clock; return; }
+			recentHits.push({t: clock, src: src, atk: atk, d: d, eff: eff});
+			while (recentHits.length > 40 || (recentHits.length && clock - recentHits[0].t > 8)) recentHits.shift();
+		}
+
+		/** What killed you in your last 5 seconds: [{src, atk, d, n, eff}], most damage first, and the total. */
+		public function recap(now:Number):Object {
+			var by:Object = {}, list:Array = [], total:int = 0;
+			for each (var h:Object in recentHits) {
+				if (clock - h.t > 5) continue;
+				var k:String = h.src + "|" + h.atk;
+				var r:Object = by[k];
+				if (!r) { r = by[k] = {src: h.src, atk: h.atk, d: 0, n: 0, eff: null}; list.push(r); }
+				r.d += h.d; r.n++;
+				if (h.eff) r.eff = h.eff;
+				total += h.d;
+			}
+			list.sortOn("d", Array.NUMERIC | Array.DESCENDING);
+			return {list: list.slice(0, 5), total: total};
+		}
 		public var aimX:Number = 0, aimY:Number = 0;
 		public var moving:Boolean = false;
 		public var burning:Boolean = false;
@@ -255,6 +288,7 @@ package realm {
 		}
 
 		public function update(dt:Number, g:Game):void {
+			clock += dt;
 			var inp:Input = g.input;
 			var w:World = g.world;
 			if (invulnT > 0) invulnT -= dt;
@@ -321,7 +355,9 @@ package realm {
 					burnTick = 0.5;
 					hp -= 15;
 					hitT = 0.1;
-					lastHitBy = "Lava";
+					lastHitBy = underfoot == World.HEXFIRE ? "Cursed runes" : "Lava";
+					lastHitWith = "";
+					noteHit(lastHitBy, "", 15);
 					g.floatText(x, y - 1, "-15", 0xff8030);
 				}
 			}
@@ -355,6 +391,8 @@ package realm {
 			if (status.bleeding > 0) {
 				hp -= 18 * dt;
 				lastHitBy = lastHitBy || "Bleeding";
+				bleedAcc += 18 * dt;
+				if (bleedAcc >= 6) { noteHit("Bleeding", "", int(bleedAcc)); bleedAcc -= int(bleedAcc); }
 			} else hp = Math.min(maxHp, hp + (1 + vit * 0.12) * dt);
 			mp = Math.min(maxMp, mp + (0.5 + wis * 0.06) * dt);
 			if (pt > maxPt) pt = maxPt;
@@ -860,7 +898,7 @@ package realm {
 			return out;
 		}
 
-		public function takeHit(raw:int, src:String, g:Game, effect:String = null):void {
+		public function takeHit(raw:int, src:String, g:Game, effect:String = null, attack:String = ""):void {
 			if (invulnT > 0 || g.godMode) return;
 			if (effect && STATUS_TIME[effect] != undefined) {
 				if (status[effect] <= 0) {
@@ -890,6 +928,8 @@ package realm {
 				}
 			}
 			hp -= d;
+			noteHit(src, attack, d, effect);
+			lastHitWith = attack;
 			if (hp <= 0 && rank("laststand") > 0 && lastStandT <= 0) {
 				hp = 1;
 				invulnT = 2;

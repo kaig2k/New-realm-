@@ -21,8 +21,12 @@ package realm {
 			graphics.endFill();
 			var bonuses:Array = info.bonuses || [];
 			var listH:int = bonuses.length ? 30 + bonuses.length * 22 : 0;
+			// what killed you: the damage you took in your last 5 seconds
+			var recap:Array = info.recap && info.recap.list ? info.recap.list : [];
+			var recapH:int = recap.length ? 34 + recap.length * 20 : 0;
+			listH += recapH;
 			// with a long bonus list the gravestone is dropped to make room
-			var compact:Boolean = bonuses.length > 3;
+			var compact:Boolean = bonuses.length > 3 || listH > 150;
 			var panelH:int = 520 + listH - (compact ? 100 : 0);
 			var top:int = Math.max(4, int((Ui.H - panelH) / 2));
 			Ui.panel(graphics, Ui.W / 2 - 290, top, 580, panelH, 0x1e1e22, 0x4a4a4a);
@@ -41,13 +45,42 @@ package realm {
 
 			var mins:int = int(info.time / 60), secs:int = int(info.time % 60);
 			var body:TextField = Ui.text(18, 0xdddddd, false, "center", Ui.W, true);
-			body.htmlText = "<b>" + info.name + "</b>, a level " + info.level + " " + info.cls + ",\nwas killed by <font color='#ff9a2e'><b>" + info.killer + "</b></font>\n\n" +
+			body.htmlText = "<b>" + info.name + "</b>, a level " + info.level + " " + info.cls + ",\nwas killed by <font color='#ff9a2e'><b>" + info.killer + (info.killedWith ? "'s " + info.killedWith : "") + "</b></font>\n\n" +
 				"Monsters slain: <b>" + info.kills + "</b>      Overlords slain: <b>" + info.bosses + "</b>\n" +
 				"Time survived: <b>" + mins + "m " + (secs < 10 ? "0" : "") + secs + "s</b>";
 			body.y = top + 190;
 			addChild(body);
 
 			var y:int = top + 334;
+			if (recap.length) {
+				var rh:TextField = Ui.text(15, 0xff7060, true, "center", Ui.W, true);
+				rh.htmlText = "Your last 5 seconds: <font color='#ffffff'>" + Ui.commas(info.recap.total) + "</font> damage taken";
+				rh.y = y;
+				addChild(rh);
+				y += 26;
+				for each (var hit:Object in recap) {
+					var who:TextField = Ui.text(13, 0xe8e0c8, true, "left", 330, true);
+					who.htmlText = hit.src + (hit.atk ? "  <font color='#a0a0a8'>" + hit.atk + "</font>" : "") +
+						(hit.n > 1 ? "  <font color='#808088'>x" + hit.n + "</font>" : "") +
+						(hit.eff ? "  <font color='#c080ff'>(" + hit.eff + ")</font>" : "");
+					who.x = Ui.W / 2 - 250; who.y = y;
+					addChild(who);
+					var amt0:TextField = Ui.text(13, 0xff6050, true, "right", 120, true);
+					amt0.text = "-" + Ui.commas(hit.d);
+					amt0.x = Ui.W / 2 + 130; amt0.y = y;
+					addChild(amt0);
+					// a bar showing its share of the damage
+					graphics.beginFill(0x5a1a1a);
+					graphics.drawRect(Ui.W / 2 + 90, y + 6, 40 * hit.d / Math.max(1, info.recap.total), 8);
+					graphics.endFill();
+					y += 20;
+				}
+				graphics.lineStyle(1, 0x4a4a4a);
+				graphics.moveTo(Ui.W / 2 - 250, y + 4);
+				graphics.lineTo(Ui.W / 2 + 250, y + 4);
+				graphics.lineStyle();
+				y += 10;
+			}
 			if (bonuses.length) {
 				// RotMG-style fame bonus breakdown
 				var rows:Array = [["Base fame", "", Ui.commas(info.baseFame || 0)]];

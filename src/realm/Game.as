@@ -1639,7 +1639,7 @@ package realm {
 						else {
 							var dx:Number = s.x - p.x, dy:Number = s.y - p.y, rr:Number = s.r + Player.R;
 							if (dx * dx + dy * dy < rr * rr && p.invulnT <= 0) {
-								p.takeHit(s.dmg, s.owner, this, s.effect);
+								p.takeHit(s.dmg, s.owner, this, s.effect, s.attack);
 								remove = true;
 							}
 						}
@@ -2136,11 +2136,11 @@ package realm {
 		}
 
 		/** Area damage from a blast (only your own character; others check in their games). */
-		public function areaHit(x:Number, y:Number, r:Number, dmg:int, src:String, eff:String, col:uint):void {
+		public function areaHit(x:Number, y:Number, r:Number, dmg:int, src:String, eff:String, col:uint, attack:String = ""):void {
 			burst(x, y, col, 14);
 			ring(x, y, col, 18);
 			var dx:Number = player.x - x, dy:Number = player.y - y;
-			if (dx * dx + dy * dy < r * r && player.invulnT <= 0 && player.hp > 0) player.takeHit(dmg, src, this, eff);
+			if (dx * dx + dy * dy < r * r && player.invulnT <= 0 && player.hp > 0) player.takeHit(dmg, src, this, eff, attack);
 			var sx:Number = (player.x - x), sy:Number = (player.y - y);
 			if (sx * sx + sy * sy < 64) shake(0.15, 3);
 		}
@@ -2531,7 +2531,8 @@ package realm {
 			Save.flush();
 			deathInfo = {
 				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best, baseFame: base, bonuses: bonuses,
-				kills: p.kills, bosses: p.bossKills, killer: p.lastHitBy || "the Realm", time: time
+				kills: p.kills, bosses: p.bossKills, killer: p.lastHitBy || "the Realm", time: time,
+				killedWith: p.lastHitWith, recap: p.recap(time)
 			};
 		}
 
@@ -3557,7 +3558,7 @@ package realm {
 			var lx:Number = player.x + (Math.random() - 0.5) * 6, ly:Number = player.y + (Math.random() - 0.5) * 6;
 			var self:Game = this;
 			addMarker(lx, ly, 1.6, 1.1, 0xffff80, function():void {
-				self.areaHit(lx, ly, 1.6, 120, "Lightning", "paralyzed", 0xffff80);
+				self.areaHit(lx, ly, 1.6, 120, "Lightning", "paralyzed", 0xffff80, "lightning strike");
 				self.flash(0.22);
 				Sfx.play("hit", 0.5);
 			});

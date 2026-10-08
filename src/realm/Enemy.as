@@ -510,17 +510,32 @@ package realm {
 
 		private function novaFn(a:Object, nx:Number, ny:Number, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, base:Number):Function {
 			return function():void {
-				g.areaHit(nx, ny, a.radius || 1.6, dmg, def.name, a.eff || null, a.col);
+				g.areaHit(nx, ny, a.radius || 1.6, dmg, def.name, a.eff || null, a.col, attackName(a));
 				var m:int = a.burst || 0;
 				for (var k:int = 0; k < m; k++) {
 					var t:Number = base + k * Math.PI * 2 / m;
-					g.addShot(new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, int(dmg * 0.6), true, 0.2, bd, false, def.name, a.eff || null, spinning));
+					var bs:Projectile = new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, int(dmg * 0.6), true, 0.2, bd, false, def.name, a.eff || null, spinning);
+					bs.attack = "blast shards";
+					g.addShot(bs);
 				}
 			};
 		}
 
+		/** A name for an attack, for the death recap: "homing blade volley", "ring of stars", "ground blast". */
+		public static function attackName(a:Object):String {
+			if (!a) return "";
+			if (a.p == "nova") return "ground blast";
+			if (a.p == "rain") return "falling blasts";
+			var adj:String = a.motion == "home" ? "homing " : a.motion == "wave" ? "weaving " : a.motion == "boomerang" ? "returning " : a.accel > 0 ? "speeding " : "";
+			var thing:String = a.shape == "blade" ? "blade" : a.shape == "star" ? "star" : a.shape == "ring" ? "ring" : "shot";
+			if (a.p == "spiral") return adj + thing + " spiral";
+			if (a.p == "ring") return "ring of " + adj + thing + "s";
+			return adj + thing + ((a.n || 1) > 1 ? " volley" : "");
+		}
+
 		private function shot(t:Number, spd:Number, a:Object, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, sx:Number, sy:Number, k:int):void {
 			var s:Projectile = new Projectile(sx, sy, t, spd, a.life, dmg, true, a.r, bd, false, def.name, a.eff || null, spinning);
+			s.attack = attackName(a);
 			if (a.motion) {
 				s.motion = a.motion;
 				s.accel = a.accel || 0;

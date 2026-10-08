@@ -15,6 +15,8 @@ package realm {
 		public var hits:Dictionary;
 		public var effect:String;
 		public var owner:String;
+		/** Which attack fired it, for the death recap ("homing blade volley"). */
+		public var attack:String = "";
 		/** Colour of the faint trail behind player shots. */
 		public var trailCol:uint = 0xffffff;
 		/** Fired by another player: hurts monsters but gives you nothing. */

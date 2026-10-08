@@ -248,12 +248,17 @@ package realm {
 			netTf = Ui.text(12, 0x9ad0ff, true, "right", 300, true);
 			netTf.x = VIEW_W - 312; netTf.y = 50;
 			netTf.mouseEnabled = false;
+			restartTf = Ui.text(16, 0xffd75e, true, "center", 500, true);
+			restartTf.x = (VIEW_W - 500) / 2; restartTf.y = 6;
+			restartTf.mouseEnabled = false;
+			restartTf.filters = [new GlowFilter(0x000000, 0.95, 4, 4, 5)];
 			trackerTf = Ui.text(12, 0xe8e0c8, true, "right", 400, true);
 			trackerTf.x = VIEW_W - 412; trackerTf.y = 68;
 			trackerTf.mouseEnabled = false;
 			trackerTf.filters = [new GlowFilter(0x000000, 0.9, 3, 3, 4)];
 			addChild(netTf);
 			addChild(trackerTf);
+			addChild(restartTf);
 			buildBossPanel();
 			buildNexus();
 			sync = new WorldSync(this);
@@ -1344,6 +1349,7 @@ package realm {
 			render();
 			hud.refresh();
 			updateOverlays();
+			updateRestart();
 			input.endFrame();
 
 			if (deathInfo && dyingT <= 0) {
@@ -1547,6 +1553,8 @@ package realm {
 		private function updateEvents(dt:Number):void {
 			if (world.closeT > 0 || world.closed || world.eventsDone >= Data.EVENTS_PER_REALM) return;
 			if (world.boss) return;
+			// a restart is close: no new event bosses nobody could finish
+			if (Online.restartAt && Online.restartAt - getTimer() < 120000) return;
 			world.eventT -= dt;
 			if (world.eventT <= 0) spawnEvent();
 		}
@@ -3598,6 +3606,34 @@ package realm {
 		 */
 		private var serverQuests:Object;
 		private var questsAt:int = 0;
+		/** The restart countdown at the top of the screen, and the last second it was shown at. */
+		private var restartTf:TextField;
+		private var restartLast:int = -1;
+
+		/** Shows the countdown to a server restart, with warnings in chat as it gets close. */
+		private function updateRestart():void {
+			if (!restartTf) return;
+			if (!Online.restartAt) { if (restartTf.text) restartTf.text = ""; restartLast = -1; return; }
+			var left:int = Math.max(0, Math.ceil((Online.restartAt - getTimer()) / 1000));
+			if (left == restartLast) return;
+			var before:int = restartLast;
+			restartLast = left;
+			restartTf.htmlText = "Server restart in " + int(left / 60) + ":" + (left % 60 < 10 ? "0" : "") + left % 60 +
+				(left <= 120 ? "<font size='12' color='#e8e0c8'>   no new events</font>" : "");
+			restartTf.textColor = left <= 30 ? 0xff7060 : 0xffd75e;
+			// warnings as it crosses each minute, 30 and 10 seconds (and right away when it starts)
+			var marks:Array = [600, 540, 480, 420, 360, 300, 240, 180, 120, 60, 30, 10];
+			for each (var mk:int in marks) {
+				if (!(left <= mk && (before < 0 ? left > mk - 2 : before > mk))) continue;
+				var when:String = mk >= 60 ? (mk / 60) + " minute" + (mk == 60 ? "" : "s") : mk + " seconds";
+				msg("The server restarts for an update in " + when + "." + (mk == 120 ? " No new realm events will start." : mk <= 30 ? " Finish up!" : ""), 0xffd75e);
+				if (mk == 300 || mk == 60 || mk == 30 || mk == 10) showBanner("Restart in " + when, 0xffd75e, 2.5);
+				Sfx.play("portal", 0.6);
+				break;
+			}
+			if (before < 0 && left > 600) msg("The server will restart for an update in " + Math.ceil(left / 60) + " minutes.", 0xffd75e);
+		}
+
 		/** The quest tracker under the connection status. */
 		private var trackerTf:TextField;
 

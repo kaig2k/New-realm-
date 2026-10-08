@@ -373,6 +373,8 @@ class WorldSim {
 
   updateEvents(dt) {
     const w = this.w;
+    // a restart is close: no new event bosses that nobody could finish
+    if (WorldSim.restartSoon) return;
     if (this.closeT > 0 || w.closed || w.eventsDone >= Data.EVENTS_PER_REALM || (w.boss && !w.boss.dead)) return;
     w.eventT -= dt;
     if (w.eventT > 0) return;
@@ -714,5 +716,8 @@ class Sims {
     return { worlds: this.map.size, monsters, tickMs: this.lastMs || 0 };
   }
 }
+
+/** Set by the server in the last minutes before a restart. */
+WorldSim.restartSoon = false;
 
 module.exports = { WorldSim, Sims };

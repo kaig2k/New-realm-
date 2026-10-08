@@ -185,6 +185,10 @@ package realm {
 				case "questComplete":
 					g.questComplete(m.text);
 					break;
+				case "restartIn":
+					Online.setRestart(Number(m.s));
+					if (Number(m.s) < 0) g.msg("The server restart was called off.", 0x9cff7a);
+					break;
 				case "restart":
 					// the server is about to restart: get our latest progress to it first
 					Online.sendSave();

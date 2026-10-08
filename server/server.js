@@ -22,7 +22,7 @@ const crypto = require('crypto');
 const { StringDecoder } = require('string_decoder');
 const { Store } = require('./store');
 const { checkSave } = require('./validate');
-const { Sims } = require('./sim/worldsim');
+const { Sims, WorldSim } = require('./sim/worldsim');
 const items = require('./items');
 const { Data } = require('./sim/gen/game');
 const quests = require('./quests');
@@ -378,7 +378,7 @@ const handlers = {
     accountMeta.set(key, c.meta);
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD });
+      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft() });
     sendGuild(c.guild);
     c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
     log(c.name, 'joined (' + byName.size + ' online)');
@@ -906,6 +906,15 @@ const handlers = {
       case '/announce':
         broadcast('[Server] ' + parts.slice(1).join(' '));
         return;
+      case '/restart': {
+        // /restart 5 (minutes), /restart now, /restart cancel
+        const arg = (parts[1] || '5').toLowerCase();
+        if (arg === 'cancel') return c.note(cancelRestart() ? 'Restart cancelled.' : 'No restart was coming.', 0x80ff80);
+        const mins = arg === 'now' ? 0 : Number(arg);
+        if (!(mins >= 0 && mins <= 120)) return c.note('Usage: /restart minutes (0-120), /restart now or /restart cancel');
+        scheduleRestart(mins * 60, c.name);
+        return c.note('Restarting in ' + mins + ' minute' + (mins === 1 ? '' : 's') + ' (with the latest update).', 0x80ff80);
+      }
     }
     c.note('Unknown command.');
   }
@@ -1132,6 +1141,23 @@ function serveHttp(sock, req) {
     });
     return;
   }
+  // the VPS itself (restart.sh) can start or cancel a restart countdown
+  if (pathOnly === '/restart') {
+    const local = /^(::ffff:)?127\.0\.0\.1$|^::1$/.test(String(sock.remoteAddress || ''));
+    let msg;
+    if (!local) msg = 'Only the server itself can do that.\n';
+    else {
+      const m = (/[?&]m=([^&]+)/.exec(url) || [])[1] || '5';
+      if (m === 'cancel') msg = cancelRestart() ? 'Restart cancelled.\n' : 'No restart was coming.\n';
+      else {
+        const mins = m === 'now' ? 0 : Number(m);
+        if (!(mins >= 0 && mins <= 120)) msg = 'Minutes must be 0-120, now or cancel.\n';
+        else { scheduleRestart(Math.round(mins * 60), 'the server console'); msg = 'Restarting in ' + mins + ' minute(s): players are being warned. It will pull the latest update first.\n'; }
+      }
+    }
+    sock.end(head('text/plain', Buffer.byteLength(msg)) + msg);
+    return;
+  }
   if (pathOnly === '/crossdomain.xml') {
     const xml = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*"/></cross-domain-policy>';
     sock.end(head('text/x-cross-domain-policy', Buffer.byteLength(xml)) + xml);
@@ -1320,6 +1346,49 @@ process.stdin.on('data', (data) => {
     }
   }
 });
+
+// ------------------------------------------------------------------ restart countdown
+/**
+ * A restart with a warning: everyone sees a countdown, realm events stop starting in
+ * the last two minutes, and at zero the server pulls the latest update (git pull) and
+ * stops; systemd (Restart=always) starts it again on the new code. Started by an admin
+ * (/restart 5) or from the VPS itself (restart.sh, or http://127.0.0.1:PORT/restart?m=5).
+ */
+let restartAt = 0, restartTimer = null, restartTick = null;
+const restartLeft = () => restartAt ? Math.max(0, Math.ceil((restartAt - Date.now()) / 1000)) : -1;
+function scheduleRestart(seconds, by) {
+  cancelRestart(true);
+  restartAt = Date.now() + seconds * 1000;
+  log('Restart in ' + seconds + 's' + (by ? ' (by ' + by + ')' : ''));
+  const tell = () => { for (const c of clients.values()) if (c.authed) c.send({ t: 'restartIn', s: restartLeft() }); };
+  tell();
+  // keep everyone's clocks right, and stop new events near the end
+  restartTick = setInterval(() => {
+    const left = restartLeft();
+    WorldSim.restartSoon = left <= 120;
+    if (left % 60 === 0 || left === 30 || left === 10) tell();
+  }, 1000);
+  WorldSim.restartSoon = seconds <= 120;
+  restartTimer = setTimeout(() => { restartTimer = null; updateAndStop(); }, seconds * 1000);
+}
+function cancelRestart(quiet) {
+  if (!restartAt) return false;
+  clearTimeout(restartTimer); clearInterval(restartTick);
+  restartAt = 0; restartTimer = restartTick = null;
+  WorldSim.restartSoon = false;
+  if (!quiet) { log('Restart cancelled'); for (const c of clients.values()) if (c.authed) c.send({ t: 'restartIn', s: -1 }); }
+  return true;
+}
+/** Gets the latest update (when the server runs from a git checkout), then stops for systemd to start it again. */
+function updateAndStop() {
+  try {
+    const out = require('child_process').execFileSync('git', ['pull', '--ff-only'], { cwd: path.join(__dirname, '..'), timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] });
+    log('git pull: ' + String(out).trim().split('\n').pop());
+  } catch (e) {
+    log('git pull failed (restarting on the code already here): ' + String(e.stderr || e.message).trim().split('\n')[0]);
+  }
+  shutdown();
+}
 
 let shuttingDown = false;
 /** Stopping (an update or restart): everyone is told and sends their save, then it's all written and the server exits. */

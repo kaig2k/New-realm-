@@ -7,6 +7,7 @@ package realm {
 	import flash.net.Socket;
 	import flash.utils.ByteArray;
 	import flash.utils.Timer;
+	import flash.utils.getTimer;
 
 	/**
 	 * The connection to a New Realm server (server/server.js): newline-separated
@@ -50,6 +51,10 @@ package realm {
 		/** The build of the game the server handed out when we first connected, and whether it has changed since. */
 		public static var firstBuild:String = null;
 		public static var outdated:Boolean = false;
+		/** When the server restarts (getTimer() ms), or 0 when no restart is coming. */
+		public static var restartAt:int = 0;
+		/** The server said it restarts in `s` seconds (-1: called off). */
+		public static function setRestart(s:Number):void { restartAt = s >= 0 ? getTimer() + int(s * 1000) : 0; }
 		/** Receives every message after the welcome (set by ServerNet). */
 		private static var _onMessage:Function;
 		/** Called when the connection drops. */
@@ -232,6 +237,7 @@ package realm {
 					welcome = m;
 					// the server now hands out a different game: this copy is out of date
 					if (m.build) { if (firstBuild == null) firstBuild = m.build; else if (m.build != firstBuild) outdated = true; }
+					setRestart(m.restartIn != undefined ? Number(m.restartIn) : -1);
 					connected = true;
 					if (m.session) Accounts.remember(address, m.name, m.session);
 					Accounts.loggedIn(m.name);

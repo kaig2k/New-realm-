@@ -505,6 +505,41 @@ async function run() {
     check('and the cross-domain file Flash asks for', /allow-access-from domain="\*"/.test(cd));
   }
 
+  console.log('restart countdown');
+  {
+    const get = (pathName) => new Promise((resolve) => {
+      const s = net.connect(PORT, '127.0.0.1');
+      const parts = [];
+      s.on('data', (d) => parts.push(d));
+      s.on('end', () => resolve(Buffer.concat(parts).toString()));
+      s.on('error', () => resolve(''));
+      s.on('connect', () => s.write('GET ' + pathName + ' HTTP/1.1\r\nHost: localhost\r\n\r\n'));
+    });
+    B.clear();
+    const r = await get('/restart?m=3');
+    await wait(300);
+    const rin = B.find((m) => m.t === 'restartIn');
+    check('the VPS can start a restart countdown, and players are told', /Restarting in 3/.test(r) && rin && rin.s > 170 && rin.s <= 180, r.split('\r\n\r\n')[1]);
+    B.clear();
+    const r2 = await get('/restart?m=cancel');
+    await wait(300);
+    check('a restart can be called off (players are told)', /cancelled/.test(r2) && B.find((m) => m.t === 'restartIn' && m.s === -1));
+    B.clear();
+    B.send({ t: 'cmd', text: '/restart 1' });
+    await wait(300);
+    check('players who are not admins cannot restart the server', B.find((m) => m.t === 'note' || m.t === 'msg') && !B.find((m) => m.t === 'restartIn'));
+    // no new event bosses once the restart is close
+    const { WorldSim } = require('./sim/worldsim');
+    const ws = new WorldSim('realm:Restart:5');
+    ws.w.eventT = 0;
+    WorldSim.restartSoon = true;
+    ws.updateEvents(0.1);
+    const noneSoon = !ws.w.boss;
+    WorldSim.restartSoon = false;
+    for (let k = 0; k < 20 && !ws.w.boss; k++) { ws.w.eventT = 0; ws.updateEvents(0.1); }
+    check('no new realm events start just before a restart', noneSoon && !!ws.w.boss);
+  }
+
   console.log('bad input');
   const evil = await login('Ev' + n, { password: 'pass1234', register: true });
   evil.send('{{{ not json');

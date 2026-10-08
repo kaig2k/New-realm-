@@ -51,13 +51,18 @@ sudo systemctl enable --now newrealm
 journalctl -u newrealm -f        # watch the log (Ctrl+C to stop watching)
 ```
 
-To update the game later:
+To update the game later, with a warning for everyone playing:
 
 ```
 cd ~/New-realm-
-git pull
-sudo systemctl restart newrealm
+sh restart.sh 5        # restart in 5 minutes (or: sh restart.sh 2, now, cancel)
 ```
+
+Players see a countdown, no new realm events start in the last two minutes, and at
+zero the server pulls the latest update itself (`git pull`), saves and restarts on it
+(systemd starts it again). Admins can do the same in game with `/restart 5`,
+`/restart now` or `/restart cancel`. To restart straight away without the countdown:
+`git pull && sudo systemctl restart newrealm`.
 
 Players also need the matching game build. The server turns away old builds with an
 "update" message.
@@ -143,8 +148,11 @@ The server hands out the game from its own copy of the repo (`bin/NewRealm.swf`,
 `http://your-server:2050/NewRealm.swf`, on the same port as the game). So to update everyone:
 
 ```
-cd /home/newrealm/New-realm- && sudo -u newrealm git pull && systemctl restart newrealm
+cd /home/newrealm/New-realm- && sh restart.sh 5
 ```
+
+(5 minutes of warning in game, then it updates and restarts by itself. `sh restart.sh now`
+skips the wait.)
 
 Players get the new version the next time they open the launcher. If the server is down (for
 example mid-restart), the launcher says so and tries again every 10 seconds.

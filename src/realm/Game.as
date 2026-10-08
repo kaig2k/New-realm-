@@ -1247,6 +1247,7 @@ package realm {
 			showBanner(r.name + " Realm", PORTAL_COLORS[i], 3);
 			msg("You have entered the " + r.name + " realm.", Ui.GOLD);
 			tip("realm", "Hold the left mouse button to shoot and dodge the bullets. Better loot lies inland; /glands jumps to the Godlands.");
+			guideEvent("realm");
 			taunt(r.boss ? r.boss.def.name + " awaits you, fool!" : "Another fool enters my " + r.name + " realm...");
 		}
 
@@ -2629,6 +2630,7 @@ package realm {
 				nearBag.items.splice(idx, 1);
 				nearBag.refresh();
 				if (nearBag.vault) saveVault();
+				else guideEvent("loot");
 			} else if (kind == "inv") {
 				item = p.inv[idx];
 				if (!item) return;
@@ -2753,8 +2755,22 @@ package realm {
 
 		private function openStationPanel(st:Object):void {
 			openStation = st;
+			var why:String = STATION_TIPS[st.kind];
+			if (why) tip("st_" + st.kind, why);
 			refreshStation();
 		}
+
+		/** What each Nexus station is for, told the first time you open it. */
+		private static const STATION_TIPS:Object = {
+			keys: "The Key Merchant sells dungeon keys (a portal right where you stand), potions and Star Shards, for gold.",
+			forge: "The Starforge turns a Runed, Bonded or Eldritch item into a Starforged one (with a Star Shard and Aether), and rerolls prefixes and bonus stats.",
+			market: "The Marketplace: buy what other players list, and sell your own items for gold. Sales wait for you even when you're offline. Shift-click an item here to sell it to the merchant.",
+			quests: "The Quest Board: three daily quests and a weekly one, for gold and Aether. The server counts your progress; claim rewards here.",
+			pets: "The Pet Yard: hatch a pet that follows you, heals you and shoots monsters. Feed it gold to level it up.",
+			skins: "The Fame Store: spend account fame (earned when heroes die) on skins, dyes, titles and pet skins.",
+			raids: "The Raid Table: use a raid key to open a raid, boss fights one after another for a group. The Starfall Vault changes every week.",
+			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes."
+		};
 
 		private function closeStation():void {
 			openStation = null;
@@ -3969,6 +3985,7 @@ package realm {
 
 		public function questEvent(id:String, n:int = 1):void {
 			achievementEvent(id, n);
+			guideEvent(id, n);
 			// online, the server counts quests from what it sees
 			if (serverKeepsQuests) return;
 			var st:Object = questState();
@@ -4004,6 +4021,7 @@ package realm {
 		/** The server paid out a quest: take its gold and Aether. */
 		public function questClaimed(m:Object):void {
 			shopWaiting = false;
+			guideEvent("claim");
 			Save.data.gold = int(m.gold);
 			Save.data.onrane = int(m.onrane);
 			Save.data.tradeSeq = int(m.seq);
@@ -4017,17 +4035,73 @@ package realm {
 		}
 
 		/** The little list of quests under the connection status. */
+		// ------------------------------------------------------------- getting started
+		/** The new player's path, one step at a time: [id, what to do, how many]. */
+		private static const GUIDE:Array = [
+			["realm", "Step into a realm portal in the Nexus", 1],
+			["kills", "Slay monsters", 15],
+			["loot", "Take an item from a loot bag", 1],
+			["level5", "Reach level 5 (head inland for stronger foes)", 1],
+			["events", "Defeat a realm event boss (magenta on the minimap)", 1],
+			["dungeon", "Clear a dungeon (event bosses often leave a portal)", 1],
+			["claim", "Claim a finished quest at the Quest Board in the Nexus", 1],
+			["level20", "Reach level 20, then max your stats with potions", 1]
+		];
+
+		/** Which step a new account is on (GUIDE.length when done). Veterans skip it. */
+		private function get guideStep():int {
+			if (Save.data.guide === undefined) {
+				var veteran:Boolean = int(Save.data.deaths || 0) > 0;
+				for (var c:String in Save.data.bestLevel || {}) if (int(Save.data.bestLevel[c]) >= 10) veteran = true;
+				Save.data.guide = veteran ? GUIDE.length : 0;
+			}
+			return int(Save.data.guide);
+		}
+
+		/** Something happened that a getting-started step might be waiting for. */
+		public function guideEvent(ev:String, n:int = 1):void {
+			var k:int = guideStep;
+			if (k >= GUIDE.length) return;
+			var st:Array = GUIDE[k];
+			if (st[0] == "level5" && player) { if (player.level < 5) return; }
+			else if (st[0] == "level20" && player) { if (player.level < Player.MAX_LEVEL) return; }
+			else if (st[0] != ev) return;
+			Save.data.guideN = int(Save.data.guideN || 0) + n;
+			if (Save.data.guideN < st[2]) { refreshTracker(); return; }
+			Save.data.guideN = 0;
+			Save.data.guide = k + 1;
+			Save.flush();
+			Sfx.play("coin");
+			if (k + 1 >= GUIDE.length) {
+				showBanner("You've learned the ropes!", Ui.GOLD, 4);
+				msg("Getting started: done! Now: realm events and the Dark Elder, raids from the Raid Table, the Starfall Vault's weekly twist, the Marketplace and the Fame Store. Good luck out there.", Ui.GOLD);
+			} else {
+				msg("Getting started: " + st[1] + " - done! Next: " + GUIDE[k + 1][1] + ".", 0x9cff7a);
+				// a level step may already be met
+				if (GUIDE[k + 1][0].indexOf("level") == 0) guideEvent("level");
+			}
+			refreshTracker();
+		}
+
 		public function refreshTracker():void {
 			if (!trackerTf) return;
 			if (!opt("tracker") || !world) { trackerTf.htmlText = ""; return; }
 			var lines:Array = [];
+			var gk:int = guideStep;
+			if (gk < GUIDE.length) {
+				var gs:Array = GUIDE[gk];
+				lines.push("<font color='#80e0ff'>GETTING STARTED " + (gk + 1) + "/" + GUIDE.length + "</font>");
+				lines.push(gs[1] + (gs[2] > 1 ? "  <font color='#b8b8c0'>" + int(Save.data.guideN || 0) + "/" + gs[2] + "</font>" : ""));
+			}
 			for each (var qe:Object in questList()) {
 				if (qe.claimed) continue;
 				var tag:String = qe.weekly ? "<font color='#d090ff'>Weekly: </font>" : "";
 				if (qe.p >= qe.goal) lines.push(tag + "<font color='#9cff7a'>" + qe.text + " - done! Claim it in the Nexus</font>");
 				else lines.push(tag + qe.text + "  <font color='#b8b8c0'>" + Ui.commas(qe.p) + "/" + Ui.commas(qe.goal) + "</font>");
 			}
-			trackerTf.htmlText = lines.length ? "<font color='#ffd75e'>QUESTS</font>\n" + lines.join("\n") : "";
+			var qi:int = gk < GUIDE.length ? 2 : 0;
+			if (lines.length > qi) lines.splice(qi, 0, "<font color='#ffd75e'>QUESTS</font>");
+			trackerTf.htmlText = lines.join("\n");
 		}
 
 		/** Account achievement progress: {counts: {event: n}, done: {id: true}}. */

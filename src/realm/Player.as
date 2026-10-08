@@ -955,6 +955,7 @@ package realm {
 				if (level >= MAX_LEVEL) g.tip("max", "Level 20! Drink stat potions to max all 11 stats. Skill tree capstones (T) are now unlocked.");
 			}
 			if (levelled) {
+				g.guideEvent("level");
 				g.floatText(x, y - 1.4, "Level Up!", 0x60ff60);
 				Sfx.play("level");
 				g.burst(x, y, 0x60ff60, 20);

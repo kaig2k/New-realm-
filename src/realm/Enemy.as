@@ -78,6 +78,8 @@ package realm {
 		public var elite:String = "";
 		/** Speed multiplier (Swift and Frenzied elites). */
 		public var spdMult:Number = 1;
+		/** How much faster than usual it attacks (the Vault's weekly twist). */
+		public var rateMult:Number = 1;
 		/** The realm landmark this monster guards (host only), or null. */
 		public var site:Object;
 		/** Seconds alive (treasure goblins escape after a while). */
@@ -300,7 +302,7 @@ package realm {
 			if (aggro && dist < (def.range || 10) && shieldT <= 0) {
 				var ang:Number = Math.atan2(dy, dx);
 				for (var i:int = 0; i < attacks.length; i++) {
-					timers[i] -= dt;
+					timers[i] -= dt * rateMult;
 					if (timers[i] <= 0) {
 						timers[i] += attacks[i].cd;
 						fire(i, ang, dist, g);

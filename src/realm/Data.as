@@ -1252,7 +1252,8 @@ package realm {
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
-			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080}
+			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080},
+			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff}
 		];
 		/** Short names for the "<boss> Slayer" titles earned with a top-5 Records time. */
 		public static const SLAYER:Object = {

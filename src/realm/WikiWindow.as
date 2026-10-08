@@ -132,6 +132,8 @@ package realm {
 			var recs:Array = [];
 			for (var rid2:String in Bosses.SETPIECES) if (Data.ENEMIES[rid2] && Data.EVENTS.indexOf(rid2) >= 0) recs.push({rec: rid2});
 			recs.sortOn("rec");
+			// this week's Starfall Vault board comes first
+			recs.unshift({rec: "vault:" + week()});
 			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs];
 		}
 
@@ -193,9 +195,18 @@ package realm {
 		/** The server's answer arrived: show it if the Records page is open. */
 		public function recordsChanged():void { if (tab == RECORDS_TAB) show(tab); }
 
-		/** One event boss: its picture and the fastest three kills. */
+		/** This week's number, as the server counts it (Monday to Sunday, UTC): the Vault's twist and its board. */
+		public static function week():int {
+			return int(Math.floor((Math.floor(new Date().time / 86400000) + 3) / 7));
+		}
+
+		/** One event boss (or this week's Starfall Vault): its picture and the fastest three. */
 		private function recordRow(id:String, y:int):void {
 			var d:Object = Data.ENEMIES[id];
+			if (id.indexOf("vault:") == 0) {
+				var tw:Object = Bosses.vaultTwist(int(id.substr(6)));
+				d = {spr: "astraeon", col: 0x80e0ff, name: "Starfall Vault: " + tw.name};
+			}
 			body.graphics.lineStyle(1, 0x3a3a44);
 			body.graphics.moveTo(12, y + ROW - 2);
 			body.graphics.lineTo(W - 12, y + ROW - 2);

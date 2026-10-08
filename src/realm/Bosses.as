@@ -668,6 +668,31 @@ package realm {
 
 		// ------------------------------------------------------------ raids
 		/** Raids: opened from the Nexus Raid Table, three boss stages in one arena. */
+		/**
+		 * The Starfall Vault changes every week (Monday, UTC): one of these rules for
+		 * everything inside, with its own board of fastest clears. week: days since
+		 * 1970 plus 3, over 7 (the server's quest week).
+		 */
+		public static const VAULT_TWISTS:Array = [
+			{id: "quick", name: "Quickened Sands", desc: "Everything in the Vault attacks 25% faster.", rate: 1.25},
+			{id: "stone", name: "Stoneskin Masters", desc: "The four masters have 40% more health.", masterHp: 1.4},
+			{id: "swarm", name: "Swarming Halls", desc: "Twice the guards in the alcoves, and they hit 15% harder.", guards: 2, guardDmg: 1.15},
+			{id: "fleet", name: "Fleet Masters", desc: "The masters move 35% faster.", masterSpd: 1.35},
+			{id: "glass", name: "Glass Vault", desc: "Everything has 30% less health but hits 40% harder.", hp: 0.7, dmg: 1.4},
+			{id: "escort", name: "Honour Guard", desc: "Each master wakes with four guards at its side.", escort: 4}
+		];
+		public static function vaultTwist(week:int):Object { return VAULT_TWISTS[((week % VAULT_TWISTS.length) + VAULT_TWISTS.length) % VAULT_TWISTS.length]; }
+		/** Applies the week's twist to a monster in the Vault (master: one of the four masters). */
+		public static function twistEnemy(e:Enemy, tw:Object, master:Boolean):void {
+			if (!tw || !e) return;
+			if (tw.rate) e.rateMult *= tw.rate;
+			if (tw.hp) { e.maxHp *= tw.hp; e.hp = e.maxHp; }
+			if (tw.dmg) e.dmgMult *= tw.dmg;
+			if (master && tw.masterHp) { e.maxHp *= tw.masterHp; e.hp = e.maxHp; }
+			if (master && tw.masterSpd) e.spdMult *= tw.masterSpd;
+			if (!master && tw.guardDmg) e.dmgMult *= tw.guardDmg;
+		}
+
 		public static const RAIDS:Array = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
 				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],
@@ -681,7 +706,7 @@ package realm {
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",

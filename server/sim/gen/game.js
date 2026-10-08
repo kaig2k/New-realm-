@@ -1286,6 +1286,16 @@ class Bosses {
 			D.push({id: "void_rift", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
 				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
 		}
+	static vaultTwist(week) { week = __int(week); return Bosses.VAULT_TWISTS[((week % Bosses.VAULT_TWISTS.length) + Bosses.VAULT_TWISTS.length) % Bosses.VAULT_TWISTS.length]; }
+	static twistEnemy(e, tw, master) {
+			if (!tw || !e) return;
+			if (tw.rate) e.rateMult *= tw.rate;
+			if (tw.hp) { e.maxHp *= tw.hp; e.hp = e.maxHp; }
+			if (tw.dmg) e.dmgMult *= tw.dmg;
+			if (master && tw.masterHp) { e.maxHp *= tw.masterHp; e.hp = e.maxHp; }
+			if (master && tw.masterSpd) e.spdMult *= tw.masterSpd;
+			if (!master && tw.guardDmg) e.dmgMult *= tw.guardDmg;
+		}
 	static raids() {
 			var raid = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			Bosses.boss("zealot_a", Bosses.o({name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
@@ -2566,6 +2576,7 @@ class Enemy {
 		this.moving = false;
 		this.elite = "";
 		this.spdMult = 1;
+		this.rateMult = 1;
 		this.site = null;
 		this.age = 0;
 		this.introduced = false;
@@ -2765,7 +2776,7 @@ class Enemy {
 			if (aggro && dist < (this.def.range || 10) && this.shieldT <= 0) {
 				var ang = Math.atan2(dy, dx);
 				for (var i = __int(0); i < this.attacks.length; i++) {
-					this.timers[i] -= dt;
+					this.timers[i] -= dt * this.rateMult;
 					if (this.timers[i] <= 0) {
 						this.timers[i] += this.attacks[i].cd;
 						this.fire(i, ang, dist, g);
@@ -3703,7 +3714,8 @@ Data.TITLES = [
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
-			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080}
+			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080},
+			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff}
 		];
 Data.SLAYER = {
 			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
@@ -4039,6 +4051,14 @@ Bosses.SETPIECES = {
 			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne!"}
 		};
 Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
+Bosses.VAULT_TWISTS = [
+			{id: "quick", name: "Quickened Sands", desc: "Everything in the Vault attacks 25% faster.", rate: 1.25},
+			{id: "stone", name: "Stoneskin Masters", desc: "The four masters have 40% more health.", masterHp: 1.4},
+			{id: "swarm", name: "Swarming Halls", desc: "Twice the guards in the alcoves, and they hit 15% harder.", guards: 2, guardDmg: 1.15},
+			{id: "fleet", name: "Fleet Masters", desc: "The masters move 35% faster.", masterSpd: 1.35},
+			{id: "glass", name: "Glass Vault", desc: "Everything has 30% less health but hits 40% harder.", hp: 0.7, dmg: 1.4},
+			{id: "escort", name: "Honour Guard", desc: "Each master wakes with four guards at its side.", escort: 4}
+		];
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
 				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],
@@ -4052,7 +4072,7 @@ Bosses.RAIDS = [
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",

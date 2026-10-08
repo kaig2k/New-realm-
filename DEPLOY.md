@@ -97,7 +97,7 @@ Players then join with `play.yourgame.com:2050`.
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
 | `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
-| `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, and for new #1 Records times, raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
+| `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 

@@ -25,7 +25,7 @@ const { checkSave } = require('./validate');
 const { Sims, WorldSim } = require('./sim/worldsim');
 const items = require('./items');
 const wallet = require('./wallet');
-const { Data } = require('./sim/gen/game');
+const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
 
@@ -149,7 +149,29 @@ function questProgress(c, evs) {
   for (const text of done) c.send({ t: 'questComplete', text: text + ' Claim it at the Quest Board in the Nexus.' });
 }
 if (sims) sims.onQuest = questProgress;
-if (sims) sims.onFeat = feat;
+if (sims) sims.onFeat = (k, d) => { if (k === 'raid' && d.week !== undefined && d.ms > 0) vaultCleared(d); feat(k, d); };
+
+/** The Starfall Vault's weekly board: records['vault:<week>'], fastest clears on that week's twist (top 5 earn Twistbreaker). */
+function vaultCleared(d) {
+  const team = (d.team || []).filter((c) => c && c.key);
+  const names = team.map((c) => c.name).filter(Boolean).slice(0, 8);
+  if (!names.length || d.ms < 1000) return;
+  const key = 'vault:' + d.week;
+  const list = records[key] || (records[key] = []);
+  const entry = { ms: d.ms, names, at: Date.now(), twist: d.twist };
+  list.push(entry);
+  list.sort((a, b) => a.ms - b.ms);
+  list.length = Math.min(list.length, RECORDS_KEPT);
+  const place = list.indexOf(entry) + 1;
+  // only the last couple of months of weekly boards are kept
+  for (const k of Object.keys(records)) if (k.startsWith('vault:') && Number(k.slice(6)) < d.week - 8) delete records[k];
+  save('records.json', records);
+  for (const c of team) {
+    c.send({ t: 'msg', color: 0x80e0ff, text: 'Starfall Vault cleared in ' + clock(d.ms) + ' on ' + d.twist + (place ? ': #' + place + " on this week's board!" : '. The best this week is ' + clock(list[0].ms) + '.') });
+    if (place) grantTitle(c.key, 'twistbreaker');
+  }
+  if (place === 1) feat('vaultrecord', { names, time: clock(d.ms), twist: d.twist });
+}
 // every kill the server decides credits the gold and fame it can pay (see wallet.js)
 if (sims) sims.onEarn = (c, e, near) => { if (c.authed && c.key && c.meta) wallet.credit(c.meta, onlineSave(c.key), c.charId, e, Date.now(), near); };
 
@@ -280,6 +302,8 @@ function feat(kind, d) {
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
   else if (kind === 'godly') discord.post('✨ **' + desc(d.name) + '** found a Godly item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff60ff);
+  else if (kind === 'vaultrecord') discord.post('⏱️ **Fastest Starfall Vault clear this week** (' + desc(d.twist) + '): ' + dnames(d.names) + ' in **' + d.time + '**!', 0x80e0ff);
+  else if (kind === 'twist') discord.post('🌀 **This week in the Starfall Vault: ' + desc(d.name) + '.** ' + desc(d.desc) + ' Fastest clears earn the Twistbreaker title.', 0x80e0ff);
   else if (kind === 'title') discord.post('🎖️ **' + desc(d.name) + '** earned the title **' + desc(d.title) + '**.', d.color === undefined ? 0xff9a2e : d.color);
 }
 
@@ -1536,9 +1560,21 @@ function wsFrame(data, op = 2) {
   return Buffer.concat([head, data]);
 }
 
+/** Tells the Discord about the Vault's twist when a new week starts (and once each start-up). */
+let twistWeek = -1;
+function announceTwist() {
+  const week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7);
+  if (week === twistWeek) return;
+  twistWeek = week;
+  const tw = Bosses.vaultTwist(week);
+  feat('twist', { name: tw.name, desc: tw.desc });
+}
+setInterval(announceTwist, 10 * 60 * 1000).unref();
+
 server.listen(PORT, () => {
   log('New Realm server running on port ' + PORT);
   discord.post('🟢 **' + desc(config.name || 'Eldmere') + '** is online. Come and play!', 0x60e070);
+  announceTwist();
   log('Realms: ' + realms.map(r => r.name).join(', '));
   log('Type "help" here for server commands (list, say, kick, stop).');
   const addrs = [];

@@ -2862,7 +2862,7 @@ package realm {
 						nk.x = w - 186; nk.y = y + 9;
 						sp.addChild(nk);
 					}
-					y += 46;
+					y += Math.max(46, rt.height + 8);
 				}
 			} else if (openStation.kind == "keys") {
 				info.htmlText = "Dungeon keys open a portal to that dungeon right where you stand (30 seconds; friends can follow). " +
@@ -3211,7 +3211,12 @@ package realm {
 				var nm:String = Data.ENEMIES[st[0]].name;
 				parts.push(st.length > 1 ? st.length + "x " + nm : nm);
 			}
-			return parts.join("  >  ");
+			var out:String = parts.join("  >  ");
+			if (rd.twists) {
+				var tw:Object = Bosses.vaultTwist(WikiWindow.week());
+				out += "\n<font color='#80e0ff'><b>This week: " + tw.name + ".</b> " + tw.desc + "</font>";
+			}
+			return out;
 		}
 
 		private function raidFn(i:int):Function {
@@ -3315,6 +3320,8 @@ package realm {
 				var at:Array = spots[k] || spots[0] || [100.5, 100.5];
 				var b:Enemy = spawnEnemy(st[k], at[0], at[1], World.DUNGEON_ZONE);
 				if (b && k == 0) w.boss = b;
+				// (the server does the same, with guards at their side on Honour Guard weeks)
+				if (b && rd.twists) Bosses.twistEnemy(b, Bosses.vaultTwist(WikiWindow.week()), true);
 				// a chamber master's set-piece pieces (the structure itself rises in SetPieceDecor)
 				if (b && b.def.setpiece) {
 					b.props = [];
@@ -3341,6 +3348,10 @@ package realm {
 				Sfx.play("portal");
 				shake(0.5, 6);
 			} else raidStageBanner(n, w.raid);
+			if (n == 0 && w.raid.twists) {
+				var tw:Object = Bosses.vaultTwist(WikiWindow.week());
+				msg("This week in the Vault: " + tw.name + ". " + tw.desc + " The fastest clears earn the Twistbreaker title.", 0x80e0ff);
+			}
 		}
 
 		// ------------------------------------------------------------ atmosphere

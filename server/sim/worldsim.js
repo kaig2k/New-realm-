@@ -54,6 +54,8 @@ class WorldSim {
       this.w.raid = rd;
       this.w.raidStage = -1;
       this.w.raidT = 1;
+      // the Starfall Vault's rule for this week (fixed for the run, even past midnight on Sunday)
+      if (rd.twists) { this.week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7); this.twist = Bosses.vaultTwist(this.week); }
     } else if (this.kind === 'arena') {
       this.w = new World('arena', "Dark Elder's Chamber");
     } else throw new Error('not a simulated world: ' + key);
@@ -238,13 +240,15 @@ class WorldSim {
 
   populateRaid() {
     const w = this.w, th = w.raid.theme;
+    const tw = this.twist;
     for (const rm of w.mobRooms) {
-      for (let k = 0; k < rm.n; k++) {
+      for (let k = 0; k < rm.n * (tw && tw.guards ? tw.guards : 1); k++) {
         const e = this.spawn(th.mobs[Math.floor(Math.random() * th.mobs.length)], rm.x + (Math.random() - 0.5) * rm.w, rm.y + (Math.random() - 0.5) * rm.h, th.tier);
         if (!e) continue;
         e.maxHp *= th.hard;
         e.hp = e.maxHp;
         e.dmgMult = 1 + (th.hard - 1) * 0.6;
+        Bosses.twistEnemy(e, tw, false);
       }
     }
   }
@@ -520,6 +524,19 @@ class WorldSim {
       const at = spots[k] || spots[0] || [100.5, 100.5];
       const b = this.spawn(st[k], at[0], at[1], World.DUNGEON_ZONE, true);
       if (b && k === 0) w.boss = b;
+      if (b && this.twist) {
+        Bosses.twistEnemy(b, this.twist, true);
+        // Honour Guard: guards at the master's side
+        const th = rd.theme;
+        for (let g = 0; g < (this.twist.escort || 0); g++) {
+          const a = g * Math.PI * 2 / this.twist.escort;
+          const ge = this.spawn(th.mobs[g % th.mobs.length], at[0] + Math.cos(a) * 4, at[1] + Math.sin(a) * 4, th.tier, true);
+          if (!ge) continue;
+          ge.maxHp *= th.hard; ge.hp = ge.maxHp; ge.dmgMult = 1 + (th.hard - 1) * 0.6;
+          Bosses.twistEnemy(ge, this.twist, false);
+        }
+      }
+      if (n === 0 && k === 0) w.raidStart = Date.now();
       // a chamber master raises its set piece (structure, then its wards, menders or hazards)
       if (b && b.def.setpiece) {
         // (in the Starfall Vault the master first remakes the whole dungeon in its style)
@@ -634,7 +651,8 @@ class WorldSim {
       const names = team.map((c) => c.name).filter(Boolean);
       if (evs.includes('darkelder')) this.onFeat('elder', { names });
       const rd = evs.find((v) => v.startsWith('raid:'));
-      if (rd) this.onFeat('raid', { names, raid: this.w.raid.name, boss: e.def.name, color: this.w.raid.color });
+      if (rd) this.onFeat('raid', { names, raid: this.w.raid.name, boss: e.def.name, color: this.w.raid.color,
+        ms: this.w.raidStart ? Date.now() - this.w.raidStart : 0, week: this.week, twist: this.twist ? this.twist.name : '', team });
     }
   }
 

@@ -412,6 +412,39 @@ async function run() {
     }
   }
 
+  console.log('weekly vault twists');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Bosses: VB } = require('./sim/gen/game');
+    const vi = VB.RAIDS.findIndex((r) => r.id === 'starfall');
+    const run = (twistId) => {
+      const ws = new WorldSim('raid:' + vi + ':99');
+      ws.twist = VB.VAULT_TWISTS.find((t) => t.id === twistId);
+      ws.enemies.length = 0;
+      ws.populateRaid();
+      const guards = ws.enemies.length;
+      ws.w.raidT = 0; ws.updateRaid(0.1);
+      return { ws, guards, master: ws.w.boss, all: ws.enemies.length };
+    };
+    const plain = new WorldSim('raid:' + vi + ':99');
+    check('the Vault has a rule each week, the same for the whole week', VB.VAULT_TWISTS.length >= 5 && plain.twist && plain.twist === VB.vaultTwist(plain.week) && VB.vaultTwist(plain.week + 1) !== plain.twist);
+    const swarm = run('swarm'), glass = run('glass'), quick = run('quick'), escort = run('escort'), stone = run('stone');
+    check('Swarming Halls: twice the guards', swarm.guards >= 1.7 * glass.guards, swarm.guards + ' vs ' + glass.guards);
+    check('Glass Vault: less health, harder hits; Quickened Sands: faster attacks', glass.master.maxHp < stone.master.maxHp && glass.master.dmgMult > 1.3 && quick.master.rateMult === 1.25);
+    check('Honour Guard: guards wake at the master\'s side', escort.all - escort.guards >= 1 + 4);
+    const feats = [];
+    const ws = escort.ws;
+    ws.onQuest = () => {}; ws.onFeat = (k, d) => feats.push([k, d]);
+    ws.players.set(1, { id: 1, name: 'Hero', x: 0, y: 0 });
+    ws.w.raidStage = ws.w.raid.stages.length - 1;
+    ws.w.raidStart = Date.now() - 300000;
+    const fin = { def: { name: 'Astraeon', raid: true }, isBoss: true, hitters: new Map([[1, 100]]), defId: 'astraeon' };
+    ws.enemies.length = 0; ws.enemies.push(fin);
+    ws.questKill(fin);
+    const rf = feats.find(([k]) => k === 'raid');
+    check('a Vault clear is timed for the week\'s board', rf && rf[1].ms >= 300000 && rf[1].week === ws.week && rf[1].twist === 'Honour Guard');
+  }
+
   console.log('boss set pieces');
   {
     const { WorldSim } = require('./sim/worldsim');

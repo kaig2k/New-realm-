@@ -152,9 +152,15 @@ package realm {
 			}
 		}
 
+		/** When it last attacked (ms, getTimer): its attack animation plays for a moment after. */
+		public var lastAttack:int = -100000;
+
 		public function get sprite():BitmapData {
-			// bosses play a 2-frame idle animation; in their last phase they pulse red
-			var frame:int = isBoss ? int(getTimer() / 320 + homeX) % 2 : 0;
+			// idle breathing, a stepping walk, or the wind-up and strike of an attack (in its last phase a boss pulses red)
+			var now:int = getTimer(), since:int = now - lastAttack, off:int = id * 37;
+			var frame:int = since < 380 ? Sprites.anim(Sprites.ATTACK, since < 160 ? 0 : 1)
+				: moving ? Sprites.anim(Sprites.MOVE, int((now + off) / (def.spd > 2.5 ? 130 : 190)) % 2)
+				: Sprites.anim(Sprites.IDLE, int((now + off) / (isBoss ? 340 : 460)) % 2);
 			if (hitT > 0) return Sprites.hit(def.spr, frame, facingLeft);
 			if (enraged && int(getTimer() / 140) % 4 == 0) return Sprites.rage(def.spr, frame, facingLeft);
 			return Sprites.get(def.spr, frame, facingLeft);
@@ -375,6 +381,7 @@ package realm {
 
 		/** Replays an attack the host's copy just fired (same bullets for everyone). */
 		public function remoteFire(i:int, ang:Number, spin:Number, code:int, dist:Number, g:Game):void {
+			lastAttack = getTimer();
 			var list:Array = isBoss ? listFor(code & 15, code >> 4) : def.attacks;
 			if (!list || !list[i]) return;
 			shootAttack(list[i], ang, spin, dist, g);
@@ -420,6 +427,7 @@ package realm {
 		}
 
 		private function fire(i:int, ang:Number, dist:Number, g:Game):void {
+			lastAttack = getTimer();
 			var a:Object = attacks[i];
 			var k:int;
 			if (a.p == "summon") {

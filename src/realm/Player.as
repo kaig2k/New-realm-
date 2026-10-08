@@ -281,9 +281,11 @@ package realm {
 
 		/** Current animation frame bitmap. */
 		public function get sprite():BitmapData {
-			var frame:int = 0;
-			if (attackT > 0) frame = shootT > (1 / fireRate) * 0.5 ? 2 : 0;
-			else if (moving) frame = int(walkT * 6) % 2;
+			// a breathing idle, a two-step walk, and an attack that recoils with each shot
+			var frame:int;
+			if (attackT > 0) frame = Sprites.anim(Sprites.ATTACK, shootT > (1 / fireRate) * 0.5 ? 0 : 1);
+			else if (moving) frame = Sprites.anim(Sprites.MOVE, int(walkT * 6) % 2);
+			else frame = Sprites.anim(Sprites.IDLE, int(clock * 1.7) % 2);
 			return hitT > 0 ? Sprites.hit(spriteId, frame, facingLeft) : Sprites.get(spriteId, frame, facingLeft);
 		}
 

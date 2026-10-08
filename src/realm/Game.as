@@ -4954,7 +4954,7 @@ package realm {
 				for each (var st:Object in stations) {
 					if (st.w != stw) continue;
 					var stx:Number = scrX(st.x, st.y);
-					var stop:Number = drawEntity(Sprites.get(st.spr), stx, scrY(st.x, st.y), 0);
+					var stop:Number = drawEntity(Sprites.get(st.spr, Sprites.anim(Sprites.IDLE, int(time * 1.4 + stx) % 2)), stx, scrY(st.x, st.y), 0);
 					st.label.x = int(stx - st.label.width / 2);
 					st.label.y = int(stop - st.label.height);
 				}
@@ -5007,8 +5007,9 @@ package realm {
 				if (d.o == -2) {
 					drawRemote(d.r);
 				} else if (d.o < 0) {
-					drawEntity(Sprites.get(Sprites.petSprite(pet.species, Save.data.petSkin), 0, scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY),
-						petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
+					drawEntity(Sprites.get(Sprites.petSprite(pet.species, Save.data.petSkin),
+						petMoving ? Sprites.anim(Sprites.MOVE, int(time * 6) % 2) : Sprites.anim(Sprites.IDLE, int(time * 1.8) % 2),
+						scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY), petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
 				} else if (d.o) {
 					bd = Sprites.get(World.OBJ_NAMES[d.o]);
 					var ocx:Number = scrX(d.x + 0.5, d.t + 0.5);

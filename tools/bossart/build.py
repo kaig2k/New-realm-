@@ -3,10 +3,11 @@ import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from designs import DESIGNS
 from canvas import preview
+from animate import frames as animate
 
 out = []
 for name, fn, pal, scale in DESIGNS:
-    frames = [fn(0).rows(), fn(1).rows()]
+    frames, pal = animate(fn, pal)
     out.append((name, frames, pal, scale))
 
 if len(sys.argv) > 1:
@@ -18,7 +19,7 @@ def as3_rows(rows):
 lines = []
 for name, frames, pal, scale in out:
     lines.append('\t\t\t' + name + ': [[' + ', '.join(as3_rows(f) for f in frames) + '], {' +
-                 ', '.join("%s: 0x%06x" % (k, v) for k, v in pal.items()) + '}, ' + str(scale) + ']')
+                 ', '.join('"%s": 0x%06x' % (k, v) for k, v in pal.items()) + '}, ' + str(scale) + ']')
 src = '''package realm {
 	/**
 	 * Boss art drawn by tools/bossart (python3 tools/bossart/build.py): every boss

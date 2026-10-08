@@ -1,5 +1,6 @@
 package realm {
 	import flash.display.BitmapData;
+	import flash.utils.Dictionary;
 	import flash.display.Shape;
 	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
@@ -409,10 +410,19 @@ package realm {
 		}
 
 		/** Animation frame `frame` of a sprite (0 stand, 1 walk, 2 attack). */
+		/**
+		 * Animation frames: anim(state, phase) is the frame number to pass to get().
+		 * States: IDLE (breathing), MOVE (stepping), ATTACK (wind-up, then the strike);
+		 * two phases each. A sprite with six frames of its own uses them as they are;
+		 * otherwise they're made from its drawings (see animFrame).
+		 */
+		public static const IDLE:int = 0, MOVE:int = 1, ATTACK:int = 2;
+		public static function anim(state:int, phase:int):int { return 10 + state * 2 + (phase & 1); }
+
 		public static function get(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var d:Array = DEFS[name] || skinDef(name) || DEFS["cubelet"];
 			var frames:Array = d[0];
-			if (frame >= frames.length) frame = 0;
+			if (frame >= frames.length && frame < 10) frame = 0;
 			var key:String = name + ":" + frame + (flip ? "f" : "");
 			var bd:BitmapData = cache[key];
 			if (bd) return bd;
@@ -420,11 +430,89 @@ package realm {
 				var src:BitmapData = get(name, frame);
 				bd = new BitmapData(src.width, src.height, true, 0);
 				bd.draw(src, new Matrix(-1, 0, 0, 1, src.width, 0));
+			} else if (frame >= 10) {
+				var af:Array = animFrame(frames, frame - 10);
+				bd = build(af[0], af[1] ? brighter(d[1]) : d[1], d[2] || SCALE, 2);
 			} else {
 				bd = build(frames[frame], d[1], d[2] || SCALE, 2);
 			}
 			cache[key] = bd;
 			return bd;
+		}
+
+		/**
+		 * Frame k of the animation (state * 2 + phase) as [rows, bright]. Six-frame sprites
+		 * have them all; class heroes have [stand, walk, attack]; others one or two idle
+		 * drawings. Missing frames come from those: breathing lifts the body a pixel,
+		 * a step leans it into its stride, an attack crouches into a wind-up and then
+		 * stretches into the strike with a flash.
+		 */
+		private static function animFrame(frames:Array, k:int):Array {
+			var n:int = frames.length, st:int = k >> 1, ph:int = k & 1;
+			if (n >= 6) return [frames[k], false];
+			var f0:Array = frames[0], f1:Array = n == 2 ? frames[1] : null;
+			if (n == 3) {
+				// heroes: stand / walk / attack
+				if (st == IDLE) return [ph ? lift(f0) : f0, false];
+				if (st == MOVE) return [ph ? frames[1] : lift(f0), false];
+				return [ph ? nudge(frames[2], -1) : frames[2], ph == 1];
+			}
+			if (st == IDLE) return [ph ? (f1 || lift(f0)) : f0, false];
+			if (st == MOVE) return [ph ? lift(lean(f1 || f0, -1)) : lean(f0, 1), false];
+			return [ph ? stretch(f0) : squash(f0), ph == 1];
+		}
+
+		private static function blank(w:int):String { var s:String = ""; while (s.length < w) s += "."; return s; }
+		private static function emptyRow(r:String):Boolean { return r.replace(/\./g, "").length == 0; }
+
+		/** Up a pixel (only if the top row is free, so nothing is cut off). */
+		private static function lift(rows:Array):Array {
+			if (!emptyRow(rows[0])) return rows;
+			return rows.slice(1).concat([blank(String(rows[0]).length)]);
+		}
+
+		/** Leans the top half a pixel sideways (dx +1 forward, -1 back). */
+		private static function lean(rows:Array, dx:int):Array {
+			var out:Array = [], h:int = rows.length;
+			for (var y:int = 0; y < h; y++) {
+				var r:String = rows[y];
+				if (y < h * 0.5) r = dx > 0 ? "." + r.substr(0, r.length - 1) : r.substr(1) + ".";
+				out.push(r);
+			}
+			return out;
+		}
+
+		/** Shifts the whole picture a pixel sideways (recoil). */
+		private static function nudge(rows:Array, dx:int):Array {
+			var out:Array = [];
+			for each (var r:String in rows) out.push(dx > 0 ? "." + r.substr(0, r.length - 1) : r.substr(1) + ".");
+			return out;
+		}
+
+		/** Crouches: a row taken out low on the body, the rest drops a pixel. */
+		private static function squash(rows:Array):Array {
+			var h:int = rows.length, m:int = int(h * 0.62);
+			var out:Array = rows.slice(0, m).concat(rows.slice(m + 1));
+			out.unshift(blank(String(rows[0]).length));
+			return out;
+		}
+
+		/** Rears up: a row doubled through the body, standing a pixel taller. */
+		private static function stretch(rows:Array):Array {
+			var h:int = rows.length, m:int = int(h * 0.45);
+			if (!emptyRow(rows[0])) return rows;
+			return rows.slice(1, m + 1).concat([rows[m]]).concat(rows.slice(m + 1));
+		}
+
+		private static var brightCache:Dictionary = new Dictionary(true);
+		/** The palette, lit up (the flash of an attack). */
+		private static function brighter(pal:Object):Object {
+			var b:Object = brightCache[pal];
+			if (b) return b;
+			b = {};
+			for (var k:String in pal) b[k] = tint(pal[k], 0.22);
+			brightCache[pal] = b;
+			return b;
 		}
 
 		/** Swirling portal: 4 animation frames made by cycling the palette. */

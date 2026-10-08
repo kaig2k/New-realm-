@@ -2595,6 +2595,7 @@ class Enemy {
 		this.orbitDir = NaN;
 		this.orbitA = 0;
 		this.blinkT = 2 + Math.random() * 2;
+		this.lastAttack = __int(-100000);
 
 			this.defId = id;
 			this.def = Data.ENEMIES[id];
@@ -2840,6 +2841,7 @@ class Enemy {
 			}
 		}
 	remoteFire(i, ang, spin, code, dist, g) { i = __int(i); code = __int(code);
+			this.lastAttack = __int(__getTimer());
 			var list = this.isBoss ? this.listFor(code & 15, code >> 4) : this.def.attacks;
 			if (!list || !list[i]) return;
 			this.shootAttack(list[i], ang, spin, dist, g);
@@ -2880,6 +2882,7 @@ class Enemy {
 			this.tx = nx; this.ty = ny;
 		}
 	fire(i, ang, dist, g) { i = __int(i);
+			this.lastAttack = __int(__getTimer());
 			var a = this.attacks[i];
 			var k = 0;
 			if (a.p == "summon") {

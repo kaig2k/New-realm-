@@ -1,5 +1,6 @@
 package realm {
 	import flash.display.BitmapData;
+	import flash.utils.getTimer;
 
 	/**
 	 * Another player in the same world. The game only ever reads these: their
@@ -71,7 +72,9 @@ package realm {
 		}
 
 		public function get sprite():BitmapData {
-			var frame:int = attacking > 0 ? (int(attacking * 8) % 2 == 0 ? 2 : 0) : moving ? int(walkT * 6) % 2 : 0;
+			var frame:int = attacking > 0 ? Sprites.anim(Sprites.ATTACK, int(attacking * 8) % 2)
+				: moving ? Sprites.anim(Sprites.MOVE, int(walkT * 6) % 2)
+				: Sprites.anim(Sprites.IDLE, int(getTimer() / 590) % 2);
 			return Sprites.get(spriteId, frame, facingLeft);
 		}
 

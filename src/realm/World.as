@@ -1273,10 +1273,81 @@ package realm {
 							if (r < 0.05) c = 0xff8a30;
 							break;
 					}
+					// variety, so no two stretches of ground look stamped from the same tile:
+					// a slow wash of light and shade, each flagstone its own shade, and the odd detail
+					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != CARPET) {
+						var f:Number = wash(gx, gy);
+						if (t == STONE || t == ROAD || t == PLAZA || t == RUIN || t == BRICK || t == SANDSTONE || t == ICE || t == BONE || t == SPECTRAL || t == HEXSTONE || t == OBSIDIAN)
+							f *= 0.965 + ((hs >> 3) & 7) * 0.01;
+						c = Sprites.shade(c, f);
+						var dc:int = decal(t, x, y, hs);
+						if (dc >= 0) c = dc;
+					}
 					v[i] = 0xff000000 | c;
 				}
 			}
 			return v;
+		}
+
+		/** A gentle brightness change across the land (0.92 to 1.07), smooth over a few tiles. */
+		private function wash(gx:int, gy:int):Number {
+			var cell:int = 28;
+			var ix:int = int(gx / cell), iy:int = int(gy / cell);
+			var fx:Number = (gx - ix * cell) / cell, fy:Number = (gy - iy * cell) / cell;
+			fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+			var a:Number = cellNoise(ix, iy), b:Number = cellNoise(ix + 1, iy), c:Number = cellNoise(ix, iy + 1), d:Number = cellNoise(ix + 1, iy + 1);
+			var v:Number = (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+			return 0.92 + v * 0.15;
+		}
+
+		private function cellNoise(ix:int, iy:int):Number {
+			var h:uint = uint(ix * 374761393 + iy * 668265263 + seed * 1442695041);
+			h = (h ^ (h >>> 13)) * 1274126177;
+			return ((h ^ (h >>> 16)) & 1023) / 1023;
+		}
+
+		/**
+		 * The odd detail on a tile (by its hash hs): flowers and tufts in the grass,
+		 * mushrooms in the forest, pebbles and shells on the sand, moss and cracks on
+		 * old stone, glowing fissures in the Godlands. A colour, or -1 for none.
+		 */
+		private function decal(t:int, x:int, y:int, hs:int):int {
+			var px:int = 1 + ((hs >> 4) % 5), py:int = 1 + ((hs >> 2) % 5);
+			var dx:int = x - px, dy:int = y - py;
+			switch (t) {
+				case GRASS: case HIGH:
+					if (hs % 14 == 0) {
+						// a little flower: a bright centre, four petals
+						var pet:Array = t == HIGH ? [0xe0c060, 0xd08040] : [0xffffff, 0xff9ad0, 0x9ac8ff, 0xffe060];
+						if (dx == 1 && dy == 1) return 0xffd040;
+						if ((dx == 1 && (dy == 0 || dy == 2)) || (dy == 1 && (dx == 0 || dx == 2))) return pet[(hs >> 5) % pet.length];
+					} else if (hs % 14 == 4 || hs % 14 == 9) {
+						// a darker tuft
+						if (dy == 2 && dx >= 0 && dx <= 2) return t == HIGH ? 0x4c4a22 : 0x2f6418;
+						if (dy == 1 && dx == 1) return t == HIGH ? 0x5c5a2a : 0x3a7a20;
+					}
+					break;
+				case DARK:
+					if (hs % 11 == 0) {
+						// a red-capped mushroom
+						if (dy == 0 && dx >= 0 && dx <= 2) return 0xc83020;
+						if (dy == 0 && dx == 1) return 0xffffff;
+						if (dy == 1 && dx == 1) return 0xe8e0c8;
+					} else if (hs % 11 == 5 && dy == 1 && dx >= 0 && dx <= 1) return 0x1c3a12;
+					break;
+				case SAND:
+					if (hs % 10 == 0 && dy == 0 && (dx == 0 || dx == 1)) return 0x9a8a70;
+					if (hs % 37 == 3 && ((dy == 0 && dx == 1) || (dy == 1 && dx >= 0 && dx <= 2))) return 0xffc0c8;
+					break;
+				case GOD:
+					if (hs % 13 == 0 && dx == dy && dx >= 0 && dx <= 3) return 0x8a40c0;
+					break;
+				case STONE: case ROAD: case PLAZA: case RUIN: case SANDSTONE:
+					if (hs % 12 == 0 && ((dy == 0 && dx >= 0 && dx <= 2) || (dy == 1 && dx >= 1 && dx <= 2))) return t == SANDSTONE ? 0x8a9a40 : 0x4a7a3a;
+					if (hs % 12 == 6 && dx == dy && dx >= 0 && dx <= 3) return Sprites.shade(t == PLAZA ? 0xa6a6a6 : 0x5c5c64, 0.7);
+					break;
+			}
+			return -1;
 		}
 
 		/** Sparse, regular texture marks (instead of per-pixel noise). */

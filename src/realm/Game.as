@@ -787,6 +787,9 @@ package realm {
 			}
 			while (out.length && out[out.length - 1] == null) out.pop();
 			Save.data.vault = out;
+			// the vault and the inventory change together: save both in the same upload,
+			// or the server would see the item in both (or neither) and refuse the save
+			saveCharacter();
 			Save.flush();
 		}
 

@@ -147,6 +147,24 @@ package {
 			retryTimer.start();
 		}
 
+		private var problem:TextField;
+
+		/** A small red note in the corner with what went wrong (to send to the server's owner). */
+		private function showProblem(msg:String):void {
+			if (!problem) {
+				problem = new TextField();
+				problem.defaultTextFormat = new TextFormat("_sans", 12, 0xff8080, true);
+				problem.width = 1080; problem.height = 120;
+				problem.x = 10; problem.y = 510;
+				problem.wordWrap = true;
+				problem.selectable = true;
+				problem.background = true;
+				problem.backgroundColor = 0x200808;
+			}
+			problem.text = "Something went wrong in the game. Please send this to the server owner:\n" + msg;
+			stage.addChild(problem);
+		}
+
 		/** Starts the downloaded game in place of the launcher. */
 		private function downloaded(e:Event):void {
 			var bytes:ByteArray = ByteArray(loader.data);
@@ -166,6 +184,13 @@ package {
 				removeChild(ui);
 			});
 			game.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, failed);
+			// anything that goes wrong inside the game is shown, not left as a black screen
+			try {
+				game.uncaughtErrorEvents.addEventListener("uncaughtError", function(ev:*):void {
+					var why:* = ev.error;
+					showProblem(why is Error ? Error(why).message + "\n" + (Error(why).getStackTrace() || "").split("\n").slice(0, 4).join("\n") : String(why));
+				});
+			} catch (err:Error) {}
 			addChild(game);
 			try {
 				game.loadBytes(bytes, ctx);

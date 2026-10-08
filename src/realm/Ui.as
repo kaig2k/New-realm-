@@ -1,4 +1,7 @@
 package realm {
+	import flash.events.SecurityErrorEvent;
+	import flash.events.TimerEvent;
+	import flash.utils.Timer;
 	import flash.display.Loader;
 	import flash.display.Shape;
 	import flash.display.Sprite;
@@ -37,14 +40,25 @@ package realm {
 
 		/** Loads the embedded font library, then calls done(). Falls back to device fonts. */
 		public static function loadFonts(done:Function):void {
-			var finish:Function = function(e:Event = null):void {
-				for each (var f:Font in Font.enumerateFonts(false)) if (f.fontName == "Realm") embedded = true;
+			// the game must start whatever happens to the font (some players' Flash/AIR,
+			// or the launcher's sandbox, never answer): give up after 3 seconds
+			var called:Boolean = false;
+			var guard:Timer = new Timer(3000, 1);
+			var finish:Function = function(e:* = null):void {
+				if (called) return;
+				called = true;
+				guard.stop();
+				try { for each (var f:Font in Font.enumerateFonts(false)) if (f.fontName == "Realm") embedded = true; } catch (err2:Error) {}
 				done();
 			};
+			guard.addEventListener(TimerEvent.TIMER, finish);
+			guard.start();
 			try {
 				fontLoader = new Loader();
 				fontLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, finish);
 				fontLoader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, finish);
+				fontLoader.contentLoaderInfo.addEventListener(SecurityErrorEvent.SECURITY_ERROR, finish);
+				try { fontLoader.uncaughtErrorEvents.addEventListener("uncaughtError", finish); } catch (err3:Error) {}
 				var ctx:LoaderContext = new LoaderContext(false, ApplicationDomain.currentDomain);
 				try { ctx["allowCodeImport"] = true; } catch (e:Error) {}
 				fontLoader.loadBytes(ByteArray(new FontSwf()), ctx);

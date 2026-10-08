@@ -26,6 +26,8 @@ package realm {
 		/** Set-piece floors (laid down round realm event bosses). */
 		public static const ICE:int = 19, OBSIDIAN:int = 20, SANDSTONE:int = 21, HEXSTONE:int = 22, REEF:int = 23, METAL:int = 24;
 		public static const BONE:int = 25, GOLD:int = 26, ASH:int = 27, SPECTRAL:int = 28;
+		/** Cursed runes: burn whoever stands on them, like lava. */
+		public static const HEXFIRE:int = 29;
 		/** Realm biomes, from the coast inwards (RotMG order). */
 		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
 		public static const SAFE_ZONE:int = 9;
@@ -42,7 +44,7 @@ package realm {
 
 		public static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
 			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96,
-			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a];
+			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -1196,6 +1198,12 @@ package realm {
 							var spc:String = String(STONE_PAT[y]).charAt(x);
 							c = spc == "S" ? 0x34325a : spc == "H" ? 0x403e6a : spc == "h" ? 0x3a3862 : 0x1c1a34;
 							if (mark(gx, gy, 15, hs)) c = 0xa0c0ff;
+							break;
+						case HEXFIRE:
+							// burning green runes on black stone
+							var hf:int = (gx * 3 + gy * 5) % 7;
+							c = hf == 0 ? 0xc0ff80 : hf < 3 ? 0x60e040 : (gx + gy) % 4 == 0 ? 0x2a8a20 : 0x14301a;
+							if (r < 0.05) c = 0xffffff;
 							break;
 						case LAVA:
 							var ls:int = (gx + gy) & 3;

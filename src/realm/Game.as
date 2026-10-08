@@ -726,6 +726,11 @@ package realm {
 		}
 
 		/** A realm event appeared on the host's game. */
+		/** The server (or host) says event boss e's arena changes: phase k, after `warn` seconds or now (go). */
+		public function arenaPhase(e:Enemy, k:int, warn:Number, go:Boolean):void {
+			if (arenas) arenas.phase(e, k, warn, go);
+		}
+
 		public function eventAppeared(e:Enemy):void {
 			showBanner(e.def.name + " has appeared!", 0xff70ff, 3.5);
 			if (e.def.setpiece) msg(e.def.setpiece.hint, 0xffb0ff);
@@ -4334,6 +4339,7 @@ package realm {
 			mtx.translate(cx + shx, cy + shy);
 			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw + vh * vh) / 2 / TS + 1);
 			if (inNexus && decor) decor.drawGround(canvas);
+			if (arenas) arenas.drawGround(canvas);
 
 			var bd:BitmapData;
 			// loot bags lie on the ground
@@ -4935,6 +4941,12 @@ package realm {
 		}
 
 		/** Book button / K / /wiki: every boss and its drops. */
+		/** The server sent the fastest event kills. */
+		public function recordsArrived(r:Object):void {
+			WikiWindow.records = r || {};
+			if (wiki) wiki.recordsChanged();
+		}
+
 		public function toggleWiki():void {
 			if (wiki) { removeChild(wiki); wiki = null; refocus(); return; }
 			wiki = new WikiWindow(this);

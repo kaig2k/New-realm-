@@ -228,11 +228,27 @@ package realm {
 				attacks: [aim(1, 0, 10, 70, 0.9, 0xff7030, {shape: "blade", r: 0.28}), ring(8, 0, 4, 50, 3, 0x402030)]}));
 			mob("kraken_tentacle", o(o({}, still), {name: "Kraken Tentacle", spr: "kraken_tentacle", hp: 2800, def: 14, col: 0xff80a0,
 				attacks: [aim(3, 25, 7, 50, 1.3, 0xff80a0, {motion: "wave"})]}));
+			// reinforcements that come out when an arena changes (SetPieces.PHASES)
+			mob("cube_shard", {name: "Cube Shard", spr: "cube_shard", hp: 1400, def: 14, spd: 3.2, xp: 90, col: 0xff60ff, ai: "orbit", keep: 4,
+				attacks: [aim(2, 16, 9, 60, 1.1, 0xff60ff, {shape: "star"})]});
+			mob("royal_guard", {name: "Royal Guard", spr: "royal_guard", hp: 2400, def: 22, spd: 2.4, xp: 120, col: 0xffd060, keep: 2,
+				attacks: [aim(3, 24, 8, 70, 1.3, 0xffd060, {shape: "blade"}), ring(8, 0, 4.5, 50, 3, 0xe8e0c0)]});
+			mob("grave_wraith", {name: "Grave Wraith", spr: "grave_wraith", hp: 1600, def: 10, spd: 3, xp: 100, col: 0x90c0ff, ai: "orbit", keep: 5,
+				attacks: [aim(1, 0, 7, 75, 1, 0x90c0ff, {eff: "slowed", motion: "wave"})]});
+			mob("war_orc", {name: "Gorehorn's Warrior", spr: "war_orc", hp: 2200, def: 20, spd: 2.6, xp: 110, col: 0xff6040, keep: 1.5,
+				attacks: [aim(4, 40, 8, 65, 1.4, 0xe8d0a0), aim(1, 0, 10, 90, 2.4, 0xff6040, {eff: "bleeding"})]});
+			mob("temple_scorpion", {name: "Temple Scorpion", spr: "temple_scorpion", hp: 1200, def: 16, spd: 3.6, xp: 90, col: 0xffe080, keep: 1,
+				attacks: [aim(2, 20, 10, 55, 0.9, 0xc0ff60, {eff: "slowed"})]});
 			for (var id:String in SETPIECES) Data.ENEMIES[id].setpiece = SETPIECES[id];
 		}
 
 		private static function art():void {
 			SetPieces.art();
+			Sprites.recolor("cube_shard", "cubelet", {P: 0xff60ff, p: 0xa020c0, Q: 0xffc0ff, E: 0x46c0e8});
+			Sprites.recolor("royal_guard", "bandit", {H: 0xd8b050, h: 0x8a6a20, S: 0xe8e0c0, E: 0x40c0ff, B: 0xc8c8d0, b: 0x8a8a96, A: 0x8a1a2a, L: 0x5a5a66, W: 0xffe080});
+			Sprites.recolor("grave_wraith", "ghost", {W: 0x9ab0ff, w: 0x5a6aa8, E: 0xffffff}, 4);
+			Sprites.recolor("war_orc", "orc", {H: 0x7a9a3a, h: 0x4a6a24, E: 0xffe040, B: 0xc8a878, b: 0x8a6a40, A: 0xe8e0c8, L: 0x3a2410, W: 0xe8e0c8, S: 0x7a9a3a});
+			Sprites.recolor("temple_scorpion", "scorpion", {C: 0xd8b060, S: 0xf0d090, T: 0x9a7030, E: 0x60ff40});
 			// realm event set-piece pieces
 			Sprites.recolor("cube_pylon", "crystal", {W: 0xffe0ff, C: 0xff60ff, c: 0xa020c0, D: 0x50106a, S: 0x2a1a3a}, 6);
 			Sprites.recolor("royal_effigy", "pillar", {L: 0xffe080, l: 0xb08a30, S: 0xd8b050, s: 0x806020});

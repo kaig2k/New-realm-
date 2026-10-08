@@ -198,6 +198,9 @@ package realm {
 					g.msg(m.msg || m.text, m.color || 0xffd75e);
 					Sfx.play("portal");
 					break;
+				case "records":
+					g.recordsArrived(m.r);
+					break;
 				case "far":
 					rp = byId(m.id);
 					if (rp) rp.far = true;

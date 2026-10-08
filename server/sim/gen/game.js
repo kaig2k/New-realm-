@@ -849,6 +849,17 @@ class Bosses {
 				attacks: [Bosses.aim(1, 0, 10, 70, 0.9, 0xff7030, {shape: "blade", r: 0.28}), Bosses.ring(8, 0, 4, 50, 3, 0x402030)]}));
 			Bosses.mob("kraken_tentacle", Bosses.o(Bosses.o({}, still), {name: "Kraken Tentacle", spr: "kraken_tentacle", hp: 2800, def: 14, col: 0xff80a0,
 				attacks: [Bosses.aim(3, 25, 7, 50, 1.3, 0xff80a0, {motion: "wave"})]}));
+			
+			Bosses.mob("cube_shard", {name: "Cube Shard", spr: "cube_shard", hp: 1400, def: 14, spd: 3.2, xp: 90, col: 0xff60ff, ai: "orbit", keep: 4,
+				attacks: [Bosses.aim(2, 16, 9, 60, 1.1, 0xff60ff, {shape: "star"})]});
+			Bosses.mob("royal_guard", {name: "Royal Guard", spr: "royal_guard", hp: 2400, def: 22, spd: 2.4, xp: 120, col: 0xffd060, keep: 2,
+				attacks: [Bosses.aim(3, 24, 8, 70, 1.3, 0xffd060, {shape: "blade"}), Bosses.ring(8, 0, 4.5, 50, 3, 0xe8e0c0)]});
+			Bosses.mob("grave_wraith", {name: "Grave Wraith", spr: "grave_wraith", hp: 1600, def: 10, spd: 3, xp: 100, col: 0x90c0ff, ai: "orbit", keep: 5,
+				attacks: [Bosses.aim(1, 0, 7, 75, 1, 0x90c0ff, {eff: "slowed", motion: "wave"})]});
+			Bosses.mob("war_orc", {name: "Gorehorn's Warrior", spr: "war_orc", hp: 2200, def: 20, spd: 2.6, xp: 110, col: 0xff6040, keep: 1.5,
+				attacks: [Bosses.aim(4, 40, 8, 65, 1.4, 0xe8d0a0), Bosses.aim(1, 0, 10, 90, 2.4, 0xff6040, {eff: "bleeding"})]});
+			Bosses.mob("temple_scorpion", {name: "Temple Scorpion", spr: "temple_scorpion", hp: 1200, def: 16, spd: 3.6, xp: 90, col: 0xffe080, keep: 1,
+				attacks: [Bosses.aim(2, 20, 10, 55, 0.9, 0xc0ff60, {eff: "slowed"})]});
 			for (var id in Bosses.SETPIECES) Data.ENEMIES[id].setpiece = Bosses.SETPIECES[id];
 		}
 	static minions() {
@@ -2197,7 +2208,7 @@ class SetPieces {
 					else if (ch == "b") no = __int(st.b);
 					else if (ch == "c") no = __int(st.c);
 					var dx = __int(c - SetPieces.HALF), dy = __int(r - SetPieces.HALF);
-					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false});
+					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false, ch: ch, c: c, r: r});
 				}
 			}
 			return out;
@@ -2223,6 +2234,67 @@ class SetPieces {
 				n++;
 			}
 			return __int(n);
+		}
+	static phasesOf(id) {
+			var sp = Bosses.SETPIECES[id];
+			return sp && SetPieces.PHASES[sp.style] ? SetPieces.PHASES[sp.style] : [];
+		}
+	static trigger(e, mask) { mask = __int(mask);
+			var ph = SetPieces.phasesOf(e.defId);
+			for (var k = __int(0); k < ph.length; k++) {
+				if (mask & (1 << k)) continue;
+				if (ph[k].when == "low" && e.hp > 0 && e.hp < e.maxHp * SetPieces.LOW) return __int(k);
+				if (ph[k].when == "broken" && e.props && e.props.length) {
+					var left = false;
+					for (var p of __vals( e.props)) if (!p.dead) { left = true; break; }
+					if (!left) return __int(k);
+				}
+			}
+			return __int(-1);
+		}
+	static phaseCells(id, cells, k) { k = __int(k);
+			var ph = SetPieces.phasesOf(id)[k];
+			var out = [];
+			if (!ph) return out;
+			var rows = SetPieces.layoutOf(id);
+			for (var q of __vals( cells)) {
+				var ch = q.ch, hit = false;
+				if (ph.sel == "walls") hit = ch == "#";
+				else if (ph.sel == "char") hit = ch == ph.ch;
+				else if (ph.sel == "ring") hit = ch != "#" && ch != "P" && ch != "B" && ((q.d >= ph.a && q.d < ph.b) || (ph.chars && String(ph.chars).indexOf(ch) >= 0));
+				else if (ph.sel == "widen") {
+					if (ch != "~" && ch != "#" && ch != "P" && ch != "B" && q.d >= 2.5)
+						hit = SetPieces.at(rows, q.c - 1, q.r) == "~" || SetPieces.at(rows, q.c + 1, q.r) == "~" || SetPieces.at(rows, q.c, q.r - 1) == "~" || SetPieces.at(rows, q.c, q.r + 1) == "~";
+				}
+				if (hit) out.push(q);
+			}
+			return out;
+		}
+	static at(rows, c, r) { c = __int(c); r = __int(r);
+			if (c < 0 || r < 0 || r >= rows.length || c >= String(rows[r]).length) return " ";
+			return String(rows[r]).charAt(c);
+		}
+	static applyPhase(w, id, cells, k) { k = __int(k);
+			var ph = SetPieces.phasesOf(id)[k];
+			var sel = SetPieces.phaseCells(id, cells, k);
+			if (!ph) return sel;
+			var st = SetPieces.STYLES[Bosses.SETPIECES[id].style];
+			var nt = __int(ph.to == "hz" ? st.hz : ph.to == "water" ? World.WATER : ph.to == "hexfire" ? World.HEXFIRE : st.floor);
+			for (var q of __vals( sel)) {
+				q.nt = nt;
+				q.no = 0;
+				if (q.on) { w.tiles[q.i] = nt; w.objs[q.i] = 0; }
+			}
+			return sel;
+		}
+	static spawnSpots(sel, n) { n = __int(n);
+			var out = [];
+			if (!sel.length || n <= 0) return out;
+			for (var j = __int(0); j < n; j++) {
+				var q = sel[__int((j + 0.5) * sel.length / n) % sel.length];
+				out.push({x: q.x + 0.5, y: q.y + 0.5});
+			}
+			return out;
 		}
 	static spots(id, cx, cy) { cx = __int(cx); cy = __int(cy);
 			var out = [];
@@ -2260,6 +2332,7 @@ class Enemy {
 		this.vulnT = 0;
 		this.facingLeft = false;
 		this.props = null;
+		this.spMask = __int(0);
 		this.invuln = false;
 		this.shieldT = 0;
 		this.dmgMult = 1;
@@ -3669,6 +3742,7 @@ World.BONE = __int(25);
 World.GOLD = __int(26);
 World.ASH = __int(27);
 World.SPECTRAL = __int(28);
+World.HEXFIRE = __int(29);
 World.SHORE_ZONE = __int(0);
 World.LOW_ZONE = __int(1);
 World.MID_ZONE = __int(2);
@@ -4013,6 +4087,40 @@ SetPieces.LAYOUTS = {
 				"  ~~-,,,,,-,,,,,-~~  ",
 				"   ~~~----~----~~~   ",
 				"     ~~~~~~~~~~~     "]
+		};
+SetPieces.WARN = 2.5;
+SetPieces.LOW = 0.3;
+SetPieces.PHASES = {
+			cube: [{when: "broken", sel: "walls", to: "floor", spawn: "cube_shard", n: 4, col: 0xff60ff,
+				msg: "The pylons fall and the Cube's walls collapse! Cubelets pour through the gaps!"}],
+			lava: [{when: "low", sel: "widen", to: "hz", col: 0xff5010,
+				msg: "Vorgath roars and the lava channels spill over!"}],
+			frost: [{when: "low", sel: "ring", a: 7.5, b: 99, to: "water", col: 0x9ad8ff,
+				msg: "The ice cracks! The edge of the court gives way to freezing water."}],
+			throne: [{when: "broken", sel: "walls", to: "floor", spawn: "royal_guard", n: 4, col: 0xffd060,
+				msg: "The effigies topple and the throne room's walls crumble! The King's guard storms in!"}],
+			bone: [{when: "low", sel: "char", ch: "b", to: "floor", spawn: "war_orc", n: 3, col: 0xff6040,
+				msg: "Gorehorn bellows for his warband! Orcs burst out of the tents!"}],
+			ghost: [{when: "broken", sel: "char", ch: "a", to: "floor", spawn: "grave_wraith", n: 4, col: 0x90c0ff,
+				msg: "The candles die and the graves split open! The Regent's dead rise!"}],
+			sand: [{when: "low", sel: "char", ch: "a", to: "floor", spawn: "temple_scorpion", n: 4, col: 0xffe080,
+				msg: "The temple pillars topple! Scorpions swarm from the rubble!"}],
+			sunken: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40d0c0,
+				msg: "The Lord calls the sea home! The water floods in from every side!"}],
+			shell: [{when: "low", sel: "char", ch: ",", to: "water", col: 0x60c0ff,
+				msg: "The tide comes in! The reef sinks under the waves."}],
+			skull: [{when: "broken", sel: "walls", to: "floor", spawn: "bone_thrall", n: 4, col: 0xb060ff,
+				msg: "The braziers gutter out and the shrine's walls fall! Bone thralls claw their way in!"},
+				{when: "low", sel: "char", ch: ",", to: "hz", col: 0xff3030,
+				msg: "The blood in the shrine's floor begins to boil!"}],
+			obsidian: [{when: "low", sel: "widen", to: "hz", col: 0xff7030,
+				msg: "The Colossus cracks the ground open! Lava wells up between the plates!"}],
+			fire: [{when: "low", sel: "char", ch: ",", to: "hz", col: 0xffa040,
+				msg: "Pyraxis sets the nest ablaze! A ring of fire closes around the arena!"}],
+			hex: [{when: "low", sel: "ring", a: 4.5, b: 5.6, chars: ":", to: "hexfire", col: 0x70e050,
+				msg: "Mother Hexis speaks the last words! The runes burn anyone standing on them!"}],
+			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
+				msg: "The Kraken drags the reef under! The water floods inward!"}]
 		};
 Enemy.DEG = Math.PI / 180;
 Enemy.LEGACY_HP = [1, 0.66, 0.33];

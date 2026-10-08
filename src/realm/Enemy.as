@@ -42,6 +42,8 @@ package realm {
 		public var facingLeft:Boolean = false;
 		/** A realm event boss's set-piece pieces (wards, menders, hazards), set by whoever runs it. */
 		public var props:Array;
+		/** Set-piece phases started (bit k = phase k), sent to players so late arrivals see the arena as it is. */
+		public var spMask:int = 0;
 		/** Bosses can be made immune (the Dark Elder while his crystals stand). */
 		public var invuln:Boolean = false;
 		/** Phase-change shield (seconds). */

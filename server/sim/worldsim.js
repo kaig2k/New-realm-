@@ -111,7 +111,7 @@ class WorldSim {
 
   entry(e) {
     return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, Math.ceil(e.hp), Math.ceil(e.maxHp), r2(e.dmgMult), this.flags(e),
-      this.w.boss === e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite || ''];
+      this.w.boss === e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite || '', e.spMask || 0];
   }
 
   flags(e) { return (e.immune ? 1 : 0) | (e.stunT > 0 ? 2 : 0) | (e.phaseCode << 2); }
@@ -166,6 +166,8 @@ class WorldSim {
     if (sl) e.slowT = Math.max(e.slowT, sl);
     if (st) e.stunT = Math.max(e.stunT, e.isBoss ? st * 0.4 : st);
     let dmg = Math.min(6000, Math.max(0, Number(d.d) || 0));
+    // an event's clock (for the fastest-kill records) starts at the first hit on the boss or its set piece
+    if (dmg > 0 && this.kind === 'realm' && this.w.boss && !this.w.boss.firstHit && (e === this.w.boss || e.def.prop)) this.w.boss.firstHit = Date.now();
     if (dmg > 0 && !e.immune) {
       if (dmg > e.hp) dmg = Math.ceil(e.hp);
       e.hp -= dmg;
@@ -259,6 +261,7 @@ class WorldSim {
     if (this.kind === 'realm') {
       this.updateSpawns(dt);
       this.updateEvents(dt);
+      this.updateArena(dt);
       this.updateGoblin(dt);
       if (this.closeT > 0) { this.closeT -= dt; if (this.closeT <= 0) this.w.closed = true; }
     }
@@ -403,6 +406,32 @@ class WorldSim {
     w.eventT = 5;
   }
 
+  /**
+   * The event boss's arena changing mid-fight: once a phase's moment comes
+   * (its pieces all broken, or the boss low) the floor flashes for everyone,
+   * then the tiles change and any reinforcements come out.
+   */
+  updateArena(dt) {
+    const b = this.w.boss;
+    if (!b || b.dead || !b.arena) return;
+    if (b.spPend) {
+      b.spPend.t -= dt;
+      if (b.spPend.t > 0) return;
+      const k = b.spPend.k;
+      b.spPend = null;
+      const ph = SetPieces.phasesOf(b.defId)[k];
+      const sel = SetPieces.applyPhase(this.w, b.defId, b.arena, k);
+      this.all({ t: 'sphase', id: b.id, k, go: 1 });
+      if (ph && ph.spawn) for (const sp of SetPieces.spawnSpots(sel, ph.n)) this.spawn(ph.spawn, sp.x, sp.y, b.zone, true);
+      return;
+    }
+    const k = SetPieces.trigger(b, b.spMask);
+    if (k < 0) return;
+    b.spMask |= 1 << k;
+    b.spPend = { k, t: SetPieces.WARN };
+    this.all({ t: 'sphase', id: b.id, k, w: SetPieces.WARN });
+  }
+
   /** Monsters caught inside a set piece's new walls or decorations are moved to open ground nearby. */
   unstick(cells) {
     const w = this.w;
@@ -519,6 +548,11 @@ class WorldSim {
       else if (e.def.trio && this.enemies.some((o) => !o.dead && o.def.trio)) this.kingDown();
       else if (this.kind === 'realm' && !e.def.dungeon && !e.def.raid && !e.def.final) {
         w.eventsDone++;
+        if (this.onEventKill && e.firstHit && e.def.setpiece) {
+          // who fought it, most damage first
+          const team = [...(e.hitters || [])].filter((h) => h[1] > 0).sort((a, b) => b[1] - a[1]).map((h) => this.players.get(h[0])).filter(Boolean);
+          if (team.length) this.onEventKill(e.defId, Date.now() - e.firstHit, team);
+        }
         w.eventT = 20 + Math.random() * 10;
         if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
           let di = Math.floor(Math.random() * Data.EVENT_DUNGEONS);
@@ -612,7 +646,7 @@ class Sims {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); s.issuer = this.issuer; } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);
@@ -625,7 +659,7 @@ class Sims {
     for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
     for (const key of want) {
       if (this.map.has(key)) continue;
-      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
     }
   }
 

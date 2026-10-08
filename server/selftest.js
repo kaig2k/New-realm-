@@ -358,12 +358,15 @@ async function run() {
   console.log('boss set pieces');
   {
     const { WorldSim } = require('./sim/worldsim');
-    const { Data } = require('./sim/gen/game');
+    const { Data, SetPieces } = require('./sim/gen/game');
     const ws = new WorldSim('realm:Test:4242');
     const got = [];
     const c = { id: 1, x: ws.w.spawnX, y: ws.w.spawnY, send: (m) => got.push(m.d || m) };
     ws.join(c);
     const bad = [];
+    const kills = [];
+    ws.onEventKill = (id, ms, team) => kills.push({ id, ms, team });
+    c.name = 'Tester';
     const all = Data.EVENTS.slice();
     for (const ev of Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece)) {
       ws.w.eventT = 0; ws.w.eventsDone = 0; ws.closeT = 0; ws.w.closed = false; ws.w.recentEvents = [];
@@ -376,6 +379,7 @@ async function run() {
       c.x = b.x; c.y = b.y + 3;
       ws.tick(0.05);
       if (!b.props || b.props.length !== sp.n) { bad.push(ev + ': ' + (b.props ? b.props.length : 0) + ' pieces'); continue; }
+      got.length = 0;
       if (!b.arena || b.arena.length < 150) bad.push(ev + ': no structure laid down');
       for (const p of b.props) if (!ws.w.canStand(p.x, p.y, 0.3, true)) bad.push(ev + ': a piece stands in a wall');
       if (sp.ward) {
@@ -385,15 +389,40 @@ async function run() {
         ws.tick(0.05);
         if (b.invuln) bad.push(ev + ': still warded with its pieces gone');
       }
-      got.length = 0;
+      // the arena changes mid-fight: break every piece, bring the boss low, wait out the warning
+      const phs = SetPieces.phasesOf(ev);
+      for (let k = 0; k < phs.length; k++) if (!SetPieces.phaseCells(ev, b.arena, k).length) bad.push(ev + ': phase ' + k + ' changes nothing');
+      for (const p of b.props) if (!p.dead) { c.x = p.x; c.y = p.y + 2; for (let k = 0; k < 5; k++) ws.hit(c, { id: p.id, d: 1000 }); }
       c.x = b.x; c.y = b.y + 2;
+      b.hp = b.maxHp * 0.25;
+      const mid = Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',');
+      for (let k = 0; k < 150; k++) { b.hp = Math.min(b.hp, b.maxHp * 0.25); ws.tick(0.05); }
+      const warns = got.filter((m) => m.t === 'sphase' && m.w > 0).length, goes = got.filter((m) => m.t === 'sphase' && m.go).length;
+      if (warns !== phs.length || goes !== phs.length) bad.push(ev + ': ' + warns + ' warnings and ' + goes + ' changes for ' + phs.length + ' phases');
+      else if (phs.length && Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',') === mid) bad.push(ev + ': its phases changed no tiles');
+      const born = [].concat(...got.filter((m) => m.t === 'espawn').map((m) => m.l));
+      for (const ph of phs) if (ph.spawn && born.filter((en) => en[1] === ph.spawn).length < ph.n) bad.push(ev + ': too few ' + ph.spawn + ' came out');
+      if (phs.length && !(b.spMask > 0)) bad.push(ev + ': phases not marked for late arrivals');
+      got.length = 0;
       for (let k = 0; k < 40 && !b.dead; k++) { b.invuln = false; b.shieldT = 0; ws.hit(c, { id: b.id, d: 6000 }); ws.tick(0.05); }
       if (!b.dead) bad.push(ev + ': boss did not die');
       else if (b.props.some((p) => !p.dead)) bad.push(ev + ': pieces left after the boss died');
       else if (Array.from(ws.w.tiles).join(',') + '|' + Array.from(ws.w.objs).join(',') !== before) bad.push(ev + ': the ground was not put back');
       ws.tick(0.05);
     }
-    check('every event boss raises its set piece, wards hold, and it all goes (ground restored) when the boss dies', !bad.length, bad.join('; '));
+    const evCount = Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece).length;
+    check('every event kill reaches the records with its time and team', kills.length === evCount && kills.every((k) => k.ms >= 0 && k.team.length === 1 && k.team[0].name === 'Tester'),
+      kills.length + ' of ' + evCount);
+    check('every event boss raises its set piece, wards hold, its arena changes mid-fight, and it all goes (ground restored) when the boss dies', !bad.length, bad.join('; '));
+  }
+
+  console.log('records');
+  {
+    A2.clear();
+    A2.send({ t: 'records' });
+    await wait(300);
+    const r = A2.find((m) => m.t === 'records');
+    check('the server answers a Records request', r && typeof r.r === 'object');
   }
 
   console.log('launcher downloads');

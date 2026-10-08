@@ -14,8 +14,10 @@ package realm {
 		public static const W:int = 640, H:int = 560;
 		private static const PER_PAGE:int = 6;
 		private static const ROW:int = 66;
-		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Abilities", "Guide"];
-		private static const ABILITY_TAB:int = 5, GUIDE_TAB:int = 6;
+		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Abilities", "Guide", "Records"];
+		private static const ABILITY_TAB:int = 5, GUIDE_TAB:int = 6, RECORDS_TAB:int = 7;
+		/** The server's fastest event kills: records[eventId] = [{ms, names}] (null until it has answered). */
+		public static var records:Object = null;
 		private static const LOOT:Array = [
 			"Event uniques are Eldritch; the biggest events (1,800+ XP) drop Starforged ones. Also: tier 6-7 gear, stat potions, dungeon portals.",
 			"Uniques: Runed from the early dungeons, Eldritch from the rest. Also: tiered or Bonded set gear, stat potions.",
@@ -23,7 +25,8 @@ package realm {
 			"Finale uniques are Starforged. Also: Eldritch gear, stat potions, Starforged / Primordial chance. GD items: 1 in 3,000.",
 			"Raid uniques: Starforged, and Primordial from each raid's final boss. Also the best SF / PR odds. GD items: 1 in 3,000.",
 			"Ability items drop holding one of their class's three abilities. Hover an icon for its full description.",
-			""
+			"",
+			"Fastest kills of each realm event, from the first hit on the boss or its set piece to its death. Everyone who fought is listed."
 		];
 
 		/** The Guide tab, one page at a time. */
@@ -122,7 +125,10 @@ package realm {
 			// the zealot pair and sentinel trio share one entry each; show their partner's drops too
 			var abilities:Array = [];
 			for each (var cid:String in Data.CLASS_ORDER) abilities.push({cls: cid});
-			return [events, dungeons, hard, finales, raids, abilities, GUIDE];
+			var recs:Array = [];
+			for (var rid2:String in Bosses.SETPIECES) if (Data.ENEMIES[rid2]) recs.push({rec: rid2});
+			recs.sortOn("rec");
+			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs];
 		}
 
 		private function show(t:int):void {
@@ -130,8 +136,8 @@ package realm {
 			tab = t;
 			tabBar.removeChildren();
 			for (var i:int = 0; i < TABS.length; i++) {
-				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 84, 30, tabFn(i), 12);
-				b.x = i * 88;
+				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 74, 30, tabFn(i), 11);
+				b.x = i * 77;
 				b.alpha = i == tab ? 1 : 0.7;
 				tabBar.addChild(b);
 			}
@@ -151,6 +157,7 @@ package realm {
 				var idx:int = page * PER_PAGE + k;
 				if (idx >= list.length) break;
 				if (tab == ABILITY_TAB) abilityRow(list[idx].cls, k * ROW);
+				else if (tab == RECORDS_TAB) recordRow(list[idx].rec, k * ROW);
 				else row(list[idx], k * ROW);
 			}
 			var note:TextField = Ui.text(12, 0x9a9aaa, true, "left", W - 32, true);
@@ -171,7 +178,57 @@ package realm {
 			}
 		}
 
-		private function tabFn(i:int):Function { return function():void { show(i); }; }
+		private function tabFn(i:int):Function {
+			return function():void {
+				// fresh times from the server each time the page is opened
+				if (i == RECORDS_TAB && g.net && g.net.online) Online.send({t: "records"});
+				show(i);
+			};
+		}
+
+		/** The server's answer arrived: show it if the Records page is open. */
+		public function recordsChanged():void { if (tab == RECORDS_TAB) show(tab); }
+
+		/** One event boss: its picture and the fastest three kills. */
+		private function recordRow(id:String, y:int):void {
+			var d:Object = Data.ENEMIES[id];
+			body.graphics.lineStyle(1, 0x3a3a44);
+			body.graphics.moveTo(12, y + ROW - 2);
+			body.graphics.lineTo(W - 12, y + ROW - 2);
+			body.graphics.lineStyle();
+			var bd:BitmapData = Sprites.get(d.spr);
+			var pic:Bitmap = new Bitmap(bd);
+			var sc:Number = Math.min(1, 56 / Math.max(bd.width, bd.height));
+			pic.scaleX = pic.scaleY = sc;
+			pic.x = 16 + (56 - bd.width * sc) / 2; pic.y = y + 2 + (56 - bd.height * sc) / 2;
+			body.addChild(pic);
+			var name:TextField = Ui.text(14, d.col || 0xffffff, true, "left", 200, true);
+			name.text = d.name;
+			name.x = 80; name.y = y + 18;
+			body.addChild(name);
+			var list:Array = records ? records[id] : null;
+			var tf:TextField = Ui.text(12, 0xd8d8e0, false, "left", W - 300, true);
+			tf.x = 290; tf.y = y + 4;
+			if (!g.net || !g.net.online) tf.htmlText = "<font color='#808088'>Records are kept on the server. Play online to see them.</font>";
+			else if (!records) tf.htmlText = "<font color='#808088'>Asking the server...</font>";
+			else if (!list || !list.length) tf.htmlText = "<font color='#808088'>No kills on the board yet. Be the first!</font>";
+			else {
+				var lines:Array = [];
+				for (var i:int = 0; i < Math.min(3, list.length); i++) {
+					var r:Object = list[i], who:Array = r.names || [];
+					var names:String = who.length > 3 ? who.slice(0, 3).join(", ") + " +" + (who.length - 3) : who.join(", ");
+					lines.push("<font color='" + (i == 0 ? "#ffd75e" : i == 1 ? "#d8d8e0" : "#d09060") + "'><b>#" + (i + 1) + "  " + clock(r.ms) + "</b></font>  " + names);
+				}
+				tf.htmlText = lines.join("\n");
+			}
+			body.addChild(tf);
+		}
+
+		private static function clock(ms:Number):String {
+			var s:Number = ms / 1000;
+			var sec:String = (s % 60).toFixed(1);
+			return int(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + sec;
+		}
 
 		/** One class: its portrait and its three abilities, with their cost and cooldown. */
 		private function abilityRow(clsId:String, y:int):void {

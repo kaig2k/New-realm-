@@ -313,7 +313,8 @@ package realm {
 			}
 
 			// --- lava
-			burning = w.tileAt(x, y) == World.LAVA;
+			var underfoot:int = w.tileAt(x, y);
+			burning = underfoot == World.LAVA || underfoot == World.HEXFIRE;
 			if (burning) {
 				burnTick -= dt;
 				if (burnTick <= 0) {

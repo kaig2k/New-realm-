@@ -31,6 +31,11 @@ package realm {
 
 		private function send(to:*, d:Object):void { g.net.sendWorld(to, d); }
 
+		/** As the host: tell everyone an arena phase is coming (warn seconds) or happens now (go). */
+		public function arenaPhase(e:Enemy, k:int, warn:Number, go:Boolean):void {
+			if (active && isHost && e.id) send("all", go ? {t: "sphase", id: e.id, k: k, go: 1} : {t: "sphase", id: e.id, k: k, w: warn});
+		}
+
 		private function newId():int {
 			// unique across hosts: the player's server id in the high digits
 			counter = (counter + 1) % 100000;
@@ -44,7 +49,7 @@ package realm {
 		}
 
 		private function entry(e:Enemy, w:World):Array {
-			return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, int(e.hp), int(e.maxHp), r2(e.dmgMult), flags(e), w.boss == e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite];
+			return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, int(e.hp), int(e.maxHp), r2(e.dmgMult), flags(e), w.boss == e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite, e.spMask];
 		}
 
 		// ------------------------------------------------------------ host side
@@ -167,6 +172,7 @@ package realm {
 						e.setPhase(en[8] >> 2, null);
 						e.homeX = en[10]; e.homeY = en[11];
 						if (en[12]) e.elite = en[12];
+						if (en[13]) e.spMask = en[13];
 						e.tx = e.x; e.ty = e.y;
 						w.eById[e.id] = e;
 						w.enemies.push(e);
@@ -202,6 +208,12 @@ package realm {
 				case "ekill":
 					e = w.eById[d.id];
 					if (e && !e.dead) g.remoteKill(e);
+					break;
+				case "sphase":
+					// the event boss's arena is about to change (w: seconds of warning) or changes now (go)
+					if (isHost) return;
+					e = w.eById[d.id];
+					if (e && !e.dead) g.arenaPhase(e, d.k, d.go ? 0 : d.w, !!d.go);
 					break;
 				case "edel":
 					e = w.eById[d.id];

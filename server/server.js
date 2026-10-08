@@ -67,6 +67,38 @@ const sims = config.serverMonsters === false ? null : new Sims();
 if (sims) sims.issuer = (c, it) => { const sv = onlineSave(c.key); items.issue(sv, it); store.putSave(c.key, sv); };
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
+
+// ------------------------------------------------------------------ fastest event kills
+/** records[eventId] = [{ms, names, at}] fastest first (first hit to kill). */
+const records = load('records.json', {});
+const RECORDS_KEPT = 5;
+const clock = (ms) => { const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60).toFixed(1); };
+/** A realm event boss died: put the team on the board if they were quick, and tell people. */
+function eventKilled(id, ms, team) {
+  if (ms < 1000) return; // nothing real dies that fast
+  const names = team.map((c) => c.name).filter(Boolean).slice(0, 8);
+  if (!names.length) return;
+  const list = records[id] || (records[id] = []);
+  const old = list[0];
+  list.push({ ms, names, at: Date.now() });
+  list.sort((a, b) => a.ms - b.ms);
+  list.length = Math.min(list.length, RECORDS_KEPT);
+  const place = list.findIndex((r) => r.at && r.names === names) + 1;
+  save('records.json', records);
+  const boss = (Data.ENEMIES[id] && Data.ENEMIES[id].name) || id;
+  const who = names.length > 3 ? names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more' : names.join(', ');
+  if (place === 1) {
+    for (const o of clients.values()) {
+      if (!o.authed) continue;
+      o.send({ t: 'banner', text: 'New record: ' + boss + '!', color: 0xffd75e,
+        msg: who + ' killed ' + boss + ' in ' + clock(ms) + (old ? ', beating ' + clock(old.ms) + '!' : ', the first time on the board!') });
+    }
+  } else {
+    const best = list[0];
+    for (const c of team) c.send({ t: 'msg', color: 0xffd75e, text: boss + ' down in ' + clock(ms) + (place ? ': #' + place + ' on the board!' : '. The record is ' + clock(best.ms) + ' (' + best.names[0] + ').') });
+  }
+}
+if (sims) sims.onEventKill = eventKilled;
 /** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
 const accounts = load('accounts.json', {});
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
@@ -748,6 +780,14 @@ const handlers = {
     ch.inv[slot] = lg;
     sv.onrane = (sv.onrane || 0) - 100;
     shopDone(c, sv, ch, { forged: lg.name, slot });
+  },
+
+  /** The fastest event kills, for the Records page. */
+  records(c) {
+    const now = Date.now();
+    if (now - (c.recordsT || 0) < 1000) return;
+    c.recordsT = now;
+    c.send({ t: 'records', r: records });
   },
 
   /** Starforge reroll: a weapon's prefix for gold, or a special item's bonus stats for Aether. */

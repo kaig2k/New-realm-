@@ -405,7 +405,7 @@ package realm {
 					else if (ch == "b") no = st.b;
 					else if (ch == "c") no = st.c;
 					var dx:int = c - HALF, dy:int = r - HALF;
-					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false});
+					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false, ch: ch, c: c, r: r});
 				}
 			}
 			return out;
@@ -435,6 +435,124 @@ package realm {
 				n++;
 			}
 			return n;
+		}
+
+		// ------------------------------------------------------------ phases
+		/** Seconds the floor flashes before a phase changes the arena. */
+		public static const WARN:Number = 2.5;
+		/** A phase starts at 30% health ("low") or once every set-piece piece is broken ("broken"). */
+		public static const LOW:Number = 0.3;
+
+		/**
+		 * How each arena changes during the fight. when: "broken" or "low".
+		 * sel picks the tiles: walls ('#'), widen (next to the hazard), ring (a <= distance < b,
+		 * plus any tiles marked in chars), char (tiles marked ch). to: floor, hz (the style's
+		 * hazard), water or hexfire; objects on those tiles go. spawn/n: monsters that come
+		 * out of the changed tiles. col: the warning flash. msg: told to everyone.
+		 */
+		public static const PHASES:Object = {
+			cube: [{when: "broken", sel: "walls", to: "floor", spawn: "cube_shard", n: 4, col: 0xff60ff,
+				msg: "The pylons fall and the Cube's walls collapse! Cubelets pour through the gaps!"}],
+			lava: [{when: "low", sel: "widen", to: "hz", col: 0xff5010,
+				msg: "Vorgath roars and the lava channels spill over!"}],
+			frost: [{when: "low", sel: "ring", a: 7.5, b: 99, to: "water", col: 0x9ad8ff,
+				msg: "The ice cracks! The edge of the court gives way to freezing water."}],
+			throne: [{when: "broken", sel: "walls", to: "floor", spawn: "royal_guard", n: 4, col: 0xffd060,
+				msg: "The effigies topple and the throne room's walls crumble! The King's guard storms in!"}],
+			bone: [{when: "low", sel: "char", ch: "b", to: "floor", spawn: "war_orc", n: 3, col: 0xff6040,
+				msg: "Gorehorn bellows for his warband! Orcs burst out of the tents!"}],
+			ghost: [{when: "broken", sel: "char", ch: "a", to: "floor", spawn: "grave_wraith", n: 4, col: 0x90c0ff,
+				msg: "The candles die and the graves split open! The Regent's dead rise!"}],
+			sand: [{when: "low", sel: "char", ch: "a", to: "floor", spawn: "temple_scorpion", n: 4, col: 0xffe080,
+				msg: "The temple pillars topple! Scorpions swarm from the rubble!"}],
+			sunken: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40d0c0,
+				msg: "The Lord calls the sea home! The water floods in from every side!"}],
+			shell: [{when: "low", sel: "char", ch: ",", to: "water", col: 0x60c0ff,
+				msg: "The tide comes in! The reef sinks under the waves."}],
+			skull: [{when: "broken", sel: "walls", to: "floor", spawn: "bone_thrall", n: 4, col: 0xb060ff,
+				msg: "The braziers gutter out and the shrine's walls fall! Bone thralls claw their way in!"},
+				{when: "low", sel: "char", ch: ",", to: "hz", col: 0xff3030,
+				msg: "The blood in the shrine's floor begins to boil!"}],
+			obsidian: [{when: "low", sel: "widen", to: "hz", col: 0xff7030,
+				msg: "The Colossus cracks the ground open! Lava wells up between the plates!"}],
+			fire: [{when: "low", sel: "char", ch: ",", to: "hz", col: 0xffa040,
+				msg: "Pyraxis sets the nest ablaze! A ring of fire closes around the arena!"}],
+			hex: [{when: "low", sel: "ring", a: 4.5, b: 5.6, chars: ":", to: "hexfire", col: 0x70e050,
+				msg: "Mother Hexis speaks the last words! The runes burn anyone standing on them!"}],
+			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
+				msg: "The Kraken drags the reef under! The water floods inward!"}]
+		};
+
+		/** The phases of an event boss's arena (may be empty). */
+		public static function phasesOf(id:String):Array {
+			var sp:Object = Bosses.SETPIECES[id];
+			return sp && PHASES[sp.style] ? PHASES[sp.style] : [];
+		}
+
+		/** The phase that should start now for boss e (mask = phases done or under way), or -1. */
+		public static function trigger(e:Enemy, mask:int):int {
+			var ph:Array = phasesOf(e.defId);
+			for (var k:int = 0; k < ph.length; k++) {
+				if (mask & (1 << k)) continue;
+				if (ph[k].when == "low" && e.hp > 0 && e.hp < e.maxHp * LOW) return k;
+				if (ph[k].when == "broken" && e.props && e.props.length) {
+					var left:Boolean = false;
+					for each (var p:Enemy in e.props) if (!p.dead) { left = true; break; }
+					if (!left) return k;
+				}
+			}
+			return -1;
+		}
+
+		/** The planned tiles phase k changes (from plan()'s list). */
+		public static function phaseCells(id:String, cells:Array, k:int):Array {
+			var ph:Object = phasesOf(id)[k];
+			var out:Array = [];
+			if (!ph) return out;
+			var rows:Array = layoutOf(id);
+			for each (var q:Object in cells) {
+				var ch:String = q.ch, hit:Boolean = false;
+				if (ph.sel == "walls") hit = ch == "#";
+				else if (ph.sel == "char") hit = ch == ph.ch;
+				else if (ph.sel == "ring") hit = ch != "#" && ch != "P" && ch != "B" && ((q.d >= ph.a && q.d < ph.b) || (ph.chars && String(ph.chars).indexOf(ch) >= 0));
+				else if (ph.sel == "widen") {
+					if (ch != "~" && ch != "#" && ch != "P" && ch != "B" && q.d >= 2.5)
+						hit = at(rows, q.c - 1, q.r) == "~" || at(rows, q.c + 1, q.r) == "~" || at(rows, q.c, q.r - 1) == "~" || at(rows, q.c, q.r + 1) == "~";
+				}
+				if (hit) out.push(q);
+			}
+			return out;
+		}
+
+		private static function at(rows:Array, c:int, r:int):String {
+			if (c < 0 || r < 0 || r >= rows.length || c >= String(rows[r]).length) return " ";
+			return String(rows[r]).charAt(c);
+		}
+
+		/** Changes the arena for phase k: what each chosen tile becomes, laid down now if it's already up. Returns the tiles. */
+		public static function applyPhase(w:World, id:String, cells:Array, k:int):Array {
+			var ph:Object = phasesOf(id)[k];
+			var sel:Array = phaseCells(id, cells, k);
+			if (!ph) return sel;
+			var st:Object = STYLES[Bosses.SETPIECES[id].style];
+			var nt:int = ph.to == "hz" ? st.hz : ph.to == "water" ? World.WATER : ph.to == "hexfire" ? World.HEXFIRE : st.floor;
+			for each (var q:Object in sel) {
+				q.nt = nt;
+				q.no = 0;
+				if (q.on) { w.tiles[q.i] = nt; w.objs[q.i] = 0; }
+			}
+			return sel;
+		}
+
+		/** Where phase k's monsters come out: n of its tiles, spread evenly. */
+		public static function spawnSpots(sel:Array, n:int):Array {
+			var out:Array = [];
+			if (!sel.length || n <= 0) return out;
+			for (var j:int = 0; j < n; j++) {
+				var q:Object = sel[int((j + 0.5) * sel.length / n) % sel.length];
+				out.push({x: q.x + 0.5, y: q.y + 0.5});
+			}
+			return out;
 		}
 
 		/** Where the set-piece pieces stand (centre of each P tile). */

@@ -12,7 +12,10 @@ package realm {
 	public class SetPieceDecor {
 		private var g:Game;
 		private var sh:Shape = new Shape();
-		/** Set pieces up: {e, x, y, st, cells, t, end, upto, from, r (reach of the furthest corner)}. */
+		/**
+		 * Set pieces up: {e, x, y, st, cells, t, end, upto, from, r (reach of the furthest corner),
+		 * done (phases applied, bit k), pend (phases flashing: {k, t, sel, col})}.
+		 */
 		private var list:Array = [];
 		/** Tiles a second the structure builds and falls at. */
 		private static const SPEED:Number = 9;
@@ -53,8 +56,12 @@ package realm {
 				var st:Object = STYLES[e.def.setpiece.style];
 				if (!st) continue;
 				var tx:int = int(isNaN(e.homeX) ? e.x : e.homeX), ty:int = int(isNaN(e.homeY) ? e.y : e.homeY);
-				list.push({e: e, x: tx + 0.5, y: ty + 0.5, st: st, cells: SetPieces.plan(e.defId, w, tx, ty), t: 0, end: -1, upto: -1, from: 99,
-					r: SetPieces.HALF * 1.5});
+				var nar:Object = {e: e, x: tx + 0.5, y: ty + 0.5, st: st, cells: SetPieces.plan(e.defId, w, tx, ty), t: 0, end: -1, upto: -1, from: 99,
+					r: SetPieces.HALF * 1.5, done: 0, pend: []};
+				list.push(nar);
+				// arriving mid-fight: the arena is already as the fight has left it
+				var nph:int = SetPieces.phasesOf(e.defId).length;
+				for (var pk:int = 0; pk < nph; pk++) if (e.spMask & (1 << pk)) { nar.done |= 1 << pk; SetPieces.applyPhase(w, e.defId, nar.cells, pk); }
 				// the ground splits and the structure starts to rise
 				g.shake(0.8, 7);
 				g.burst(tx + 0.5, ty + 0.5, st.dust, 30);
@@ -70,6 +77,7 @@ package realm {
 					g.shake(0.6, 5);
 					g.ring(ar.x, ar.y, ar.st.part, 30);
 				}
+				if (ar.end < 0) phases(ar, dt);
 				if (ar.end < 0) {
 					// building outward, a ring at a time
 					var upto:Number = Math.floor(ar.t / STEP) * STEP * SPEED;
@@ -95,6 +103,84 @@ package realm {
 					g.parts.push(new Particle(ar.x + Math.cos(pa) * pr, ar.y + Math.sin(pa) * pr - (ar.st.move == "fall" ? 2 : 0), vx, vy, 1.2, Sprites.glow(ar.st.part)));
 				}
 			}
+		}
+
+		/** Whoever runs the boss starts phases when their moment comes; everyone counts down the warnings. */
+		private function phases(ar:Object, dt:Number):void {
+			var e:Enemy = ar.e;
+			var host:Boolean = !e.remote && g.sync && g.sync.isHost;
+			if (host) {
+				var k:int = SetPieces.trigger(e, e.spMask);
+				if (k >= 0) {
+					g.sync.arenaPhase(e, k, SetPieces.WARN, false);
+					phase(e, k, SetPieces.WARN, false);
+				}
+			}
+			for (var i:int = ar.pend.length - 1; i >= 0; i--) {
+				var p:Object = ar.pend[i];
+				p.t -= dt;
+				// the host decides when it happens; if its word never comes, go anyway
+				if (host ? p.t <= 0 : p.t <= -2) apply(ar, p.k);
+			}
+		}
+
+		/** Phase k of boss e's arena: flash the tiles for `warn` seconds, or change them now (go). */
+		public function phase(e:Enemy, k:int, warn:Number, go:Boolean):void {
+			e.spMask |= 1 << k;
+			var ar:Object = null;
+			for each (var a:Object in list) if (a.e == e && a.end < 0) { ar = a; break; }
+			if (!ar || (ar.done & (1 << k))) return;
+			if (go) { apply(ar, k); return; }
+			for each (var p:Object in ar.pend) if (p.k == k) return;
+			var ph:Object = SetPieces.phasesOf(e.defId)[k];
+			if (!ph) return;
+			ar.pend.push({k: k, t: warn, max: Math.max(0.1, warn), sel: SetPieces.phaseCells(e.defId, ar.cells, k), col: ph.col});
+			g.msg(ph.msg, ph.col);
+			g.showBanner(ph.when == "low" ? "The arena shifts!" : "The ward is broken!", ph.col, 2.2);
+			g.shake(0.4, 3);
+			Sfx.play("boss");
+		}
+
+		/** Changes the arena for phase k (and, as the host, brings out its monsters). */
+		private function apply(ar:Object, k:int):void {
+			if (ar.done & (1 << k)) return;
+			ar.done |= 1 << k;
+			for (var i:int = ar.pend.length - 1; i >= 0; i--) if (ar.pend[i].k == k) ar.pend.splice(i, 1);
+			var e:Enemy = ar.e, w:World = g.world;
+			var ph:Object = SetPieces.phasesOf(e.defId)[k];
+			var sel:Array = SetPieces.applyPhase(w, e.defId, ar.cells, k);
+			var x0:int = int(ar.x) - SetPieces.HALF, y0:int = int(ar.y) - SetPieces.HALF;
+			w.redrawArea(x0, y0, x0 + SetPieces.SIZE, y0 + SetPieces.SIZE);
+			g.shake(0.7, 7);
+			if (Game.opt("parts")) for (var j:int = 0; j < sel.length; j += Math.max(1, int(sel.length / 14))) g.burst(sel[j].x + 0.5, sel[j].y + 0.5, ph ? ph.col : ar.st.dust, 6);
+			if (!e.remote && g.sync && g.sync.isHost) {
+				g.sync.arenaPhase(e, k, 0, true);
+				if (ph && ph.spawn) for each (var sp:Object in SetPieces.spawnSpots(sel, ph.n)) g.spawnEnemy(ph.spawn, sp.x, sp.y, e.zone);
+			}
+			unstick();
+		}
+
+		/** The tiles about to change, flashing faster as the moment comes. */
+		public function drawGround(canvas:BitmapData):void {
+			var gr:* = sh.graphics, any:Boolean = false;
+			gr.clear();
+			for each (var ar:Object in list) {
+				for each (var p:Object in ar.pend) {
+					var left:Number = Math.max(0, p.t) / p.max;
+					var a:Number = 0.18 + 0.4 * (0.5 + 0.5 * Math.sin(g.time * (8 + (1 - left) * 18)));
+					gr.beginFill(p.col, a);
+					for each (var q:Object in p.sel) {
+						gr.moveTo(g.scrX(q.x, q.y), g.scrY(q.x, q.y));
+						gr.lineTo(g.scrX(q.x + 1, q.y), g.scrY(q.x + 1, q.y));
+						gr.lineTo(g.scrX(q.x + 1, q.y + 1), g.scrY(q.x + 1, q.y + 1));
+						gr.lineTo(g.scrX(q.x, q.y + 1), g.scrY(q.x, q.y + 1));
+						gr.lineTo(g.scrX(q.x, q.y), g.scrY(q.x, q.y));
+					}
+					gr.endFill();
+					any = true;
+				}
+			}
+			if (any) canvas.draw(sh);
 		}
 
 		/** After a ring went up (or came down): redraw it, throw up dust where walls and scenery moved, and free anyone caught. */

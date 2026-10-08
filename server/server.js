@@ -347,7 +347,7 @@ function publicSave(s) {
 function applySave(c, data) {
   const prev = onlineSave(c.key);
   // (with server-run monsters, gold and fame are checked against what was earned instead of a time budget)
-  let why = checkSave(prev, data, c.meta, Date.now(), sims && !isAdmin(c) ? ['gold', 'fame'] : null);
+  let why = checkSave(prev, data, c.meta, Date.now(), sims && !isAdmin(c) ? ['gold', 'fame', 'onrane'] : null);
   // items must come from the server (admins are trusted), and stats stay within the class limits
   // (only when the server runs the monsters: otherwise players' games still roll loot)
   if (!why && !isAdmin(c) && sims) why = items.check(prev, data) || items.checkStats(data);
@@ -371,7 +371,7 @@ function applySave(c, data) {
     if (cut) {
       log('wallet ' + c.name + ': ' + cut);
       store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + cut);
-      c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
+      c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
   } else if (prev._fame) data._fame = prev._fame;
   // and earned titles (the game's list is only a copy)

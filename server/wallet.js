@@ -21,13 +21,13 @@ const { Data } = require('./sim/gen/game');
 
 const GOLD_LIFE = 20 * 60 * 1000;
 /** The small allowance: [most it holds, per second]. */
-const ALLOW = { gold: [500, 0.5], fame: [200, 0.25] };
+const ALLOW = { gold: [500, 0.5], fame: [200, 0.25], onrane: [10, 0.01] };
 /** Death fame bonuses add at most this much (see Data.fameBonuses). */
 const FAME_BONUS = 2.2;
 
 /** The account's credit kept in memory: gold [{n, at}], allowance {gold, fame}, t (last refill). */
 function state(meta) {
-  if (!meta.wallet) meta.wallet = { gold: [], allow: { gold: ALLOW.gold[0], fame: ALLOW.fame[0] }, t: Date.now() };
+  if (!meta.wallet) meta.wallet = { gold: [], onrane: [], allow: { gold: ALLOW.gold[0], fame: ALLOW.fame[0], onrane: ALLOW.onrane[0] }, t: Date.now() };
   return meta.wallet;
 }
 
@@ -49,7 +49,7 @@ function killValue(e) {
   // death fame: xp / 8 (streak and elite xp up to 3.5x), half a fame a kill, 150 a boss, then the bonuses
   const xpFame = (d.xp || 0) * 3.5 / 8 * FAME_BONUS;
   const fame = xpFame + (0.5 + (e.isBoss ? 150 : 0)) * FAME_BONUS;
-  return { gold, fame, xpFame };
+  return { gold, fame, xpFame, onrane: d.onrane || 0 };
 }
 
 /** A saved hero's own fame (Player.fame), from its saved counters. */
@@ -65,6 +65,7 @@ function credit(meta, sv, charId, e, now, near) {
     const w = state(meta);
     w.gold.push({ n: v.gold, at: now || Date.now() });
     if (w.gold.length > 4000) w.gold.splice(0, w.gold.length - 4000);
+    if (v.onrane) w.onrane.push({ n: v.onrane, at: now || Date.now() });
   }
   if (charId) {
     const book = fameBook(sv);
@@ -78,22 +79,47 @@ function refill(w, now) {
   for (const k in ALLOW) w.allow[k] = Math.min(ALLOW[k][0], w.allow[k] + ALLOW[k][1] * secs);
 }
 
-/** Gold credit still good. */
-function goldCredit(w, now) {
-  while (w.gold.length && now - w.gold[0].at > GOLD_LIFE) w.gold.shift();
+/** Credit still good for currency k (gold or onrane). */
+function creditOf(w, k, now) {
+  const list = w[k];
+  while (list.length && now - list[0].at > GOLD_LIFE) list.shift();
   let n = 0;
-  for (const g of w.gold) n += g.n;
+  for (const g of list) n += g.n;
   return n;
 }
 
-function useGold(w, n) {
-  while (n > 0 && w.gold.length) {
-    const g = w.gold[0];
+function useCredit(w, k, n) {
+  const list = w[k];
+  while (n > 0 && list.length) {
+    const g = list[0];
     if (g.n > n) { g.n -= n; return 0; }
     n -= g.n;
-    w.gold.shift();
+    list.shift();
   }
   return n;
+}
+
+/** Currency k (gold or onrane) may rise by its credit, first-time achievements and the allowance; more is cut back. */
+function settleCurrency(prev, next, w, k, ach, now, notes) {
+  const before = Math.max(0, prev[k] || 0);
+  let gain = (Number(next[k]) || 0) - before;
+  if (!isFinite(gain)) { next[k] = before; return; }
+  if (gain <= 0) return;
+  let left = gain - ach;
+  if (left > 0) {
+    const take = Math.min(left, creditOf(w, k, now));
+    useCredit(w, k, take);
+    left -= take;
+  }
+  if (left > 0) {
+    const a = Math.min(left, w.allow[k]);
+    w.allow[k] -= a;
+    left -= a;
+  }
+  if (left > 0) {
+    next[k] = Math.floor(before + gain - left);
+    notes.push((k === 'onrane' ? 'Aether' : k) + ' cut back by ' + Math.round(left));
+  }
 }
 
 /** Fame each cosmetic costs (skins, dyes, titles and pet skins bought with fame). */
@@ -127,31 +153,13 @@ function settle(prev, next, meta, now) {
   refill(w, now);
   const notes = [];
 
-  // ---- gold: gains up to the credit, plus achievements reached for the first time
+  // ---- gold and Aether: gains up to the credit, plus achievements reached for the first time
+  if (!w.onrane) w.onrane = [];
   const pd = (prev.ach && prev.ach.done) || {}, nd = (next.ach && next.ach.done) || {};
-  let achGold = 0;
-  for (const a of Data.ACHIEVEMENTS) if (nd[a.id] && !pd[a.id]) achGold += a.gold || 0;
-  const pg = Math.max(0, prev.gold || 0);
-  let gain = (Number(next.gold) || 0) - pg;
-  if (!isFinite(gain)) gain = 0;
-  if (gain > 0) {
-    let left = gain - achGold;
-    if (left > 0) {
-      const take = Math.min(left, goldCredit(w, now));
-      useGold(w, take);
-      left -= take;
-    }
-    // anything beyond the credit comes out of the allowance
-    if (left > 0) {
-      const a = Math.min(left, w.allow.gold);
-      w.allow.gold -= a;
-      left -= a;
-    }
-    if (left > 0) {
-      next.gold = Math.floor(pg + gain - left);
-      notes.push('gold cut back by ' + Math.round(left));
-    }
-  }
+  let achGold = 0, achOnrane = 0;
+  for (const a of Data.ACHIEVEMENTS) if (nd[a.id] && !pd[a.id]) { achGold += a.gold || 0; achOnrane += a.onrane || 0; }
+  settleCurrency(prev, next, w, 'gold', achGold, now, notes);
+  settleCurrency(prev, next, w, 'onrane', achOnrane, now, notes);
 
   // ---- fame: rises only when heroes die (by what each earned), less what cosmetics cost
   // (heroes from before the server kept count start with what they had already earned)

@@ -4511,11 +4511,12 @@ package realm {
 		public function walletFixed(m:Object):void {
 			Save.data.gold = int(m.gold);
 			Save.data.fame = int(m.fame);
+			if (m.onrane !== undefined) Save.data.onrane = int(m.onrane);
 			if (m.skins) Save.data.skins = m.skins;
 			if (m.cosmetics) Save.data.cosmetics = m.cosmetics;
 			if (player && player.skin && !(Save.data.skins && Save.data.skins[player.skin])) player.skin = "";
 			Save.flush();
-			msg("The server corrected your gold and fame to what you have earned.", 0xff8080);
+			msg("The server corrected your gold, fame and Aether to what you have earned.", 0xff8080);
 			refreshStation();
 		}
 

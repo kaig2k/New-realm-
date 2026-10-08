@@ -795,6 +795,15 @@ async function run() {
       const r2 = wallet.settle(saved, died, hm, t0 + 1000);
       check('an honest dungeon clear (' + n + ' kills, ' + gold + ' gold, ' + died.fame + ' death fame) is never cut back', n > 10 && r1 === null && r2 === null, r1 + ' / ' + r2);
     }
+    {
+      const am = {}, asv = { gold: 0, onrane: 5, chars: [], _fame: {} };
+      const lord = { def: { xp: 900, onrane: 3, gold: 200 }, zone: 4, isBoss: true, hitters: [] };
+      wallet.credit(am, asv, null, lord, now);
+      const fine = { gold: 0, onrane: 8, chars: [] };
+      const greedy = { gold: 0, onrane: 9999, chars: [] };
+      check('Aether: what bosses drop is accepted, more is cut back', wallet.settle(asv, fine, am, now) === null &&
+        /Aether cut back/.test(wallet.settle(fine, greedy, am, now) || '') && greedy.onrane <= 8 + wallet.ALLOW.onrane[0]);
+    }
     const poor = { gold: 0, fame: 100, chars: [], _fame: {} };
     const buys = { gold: 0, fame: 0, chars: [], cosmetics: { t_eternal: true } };
     check('cosmetics bought without the fame are taken back', /cosmetics refused/.test(wallet.settle(poor, buys, {}, now) || '') && !buys.cosmetics.t_eternal);

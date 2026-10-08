@@ -189,11 +189,10 @@ and offline characters, items and currencies can't be brought in. (Older servers
   must also stay within its class's limits. Starter gear needs no id, and admins are trusted.
   Saves from before the ledger: their items get ids the first time this version loads them,
   so nobody loses anything.
-- **Gold and fame:** every kill the server decides credits each player who hit it with
-  the most gold it can pay, and the hero with the fame it can add. A save can only raise
-  gold by that credit (it runs out after 20 minutes), and account fame only goes up
+- **Gold, fame and Aether:** every kill the server decides credits each player who hit it with
+  the most gold and Aether it can pay, and the hero with the fame it can add. A save can only raise
+  gold and Aether by that credit (it runs out after 20 minutes), and account fame only goes up
   when a hero dies, by what that hero earned. Selling to the Nexus merchant goes through
   the server, and Fame Store purchases must be paid for. Anything above that is cut back
   (logged in `anticheat.log`) and the game is told the real totals.
-- **Not yet covered:** dodging is worked out in each player's game. Aether totals come
-  from the game, limited by a small refilling allowance per account.
+- **Not yet covered:** dodging is worked out in each player's game.

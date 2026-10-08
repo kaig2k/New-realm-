@@ -2,6 +2,11 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from designs import DESIGNS
+from monsters_a import MONSTERS as MA
+from monsters_b import MONSTERS as MB
+from monsters_c import MONSTERS as MC
+# bosses first, then every monster that used to share another's drawing
+DESIGNS = DESIGNS + MA + MB + MC
 from canvas import preview
 from animate import frames as animate
 

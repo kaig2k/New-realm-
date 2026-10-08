@@ -495,22 +495,25 @@ class Data {
 		}
 	static rollUniques(def, items, boost) {
 			if (!def.uniques) return;
-			var c = def.uchance || (def.raid ? 0.3 : def.final || def.finale ? 0.25 : def.dtier >= 5 ? 0.2 : def.dungeon ? 0.16 : 0.12);
+			
+			var c = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
 			for (var id of __vals( def.uniques)) if (Math.random() < c * boost) items.push(Uniques.make(id));
 		}
 	static rollLoot(def, zone, cls, fortune) { zone = __int(zone); fortune = __int(fortune);
 			var items = [];
 			var boost = 1 + fortune / 100;
+			
+			var rare = 1 + Math.min(160, Math.max(0, fortune)) / 400;
 			var slot = 0;
-			Data.rollUniques(def, items, boost);
-			Godly.roll(def, items, boost);
+			Data.rollUniques(def, items, rare);
+			Godly.roll(def, items, rare);
 			Data.rollKey(def, items, boost);
 			if (def.raid) {
 				
-				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.5 ? "fb" : "st"));
-				if (Math.random() < 0.15 * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.03 * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.2 * boost) items.push(Data.makeSor());
+				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
+				if (Math.random() < 0.06 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.004 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.1 * rare) items.push(Data.makeSor());
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				return items;
@@ -518,10 +521,10 @@ class Data {
 			if (def.final || def.finale) {
 				
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "fb"));
-				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "fb"));
-				if (Math.random() < 0.3 * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.05 * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.35 * boost) items.push(Data.makeSor());
+				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
+				if (Math.random() < 0.12 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.006 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.18 * rare) items.push(Data.makeSor());
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("stat", Data.randomStat()));
@@ -530,7 +533,7 @@ class Data {
 			if (def.treasure) {
 				
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.06 * boost) items.push(Data.makeSor());
+				if (Math.random() < 0.03 * rare) items.push(Data.makeSor());
 				for (var tp = __int(0); tp < 3; tp++) items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("hp"));
 				items.push(Data.makePotion("mp"));
@@ -539,10 +542,10 @@ class Data {
 			if (def.dungeon && def.dtier >= 5) {
 				
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
-				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "st"));
-				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.15 * boost) items.push(Data.makeSor());
+				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : "st"));
+				if (Math.random() < (def.sealed ? 0.15 : 0.07) * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < (def.sealed ? 0.008 : 0.0025) * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.07 * rare) items.push(Data.makeSor());
 				for (var hp2 = __int(0); hp2 < 3; hp2++) items.push(Data.makePotion("stat", Data.randomStat()));
 				return items;
 			}
@@ -560,8 +563,8 @@ class Data {
 			}
 			if (def.dungeon) {
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.1 * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.06 * boost) items.push(Data.makeSor());
+				if (Math.random() < 0.03 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.03 * rare) items.push(Data.makeSor());
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				return items;
@@ -570,8 +573,8 @@ class Data {
 				
 				slot = __int(__int(Math.random() * 4));
 				items.push(Data.makeForSlot(Data.lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.25 ? "st" : null));
-				if (Math.random() < 0.08 * boost) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.05 * boost) items.push(Data.makeSor());
+				if (Math.random() < 0.02 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.025 * rare) items.push(Data.makeSor());
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("hp"));
@@ -736,7 +739,11 @@ class Godly {
 		}
 	static roll(def, items, boost) {
 			if (!def.godly) return;
-			for (var d of __vals( def.godly)) if (Math.random() < Godly.CHANCE * boost) items.push(Godly.make(d[0], d[1]));
+			
+			if (def.godly.length && Math.random() < Godly.CHANCE * boost) {
+				var d = def.godly[__int(Math.random() * def.godly.length)];
+				items.push(Godly.make(d[0], d[1]));
+			}
 		}
 	static describe(it) {
 			var src = Godly.source[it.gid];
@@ -3142,7 +3149,7 @@ Data.SHOP = [
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 450},
-			{id: "sor", name: "Star Shard", price: 900},
+			{id: "sor", name: "Star Shard", price: 7500},
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];

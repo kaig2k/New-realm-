@@ -93,7 +93,11 @@ package realm {
 		/** Rolls a boss's Godly pieces (each 1 in 3,000, a little better with Bounty). */
 		public static function roll(def:Object, items:Array, boost:Number):void {
 			if (!def.godly) return;
-			for each (var d:Array in def.godly) if (Math.random() < CHANCE * boost) items.push(make(d[0], d[1]));
+			// one roll a kill, however many Godly items the boss can drop (then which one)
+			if (def.godly.length && Math.random() < CHANCE * boost) {
+				var d:Array = def.godly[int(Math.random() * def.godly.length)];
+				items.push(make(d[0], d[1]));
+			}
 		}
 
 		public static function describe(it:Object):String {

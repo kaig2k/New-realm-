@@ -688,8 +688,8 @@ class WorldSim {
 /** The treasure goblin's sack (was Game.goblinLoot). */
 function goblinLoot(zone, cls, lk) {
   const out = [Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, 'ut'), Data.makePotion('stat', Data.randomStat()), Data.makePotion('stat', Data.randomStat())];
-  if (Math.random() < 0.35) out.push(Data.makeSor());
-  if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, Math.random() < 0.7 ? 'st' : 'fb'));
+  if (Math.random() < 0.12) out.push(Data.makeSor());
+  if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, Math.random() < 0.85 ? 'st' : 'fb'));
   return out.concat(Data.rollLoot(Data.ENEMIES.loot_goblin, zone, cls, lk + 40));
 }
 
@@ -697,7 +697,7 @@ function goblinLoot(zone, cls, lk) {
 function mimicLoot(cls) {
   const out = [Data.makePotion('stat', Data.randomStat())];
   if (Math.random() < 0.4) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, 'ut'));
-  if (Math.random() < 0.15) out.push(Data.makeSor());
+  if (Math.random() < 0.06) out.push(Data.makeSor());
   return out;
 }
 

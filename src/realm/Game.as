@@ -3710,7 +3710,7 @@ package realm {
 		private function mimicLoot():Array {
 			var out:Array = [Data.makePotion("stat", Data.randomStat())];
 			if (Math.random() < 0.4) out.push(Data.makeForSlot(player.cls, int(Math.random() * 4), 7, "ut"));
-			if (Math.random() < 0.15) out.push(Data.makeSor());
+			if (Math.random() < 0.06) out.push(Data.makeSor());
 			return out;
 		}
 
@@ -3792,7 +3792,7 @@ package realm {
 			out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
 			out.push(Data.makePotion("stat", Data.randomStat()));
 			out.push(Data.makePotion("stat", Data.randomStat()));
-			if (Math.random() < 0.35) out.push(Data.makeSor());
+			if (Math.random() < 0.12) out.push(Data.makeSor());
 			if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.7 ? "st" : "fb"));
 			for each (var it:Object in Data.rollLoot(Data.ENEMIES.loot_goblin, zone, player.cls, player.frt + 40)) out.push(it);
 			return out;

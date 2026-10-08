@@ -408,7 +408,7 @@ package realm {
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 450},
-			{id: "sor", name: "Star Shard", price: 900},
+			{id: "sor", name: "Star Shard", price: 7500},
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
@@ -1487,23 +1487,26 @@ package realm {
 		/** A boss's own unique items: each one rolls separately. */
 		private static function rollUniques(def:Object, items:Array, boost:Number):void {
 			if (!def.uniques) return;
-			var c:Number = def.uchance || (def.raid ? 0.3 : def.final || def.finale ? 0.25 : def.dtier >= 5 ? 0.2 : def.dungeon ? 0.16 : 0.12);
+			// late-game items are meant to be hunted for (each unique the boss carries rolls on its own)
+			var c:Number = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
 			for each (var id:String in def.uniques) if (Math.random() < c * boost) items.push(Uniques.make(id));
 		}
 
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {
 			var items:Array = [];
 			var boost:Number = 1 + fortune / 100;
+			// luck helps a lot with ordinary drops but only a little with the rarest ones (at most +40%)
+			var rare:Number = 1 + Math.min(160, Math.max(0, fortune)) / 400;
 			var slot:int;
-			rollUniques(def, items, boost);
-			Godly.roll(def, items, boost);
+			rollUniques(def, items, rare);
+			Godly.roll(def, items, rare);
 			rollKey(def, items, boost);
 			if (def.raid) {
 				// raid bosses: the best loot in the game
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "fb" : "st"));
-				if (Math.random() < 0.15 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.03 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.2 * boost) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
+				if (Math.random() < 0.06 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.004 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.1 * rare) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				return items;
@@ -1511,10 +1514,10 @@ package realm {
 			if (def.final || def.finale) {
 				// the Dark Elder: fabled gear, a shot at legendaries and relics
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
-				if (Math.random() < 0.3 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.05 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.35 * boost) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
+				if (Math.random() < 0.12 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.006 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.18 * rare) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
@@ -1523,7 +1526,7 @@ package realm {
 			if (def.treasure) {
 				// treasure room chest: a set piece for your class plus potions
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.06 * boost) items.push(makeSor());
+				if (Math.random() < 0.03 * rare) items.push(makeSor());
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
 				items.push(makePotion("mp"));
@@ -1532,10 +1535,10 @@ package realm {
 			if (def.dungeon && def.dtier >= 5) {
 				// hard multi-boss dungeons: the best loot outside the Dark Elder
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.35 ? "fb" : "st"));
-				if (Math.random() < (def.sealed ? 0.35 : 0.15) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < (def.sealed ? 0.06 : 0.02) * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.15 * boost) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : "st"));
+				if (Math.random() < (def.sealed ? 0.15 : 0.07) * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < (def.sealed ? 0.008 : 0.0025) * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
+				if (Math.random() < 0.07 * rare) items.push(makeSor());
 				for (var hp2:int = 0; hp2 < 3; hp2++) items.push(makePotion("stat", randomStat()));
 				return items;
 			}
@@ -1553,8 +1556,8 @@ package realm {
 			}
 			if (def.dungeon) {
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.1 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.06 * boost) items.push(makeSor());
+				if (Math.random() < 0.03 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.03 * rare) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				return items;
@@ -1563,8 +1566,8 @@ package realm {
 				// realm event: Runed or Bonded piece, sometimes Starforged
 				slot = int(Math.random() * 4);
 				items.push(makeForSlot(lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.25 ? "st" : null));
-				if (Math.random() < 0.08 * boost) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.05 * boost) items.push(makeSor());
+				if (Math.random() < 0.02 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
+				if (Math.random() < 0.025 * rare) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));

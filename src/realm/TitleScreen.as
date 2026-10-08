@@ -116,6 +116,8 @@ package realm {
 				stage.addEventListener(KeyboardEvent.KEY_DOWN, onKey);
 			});
 			addEventListener(Event.REMOVED_FROM_STAGE, function(e:Event):void {
+				// only when the title screen itself goes (not one of its texts or buttons being redrawn)
+				if (e.target != e.currentTarget) return;
 				removeEventListener(Event.ENTER_FRAME, animate);
 				stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKey);
 			});
@@ -243,8 +245,16 @@ package realm {
 				ph: Math.random() * 6.28, r: 0.8 + Math.random() * 1.8, life: 0, col: Math.random() < 0.7 ? 0xffb040 : 0xffe9a0};
 		}
 
+		/** Seconds until we next look for the server after a restart. */
+		private var retryT:Number = 3;
+
 		private function animate(e:Event):void {
 			t += 1 / 60;
+			// dropped out of a game: keep knocking until the server is back, then log in again
+			if (Online.dropped && !Online.connected && !connecting && !dialog && server && Accounts.remembered(server)) {
+				retryT -= 1 / 60;
+				if (retryT <= 0) { retryT = 5; resume(null); }
+			}
 			if (playBtn) {
 				playGlow.alpha = 0.35 + 0.3 * Math.sin(t * 2.4);
 				playGlow.blurX = playGlow.blurY = 14 + 8 * Math.sin(t * 2.4);
@@ -300,7 +310,10 @@ package realm {
 			showTitle();
 			onlineLayer.removeChildren();
 			var tf:TextField = Ui.text(15, 0xdddddd, true, "center", Ui.W, true);
-			tf.htmlText = Online.connected ? "Online: <font color='#5ae06a'>" + Online.serverName + "</font>  (" + Online.welcome.online + " playing)"
+			tf.htmlText = Online.outdated ? "<font color='#ffd75e'>" + Online.serverName + " has been updated!</font> Close the game and open it again to play the new version."
+				: Online.dropped && !Online.connected ? "<font color='#ffd75e'>The server is restarting</font> (probably for an update). Waiting for it to come back..."
+				: Online.dropped ? "<font color='#5ae06a'>" + Online.serverName + " is back!</font> Press PLAY to rejoin."
+				: Online.connected ? "Online: <font color='#5ae06a'>" + Online.serverName + "</font>  (" + Online.welcome.online + " playing)"
 				: connecting ? "Connecting to the server..."
 				: netError ? "<font color='#ff8080'>Couldn't reach the server.</font> Press PLAY to try again."
 				: "Log in or create an account to play.";
@@ -330,7 +343,9 @@ package realm {
 		}
 
 		private function clickPlay():void {
-			if (Online.connected) onPlay();
+			// this copy of the game is older than the server's: it has to be reopened
+			if (Online.outdated) { refreshOnline(); return; }
+			if (Online.connected) { Online.dropped = false; onPlay(); }
 			else if (server && Accounts.remembered(server)) resume(onPlay);
 			else showLogin();
 		}

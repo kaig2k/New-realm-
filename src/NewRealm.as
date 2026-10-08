@@ -69,7 +69,16 @@ package {
 			if (fade.alpha <= 0) fade.visible = false;
 		}
 
+		/** The connection dropped (a server restart): from the menus, back to the title screen to wait for it. */
+		private function connectionDropped():void {
+			if (!screen || screen is Game || screen is TitleScreen) return;
+			if (screen is realm.CreatorScreen) return;
+			Online.dropped = true;
+			showTitle();
+		}
+
 		private function showTitle():void {
+			Online.onDropped = connectionDropped;
 			setScreen(new TitleScreen(showMenu));
 		}
 

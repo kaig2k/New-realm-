@@ -45,10 +45,17 @@ package realm {
 		public static var connected:Boolean = false;
 		/** The server's welcome: {id, name, realms: [{name, seed}], online}. */
 		public static var welcome:Object;
+		/** The connection to a game in progress was lost (the server restarted, most likely). */
+		public static var dropped:Boolean = false;
+		/** The build of the game the server handed out when we first connected, and whether it has changed since. */
+		public static var firstBuild:String = null;
+		public static var outdated:Boolean = false;
 		/** Receives every message after the welcome (set by ServerNet). */
 		private static var _onMessage:Function;
 		/** Called when the connection drops. */
 		public static var onClose:Function;
+		/** Also called when a working connection is lost, wherever the player is (the menus use it). */
+		public static var onDropped:Function;
 
 		public static function set onMessage(fn:Function):void {
 			_onMessage = fn;
@@ -223,6 +230,8 @@ package realm {
 				}
 				if (m.t == "welcome") {
 					welcome = m;
+					// the server now hands out a different game: this copy is out of date
+					if (m.build) { if (firstBuild == null) firstBuild = m.build; else if (m.build != firstBuild) outdated = true; }
 					connected = true;
 					if (m.session) Accounts.remember(address, m.name, m.session);
 					Accounts.loggedIn(m.name);
@@ -266,7 +275,10 @@ package realm {
 			connected = false;
 			socket = null;
 			if (connectDone != null) fail("The server closed the connection.");
-			else if (was && onClose != null) onClose();
+			else if (was) {
+				if (onClose != null) onClose();
+				if (onDropped != null) onDropped();
+			}
 		}
 
 		private static function onError(e:Event):void {

@@ -1356,6 +1356,13 @@ package realm {
 			}
 		}
 
+		/** The connection dropped (usually a server restart): everyone leaves to the title screen and rejoins from there. */
+		public function serverGone():void {
+			if (quitRequested) return;
+			saveCharacter();
+			quitRequested = true;
+		}
+
 		/** The server is gone for good: back to the title screen (your last save is on the server). */
 		public function lostConnection(err:String):void {
 			msg("Lost connection to the server (" + err + "). Returning to the title screen...", 0xff8080);

@@ -22,24 +22,22 @@ package realm {
 		private var pingT:Number = 2;
 		/** Round trip to the server in ms (-1 until measured). */
 		public var latency:int = -1;
-		private var retryT:Number = 0;
 		private var lastHid:int = 0;
-		private var retries:int = 0;
-		private var reconnecting:Boolean = false;
+		/** The server sent us away (logged in elsewhere, banned): don't log straight back in. */
+		private var kicked:Boolean = false;
 
 		public function ServerNet(g:Game) {
 			super(g);
 			Online.onClose = function():void {
-				g.msg("Lost the connection to the server. Reconnecting...", 0xff8080);
 				if (trade) endTrade("Trade cancelled.");
 				players.length = 0;
 				party.length = 0;
 				partyInfo = [];
-				// keep playing: this game runs the monsters until we're back
-				g.sync.hostChanged(g.world.key, true);
 				g.socialChanged();
-				retries = 0;
-				retryT = 3;
+				// everyone leaves the realm: the game goes back to the title screen, which waits
+				// for the server and logs back in (you rejoin from character select)
+				Online.dropped = !kicked;
+				if (g.stage) g.serverGone();
 			};
 			Online.onMessage = onMessage;
 		}
@@ -64,7 +62,7 @@ package realm {
 		override public function update(dt:Number):void {
 			for each (var p:RemotePlayer in players) p.update(dt);
 			if (trade) trade.update(dt);
-			if (!Online.connected) { tryReconnect(dt); return; }
+			if (!Online.connected) return;
 			pingT -= dt;
 			if (pingT <= 0) { pingT = 5; Online.send({t: "ping", at: getTimer()}); }
 			sendT -= dt;
@@ -85,26 +83,6 @@ package realm {
 				var js:String = JSON.stringify(prof);
 				if (js != lastProfile) { lastProfile = js; Online.send({t: "profile", profile: prof}); }
 			}
-		}
-
-		private function tryReconnect(dt:Number):void {
-			if (reconnecting || retries >= 10 || !Online.address) return;
-			retryT -= dt;
-			if (retryT > 0) return;
-			reconnecting = true;
-			retries++;
-			Online.connect(Online.address, function(err:String):void {
-				reconnecting = false;
-				if (err) {
-					retryT = 5;
-					if (retries >= 10) g.lostConnection(err);
-					return;
-				}
-				g.msg("Reconnected to " + Online.serverName + ".", 0x5ae06a);
-				lastX = NaN;
-				lastProfile = "";
-				enterWorld(g.world);
-			});
 		}
 
 		override public function serverCommand(text:String):void { Online.send({t: "cmd", text: text}); }
@@ -207,6 +185,11 @@ package realm {
 				case "questComplete":
 					g.questComplete(m.text);
 					break;
+				case "restart":
+					// the server is about to restart: get our latest progress to it first
+					Online.sendSave();
+					g.msg("The server is restarting. You'll be able to rejoin in a moment.", 0xffd75e);
+					break;
 				case "records":
 					g.recordsArrived(m.r);
 					break;
@@ -244,7 +227,7 @@ package realm {
 					break;
 				case "kicked":
 					g.msg(m.msg, 0xff8080);
-					retries = 10;
+					kicked = true;
 					break;
 				case "pong":
 					if (m.at != undefined) latency = getTimer() - int(m.at);

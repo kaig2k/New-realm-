@@ -378,7 +378,7 @@ const handlers = {
     accountMeta.set(key, c.meta);
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash });
+      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD });
     sendGuild(c.guild);
     c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
     log(c.name, 'joined (' + byName.size + ' online)');
@@ -1115,6 +1115,10 @@ function closeClient(c) {
  * a git pull on the server is enough. Flash also asks for /crossdomain.xml.
  */
 const GAME_SWF = process.env.NEWREALM_GAME_SWF || path.join(__dirname, '..', 'bin', 'NewRealm.swf');
+/** Which build of the game this server hands out: a player still on an older one is told to reopen the game. */
+const GAME_BUILD = (() => {
+  try { return require('crypto').createHash('sha1').update(fs.readFileSync(GAME_SWF)).digest('hex').slice(0, 12); } catch (e) { return ''; }
+})();
 function serveHttp(sock, req) {
   const url = (/^GET\s+(\S+)/.exec(req) || [])[1] || '/';
   const pathOnly = url.split('?')[0];
@@ -1317,10 +1321,17 @@ process.stdin.on('data', (data) => {
   }
 });
 
+let shuttingDown = false;
+/** Stopping (an update or restart): everyone is told and sends their save, then it's all written and the server exits. */
 function shutdown() {
-  log('Saving and shutting down...');
-  store.flushAll();
-  setTimeout(() => process.exit(0), 300);
+  if (shuttingDown) return;
+  shuttingDown = true;
+  log('Restarting: telling players, saving and shutting down...');
+  for (const c of clients.values()) if (c.authed) c.send({ t: 'restart' });
+  setTimeout(() => {
+    store.flushAll();
+    setTimeout(() => process.exit(0), 300);
+  }, 1500);
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

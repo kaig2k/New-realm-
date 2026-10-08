@@ -40,6 +40,8 @@ package realm {
 		/** Fan of Knives poison (time left, next tick, damage per tick) and War Cry vulnerability. */
 		public var poisonT:Number = 0, poisonTick:Number = 0, poisonDmg:int = 0, vulnT:Number = 0;
 		public var facingLeft:Boolean = false;
+		/** A realm event boss's set-piece pieces (wards, menders, hazards), set by whoever runs it. */
+		public var props:Array;
 		/** Bosses can be made immune (the Dark Elder while his crystals stand). */
 		public var invuln:Boolean = false;
 		/** Phase-change shield (seconds). */
@@ -172,6 +174,17 @@ package realm {
 			if (slowT > 0) slowT -= dt;
 			if (shieldT > 0) shieldT -= dt;
 			if (remote) { follow(dt, g); return; }
+			if (props) {
+				// its arena: wards keep it immune, menders heal it
+				var wards:int = 0, mend:Number = 0;
+				for each (var pr:Enemy in props) {
+					if (pr.dead) continue;
+					if (pr.def.ward) wards++;
+					if (pr.def.mend) mend += pr.def.mend;
+				}
+				if (def.setpiece && def.setpiece.ward) invuln = wards > 0;
+				if (mend > 0 && hp > 0 && hp < maxHp) hp = Math.min(maxHp, hp + maxHp * mend * dt);
+			}
 			// the nearest player it can see (online that includes other players)
 			var p:Object = g.aggroTarget(this);
 			var dx:Number = p ? p.x - x : 0, dy:Number = p ? p.y - y : 0;

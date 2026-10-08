@@ -750,6 +750,7 @@ class Bosses {
 			Bosses.hardDungeons();
 			Bosses.finales();
 			Bosses.raids();
+			Bosses.setPieces();
 			Bosses.harden();
 			Bosses.fair();
 			Godly.init();
@@ -811,6 +812,54 @@ class Bosses {
 					}
 				}
 			}
+		}
+	static setPieceSpots(id, x, y, w) {
+			var sp = Bosses.SETPIECES[id];
+			var out = [];
+			if (!sp) return out;
+			for (var i = __int(0); i < sp.n; i++) {
+				var a = i * Math.PI * 2 / sp.n + Math.PI / 4;
+				for (var r = sp.r; r >= 2; r -= 0.5) {
+					var px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+					if (w.canStand(px, py, 0.5, true)) { out.push({what: sp.prop, x: px, y: py}); break; }
+				}
+			}
+			return out;
+		}
+	static setPieces() {
+			var still = {ai: "still", spd: 0, r: 0.6, aggro: 13, range: 12, drop: 0, xp: 90, keep: 0, prop: true};
+			
+			Bosses.mob("cube_pylon", Bosses.o(Bosses.o({}, still), {name: "Cube Pylon", spr: "cube_pylon", hp: 2400, def: 14, col: 0xff60ff, ward: true,
+				attacks: [Bosses.ring(6, 30, 4, 45, 1.6, 0xff60ff, {shape: "star"})]}));
+			Bosses.mob("royal_effigy", Bosses.o(Bosses.o({}, still), {name: "Royal Effigy", spr: "royal_effigy", hp: 2400, def: 16, col: 0xffd060, ward: true,
+				attacks: [Bosses.aim(3, 20, 8, 50, 1.5, 0xffd060)]}));
+			Bosses.mob("spectral_candle", Bosses.o(Bosses.o({}, still), {name: "Spectral Candle", spr: "spectral_candle", hp: 2000, def: 10, col: 0x90c0ff, ward: true,
+				attacks: [Bosses.spiral(2, 17, 4, 40, 0.5, 0x90c0ff)]}));
+			Bosses.mob("bone_brazier", Bosses.o(Bosses.o({}, still), {name: "Bone Brazier", spr: "bone_brazier", hp: 2400, def: 14, col: 0xb060ff, ward: true,
+				attacks: [Bosses.ring(8, 22, 4.5, 45, 1.8, 0xb060ff)]}));
+			Bosses.mob("hex_cauldron", Bosses.o(Bosses.o({}, still), {name: "Hex Cauldron", spr: "hex_cauldron", hp: 2200, def: 12, col: 0x70e050, ward: true,
+				attacks: [Bosses.aim(1, 0, 6, 55, 1.4, 0x70e050, {eff: "slowed", r: 0.3})]}));
+			
+			Bosses.mob("ice_obelisk", Bosses.o(Bosses.o({}, still), {name: "Ice Obelisk", spr: "ice_obelisk", hp: 2600, def: 14, col: 0x9ad8ff, mend: 0.006,
+				attacks: [Bosses.spiral(2, 13, 4, 40, 0.6, 0x9ad8ff, {eff: "slowed"})]}));
+			Bosses.mob("war_drum", Bosses.o(Bosses.o({}, still), {name: "War Drum", spr: "war_drum", hp: 2600, def: 16, col: 0xe8d0a0, mend: 0.006,
+				attacks: [Bosses.ring(10, 18, 3.5, 45, 2.2, 0xe8d0a0, {shape: "ring"})]}));
+			Bosses.mob("tidal_shrine", Bosses.o(Bosses.o({}, still), {name: "Tidal Shrine", spr: "tidal_shrine", hp: 2600, def: 14, col: 0x40d0c0, mend: 0.006,
+				attacks: [Bosses.aim(5, 60, 6, 40, 2, 0x40d0c0, {motion: "wave"})]}));
+			Bosses.mob("ember_nest", Bosses.o(Bosses.o({}, still), {name: "Ember Nest", spr: "ember_nest", hp: 2400, def: 12, col: 0xff8030, mend: 0.008,
+				attacks: [Bosses.rain(2, 3, 55, 3, 0xff8030)]}));
+			
+			Bosses.mob("lava_vent", Bosses.o(Bosses.o({}, still), {name: "Lava Vent", spr: "lava_vent", hp: 3000, def: 18, col: 0xff6020,
+				attacks: [Bosses.ring(12, 15, 5, 55, 2.4, 0xff6020), Bosses.nova(2, 1.2, 70, 4.5, 0xff8030, {burst: 6})]}));
+			Bosses.mob("sun_obelisk", Bosses.o(Bosses.o({}, still), {name: "Sun Obelisk", spr: "sun_obelisk", hp: 3000, def: 18, col: 0xffe080,
+				attacks: [Bosses.spiral(3, 9, 6, 45, 0.25, 0xffe080, {shape: "blade"})]}));
+			Bosses.mob("clam_cannon", Bosses.o(Bosses.o({}, still), {name: "Clam Cannon", spr: "clam_cannon", hp: 2800, def: 16, col: 0xffb0c0,
+				attacks: [Bosses.aim(4, 30, 8, 50, 1.6, 0xffe0f0, {waves: 2, gap: 0.25})]}));
+			Bosses.mob("obsidian_spire", Bosses.o(Bosses.o({}, still), {name: "Obsidian Spire", spr: "obsidian_spire", hp: 3200, def: 22, col: 0xff7030,
+				attacks: [Bosses.aim(1, 0, 10, 70, 0.9, 0xff7030, {shape: "blade", r: 0.28}), Bosses.ring(8, 0, 4, 50, 3, 0x402030)]}));
+			Bosses.mob("kraken_tentacle", Bosses.o(Bosses.o({}, still), {name: "Kraken Tentacle", spr: "kraken_tentacle", hp: 2800, def: 14, col: 0xff80a0,
+				attacks: [Bosses.aim(3, 25, 7, 50, 1.3, 0xff80a0, {motion: "wave"})]}));
+			for (var id in Bosses.SETPIECES) Data.ENEMIES[id].setpiece = Bosses.SETPIECES[id];
 		}
 	static minions() {
 			Bosses.mob("gear_drone", {name: "Gear Drone", spr: "cubelet", hp: 900, def: 12, spd: 3, xp: 60, col: 0xc0a060, keep: 3,
@@ -2127,6 +2176,7 @@ class Enemy {
 		this.poisonDmg = __int(0);
 		this.vulnT = 0;
 		this.facingLeft = false;
+		this.props = null;
 		this.invuln = false;
 		this.shieldT = 0;
 		this.dmgMult = 1;
@@ -2224,6 +2274,17 @@ class Enemy {
 			if (this.slowT > 0) this.slowT -= dt;
 			if (this.shieldT > 0) this.shieldT -= dt;
 			if (this.remote) { this.follow(dt, g); return; }
+			if (this.props) {
+				
+				var wards = __int(0), mend = 0;
+				for (var pr of __vals( this.props)) {
+					if (pr.dead) continue;
+					if (pr.def.ward) wards++;
+					if (pr.def.mend) mend += pr.def.mend;
+				}
+				if (this.def.setpiece && this.def.setpiece.ward) this.invuln = wards > 0;
+				if (mend > 0 && this.hp > 0 && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * mend * dt);
+			}
 			
 			var p = g.aggroTarget(this);
 			var dx = p ? p.x - this.x : 0, dy = p ? p.y - this.y : 0;
@@ -3461,6 +3522,22 @@ Godly.DROPS = {
 		};
 Godly.source = {};
 Bosses.done = false;
+Bosses.SETPIECES = {
+			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
+			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},
+			ev_wyrm: {style: "frost", prop: "ice_obelisk", n: 3, r: 5.5, hint: "Ice Obelisks keep healing the Wyrm. Shatter them!"},
+			ev_king: {style: "throne", prop: "royal_effigy", n: 4, r: 5.5, ward: true, hint: "The Hollow King's royal effigies make him untouchable. Topple them!"},
+			ev_behemoth: {style: "bone", prop: "war_drum", n: 3, r: 5.5, hint: "War drums heal Gorehorn with every beat. Break the drums!"},
+			ev_regent: {style: "ghost", prop: "spectral_candle", n: 4, r: 5.5, ward: true, hint: "Spectral candles bind the Regent to this world. Snuff them out to hurt him!"},
+			ev_sphinx: {style: "sand", prop: "sun_obelisk", n: 4, r: 6, hint: "Sun obelisks sweep the sands with light. Topple them to make the fight easier."},
+			ev_lord: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "Tidal shrines pour the sea back into the Lord. Destroy them!"},
+			ev_hermit: {style: "shell", prop: "clam_cannon", n: 4, r: 5.5, hint: "Clam cannons guard the Hermit's beach. Crack them open to stop the barrage."},
+			ev_shrine: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Bone braziers feed the Skull Shrine. Douse all four to break its ward!"},
+			ev_colossus: {style: "obsidian", prop: "obsidian_spire", n: 4, r: 6, hint: "Obsidian spires fire on anyone near the Colossus. Shatter them to make room."},
+			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
+			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
+			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."}
+		};
 Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,

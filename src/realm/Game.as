@@ -86,6 +86,8 @@ package realm {
 		private var thresholdTf:TextField;
 		/** Your private vault room (built when you first visit). */
 		public var vaultWorld:World;
+		/** Realm event bosses' arenas (rise with the boss, crumble when it dies). */
+		private var arenas:SetPieceDecor;
 		/** The Nexus's inlays, lights, banners and the Sealed Gate. */
 		private var decor:NexusDecor;
 		/** Class statues around the Nexus plaza: {x, y, cls}. */
@@ -670,6 +672,7 @@ package realm {
 				statues.push({x: 100.5 + Math.cos(sa) * 9, y: 98.5 + Math.sin(sa) * 9, cls: Data.CLASS_ORDER[si]});
 			}
 			decor = new NexusDecor(this, nexusWorld, makeLabel);
+			arenas = new SetPieceDecor(this);
 
 			promptPanel = new Sprite();
 			Ui.panel(promptPanel.graphics, 0, 0, 280, 78, 0x262626, 0x6a6a6a, 0.94);
@@ -725,6 +728,7 @@ package realm {
 		/** A realm event appeared on the host's game. */
 		public function eventAppeared(e:Enemy):void {
 			showBanner(e.def.name + " has appeared!", 0xff70ff, 3.5);
+			if (e.def.setpiece) msg(e.def.setpiece.hint, 0xffb0ff);
 			Sfx.play("boss");
 			player.bossDmg = 0;
 		}
@@ -1247,6 +1251,7 @@ package realm {
 			}
 			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
 			if (decor) decor.setVisible(nx);
+			if (arenas) arenas.clear();
 			traps.length = 0;
 			corpses.length = 0;
 			if (abil) abil.clear();
@@ -1397,6 +1402,7 @@ package realm {
 			introBosses();
 			updatePet(dt);
 			if (inNexus && decor) decor.update(dt);
+			if (arenas) arenas.update(dt);
 			updateBossHelpers(dt);
 
 			revealT -= dt;
@@ -1543,9 +1549,16 @@ package realm {
 					if (world.recentEvents.length > 4) world.recentEvents.shift();
 					world.boss = new Enemy(id, x, y, z);
 					enemies.push(world.boss);
+					// its arena: wards, menders or hazards around it
+					world.boss.props = [];
+					for each (var sp:Object in Bosses.setPieceSpots(id, x, y, world)) {
+						var pr:Enemy = spawnEnemy(sp.what, sp.x, sp.y, z);
+						if (pr) world.boss.props.push(pr);
+					}
 					player.bossDmg = 0;
 					var nm:String = world.boss.def.name;
 					showBanner(nm + " has appeared!", 0xff70ff, 3.5);
+					if (world.boss.def.setpiece) msg(world.boss.def.setpiece.hint, 0xffb0ff);
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
@@ -1896,6 +1909,8 @@ package realm {
 				shake(0.7, 10);
 				p.bossKills++;
 				if (world.boss == e) world.boss = null;
+				// the boss's arena goes with it
+				if (e.props) for each (var pr:Enemy in e.props) if (!pr.dead) { pr.dead = true; sync.removed(pr); dropEnemy(pr); }
 				if (e.def.guardian) {
 					guardianDown(e);
 				} else if (e.def.trio && aliveWith("trio") > 0) {
@@ -2172,7 +2187,7 @@ package realm {
 			// monsters too far from everyone despawn
 			for (var i:int = enemies.length - 1; i >= 0; i--) {
 				var e:Enemy = enemies[i];
-				if (e.isBoss) continue;
+				if (e.isBoss || e.def.prop) continue;
 				var keep:Boolean = false;
 				for each (var sp:Object in spots) {
 					var ddx:Number = e.x - sp.x, ddy:Number = e.y - sp.y;
@@ -4146,7 +4161,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -4244,7 +4259,7 @@ package realm {
 			if (b && !b.dead) {
 				if (!b.immune) return b;
 				for each (e in enemies) {
-					if (e.dead || !(e.def.crystal || e.def.guardian)) continue;
+					if (e.dead || !(e.def.crystal || e.def.guardian || e.def.ward)) continue;
 					d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
 					if (d < bestD) { bestD = d; best = e; }
 				}
@@ -4318,6 +4333,7 @@ package realm {
 			mtx.translate(cx + shx, cy + shy);
 			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw + vh * vh) / 2 / TS + 1);
 			if (inNexus && decor) decor.drawGround(canvas);
+			if (arenas) arenas.drawGround(canvas);
 
 			var bd:BitmapData;
 			// loot bags lie on the ground
@@ -4458,6 +4474,7 @@ package realm {
 			drawCorpses();
 			drawCloudShadows();
 			if (inNexus && decor) decor.drawTop(canvas);
+			if (arenas) arenas.drawTop(canvas);
 			abil.drawTop(canvas);
 			for each (var q:Particle in parts) {
 				pt.x = scrX(q.x, q.y) - 3;

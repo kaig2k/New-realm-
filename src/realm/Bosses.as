@@ -66,6 +66,7 @@ package realm {
 			hardDungeons();
 			finales();
 			raids();
+			setPieces();
 			harden();
 			fair();
 			Godly.init();
@@ -163,7 +164,99 @@ package realm {
 		}
 
 		// ------------------------------------------------------------ art for new bosses
+		// ------------------------------------------------------------ realm event set pieces
+		/**
+		 * Every realm event boss arrives with its own arena: a themed ground the
+		 * game draws (style), and pieces the boss's host spawns around it:
+		 *   ward    the boss can't be hurt while any of them stands
+		 *   mend    each heals the boss (a fraction of its health per second)
+		 *   hazard  turrets with their own attacks (smash them to calm the arena)
+		 * All of it goes when the boss dies. hint is told to players when it appears.
+		 */
+		public static const SETPIECES:Object = {
+			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
+			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},
+			ev_wyrm: {style: "frost", prop: "ice_obelisk", n: 3, r: 5.5, hint: "Ice Obelisks keep healing the Wyrm. Shatter them!"},
+			ev_king: {style: "throne", prop: "royal_effigy", n: 4, r: 5.5, ward: true, hint: "The Hollow King's royal effigies make him untouchable. Topple them!"},
+			ev_behemoth: {style: "bone", prop: "war_drum", n: 3, r: 5.5, hint: "War drums heal Gorehorn with every beat. Break the drums!"},
+			ev_regent: {style: "ghost", prop: "spectral_candle", n: 4, r: 5.5, ward: true, hint: "Spectral candles bind the Regent to this world. Snuff them out to hurt him!"},
+			ev_sphinx: {style: "sand", prop: "sun_obelisk", n: 4, r: 6, hint: "Sun obelisks sweep the sands with light. Topple them to make the fight easier."},
+			ev_lord: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "Tidal shrines pour the sea back into the Lord. Destroy them!"},
+			ev_hermit: {style: "shell", prop: "clam_cannon", n: 4, r: 5.5, hint: "Clam cannons guard the Hermit's beach. Crack them open to stop the barrage."},
+			ev_shrine: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Bone braziers feed the Skull Shrine. Douse all four to break its ward!"},
+			ev_colossus: {style: "obsidian", prop: "obsidian_spire", n: 4, r: 6, hint: "Obsidian spires fire on anyone near the Colossus. Shatter them to make room."},
+			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
+			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
+			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."}
+		};
+
+		/** Where a boss's set-piece pieces stand: evenly round it, pulled in where the ground is blocked. */
+		public static function setPieceSpots(id:String, x:Number, y:Number, w:World):Array {
+			var sp:Object = SETPIECES[id];
+			var out:Array = [];
+			if (!sp) return out;
+			for (var i:int = 0; i < sp.n; i++) {
+				var a:Number = i * Math.PI * 2 / sp.n + Math.PI / 4;
+				for (var r:Number = sp.r; r >= 2; r -= 0.5) {
+					var px:Number = x + Math.cos(a) * r, py:Number = y + Math.sin(a) * r;
+					if (w.canStand(px, py, 0.5, true)) { out.push({what: sp.prop, x: px, y: py}); break; }
+				}
+			}
+			return out;
+		}
+
+		private static function setPieces():void {
+			var still:Object = {ai: "still", spd: 0, r: 0.6, aggro: 13, range: 12, drop: 0, xp: 90, keep: 0, prop: true};
+			// wards: the boss is immune while one stands
+			mob("cube_pylon", o(o({}, still), {name: "Cube Pylon", spr: "cube_pylon", hp: 2400, def: 14, col: 0xff60ff, ward: true,
+				attacks: [ring(6, 30, 4, 45, 1.6, 0xff60ff, {shape: "star"})]}));
+			mob("royal_effigy", o(o({}, still), {name: "Royal Effigy", spr: "royal_effigy", hp: 2400, def: 16, col: 0xffd060, ward: true,
+				attacks: [aim(3, 20, 8, 50, 1.5, 0xffd060)]}));
+			mob("spectral_candle", o(o({}, still), {name: "Spectral Candle", spr: "spectral_candle", hp: 2000, def: 10, col: 0x90c0ff, ward: true,
+				attacks: [spiral(2, 17, 4, 40, 0.5, 0x90c0ff)]}));
+			mob("bone_brazier", o(o({}, still), {name: "Bone Brazier", spr: "bone_brazier", hp: 2400, def: 14, col: 0xb060ff, ward: true,
+				attacks: [ring(8, 22, 4.5, 45, 1.8, 0xb060ff)]}));
+			mob("hex_cauldron", o(o({}, still), {name: "Hex Cauldron", spr: "hex_cauldron", hp: 2200, def: 12, col: 0x70e050, ward: true,
+				attacks: [aim(1, 0, 6, 55, 1.4, 0x70e050, {eff: "slowed", r: 0.3})]}));
+			// menders: heal the boss while they stand
+			mob("ice_obelisk", o(o({}, still), {name: "Ice Obelisk", spr: "ice_obelisk", hp: 2600, def: 14, col: 0x9ad8ff, mend: 0.006,
+				attacks: [spiral(2, 13, 4, 40, 0.6, 0x9ad8ff, {eff: "slowed"})]}));
+			mob("war_drum", o(o({}, still), {name: "War Drum", spr: "war_drum", hp: 2600, def: 16, col: 0xe8d0a0, mend: 0.006,
+				attacks: [ring(10, 18, 3.5, 45, 2.2, 0xe8d0a0, {shape: "ring"})]}));
+			mob("tidal_shrine", o(o({}, still), {name: "Tidal Shrine", spr: "tidal_shrine", hp: 2600, def: 14, col: 0x40d0c0, mend: 0.006,
+				attacks: [aim(5, 60, 6, 40, 2, 0x40d0c0, {motion: "wave"})]}));
+			mob("ember_nest", o(o({}, still), {name: "Ember Nest", spr: "ember_nest", hp: 2400, def: 12, col: 0xff8030, mend: 0.008,
+				attacks: [rain(2, 3, 55, 3, 0xff8030)]}));
+			// hazards: turrets with their own attacks
+			mob("lava_vent", o(o({}, still), {name: "Lava Vent", spr: "lava_vent", hp: 3000, def: 18, col: 0xff6020,
+				attacks: [ring(12, 15, 5, 55, 2.4, 0xff6020), nova(2, 1.2, 70, 4.5, 0xff8030, {burst: 6})]}));
+			mob("sun_obelisk", o(o({}, still), {name: "Sun Obelisk", spr: "sun_obelisk", hp: 3000, def: 18, col: 0xffe080,
+				attacks: [spiral(3, 9, 6, 45, 0.25, 0xffe080, {shape: "blade"})]}));
+			mob("clam_cannon", o(o({}, still), {name: "Clam Cannon", spr: "clam_cannon", hp: 2800, def: 16, col: 0xffb0c0,
+				attacks: [aim(4, 30, 8, 50, 1.6, 0xffe0f0, {waves: 2, gap: 0.25})]}));
+			mob("obsidian_spire", o(o({}, still), {name: "Obsidian Spire", spr: "obsidian_spire", hp: 3200, def: 22, col: 0xff7030,
+				attacks: [aim(1, 0, 10, 70, 0.9, 0xff7030, {shape: "blade", r: 0.28}), ring(8, 0, 4, 50, 3, 0x402030)]}));
+			mob("kraken_tentacle", o(o({}, still), {name: "Kraken Tentacle", spr: "kraken_tentacle", hp: 2800, def: 14, col: 0xff80a0,
+				attacks: [aim(3, 25, 7, 50, 1.3, 0xff80a0, {motion: "wave"})]}));
+			for (var id:String in SETPIECES) Data.ENEMIES[id].setpiece = SETPIECES[id];
+		}
+
 		private static function art():void {
+			// realm event set-piece pieces
+			Sprites.recolor("cube_pylon", "crystal", {W: 0xffe0ff, C: 0xff60ff, c: 0xa020c0, D: 0x50106a, S: 0x2a1a3a}, 6);
+			Sprites.recolor("royal_effigy", "pillar", {L: 0xffe080, l: 0xb08a30, S: 0xd8b050, s: 0x806020});
+			Sprites.recolor("spectral_candle", "brazier", {Y: 0xe0f0ff, F: 0x80b0ff, W: 0xffffff, S: 0x6a7a9a, s: 0x3a4a6a});
+			Sprites.recolor("bone_brazier", "brazier", {Y: 0xf0c0ff, F: 0xb060ff, W: 0xffffff, S: 0xe8e0c8, s: 0xa09880});
+			Sprites.recolor("hex_cauldron", "campfire", {Y: 0xc0ff80, F: 0x60d040, W: 0xe0ffd0, K: 0x2a2a30, k: 0x18181c});
+			Sprites.recolor("ice_obelisk", "crystal", {W: 0xffffff, C: 0x9ad8ff, c: 0x4a90d0, D: 0x204a80, S: 0x1a2a3a}, 6);
+			Sprites.recolor("war_drum", "totem", {K: 0xc8a878, k: 0x8a6a40, E: 0xff4020, R: 0xe8e0c8});
+			Sprites.recolor("tidal_shrine", "crystal", {W: 0xd0fff8, C: 0x40d0c0, c: 0x188a80, D: 0x0a4a48, S: 0x10282a}, 6);
+			Sprites.recolor("ember_nest", "nest", {W: 0xffe080, w: 0xff9030, S: 0xff4010, K: 0x5a2a10, k: 0x3a1808}, 6);
+			Sprites.recolor("lava_vent", "brazier", {Y: 0xffe060, F: 0xff4010, W: 0xffffff, S: 0x3a2a2a, s: 0x1e1414});
+			Sprites.recolor("sun_obelisk", "pillar", {L: 0xf0d8a0, l: 0xb09060, S: 0xd8bc80, s: 0x907048});
+			Sprites.recolor("clam_cannon", "totem", {K: 0xffb0c0, k: 0xc07080, E: 0xffffff, R: 0x60c0ff});
+			Sprites.recolor("obsidian_spire", "crystal", {W: 0xffa060, C: 0x302030, c: 0x1a101a, D: 0x0a060a, S: 0xff6020}, 7);
+			Sprites.recolor("kraken_tentacle", "totem", {K: 0xff80a0, k: 0xb04060, E: 0xffe0f0, R: 0x8a2040});
 			Sprites.recolor("loot_goblin", "goblin", {H: 0x70b840, h: 0x4a8a28, E: 0xffe020, B: 0xc8962a, b: 0x8a6418, A: 0xffe060, L: 0x5a3a14, W: 0xffe060, S: 0x70b840});
 			// raid monsters
 			Sprites.recolor("cultist", "bandit", {H: 0x8a0a1a, h: 0x5a0610, S: 0xe8d0c0, E: 0xffe040, B: 0xa01428, b: 0x6a0a18, A: 0xf0c030, L: 0x2a0408, W: 0xff3040});

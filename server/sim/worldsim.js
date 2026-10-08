@@ -301,7 +301,7 @@ class WorldSim {
     // monsters far from everyone despawn
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
-      if (e.isBoss) continue;
+      if (e.isBoss || e.def.prop) continue;
       if (!spots.some((s) => (e.x - s.x) * (e.x - s.x) + (e.y - s.y) * (e.y - s.y) < DESPAWN_RANGE * DESPAWN_RANGE)) {
         this.enemies.splice(i, 1);
         this.byId.delete(e.id);
@@ -385,6 +385,12 @@ class WorldSim {
         if (w.recentEvents.length > 4) w.recentEvents.shift();
         w.boss = new Enemy(id, x, y, z);
         this.add(w.boss);
+        // its arena: wards, menders or hazards around it
+        w.boss.props = [];
+        for (const sp of Bosses.setPieceSpots(id, x, y, w)) {
+          const pr = this.spawn(sp.what, sp.x, sp.y, z, true);
+          if (pr) w.boss.props.push(pr);
+        }
         return;
       }
     }
@@ -483,6 +489,8 @@ class WorldSim {
     if (e.site) { e.site.cleared = true; e.site.active = false; if (this.kind === 'realm') w.eventT -= 8; }
     if (e.isBoss) {
       if (w.boss === e) w.boss = null;
+      // the boss's arena goes with it
+      if (e.props) for (const pr of e.props) if (!pr.dead) { pr.dead = true; this.all({ t: 'edel', id: pr.id }); }
       if (e.def.guardian) this.guardianDown();
       else if (e.def.trio && this.enemies.some((o) => !o.dead && o.def.trio)) this.kingDown();
       else if (this.kind === 'realm' && !e.def.dungeon && !e.def.raid && !e.def.final) {

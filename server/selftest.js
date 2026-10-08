@@ -355,6 +355,43 @@ async function run() {
     }
   }
 
+  console.log('boss set pieces');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Test:4242');
+    const got = [];
+    const c = { id: 1, x: ws.w.spawnX, y: ws.w.spawnY, send: (m) => got.push(m.d || m) };
+    ws.join(c);
+    const bad = [];
+    const all = Data.EVENTS.slice();
+    for (const ev of Object.keys(Data.ENEMIES).filter((k) => Data.ENEMIES[k].setpiece)) {
+      ws.w.eventT = 0; ws.w.eventsDone = 0; ws.closeT = 0; ws.w.closed = false; ws.w.recentEvents = [];
+      Data.EVENTS.length = 0; Data.EVENTS.push(ev);
+      try { ws.updateEvents(0.1); } finally { Data.EVENTS.length = 0; Data.EVENTS.push(...all); }
+      const b = ws.w.boss;
+      if (!b || b.defId !== ev) { bad.push(ev + ': no boss'); continue; }
+      const sp = b.def.setpiece;
+      c.x = b.x; c.y = b.y + 3;
+      ws.tick(0.05);
+      if (!b.props || b.props.length !== sp.n) { bad.push(ev + ': ' + (b.props ? b.props.length : 0) + ' pieces'); continue; }
+      if (sp.ward) {
+        ws.hit(c, { id: b.id, d: 1000 });
+        if (b.hp < b.maxHp) bad.push(ev + ': hurt while warded');
+        for (const p of b.props) { c.x = p.x; c.y = p.y + 2; for (let k = 0; k < 5; k++) ws.hit(c, { id: p.id, d: 1000 }); }
+        ws.tick(0.05);
+        if (b.invuln) bad.push(ev + ': still warded with its pieces gone');
+      }
+      got.length = 0;
+      c.x = b.x; c.y = b.y + 2;
+      for (let k = 0; k < 40 && !b.dead; k++) { b.invuln = false; b.shieldT = 0; ws.hit(c, { id: b.id, d: 6000 }); ws.tick(0.05); }
+      if (!b.dead) bad.push(ev + ': boss did not die');
+      else if (b.props.some((p) => !p.dead)) bad.push(ev + ': pieces left after the boss died');
+      ws.tick(0.05);
+    }
+    check('every event boss brings its set piece, wards hold, and it all goes when the boss dies', !bad.length, bad.join('; '));
+  }
+
   console.log('launcher downloads');
   {
     const get = (pathName) => new Promise((resolve) => {

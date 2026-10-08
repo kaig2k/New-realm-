@@ -349,6 +349,7 @@ async function run() {
       const ws = new WorldSim('raid:' + r + ':777');
       const arenas = [];
       const got = [];
+      const themes = [];
       const c = { id: 1, x: 100, y: 100, send: (m) => got.push(m.d) };
       ws.join(c);
       let err = null;
@@ -357,7 +358,7 @@ async function run() {
           ws.tick(0.05);
           if (step % 20) continue;
           for (const e of ws.enemies.slice()) {
-            if (!e.dead && e.isBoss && e.arena && arenas.indexOf(e.defId) < 0) arenas.push(e.defId);
+            if (!e.dead && e.isBoss && e.arena && arenas.indexOf(e.defId) < 0) { arenas.push(e.defId); themes.push(ws.w.tiles[188 * ws.w.N + 101]); }
             if (!e.dead && (e.isBoss || e.def.prop)) { c.x = e.x; c.y = e.y + 2; ws.hit(c, { id: e.id, d: 6000 }); }
           }
         }
@@ -366,6 +367,8 @@ async function run() {
       check('raid ' + r + ' (' + ws.w.raid.name + '): every stage starts and every wall opens', !err && got.filter((m) => m.t === 'rstage').length === nst && ws.w.gates.every((g) => !g.length), err || '');
       if (r === 2) check('the Starfall Vault: every chamber raises its set piece, and the Star Throne changes three times',
         arenas.length === 4 && got.filter((m) => m.t === 'sphase' && m.go).length >= 3 + 2 + 1 + 1, arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
+      if (r === 2) check('each Vault master remakes the whole dungeon in its style (even the entrance hall)',
+        new Set(themes).size === 4 && themes.every((t) => t !== 9), themes.join(','));
     }
   }
 

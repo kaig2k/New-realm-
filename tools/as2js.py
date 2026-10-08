@@ -28,7 +28,7 @@ CLASSES = ['Data', 'Uniques', 'Godly', 'Bosses', 'World', 'SetPieces', 'Enemy']
 SKIP = {
     'World': {'texture', 'mark', 'blade', 'shallow', 'render', 'chunk', 'drawGround', 'releaseGround', 'drawEdges',
               'reveal', 'minimap', 'seen', 'chunks', 'chunkOrder', 'drawMtx', 'target', 'offX', 'offY', 'trng',
-              'MINI_COL', 'dropChunk', 'redrawArea', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS'},
+              'MINI_COL', 'dropChunk', 'redrawArea', 'redrawTiles', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS'},
     'Enemy': {'sprite'},
     'Bosses': {'art', 'skins'},
     'SetPieces': {'art'},

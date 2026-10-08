@@ -3335,6 +3335,7 @@ package realm {
 
 		/** The colour the light takes in each place: warm beach, dim forests, violet Godlands, red raids... */
 		private function atmoTarget():Array {
+			if (world.raid && world.raidTint >= 0) return [Sprites.shade(world.raidTint, 0.45), 0.2];
 			if (world.raid) return world.raid.id == "storm" ? [0x001030, 0.18] : [0x500010, 0.16];
 			if (world.kind == "dungeon") return [0x000010, 0.12];
 			if (world.kind == "arena") return [0x300008, 0.12];

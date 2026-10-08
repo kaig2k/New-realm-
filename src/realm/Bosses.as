@@ -681,10 +681,10 @@ package realm {
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
-				intro: "Deep beneath Eldmere lies the vault where a star fell. Four chambers guard it, and each one fights back: break what feeds its master, and mind the floor.",
+				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
 				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];

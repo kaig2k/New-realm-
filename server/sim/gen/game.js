@@ -1398,6 +1398,9 @@ class World {
 		this.pendingPopulate = null;
 		this.raid = null;
 		this.raidStage = __int(-1);
+		this.baseTiles = null;
+		this.baseObjs = null;
+		this.raidTint = __int(-1);
 		this.raidT = 0;
 		this.seedState = __uint(0);
 		this.mapX = __int(0);
@@ -2361,6 +2364,61 @@ class SetPieces {
 				w.tiles[k.i] = k.t;
 				w.objs[k.i] = k.o;
 				n++;
+			}
+			return __int(n);
+		}
+	static safeFloor(t) { t = __int(t);
+			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
+		}
+	static takeover(id, w, cx, cy) {
+			var out = [];
+			var sp = Bosses.SETPIECES[id];
+			var st = sp ? SetPieces.STYLES[sp.style] : null;
+			if (!st) return out;
+			var N = __int(w.N), i = 0, x = 0, y = 0;
+			if (!w.baseTiles) {
+				w.baseTiles = [];
+				w.baseObjs = [];
+				for (i = __int(0); i < N * N; i++) { w.baseTiles.push(w.tiles[i]); w.baseObjs.push(w.objs[i]); }
+				
+				for (var gl of __vals( w.gates)) for (var gc of __vals( gl)) w.baseTiles[gc.i] = gc.t;
+			}
+			var accent = __int(w.theme ? w.theme.accent : -1);
+			var trim = __int(SetPieces.safeFloor(st.trim) ? st.trim : st.alt);
+			var bt = w.baseTiles, bo = w.baseObjs;
+			var map = {};
+			for (y = __int(1); y < N - 1; y++) for (x = __int(1); x < N - 1; x++) {
+				i = __int(y * N + x);
+				var t = __int(bt[i]);
+				if (!SetPieces.safeFloor(t)) continue;
+				var nt = 0;
+				if (t == accent) nt = __int(trim);
+				else {
+					var edge = bt[i - 1] == World.WALL || bt[i + 1] == World.WALL || bt[i - N] == World.WALL || bt[i + N] == World.WALL;
+					nt = __int(edge || (x * 7 + y * 13) % 17 < 2 ? st.alt : st.floor);
+				}
+				var no = __int(bo[i] == 7 ? st.c : bo[i] == 8 ? st.a : bo[i]);
+				map[i] = nt;
+				var dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+				out.push({i: i, x: x, y: y, nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false});
+			}
+			
+			for (var gl2 of __vals( w.gates)) for (var gc2 of __vals( gl2)) if (map[gc2.i] !== undefined) gc2.t = map[gc2.i];
+			out.sort((a, b) => { return a.d - b.d; });
+			return out;
+		}
+	static applyTakeover(w, cells, upto = 9999, skip = null) {
+			var n = __int(0);
+			for (var k of __vals( cells)) {
+				if (k.d > upto) break;
+				if (k.on) continue;
+				k.on = true;
+				if (skip && skip[k.i]) continue;
+				
+				if (w.tiles[k.i] == World.WALL) continue;
+				if (w.tiles[k.i] != k.nt || w.objs[k.i] != k.no) n++;
+				w.tiles[k.i] = k.nt;
+				w.objs[k.i] = k.no;
 			}
 			return __int(n);
 		}
@@ -3903,10 +3961,10 @@ Bosses.RAIDS = [
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
-				intro: "Deep beneath Eldmere lies the vault where a star fell. Four chambers guard it, and each one fights back: break what feeds its master, and mind the floor.",
+				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
 				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];

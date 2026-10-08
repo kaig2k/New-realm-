@@ -127,6 +127,10 @@ package realm {
 		/** Raid arenas: the raid, its current stage and the countdown to the next. */
 		public var raid:Object;
 		public var raidStage:int = -1;
+		/** A raid whose bosses take over the whole dungeon (SetPieces.takeover): its ground as first built, and the colour the current master casts over it (-1 none). */
+		public var baseTiles:Array;
+		public var baseObjs:Array;
+		public var raidTint:int = -1;
 		public var raidT:Number = 0;
 		/** Seeded generator state: the same seed builds the same map for everyone. */
 		private var seedState:uint = 0;
@@ -926,6 +930,19 @@ package realm {
 			}
 			for (var cy:int = int((y0 - 1) / CHUNK); cy <= int((y1 + 1) / CHUNK); cy++)
 				for (var cx:int = int((x0 - 1) / CHUNK); cx <= int((x1 + 1) / CHUNK); cx++) if (cx >= 0 && cy >= 0) dropChunk(cx, cy);
+		}
+
+		/** Redraws the ground and minimap under just these tile indices (after a takeover wave). */
+		public function redrawTiles(idx:Array):void {
+			var done:Object = {};
+			for each (var i:int in idx) {
+				var x:int = i % N, y:int = int(i / N);
+				if (minimap) minimap.setPixel(x, y, MINI_COL[tiles[i]]);
+				for (var dy:int = -1; dy <= 1; dy++) for (var dx:int = -1; dx <= 1; dx++) {
+					var cx:int = int((x + dx) / CHUNK), cy:int = int((y + dy) / CHUNK), k:int = cy * 1024 + cx;
+					if (!done[k]) { done[k] = true; dropChunk(cx, cy); }
+				}
+			}
 		}
 
 		private function dropChunk(cx:int, cy:int):void {

@@ -522,6 +522,8 @@ class WorldSim {
       if (b && k === 0) w.boss = b;
       // a chamber master raises its set piece (structure, then its wards, menders or hazards)
       if (b && b.def.setpiece) {
+        // (in the Starfall Vault the master first remakes the whole dungeon in its style)
+        if (rd.takeover) SetPieces.applyTakeover(w, SetPieces.takeover(st[k], w, Math.floor(at[0]) + 0.5, Math.floor(at[1]) + 0.5));
         const cells = SetPieces.plan(st[k], w, Math.floor(at[0]), Math.floor(at[1]));
         SetPieces.apply(w, cells);
         b.arena = cells;

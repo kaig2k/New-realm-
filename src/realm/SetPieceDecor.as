@@ -43,7 +43,72 @@ package realm {
 		public function SetPieceDecor(g:Game) { this.g = g; }
 
 		/** Forget every set piece (the world they were laid in is gone). */
-		public function clear():void { list.length = 0; }
+		public function clear():void { list.length = 0; waves.length = 0; }
+
+		/** Raid takeovers spreading through the dungeon: {cells, upto, at (next cell), skip, st, t}. */
+		private var waves:Array = [];
+		/** Tiles a second a takeover spreads at, and how far round the boss it lands at once (its chamber). */
+		private static const WAVE_SPEED:Number = 48;
+		private static const WAVE_NEAR:Number = 17;
+		private static const WAVE_TAUNT:Object = {
+			fire: "Ignis sets the whole vault ablaze!", sunken: "The Archivist drowns the vault in the deep!",
+			skull: "The Sovereign raises a crypt from every hall!", star: "Astraeon remakes the vault as a field of stars!"
+		};
+
+		/**
+		 * A raid master woke: its style takes the whole dungeon, at once round it and
+		 * then as a wave down every hall. Tiles of arenas still crumbling are left to
+		 * them (they fall onto the new ground instead).
+		 */
+		private function startTakeover(e:Enemy, tx:int, ty:int, st:Object):void {
+			var w:World = g.world;
+			var cells:Array = SetPieces.takeover(e.defId, w, tx + 0.5, ty + 0.5);
+			if (!cells.length) return;
+			waves.length = 0;
+			var byI:Object = {};
+			for each (var c:Object in cells) byI[c.i] = c;
+			var skip:Object = {};
+			for each (var ar:Object in list) for each (var k:Object in ar.cells) {
+				var tc:Object = byI[k.i];
+				if (!tc) continue;
+				k.t = tc.nt; k.o = tc.no;
+				if (k.on) skip[k.i] = true;
+			}
+			var wv:Object = {cells: cells, upto: WAVE_NEAR, skip: skip, st: st, x: tx + 0.5, y: ty + 0.5};
+			SetPieces.applyTakeover(w, cells, WAVE_NEAR, skip);
+			w.redrawArea(tx - 18, ty - 18, tx + 18, ty + 18);
+			waves.push(wv);
+			w.raidTint = st.part;
+			var txt:String = WAVE_TAUNT[e.def.setpiece.style] || (e.def.name + " claims the dungeon!");
+			g.showBanner(txt, st.beam, 3);
+			g.msg(txt, st.beam);
+			g.flash(0.35);
+		}
+
+		private function updateWaves(dt:Number):void {
+			var w:World = g.world;
+			for (var j:int = waves.length - 1; j >= 0; j--) {
+				var wv:Object = waves[j];
+				var from:Number = wv.upto;
+				wv.upto += WAVE_SPEED * dt;
+				var changedI:Array = [];
+				for each (var c:Object in wv.cells) {
+					if (c.d > wv.upto) break;
+					if (c.on || c.d <= from) continue;
+					if (!wv.skip[c.i] && w.tiles[c.i] != World.WALL) {
+						changedI.push(c.i);
+						// the front: a few sparks where it passes near you
+						if (Game.opt("parts") && g.parts.length < 300 && Math.random() < 0.05 && Math.abs(c.x - g.player.x) < 14 && Math.abs(c.y - g.player.y) < 10)
+							g.parts.push(new Particle(c.x + 0.5, c.y + 0.5, 0, -1.4, 0.8, Sprites.glow(wv.st.part)));
+					}
+				}
+				if (SetPieces.applyTakeover(w, wv.cells, wv.upto, wv.skip) > 0) w.redrawTiles(changedI);
+				// the wave washing past you
+				var pd:Number = Math.sqrt((g.player.x - wv.x) * (g.player.x - wv.x) + (g.player.y - wv.y) * (g.player.y - wv.y));
+				if (pd > from && pd <= wv.upto && pd > WAVE_NEAR) g.shake(0.35, 4);
+				if (!wv.cells.length || wv.cells[wv.cells.length - 1].d <= wv.upto) waves.splice(j, 1);
+			}
+		}
 
 		/** Finds bosses with a set piece and raises it; razes the ones whose boss is gone. */
 		public function update(dt:Number):void {
@@ -57,6 +122,8 @@ package realm {
 				var st:Object = STYLES[e.def.setpiece.style];
 				if (!st) continue;
 				var tx:int = int(isNaN(e.homeX) ? e.x : e.homeX), ty:int = int(isNaN(e.homeY) ? e.y : e.homeY);
+				// a raid master remakes the whole dungeon first (so its arena rises from the new ground)
+				if (w.raid && w.raid.takeover) startTakeover(e, tx, ty, st);
 				var nar:Object = {e: e, x: tx + 0.5, y: ty + 0.5, st: st, cells: SetPieces.plan(e.defId, w, tx, ty), t: 0, end: -1, upto: -1, from: 99,
 					r: SetPieces.HALF * 1.5, done: 0, pend: []};
 				list.push(nar);
@@ -68,6 +135,7 @@ package realm {
 				g.burst(tx + 0.5, ty + 0.5, st.dust, 30);
 				g.ring(tx + 0.5, ty + 0.5, st.part, 26);
 			}
+			updateWaves(dt);
 			for (var i:int = list.length - 1; i >= 0; i--) {
 				var ar:Object = list[i];
 				ar.t += dt;

@@ -460,6 +460,76 @@ package realm {
 			return n;
 		}
 
+		// ------------------------------------------------------------ takeovers
+		/** Tiles a set piece may lay across a whole dungeon (nothing that burns, drowns or blocks). */
+		private static function safeFloor(t:int):Boolean {
+			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
+		}
+
+		/**
+		 * A raid master (Starfall Vault) takes over the WHOLE dungeon, not just its
+		 * chamber: every floor becomes its style's ground (edges along the walls in
+		 * its second tile, a scatter of it in the middle, gold runners in its trim),
+		 * braziers and pillars become its own decorations, and seals still shut open
+		 * onto its ground. Always worked out from the dungeon as first built, so the
+		 * server and every player end up with the same tiles.
+		 * Returns {i, x, y, nt, no, d, on} sorted nearest the boss first.
+		 */
+		public static function takeover(id:String, w:World, cx:Number, cy:Number):Array {
+			var out:Array = [];
+			var sp:Object = Bosses.SETPIECES[id];
+			var st:Object = sp ? STYLES[sp.style] : null;
+			if (!st) return out;
+			var N:int = w.N, i:int, x:int, y:int;
+			if (!w.baseTiles) {
+				w.baseTiles = [];
+				w.baseObjs = [];
+				for (i = 0; i < N * N; i++) { w.baseTiles.push(w.tiles[i]); w.baseObjs.push(w.objs[i]); }
+				// the seals' hidden floor counts as floor
+				for each (var gl:Array in w.gates) for each (var gc:Object in gl) w.baseTiles[gc.i] = gc.t;
+			}
+			var accent:int = w.theme ? w.theme.accent : -1;
+			var trim:int = safeFloor(st.trim) ? st.trim : st.alt;
+			var bt:Array = w.baseTiles, bo:Array = w.baseObjs;
+			var map:Object = {};
+			for (y = 1; y < N - 1; y++) for (x = 1; x < N - 1; x++) {
+				i = y * N + x;
+				var t:int = bt[i];
+				if (!safeFloor(t)) continue;
+				var nt:int;
+				if (t == accent) nt = trim;
+				else {
+					var edge:Boolean = bt[i - 1] == World.WALL || bt[i + 1] == World.WALL || bt[i - N] == World.WALL || bt[i + N] == World.WALL;
+					nt = edge || (x * 7 + y * 13) % 17 < 2 ? st.alt : st.floor;
+				}
+				var no:int = bo[i] == 7 ? st.c : bo[i] == 8 ? st.a : bo[i];
+				map[i] = nt;
+				var dx:Number = x + 0.5 - cx, dy:Number = y + 0.5 - cy;
+				out.push({i: i, x: x, y: y, nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false});
+			}
+			// seals not yet open will open onto the new ground
+			for each (var gl2:Array in w.gates) for each (var gc2:Object in gl2) if (map[gc2.i] !== undefined) gc2.t = map[gc2.i];
+			out.sort(function(a:Object, b:Object):Number { return a.d - b.d; });
+			return out;
+		}
+
+		/** Lays a takeover's tiles out to `upto` from the boss (all by default), skipping those under `skip` (index -> true). Returns how many changed. */
+		public static function applyTakeover(w:World, cells:Array, upto:Number = 9999, skip:Object = null):int {
+			var n:int = 0;
+			for each (var k:Object in cells) {
+				if (k.d > upto) break;
+				if (k.on) continue;
+				k.on = true;
+				if (skip && skip[k.i]) continue;
+				// a seal still shut stays shut
+				if (w.tiles[k.i] == World.WALL) continue;
+				if (w.tiles[k.i] != k.nt || w.objs[k.i] != k.no) n++;
+				w.tiles[k.i] = k.nt;
+				w.objs[k.i] = k.no;
+			}
+			return n;
+		}
+
 		// ------------------------------------------------------------ phases
 		/** Seconds the floor flashes before a phase changes the arena. */
 		public static const WARN:Number = 2.5;

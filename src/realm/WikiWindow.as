@@ -95,7 +95,12 @@ package realm {
 				seen[id] = true;
 				list.push({id: id, where: where});
 			};
-			for each (var ev:String in Data.EVENTS) add(events, ev, "Realm event (Godlands and highlands)");
+			for each (var ev:String in Data.EVENTS) {
+				var sp:Object = Data.ENEMIES[ev] ? Data.ENEMIES[ev].setpiece : null;
+				var pd:Object = sp ? Data.ENEMIES[sp.prop] : null;
+				var many:String = pd ? (pd.name.charAt(pd.name.length - 1) == "y" ? pd.name.slice(0, -1) + "ies" : pd.name + "s") : "";
+				add(events, ev, pd ? "Arena: " + sp.n + " " + many + " " + (pd.ward ? "shield it" : pd.mend ? "heal it" : "attack you") : "Realm event (Godlands and highlands)");
+			}
 			for each (var d:Object in Data.DUNGEONS) {
 				var finale:Boolean = Bosses.FINALES.indexOf(d.id) >= 0;
 				var list:Array = finale ? finales : d.hard ? hard : dungeons;

@@ -30,7 +30,9 @@ package realm {
 		/** Which 8-slot page of the inventory the HUD shows (and keys 1-8 use). */
 		public var packPage:int = 0;
 		public var hpPots:int = 2, mpPots:int = 0;
-		public var level:int = 1, xp:int = 0, xpNext:int = 60, totalXp:int = 0;
+		public var level:int = 1, xp:int = 0, xpNext:int = 88, totalXp:int = 0;
+		/** XP from `level` to the next: about 16,700 in all to reach 20 (a proper climb, not a sprint). */
+		public static function xpFor(level:int):int { return 40 + level * 45 + level * level * 3; }
 		public var kills:int = 0, bossKills:int = 0, potsDrunk:int = 0;
 		/** Lifetime counters for the death fame bonuses. */
 		public var dungeons:int = 0, elders:int = 0, godKills:int = 0, shotsFired:int = 0, shotsHit:int = 0;
@@ -939,7 +941,7 @@ package realm {
 				levelled = true;
 				xp -= xpNext;
 				level++;
-				xpNext = 30 + level * 30;
+				xpNext = xpFor(level);
 				for each (var s:String in Data.STATS) {
 					stats[s] = Math.min(cls.max[s], stats[s] + Data.grow(cls, s) * (0.8 + Math.random() * 0.4));
 				}

@@ -865,9 +865,10 @@ class Bosses {
 			for (var id in Data.ENEMIES) {
 				var d = Data.ENEMIES[id];
 				if (d.ai != "boss") continue;
+				
+				d.scales = true;
 				var endgame = d.raid || d.finale || d.final || d.dtier >= 5;
 				if (!endgame) continue;
-				d.scales = true;
 				
 				d.hp = __int(d.hp * (d.raid ? 2.6 : 1.9));
 				d.def = (d.def || 0) + (d.raid ? 14 : 10);
@@ -3221,7 +3222,7 @@ Data.RING_PREFIX = ["Minor", "", "Greater", "Superior", "Paramount", "Exalted"];
 Data.SHOP = [
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},
-			{id: "stat", name: "Random Stat Potion", price: 450},
+			{id: "stat", name: "Random Stat Potion", price: 1200},
 			{id: "sor", name: "Star Shard", price: 7500},
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}

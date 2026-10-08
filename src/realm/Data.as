@@ -466,7 +466,7 @@ package realm {
 		public static const SHOP:Array = [
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},
-			{id: "stat", name: "Random Stat Potion", price: 450},
+			{id: "stat", name: "Random Stat Potion", price: 1200},
 			{id: "sor", name: "Star Shard", price: 7500},
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}

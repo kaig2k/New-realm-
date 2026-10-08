@@ -405,6 +405,8 @@ function applySave(c, data) {
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
+  // what this hero can deal now (new weapon, more Attack...)
+  c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
   // a cosmetic bought just now: the profile that came before this save can wear it now
   if (c.rawProfile && !isAdmin(c)) {
     const p = cleanProfile(c.rawProfile, data);
@@ -414,6 +416,25 @@ function applySave(c, data) {
     }
   }
   return true;
+}
+
+/**
+ * The most damage a second this hero could possibly deal with its own weapon and stats: every
+ * shot hitting, crits, berserk, haste and might all at once, then half as much again for
+ * abilities, pets and minions. The world simulations refuse damage beyond it (see WorldSim.hit).
+ */
+function maxDps(ch) {
+  if (!ch || typeof ch !== 'object') return 0;
+  const w = ch.weapon;
+  const gear = (k) => [ch.weapon, ch.ability, ch.armor, ch.ring].reduce((n, it) => n + (it && typeof it === 'object' ? Number(it[k]) || 0 : 0), 0);
+  const att = (Number(ch.stats && ch.stats.att) || 0) + gear('att') + 40;
+  const dex = (Number(ch.stats && ch.stats.dex) || 0) + gear('dex') + 40;
+  if (!w || typeof w !== 'object') return 3000;
+  const avg = ((Number(w.dmin) || 0) + (Number(w.dmax) || 0)) / 2 * (Number(w.mult) || 1);
+  const shots = Math.max(1, Math.min(9, Number(w.shots) || 1));
+  const rate = (1.5 + 6.5 * dex / 75) * Math.min(2.5, Number(w.rate) || 1) * 1.5 * 1.4;
+  const dps = avg * (0.5 + att / 50) * 1.3 * 1.6 * shots * rate;
+  return Math.max(3000, Math.round(dps * 1.5 + 2000));
 }
 
 /** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
@@ -517,6 +538,7 @@ const handlers = {
     c.x = num(m.x); c.y = num(m.y);
     c.mv = null; // a new world: movement checks start again from where you arrive
     if (m.cid) c.charId = str(m.cid, 64);
+    c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
     c.profile = cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key));
     if (c.trade) endTrade(c, 'The trade was cancelled.');

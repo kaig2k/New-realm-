@@ -173,7 +173,7 @@ async function run() {
   await wait(400);
   let sd = A.find((m) => m.t === 'shopDone');
   const bought = sd && sd.inv.find((it) => it && it.kind === 'stat' && it.sid && !all.some((o) => o.sid === it.sid));
-  check('the Marketplace sells through the server: the item has an id and the gold is taken', bought && sd.gold === 5000 - 450, sd ? sd.gold : 'no reply');
+  check('the Marketplace sells through the server: the item has an id and the gold is taken', bought && sd.gold === 5000 - 1200, sd ? sd.gold : 'no reply');
   let invA = sd ? sd.inv : [];
   let gA = sd ? sd.gold : 5000, seqA = sd ? sd.seq : 0;
   A.clear();
@@ -390,7 +390,7 @@ async function run() {
       const arenas = [];
       const got = [];
       const themes = [];
-      const c = { id: 1, x: 100, y: 100, send: (m) => got.push(m.d) };
+      const c = { id: 1, x: 100, y: 100, maxDps: 1e9, send: (m) => got.push(m.d) };
       ws.join(c);
       let err = null;
       try {
@@ -410,6 +410,32 @@ async function run() {
       if (r === 2) check('each Vault master remakes the whole dungeon in its style (even the entrance hall)',
         new Set(themes).size === 4 && themes.every((t) => t !== 9), themes.join(','));
     }
+  }
+
+  console.log('pacing and boss scaling');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: PD } = require('./sim/gen/game');
+    // a hacked game sending huge hits as fast as it can is held to what its gear can do
+    const ws = new WorldSim('dg:6:777');
+    const boss = ws.w.boss;
+    boss.maxHp = boss.hp = 1e7;
+    const cheat = { id: 3, x: boss.x, y: boss.y + 1, maxDps: 8000, send: () => {} };
+    ws.join(cheat);
+    const hp0 = boss.hp;
+    for (let i = 0; i < 300; i++) ws.hit(cheat, { id: boss.id, d: 6000 });
+    const dealt = hp0 - boss.hp;
+    check('damage is capped by what the hero\'s own gear can deal (300 hits of 6,000 at once)', dealt <= 8000 * 3 + 20000 && cheat.dpsCut > 0, Math.round(dealt) + ' dealt');
+    // bosses grow with the players fighting them, not with everyone in the world
+    const rw = new WorldSim('dg:6:778');
+    const rb = rw.w.boss;
+    const solo = rb.maxHp;
+    for (let i = 0; i < 4; i++) rw.join({ id: 10 + i, x: rb.x + i, y: rb.y + 2, send: () => {} });
+    rw.join({ id: 20, x: rb.x + 200, y: rb.y + 200, send: () => {} });
+    rw.scaleT = 0; rw.scaleBosses(0.1);
+    check('a boss scales with the players fighting it (4 near, 1 far away: 4 counted)', rb.scalePlayers === 4 && rb.maxHp > solo * 2.4, rb.scalePlayers + ' / ' + Math.round(rb.maxHp / solo * 100) + '%');
+    const total = (() => { let t = 0; for (let l = 1; l < 20; l++) t += 40 + l * 45 + l * l * 3; return t; })();
+    check('reaching level 20 takes a real climb (' + total + ' XP)', total > 15000 && PD.SHOP.find((x) => x.id === 'stat').price >= 1200);
   }
 
   console.log('weekly vault twists');
@@ -451,7 +477,7 @@ async function run() {
     const { Data, SetPieces } = require('./sim/gen/game');
     const ws = new WorldSim('realm:Test:4242');
     const got = [];
-    const c = { id: 1, x: ws.w.spawnX, y: ws.w.spawnY, send: (m) => got.push(m.d || m) };
+    const c = { id: 1, x: ws.w.spawnX, y: ws.w.spawnY, maxDps: 1e9, send: (m) => got.push(m.d || m) };
     ws.join(c);
     const bad = [];
     const kills = [];
@@ -532,7 +558,7 @@ async function run() {
     const ws = new WorldSim('realm:Quest:99');
     const seen = [];
     ws.onQuest = (c, e) => seen.push(...e);
-    const cq = { id: 7, x: ws.w.spawnX, y: ws.w.spawnY, send: () => {} };
+    const cq = { id: 7, x: ws.w.spawnX, y: ws.w.spawnY, maxDps: 1e9, send: () => {} };
     ws.join(cq);
     const mob = ws.spawn('orc', cq.x + 3, cq.y, 2, true);
     if (mob) { cq.x = mob.x; cq.y = mob.y + 2; for (let k = 0; k < 40 && !mob.dead; k++) ws.hit(cq, { id: mob.id, d: 6000 }); }
@@ -828,7 +854,7 @@ async function run() {
       const { WorldSim } = require('./sim/worldsim');
       const hm = {}, hsv = { gold: 0, fame: 0, chars: [{ id: 'hh' }], _fame: {} }, t0 = Date.now();
       const ws = new WorldSim('dg:6:4242');
-      const me = { id: 7, x: 100, y: 100, send: () => {} };
+      const me = { id: 7, x: 100, y: 100, maxDps: 1e9, send: () => {} };
       ws.join(me);
       ws.onEarn = (c, e, near) => wallet.credit(hm, hsv, 'hh', e, t0, near);
       let gold = 0, xp = 0, kills = 0, bosses = 0, n = 0;

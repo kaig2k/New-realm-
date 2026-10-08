@@ -120,9 +120,10 @@ package realm {
 			for (var id:String in Data.ENEMIES) {
 				var d:Object = Data.ENEMIES[id];
 				if (d.ai != "boss") continue;
+				// every boss gets tougher with more people fighting it (WorldSim.scaleBosses)
+				d.scales = true;
 				var endgame:Boolean = d.raid || d.finale || d.final || d.dtier >= 5;
 				if (!endgame) continue;
-				d.scales = true;
 				// raids are the hardest fights in the game
 				d.hp = int(d.hp * (d.raid ? 2.6 : 1.9));
 				d.def = (d.def || 0) + (d.raid ? 14 : 10);

@@ -27,6 +27,9 @@ const r2 = (v) => Math.round(v * 100) / 100;
 
 let nextId = 1;
 
+/** Damage a second for a player the server knows nothing about yet (see maxDps in server.js), and seconds of it to hold for bursts. */
+const MAX_DPS = 20000, DPS_BURST = 3;
+
 class WorldSim {
   /** key: "realm:Name:seed", "dg:index:seed", "raid:index:seed" or "arena:seed". */
   constructor(key) {
@@ -168,6 +171,18 @@ class WorldSim {
     if (sl) e.slowT = Math.max(e.slowT, sl);
     if (st) e.stunT = Math.max(e.stunT, e.isBoss ? st * 0.4 : st);
     let dmg = Math.min(6000, Math.max(0, Number(d.d) || 0));
+    // nobody deals damage faster than the best gear can: a budget that refills at MAX_DPS
+    // (with room for big ability bursts); hits beyond it don't count
+    if (dmg > 0) {
+      const now = Date.now();
+      const rate = c.maxDps || MAX_DPS, cap = rate * DPS_BURST + 20000;
+      const b = c.dps || (c.dps = { left: cap, t: now });
+      b.left = Math.min(cap, b.left + rate * (now - b.t) / 1000);
+      b.t = now;
+      if (b.left <= 0) { c.dpsCut = (c.dpsCut || 0) + 1; return; }
+      dmg = Math.min(dmg, b.left);
+      b.left -= dmg;
+    }
     // an event's clock (for the fastest-kill records) starts at the first hit on the boss or its set piece
     if (dmg > 0 && this.kind === 'realm' && this.w.boss && !this.w.boss.firstHit && (e === this.w.boss || e.def.prop)) this.w.boss.firstHit = Date.now();
     if (dmg > 0 && !e.immune) {
@@ -492,14 +507,27 @@ class WorldSim {
   }
 
   /** Endgame bosses: +80% health for each extra player here (only ever goes up). */
+  /**
+   * Bosses get tougher with every player fighting them: those within 24 tiles,
+   * or who have hit it. Endgame bosses (raids, finales, hard dungeons, the Dark
+   * Elder) +75% health per extra player, the rest +50% (counting up to 20).
+   * Health only goes up and keeps its percentage, so leaving mid-fight doesn't help.
+   */
   scaleBosses(dt) {
     this.scaleT -= dt;
     if (this.scaleT > 0) return;
     this.scaleT = 1;
-    const n = this.players.size;
-    const mult = 1 + 0.8 * (n - 1);
     for (const e of this.enemies) {
-      if (e.dead || !e.isBoss || !e.def.scales || mult <= e.scaleMult + 0.01) continue;
+      if (e.dead || !e.isBoss || !e.def.scales) continue;
+      let n = 0;
+      for (const c of this.players.values()) {
+        const dx = c.x - e.x, dy = c.y - e.y;
+        if (dx * dx + dy * dy < 24 * 24 || (e.hitters && e.hitters.get(c.id) > 0)) n++;
+      }
+      n = Math.max(1, Math.min(20, n));
+      const d = e.def, endgame = d.raid || d.finale || d.final || d.dtier >= 5;
+      const mult = 1 + (endgame ? 0.75 : 0.5) * (n - 1);
+      if (mult <= e.scaleMult + 0.01) continue;
       const frac = e.hp / e.maxHp;
       e.maxHp = e.maxHp / e.scaleMult * mult;
       e.hp = frac * e.maxHp;
@@ -775,4 +803,4 @@ class Sims {
 /** Set by the server in the last minutes before a restart. */
 WorldSim.restartSoon = false;
 
-module.exports = { WorldSim, Sims };
+module.exports = { MAX_DPS, DPS_BURST, WorldSim, Sims };

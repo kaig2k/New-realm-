@@ -393,6 +393,12 @@ package realm {
 			if (d) DEFS[name] = [d[0], pal, scale || d[2]];
 		}
 
+		/** Puts a finished design in place: [frames], palette and scale (BossArt's bosses); replaces any older copy. */
+		public static function define(name:String, frames:Array, pal:Object, scale:int):void {
+			DEFS[name] = [frames, pal, scale];
+			for (var k:String in cache) if (k.indexOf(name + ":") == 0) delete cache[k];
+		}
+
 		/** A sprite drawn in the Sprite Editor (16x16, letters a-p); replaces any older copy. */
 		public static function custom(name:String, rows:Array, pal:Object):void {
 			// walking: the same picture bobbed up a pixel

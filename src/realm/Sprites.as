@@ -278,6 +278,7 @@ package realm {
 			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf5dc72, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
 			keysmith: [HUMANOID, {H: 0x2a4a8a, h: 0x1a3060, S: 0xf5dc72, E: 0x101010, B: 0x3a5aa0, b: 0x243a70, A: 0x80d0ff, L: 0x3a2a14, W: 0xc0e8ff}],
 			questboard: [QUESTBOARD, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 6],
+			signpost: [[["WWWWWWWW", "WPLLLLPW", "WPPPPPPW", "WPLLLPPW", "WWWWWWWW", "...WW...", "...WW...", "..WWWW.."]], {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 5],
 			slime: [BLOB, {B: 0x5ac040, b: 0x3a8a2a, W: 0x9aff7a, E: 0x103010}],
 			wolf: [WOLF, {W: 0x8a8a92, w: 0x5a5a62, E: 0xff3030}],
 			golem: [BRUTE, {H: 0x9a9aa0, h: 0x6a6a70, E: 0x60e0ff, B: 0x8a8a90, b: 0x5a5a60, A: 0x60e0ff, L: 0x4a4a50, W: 0x8a8a90, S: 0x9a9aa0}, 6],

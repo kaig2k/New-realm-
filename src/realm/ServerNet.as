@@ -189,6 +189,9 @@ package realm {
 				case "questDone":
 					g.questClaimed(m);
 					break;
+				case "daily":
+					g.dailyReward(m);
+					break;
 				case "given":
 					// an admin gave (or took) currency: the server's totals
 					Save.data.gold = int(m.gold); Save.data.fame = int(m.fame); Save.data.onrane = int(m.onrane);

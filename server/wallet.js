@@ -73,6 +73,14 @@ function credit(meta, sv, charId, e, now, near) {
   }
 }
 
+/** Gold and Aether the server hands out itself (the daily login reward): the next save may add them. */
+function grant(meta, gold, onrane, now) {
+  const w = state(meta);
+  if (!w.onrane) w.onrane = [];
+  if (gold > 0) w.gold.push({ n: gold, at: now || Date.now() });
+  if (onrane > 0) w.onrane.push({ n: onrane, at: now || Date.now() });
+}
+
 function refill(w, now) {
   const secs = Math.max(0, (now - w.t) / 1000);
   w.t = now;
@@ -222,4 +230,4 @@ function fameGain(prev, next) {
   return Math.max(0, (Number(next.fame) || 0) - Math.max(0, prev.fame || 0) + spent);
 }
 
-module.exports = { credit, settle, killValue, heroFame, fameGain, GOLD_LIFE, ALLOW };
+module.exports = { credit, grant, settle, killValue, heroFame, fameGain, GOLD_LIFE, ALLOW };

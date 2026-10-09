@@ -690,6 +690,11 @@ package realm {
 			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
 			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
 			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
+			// signposts by the entrance, for finding your way the first time
+			stations.push({x: 96.5, y: 123.2, kind: "deco", spr: "signpost", w: "nexus",
+				label: makeLabel("<font size='11'>\u2196 Vault, Fame Store, Pet Yard\n\u2191 Realm portals (north)\n\u2190 Quest Board</font>", 0xf0e0b0)});
+			stations.push({x: 104.5, y: 123.2, kind: "deco", spr: "signpost", w: "nexus",
+				label: makeLabel("<font size='11'>\u2197 Guild Hall, Starforge, Raids\n\u2192 Marketplace\n\u2191 The fountain heals you</font>", 0xf0e0b0)});
 			// the portal to your guild's hall, with its banner flying beside it
 			addPortal(nexusWorld, GUILD_X, GUILD_Y, "ghall", 0, 0x80ff80, 0, 0, false);
 			stations.push({x: GUILD_X - 2, y: GUILD_Y - 0.4, kind: "deco", spr: Sprites.hallFlag(""), label: makeLabel("", 0xffffff), w: "nexus", flag: true});
@@ -1351,6 +1356,7 @@ package realm {
 			addEventListener(Event.ENTER_FRAME, tick);
 			if (sandbox) { startSandbox(); return; }
 			showBanner("Nexus", 0xffffff, 2.5);
+			showNewsOnce();
 			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
 			saveCharacter();
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
@@ -2661,8 +2667,69 @@ package realm {
 			deathInfo = {
 				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best, baseFame: base, bonuses: bonuses,
 				kills: p.kills, bosses: p.bossKills, killer: p.lastHitBy || "the Realm", time: time,
-				killedWith: p.lastHitWith, recap: p.recap(time)
+				killedWith: p.lastHitWith, recap: p.recap(time),
+				// new players get some words of comfort and advice
+				newbie: p.level < 10 || int(save.deaths || 0) <= 3
 			};
+		}
+
+		// ------------------------------------------------------------- welcome and news
+		private var noticePanel:Sprite;
+
+		/** The first time on this account: a welcome. After an update: what's new (each once). */
+		private function showNewsOnce():void {
+			var news:Object = Data.NEWS[0];
+			if (!Save.data.welcomed) {
+				Save.data.welcomed = true;
+				Save.data.newsSeen = news.id;
+				Save.flush();
+				notice("Welcome to Eldmere!",
+					"Eldmere is a bullet-hell adventure: dodge everything, loot the bosses, and try not to die (heroes that fall are gone, but your account keeps its gold, fame, vault and unlocks).\n\n" +
+					"<b>Start here:</b> the <font color='#ffd75e'>Getting Started</font> list (top right) walks you through your first steps.\n" +
+					"<b>Find your way:</b> the signposts by the entrance point to everything in the Nexus.\n" +
+					"<b>Controls:</b> WASD to move, the mouse to aim and shoot, SPACE for your ability, F and G for potions, R to come back here.\n" +
+					"<b>Stuck?</b> Press K for the Wiki: bosses, loot and a guide to how everything works.", 0x80ff80);
+			} else if (Save.data.newsSeen != news.id) {
+				Save.data.newsSeen = news.id;
+				Save.flush();
+				notice(news.title, "\u2022 " + news.lines.join("\n\u2022 "), Ui.GOLD);
+			}
+		}
+
+		/** A small window with a title, some text and a button to close it. */
+		private function notice(title:String, html:String, col:uint):void {
+			if (noticePanel && noticePanel.parent) noticePanel.parent.removeChild(noticePanel);
+			var sp:Sprite = new Sprite();
+			var w:int = 560;
+			var t:TextField = Ui.text(22, col, true, "center", w, true);
+			t.text = title;
+			t.y = 14;
+			sp.addChild(t);
+			var body:TextField = Ui.text(14, 0xdddddd, false, "left", w - 40);
+			body.htmlText = html;
+			body.x = 20; body.y = 54;
+			sp.addChild(body);
+			var h:int = body.y + body.height + 64;
+			var ok:Sprite = Ui.button("Got it", 140, 34, function():void { if (sp.parent) sp.parent.removeChild(sp); refocus(); }, 15);
+			ok.x = (w - 140) / 2; ok.y = h - 48;
+			sp.addChild(ok);
+			Ui.panel(sp.graphics, 0, 0, w, h, 0x1c1c24, col, 0.97);
+			sp.x = int((VIEW_W - w) / 2); sp.y = int((Ui.H - h) / 2) - 20;
+			addChild(sp);
+			noticePanel = sp;
+		}
+
+		/** The server's daily login reward arrived: a banner and the new totals. */
+		public function dailyReward(m:Object):void {
+			addGold(int(m.addGold));
+			if (m.addOnrane) addOnrane(int(m.addOnrane));
+			saveCharacter();
+			Save.flush();
+			showBanner("Daily reward: day " + m.streak + "!", Ui.GOLD, 3.5);
+			msg("Day " + m.streak + " in a row: +" + Ui.commas(m.addGold) + " gold" + (m.addOnrane ? " and +" + m.addOnrane + " Aether" : "") +
+				". Come back tomorrow for " + (m.streak >= 7 ? "the next week's rewards" : "day " + (m.streak + 1)) + ".", Ui.GOLD);
+			Sfx.play("coin");
+			refreshStation();
 		}
 
 		// ------------------------------------------------------------- actions

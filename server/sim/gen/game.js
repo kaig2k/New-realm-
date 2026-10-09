@@ -3853,6 +3853,14 @@ Data.DYE_KEYS = {
 			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"],
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
+Data.NEWS = [
+			{id: "2026-10-launch", title: "What's new in Eldmere",
+				lines: ["<b>Hero modes</b>: make an Ironman or Hardcore hero for more loot luck (pick on the class screen).",
+					"<b>Guild Halls</b>: walk into your guild's own hall from the Nexus portal. Shared bank, weekly goals, and a Banner Maker.",
+					"<b>Seasons</b>: a new ladder every month. Seasonal heroes score double; the top ten win titles and dyes.",
+					"<b>Monster families</b>: goblin daggers come back, slimes split, spiders web the ground, ghosts pass through walls.",
+					"<b>Daily rewards</b>: log in each day for gold, more for every day in a row (Aether on day 7)."]}
+		];
 Data.MODES = [
 			{id: "", name: "Regular", col: 0xd8d8d8, luck: 0, desc: "The game as it is: trade, use the Marketplace, the vault and the guild bank."},
 			{id: "ironman", name: "Ironman", col: 0xb8c4d8, luck: 30,

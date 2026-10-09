@@ -76,6 +76,8 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
 
 // ------------------------------------------------------------------ storage
 const store = new Store(DATA_DIR);
+// a copy of everything in data/ each day (data/backups/YYYY-MM-DD, newest 14 kept; config "backups": false turns it off)
+const backup = require('./backup');
 /** Server-run monsters for every realm, dungeon, raid and Elder chamber (config "serverMonsters": false turns it off). */
 const sims = config.serverMonsters === false ? null : new Sims();
 // loot the server rolls is written into the looter's ledger
@@ -164,6 +166,51 @@ function seasonSave(c, prev, data) {
   const g = guildOf(c);
   if (g && gain > 0) { g.fame = (Number(g.fame) || 0) + gain / 10; save('guilds.json', guilds); }
   if (pts > 0) c.send({ t: 'msg', color: 0x8fd16a, text: '+' + pts.toLocaleString('en') + ' season points (' + cur.name + '). See the Season page in the Wiki (K).' });
+}
+
+/** A login that checked out: ban check, then into the game (see handlers.hello). */
+function finishLogin(c, acc, key, session) {
+  if (c.authed) return;
+  const ban = bans[key];
+  if (ban && (!ban.until || ban.until > Date.now())) {
+    return c.fail('You are banned from this server' + (ban.until ? ' until ' + new Date(ban.until).toUTCString() : '') + (ban.reason ? ': ' + ban.reason : '.'));
+  }
+  const old = byName.get(key);
+  if (old) { old.send({ t: 'kicked', msg: 'You logged in from somewhere else.' }); old.replaced = true; setTimeout(() => old.close(true), 200); }
+  c.authed = true;
+  c.name = acc.name;
+  c.key = key;
+  byName.set(key, c);
+  // guild membership lives on the server
+  c.guild = null;
+  for (const gk in guilds) if (guilds[gk].members[key]) c.guild = gk;
+  c.meta = accountMeta.get(key) || { lastSave: Date.now(), lastGodly: 0 };
+  accountMeta.set(key, c.meta);
+  c.chatTimes = [];
+  c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
+    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current });
+  sendGuild(c.guild);
+  c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
+  log(c.name, 'joined (' + byName.size + ' online)');
+}
+
+// ------------------------------------------------------------------ daily login reward
+/** Gold for each day in a row (a week, then it starts again); day 7 adds Aether. */
+const DAILY_GOLD = [100, 150, 200, 250, 300, 400, 500], DAILY_AETHER = 25;
+function dailyLogin(c) {
+  if (!c.authed || !c.key || !c.charId) return;
+  const sv = onlineSave(c.key);
+  const day = Math.floor(Date.now() / 86400000);
+  const d = sv._login && typeof sv._login === 'object' ? sv._login : { day: -9, streak: 0 };
+  if (d.day === day) return;
+  const streak = d.day === day - 1 ? (d.streak | 0) + 1 : 1;
+  const k = (streak - 1) % 7;
+  const gold = DAILY_GOLD[k], aether = k === 6 ? DAILY_AETHER : 0;
+  sv._login = { day, streak };
+  store.putSave(c.key, sv);
+  // the game adds it and saves; the wallet lets exactly that much through
+  if (c.meta) wallet.grant(c.meta, gold, aether);
+  c.send({ t: 'daily', streak, addGold: gold, addOnrane: aether });
 }
 
 // ------------------------------------------------------------------ earned titles
@@ -423,6 +470,7 @@ function publicSave(s) {
   delete o._market;
   delete o._titles;
   delete o._fame;
+  delete o._login;
   o.earned = Object.keys(s._titles || {});
   return o;
 }
@@ -442,6 +490,7 @@ function applySave(c, data) {
   if (!why && prev) why = modes.check(prev, data);
   if (why) {
     log('refused save from ' + c.name + ': ' + why);
+    counters.savesRefused++;
     store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);
     c.send({ t: 'saveRejected', reason: why, data: publicSave(prev) });
     return false;
@@ -454,11 +503,14 @@ function applySave(c, data) {
   // so is quest progress, and the Marketplace box (takings, returned items)
   if (prev._quests) data._quests = prev._quests; else delete data._quests;
   if (prev._market) data._market = prev._market; else delete data._market;
+  // and the daily login streak
+  if (prev._login) data._login = prev._login; else delete data._login;
   // gold and fame only go up by what the server saw earned
   if (sims && !isAdmin(c)) {
     const cut = wallet.settle(prev, data, c.meta, Date.now());
     if (cut) {
       log('wallet ' + c.name + ': ' + cut);
+      counters.savesCut++;
       store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + cut);
       c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
@@ -538,7 +590,7 @@ function cleanProfile(p, sv) {
 
 const handlers = {
   hello(c, m) {
-    if (c.authed) return;
+    if (c.authed || c.loggingIn) return;
     if (m.ver !== VERSION) return c.fail('Version mismatch: this server runs New Realm network version ' + VERSION +
       ' and your game uses version ' + m.ver + '. Open the game with the Eldmere launcher to get the latest version.');
     // accounts live on the server: register, log in with a password, or resume a remembered session
@@ -548,55 +600,55 @@ const handlers = {
     if (!/^[A-Za-z0-9]{3,12}$/.test(name)) return c.fail('Usernames are 3-12 letters or numbers.');
     if (loginLocked(c.ip)) return c.fail('Too many failed logins. Wait a few minutes and try again.');
     const key = name.toLowerCase();
-    let acc = accounts[key];
-    let session = null;
+    const acc = accounts[key];
+    // (password hashing is slow on purpose, so it runs off the main thread: everyone else keeps playing)
+    const hashThen = (pw, salt, done) => {
+      c.loggingIn = true;
+      crypto.scrypt(String(pw), salt, 32, (err, buf) => {
+        c.loggingIn = false;
+        if (err || !clients.has(c.id)) return;
+        done(buf.toString('hex'));
+      });
+    };
     if (m.register) {
       if (acc) return c.fail('That username is already taken.');
       if (password.length < 4) return c.fail('Passwords need at least 4 characters.');
-      acc = accounts[key] = { name, created: Date.now() };
-      setPassword(acc, password);
-      session = newSession(acc);
-      save('accounts.json', accounts);
-      log('new account', name);
-    } else if (password) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      return hashThen(password, salt, (hash) => {
+        if (accounts[key]) return c.fail('That username is already taken.');
+        const a = accounts[key] = { name, created: Date.now(), pwSalt: salt, pwHash: hash };
+        const session = newSession(a);
+        save('accounts.json', accounts);
+        log('new account', name);
+        finishLogin(c, a, key, session);
+      });
+    }
+    if (password) {
       if (!acc) { loginFailed(c.ip); return c.fail('No account with that username.'); }
       if (!acc.pwHash) {
         // made before passwords: the PC it was first played on still holds its token
         if (!hasSession(acc, str(m.legacy, 64))) {
           return c.fail('This account was made before passwords. Log in once from the PC you first played on to set its password.');
         }
-        setPassword(acc, password);
-        log(name, 'set a password');
-      } else if (!checkPassword(acc, password)) {
-        loginFailed(c.ip);
-        return c.fail('Wrong password.');
+        const salt = crypto.randomBytes(16).toString('hex');
+        return hashThen(password, salt, (hash) => {
+          acc.pwSalt = salt; acc.pwHash = hash;
+          log(name, 'set a password');
+          const session = newSession(acc);
+          save('accounts.json', accounts);
+          finishLogin(c, acc, key, session);
+        });
       }
-      session = newSession(acc);
-      save('accounts.json', accounts);
-    } else {
-      if (!acc || !hasSession(acc, token)) { loginFailed(c.ip); return c.fail('Please log in again.'); }
+      return hashThen(password, acc.pwSalt, (hash) => {
+        const a = Buffer.from(hash, 'hex'), b = Buffer.from(acc.pwHash, 'hex');
+        if (!(a.length === b.length && crypto.timingSafeEqual(a, b))) { loginFailed(c.ip); return c.fail('Wrong password.'); }
+        const session = newSession(acc);
+        save('accounts.json', accounts);
+        finishLogin(c, acc, key, session);
+      });
     }
-    const ban = bans[key];
-    if (ban && (!ban.until || ban.until > Date.now())) {
-      return c.fail('You are banned from this server' + (ban.until ? ' until ' + new Date(ban.until).toUTCString() : '') + (ban.reason ? ': ' + ban.reason : '.'));
-    }
-    const old = byName.get(key);
-    if (old) { old.send({ t: 'kicked', msg: 'You logged in from somewhere else.' }); old.replaced = true; setTimeout(() => old.close(true), 200); }
-    c.authed = true;
-    c.name = acc.name;
-    c.key = key;
-    byName.set(key, c);
-    // guild membership lives on the server
-    c.guild = null;
-    for (const gk in guilds) if (guilds[gk].members[key]) c.guild = gk;
-    c.meta = accountMeta.get(key) || { lastSave: Date.now(), lastGodly: 0 };
-    accountMeta.set(key, c.meta);
-    c.chatTimes = [];
-    c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current });
-    sendGuild(c.guild);
-    c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
-    log(c.name, 'joined (' + byName.size + ' online)');
+    if (!acc || !hasSession(acc, token)) { loginFailed(c.ip); return c.fail('Please log in again.'); }
+    finishLogin(c, acc, key, null);
   },
 
   enter(c, m) {
@@ -624,6 +676,8 @@ const handlers = {
     for (const o of inWorld(world, c)) o.send({ t: 'join', p: publicInfo(c) });
     updateGuildMember(c);
     sendParty(c.party);
+    // the first time into the game each day: the daily login reward
+    dailyLogin(c);
     // let the party follow you into dungeons
     const p = parties.get(c.party);
     if (p && world.startsWith('dg:')) {
@@ -1327,6 +1381,9 @@ const handlers = {
         if (!discord.on) return c.note('No Discord webhook is set. Put "discordWebhook" in server/config.json and restart.');
         discord.post('👋 Test message from ' + desc(c.name) + ' in game.');
         return c.note('Sent a test message to Discord (' + discord.sent + ' sent since the server started).', 0x80ff80);
+      case '/stats':
+        for (const line of statsLines()) c.note(line, 0x9fe0ff);
+        return;
       case '/admins':
         return c.note('Admins: ' + (config.admins.join(', ') || 'none'), 0x80ff80);
       case '/admin': {
@@ -1369,6 +1426,43 @@ const handlers = {
 // ------------------------------------------------------------------ godmode checks
 const { godmodeVerdict } = require('./godmode');
 
+// ------------------------------------------------------------------ server health (/stats)
+/** NEWREALM_SLOW_LOG=1: log any message that takes the server over 30 ms (for load tests). */
+const SLOW_LOG = !!process.env.NEWREALM_SLOW_LOG;
+const counters = { startedAt: Date.now(), godmodeFlags: 0, godmodeKicks: 0, savesCut: 0, savesRefused: 0, peak: 0 };
+/** How late the event loop runs (ms): a busy server answers everyone late. */
+let loopLag = 0, loopLagMax = 0;
+{
+  let last = Date.now();
+  setInterval(() => {
+    const now = Date.now(), lag = Math.max(0, now - last - 500);
+    last = now;
+    loopLag = lag;
+    loopLagMax = Math.max(loopLagMax * 0.98, lag);
+  }, 500).unref();
+}
+
+/** The server's health in a few lines (in game: /stats, admins; console: stats). */
+function statsLines() {
+  const on = online();
+  counters.peak = Math.max(counters.peak, on.length);
+  const mem = process.memoryUsage();
+  const up = (Date.now() - counters.startedAt) / 1000;
+  const lines = [];
+  lines.push(on.length + ' online (peak ' + counters.peak + '), up ' + (up > 86400 ? (up / 86400).toFixed(1) + ' days' : (up / 3600).toFixed(1) + ' hours'));
+  const where = {};
+  for (const c of on) { const w = String(c.world || '-').split(':')[0]; where[w] = (where[w] || 0) + 1; }
+  lines.push('Where: ' + (Object.keys(where).map((k) => k + ' ' + where[k]).join(', ') || 'nobody'));
+  if (sims) {
+    const st = sims.stats();
+    lines.push(st.worlds + ' worlds, ' + st.monsters + ' monsters; world tick ' + st.avgMs + ' ms avg, ' + st.p99Ms + ' ms worst 1% (budget 50)');
+  }
+  lines.push('Memory ' + Math.round(mem.rss / 1048576) + ' MB; event loop late by ' + loopLag + ' ms (recent worst ' + Math.round(loopLagMax) + ')');
+  lines.push('Anti-cheat since start: ' + counters.godmodeFlags + ' godmode flags, ' + counters.godmodeKicks + ' kicks (kicking ' + (config.godmodeKick === true ? 'on' : 'off') + '), ' +
+    counters.savesCut + ' saves cut back, ' + counters.savesRefused + ' refused');
+  return lines;
+}
+
 /** Every 10 seconds: compare each player's expected and reported hits since they entered the world (or the last check that settled it). */
 function godmodeCheck() {
   for (const c of clients.values()) {
@@ -1378,12 +1472,15 @@ function godmodeCheck() {
     if (v) {
       const note = c.name + ' took ' + took + ' of ' + exp + ' clean monster hits (godmode?)';
       log('godmode ' + note);
+      counters.godmodeFlags++;
       store.appendLog('anticheat.log', new Date().toISOString() + ' ' + note);
       if (Date.now() - (c.flaggedAt || 0) > 300000) {
         c.flaggedAt = Date.now();
         for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + note, 0xffb040);
       }
-      if (v === 'kick' && config.godmodeKick !== false) {
+      // (kicking is off unless config.json says "godmodeKick": true: until you've seen the log, honest players are only flagged)
+      if (v === 'kick' && config.godmodeKick === true) {
+        counters.godmodeKicks++;
         c.send({ t: 'kicked', msg: 'Your game ignored hits from monsters, so you were disconnected. If you think this is a mistake, tell an admin.' });
         c.close(true);
         continue;
@@ -1422,7 +1519,10 @@ function moveAllowed(c, nx, ny) {
   else if (dist <= 2.5 && w.walkable(c.x, c.y)) {
     // a normal step: every point on the way must be open ground
     const steps = Math.ceil(dist / 0.2);
-    for (let k = 1; k < steps && !why; k++) if (!w.walkable(c.x + dx * k / steps, c.y + dy * k / steps)) why = 'through a wall';
+    for (let k = 1; k < steps && !why; k++) {
+      const px = c.x + dx * k / steps, py = c.y + dy * k / steps;
+      if (!w.walkable(px, py)) why = 'through a wall' + (process.env.NEWREALM_MOVE_DEBUG ? ' (tile ' + w.tileAt(px, py) + ' obj ' + w.objs[Math.floor(py) * w.N + Math.floor(px)] + ' at ' + px.toFixed(1) + ',' + py.toFixed(1) + ')' : '');
+    }
   }
   if (process.env.NEWREALM_MOVE_DEBUG) log('move ' + c.name + ' ' + dist.toFixed(2) + ' budget ' + mv.budget.toFixed(1) + (why ? ' REFUSED ' + why : ''));
   if (!why) { mv.budget -= dist; return true; }
@@ -1661,7 +1761,9 @@ function attach(c) {
     if (c.replaced) return;
     const h = handlers[m.t];
     if (h) {
+      const t0 = SLOW_LOG ? Date.now() : 0;
       try { h(c, m); } catch (e) { log('error handling', m.t, e.message); }
+      if (SLOW_LOG && Date.now() - t0 > 30) log('slow: ' + m.t + ' took ' + (Date.now() - t0) + ' ms');
     }
   };
   c.onClose = () => {
@@ -1723,6 +1825,13 @@ function serveHttp(sock, req) {
       }
     }
     sock.end(head('text/plain', Buffer.byteLength(msg)) + msg);
+    return;
+  }
+  // the VPS itself can read the server's health (curl http://127.0.0.1:PORT/stats)
+  if (pathOnly === '/stats') {
+    const local = /^(::ffff:)?127\.0\.0\.1$|^::1$/.test(String(sock.remoteAddress || ''));
+    const txt = local ? statsLines().join('\n') + '\n' : 'Only the server itself can do that.\n';
+    sock.end(head('text/plain', Buffer.byteLength(txt)) + txt);
     return;
   }
   if (pathOnly === '/crossdomain.xml') {
@@ -1844,6 +1953,7 @@ server.listen(PORT, () => {
   discord.post('🟢 **' + desc(config.name || 'Eldmere') + '** is online. Come and play!', 0x60e070);
   announceTwist();
   seasonTick();
+  if (config.backups !== false) backup.start(DATA_DIR, () => store.flushAll(), log, Number(config.backupKeep) || 14);
   log('Realms: ' + realms.map(r => r.name).join(', '));
   log('Type "help" here for server commands (list, say, kick, stop).');
   const addrs = [];
@@ -1863,7 +1973,7 @@ setInterval(() => {
 }, 1000);
 
 // ------------------------------------------------------------------ console
-const HELP = 'Commands: list | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | realms (new realms) | stop';
+const HELP = 'Commands: list | stats | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
 function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
 process.stdin.setEncoding('utf8');
@@ -1880,6 +1990,9 @@ process.stdin.on('data', (data) => {
         console.log(list.length + ' online' + (list.length ? ': ' + list.map(c => c.name + ' (' + (c.world || '-') + (hosts.get(c.world) === c ? ', host' : '') + ')').join(', ') : ''));
         break;
       }
+      case 'stats':
+        for (const line of statsLines()) console.log(line);
+        break;
       case 'worlds': {
         if (!sims) { console.log('Server monsters are off (config serverMonsters: false).'); break; }
         const st = sims.stats();

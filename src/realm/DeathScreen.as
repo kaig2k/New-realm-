@@ -13,6 +13,15 @@ package realm {
 		private var t:Number = 0;
 		private var fameTf:TextField;
 		private var fameTotal:int;
+		/** Advice for new players, one shown at random. */
+		private static const TIPS:Array = [
+			"press R (or step into the Nexus portal) to escape to safety whenever a fight goes badly. It's always better than dying.",
+			"drink a health potion (F) early, not at the last moment. The fountain in the Nexus refills you for free.",
+			"stay near the beach and lowlands until you're level 10 or so. The middle of the realm is much more dangerous.",
+			"red rings on the ground mean a blast is coming there. Step out of them.",
+			"Defense makes every hit hurt less. Stat potions from bosses raise your stats for good.",
+			"party up with other players: everyone who hits a monster gets their own loot."
+		];
 
 		public function DeathScreen(info:Object, onDone:Function) {
 			this.onDone = onDone;
@@ -27,7 +36,9 @@ package realm {
 			listH += recapH;
 			// with a long bonus list the gravestone is dropped to make room
 			var compact:Boolean = bonuses.length > 3 || listH > 150;
-			var panelH:int = 520 + listH - (compact ? 100 : 0);
+			// new players: what they keep, and a tip for next time
+			var tipH:int = info.newbie ? 92 : 0;
+			var panelH:int = 520 + listH + tipH - (compact ? 100 : 0);
 			var top:int = Math.max(4, int((Ui.H - panelH) / 2));
 			Ui.panel(graphics, Ui.W / 2 - 290, top, 580, panelH, 0x1e1e22, 0x4a4a4a);
 
@@ -126,6 +137,14 @@ package realm {
 				addChild(best);
 			}
 
+			if (info.newbie) {
+				var tip:TextField = Ui.text(13, 0xc8e8c8, false, "center", 520, true);
+				tip.htmlText = "Every hero can fall: it's part of Eldmere. <b>You keep</b> your gold, Aether, the fame you just earned, your vault, pets and unlocks.\n" +
+					"<font color='#ffd75e'>Tip:</font> " + TIPS[int(Math.random() * TIPS.length)];
+				tip.x = Ui.W / 2 - 260; tip.y = y + 100;
+				addChild(tip);
+				y += tipH;
+			}
 			var btn:Sprite = Ui.button("Return to Menu", 240, 46, finish);
 			btn.x = Ui.W / 2 - 120;
 			btn.y = y + 116;

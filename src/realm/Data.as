@@ -1235,6 +1235,16 @@ package realm {
 			return null;
 		}
 
+		// ---- news: shown once per account after an update (newest first) ---------
+		public static const NEWS:Array = [
+			{id: "2026-10-launch", title: "What's new in Eldmere",
+				lines: ["<b>Hero modes</b>: make an Ironman or Hardcore hero for more loot luck (pick on the class screen).",
+					"<b>Guild Halls</b>: walk into your guild's own hall from the Nexus portal. Shared bank, weekly goals, and a Banner Maker.",
+					"<b>Seasons</b>: a new ladder every month. Seasonal heroes score double; the top ten win titles and dyes.",
+					"<b>Monster families</b>: goblin daggers come back, slimes split, spiders web the ground, ghosts pass through walls.",
+					"<b>Daily rewards</b>: log in each day for gold, more for every day in a row (Aether on day 7)."]}
+		];
+
 		// ---- hero modes: picked when a hero is made, kept for its whole life -------
 		/**
 		 * Regular: the normal game. Ironman: no trading, Marketplace, guild bank or

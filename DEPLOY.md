@@ -98,7 +98,9 @@ Players then join with `play.yourgame.com:2050`.
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
 | `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
 | `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
-| `godmodeKick` | `true` (the default): players who take almost none of the monster shots the server sees hit them are kicked. `false` only flags them (admins are told, and it's logged to `anticheat.log`). |
+| `godmodeKick` | Off by default: players who take almost none of the monster shots the server sees hit them are only flagged (admins are told, and it's logged to `anticheat.log`). Once you've watched the log for a while and trust it, set it to `true` to kick them too. |
+| `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
+| `backupKeep` | How many days of backups to keep (14). |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 
@@ -117,6 +119,7 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/restart 5`, `/restart now`, `/restart cancel`
   - `/give name 1000 gold` (or `fame`, `aether`; a minus number takes it away), works on offline accounts too
   - `/discord` sends a test message to the Discord feed
+  - `/stats` shows the server's health: players online and where, world tick time, memory, how late the server is answering, and anti-cheat counts. On the VPS: `curl http://127.0.0.1:2050/stats` (or `stats` in the server console).
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
 - **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
@@ -150,6 +153,11 @@ and a tenth of the fame of members' fallen heroes). A founder can't disband a gu
 items. It's all kept in `guilds.json`.
 
 ## 8. Backups
+
+The server backs itself up once a day (see `backups` above): `server/data/backups/YYYY-MM-DD/` holds a
+full copy of that day's data, and the newest 14 are kept. To restore one: stop the server
+(`sudo systemctl stop newrealm`), copy that day's files back into `server/data/`, and start it again.
+For extra safety you can also copy the backups off the VPS now and then.
 
 Everything lives in `server/data/`:
 - `accounts.json`, `guilds.json`, `bans.json`, `records.json` and `season.json`;
@@ -230,3 +238,10 @@ and offline characters, items and currencies can't be brought in. (Older servers
   flagged to admins and logged in `anticheat.log`, and kicked unless `godmodeKick` is `false`.
   Honest dodging is never punished: only shots that pass right through a player count.
 - **Not yet covered:** the hits a game reports aren't proof; a determined cheater could fake them.
+
+## Load testing
+
+`node tools/loadtest.js 120 120` starts a private copy of the server and connects 120 fake players
+for 120 seconds (they make heroes, walk into realms, fight, take hits and save), printing the
+server's health every 10 seconds. Your real server and data are never touched. Tested on this
+version: 120 players use about 2-3 ms of each 50 ms world tick and about 170 MB of memory.

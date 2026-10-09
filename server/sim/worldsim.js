@@ -848,12 +848,19 @@ class Sims {
       if (!s.players.size && !s.keep && s.emptyFor > (s.kind === 'realm' ? 600 : 60)) this.map.delete(key);
     }
     this.lastMs = Date.now() - t0;
+    // the last minute of tick times (the budget is 50 ms a tick)
+    if (!this.hist) this.hist = [];
+    this.hist.push(this.lastMs);
+    if (this.hist.length > 1200) this.hist.shift();
   }
 
   stats() {
     let monsters = 0;
     for (const s of this.map.values()) monsters += s.enemies.length;
-    return { worlds: this.map.size, monsters, tickMs: this.lastMs || 0 };
+    const h = (this.hist || []).slice().sort((a, b) => a - b);
+    const avg = h.length ? h.reduce((n, v) => n + v, 0) / h.length : 0;
+    return { worlds: this.map.size, monsters, tickMs: this.lastMs || 0, avgMs: Math.round(avg * 10) / 10,
+      p99Ms: h.length ? h[Math.min(h.length - 1, Math.floor(h.length * 0.99))] : 0, maxMs: h.length ? h[h.length - 1] : 0 };
   }
 }
 

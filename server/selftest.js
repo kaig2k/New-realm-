@@ -957,6 +957,30 @@ async function run() {
     H.s.destroy(); R.s.destroy();
   }
 
+  console.log('daily login reward');
+  {
+    const L = await login('Tdl' + n, { password: 'pass1234', register: true });
+    L.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'dl1', cls: 'wizard', name: 'Dl', level: 1, inv: [] }] } });
+    await wait(300);
+    L.send({ t: 'enter', key: 'nexus', cid: 'dl1', x: 100, y: 100, profile: { cls: 'wizard' } });
+    await wait(300);
+    const d1 = L.find((m) => m.t === 'daily');
+    L.clear();
+    L.send({ t: 'enter', key: 'nexus', cid: 'dl1', x: 100, y: 100, profile: { cls: 'wizard' } });
+    await wait(300);
+    check('the first time in each day pays a daily reward (once)', d1 && d1.streak === 1 && d1.addGold === 100 && !L.find((m) => m.t === 'daily'), JSON.stringify(d1));
+    // the game adds it and saves: the wallet lets it through (and a save can't reset the streak to claim it again)
+    L.clear();
+    L.send({ t: 'save', data: { gold: 100, fame: 0, _login: { day: 1, streak: 0 }, chars: [{ id: 'dl1', cls: 'wizard', name: 'Dl', level: 1, inv: [] }] } });
+    await wait(300);
+    check('the reward\'s gold is kept when the game saves it', !L.find((m) => m.t === 'wallet' || m.t === 'saveRejected'), JSON.stringify(L.msgs.filter((m) => m.t === 'wallet' || m.t === 'saveRejected')));
+    L.clear();
+    L.send({ t: 'enter', key: 'nexus', cid: 'dl1', x: 100, y: 100, profile: { cls: 'wizard' } });
+    await wait(300);
+    check('...and the game can\'t reset its streak to claim it twice', !L.find((m) => m.t === 'daily'));
+    L.s.destroy();
+  }
+
   console.log('cosmetics');
   {
     const C = await login('Tc' + n, { password: 'pass1234', register: true });

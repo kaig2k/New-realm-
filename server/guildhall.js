@@ -12,6 +12,9 @@
  * goal finished adds guild fame; finishing all three unlocks that week's
  * banner for good, which the guild's leaders can fly. Guild fame also grows
  * with the fame of members' fallen heroes, and guilds are ranked by it.
+ *
+ * Banner Maker: leaders can also design the guild's own banner from a
+ * background colour, a pattern, an emblem and their colours (Data.parseBanner).
  */
 const items = require('./items');
 const { Data } = require('./sim/gen/game');
@@ -48,7 +51,8 @@ function goalsFor(week) {
 }
 
 function bannerFor(week) { return BANNERS[((week % BANNERS.length) + BANNERS.length) % BANNERS.length]; }
-function findBanner(id) { return BANNERS.find((b) => b.id === id) || null; }
+/** An earned banner or a guild-made design ("c:..."), or null. */
+function findBanner(id) { return Data.findBanner(id) || null; }
 
 /** Fills in a guild record's newer parts (guilds made before the hall have none). */
 function ready(g, now) {
@@ -134,9 +138,25 @@ function progress(g, evs, now) {
 function fly(g, id, rank) {
   ready(g);
   if (rank < BANNER_RANK) return 'Only the guild\'s leaders can change its banner.';
-  if (id && !g.banners.includes(id)) return 'Your guild hasn\'t earned that banner yet.';
+  if (id && !g.banners.includes(id) && id !== g.custom) return 'Your guild hasn\'t earned that banner yet.';
   g.banner = id || '';
   return null;
+}
+
+/**
+ * The Banner Maker: leaders save the guild's own design (one per guild; a new one replaces it) and fly it.
+ * Returns the design's id, or an error string.
+ */
+function design(g, code, rank, who) {
+  ready(g);
+  if (rank < BANNER_RANK) return 'Only the guild\'s leaders can design its banner.';
+  const parts = Data.parseBanner(String(code || ''));
+  if (!parts) return 'That isn\'t a banner design.';
+  const id = Data.bannerCode(parts);
+  g.custom = id;
+  g.banner = id;
+  note(g, who + ' designed a new guild banner');
+  return id;
 }
 
 /** What a member sees in the Guild Hall. guilds: every guild (for the ranking). */
@@ -150,10 +170,10 @@ function view(g, gk, guilds, rank) {
     bank: g.bank.map((b) => (b ? { item: b.item, by: b.by } : null)),
     log: g.log.slice(0, 8),
     goals: goalsFor(week).map((goal) => ({ text: goal.text, n: goal.n, at: g.goals.prog[goal.id] || 0, done: !!g.goals.done[goal.id], fame: goal.fame })),
-    weekBanner: bannerFor(week), banner: g.banner || '', banners: g.banners.slice(),
+    weekBanner: bannerFor(week), banner: g.banner || '', banners: g.banners.slice(), custom: g.custom || '',
     top: ranking.slice(0, 10).map((r) => ({ name: r.name, fame: r.fame, members: r.members })),
-    canTake: rank >= TAKE_RANK, canFly: rank >= BANNER_RANK
+    canTake: rank >= TAKE_RANK, canFly: rank >= BANNER_RANK, canDesign: rank >= BANNER_RANK
   };
 }
 
-module.exports = { ready, deposit, withdraw, progress, fly, view, goalsFor, bannerFor, findBanner, weekOf, BANNERS, GOALS, BANK_SLOTS };
+module.exports = { ready, deposit, withdraw, progress, fly, design, view, goalsFor, bannerFor, findBanner, weekOf, BANNERS, GOALS, BANK_SLOTS };

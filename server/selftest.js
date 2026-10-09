@@ -863,6 +863,15 @@ async function run() {
     const got = hall.withdraw(g, taker, tinv, idx, 1, 'Bo');
     check('members take it with its ledger entry (still a real server item)', got === sword && tinv[0] === sword && taker._ledger[sword.sid] && !g.bank[idx] && !itemsMod.check(taker, { chars: [{ inv: tinv }] }));
     check('only leaders change the banner, and only to one the guild earned', typeof hall.fly(g, '', 2) === 'string' && hall.fly(g, '', 3) === null && typeof hall.fly(g, 'nope', 4) === 'string');
+    // the Banner Maker
+    check('only leaders can design a banner, and only a real design', typeof hall.design(g, 'c:1-2-3-4-5', 2, 'Bo') === 'string' && !hall.design(g, 'c:1-2-3-4-5', 2, 'Bo').startsWith('c:')
+      && !hall.design(g, 'c:99-0-0-0-0', 4, 'Ann').startsWith('c:') && !hall.design(g, 'c:1-2-3', 4, 'Ann').startsWith('c:') && !hall.design(g, '<b>', 4, 'Ann').startsWith('c:'));
+    const made = hall.design(g, 'c:09-5-4-1-03', 4, 'Ann');
+    check('a saved design flies straight away (in its tidy form) and can be flown again later', made === 'c:9-5-4-1-3' && g.banner === made && g.custom === made
+      && hall.fly(g, '', 4) === null && hall.fly(g, made, 4) === null && g.banner === made && GD.findBanner(made).custom.length === 5);
+    let cells = new Set();
+    for (let y = 0; y < GD.BANNER_H; y++) for (let x = 0; x < GD.BANNER_W; x++) cells.add(GD.bannerCell(GD.parseBanner(made), x, y));
+    check('a design draws its cloth, pattern and emblem in their own colours', cells.size === 3 && cells.has(GD.BANNER_COLORS[9]) && cells.has(GD.BANNER_COLORS[4]) && cells.has(GD.BANNER_COLORS[3]));
     const v = hall.view(g, 'testers', { testers: g, other: { name: 'Others', members: {}, fame: 1e9 } }, 1);
     check('the Guild Hall shows goals, the bank and the guild ranking', v.goals.length === 3 && v.bank.length === hall.BANK_SLOTS && v.place === 2 && v.top[0].name === 'Others' && v.canTake && !v.canFly);
     // over the wire
@@ -878,6 +887,12 @@ async function run() {
     G.send({ t: 'ghBanner', id: 'crimson' });
     await wait(250);
     check('a banner the guild hasn\'t earned can\'t be flown', G.find((m) => m.t === 'msg' && /hasn't earned/.test(m.text)));
+    G.clear();
+    G.send({ t: 'ghDesign', code: 'c:15-7-3-2-13' });
+    await wait(300);
+    const gv = G.find((m) => m.t === 'hall'), gg = G.find((m) => m.t === 'guild');
+    check('the founder designs a banner: the guild flies it at once', gv && gv.hall.banner === 'c:15-7-3-2-13' && gv.hall.custom === 'c:15-7-3-2-13' && gg && gg.guild.banner === 'c:15-7-3-2-13',
+      JSON.stringify(G.msgs.filter((m) => m.t === 'msg')));
     G.s.destroy();
   }
 

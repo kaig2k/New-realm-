@@ -3160,11 +3160,24 @@ package realm {
 					none.x = 14; none.y = y; sp.addChild(none);
 					y += 24;
 				} else y += (int((n - 1) / 8) + 1) * 52 + 6;
+			} else if (hallMode == "maker") {
+				y = buildBannerMaker(sp, info, y, w, head);
 			} else if (hallMode == "banners") {
 				info.htmlText = head + "\n" + (v.canFly ? "Click a banner to fly it: every member shows it by their name." : "Your guild's leaders choose which banner it flies.") +
-					" A new one each week the guild finishes all three goals.";
+					" A new one each week the guild finishes all three goals" + (v.canDesign ? ", or design your own." : ".");
 				info.y = y; y += info.height + 8;
+				if (v.canDesign) {
+					var mk:Sprite = Ui.button(v.custom ? "Banner Maker (edit yours)" : "Banner Maker: design your own", 260, 28, function():void {
+						makerParts = Data.parseBanner(hallView.custom) || [9, 7, 3, 1, 13];
+						hallMode = "maker";
+						refreshStation();
+					}, 13);
+					mk.x = (w - 260) / 2; mk.y = y;
+					sp.addChild(mk);
+					y += 36;
+				}
 				var list:Array = [""].concat(v.banners);
+				if (v.custom) list.push(v.custom);
 				for (i = 0; i < list.length; i++) {
 					var bd:Object = list[i] ? Data.findBanner(list[i]) : null;
 					var box:Sprite = new Sprite();
@@ -3172,6 +3185,7 @@ package realm {
 					Ui.panel(box.graphics, 0, 0, 100, 96, on ? 0x2e3e2a : 0x2c2c2c, on ? 0x80ff80 : 0x4a4a4a);
 					if (bd) {
 						var fb:Bitmap = new Bitmap(Sprites.get(Sprites.hallFlag(bd.id)));
+						if (fb.height > 64) fb.scaleX = fb.scaleY = 64 / fb.height;
 						fb.x = (100 - fb.width) / 2; fb.y = 6;
 						box.addChild(fb);
 					}
@@ -3225,6 +3239,106 @@ package realm {
 				if (shopWaiting) return;
 				if (net.shopRequest({t: "ghPut", slot: slot})) shopWaiting = true;
 			};
+		}
+
+		/** The Banner Maker's design while it's being made: [background, pattern, pattern colour, emblem, emblem colour]. */
+		private var makerParts:Array = [9, 7, 3, 1, 13];
+
+		private function buildBannerMaker(sp:Sprite, info:TextField, y:int, w:int, head:String):int {
+			info.htmlText = head + "\nDesign your guild's own banner. Saving it flies it straight away: every member shows it by their name, " +
+				"and the Guild Hall flies it. You can change it any time.";
+			info.y = y; y += info.height + 8;
+			var parts:Array = makerParts;
+			// a big preview of the cloth
+			var cell:int = 13;
+			var big:BitmapData = new BitmapData(Data.BANNER_W * cell, Data.BANNER_H * cell, false, 0);
+			for (var cy:int = 0; cy < Data.BANNER_H; cy++) for (var cx:int = 0; cx < Data.BANNER_W; cx++)
+				big.fillRect(new Rectangle(cx * cell, cy * cell, cell, cell), Data.bannerCell(parts, cx, cy));
+			var pv:Bitmap = new Bitmap(big);
+			pv.x = 16; pv.y = y;
+			sp.graphics.beginFill(0x111111); sp.graphics.drawRect(13, y - 3, big.width + 6, big.height + 6); sp.graphics.endFill();
+			sp.addChild(pv);
+			// how it looks on the Guild Hall's pole and by a name
+			var pole:Bitmap = new Bitmap(Sprites.get(Sprites.hallFlag(Data.bannerCode(parts))));
+			pole.x = w - pole.width - 20; pole.y = y;
+			sp.addChild(pole);
+			var tag:Bitmap = new Bitmap(Sprites.bannerFlag(Data.bannerCode(parts)));
+			tag.scaleX = tag.scaleY = 2;
+			tag.x = w - pole.width - 20; tag.y = y + pole.height + 8;
+			sp.addChild(tag);
+			var tn:TextField = Ui.text(12, 0xffe36e, true, "left", 120, true);
+			tn.text = player.name;
+			tn.x = tag.x + tag.width + 4; tn.y = tag.y + 4;
+			sp.addChild(tn);
+			// pattern and emblem pickers
+			var px:int = 16 + big.width + 14;
+			var rows:Array = [["Pattern", 1, Data.BANNER_PATTERNS], ["Emblem", 3, Data.BANNER_EMBLEMS]];
+			for (var r:int = 0; r < rows.length; r++) {
+				var ry:int = y + 8 + r * 58;
+				var lab:TextField = Ui.text(12, 0xaaaaaa, true, "left", 100, true);
+				lab.text = rows[r][0];
+				lab.x = px; lab.y = ry;
+				sp.addChild(lab);
+				var prev:Sprite = Ui.button("<", 26, 24, makerStepFn(rows[r][1], -1, rows[r][2].length), 13);
+				prev.x = px; prev.y = ry + 18;
+				sp.addChild(prev);
+				var nm:TextField = Ui.text(13, 0xffffff, true, "center", 70, true);
+				nm.text = rows[r][2][parts[rows[r][1]]];
+				nm.x = px + 28; nm.y = ry + 21;
+				sp.addChild(nm);
+				var next:Sprite = Ui.button(">", 26, 24, makerStepFn(rows[r][1], 1, rows[r][2].length), 13);
+				next.x = px + 100; next.y = ry + 18;
+				sp.addChild(next);
+			}
+			y += big.height + 14;
+			// colour swatches for the cloth, the pattern and the emblem
+			var cols:Array = [["Cloth", 0], ["Pattern", 2], ["Emblem", 4]];
+			for (var k:int = 0; k < cols.length; k++) {
+				var cl:TextField = Ui.text(12, 0xaaaaaa, true, "left", 70, true);
+				cl.text = cols[k][0];
+				cl.x = 16; cl.y = y + 3;
+				sp.addChild(cl);
+				for (var c:int = 0; c < Data.BANNER_COLORS.length; c++) {
+					var sw:Sprite = new Sprite();
+					var on:Boolean = parts[cols[k][1]] == c;
+					sw.graphics.lineStyle(on ? 2 : 1, on ? 0xffffff : 0x111111);
+					sw.graphics.beginFill(Data.BANNER_COLORS[c]);
+					sw.graphics.drawRect(0, 0, 18, 18);
+					sw.graphics.endFill();
+					sw.x = 84 + c * 21; sw.y = y;
+					sw.buttonMode = true;
+					sw.addEventListener(MouseEvent.CLICK, makerSetFn(cols[k][1], c));
+					sp.addChild(sw);
+				}
+				y += 24;
+			}
+			y += 6;
+			var rnd:Sprite = Ui.button("Random", 100, 30, function():void {
+				makerParts = [int(Math.random() * 16), int(Math.random() * Data.BANNER_PATTERNS.length), int(Math.random() * 16),
+					1 + int(Math.random() * (Data.BANNER_EMBLEMS.length - 1)), int(Math.random() * 16)];
+				refreshStation();
+			}, 13);
+			rnd.x = 16; rnd.y = y;
+			sp.addChild(rnd);
+			var back:Sprite = Ui.button("Back", 90, 30, function():void { hallMode = "banners"; refreshStation(); }, 13);
+			back.x = 124; back.y = y;
+			sp.addChild(back);
+			var save:Sprite = Ui.button("Save and fly it", 170, 30, function():void {
+				Online.send({t: "ghDesign", code: Data.bannerCode(makerParts)});
+				hallMode = "banners";
+				refreshStation();
+			}, 14);
+			save.x = w - 186; save.y = y;
+			sp.addChild(save);
+			return y + 38;
+		}
+
+		private function makerStepFn(i:int, d:int, n:int):Function {
+			return function():void { makerParts[i] = (makerParts[i] + d + n) % n; refreshStation(); };
+		}
+
+		private function makerSetFn(i:int, c:int):Function {
+			return function(e:MouseEvent):void { makerParts[i] = c; refreshStation(); };
 		}
 
 		private function hallFlyFn(id:String):Function {

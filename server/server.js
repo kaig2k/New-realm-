@@ -979,12 +979,27 @@ const handlers = {
   ghBanner(c, m) {
     const g = guildOf(c);
     if (!g) return;
-    const id = str(m.id, 16);
+    const id = str(m.id, 24);
     const err = hall.fly(g, id, g.members[c.key].rank);
     if (err) return c.note(err);
     save('guilds.json', guilds);
     const b = hall.findBanner(id);
     for (const o of byName.values()) if (o.guild === c.guild) { o.note(c.name + (b ? ' raised the ' + b.name + ' banner.' : ' lowered the guild banner.'), 0x80ff80); sendHall(o); }
+    reshowBanner(c.guild);
+    sendGuild(c.guild);
+  },
+
+  /** The Banner Maker: a leader saves the guild's own banner design and flies it. */
+  ghDesign(c, m) {
+    const g = guildOf(c);
+    if (!g) return;
+    const now = Date.now();
+    if (now - (c.ghDesignT || 0) < 3000) return c.note('Give it a moment before saving another design.');
+    const r = hall.design(g, str(m.code, 24), g.members[c.key].rank, c.name);
+    if (!r.startsWith('c:')) return c.note(r);
+    c.ghDesignT = now;
+    save('guilds.json', guilds);
+    for (const o of byName.values()) if (o.guild === c.guild) { o.note(c.name + ' raised a new guild-made banner.', 0x80ff80); sendHall(o); }
     reshowBanner(c.guild);
     sendGuild(c.guild);
   },

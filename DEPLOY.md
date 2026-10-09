@@ -134,7 +134,8 @@ The ladder is kept in `server/data/season.json`.
 
 The Guild Hall in the Nexus gives every guild a shared bank (24 slots; Initiates can put items in but not
 take them out), three weekly goals counted by the server from what members really do (finishing all three
-earns that week's banner, which members then show by their names), and a ranking by guild fame (from goals
+earns that week's banner, which members then show by their names; leaders can also design their own
+banner in the Banner Maker from a cloth colour, a pattern, an emblem and their colours), and a ranking by guild fame (from goals
 and a tenth of the fame of members' fallen heroes). A founder can't disband a guild while its bank holds
 items. It's all kept in `guilds.json`.
 

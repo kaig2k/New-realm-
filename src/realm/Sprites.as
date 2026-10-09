@@ -403,8 +403,38 @@ package realm {
 				return "guildhall";
 			}
 			var name:String = "guildhall_" + id;
-			if (!DEFS[name]) DEFS[name] = [HALL, {P: 0x6a4423, F: b.col, T: b.trim, C: b.trim, S: 0x8a8a92}, 6];
+			if (!DEFS[name]) DEFS[name] = b.custom ? customHall(b.custom) : [HALL, {P: 0x6a4423, F: b.col, T: b.trim, C: b.trim, S: 0x8a8a92}, 6];
 			return name;
+		}
+
+		/** A guild-made banner on the Guild Hall's pole: its full 12x10 design, waving in two frames. */
+		private static function customHall(parts:Array):Array {
+			var pal:Object = {P: 0x6a4423, S: 0x8a8a92};
+			var letters:String = "abcdefghijklmnop";
+			for (var c:int = 0; c < Data.BANNER_COLORS.length; c++) pal[letters.charAt(c)] = Data.BANNER_COLORS[c];
+			var frames:Array = [];
+			for (var f:int = 0; f < 2; f++) {
+				var rows:Array = [];
+				for (var y:int = 0; y < 15; y++) {
+					var row:String = "";
+					for (var x:int = 0; x < 14; x++) {
+						var ch:String = ".";
+						if (x == 0 && y < 13) ch = "P";
+						else if (y >= 13) ch = x < (y == 13 ? 2 : 4) ? "S" : ".";
+						else if (x >= 1 && x <= Data.BANNER_W) {
+							// the far half of the cloth ripples down a row in the second frame
+							var fy:int = y - 1 - (f == 1 && x > 6 ? 1 : 0);
+							// a swallowtail notch at the bottom middle
+							if (fy >= 0 && fy < Data.BANNER_H && !(fy == Data.BANNER_H - 1 && x >= 5 && x <= 8))
+								ch = letters.charAt(Data.BANNER_COLORS.indexOf(Data.bannerCell(parts, x - 1, fy)));
+						}
+						row += ch;
+					}
+					rows.push(row);
+				}
+				frames.push(rows);
+			}
+			return [frames, pal, 5];
 		}
 
 		/** A little banner for a guild member's nameplate (cached). */
@@ -412,6 +442,14 @@ package realm {
 			if (flags[id] !== undefined) return flags[id];
 			var b:Object = Data.findBanner(id);
 			if (!b) return flags[id] = null;
+			if (b.custom) {
+				// a guild-made design, one pixel per cell, on a little pole
+				var cb:BitmapData = new BitmapData(Data.BANNER_W + 1, 13, true, 0);
+				cb.fillRect(new Rectangle(0, 0, 1, 13), 0xff3a2414);
+				for (var cy:int = 0; cy < Data.BANNER_H; cy++) for (var cx:int = 0; cx < Data.BANNER_W; cx++)
+					cb.setPixel32(cx + 1, cy, 0xff000000 | Data.bannerCell(b.custom, cx, cy));
+				return flags[id] = cb;
+			}
 			var bd:BitmapData = new BitmapData(9, 12, true, 0);
 			bd.fillRect(new Rectangle(0, 0, 1, 12), 0xff3a2414);
 			bd.fillRect(new Rectangle(1, 0, 8, 8), 0xff000000 | b.col);

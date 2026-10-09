@@ -412,8 +412,48 @@ class Data {
 			return null;
 		}
 	static findBanner(id) {
+			if (!id) return null;
 			for (var b of __vals( Data.GUILD_BANNERS)) if (b.id == id) return b;
-			return null;
+			var parts = Data.parseBanner(id);
+			if (!parts) return null;
+			return {id: id, name: "Guild-made banner", col: Data.BANNER_COLORS[parts[0]], trim: Data.BANNER_COLORS[parts[2]], custom: parts};
+		}
+	static parseBanner(id) {
+			if (!id || id.substr(0, 2) != "c:") return null;
+			var bits = id.substr(2).split("-");
+			if (bits.length != 5) return null;
+			var lim = [Data.BANNER_COLORS.length, Data.BANNER_PATTERNS.length, Data.BANNER_COLORS.length, Data.BANNER_EMBLEMS.length, Data.BANNER_COLORS.length];
+			var out = [];
+			for (var i = __int(0); i < 5; i++) {
+				if (!/^[0-9]{1,2}$/.test(bits[i])) return null;
+				var n = __int(__int(bits[i]));
+				if (n < 0 || n >= lim[i]) return null;
+				out.push(n);
+			}
+			return out;
+		}
+	static bannerCode(parts) { return "c:" + parts.join("-"); }
+	static bannerCell(parts, x, y) { x = __int(x); y = __int(y);
+			var em = Data.EMBLEM_ART[parts[3]];
+			if (em) {
+				var ex = __int(x - 3), ey = __int(y - 2);
+				if (ex >= 0 && ey >= 0 && ex < 6 && ey < 6 && String(em[ey]).charAt(ex) == "X") return __uint(Data.BANNER_COLORS[parts[4]]);
+			}
+			var on = false;
+			switch (parts[1]) {
+				case 1: on = y >= 4 && y <= 5; break;
+				case 2: on = x >= 5 && x <= 6; break;
+				case 3: on = Math.abs(x - y * 1.2) < 1.6; break;
+				case 4: on = Math.abs(y - (9 - Math.abs(x - 5.5) * 0.9)) < 1.2; break;
+				case 5: on = (y >= 4 && y <= 5) || (x >= 5 && x <= 6); break;
+				case 6: on = Math.abs(x - y * 1.2) < 1.3 || Math.abs((11 - x) - y * 1.2) < 1.3; break;
+				case 7: on = x == 0 || y == 0 || x == Data.BANNER_W - 1 || y == Data.BANNER_H - 1; break;
+				case 8: on = (x < 6) != (y < 5); break;
+				case 9: on = x >= 6; break;
+				case 10: on = y % 3 == 1; break;
+				case 11: on = y <= 2; break;
+			}
+			return __uint(Data.BANNER_COLORS[on ? parts[2] : parts[0]]);
 		}
 	static findPetSkin(id) {
 			for (var d of __vals( Data.PET_SKINS)) if (d.id == id) return d;
@@ -3781,6 +3821,29 @@ Data.GUILD_BANNERS = [
 			{id: "frost", name: "Frostfang", col: 0x80d8ff, trim: 0x2050a0},
 			{id: "ember", name: "Emberheart", col: 0xff5a20, trim: 0x401008}
 		];
+Data.BANNER_COLORS = [0xd03030, 0x8a1a1a, 0xff7a20, 0xf0b020, 0xfff0a0, 0x6ac040, 0x2e7a3a, 0x30c0b0,
+			0x80d8ff, 0x2a6ad8, 0x1a2a6a, 0x8a3ad0, 0xf070b0, 0xf4f4f4, 0x8a8a92, 0x1e1a24];
+Data.BANNER_COLOR_NAMES = ["Red", "Wine", "Orange", "Gold", "Cream", "Lime", "Forest", "Teal",
+			"Sky", "Blue", "Navy", "Purple", "Pink", "White", "Grey", "Black"];
+Data.BANNER_PATTERNS = ["Plain", "Stripe", "Pale", "Bend", "Chevron", "Cross", "Saltire", "Border",
+			"Quartered", "Halves", "Bars", "Chief"];
+Data.BANNER_EMBLEMS = ["None", "Star", "Skull", "Sword", "Crown", "Moon", "Sun", "Tree", "Flame", "Wave", "Shield", "Paw"];
+Data.EMBLEM_ART = [
+			null,
+			["..X...", "..X...", "XXXXX.", ".XXX..", ".X.X..", "X...X."],
+			[".XXXX.", "XXXXXX", "X.XX.X", "XXXXXX", ".XXXX.", ".X.X.."],
+			["....X.", "...X..", "..X...", "XX....", ".X....", "X.X..."],
+			["X.X.X.", "XXXXX.", "X.X.X.", "XXXXX.", "XXXXX.", "......"],
+			["..XX..", ".X....", "X.....", "X.....", ".X....", "..XX.."],
+			["X.X.X.", ".XXX..", "XXXXX.", ".XXX..", "X.X.X.", "......"],
+			["..X...", ".XXX..", "XXXXX.", ".XXX..", "..X...", "..X..."],
+			["..X...", ".XX...", ".XXX..", "XXXXX.", "XX.XX.", ".XXX.."],
+			["......", ".X..X.", "X.XX.X", "......", ".X..X.", "X.XX.X"],
+			["XXXXX.", "X.X.X.", "XXXXX.", "X.X.X.", ".XXX..", "..X..."],
+			["X.X.X.", "......", ".XXX..", "XXXXX.", "XXXXX.", ".X.X.."]
+		];
+Data.BANNER_W = __int(12);
+Data.BANNER_H = __int(10);
 Data.PET_SKINS = [
 			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
 			{id: "pskin_shadow", name: "Shadow", cost: 1200, col: 0x3a2a5a}, {id: "pskin_ember", name: "Ember", cost: 1200, col: 0xff5a20},

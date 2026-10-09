@@ -1246,9 +1246,81 @@ package realm {
 			{id: "frost", name: "Frostfang", col: 0x80d8ff, trim: 0x2050a0},
 			{id: "ember", name: "Emberheart", col: 0xff5a20, trim: 0x401008}
 		];
+		/** A banner by id: an earned one, or a guild's own design ("c:..." from the Banner Maker); null if unknown. */
 		public static function findBanner(id:String):Object {
+			if (!id) return null;
 			for each (var b:Object in GUILD_BANNERS) if (b.id == id) return b;
-			return null;
+			var parts:Array = parseBanner(id);
+			if (!parts) return null;
+			return {id: id, name: "Guild-made banner", col: BANNER_COLORS[parts[0]], trim: BANNER_COLORS[parts[2]], custom: parts};
+		}
+
+		// ---- the Banner Maker: guilds design their own banner ---------------------
+		// A design is "c:" + background-pattern-patternColour-emblem-emblemColour (indices into the lists below).
+		public static const BANNER_COLORS:Array = [0xd03030, 0x8a1a1a, 0xff7a20, 0xf0b020, 0xfff0a0, 0x6ac040, 0x2e7a3a, 0x30c0b0,
+			0x80d8ff, 0x2a6ad8, 0x1a2a6a, 0x8a3ad0, 0xf070b0, 0xf4f4f4, 0x8a8a92, 0x1e1a24];
+		public static const BANNER_COLOR_NAMES:Array = ["Red", "Wine", "Orange", "Gold", "Cream", "Lime", "Forest", "Teal",
+			"Sky", "Blue", "Navy", "Purple", "Pink", "White", "Grey", "Black"];
+		public static const BANNER_PATTERNS:Array = ["Plain", "Stripe", "Pale", "Bend", "Chevron", "Cross", "Saltire", "Border",
+			"Quartered", "Halves", "Bars", "Chief"];
+		public static const BANNER_EMBLEMS:Array = ["None", "Star", "Skull", "Sword", "Crown", "Moon", "Sun", "Tree", "Flame", "Wave", "Shield", "Paw"];
+		/** Emblems: 6x6 pictures put in the middle of the 12x10 field (X = emblem colour). */
+		private static const EMBLEM_ART:Array = [
+			null,
+			["..X...", "..X...", "XXXXX.", ".XXX..", ".X.X..", "X...X."],
+			[".XXXX.", "XXXXXX", "X.XX.X", "XXXXXX", ".XXXX.", ".X.X.."],
+			["....X.", "...X..", "..X...", "XX....", ".X....", "X.X..."],
+			["X.X.X.", "XXXXX.", "X.X.X.", "XXXXX.", "XXXXX.", "......"],
+			["..XX..", ".X....", "X.....", "X.....", ".X....", "..XX.."],
+			["X.X.X.", ".XXX..", "XXXXX.", ".XXX..", "X.X.X.", "......"],
+			["..X...", ".XXX..", "XXXXX.", ".XXX..", "..X...", "..X..."],
+			["..X...", ".XX...", ".XXX..", "XXXXX.", "XX.XX.", ".XXX.."],
+			["......", ".X..X.", "X.XX.X", "......", ".X..X.", "X.XX.X"],
+			["XXXXX.", "X.X.X.", "XXXXX.", "X.X.X.", ".XXX..", "..X..."],
+			["X.X.X.", "......", ".XXX..", "XXXXX.", "XXXXX.", ".X.X.."]
+		];
+		public static const BANNER_W:int = 12, BANNER_H:int = 10;
+
+		/** A Banner Maker design's parts [bg, pattern, pattern colour, emblem, emblem colour], or null if it isn't one. */
+		public static function parseBanner(id:String):Array {
+			if (!id || id.substr(0, 2) != "c:") return null;
+			var bits:Array = id.substr(2).split("-");
+			if (bits.length != 5) return null;
+			var lim:Array = [BANNER_COLORS.length, BANNER_PATTERNS.length, BANNER_COLORS.length, BANNER_EMBLEMS.length, BANNER_COLORS.length];
+			var out:Array = [];
+			for (var i:int = 0; i < 5; i++) {
+				if (!/^[0-9]{1,2}$/.test(bits[i])) return null;
+				var n:int = int(bits[i]);
+				if (n < 0 || n >= lim[i]) return null;
+				out.push(n);
+			}
+			return out;
+		}
+
+		public static function bannerCode(parts:Array):String { return "c:" + parts.join("-"); }
+
+		/** The colour of cell (x, y) of a design's 12x10 field. */
+		public static function bannerCell(parts:Array, x:int, y:int):uint {
+			var em:Array = EMBLEM_ART[parts[3]];
+			if (em) {
+				var ex:int = x - 3, ey:int = y - 2;
+				if (ex >= 0 && ey >= 0 && ex < 6 && ey < 6 && String(em[ey]).charAt(ex) == "X") return BANNER_COLORS[parts[4]];
+			}
+			var on:Boolean = false;
+			switch (parts[1]) {
+				case 1: on = y >= 4 && y <= 5; break;
+				case 2: on = x >= 5 && x <= 6; break;
+				case 3: on = Math.abs(x - y * 1.2) < 1.6; break;
+				case 4: on = Math.abs(y - (9 - Math.abs(x - 5.5) * 0.9)) < 1.2; break;
+				case 5: on = (y >= 4 && y <= 5) || (x >= 5 && x <= 6); break;
+				case 6: on = Math.abs(x - y * 1.2) < 1.3 || Math.abs((11 - x) - y * 1.2) < 1.3; break;
+				case 7: on = x == 0 || y == 0 || x == BANNER_W - 1 || y == BANNER_H - 1; break;
+				case 8: on = (x < 6) != (y < 5); break;
+				case 9: on = x >= 6; break;
+				case 10: on = y % 3 == 1; break;
+				case 11: on = y <= 2; break;
+			}
+			return BANNER_COLORS[on ? parts[2] : parts[0]];
 		}
 
 		/** Pet skins: a colour wash over any pet species. */

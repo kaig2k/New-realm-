@@ -59,6 +59,8 @@ package realm {
 		/** Asks the server where a party or guild member is right now (it answers with tppos). */
 		override public function requestTeleport(p:RemotePlayer):void { Online.send({t: "tpreq", id: p.id}); }
 
+		private var hitsT:Number = 0, hitsSent:int = -1;
+
 		override public function update(dt:Number):void {
 			for each (var p:RemotePlayer in players) p.update(dt);
 			if (trade) trade.update(dt);
@@ -75,6 +77,11 @@ package realm {
 					lastX = pl.x; lastY = pl.y; lastHid = hid;
 					Online.send({t: "move", x: Math.round(pl.x * 100) / 100, y: Math.round(pl.y * 100) / 100, f: pl.facingLeft ? 1 : 0, h: hid});
 				}
+			}
+			hitsT -= dt;
+			if (hitsT <= 0) {
+				hitsT = 1;
+				if (Player.hitsTaken != hitsSent) { hitsSent = Player.hitsTaken; Online.send({t: "hits", n: hitsSent}); }
 			}
 			profT -= dt;
 			if (profT <= 0) {

@@ -438,6 +438,25 @@ async function run() {
     check('reaching level 20 takes a real climb (' + total + ' XP)', total > 15000 && PD.SHOP.find((x) => x.id === 'stat').price >= 1200);
   }
 
+  console.log('godmode checks');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { godmodeVerdict } = require('./godmode');
+    // a player standing in the open next to a pack of monsters: the server sees shots land on them
+    const ws = new WorldSim('dg:6:31');
+    const room = ws.w.rooms[2] || ws.w.rooms[1];
+    const me = { id: 9, x: room.x + 0.5, y: room.y + 0.5, maxDps: 1e9, send: () => {} };
+    ws.join(me);
+    for (let i = 0; i < 400; i++) ws.tick(0.05);
+    check('the server follows monster shots and counts the clean hits a player should take', (me.expHits || 0) > 0, String(me.expHits));
+    const before = me.expHits || 0;
+    me.grace = Date.now() + 60000;
+    for (let i = 0; i < 200; i++) ws.tick(0.05);
+    check('no hits are expected while a shield wall, Time Stop or a dash protects you', (me.expHits || 0) === before);
+    check('taking almost none of many clean hits is flagged, then kicked; honest dodging is not',
+      godmodeVerdict(35, 1) === 'flag' && godmodeVerdict(80, 2) === 'kick' && godmodeVerdict(80, 20) === '' && godmodeVerdict(10, 0) === '');
+  }
+
   console.log('weekly vault twists');
   {
     const { WorldSim } = require('./sim/worldsim');

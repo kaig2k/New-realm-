@@ -317,6 +317,16 @@ function inWorld(world, except) {
 }
 
 /** Players near (x, y) in a world: movement and shots only go to those who can see them. */
+/**
+ * Casts after which a player rightly takes no hits for a while: their own dashes,
+ * blinks and rewinds; a shield wall (everyone behind it); Time Stop (everyone near).
+ * secs: how long (else the cast's own length); r: everyone within r of it (at the target for a shield).
+ */
+const GRACE = {
+  charge: { secs: 1 }, volley: { secs: 1 }, bash: { secs: 1 }, shadow: { secs: 1 }, rewind: { secs: 1.2 },
+  shield: { r: 6, at: 'target' }, timestop: { r: 5 }, ward: { secs: 1 }, whirlwind: { secs: 0.5 }
+};
+
 const FX_KINDS = new Set(['fireball', 'shield', 'storm', 'sanctuary', 'shadow', 'charge', 'harvest', 'snare',
   'lightning', 'frostnova', 'pierce', 'volley', 'bash', 'banner', 'smite', 'ward', 'knives', 'smoke', 'whirlwind', 'warcry',
   'prison', 'raise', 'explosive', 'wolf',
@@ -538,6 +548,8 @@ const handlers = {
     c.x = num(m.x); c.y = num(m.y);
     c.mv = null; // a new world: movement checks start again from where you arrive
     if (m.cid) c.charId = str(m.cid, 64);
+    // the godmode count starts over in each world
+    c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
     c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
     c.profile = cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key));
@@ -627,6 +639,24 @@ const handlers = {
     if (!FX_KINDS.has(k)) return;
     const msg = { t: 'fx', id: c.id, k, x: num(m.x), y: num(m.y), tx: num(m.tx), ty: num(m.ty), n: Math.min(2000, Math.max(0, num(m.n))) };
     for (const o of nearby(c)) o.send(msg);
+    // abilities that rightly stop shots: no hits are expected for a moment (godmode checks)
+    const g = GRACE[k];
+    if (g) {
+      const until = now + (g.secs ? g.secs : Math.min(12, msg.n)) * 1000;
+      const gx = g.at === 'target' ? msg.tx : msg.x, gy = g.at === 'target' ? msg.ty : msg.y;
+      for (const o of [c].concat(g.r ? inWorld(c.world, c) : [])) {
+        if (o !== c && (o.x - gx) * (o.x - gx) + (o.y - gy) * (o.y - gy) > g.r * g.r) continue;
+        o.grace = Math.max(o.grace || 0, until);
+      }
+    }
+  },
+
+  /** The game's count of monster hits it has taken (it only grows); see godmodeCheck. */
+  hits(c, m) {
+    const n = num(m.n) | 0;
+    // (the count runs for the whole game session: a reconnect starts from wherever it is)
+    if (c.hitsRep === undefined) { c.hitsRep = c.hitsBase = n; return; }
+    if (n > c.hitsRep && n - c.hitsRep < 500) c.hitsRep = n;
   },
 
   profile(c, m) {
@@ -1198,6 +1228,35 @@ const handlers = {
     c.note('Unknown command.');
   }
 };
+
+// ------------------------------------------------------------------ godmode checks
+const { godmodeVerdict } = require('./godmode');
+
+/** Every 10 seconds: compare each player's expected and reported hits since they entered the world (or the last check that settled it). */
+function godmodeCheck() {
+  for (const c of clients.values()) {
+    if (!c.authed || isAdmin(c) || !c.sim) continue;
+    const exp = (c.expHits || 0) - (c.expBase || 0), took = (c.hitsRep || 0) - (c.hitsBase || 0);
+    const v = godmodeVerdict(exp, took);
+    if (v) {
+      const note = c.name + ' took ' + took + ' of ' + exp + ' clean monster hits (godmode?)';
+      log('godmode ' + note);
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + note);
+      if (Date.now() - (c.flaggedAt || 0) > 300000) {
+        c.flaggedAt = Date.now();
+        for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + note, 0xffb040);
+      }
+      if (v === 'kick' && config.godmodeKick !== false) {
+        c.send({ t: 'kicked', msg: 'Your game ignored hits from monsters, so you were disconnected. If you think this is a mistake, tell an admin.' });
+        c.close(true);
+        continue;
+      }
+    }
+    // a settled window starts again (so an old good record can't hide new cheating)
+    if (exp >= 60 || v) { c.expBase = c.expHits || 0; c.hitsBase = c.hitsRep || 0; }
+  }
+}
+setInterval(godmodeCheck, 10000).unref();
 
 // ------------------------------------------------------------------ movement checks
 /** Fastest anyone can move (tiles a second, with every speed boost and some lag), and the most saved up for dashes and blinks. */

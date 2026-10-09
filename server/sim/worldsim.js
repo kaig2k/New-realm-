@@ -81,7 +81,8 @@ class WorldSim {
       aggroTarget: (e) => sim.target(e),
       spawnEnemy: (id, x, y, zone) => sim.spawn(id, x, y, zone),
       countAlive: (id) => sim.enemies.filter((e) => !e.dead && e.defId === id).length,
-      burst() {}, later() {}, addShot() {}, addMarker() {}, areaHit() {}, bossPhase() {},
+      burst() {}, later() {}, addMarker() {}, bossPhase() {},
+      addShot: (s) => sim.trackShot(s), areaHit: (x, y, r) => sim.expectArea(x, y, r),
       sync: { fired: (e, i, ang, spin, code, dist) => sim.fired(e, i, ang, spin, code, dist) }
     };
   }
@@ -268,6 +269,55 @@ class WorldSim {
     }
   }
 
+  // ------------------------------------------------------------ shots that should hit (godmode checks)
+  /**
+   * The server follows every enemy shot (straight, weaving, speeding up or
+   * coming back; homing ones are left out) and counts, per player, the ones
+   * that pass clean through the middle of where that player is. Their games
+   * report the hits they took; a game that keeps taking none of them is
+   * ignoring damage (see godmodeCheck in server.js).
+   */
+  trackShot(s) {
+    if (!s || !s.enemy || s.motion === 'home') return;
+    if (!this.shots) this.shots = [];
+    if (this.shots.length > 3000) this.shots.shift();
+    this.shots.push({ x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false });
+  }
+
+  expectArea(x, y, r) {
+    const now = Date.now();
+    for (const c of this.players.values()) {
+      if ((c.grace || 0) > now) continue;
+      const dx = c.x - x, dy = c.y - y;
+      if (dx * dx + dy * dy < r * r * 0.5) c.expHits = (c.expHits || 0) + 1;
+    }
+  }
+
+  stepShots(dt) {
+    const list = this.shots;
+    if (!list || !list.length) return;
+    const now = Date.now(), w = this.w;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const s = list[i];
+      s.age += dt; s.life -= dt;
+      if (s.accel) s.spd += s.accel * dt;
+      if ((s.motion === 'return' || s.motion === 'boomerang') && !s.back && s.age > s.life0 / 2) { s.back = true; s.a += Math.PI; }
+      s.x += Math.cos(s.a) * s.spd * dt;
+      s.y += Math.sin(s.a) * s.spd * dt;
+      let gone = s.life <= 0 || w.blocksShot(s.x, s.y) || w.isSafe(s.x, s.y);
+      if (!gone) {
+        // a clean hit: well inside the shot's reach (weaving shots wander, so they need to be closer)
+        const reach = (s.r + 0.4) * (s.motion === 'wave' ? 0.35 : 0.6);
+        for (const c of this.players.values()) {
+          if ((c.grace || 0) > now) continue;
+          const dx = c.x - s.x, dy = c.y - s.y;
+          if (dx * dx + dy * dy < reach * reach) { c.expHits = (c.expHits || 0) + 1; gone = true; break; }
+        }
+      }
+      if (gone) list.splice(i, 1);
+    }
+  }
+
   // ------------------------------------------------------------ the clock
   tick(dt) {
     this.time += dt;
@@ -277,6 +327,7 @@ class WorldSim {
       try { e.update(dt, this.g); } catch (err) { e.dead = true; console.error('monster error', e.defId, err.message); }
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) if (this.enemies[i].dead) { this.byId.delete(this.enemies[i].id); this.enemies.splice(i, 1); }
+    this.stepShots(dt);
     if (this.kind === 'realm') {
       this.updateSpawns(dt);
       this.updateEvents(dt);

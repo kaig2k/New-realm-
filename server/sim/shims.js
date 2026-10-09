@@ -37,7 +37,13 @@ const Sprites = new Proxy({ shade: (c, f) => c, tint: (c, f) => c, ROT_FRAMES: 3
 const Ui = { hex: (c) => '#' + ('000000' + (Number(c) >>> 0).toString(16)).slice(-6), GOLD: 0xffd75e, NPC: 0xff9a2e };
 const Sfx = { play: noop };
 const Save = { data: {}, flush: noop };
-class Projectile { constructor() {} }
+/** An enemy shot as the server sees it (the server follows them to know who should have been hit). */
+class Projectile {
+  constructor(x, y, angle, speed, life, dmg, enemy, r) {
+    this.x = x; this.y = y; this.angle = angle; this.speed = speed; this.life = life;
+    this.dmg = dmg; this.enemy = enemy; this.r = r || 0.3;
+  }
+}
 const Game = { TS: 40 };
 const Player = { MAX_LEVEL: 20 };
 

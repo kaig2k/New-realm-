@@ -98,6 +98,7 @@ Players then join with `play.yourgame.com:2050`.
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
 | `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
 | `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
+| `godmodeKick` | `true` (the default): players who take almost none of the monster shots the server sees hit them are kicked. `false` only flags them (admins are told, and it's logged to `anticheat.log`). |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 
@@ -195,4 +196,9 @@ and offline characters, items and currencies can't be brought in. (Older servers
   when a hero dies, by what that hero earned. Selling to the Nexus merchant goes through
   the server, and Fame Store purchases must be paid for. Anything above that is cut back
   (logged in `anticheat.log`) and the game is told the real totals.
-- **Not yet covered:** dodging is worked out in each player's game.
+- **Dodging:** the server follows every monster shot and counts the ones that land cleanly on
+  each player (skipping moments a shield wall, Time Stop, dash or similar protects them). The
+  game reports the hits it took. Someone taking almost none of many clean hits (godmode) is
+  flagged to admins and logged in `anticheat.log`, and kicked unless `godmodeKick` is `false`.
+  Honest dodging is never punished: only shots that pass right through a player count.
+- **Not yet covered:** the hits a game reports aren't proof; a determined cheater could fake them.

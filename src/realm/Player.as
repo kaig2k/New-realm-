@@ -983,8 +983,12 @@ package realm {
 			return out;
 		}
 
+		/** Monster hits taken this game session (the server compares them with the shots it saw land). */
+		public static var hitsTaken:int = 0;
+
 		public function takeHit(raw:int, src:String, g:Game, effect:String = null, attack:String = ""):void {
 			if (invulnT > 0 || g.godMode) return;
+			hitsTaken++;
 			if (effect && STATUS_TIME[effect] != undefined) {
 				if (status[effect] <= 0) {
 					g.floatText(x, y - 1.5, STATUS_NAMES[effect], STATUS_COLORS[effect]);

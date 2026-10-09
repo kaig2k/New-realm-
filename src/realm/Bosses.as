@@ -55,6 +55,56 @@ package realm {
 			Data.ENEMIES[id] = o({ai: "chase", keep: 2, drop: 0, r: 0.4, def: 5, spd: 2, xp: 20}, fields);
 		}
 
+		/**
+		 * Monster families fight in their own way:
+		 * goblins throw spinning daggers that fly back to them, slimes burst into
+		 * smaller slimes when they die, spiders spit webs that stick to the ground
+		 * and slow you, ghosts drift (and shoot) through walls, and golems slam the
+		 * ground in a shockwave you can see coming.
+		 */
+		private static function families():void {
+			var E:Object = Data.ENEMIES;
+			// the small slimes a slime splits into
+			mob("slimelet", {name: "Slimelet", spr: "slimelet", hp: 14, def: 0, spd: 2.0, xp: 3, keep: 1, r: 0.28, col: 0x9aff7a,
+				attacks: [aim(1, 0, 6, 5, 1.3, 0x9aff7a, {life: 0.6, r: 0.12, shape: "orb"})]});
+			mob("green_slimelet", {name: "Green Slimelet", spr: "green_slimelet", hp: 45, def: 1, spd: 1.9, xp: 6, keep: 1, r: 0.32, col: 0x80e060,
+				attacks: [aim(2, 20, 6, 9, 1.3, 0x9aff7a, {life: 0.7, r: 0.13, shape: "orb"})]});
+			mob("ooze", {name: "Godly Ooze", spr: "ooze", hp: 420, def: 8, spd: 2.2, xp: 20, keep: 1.5, r: 0.38, col: 0xb070f0,
+				attacks: [ring(6, 30, 4, 30, 1.6, 0xd0a0ff, {life: 1.2, r: 0.16, eff: "slowed"})]});
+			E.slime.splits = {what: "slimelet", n: 2};
+			E.green_slime.splits = {what: "green_slimelet", n: 3};
+			E.slime_god.splits = {what: "ooze", n: 3};
+			for (var id:String in E) {
+				var d:Object = E[id];
+				if (d.ai == "boss" || d.prop || d.crate) continue;
+				var spr:String = d.spr;
+				var list:Array = d.attacks;
+				if (!list) continue;
+				var top:int = 0;
+				for each (var a0:Object in list) if (a0.dmg > top) top = a0.dmg;
+				if (spr == "goblin" || spr == "goblin_chief") {
+					// a spinning dagger thrown out that comes back
+					list.push(aim(spr == "goblin" ? 1 : 3, 30, 7, int(top * 1.15), 2.4, 0xd8d8e0,
+						{life: 1.1, r: 0.16, shape: "blade", spin: true, motion: "return", name: "spinning dagger"}));
+				} else if (spr == "spider" || spr == "spider_queen") {
+					// web spit: lands where you stand and stays sticky for a while
+					list.push({p: "nova", reach: 8, radius: spr == "spider" ? 1.3 : 2, delay: 0.8, dmg: int(top * 0.5), cd: spr == "spider" ? 3.6 : 3,
+						col: 0xe8e8f0, eff: "slowed", web: 4, name: "sticky web"});
+				} else if (spr == "ghost" || spr == "ghost_god" || spr == "shade") {
+					d.ghostly = true;
+					for each (var ga:Object in list) if (ga.p != "summon") { ga.ghost = true; if (!ga.name) ga.name = "spectral " + Enemy.attackName(ga); }
+				} else if (spr == "golem" || spr == "ogre") {
+					// the ring becomes a ground slam: a warning circle, then the shockwave
+					for (var gi:int = 0; gi < list.length; gi++) {
+						var r0:Object = list[gi];
+						if (r0.p != "ring") continue;
+						list[gi] = {p: "nova", reach: 0, radius: 2.4, delay: 0.9, dmg: int(r0.dmg * 1.3), cd: r0.cd + 0.8, col: r0.col,
+							burst: r0.n, bspd: r0.spd, blife: r0.life, name: "ground slam"};
+					}
+				}
+			}
+		}
+
 		public static function init():void {
 			if (done) return;
 			done = true;
@@ -67,6 +117,7 @@ package realm {
 			finales();
 			raids();
 			setPieces();
+			families();
 			harden();
 			fair();
 			Godly.init();

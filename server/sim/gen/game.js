@@ -812,6 +812,48 @@ class Bosses {
 	static mob(id, fields) {
 			Data.ENEMIES[id] = Bosses.o({ai: "chase", keep: 2, drop: 0, r: 0.4, def: 5, spd: 2, xp: 20}, fields);
 		}
+	static families() {
+			var E = Data.ENEMIES;
+			
+			Bosses.mob("slimelet", {name: "Slimelet", spr: "slimelet", hp: 14, def: 0, spd: 2.0, xp: 3, keep: 1, r: 0.28, col: 0x9aff7a,
+				attacks: [Bosses.aim(1, 0, 6, 5, 1.3, 0x9aff7a, {life: 0.6, r: 0.12, shape: "orb"})]});
+			Bosses.mob("green_slimelet", {name: "Green Slimelet", spr: "green_slimelet", hp: 45, def: 1, spd: 1.9, xp: 6, keep: 1, r: 0.32, col: 0x80e060,
+				attacks: [Bosses.aim(2, 20, 6, 9, 1.3, 0x9aff7a, {life: 0.7, r: 0.13, shape: "orb"})]});
+			Bosses.mob("ooze", {name: "Godly Ooze", spr: "ooze", hp: 420, def: 8, spd: 2.2, xp: 20, keep: 1.5, r: 0.38, col: 0xb070f0,
+				attacks: [Bosses.ring(6, 30, 4, 30, 1.6, 0xd0a0ff, {life: 1.2, r: 0.16, eff: "slowed"})]});
+			E.slime.splits = {what: "slimelet", n: 2};
+			E.green_slime.splits = {what: "green_slimelet", n: 3};
+			E.slime_god.splits = {what: "ooze", n: 3};
+			for (var id in E) {
+				var d = E[id];
+				if (d.ai == "boss" || d.prop || d.crate) continue;
+				var spr = d.spr;
+				var list = d.attacks;
+				if (!list) continue;
+				var top = __int(0);
+				for (var a0 of __vals( list)) if (a0.dmg > top) top = __int(a0.dmg);
+				if (spr == "goblin" || spr == "goblin_chief") {
+					
+					list.push(Bosses.aim(spr == "goblin" ? 1 : 3, 30, 7, __int(top * 1.15), 2.4, 0xd8d8e0,
+						{life: 1.1, r: 0.16, shape: "blade", spin: true, motion: "return", name: "spinning dagger"}));
+				} else if (spr == "spider" || spr == "spider_queen") {
+					
+					list.push({p: "nova", reach: 8, radius: spr == "spider" ? 1.3 : 2, delay: 0.8, dmg: __int(top * 0.5), cd: spr == "spider" ? 3.6 : 3,
+						col: 0xe8e8f0, eff: "slowed", web: 4, name: "sticky web"});
+				} else if (spr == "ghost" || spr == "ghost_god" || spr == "shade") {
+					d.ghostly = true;
+					for (var ga of __vals( list)) if (ga.p != "summon") { ga.ghost = true; if (!ga.name) ga.name = "spectral " + Enemy.attackName(ga); }
+				} else if (spr == "golem" || spr == "ogre") {
+					
+					for (var gi = __int(0); gi < list.length; gi++) {
+						var r0 = list[gi];
+						if (r0.p != "ring") continue;
+						list[gi] = {p: "nova", reach: 0, radius: 2.4, delay: 0.9, dmg: __int(r0.dmg * 1.3), cd: r0.cd + 0.8, col: r0.col,
+							burst: r0.n, bspd: r0.spd, blife: r0.life, name: "ground slam"};
+					}
+				}
+			}
+		}
 	static init() {
 			if (Bosses.done) return;
 			Bosses.done = true;
@@ -824,6 +866,7 @@ class Bosses {
 			Bosses.finales();
 			Bosses.raids();
 			Bosses.setPieces();
+			Bosses.families();
 			Bosses.harden();
 			Bosses.fair();
 			Godly.init();
@@ -2302,6 +2345,11 @@ class World {
 			
 			return (t != World.WATER || this.zones[i] >= 0) && t != World.VOID && t != World.WALL && this.objs[i] == 0;
 		}
+	canFloat(x, y, r) {
+			if (x - r < 1 || y - r < 1 || x + r >= this.N - 1 || y + r >= this.N - 1) return false;
+			if (this.tiles[__int(y) * this.N + __int(x)] == World.VOID) return false;
+			return !(this.isSafe(x - r, y - r) || this.isSafe(x + r, y + r) || this.isSafe(x + r, y - r) || this.isSafe(x - r, y + r));
+		}
 	blocksShot(x, y) {
 			if (x < 0 || y < 0 || x >= this.N || y >= this.N) return true;
 			var t = __int(this.tiles[__int(y) * this.N + __int(x)]);
@@ -2864,6 +2912,12 @@ class Enemy {
 			this.stride += step * 3.2;
 			var nx = this.x + mx, ny = this.y + my;
 			var rr = Math.min(this.r, 0.4);
+			if (this.def.ghostly) {
+				
+				if (w.canFloat(nx, this.y, rr)) this.x = nx; else { this.dirX = -this.dirX; this.orbitDir = -this.orbitDir; this.velX *= -0.3; }
+				if (w.canFloat(this.x, ny, rr)) this.y = ny; else { this.dirY = -this.dirY; this.velY *= -0.3; }
+				return;
+			}
 			if (w.canStand(nx, this.y, rr, true)) this.x = nx; else { this.dirX = -this.dirX; this.orbitDir = -this.orbitDir; this.velX *= -0.3; }
 			if (w.canStand(this.x, ny, rr, true)) this.y = ny; else { this.dirY = -this.dirY; this.velY *= -0.3; }
 		}
@@ -2913,7 +2967,7 @@ class Enemy {
 			var shape = a.shape || (a.p == "aimed" ? "dart" : a.p == "spiral" ? "star" : "orb");
 			var col = __uint(a.col);
 			var bd = Sprites.projectile(shape, col, a.r <= 0.15 ? 3 : a.r <= 0.2 ? 4 : a.r <= 0.3 ? 5 : 6);
-			var spinning = shape == "star";
+			var spinning = shape == "star" || a.spin;
 			var dmg = __int(__int(a.dmg * this.dmgMult));
 			var rot = (a.wrot || 0) * Enemy.DEG * w;
 			switch (a.p) {
@@ -2970,6 +3024,7 @@ class Enemy {
 		}
 	novaFn(a, nx, ny, dmg, bd, spinning, g, base) { dmg = __int(dmg);
 			return () => {
+				if (a.web) g.addWeb(nx, ny, a.radius || 1.6, a.web);
 				g.areaHit(nx, ny, a.radius || 1.6, dmg, this.def.name, a.eff || null, a.col, Enemy.attackName(a));
 				var m = __int(a.burst || 0);
 				for (var k = __int(0); k < m; k++) {
@@ -2982,6 +3037,7 @@ class Enemy {
 		}
 	static attackName(a) {
 			if (!a) return "";
+			if (a.name) return a.name;
 			if (a.p == "nova") return "ground blast";
 			if (a.p == "rain") return "falling blasts";
 			var adj = a.motion == "home" ? "homing " : a.motion == "wave" ? "weaving " : a.motion == "boomerang" ? "returning " : a.accel > 0 ? "speeding " : "";
@@ -2999,6 +3055,7 @@ class Enemy {
 				if (k % 2 == 1) s.phase = Math.PI;
 			}
 			if (a.split) s.split = a.split;
+			if (a.ghost) s.passWalls = true;
 			g.addShot(s);
 		}
 }

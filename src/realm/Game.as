@@ -1642,7 +1642,7 @@ package realm {
 				var remove:Boolean = s.life <= 0;
 				if (remove && s.split) splitShot(s);
 				if (remove && s.boom) abil.explode(s);
-				if (!remove && world.blocksShot(s.x, s.y)) {
+				if (!remove && !s.passWalls && world.blocksShot(s.x, s.y)) {
 					// into a wall: it stops there (a fireball bursts against it)
 					remove = true;
 					if (s.boom) abil.explode(s);
@@ -1936,6 +1936,7 @@ package realm {
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
 			if (mine || near) p.gainXp(int(e.def.xp * xpMult), this);
 			if (e.elite && !remote && e.elite == "Splitting") splitElite(e);
+			if (e.def.splits && !remote) splitSlime(e);
 			if (e.elite && mine) { addGold(int(e.def.xp / 2) + 20); floatText(e.x, e.y - 1.2, "Elite slain!", eliteCol(e.elite)); }
 			if (e.def.goblin) goblinDown(e, mine);
 			burst(e.x, e.y, e.def.col, e.isBoss ? 60 : 12);
@@ -2162,6 +2163,14 @@ package realm {
 			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world});
 		}
 
+		/** Spider webs left on the ground: they slow you while you stand in them. */
+		private var webs:Array = [];
+
+		public function addWeb(x:Number, y:Number, r:Number, secs:Number):void {
+			webs.push({x: x, y: y, r: r, t: secs, t0: secs, w: world});
+			if (webs.length > 30) webs.shift();
+		}
+
 		/** Area damage from a blast (only your own character; others check in their games). */
 		public function areaHit(x:Number, y:Number, r:Number, dmg:int, src:String, eff:String, col:uint, attack:String = ""):void {
 			burst(x, y, col, 14);
@@ -2192,6 +2201,16 @@ package realm {
 				m.t += dt;
 				if (m.t >= m.d) { markers.splice(i, 1); m.fn(); }
 			}
+			for (i = webs.length - 1; i >= 0; i--) {
+				var wb:Object = webs[i];
+				wb.t -= dt;
+				if (wb.w != world || wb.t <= 0) { webs.splice(i, 1); continue; }
+				var wx:Number = player.x - wb.x, wy:Number = player.y - wb.y;
+				if (wx * wx + wy * wy < wb.r * wb.r && player.hp > 0) {
+					if (player.status.slowed <= 0) floatText(player.x, player.y - 1, "Webbed!", 0xe8e8f0);
+					player.status.slowed = Math.max(player.status.slowed, 0.3);
+				}
+			}
 			Projectile.homeX = player.x;
 			Projectile.homeY = player.y;
 		}
@@ -2201,6 +2220,29 @@ package realm {
 
 		/** Ground circles for incoming blasts: an outline that fills as it gets closer. */
 		private function drawMarkers():void {
+			for each (var wb:Object in webs) {
+				var wsx:Number = scrX(wb.x, wb.y), wsy:Number = scrY(wb.x, wb.y) + TS * 0.3;
+				if (wsx < -100 || wsy < -100 || wsx > vw + 100 || wsy > vh + 100) continue;
+				var wr:Number = wb.r * TS, fade:Number = Math.min(1, wb.t / 0.6);
+				var wg:* = markShape.graphics;
+				wg.clear();
+				// spokes and two rings of silk
+				wg.lineStyle(1, 0xf0f0f8, 0.75 * fade);
+				for (var sk:int = 0; sk < 8; sk++) {
+					var sa:Number = sk * Math.PI / 4;
+					wg.moveTo(0, 0); wg.lineTo(Math.cos(sa) * wr, Math.sin(sa) * wr * 0.6);
+				}
+				for (var rk:int = 1; rk <= 3; rk++) {
+					var rf:Number = rk / 3;
+					wg.moveTo(wr * rf, 0);
+					for (var sk2:int = 1; sk2 <= 8; sk2++) {
+						var sa2:Number = sk2 * Math.PI / 4;
+						wg.lineTo(Math.cos(sa2) * wr * rf, Math.sin(sa2) * wr * rf * 0.6);
+					}
+				}
+				markMtx.tx = wsx; markMtx.ty = wsy;
+				canvas.draw(markShape, markMtx);
+			}
 			for each (var m:Object in markers) {
 				var sx:Number = scrX(m.x, m.y), sy:Number = scrY(m.x, m.y);
 				if (sx < -100 || sy < -100 || sx > vw + 100 || sy > vh + 100) continue;
@@ -3655,6 +3697,15 @@ package realm {
 		}
 
 		/** A Splitting elite bursts into three ordinary copies. */
+		/** Slimes burst into smaller slimes when they die. */
+		private function splitSlime(e:Enemy):void {
+			var sp:Object = e.def.splits;
+			for (var k:int = 0; k < sp.n; k++) {
+				var a:Number = k * Math.PI * 2 / sp.n + Math.random();
+				spawnEnemy(sp.what, e.x + Math.cos(a) * 0.8, e.y + Math.sin(a) * 0.8, e.zone);
+			}
+		}
+
 		private function splitElite(e:Enemy):void {
 			for (var k:int = 0; k < 3; k++) {
 				var a:Number = k * Math.PI * 2 / 3;

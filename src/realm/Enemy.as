@@ -406,6 +406,12 @@ package realm {
 			stride += step * 3.2;
 			var nx:Number = x + mx, ny:Number = y + my;
 			var rr:Number = Math.min(r, 0.4);
+			if (def.ghostly) {
+				// ghosts drift through walls (but still never into the safe haven or off the map)
+				if (w.canFloat(nx, y, rr)) x = nx; else { dirX = -dirX; orbitDir = -orbitDir; velX *= -0.3; }
+				if (w.canFloat(x, ny, rr)) y = ny; else { dirY = -dirY; velY *= -0.3; }
+				return;
+			}
 			if (w.canStand(nx, y, rr, true)) x = nx; else { dirX = -dirX; orbitDir = -orbitDir; velX *= -0.3; }
 			if (w.canStand(x, ny, rr, true)) y = ny; else { dirY = -dirY; velY *= -0.3; }
 		}
@@ -462,7 +468,7 @@ package realm {
 			var shape:String = a.shape || (a.p == "aimed" ? "dart" : a.p == "spiral" ? "star" : "orb");
 			var col:uint = a.col;
 			var bd:Vector.<BitmapData> = Sprites.projectile(shape, col, a.r <= 0.15 ? 3 : a.r <= 0.2 ? 4 : a.r <= 0.3 ? 5 : 6);
-			var spinning:Boolean = shape == "star";
+			var spinning:Boolean = shape == "star" || a.spin;
 			var dmg:int = int(a.dmg * dmgMult);
 			var rot:Number = (a.wrot || 0) * DEG * w;
 			switch (a.p) {
@@ -520,6 +526,7 @@ package realm {
 
 		private function novaFn(a:Object, nx:Number, ny:Number, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, base:Number):Function {
 			return function():void {
+				if (a.web) g.addWeb(nx, ny, a.radius || 1.6, a.web);
 				g.areaHit(nx, ny, a.radius || 1.6, dmg, def.name, a.eff || null, a.col, attackName(a));
 				var m:int = a.burst || 0;
 				for (var k:int = 0; k < m; k++) {
@@ -534,6 +541,7 @@ package realm {
 		/** A name for an attack, for the death recap: "homing blade volley", "ring of stars", "ground blast". */
 		public static function attackName(a:Object):String {
 			if (!a) return "";
+			if (a.name) return a.name;
 			if (a.p == "nova") return "ground blast";
 			if (a.p == "rain") return "falling blasts";
 			var adj:String = a.motion == "home" ? "homing " : a.motion == "wave" ? "weaving " : a.motion == "boomerang" ? "returning " : a.accel > 0 ? "speeding " : "";
@@ -552,6 +560,7 @@ package realm {
 				if (k % 2 == 1) s.phase = Math.PI;
 			}
 			if (a.split) s.split = a.split;
+			if (a.ghost) s.passWalls = true;
 			g.addShot(s);
 		}
 	}

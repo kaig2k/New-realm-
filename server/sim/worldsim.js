@@ -81,7 +81,7 @@ class WorldSim {
       aggroTarget: (e) => sim.target(e),
       spawnEnemy: (id, x, y, zone) => sim.spawn(id, x, y, zone),
       countAlive: (id) => sim.enemies.filter((e) => !e.dead && e.defId === id).length,
-      burst() {}, later() {}, addMarker() {}, bossPhase() {},
+      burst() {}, later() {}, addMarker() {}, addWeb() {}, bossPhase() {},
       addShot: (s) => sim.trackShot(s), areaHit: (x, y, r) => sim.expectArea(x, y, r),
       sync: { fired: (e, i, ang, spin, code, dist) => sim.fired(e, i, ang, spin, code, dist) }
     };
@@ -281,7 +281,7 @@ class WorldSim {
     if (!s || !s.enemy || s.motion === 'home') return;
     if (!this.shots) this.shots = [];
     if (this.shots.length > 3000) this.shots.shift();
-    this.shots.push({ x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false });
+    this.shots.push({ x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false, walls: !s.passWalls });
   }
 
   expectArea(x, y, r) {
@@ -304,7 +304,7 @@ class WorldSim {
       if ((s.motion === 'return' || s.motion === 'boomerang') && !s.back && s.age > s.life0 / 2) { s.back = true; s.a += Math.PI; }
       s.x += Math.cos(s.a) * s.spd * dt;
       s.y += Math.sin(s.a) * s.spd * dt;
-      let gone = s.life <= 0 || w.blocksShot(s.x, s.y) || w.isSafe(s.x, s.y);
+      let gone = s.life <= 0 || (s.walls && w.blocksShot(s.x, s.y)) || w.isSafe(s.x, s.y);
       if (!gone) {
         // a clean hit: well inside the shot's reach (weaving shots wander, so they need to be closer)
         const reach = (s.r + 0.4) * (s.motion === 'wave' ? 0.35 : 0.6);
@@ -657,6 +657,11 @@ class WorldSim {
     if (e.def.crate && Math.random() < 0.12) {
       const m = this.spawn('mimic', e.x, e.y, e.zone, true);
       if (m) m.maxHp = m.hp = 1200 + Math.max(0, e.zone) * 900;
+    }
+    // slimes burst into smaller slimes
+    if (e.def.splits) {
+      const sp = e.def.splits;
+      for (let k = 0; k < sp.n; k++) { const a = k * Math.PI * 2 / sp.n + Math.random(); this.spawn(sp.what, e.x + Math.cos(a) * 0.8, e.y + Math.sin(a) * 0.8, e.zone); }
     }
     if (e.elite === 'Splitting') {
       for (let k = 0; k < 3; k++) { const a = k * Math.PI * 2 / 3; this.spawn(e.defId, e.x + Math.cos(a) * 1.2, e.y + Math.sin(a) * 1.2, e.zone); }

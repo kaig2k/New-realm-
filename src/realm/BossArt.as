@@ -106,6 +106,10 @@ package realm {
 		/** Puts every design in place (over any older recoloured art of the same name). */
 		public static function register():void {
 			for (var name:String in ART) Sprites.define(name, ART[name][0], ART[name][1], ART[name][2]);
+			// smaller copies: the little slimes that big ones split into
+			Sprites.define("slimelet", ART.slime[0], ART.slime[1], 2);
+			Sprites.define("green_slimelet", ART.green_slime[0], ART.green_slime[1], 2);
+			Sprites.define("ooze", ART.slime_god[0], ART.slime_god[1], 2);
 		}
 	}
 }

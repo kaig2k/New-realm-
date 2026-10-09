@@ -1528,6 +1528,13 @@ package realm {
 			return (t != WATER || zones[i] >= 0) && t != VOID && t != WALL && objs[i] == 0;
 		}
 
+		/** Ghosts: anywhere on the map that isn't the void or the safe haven. */
+		public function canFloat(x:Number, y:Number, r:Number):Boolean {
+			if (x - r < 1 || y - r < 1 || x + r >= N - 1 || y + r >= N - 1) return false;
+			if (tiles[int(y) * N + int(x)] == VOID) return false;
+			return !(isSafe(x - r, y - r) || isSafe(x + r, y + r) || isSafe(x + r, y - r) || isSafe(x - r, y + r));
+		}
+
 		/** Walls stop every shot, yours and the monsters' (trees and rocks don't). */
 		public function blocksShot(x:Number, y:Number):Boolean {
 			if (x < 0 || y < 0 || x >= N || y >= N) return true;

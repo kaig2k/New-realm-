@@ -38,6 +38,8 @@ package realm {
 		public var split:Object;
 		/** Explodes where it hits or lands (Fireball): {r, dmg}. */
 		public var boom:Object;
+		/** Ghosts' shots drift through walls. */
+		public var passWalls:Boolean = false;
 		/** Time Stop: seconds this enemy bullet still hangs frozen in the air. */
 		public var frozenT:Number = 0;
 		/** Where "home" shots steer (your character; set every frame). */

@@ -422,10 +422,11 @@ async function run() {
     boss.maxHp = boss.hp = 1e7;
     const cheat = { id: 3, x: boss.x, y: boss.y + 1, maxDps: 8000, send: () => {} };
     ws.join(cheat);
-    const hp0 = boss.hp;
+    const hp0 = boss.hp, t0 = Date.now();
     for (let i = 0; i < 300; i++) ws.hit(cheat, { id: boss.id, d: 6000 });
-    const dealt = hp0 - boss.hp;
-    check('damage is capped by what the hero\'s own gear can deal (300 hits of 6,000 at once)', dealt <= 8000 * 3 + 20000 && cheat.dpsCut > 0, Math.round(dealt) + ' dealt');
+    const dealt = hp0 - boss.hp, secs = (Date.now() - t0) / 1000;
+    // (a slow machine takes longer over the 300 hits, and the budget refills meanwhile)
+    check('damage is capped by what the hero\'s own gear can deal (300 hits of 6,000 at once)', dealt <= 8000 * (3 + secs) + 20000 && cheat.dpsCut > 0, Math.round(dealt) + ' dealt in ' + secs + 's');
     // bosses grow with the players fighting them, not with everyone in the world
     const rw = new WorldSim('dg:6:778');
     const rb = rw.w.boss;
@@ -455,6 +456,27 @@ async function run() {
     check('no hits are expected while a shield wall, Time Stop or a dash protects you', (me.expHits || 0) === before);
     check('taking almost none of many clean hits is flagged, then kicked; honest dodging is not',
       godmodeVerdict(35, 1) === 'flag' && godmodeVerdict(80, 2) === 'kick' && godmodeVerdict(80, 20) === '' && godmodeVerdict(10, 0) === '');
+  }
+
+  console.log('monster families');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: FD } = require('./sim/gen/game');
+    const E = FD.ENEMIES;
+    check('goblins throw daggers that come back; golems slam the ground; spiders spit webs',
+      E.goblin.attacks.some((a) => a.motion === 'return' && a.spin) && E.golem.attacks.some((a) => a.p === 'nova' && a.reach === 0 && a.burst > 0)
+      && E.spider.attacks.some((a) => a.web > 0 && a.eff === 'slowed') && !E.golem.attacks.some((a) => a.p === 'ring'));
+    const ws = new WorldSim('realm:1');
+    const slime = ws.spawn('slime', ws.w.spawnX + 30, ws.w.spawnY, 1, true);
+    const before = ws.enemies.filter((e) => !e.dead && e.defId === 'slimelet').length;
+    ws.kill(slime);
+    const after = ws.enemies.filter((e) => !e.dead && e.defId === 'slimelet').length;
+    check('slimes split into slimelets when they die (and those drop nothing)', after > before && E.slimelet.drop === 0 && !E.slimelet.splits, before + ' -> ' + after);
+    // a ghost drifts into a wall where nothing else could stand; its shots fly through walls
+    let wx = -1, wy = -1;
+    for (let y = 10; y < ws.w.N - 10 && wx < 0; y++) for (let x = 10; x < ws.w.N - 10; x++) if (!ws.w.walkable(x + 0.5, y + 0.5) && ws.w.canFloat(x + 0.5, y + 0.5, 0.3)) { wx = x + 0.5; wy = y + 0.5; break; }
+    const ghost = ws.spawn('ghost', wx, wy, 3, true);
+    check('ghosts drift through walls and their shots pass through them', wx > 0 && E.ghost.ghostly && E.ghost.attacks.every((a) => a.ghost) && ws.w.canFloat(wx, wy, 0.3) && !ws.w.canStand(wx, wy, 0.3, true) && ghost);
   }
 
   console.log('weekly vault twists');

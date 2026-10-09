@@ -170,9 +170,17 @@ package realm {
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
 			abil = new Abilities(this);
 			Keys.reload();
+			// (a hero saved without an id, from a bug in the seasons update, gets one now, in its saved copy too)
+			if (saved && !saved.id) saved.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			if (saved) player.restore(saved);
-			else if (Menu.seasonal && Online.connected && Online.welcome && Online.welcome.season) player.season = String(Online.welcome.season.id);
-			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
+			else {
+				player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
+				// a new hero: Seasonal if that box was ticked, and the mode picked on the class screen
+				if (Menu.seasonal && Online.connected && Online.welcome && Online.welcome.season) player.season = String(Online.welcome.season.id);
+				player.mode = Menu.mode;
+			}
+			var me:Player = player;
+			Tooltip.blockFn = function(it:Object):String { return me.climbBlock(it); };
 			Data.viewerClass = player.cls.id;
 			if (Online.connected) {
 				// the server picks the realms, and their seeds give everyone the same maps
@@ -887,6 +895,10 @@ package realm {
 		}
 
 		public function usePortal(p:Object):void {
+			if (p.kind == "vault" && Data.modeRestricted(player.mode)) {
+				msg(Data.findMode(player.mode).name + " heroes can't use the vault: everything they use, they find themselves.", 0xff8080);
+				return;
+			}
 			if (p.kind == "ghall" && !(net && net.online && net.guild)) {
 				msg("Only guild members can enter a Guild Hall (online). Make or join a guild in the Social window.", 0xff8080);
 				return;
@@ -2065,9 +2077,9 @@ package realm {
 			var lootZone:int = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
 			// online, the server rolls drops and sends each player theirs (see serverDrop)
 			var roll:Boolean = mine && !serverLoot;
-			var items:Array = roll ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck()) : [];
+			var items:Array = roll ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + modeLuck) : [];
 			// elites drop twice; the treasure goblin spills its whole sack
-			if (roll && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + 50));
+			if (roll && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + modeLuck + 50));
 			if (roll && e.def.goblin) items = items.concat(goblinLoot(lootZone));
 			if (mine && e.def.crate) items = items.concat(crateLoot(lootZone));
 			if (roll && e.def.mimic) items = items.concat(mimicLoot());
@@ -3171,6 +3183,9 @@ package realm {
 					sp.addChild(lt);
 					y += 16;
 				}
+			} else if (hallMode == "bank" && Data.modeRestricted(player.mode)) {
+				info.htmlText = head + "\n" + Data.findMode(player.mode).name + " heroes can't use the guild bank. Your guildmates can, on their other heroes.";
+				info.y = y; y += info.height + 8;
 			} else if (hallMode == "bank") {
 				info.htmlText = head + "\nClick an item to take it" + (v.canTake ? "" : " (Initiates can't: ask an officer to promote you)") +
 					". Put items in from your inventory below; anyone in the guild can see them.";
@@ -3456,6 +3471,10 @@ package realm {
 				return y + info.height + 8;
 			}
 			var i:int, row:Object, k:int;
+			if (Data.modeRestricted(player.mode)) {
+				info.htmlText = Data.findMode(player.mode).name + " heroes can't buy or sell on the player market. The Shop tab (the merchant) is still open to you.";
+				info.y = y; return y + info.height + 8;
+			}
 			if (marketMode == "buy") {
 				// filters by kind
 				for (i = 0; i < MARKET_KINDS.length; i++) {
@@ -4069,6 +4088,9 @@ package realm {
 		};
 
 		/** Loot luck on top of Bounty: your kill streak and the Shrine of Fortune. */
+		/** Ironman and Hardcore heroes' extra loot luck (online the server adds it to its own rolls). */
+		private function get modeLuck():int { return Data.findMode(player.mode).luck; }
+
 		private function lootLuck():int { return streakBonus() + (player.buffs.fortune > 0 ? 25 : 0); }
 
 		/** Touch a shrine for a 60-second blessing; each shrine rests 2 minutes after blessing you. */
@@ -5743,7 +5765,7 @@ package realm {
 					tagLayer.addChild(tf);
 				}
 				n++;
-				tagText(tf, rp.name, rp == hoverRemote ? Ui.GOLD : friend || 0xe8e8e8, rp.profile.title);
+				tagText(tf, rp.name, rp == hoverRemote ? Ui.GOLD : friend || 0xe8e8e8, rp.profile.title, rp.profile.md);
 				tf.visible = true;
 				tf.x = int(cx - tf.width / 2);
 				tf.y = int(cy + TS * 0.4 + 1);
@@ -6195,12 +6217,15 @@ package realm {
 		}
 		private var flagPt:Point = new Point();
 
-		private function tagText(tf:TextField, who:String, col:uint, title:String):void {
-			var key:String = who + "|" + col + "|" + (title || "");
+		private function tagText(tf:TextField, who:String, col:uint, title:String, mode:String = ""):void {
+			var key:String = who + "|" + col + "|" + (title || "") + "|" + (mode || "");
 			if (tf.name == key) return;
 			tf.name = key;
 			var t:Object = Data.findTitle(title);
+			// Ironman and Hardcore heroes wear their mode by their name
+			var md:Object = mode ? Data.findMode(mode) : null;
 			tf.htmlText = "<font color='" + Ui.hex(col) + "'>" + who + "</font>" +
+				(md && md.id ? " <font size='10' color='" + Ui.hex(md.col) + "'>" + (md.id == "hardcore" ? "HC" : "IM") + "</font>" : "") +
 				(t ? "\n<font size='10' color='" + Ui.hex(t.col || 0xc8c8d8) + "'>" + t.name + "</font>" : "");
 		}
 
@@ -6209,7 +6234,7 @@ package realm {
 			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
 			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, p.moving ? 0 : int(time * 1.6) % 2, world.inWater(p.x, p.y));
-			tagText(nameTag, p.name, 0xffe36e, p.title);
+			tagText(nameTag, p.name, 0xffe36e, p.title, p.mode);
 			nameTag.x = int(cx - nameTag.width / 2);
 			nameTag.y = int(cy + TS * 0.4 + 1);
 			if (net && net.guild && net.guild.banner) tagFlag(nameTag, net.guild.banner);

@@ -33,6 +33,9 @@ package realm {
 		}
 
 		/** Item tooltip; with `worn`, also how it compares to what is equipped in that slot. */
+		/** Why your hero can't put an item on yet (Hardcore's tier climb), or null; set by the game. */
+		public static var blockFn:Function;
+
 		public function show(item:Object, hintText:String, worn:Object = null):void {
 			icon.bitmapData = Sprites.icon(item);
 			title.text = item.name;
@@ -41,7 +44,9 @@ package realm {
 			tier.textColor = Data.tierColor(item);
 			title.textColor = item.rarity ? Data.tierColor(item) : item.kind == "stat" ? Ui.GOLD : item.kind == "key" ? item.color : 0xffffff;
 			var top:Number = Math.max(icon.y + icon.height, title.y + title.height) + 6;
-			body.htmlText = Data.describe(item) + (worn && worn != item ? compareText(item, worn) : "");
+			var block:String = blockFn != null ? blockFn(item) : null;
+			body.htmlText = Data.describe(item) + (worn && worn != item ? compareText(item, worn) : "") +
+				(block ? "\n<font color='#ff7a6a'>" + block + "</font>" : "");
 			body.y = top + 4;
 			hint.text = hintText;
 			hint.y = body.y + body.height + 4;

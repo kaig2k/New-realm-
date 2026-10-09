@@ -27,6 +27,7 @@ const items = require('./items');
 const wallet = require('./wallet');
 const season = require('./season');
 const hall = require('./guildhall');
+const modes = require('./modes');
 const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -437,6 +438,8 @@ function applySave(c, data) {
   // items must come from the server (admins are trusted), and stats stay within the class limits
   // (only when the server runs the monsters: otherwise players' games still roll loot)
   if (!why && !isAdmin(c) && sims) why = items.check(prev, data) || items.checkStats(data);
+  // hero modes: Ironman and Hardcore rules (and modes can't change)
+  if (!why && prev) why = modes.check(prev, data);
   if (why) {
     log('refused save from ' + c.name + ': ' + why);
     store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);
@@ -468,8 +471,9 @@ function applySave(c, data) {
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
-  // what this hero can deal now (new weapon, more Attack...)
+  // what this hero can deal now (new weapon, more Attack...), and its mode (a new hero's first save sets it)
   c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
+  c.mode = modes.modeOf(serverChar(c));
   // a cosmetic bought just now: the profile that came before this save can wear it now
   if (c.rawProfile && !isAdmin(c)) {
     const p = withBanner(c, cleanProfile(c.rawProfile, data));
@@ -607,6 +611,7 @@ const handlers = {
     // the godmode count starts over in each world
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
     c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
+    c.mode = modes.modeOf(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
     c.profile = withBanner(c, cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key)));
     if (c.trade) endTrade(c, 'The trade was cancelled.');
@@ -747,6 +752,8 @@ const handlers = {
     const o = clients.get(m.to);
     if (!o || !o.authed || o.world !== c.world) return c.note('That player isn\'t here.');
     if (o === c) return;
+    if (modes.restricted(c.mode)) return c.note('Ironman and Hardcore heroes can\'t trade.');
+    if (modes.restricted(o.mode)) return c.note(o.name + ' is an ' + (o.mode === 'hardcore' ? 'Hardcore' : 'Ironman') + ' hero and can\'t trade.');
     if (o.trade) return c.note(o.name + ' is busy trading.');
     if (c.trade) return;
     c.tradeAsk = o.id;
@@ -759,6 +766,7 @@ const handlers = {
     o.tradeAsk = 0;
     if (!m.yes) return o.note(c.name + ' declined the trade.', 0xff8080);
     if (o.trade || c.trade) return;
+    if (modes.restricted(c.mode) || modes.restricted(o.mode)) return o.note('Ironman and Hardcore heroes can\'t trade.');
     // trades run on the server's copies of both inventories (each side saves just before)
     if (!serverInv(o) || !serverInv(c)) {
       o.note('The trade could not start: a character has not been saved yet. Try again in a moment.');
@@ -951,6 +959,7 @@ const handlers = {
 
   /** Puts an inventory item in the guild bank. */
   ghPut(c, m) {
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
     if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was stored.' });
@@ -965,6 +974,7 @@ const handlers = {
 
   /** Takes an item out of the guild bank. */
   ghTake(c, m) {
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
     if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
@@ -1135,6 +1145,7 @@ const handlers = {
 
   /** Puts an inventory item up for sale. */
   mkList(c, m) {
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the Marketplace.' });
     if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was listed.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
@@ -1146,6 +1157,7 @@ const handlers = {
 
   /** Buys a listing (the seller can be offline: their takings wait for them). */
   mkBuy(c, m) {
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the Marketplace.' });
     if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
@@ -1549,6 +1561,8 @@ function sendParty(pid) {
 
 /** Guild members show their guild's banner (if it flies one) by their name. */
 function withBanner(c, p) {
+  // (the hero's mode, as the server knows it, shows by the name too)
+  if (c.mode) p.md = c.mode; else delete p.md;
   const g = guildOf(c);
   if (g && g.banner) p.gb = g.banner; else delete p.gb;
   return p;

@@ -913,6 +913,50 @@ async function run() {
     G.s.destroy();
   }
 
+  console.log('hero modes');
+  {
+    const modes = require('./modes');
+    const { Data: MD } = require('./sim/gen/game');
+    const w = (tier, sid, rarity) => Object.assign(MD.makeWeapon('staff', tier, rarity || null), { sid });
+    // the mode is picked when a hero is made, and kept
+    const prev0 = { chars: [{ id: 'r1' }] };
+    const next0 = { chars: [{ id: 'r1', mode: 'hardcore' }, { id: 'n1', mode: 'ironman' }, { id: 'n2', mode: 'god' }] };
+    check('a hero\'s mode is set when it\'s made and can\'t change', modes.check(prev0, next0) === null && !next0.chars[0].mode && next0.chars[1].mode === 'ironman' && !next0.chars[2].mode);
+    // Ironman: nothing from the vault or other heroes
+    const pv = { vault: [w(5, 'v1')], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own')] }, { id: 'reg', inv: [w(6, 'other')] }] };
+    check('Ironman heroes can\'t take items from the vault or another hero', !!modes.check(pv, { vault: [], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(5, 'v1')] }, { id: 'reg', inv: [w(6, 'other')] }] })
+      && !!modes.check(pv, { vault: [w(5, 'v1')], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(6, 'other')] }, { id: 'reg', inv: [] }] }));
+    check('...but new loot and their own items are fine (and regular heroes may use the vault)', modes.check(pv, { vault: [], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(7, 'fresh')] }, { id: 'reg', inv: [w(6, 'other'), w(5, 'v1')] }] }) === null);
+    // Hardcore: one tier at a time per slot
+    const hp = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(2, 'a'), inv: [] }] };
+    check('Hardcore heroes can\'t skip a tier', /Hardcore/.test(modes.check(hp, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(4, 'b'), inv: [w(2, 'a')] }] }) || ''));
+    const step = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(3, 'c'), inv: [w(2, 'a')] }] };
+    check('...but climb one tier at a time, and the server remembers the climb', modes.check(hp, step) === null && step.chars[0]._climb.weapon === 3
+      && modes.check(step, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(2, 'a'), inv: [w(3, 'c')] }] }) === null);
+    const t7 = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'd'), inv: [], _climb: { weapon: 7 } }] };
+    check('special rarities need a T7 first; regular heroes have no climb', modes.check(t7, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'e', 'lg'), inv: [] }] }) === null
+      && !!modes.check(hp, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'e', 'lg'), inv: [] }] })
+      && modes.check({ chars: [{ id: 'x', weapon: w(1, 'p') }] }, { chars: [{ id: 'x', weapon: w(7, 'q', 'lg') }] }) === null);
+    check('Ironman and Hardcore heroes get extra loot luck, Hardcore extra stats', modes.luck('') === 0 && modes.luck('ironman') > 0 && modes.luck('hardcore') > modes.luck('ironman')
+      && MD.findMode('hardcore').stats.att > 0 && !MD.findMode('ironman').stats);
+    // over the wire: no trading or Marketplace
+    const H = await login('Thc' + n, { password: 'pass1234', register: true });
+    const R = await login('Trg' + n, { password: 'pass1234', register: true });
+    H.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'hch', cls: 'wizard', name: 'Hc', level: 1, mode: 'hardcore', inv: [] }] } });
+    await wait(300);
+    H.send({ t: 'enter', key: 'nexus', cid: 'hch', x: 100, y: 100, profile: { cls: 'wizard' } });
+    R.send({ t: 'enter', key: 'nexus', cid: 'rgh', x: 101, y: 100, profile: { cls: 'knight' } });
+    await wait(300);
+    H.clear(); R.clear();
+    H.send({ t: 'tradeReq', to: R.id });
+    R.send({ t: 'tradeReq', to: H.id });
+    H.send({ t: 'mkList', slot: 0, price: 100 });
+    await wait(300);
+    check('Hardcore heroes can\'t trade either way, or list on the Marketplace', H.find((m) => m.t === 'msg' && /can't trade/.test(m.text)) && R.find((m) => m.t === 'msg' && /can't trade/.test(m.text))
+      && !H.find((m) => m.t === 'tradeReq') && H.find((m) => m.t === 'shopFail' && /Marketplace/.test(m.msg)));
+    H.s.destroy(); R.s.destroy();
+  }
+
   console.log('cosmetics');
   {
     const C = await login('Tc' + n, { password: 'pass1234', register: true });

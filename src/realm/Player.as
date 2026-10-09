@@ -110,6 +110,10 @@ package realm {
 		public var id:String;
 		/** A Seasonal hero: the season it was made in ("2026-10"), else "". It scores double on that season's ladder. */
 		public var season:String = "";
+		/** The hero's mode (Data.MODES): "" regular, "ironman" or "hardcore". Picked when it's made. */
+		public var mode:String = "";
+		/** Hardcore: the highest tier used in each slot so far ({weapon: 3, ...}); the next item may be one tier higher. */
+		public var climb:Object = {};
 		/** Skill tree ranks by skill id, unspent points and progress to the next point. */
 		public var skills:Object = {};
 		public var skillPoints:int = 0;
@@ -159,6 +163,9 @@ package realm {
 			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s] && !(s == "spd" && it.kind == "weapon")) b += it[s];
 			var set:String = activeSet;
 			if (set && Data.setBonus(set)[s]) b += Data.setBonus(set)[s];
+			// Hardcore heroes are a little tougher all round
+			var md:Object = mode ? Data.findMode(mode) : null;
+			if (md && md.stats && md.stats[s]) b += md.stats[s];
 			for (var sk:String in Data.SKILL_STATS) {
 				if (skills[sk] && Data.SKILL_STATS[sk][s]) b += skills[sk] * Data.SKILL_STATS[sk][s];
 			}
@@ -251,7 +258,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "season", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "season", "mode", "climb", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
@@ -262,6 +269,7 @@ package realm {
 		public function restore(o:Object):void {
 			o = Save.clone(o);
 			o.tree2 = o.tree2 || false;
+			if (!o.climb || typeof o.climb != "object") o.climb = {};
 			for each (var f:String in SAVE_FIELDS) if (o[f] != undefined) this[f] = o[f];
 			if (!tree2) { tree2 = true; skillPoints += level - 1; }
 			while (inv.length < (backpack ? 16 : 8)) inv.push(null);
@@ -854,9 +862,29 @@ package realm {
 			return true;
 		}
 
+		/** Hardcore: why this item can't be put on yet (it's more than one tier above the best used in its slot), or null. */
+		public function climbBlock(it:Object):String {
+			if (mode != "hardcore" || !it || Data.CLIMB_SLOTS.indexOf(it.kind) < 0) return null;
+			var t:int = Data.climbTier(it), best:int = climbBest(it.kind);
+			if (t <= best + 1) return null;
+			return "Hardcore: use a " + (best + 1 >= 8 ? "special-rarity" : "T" + (best + 1)) + " " + it.kind + " before this one (your best so far is T" + best + ").";
+		}
+
+		/** The highest tier used in a slot so far (what's on now counts). */
+		public function climbBest(slot:String):int {
+			var b:int = int(climb ? climb[slot] : 0);
+			var on:Object = this[slot];
+			if (on) b = Math.max(b, Data.climbTier(on));
+			return b;
+		}
+
 		public function useItem(idx:int, g:Game):void {
 			var item:Object = inv[idx];
 			if (!item) return;
+			var why:String = climbBlock(item);
+			if (why) { g.msg(why, 0xff8080); return; }
+			// (Hardcore: the slot's best tier so far, before this item goes on)
+			var before:int = mode == "hardcore" && Data.CLIMB_SLOTS.indexOf(item.kind) >= 0 ? climbBest(item.kind) : -1;
 			var old:Object;
 			switch (item.kind) {
 				case "weapon":
@@ -889,6 +917,12 @@ package realm {
 				case "material":
 					g.msg("Take Star Shards to the Starforge in the Nexus.", 0xc080ff);
 					return;
+			}
+			if (before >= 0) {
+				if (!climb) climb = {};
+				climb[item.kind] = Math.max(before, Data.climbTier(item));
+				if (Data.climbTier(item) > before) g.msg("Hardcore climb: your best " + item.kind + " is now " + (Data.climbTier(item) >= 8 ? "special rarity" : "T" + Data.climbTier(item)) +
+					(Data.climbTier(item) == 7 ? " (special rarities unlocked)" : Data.climbTier(item) < 7 ? " (T" + (Data.climbTier(item) + 1) + " unlocked)" : "") + ".", 0xff8a7a);
 			}
 			hp = Math.min(hp, maxHp);
 			mp = Math.min(mp, maxMp);

@@ -1235,6 +1235,34 @@ package realm {
 			return null;
 		}
 
+		// ---- hero modes: picked when a hero is made, kept for its whole life -------
+		/**
+		 * Regular: the normal game. Ironman: no trading, Marketplace, guild bank or
+		 * vault, for more loot luck. Hardcore: Ironman's rules, and gear must be
+		 * climbed a tier at a time in each slot (use a T3 before a T4...), for even
+		 * more luck and extra stats. The server enforces all of it.
+		 */
+		public static const MODES:Array = [
+			{id: "", name: "Regular", col: 0xd8d8d8, luck: 0, desc: "The game as it is: trade, use the Marketplace, the vault and the guild bank."},
+			{id: "ironman", name: "Ironman", col: 0xb8c4d8, luck: 30,
+				desc: "No trading, Marketplace, guild bank or vault: everything you use, you found. +30 loot luck."},
+			{id: "hardcore", name: "Hardcore", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
+				desc: "Ironman's rules, and you climb the tiers: use each tier in a slot before the next (T1, T2, T3...). +60 loot luck and +5 to every stat (+30 HP, +20 MP)."}
+		];
+		public static function findMode(id:String):Object {
+			for each (var m:Object in MODES) if (m.id == (id || "")) return m;
+			return MODES[0];
+		}
+		/** Ironman and Hardcore heroes can't trade, use the Marketplace, the guild bank or the vault. */
+		public static function modeRestricted(id:String):Boolean { return id == "ironman" || id == "hardcore"; }
+		/** An item's tier for Hardcore's climb: T0-T7, and 8 for anything rarer (uniques, Runed and up). */
+		public static function climbTier(it:Object):int {
+			if (!it) return 0;
+			if (it.rarity || it.tier == undefined) return 8;
+			return Math.max(0, Math.min(8, int(it.tier)));
+		}
+		public static const CLIMB_SLOTS:Array = ["weapon", "ability", "armor", "ring"];
+
 		/** Guild banners, earned by finishing a week's three guild goals (server/guildhall.js); members show their guild's by their name. */
 		public static const GUILD_BANNERS:Array = [
 			{id: "crimson", name: "Crimson Lion", col: 0xd03030, trim: 0xffd75e},

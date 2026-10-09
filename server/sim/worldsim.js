@@ -749,7 +749,8 @@ class WorldSim {
       if (!c || dmg <= 0) continue;
       const prof = c.profile || {};
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
-      const lk = Math.max(0, Math.min(160, prof.lk | 0));
+      // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
+      const lk = Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0);
       let items = Data.rollLoot(e.def, zone, cls, lk);
       if (e.elite) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 50));
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));

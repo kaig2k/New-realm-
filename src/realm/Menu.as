@@ -98,6 +98,7 @@ package realm {
 			hoverTf = Ui.text(14, 0xffe8a0, true, "center", Ui.W - 40, true);
 			hoverTf.x = 20; hoverTf.y = 532;
 			classLayer.addChild(hoverTf);
+			modePicker(classLayer);
 
 			var help:TextField = Ui.text(14, 0xcccccc, false, "center", Ui.W, true);
 			help.htmlText = "<b>WASD</b> move   <b>Mouse</b> aim + shoot   <b>Space</b> ability   <b>F / G</b> health / magic potion   " +
@@ -165,6 +166,36 @@ package realm {
 
 		/** The "Seasonal hero" box on the class screen (online only). */
 		public static var seasonal:Boolean = false;
+		/** The mode picked for a new hero (Data.MODES): "" regular, "ironman" or "hardcore". */
+		public static var mode:String = "";
+
+		/** Regular / Ironman / Hardcore buttons on the class screen, with what each means. */
+		private function modePicker(layer:Sprite):void {
+			var row:Sprite = new Sprite();
+			layer.addChild(row);
+			var lab:TextField = Ui.text(13, 0xbbbbbb, true, "right", 90, true);
+			lab.text = "Mode";
+			lab.x = 0; lab.y = 4;
+			row.addChild(lab);
+			var draw:Function = function():void {
+				while (row.numChildren > 1) row.removeChildAt(1);
+				for (var i:int = 0; i < Data.MODES.length; i++) {
+					var md:Object = Data.MODES[i];
+					var on:Boolean = md.id == mode;
+					var b:Sprite = Ui.button((on ? "> " : "") + md.name, 96, 26, pickFn(md.id, draw), 13);
+					b.alpha = on ? 1 : 0.6;
+					b.x = 98 + i * 100; b.y = 0;
+					row.addChild(b);
+				}
+				if (hoverTf) hoverTf.htmlText = "<font color='" + Ui.hex(Data.findMode(mode).col) + "'><b>" + Data.findMode(mode).name + ":</b></font> " + Data.findMode(mode).desc;
+			};
+			draw();
+			row.x = Ui.W - 420; row.y = 176;
+		}
+
+		private function pickFn(id:String, redraw:Function):Function {
+			return function():void { mode = id; redraw(); };
+		}
 
 		private function seasonBox(layer:Sprite):void {
 			var ss:Object = Online.connected && Online.welcome ? Online.welcome.season : null;
@@ -209,6 +240,14 @@ package realm {
 			nm.text = c.name;
 			nm.x = 82; nm.y = 10;
 			card.addChild(nm);
+			if (c.mode) {
+				// an Ironman or Hardcore hero: its mode under the name
+				var mdo:Object = Data.findMode(c.mode);
+				var mt:TextField = Ui.text(10, mdo.col, true, "right", 80, true);
+				mt.text = mdo.name.toUpperCase();
+				mt.x = w - 86; mt.y = c.season ? 18 : 6;
+				card.addChild(mt);
+			}
 			if (c.season) {
 				// a Seasonal hero: a leaf-green tag (grey once its season is over)
 				var cur:Boolean = Online.welcome && Online.welcome.season && Online.welcome.season.id == c.season;

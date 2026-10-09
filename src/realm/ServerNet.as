@@ -275,7 +275,11 @@ package realm {
 				// trading
 				case "tradeReq":
 					rp = byId(m.from);
-					if (rp) g.tradeRequested(rp);
+					// Ironman and Hardcore heroes can't trade: say no straight away
+					if (rp && Data.modeRestricted(g.player.mode)) {
+						Online.send({t: "tradeAns", to: rp.id, yes: false});
+						g.msg(rp.name + " asked to trade, but " + Data.findMode(g.player.mode).name + " heroes can't trade.", 0xcccccc);
+					} else if (rp) g.tradeRequested(rp);
 					break;
 				case "tradeStart":
 					rp = byId(m["with"]);
@@ -359,6 +363,8 @@ package realm {
 
 		// ------------------------------------------------------------ trading
 		override public function requestTrade(p:RemotePlayer):void {
+			if (Data.modeRestricted(g.player.mode)) { g.msg(Data.findMode(g.player.mode).name + " heroes can't trade: everything they use, they find themselves.", 0xff8080); return; }
+			if (p.profile && Data.modeRestricted(p.profile.md)) { g.msg(p.name + " is a " + Data.findMode(p.profile.md).name + " hero and can't trade.", 0xff8080); return; }
 			syncForTrade();
 			Online.send({t: "tradeReq", to: int(p.id)});
 			g.msg("You sent a trade request to " + p.name + ".", 0xc8a0ff);

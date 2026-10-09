@@ -66,7 +66,17 @@ package realm {
 			"<font size='15' color='#ffd75e'><b>Quests (Quest Board, Nexus)</b></font>\n" +
 			"Three daily quests (new every day at 00:00 UTC, the same for everyone) and one bigger weekly quest (new every Monday). " +
 			"The server counts them from what really happens, like your kills, set pieces broken and Records times, and pays out gold and Aether " +
-			"when you claim them at the Quest Board. The tracker under the connection status shows what's left (Menu > Settings to hide it)."
+			"when you claim them at the Quest Board. The tracker under the connection status shows what's left (Menu > Settings to hide it).",
+
+			"<font size='15' color='#ffd75e'><b>Hero modes</b></font>\n" +
+			"Pick a mode when you make a hero; it stays for the hero's whole life.\n\n" +
+			"<font color='#d8d8d8'><b>Regular</b></font>: the game as it is. Trade, use the Marketplace, your vault and the guild bank.\n\n" +
+			"<font color='#b8c4d8'><b>Ironman</b></font>: no trading, no Marketplace, no vault and no guild bank: everything you use, you found. " +
+			"The merchant and the Key Merchant still sell to you. In return: <b>+30 loot luck</b>.\n\n" +
+			"<font color='#ff5a4a'><b>Hardcore</b></font>: Ironman's rules, and you climb the tiers. In each slot (weapon, ability, armor, ring) " +
+			"you must use a T1 before a T2, a T2 before a T3 and so on; special rarities (Runed and up, uniques) need a T7 first. " +
+			"In return: <b>+60 loot luck</b> and <b>+5 to every stat</b> (+30 HP, +20 MP).\n\n" +
+			"Ironman and Hardcore heroes show IM or HC by their name. The server checks every rule."
 		];
 
 		private var g:Game;

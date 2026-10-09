@@ -411,6 +411,16 @@ class Data {
 			for (var d of __vals( Data.DYES)) if (d.id == id) return d;
 			return null;
 		}
+	static findMode(id) {
+			for (var m of __vals( Data.MODES)) if (m.id == (id || "")) return m;
+			return Data.MODES[0];
+		}
+	static modeRestricted(id) { return id == "ironman" || id == "hardcore"; }
+	static climbTier(it) {
+			if (!it) return __int(0);
+			if (it.rarity || it.tier == undefined) return __int(8);
+			return __int(Math.max(0, Math.min(8, __int(it.tier))));
+		}
 	static findBanner(id) {
 			if (!id) return null;
 			for (var b of __vals( Data.GUILD_BANNERS)) if (b.id == id) return b;
@@ -3843,6 +3853,14 @@ Data.DYE_KEYS = {
 			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"],
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
+Data.MODES = [
+			{id: "", name: "Regular", col: 0xd8d8d8, luck: 0, desc: "The game as it is: trade, use the Marketplace, the vault and the guild bank."},
+			{id: "ironman", name: "Ironman", col: 0xb8c4d8, luck: 30,
+				desc: "No trading, Marketplace, guild bank or vault: everything you use, you found. +30 loot luck."},
+			{id: "hardcore", name: "Hardcore", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
+				desc: "Ironman's rules, and you climb the tiers: use each tier in a slot before the next (T1, T2, T3...). +60 loot luck and +5 to every stat (+30 HP, +20 MP)."}
+		];
+Data.CLIMB_SLOTS = ["weapon", "ability", "armor", "ring"];
 Data.GUILD_BANNERS = [
 			{id: "crimson", name: "Crimson Lion", col: 0xd03030, trim: 0xffd75e},
 			{id: "azure", name: "Azure Tide", col: 0x2a6ad8, trim: 0xd8f0ff},

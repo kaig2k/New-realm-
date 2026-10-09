@@ -455,7 +455,7 @@ package realm {
 
 		/** Gear your class can use that beats what you have on in that slot. */
 		private function isUpgrade(p:Player, it:Object):Boolean {
-			if (!it || !Data.isGear(it) || !Data.canUse(it, p.cls.id)) return false;
+			if (!it || !Data.isGear(it) || !Data.canUse(it, p.cls.id) || p.climbBlock(it)) return false;
 			var worn:Object = p[it.kind];
 			return !worn || Tooltip.score(it) > Tooltip.score(worn) * 1.02 + 0.5;
 		}

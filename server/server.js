@@ -512,7 +512,7 @@ function publicSave(s) {
  * Checks a save from the player's game and stores it. Returns true if it was accepted;
  * otherwise the game gets its last good save back.
  */
-function applySave(c, data) {
+function applySave(c, data, cid) {
   const prev = onlineSave(c.key);
   // (with server-run monsters, gold and fame are checked against what was earned instead of a time budget)
   let why = checkSave(prev, data, c.meta, Date.now(), sims && !isAdmin(c) ? ['gold', 'fame', 'onrane'] : null);
@@ -556,6 +556,9 @@ function applySave(c, data) {
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
+  // the game says which hero it's playing with each shop request, so the shops never depend on
+  // having seen this connection's last 'enter' (a reconnect, or a hero whose id was only just set)
+  if (typeof cid === 'string' && cid && (data.chars || []).some((h) => h && h.id === cid)) c.charId = cid.slice(0, 64);
   // what this hero can deal now (new weapon, more Attack...), and its mode (a new hero's first save sets it)
   c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
   c.mode = modes.modeOf(serverChar(c));
@@ -1049,7 +1052,7 @@ const handlers = {
     if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was stored.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was stored.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const r = hall.deposit(g, sv, ch.inv, num(m.slot) | 0, c.name);
@@ -1064,7 +1067,7 @@ const handlers = {
     if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const r = hall.withdraw(g, sv, ch.inv, num(m.idx) | 0, g.members[c.key].rank, c.name);
@@ -1158,7 +1161,7 @@ const handlers = {
 
   /** Marketplace and Key Merchant: the server checks the gold and hands out the item. */
   buy(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const what = str(m.what, 12);
@@ -1188,7 +1191,7 @@ const handlers = {
 
   /** Selling an item to the Nexus merchant (shift-click at the Marketplace): the server pays for it. */
   sell(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was sold.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was sold.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const slot = num(m.slot) | 0, item = ch.inv[slot];
@@ -1202,7 +1205,7 @@ const handlers = {
 
   /** Starforge: a Runed, Bonded or Eldritch item + a Star Shard + 100 Aether = a Starforged item. */
   forge(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was forged.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was forged.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const slot = num(m.slot) | 0, item = ch.inv[slot];
@@ -1233,7 +1236,7 @@ const handlers = {
   /** Puts an inventory item up for sale. */
   mkList(c, m) {
     if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the Marketplace.' });
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was listed.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was listed.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const r = market.list(sv, c.key, c.name, ch.inv, num(m.slot) | 0, num(m.price));
@@ -1245,7 +1248,7 @@ const handlers = {
   /** Buys a listing (the seller can be offline: their takings wait for them). */
   mkBuy(c, m) {
     if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the Marketplace.' });
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const l = market.find(num(m.id) | 0);
@@ -1266,7 +1269,7 @@ const handlers = {
 
   /** Takes a listing back. */
   mkCancel(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const r = market.cancel(sv, c.key, ch.inv, num(m.id) | 0);
@@ -1277,7 +1280,7 @@ const handlers = {
 
   /** Collects takings and returned items. */
   mkCollect(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const r = Market.collect(sv, ch.inv);
@@ -1296,7 +1299,7 @@ const handlers = {
 
   /** Claims a finished quest: the reward goes into the server's copy of the save, then the game takes it. */
   questClaim(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so the reward was not claimed.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so the reward was not claimed.' });
     const sv = onlineSave(c.key);
     const got = quests.claim(sv, !!m.w, num(m.i) | 0);
     if (typeof got === 'string') return c.send({ t: 'shopFail', msg: got });
@@ -1316,7 +1319,7 @@ const handlers = {
 
   /** Starforge reroll: a weapon's prefix for gold, or a special item's bonus stats for Aether. */
   reroll(c, m) {
-    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was rerolled.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was rerolled.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const slot = num(m.slot) | 0, item = ch.inv[slot];

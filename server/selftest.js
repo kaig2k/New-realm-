@@ -166,12 +166,14 @@ async function run() {
   await wait(450);
 
   console.log('shops on the server');
-  A.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca' });
+  // (the connection last entered with some other hero id: the shop goes by the id sent with the request)
+  A.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'not-this-hero' });
   await wait(150);
   A.clear();
-  A.send({ t: 'buy', what: 'stat', data: goodA() });
+  A.send({ t: 'buy', what: 'stat', data: goodA(), cid: 'ca' });
   await wait(400);
   let sd = A.find((m) => m.t === 'shopDone');
+  check('a shop request names its hero, so a stale or missing enter never blocks it', sd, JSON.stringify(A.find((m) => m.t === 'shopFail')));
   const bought = sd && sd.inv.find((it) => it && it.kind === 'stat' && it.sid && !all.some((o) => o.sid === it.sid));
   check('the Marketplace sells through the server: the item has an id and the gold is taken', bought && sd.gold === 5000 - 1200, sd ? sd.gold : 'no reply');
   let invA = sd ? sd.inv : [];

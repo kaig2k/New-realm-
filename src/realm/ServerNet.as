@@ -101,6 +101,7 @@ package realm {
 			if (!Online.connected) { g.msg("You're not connected right now. Try again once you're back online.", 0xff8080); return true; }
 			g.saveCharacter();
 			req.data = Save.data;
+			req.cid = g.player.id;
 			Online.send(req);
 			return true;
 		}

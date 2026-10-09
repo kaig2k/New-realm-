@@ -6,8 +6,9 @@ OUT = '/home/user/New-realm-/promo/'
 os.makedirs(OUT, exist_ok=True)
 FB = '/home/user/New-realm-/assets/fonts/SourceSansPro-Bold.ttf'
 FS = '/home/user/New-realm-/assets/fonts/SourceSansPro-Semibold.ttf'
-LOGO = Image.open('/home/user/New-realm-/assets/branding/eldmere_logo_transparent.png').convert('RGBA')
-GOLD, CREAM, MUTED = (255, 215, 94), (238, 230, 255), (176, 164, 200)
+# the Eldmere logo: the pixel castle over the name band (pixel art: scaled without smoothing)
+LOGO = Image.open('/home/user/New-realm-/assets/branding/eldmere_logo_castle.png').convert('RGBA')
+GOLD, CREAM, MUTED = (255, 205, 70), (238, 230, 255), (190, 170, 215)
 W, H = 1920, 1080
 
 def font(path, size): return ImageFont.truetype(path, size)
@@ -22,7 +23,7 @@ def background():
     return bg
 
 def logo(w):
-    return LOGO.resize((w, int(LOGO.height * w / LOGO.width)), Image.LANCZOS)
+    return LOGO.resize((w, int(LOGO.height * w / LOGO.width)), Image.NEAREST)
 
 def shadowed(d, xy, text, f, fill, shadow=(0, 0, 0, 200), off=3):
     d.text((xy[0] + off, xy[1] + off), text, font=f, fill=shadow)
@@ -44,7 +45,7 @@ def framed(img, scale):
     im = img.resize((int(img.width * scale), int(img.height * scale)), Image.NEAREST)
     f = Image.new('RGBA', (im.width + 12, im.height + 12), (0, 0, 0, 0))
     d = ImageDraw.Draw(f)
-    d.rectangle((0, 0, f.width - 1, f.height - 1), fill=(201, 160, 72, 255))
+    d.rectangle((0, 0, f.width - 1, f.height - 1), fill=(255, 77, 255, 255))
     d.rectangle((4, 4, f.width - 5, f.height - 5), fill=(30, 20, 40, 255))
     f.alpha_composite(im, (6, 6))
     # drop shadow
@@ -61,7 +62,7 @@ def side_card(path, img, scale, head, body, bullets=None):
     x0 = fr.width + 10
     tw = W - x0 - 70
     d = ImageDraw.Draw(bg)
-    lg = logo(min(420, tw))
+    lg = logo(min(399, tw))
     bg.alpha_composite(lg, (x0 + (tw - lg.width) // 2, 70))
     y = 70 + lg.height + 40
     fh = font(FB, 60)
@@ -89,7 +90,7 @@ def hero_card(path, img, head, sub):
         a = int(230 * (i / 420) ** 1.4)
         d.line((0, H - 420 + i, W, H - 420 + i), fill=(10, 6, 18, a))
     bg.alpha_composite(shade)
-    lg = logo(520)
+    lg = logo(532)
     bg.alpha_composite(lg, (70, H - lg.height - 60))
     d = ImageDraw.Draw(bg)
     fh, fs = font(FB, 72), font(FS, 36)
@@ -122,7 +123,7 @@ def roster_card(path):
         return out
     bg = background()
     d = ImageDraw.Draw(bg)
-    lg = logo(300)
+    lg = logo(266)
     bg.alpha_composite(lg, (60, 40))
     fh, fs = font(FB, 76), font(FS, 36)
     shadowed(d, (420, 70), str(len(DESIGNS)) + ' bosses. Every one drawn by hand.', fh, GOLD, off=4)
@@ -140,14 +141,14 @@ def roster_card(path):
 def collage(path, names, head, sub):
     bg = background()
     d = ImageDraw.Draw(bg)
-    lg = logo(260)
+    lg = logo(266)
     bg.alpha_composite(lg, (60, 30))
     shadowed(d, (360, 50), head, font(FB, 70), GOLD, off=4)
     d.text((364, 140), sub, font=font(FS, 34), fill=CREAM)
     cw, chh = 900, 400
     for i, n in enumerate(names):
         im = shot(n, (0, 48, 860, 48 + int(860 * (chh - 12) / (cw - 12)))).resize((cw - 12, chh - 12), Image.NEAREST)
-        f = Image.new('RGBA', (cw, chh), (201, 160, 72, 255))
+        f = Image.new('RGBA', (cw, chh), (255, 77, 255, 255))
         f.alpha_composite(im, (6, 6))
         bg.alpha_composite(f, (40 + (i % 2) * (cw + 40), 250 + (i // 2) * (chh + 20)))
     bg.convert('RGB').save(OUT + path, quality=95)

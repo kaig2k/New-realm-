@@ -80,6 +80,7 @@ package realm {
 			nameField.restrict = "A-Za-z0-9";
 			nameField.text = save.name || Accounts.current || NAMES[int(Math.random() * NAMES.length)];
 			classLayer.addChild(nameField);
+			seasonBox(classLayer);
 
 			var pick:TextField = Ui.text(18, 0xffffff, true, "center", Ui.W, true);
 			pick.text = "Choose your class";
@@ -162,6 +163,35 @@ package realm {
 			classLayer.addChild(back);
 		}
 
+		/** The "Seasonal hero" box on the class screen (online only). */
+		public static var seasonal:Boolean = false;
+
+		private function seasonBox(layer:Sprite):void {
+			var ss:Object = Online.connected && Online.welcome ? Online.welcome.season : null;
+			if (!ss) { seasonal = false; return; }
+			var box:Sprite = new Sprite();
+			var tf:TextField = Ui.text(13, 0x8fd16a, true, "left", 0, true);
+			var draw:Function = function():void {
+				box.graphics.clear();
+				// (the whole line is clickable, label included)
+				box.graphics.beginFill(0, 0);
+				box.graphics.drawRect(0, 0, 26 + tf.width, 22);
+				box.graphics.endFill();
+				Ui.panel(box.graphics, 0, 0, 20, 20, 0x1c1c1c, 0x8fd16a);
+				if (seasonal) { box.graphics.beginFill(0x8fd16a); box.graphics.drawRect(5, 5, 10, 10); box.graphics.endFill(); }
+				tf.htmlText = "<b>Seasonal hero</b> <font color='#b0b0b0'>(scores double on the season ladder)</font>";
+			};
+			tf.x = 26; tf.y = 1;
+			box.addChild(tf);
+			draw();
+			draw();
+			box.buttonMode = true;
+			box.mouseChildren = false;
+			box.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { seasonal = !seasonal; draw(); });
+			box.x = Ui.W / 2 + 120; box.y = 142;
+			layer.addChild(box);
+		}
+
 		private function makeCharCard(c:Object):Sprite {
 			var card:Sprite = new Sprite();
 			var w:int = 240, h:int = 108;
@@ -179,6 +209,14 @@ package realm {
 			nm.text = c.name;
 			nm.x = 82; nm.y = 10;
 			card.addChild(nm);
+			if (c.season) {
+				// a Seasonal hero: a leaf-green tag (grey once its season is over)
+				var cur:Boolean = Online.welcome && Online.welcome.season && Online.welcome.season.id == c.season;
+				var st:TextField = Ui.text(10, cur ? 0x8fd16a : 0x909090, true, "right", 80, true);
+				st.text = cur ? "SEASONAL" : "VETERAN";
+				st.x = w - 86; st.y = 6;
+				card.addChild(st);
+			}
 			var info:TextField = Ui.text(13, 0xbbbbbb, false, "left", 150);
 			var maxed:int = 0;
 			for each (var s:String in Data.STATS) if (c.stats[s] >= cls.max[s]) maxed++;

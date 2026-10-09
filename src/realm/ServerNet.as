@@ -227,7 +227,7 @@ package realm {
 					g.marketArrived(m.m);
 					break;
 				case "records":
-					g.recordsArrived(m.r);
+					g.recordsArrived(m.r, m.season);
 					break;
 				case "far":
 					rp = byId(m.id);

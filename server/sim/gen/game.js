@@ -3755,7 +3755,10 @@ Data.DYES = [
 			{id: "dye_sunset", name: "Sunset", cost: 250, col: 0xf07a20}, {id: "dye_rose", name: "Rose", cost: 250, col: 0xf070b0},
 			{id: "dye_teal", name: "Teal", cost: 250, col: 0x20b8b0}, {id: "dye_snow", name: "Snow", cost: 400, col: 0xeef2ff},
 			{id: "dye_midnight", name: "Midnight", cost: 400, col: 0x30304a}, {id: "dye_gold", name: "Royal Gold", cost: 800, col: 0xf0c030},
-			{id: "dye_void", name: "Void", cost: 1500, col: 0x5a10a0}, {id: "dye_ember", name: "Living Ember", cost: 1500, col: 0xff4a10}
+			{id: "dye_void", name: "Void", cost: 1500, col: 0x5a10a0}, {id: "dye_ember", name: "Living Ember", cost: 1500, col: 0xff4a10},
+			
+			{id: "dye_laurel", name: "Laurel", earn: "Finish a season in the ladder's top ten", col: 0x8fd16a},
+			{id: "dye_champion", name: "Champion's Gold", earn: "Win a season: first place on the ladder", col: 0xffe27a}
 		];
 Data.DYE_KEYS = {
 			wizard: ["R", "r"], archer: ["G", "g"], knight: ["K"], priest: ["W", "w"], rogue: ["P", "p"],
@@ -3776,7 +3779,10 @@ Data.TITLES = [
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
 			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080},
-			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff}
+			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff},
+			{id: "season_top10", name: "Ladder Elite", earn: "Finish a season in the ladder's top ten", col: 0x8fd16a},
+			{id: "season_podium", name: "Season Medallist", earn: "Finish a season in the ladder's top three", col: 0xc0e8ff},
+			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a}
 		];
 Data.SLAYER = {
 			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",

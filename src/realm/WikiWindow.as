@@ -14,8 +14,10 @@ package realm {
 		public static const W:int = 640, H:int = 560;
 		private static const PER_PAGE:int = 6;
 		private static const ROW:int = 66;
-		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Abilities", "Guide", "Records"];
-		private static const ABILITY_TAB:int = 5, GUIDE_TAB:int = 6, RECORDS_TAB:int = 7;
+		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Abilities", "Guide", "Records", "Season"];
+		private static const ABILITY_TAB:int = 5, GUIDE_TAB:int = 6, RECORDS_TAB:int = 7, SEASON_TAB:int = 8;
+		/** The season ladder from the server: {name, ends, top: [{name, pts, deaths, best}], you, players, mult, last} (null until asked). */
+		public static var season:Object = null;
 		/** The server's fastest event kills: records[eventId] = [{ms, names}] (null until it has answered). */
 		public static var records:Object = null;
 		private static const LOOT:Array = [
@@ -26,7 +28,8 @@ package realm {
 			"Raid uniques: Starforged, and Primordial from each raid's final boss. Also the best SF / PR odds. GD items: 1 in 3,000.",
 			"Ability items drop holding one of their class's three abilities. Hover an icon for its full description.",
 			"",
-			"Fastest kills of each realm event, from the first hit on the boss or its set piece to its death. Everyone who fought is listed."
+			"Fastest kills of each realm event, from the first hit on the boss or its set piece to its death. Everyone who fought is listed.",
+			""
 		];
 
 		/** The Guide tab, one page at a time. */
@@ -134,7 +137,7 @@ package realm {
 			recs.sortOn("rec");
 			// this week's Starfall Vault board comes first
 			recs.unshift({rec: "vault:" + week()});
-			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs];
+			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs, [1]];
 		}
 
 		private function show(t:int):void {
@@ -142,8 +145,8 @@ package realm {
 			tab = t;
 			tabBar.removeChildren();
 			for (var i:int = 0; i < TABS.length; i++) {
-				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 74, 30, tabFn(i), 11);
-				b.x = i * 77;
+				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 66, 30, tabFn(i), 11);
+				b.x = i * 68;
 				b.alpha = i == tab ? 1 : 0.7;
 				tabBar.addChild(b);
 			}
@@ -154,6 +157,10 @@ package realm {
 			var per:int = tab == GUIDE_TAB ? 1 : PER_PAGE;
 			var pages:int = Math.max(1, Math.ceil(list.length / per));
 			if (page >= pages) page = pages - 1;
+			if (tab == SEASON_TAB) {
+				seasonPage();
+				return;
+			}
 			if (tab == GUIDE_TAB) {
 				var gt:TextField = Ui.text(12, 0xd8d8e0, false, "left", W - 36);
 				gt.htmlText = GUIDE[page];
@@ -187,13 +194,45 @@ package realm {
 		private function tabFn(i:int):Function {
 			return function():void {
 				// fresh times from the server each time the page is opened
-				if (i == RECORDS_TAB && g.net && g.net.online) Online.send({t: "records"});
+				if ((i == RECORDS_TAB || i == SEASON_TAB) && g.net && g.net.online) Online.send({t: "records"});
 				show(i);
 			};
 		}
 
 		/** The server's answer arrived: show it if the Records page is open. */
-		public function recordsChanged():void { if (tab == RECORDS_TAB) show(tab); }
+		public function recordsChanged():void { if (tab == RECORDS_TAB || tab == SEASON_TAB) show(tab); }
+
+		/** The Season page: this month's ladder, your place, and what the top ten win. */
+		private function seasonPage():void {
+			var tf:TextField = Ui.text(13, 0xd8d8e0, false, "left", W - 40);
+			tf.x = 20; tf.y = 0;
+			body.addChild(tf);
+			if (!g.net || !g.net.online) { tf.htmlText = "<font color='#808088'>Seasons are run by the server. Play online to climb the ladder.</font>"; return; }
+			var s:Object = season;
+			if (!s) { tf.htmlText = "<font color='#808088'>Asking the server...</font>"; return; }
+			// (the server's count: players' clocks can be wrong)
+			var left:Number = Math.max(0, Number(s.left)) / 86400000;
+			var h:String = "<font size='18' color='#8fd16a'><b>" + s.name + "</b></font>   <font color='#9a9aaa'>ends in " +
+				(left >= 1 ? int(left) + " day" + (int(left) == 1 ? "" : "s") : int(left * 24) + " hours") + "</font>\n";
+			h += "When a hero dies, the fame it brings your account goes on the ladder. <font color='#8fd16a'><b>Seasonal heroes</b></font> " +
+				"(tick the box when you make one) score <b>" + (s.mult || 2) + "x</b>. At the end of the month the top ten earn " +
+				"<font color='#8fd16a'>Ladder Elite</font> and the <font color='#8fd16a'>Laurel</font> dye, the top three " +
+				"<font color='#c0e8ff'>Season Medallist</font>, and the winner <font color='#ffe27a'>Season Champion</font> " +
+				"and the <font color='#ffe27a'>Champion's Gold</font> dye. Seasonal heroes stay yours afterwards.\n\n";
+			var top:Array = s.top || [];
+			if (!top.length) h += "<font color='#808088'>Nobody is on the ladder yet. Be the first!</font>\n";
+			for (var i:int = 0; i < top.length; i++) {
+				var e:Object = top[i];
+				var col:String = i == 0 ? "#ffe27a" : i < 3 ? "#c0e8ff" : "#8fd16a";
+				var best:String = e.best ? "   <font color='#808088'>best: " + Ui.commas(e.best.fame) + " fame, level " + e.best.level + " " +
+					(Data.CLASSES[e.best.cls] ? Data.CLASSES[e.best.cls].name : "") + (e.best.seasonal ? " (seasonal)" : "") + "</font>" : "";
+				h += "<font color='" + col + "'><b>#" + (i + 1) + "  " + e.name + "</b></font>  " + Ui.commas(e.pts) + " pts" + best + "\n";
+			}
+			if (s.you) h += "\n<font color='#ffd75e'>You: <b>#" + s.you.place + "</b> of " + s.players + " with " + Ui.commas(s.you.pts) + " points (" + s.you.deaths + " heroes).</font>";
+			else h += "\n<font color='#9a9aaa'>You're not on the ladder yet: it counts once one of your heroes dies this season.</font>";
+			if (s.last && s.last.top && s.last.top.length) h += "\n<font color='#808088'>Last season (" + s.last.name + ") was won by " + s.last.top[0].name + ".</font>";
+			tf.htmlText = h;
+		}
 
 		/** This week's number, as the server counts it (Monday to Sunday, UTC): the Vault's twist and its board. */
 		public static function week():int {

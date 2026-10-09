@@ -169,6 +169,7 @@ package realm {
 			abil = new Abilities(this);
 			Keys.reload();
 			if (saved) player.restore(saved);
+			else if (Menu.seasonal && Online.connected && Online.welcome && Online.welcome.season) player.season = String(Online.welcome.season.id);
 			else player.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			Data.viewerClass = player.cls.id;
 			if (Online.connected) {
@@ -4390,7 +4391,7 @@ package realm {
 				nm.text = c.name;
 				nm.y = bh - 58;
 				box.addChild(nm);
-				var label:String = on ? "Worn" : !c.id || cosmeticOwned(c.id) ? "Wear" : Ui.commas(c.cost) + (bw < 100 ? "" : " fame");
+				var label:String = on ? "Worn" : !c.id || cosmeticOwned(c.id) ? "Wear" : c.earn ? "How?" : Ui.commas(c.cost) + (bw < 100 ? "" : " fame");
 				var b:Sprite = Ui.button(label, bw - 16, 26, cosmeticFn(fameMode, c), bw < 100 ? 12 : 14);
 				b.x = 8; b.y = bh - 32;
 				box.addChild(b);
@@ -4462,7 +4463,7 @@ package realm {
 
 		private function cosmeticOwned(id:String):Boolean {
 			if (Data.findSkin(id)) return Save.data.skins && Save.data.skins[id];
-			var t:Object = Data.findTitle(id);
+			var t:Object = Data.findTitle(id) || Data.findDye(id);
 			if (t && t.earn) return earnedTitles()[id];
 			return Save.data.cosmetics && Save.data.cosmetics[id];
 		}
@@ -4475,7 +4476,7 @@ package realm {
 		private function cosmeticFn(mode:String, c:Object):Function {
 			return function():void {
 				if (c.id && !cosmeticOwned(c.id)) {
-					if (c.earn) return;
+					if (c.earn) { msg("\"" + c.name + "\": " + c.earn + ".", c.col || 0xff9a2e); return; }
 					var fame:int = int(Save.data.fame || 0);
 					if (fame < c.cost) { msg("You need " + Ui.commas(c.cost) + " fame for " + c.name + ". Fame is earned when heroes die.", 0xff8080); return; }
 					Save.data.fame = fame - c.cost;
@@ -5625,8 +5626,9 @@ package realm {
 
 		/** Book button / K / /wiki: every boss and its drops. */
 		/** The server sent the fastest event kills. */
-		public function recordsArrived(r:Object):void {
+		public function recordsArrived(r:Object, season:Object = null):void {
 			WikiWindow.records = r || {};
+			if (season) WikiWindow.season = season;
 			if (wiki) wiki.recordsChanged();
 		}
 

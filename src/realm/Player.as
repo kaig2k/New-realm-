@@ -108,6 +108,8 @@ package realm {
 		public static const STATUS_COLORS:Object = {slowed: 0x6090ff, paralyzed: 0xffe040, confused: 0xd060ff, armorbroken: 0xb0b0b0, bleeding: 0xff3030};
 		/** Saved-character id. */
 		public var id:String;
+		/** A Seasonal hero: the season it was made in ("2026-10"), else "". It scores double on that season's ladder. */
+		public var season:String = "";
 		/** Skill tree ranks by skill id, unspent points and progress to the next point. */
 		public var skills:Object = {};
 		public var skillPoints:int = 0;
@@ -249,7 +251,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "season", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};

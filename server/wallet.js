@@ -214,4 +214,12 @@ function settle(prev, next, meta, now) {
   return notes.length ? notes.join(', ') : null;
 }
 
-module.exports = { credit, settle, killValue, GOLD_LIFE, ALLOW };
+/** How much account fame a save really added (its rise, plus what new cosmetics cost). */
+function fameGain(prev, next) {
+  let spent = 0;
+  const had = owned(prev);
+  for (const id of owned(next)) if (!had.has(id)) spent += cosmeticCost(id);
+  return Math.max(0, (Number(next.fame) || 0) - Math.max(0, prev.fame || 0) + spent);
+}
+
+module.exports = { credit, settle, killValue, heroFame, fameGain, GOLD_LIFE, ALLOW };

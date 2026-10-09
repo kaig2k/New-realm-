@@ -121,10 +121,19 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
 - **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
 
+### Seasons
+
+There's a new season every month (UTC), with nothing to set up. When a hero dies, the fame it brings its
+account (as the server accepted it) goes on that month's ladder; Seasonal heroes (players tick the box when
+making one) score double. When the month ends, the top ten get the Ladder Elite title and the Laurel dye,
+the top three Season Medallist, and the winner Season Champion and the Champion's Gold dye, and the
+Discord feed announces the winners and the new season. Players see the ladder on the Wiki's Season page.
+The ladder is kept in `server/data/season.json`.
+
 ## 8. Backups
 
 Everything lives in `server/data/`:
-- `accounts.json`, `guilds.json` and `bans.json`;
+- `accounts.json`, `guilds.json`, `bans.json`, `records.json` and `season.json`;
 - `saves/` with one file per account.
 
 A nightly backup:

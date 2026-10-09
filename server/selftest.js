@@ -632,6 +632,30 @@ async function run() {
     await wait(300);
     const r = A2.find((m) => m.t === 'records');
     check('the server answers a Records request', r && typeof r.r === 'object');
+    check('...with this month\'s season ladder', r && r.season && /^Season \d+: /.test(r.season.name) && Array.isArray(r.season.top) && r.season.ends > Date.now());
+  }
+
+  console.log('seasons');
+  {
+    const season = require('./season');
+    const { Data: SD } = require('./sim/gen/game');
+    const oct = season.seasonAt(Date.UTC(2026, 9, 20)), nov = season.seasonAt(Date.UTC(2026, 10, 1));
+    check('one season a month, numbered from October 2026', oct.id === '2026-10' && oct.n === 1 && nov.n === 2 && oct.ends === nov.start && oct.name !== nov.name);
+    const tables = {};
+    const L = new season.Ladder((f, fb) => tables[f] || fb, (f, o) => { tables[f] = JSON.parse(JSON.stringify(o)); });
+    L.t.id = '2026-10';
+    L.heroesDied('ann', 'Ann', 1000, [{ fame: 900, seasonal: false, cls: 'wizard', level: 20 }]);
+    L.heroesDied('bo', 'Bo', 1000, [{ fame: 900, seasonal: true, cls: 'bard', level: 18 }]);
+    L.heroesDied('cy', 'Cy', 0, [{ fame: 900, seasonal: true }]);
+    const v = L.view('ann');
+    check('dead heroes put their fame on the ladder, Seasonal heroes double', v.top[0].name === 'Bo' && v.top[0].pts === 2000 && v.top[1].pts === 1000 && v.you.place === 2 && v.top.length === 2);
+    const won = [];
+    let told = null;
+    L.rollover(Date.UTC(2026, 10, 2), (key, place) => won.push(key + place), (old) => { told = old; });
+    check('a new month closes the ladder: the top ten earn rewards and Discord hears who won',
+      won.join() === 'bo1,ann2' && told && told.top[0].name === 'Bo' && L.t.id === '2026-11' && !Object.keys(L.t.scores).length && L.view('x').last.name === oct.name);
+    check('season rewards are earned titles and dyes the game knows', ['season_champion', 'season_podium', 'season_top10'].every((id) => SD.findTitle(id) && SD.findTitle(id).earn)
+      && SD.findDye('dye_laurel').earn && SD.findDye('dye_champion').earn && season.rewardsFor(1).length === 5 && season.rewardsFor(7).length === 2 && !season.rewardsFor(11).length);
   }
 
   console.log('launcher downloads');
@@ -840,6 +864,27 @@ async function run() {
     const { Data } = require('./sim/gen/game');
     check('a top-5 Records time has a Slayer title for every realm event', Data.EVENTS.every((ev) => { const t = Data.findTitle('slayer_' + ev); return t && t.earn && /\w/.test(t.name); }) &&
       Data.findTitle('slayer_ev_kraken').name === 'Kraken Slayer');
+    // Seasonal heroes: only new ones, marked with this season, can carry the mark; when one dies it scores double
+    const curSeason = wC.season && wC.season.id;
+    const svNow = () => JSON.parse(fs.readFileSync(path.join(DATA, 'saves', ('Tc' + n).toLowerCase() + '.json'), 'utf8'));
+    await wait(1800);
+    const fameNow = svNow().fame;
+    C.send({ t: 'save', data: Object.assign(svNow(), { _titles: undefined, chars: [{ id: 'sh1', cls: 'wizard', name: 'Sea', level: 5, season: curSeason }, { id: 'sh2', cls: 'knight', name: 'Old', level: 3, season: '2020-01' }] }) });
+    await wait(1800);
+    let hs = svNow().chars || [];
+    check('a new hero can be Seasonal (this season only)', curSeason && hs.find((h) => h.id === 'sh1').season === curSeason && !hs.find((h) => h.id === 'sh2').season, JSON.stringify(hs));
+    C.send({ t: 'save', data: Object.assign(svNow(), { _titles: undefined, chars: hs.map((h) => Object.assign({}, h, { season: curSeason })) }) });
+    await wait(1800);
+    hs = svNow().chars;
+    check('an existing hero can\'t become Seasonal later', !hs.find((h) => h.id === 'sh2').season && hs.find((h) => h.id === 'sh1').season === curSeason);
+    C.clear();
+    C.send({ t: 'save', data: Object.assign(svNow(), { _titles: undefined, fame: fameNow + 100, chars: hs.filter((h) => h.id !== 'sh1') }) });
+    await wait(1800);
+    C.clear();
+    C.send({ t: 'records' });
+    await wait(300);
+    const lad = C.find((m) => m.t === 'records');
+    check('when a Seasonal hero dies its fame scores double on the ladder', lad && lad.season.you && lad.season.you.pts === 200 && lad.season.top.some((e) => e.name.toLowerCase() === ('tc' + n).toLowerCase()), JSON.stringify(lad && lad.season));
     C.s.destroy(); D.s.destroy();
   }
 

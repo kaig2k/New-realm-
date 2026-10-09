@@ -25,6 +25,7 @@ const { checkSave } = require('./validate');
 const { Sims, WorldSim } = require('./sim/worldsim');
 const items = require('./items');
 const wallet = require('./wallet');
+const season = require('./season');
 const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -116,21 +117,65 @@ function eventKilled(id, ms, team) {
 }
 if (sims) sims.onEventKill = eventKilled;
 
+// ------------------------------------------------------------------ seasons
+const ladder = new season.Ladder(load, save);
+/** A new month: the old ladder's top ten get their rewards, and everyone hears about it. */
+function seasonTick() {
+  ladder.rollover(Date.now(), (key, place) => {
+    for (const id of season.rewardsFor(place)) grantTitle(key, id);
+  }, (old, cur) => {
+    const top = old.top;
+    log('season over: ' + old.name + (top.length ? ', won by ' + top[0].name : ''));
+    if (discord.on) {
+      discord.post('🏁 **' + desc(old.name) + ' is over!** ' + (top.length
+        ? top.slice(0, 3).map((e, i) => ['🥇', '🥈', '🥉'][i] + ' ' + dnames([e.name]) + ' (' + e.pts.toLocaleString('en') + ')').join('   ') + '. The top ten earn the season\'s titles and dyes.'
+        : 'Nobody made the ladder this time.'), 0x8fd16a);
+      discord.post('🌱 **' + desc(cur.name) + ' begins!** Seasonal heroes score double on the new ladder until ' + new Date(cur.ends - 1).toUTCString().slice(5, 16) + '.', 0x8fd16a);
+    }
+    for (const o of clients.values()) if (o.authed) o.send({ t: 'banner', text: cur.name + ' begins!', color: 0x8fd16a,
+      msg: old.name + (top.length ? ' was won by ' + top[0].name + '.' : ' is over.') + ' Make a Seasonal hero to score double on the new ladder.' });
+  });
+}
+setInterval(seasonTick, 60 * 1000).unref();
+
+/**
+ * A save let heroes die: their fame (as the server accepted it) goes on the season ladder.
+ * Also keeps the Seasonal mark honest: only heroes made this season can carry it, and only from the start.
+ */
+function seasonSave(c, prev, data) {
+  if (!prev || !data) return;
+  const cur = ladder.current;
+  const old = new Map((prev.chars || []).filter((h) => h && h.id).map((h) => [h.id, h]));
+  for (const h of data.chars || []) {
+    if (!h || typeof h !== 'object') continue;
+    const was = old.get(h.id);
+    if (was) { if (was.season) h.season = was.season; else delete h.season; }
+    else if (h.season !== cur.id) delete h.season;
+  }
+  const alive = new Set((data.chars || []).filter(Boolean).map((h) => h.id));
+  const dead = [];
+  for (const [id, h] of old) if (!alive.has(id)) dead.push({ fame: wallet.heroFame(h), seasonal: h.season === cur.id, cls: h.cls, level: h.level });
+  if (!dead.length) return;
+  const pts = ladder.heroesDied(c.key, c.name, wallet.fameGain(prev, data), dead);
+  if (pts > 0) c.send({ t: 'msg', color: 0x8fd16a, text: '+' + pts.toLocaleString('en') + ' season points (' + cur.name + '). See the Season page in the Wiki (K).' });
+}
+
 // ------------------------------------------------------------------ earned titles
 /** Gives account `key` an earned nameplate title (see Data.TITLES / Data.SLAYER) for good, and tells them if they're on. */
 function grantTitle(key, id) {
-  const t = Data.findTitle(id);
+  const t = Data.findTitle(id) || Data.findDye(id);
   if (!key || !t || !t.earn) return false;
   const sv = onlineSave(key);
   if (!sv._titles || typeof sv._titles !== 'object') sv._titles = {};
   if (sv._titles[id]) return false;
   sv._titles[id] = Date.now();
   store.putSave(key, sv);
-  feat('title', { name: (accounts[key] && accounts[key].name) || key, title: t.name, color: t.col });
+  feat('title', { name: (accounts[key] && accounts[key].name) || key, title: t.name + (Data.findDye(id) ? ' dye' : ''), color: t.col });
   const c = byName.get(key);
   if (c) {
     c.send({ t: 'title', id, earned: Object.keys(sv._titles) });
-    c.send({ t: 'banner', text: 'Title earned: ' + t.name + '!', color: t.col || 0xff9a2e, msg: 'Wear it from the Fame Store in the Nexus.' });
+    const kind = Data.findDye(id) ? 'Dye' : 'Title';
+    c.send({ t: 'banner', text: kind + ' earned: ' + t.name + '!', color: t.col || 0xff9a2e, msg: 'Wear it from the Fame Store in the Nexus.' });
   }
   return true;
 }
@@ -409,6 +454,8 @@ function applySave(c, data) {
       c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
   } else if (prev._fame) data._fame = prev._fame;
+  // heroes that died go on the season ladder
+  seasonSave(c, prev, data);
   // and earned titles (the game's list is only a copy)
   if (prev._titles) data._titles = prev._titles; else delete data._titles;
   data.earned = Object.keys(data._titles || {});
@@ -468,7 +515,8 @@ function cleanProfile(p, sv) {
   if (sv) {
     const own = sv.cosmetics && typeof sv.cosmetics === 'object' ? sv.cosmetics : {};
     if (out.skin && !(sv.skins && sv.skins[out.skin])) out.skin = '';
-    if (out.dye && !(Data.findDye(out.dye) && own[out.dye])) out.dye = '';
+    const dy = out.dye && Data.findDye(out.dye);
+    if (out.dye && !(dy && (dy.earn ? sv._titles && sv._titles[out.dye] : own[out.dye]))) out.dye = '';
     const t = out.title && Data.findTitle(out.title);
     if (out.title && !(t && (t.earn ? sv._titles && sv._titles[out.title] : own[out.title]))) out.title = '';
   }
@@ -535,7 +583,7 @@ const handlers = {
     accountMeta.set(key, c.meta);
     c.chatTimes = [];
     c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft() });
+      save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current });
     sendGuild(c.guild);
     c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
     log(c.name, 'joined (' + byName.size + ' online)');
@@ -1087,7 +1135,7 @@ const handlers = {
     const now = Date.now();
     if (now - (c.recordsT || 0) < 1000) return;
     c.recordsT = now;
-    c.send({ t: 'records', r: records });
+    c.send({ t: 'records', r: records, season: ladder.view(c.key) });
   },
 
   /** Starforge reroll: a weapon's prefix for gold, or a special item's bonus stats for Aether. */
@@ -1656,6 +1704,7 @@ server.listen(PORT, () => {
   log('New Realm server running on port ' + PORT);
   discord.post('🟢 **' + desc(config.name || 'Eldmere') + '** is online. Come and play!', 0x60e070);
   announceTwist();
+  seasonTick();
   log('Realms: ' + realms.map(r => r.name).join(', '));
   log('Type "help" here for server commands (list, say, kick, stop).');
   const addrs = [];

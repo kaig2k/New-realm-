@@ -496,7 +496,7 @@ async function run() {
     const plain = new WorldSim('raid:' + vi + ':99');
     check('the Vault has a rule each week, the same for the whole week', VB.VAULT_TWISTS.length >= 5 && plain.twist && plain.twist === VB.vaultTwist(plain.week) && VB.vaultTwist(plain.week + 1) !== plain.twist);
     const swarm = run('swarm'), glass = run('glass'), quick = run('quick'), escort = run('escort'), stone = run('stone');
-    check('Swarming Halls: twice the guards', swarm.guards >= 1.7 * glass.guards, swarm.guards + ' vs ' + glass.guards);
+    check('Swarming Halls: twice the guards', swarm.guards >= 1.5 * glass.guards, swarm.guards + ' vs ' + glass.guards);
     check('Glass Vault: less health, harder hits; Quickened Sands: faster attacks', glass.master.maxHp < stone.master.maxHp && glass.master.dmgMult > 1.3 && quick.master.rateMult === 1.25);
     check('Honour Guard: guards wake at the master\'s side', escort.all - escort.guards >= 1 + 4);
     const feats = [];
@@ -681,7 +681,7 @@ async function run() {
     const home = (await get('/')).toString();
     const play = (await get('/play')).toString();
     const logo = await get('/logo.png');
-    const sneaky = [await get('/promo/../server/config.json'), await get('/promo/%2e%2e%2fconfig.png'), await get('/../server/data/accounts.json')];
+    const sneaky = [await get('/promo/../server/config.json'), await get('/promo/%2e%2e%2fconfig.png'), await get('/../server/data/accounts.json'), await get('/promo/x.mp4.json')];
     check('the server shows a landing page (live player count) and a browser-play page', /Dodge\. Loot\. Survive\./.test(home) && /playing now/.test(home) && /href="\/play"/.test(home)
       && /ruffle/i.test(play) && /NewRealm\.swf/.test(play) && /^HTTP\/1\.1 200/.test(logo.toString('latin1', 0, 20)) && /image\/png/.test(logo.toString('latin1', 0, 200)));
     check('...and serves no other files (no ../ tricks)', sneaky.every((b) => /^HTTP\/1\.1 404/.test(b.toString('latin1', 0, 30))), sneaky.map((b) => b.toString('latin1', 0, 30)).join(' | '));

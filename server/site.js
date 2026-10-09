@@ -42,6 +42,7 @@ const SHOTS = [['eldmere_bosses_fight.png', 'Every boss fights differently'], ['
 function landing(info) {
   const shots = SHOTS.filter(([f]) => fs.existsSync(path.join(PROMO, f)));
   const hero = fs.existsSync(path.join(PROMO, 'eldmere_hero.png')) ? '/promo/eldmere_hero.png' : '';
+  const video = fs.existsSync(path.join(PROMO, 'eldmere_gameplay.mp4'));
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(info.name)}: a bullet-hell MMO</title>
@@ -81,7 +82,8 @@ ${info.discord ? '<a class="btn alt" href="' + esc(info.discord) + '">Join the D
 <p class="note">Browser play runs through Ruffle and is in beta.${info.launcher ? ' The launcher (a small Flash file) always runs the latest version.' : ''}</p>
 </div></header>
 <main class="wrap">
-${hero ? '<div class="shots"><img src="' + hero + '" alt="A boss fight in Eldmere"></div>' : ''}
+${video ? '<div class="shots"><video src="/promo/eldmere_gameplay.mp4" autoplay muted loop playsinline' + (hero ? ' poster="' + hero + '"' : '') + ' style="width:100%;border-radius:10px;border:2px solid var(--line);display:block;margin-bottom:18px"></video></div>'
+  : hero ? '<div class="shots"><img src="' + hero + '" alt="A boss fight in Eldmere"></div>' : ''}
 <h2>What's in Eldmere</h2>
 <div class="grid">${FEATURES.map(([t, d]) => '<div class="card"><b>' + esc(t) + '</b>' + esc(d) + '</div>').join('')}</div>
 ${shots.length ? '<h2>Screenshots</h2><div class="shots">' + shots.map(([f, a]) => '<img loading="lazy" src="/promo/' + f + '" alt="' + esc(a) + '">').join('') + '</div>' : ''}
@@ -119,8 +121,8 @@ player.load({ url: '/NewRealm.swf', parameters: { server: host + ':' + port } })
 function file(urlPath) {
   if (urlPath === '/logo.png') return [LOGO, 'image/png'];
   if (urlPath === '/EldmereLauncher.swf') return fs.existsSync(LAUNCHER) ? [LAUNCHER, 'application/x-shockwave-flash'] : null;
-  const m = /^\/promo\/([a-z0-9_]+\.png)$/.exec(urlPath);
-  if (m) return [path.join(PROMO, m[1]), 'image/png'];
+  const m = /^\/promo\/([a-z0-9_]+)\.(png|gif|mp4)$/.exec(urlPath);
+  if (m) return [path.join(PROMO, m[1] + '.' + m[2]), { png: 'image/png', gif: 'image/gif', mp4: 'video/mp4' }[m[2]]];
   return null;
 }
 

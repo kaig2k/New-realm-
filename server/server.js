@@ -596,7 +596,9 @@ const handlers = {
   },
 
   enter(c, m) {
-    const world = str(m.key, 80);
+    let world = str(m.key, 80);
+    // a guild's hall is for its members: anyone else gets a hall of their own (empty)
+    if (world.startsWith('ghall:') && world !== 'ghall:' + c.guild) world = 'solo:hall:' + c.id;
     leaveWorld(c);
     c.world = world;
     c.x = num(m.x); c.y = num(m.y);

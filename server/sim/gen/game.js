@@ -1538,6 +1538,7 @@ class World {
 			this.zones = __vec(this.N * this.N, true);
 			if (kind == "nexus") this.generateNexus();
 			else if (kind == "vault") this.generateVault();
+			else if (kind == "guildhall") this.generateGuildHall();
 			else if (kind == "arena") this.generateArena();
 			else if (kind == "custom") this.generateCustom();
 			else if (kind == "dungeon") this.generateDungeon(theme);
@@ -1870,6 +1871,37 @@ class World {
 			for (var bn of __vals( [[96, 87], [104, 87]])) this.objs[bn[1] * this.N + bn[0]] = 19;
 			this.spawnX = 100.5;
 			this.spawnY = 109.5;
+		}
+	generateGuildHall() {
+			var x = 0, y = 0, i = 0;
+			for (i = __int(0); i < this.N * this.N; i++) { this.tiles[i] = World.VOID; this.zones[i] = -1; this.objs[i] = 0; }
+			for (y = __int(78); y <= 118; y++) {
+				for (x = __int(82); x <= 118; x++) {
+					i = __int(y * this.N + x);
+					this.zones[i] = World.NEXUS_ZONE;
+					this.tiles[i] = (x == 82 || x == 118 || y == 78 || y == 118) ? World.WALL : World.STONE;
+				}
+			}
+			
+			this.fillN(90, 86, 21, 29, World.PLAZA);
+			this.fillN(98, 84, 5, 31, World.CARPET);
+			
+			this.fillN(90, 80, 21, 5, World.GOLD);
+			this.fillN(94, 80, 13, 3, World.CARPET);
+			
+			this.fillN(84, 86, 5, 29, World.BRICK);
+			this.fillN(112, 86, 5, 29, World.BRICK);
+			
+			this.fillN(99, 98, 3, 3, World.FOUNTAIN);
+			
+			for (y = __int(88); y <= 112; y = __int(y + (6))) { this.objs[y * this.N + 89] = 8; this.objs[y * this.N + 111] = 8; }
+			for (var b of __vals( [[90, 80], [110, 80], [92, 116], [108, 116], [84, 80], [116, 80]])) this.objs[b[1] * this.N + b[0]] = 7;
+			
+			for (y = __int(88); y <= 112; y = __int(y + (8))) { this.objs[y * this.N + 83] = 19; this.objs[y * this.N + 117] = 19; }
+			
+			this.fillN(98, 116, 5, 2, World.CARPET);
+			this.spawnX = 100.5;
+			this.spawnY = 112.5;
 		}
 	fillN(x0, y0, w, h, t) { x0 = __int(x0); y0 = __int(y0); w = __int(w); h = __int(h); t = __int(t);
 			for (var y = __int(y0); y < y0 + h; y++) for (var x = __int(x0); x < x0 + w; x++) {

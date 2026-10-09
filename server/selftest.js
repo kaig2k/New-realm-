@@ -893,6 +893,23 @@ async function run() {
     const gv = G.find((m) => m.t === 'hall'), gg = G.find((m) => m.t === 'guild');
     check('the founder designs a banner: the guild flies it at once', gv && gv.hall.banner === 'c:15-7-3-2-13' && gv.hall.custom === 'c:15-7-3-2-13' && gg && gg.guild.banner === 'c:15-7-3-2-13',
       JSON.stringify(G.msgs.filter((m) => m.t === 'msg')));
+    // the Guild Hall itself: a world members walk into from the Nexus
+    const { World: HW } = require('./sim/gen/game');
+    const hw = new HW('guildhall', 'Hall');
+    check('the Guild Hall is a real place: you arrive inside, the aisles and dais are open floor', hw.walkable(hw.spawnX, hw.spawnY)
+      && [[86.5, 96.5], [86.5, 104.5], [114.5, 96.5], [114.5, 104.5], [100.5, 115.4], [100.5, 83]].every(([x, y]) => hw.walkable(x, y)) && hw.isSafe(hw.spawnX, hw.spawnY));
+    const gkey = 'ghall:' + ('hall testers ' + String.fromCharCode(97 + (n % 26)));
+    G.clear();
+    G.send({ t: 'enter', key: gkey, cid: 'gh1', x: 100.5, y: 112.5, profile: { cls: 'wizard' } });
+    const O = await login('Tgo' + n, { password: 'pass1234', register: true });
+    O.send({ t: 'enter', key: gkey, cid: 'go1', x: 100.5, y: 112.5, profile: { cls: 'knight' } });
+    await wait(400);
+    const seen = O.find((m) => m.t === 'players');
+    check('only members get into their guild\'s hall (others land in an empty one)', seen && seen.key !== gkey && !seen.list.some((p) => p.name === G.name) && !G.find((m) => m.t === 'join'),
+      JSON.stringify(seen && seen.key));
+    const mine = G.find((m) => m.t === 'players');
+    check('a member walks into their guild\'s own hall', mine && mine.key === gkey, JSON.stringify(mine && mine.key));
+    O.s.destroy();
     G.s.destroy();
   }
 

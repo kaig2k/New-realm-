@@ -157,6 +157,7 @@ package realm {
 			zones = new Vector.<int>(N * N, true);
 			if (kind == "nexus") generateNexus();
 			else if (kind == "vault") generateVault();
+			else if (kind == "guildhall") generateGuildHall();
 			else if (kind == "arena") generateArena();
 			else if (kind == "custom") generateCustom();
 			else if (kind == "dungeon") generateDungeon(theme);
@@ -513,6 +514,44 @@ package realm {
 			for each (var bn:Array in [[96, 87], [104, 87]]) objs[bn[1] * N + bn[0]] = 19;
 			spawnX = 100.5;
 			spawnY = 109.5;
+		}
+
+		/**
+		 * A guild's hall (see Game.enterGuildHall): a long pillared hall with a
+		 * red runner up to a raised dais under the guild's banners, the bank and
+		 * the Hall of Fame in the west aisle, the goals board and the Banner Loom
+		 * in the east one, and the portal home at the south door.
+		 */
+		private function generateGuildHall():void {
+			var x:int, y:int, i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			for (y = 78; y <= 118; y++) {
+				for (x = 82; x <= 118; x++) {
+					i = y * N + x;
+					zones[i] = NEXUS_ZONE;
+					tiles[i] = (x == 82 || x == 118 || y == 78 || y == 118) ? WALL : STONE;
+				}
+			}
+			// the nave: polished floor between the pillars, a runner up the middle
+			fillN(90, 86, 21, 29, PLAZA);
+			fillN(98, 84, 5, 31, CARPET);
+			// the dais at the north end, a step of gold under the banners
+			fillN(90, 80, 21, 5, GOLD);
+			fillN(94, 80, 13, 3, CARPET);
+			// aisles: a strip of brick down each side
+			fillN(84, 86, 5, 29, BRICK);
+			fillN(112, 86, 5, 29, BRICK);
+			// a little fountain halfway up
+			fillN(99, 98, 3, 3, FOUNTAIN);
+			// pillars down both sides of the nave, braziers by the dais and the door
+			for (y = 88; y <= 112; y += 6) { objs[y * N + 89] = 8; objs[y * N + 111] = 8; }
+			for each (var b:Array in [[90, 80], [110, 80], [92, 116], [108, 116], [84, 80], [116, 80]]) objs[b[1] * N + b[0]] = 7;
+			// old banners along the side walls
+			for (y = 88; y <= 112; y += 8) { objs[y * N + 83] = 19; objs[y * N + 117] = 19; }
+			// the south door, with the portal home just inside
+			fillN(98, 116, 5, 2, CARPET);
+			spawnX = 100.5;
+			spawnY = 112.5;
 		}
 
 		/** Fills a rectangle of the hub maps with one tile. */

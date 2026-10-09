@@ -87,6 +87,8 @@ package realm {
 		private var thresholdTf:TextField;
 		/** Your private vault room (built when you first visit). */
 		public var vaultWorld:World;
+		/** Your guild's hall (online, shared by its members): "ghall:<guild>". */
+		public var guildWorld:World;
 		/** Realm event bosses' arenas (rise with the boss, crumble when it dies). */
 		private var arenas:SetPieceDecor;
 		/** The Nexus's inlays, lights and banners. */
@@ -680,7 +682,17 @@ package realm {
 			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
 			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
 			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
-			stations.push({x: GUILD_X, y: GUILD_Y, kind: "guildhall", spr: Sprites.hallFlag(""), label: makeLabel("Guild Hall", 0x80ff80), w: "nexus"});
+			// the portal to your guild's hall, with its banner flying beside it
+			addPortal(nexusWorld, GUILD_X, GUILD_Y, "ghall", 0, 0x80ff80, 0, 0, false);
+			stations.push({x: GUILD_X - 2, y: GUILD_Y - 0.4, kind: "deco", spr: Sprites.hallFlag(""), label: makeLabel("", 0xffffff), w: "nexus", flag: true});
+			// inside the Guild Hall: the bank and Hall of Fame in the west aisle, the goals board and Banner Loom in the east,
+			// and the guild's banners over the dais
+			stations.push({x: 86.5, y: 96.5, kind: "guildhall", mode: "bank", spr: "chest", label: makeLabel("Guild Bank", Ui.GOLD), w: "ghall"});
+			stations.push({x: 86.5, y: 104.5, kind: "guildhall", mode: "rank", spr: "famekeeper", label: makeLabel("Hall of Fame", 0xff9a2e), w: "ghall"});
+			stations.push({x: 114.5, y: 96.5, kind: "guildhall", mode: "goals", spr: "questboard", label: makeLabel("Guild Goals", 0xf0d080), w: "ghall"});
+			stations.push({x: 114.5, y: 104.5, kind: "guildhall", mode: "banners", spr: Sprites.hallFlag(""), label: makeLabel("Banner Loom", 0x80ff80), w: "ghall", flag: true});
+			for each (var dbx:Number in [95.5, 105.5]) stations.push({x: dbx, y: 82.2, kind: "deco", spr: Sprites.hallFlag(""), label: makeLabel("", 0xffffff), w: "ghall", flag: true});
+			for each (var hs:Object in stations) if (hs.w == "ghall") hs.label.visible = false;
 			stations.push({x: 92.5, y: 120.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080), w: "nexus"});
 			// the Vault Keeper sells more chests
 			stations.push({x: 94.5, y: 107.5, kind: "vaultkeeper", spr: "merchant", label: makeLabel("Vault Keeper", Ui.GOLD), w: "vault"});
@@ -787,6 +799,24 @@ package realm {
 			tip("vault", "Stand by a chest to see what's inside. Drag items between it and your inventory. The Vault Keeper sells more chests.");
 		}
 
+		/** Your guild's hall: one shared world per guild, where members meet, bank, plan and fly their banners. */
+		private function enterGuildHall():void {
+			if (!net || !net.online || !net.guild) { msg("Only guild members can enter a Guild Hall.", 0xff8080); return; }
+			var gname:String = String(net.guild.name);
+			var key:String = "ghall:" + gname.toLowerCase();
+			if (!guildWorld || guildWorld.key != key) {
+				guildWorld = new World("guildhall", gname + " Guild Hall");
+				guildWorld.key = key;
+				addPortal(guildWorld, 100.5, 115.4, "nexus", 0, 0xffffff, 0, 0, false);
+			}
+			hallView = null;
+			Online.send({t: "ghView"});
+			Sfx.play("portal");
+			switchWorld(guildWorld, guildWorld.spawnX, guildWorld.spawnY);
+			showBanner(gname, 0x80ff80, 2.5);
+			tip("ghall", "Your Guild Hall: the bank and Hall of Fame are on the west aisle, the goals board and Banner Loom on the east. Every member online can meet you here.");
+		}
+
 		/** Lays out a chest for every one you own, filled from your save (8 slots each). */
 		private function fillVault():void {
 			var w:World = vaultWorld;
@@ -852,10 +882,15 @@ package realm {
 			if (p.kind == "elder") return "Dark Elder's Chamber";
 			if (p.kind == "raid") return Bosses.RAIDS[p.idx].name;
 			if (p.kind == "vault") return "Your Vault";
+			if (p.kind == "ghall") return "Guild Hall";
 			return "Nexus";
 		}
 
 		public function usePortal(p:Object):void {
+			if (p.kind == "ghall" && !(net && net.online && net.guild)) {
+				msg("Only guild members can enter a Guild Hall (online). Make or join a guild in the Social window.", 0xff8080);
+				return;
+			}
 			travel(function():void { usePortalNow(p); });
 		}
 
@@ -865,6 +900,7 @@ package realm {
 			else if (p.kind == "elder") enterArena();
 			else if (p.kind == "raid") enterRaid(p.idx, p.seed);
 			else if (p.kind == "vault") enterVault();
+			else if (p.kind == "ghall") enterGuildHall();
 			else nexusNow();
 		}
 
@@ -1271,10 +1307,10 @@ package realm {
 			camY = y;
 			world.reveal(x, y, 14);
 			var nx:Boolean = inNexus;
-			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld, dungeonWorld, vaultWorld]) {
+			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld, dungeonWorld, vaultWorld, guildWorld]) {
 				if (ow) for each (var p:Object in ow.portals) p.label.visible = ow == world;
 			}
-			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : nx;
+			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : st.w == "ghall" ? guildWorld != null && w == guildWorld : nx;
 			if (decor) decor.setVisible(nx);
 			if (arenas) arenas.clear();
 			refreshTracker();
@@ -1538,12 +1574,12 @@ package realm {
 					player.pt = player.maxPt;
 				}
 			}
-			if (inNexus || world == vaultWorld) {
-				var here:String = inNexus ? "nexus" : "vault";
+			if (inNexus || world == vaultWorld || (guildWorld && world == guildWorld)) {
+				var here:String = inNexus ? "nexus" : world == vaultWorld ? "vault" : "ghall";
 				var was:Object = nearStation;
 				nearStation = null;
 				for each (var st:Object in stations) {
-					if (st.w != here) continue;
+					if (st.w != here || st.kind == "deco") continue;
 					var sx:Number = st.x - player.x, sy:Number = st.y - player.y;
 					if (sx * sx + sy * sy < 1.7 * 1.7) nearStation = st;
 				}
@@ -2808,6 +2844,9 @@ package realm {
 		// ------------------------------------------------------------- nexus stations
 
 		private function openStationPanel(st:Object):void {
+			if (st.kind == "deco") return;
+			// the Guild Hall's stations each open their own page of it
+			if (st.mode) { hallMode = st.mode; if (net && net.online) Online.send({t: "ghView"}); }
 			openStation = st;
 			var why:String = STATION_TIPS[st.kind];
 			if (why) tip("st_" + st.kind, why);
@@ -2824,7 +2863,7 @@ package realm {
 			skins: "The Fame Store: spend account fame (earned when heroes die) on skins, dyes, titles and pet skins.",
 			raids: "The Raid Table: use a raid key to open a raid, boss fights one after another for a group. The Starfall Vault changes every week.",
 			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes.",
-			guildhall: "The Guild Hall: your guild's shared bank, its weekly goals (finish all three for a new banner) and the guild ranking."
+			guildhall: "Your guild's shared bank, its weekly goals (finish all three for a new banner), its banners and the guild ranking."
 		};
 
 		private function closeStation():void {
@@ -3065,7 +3104,7 @@ package realm {
 		public function hallArrived(v:Object):void {
 			hallView = v;
 			// the Guild Hall flies your guild's banner
-			for each (var st:Object in stations) if (st.kind == "guildhall") st.spr = Sprites.hallFlag(v ? v.banner : "");
+			for each (var st:Object in stations) if (st.flag) st.spr = Sprites.hallFlag(v ? v.banner : "");
 			if (openStation && openStation.kind == "guildhall") refreshStation();
 		}
 
@@ -4878,7 +4917,7 @@ package realm {
 		public function useDungeonKey(item:Object):Boolean {
 			var i:int = Data.keyDungeon(item);
 			if (i < 0) return false;
-			if (world.kind == "dungeon" || world == vaultWorld || world == arenaWorld) { msg("Use dungeon keys in the Nexus or a realm.", 0xff8080); return false; }
+			if (world.kind == "dungeon" || world == vaultWorld || world == arenaWorld || (guildWorld && world == guildWorld)) { msg("Use dungeon keys in the Nexus or a realm.", 0xff8080); return false; }
 			var d:Object = Data.DUNGEONS[i];
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
 			var px:Number = player.x + 1.2, py:Number = player.y;
@@ -5365,7 +5404,8 @@ package realm {
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
 					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
-					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>" : "Nexus";
+					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>"
+					: p.kind == "ghall" ? "<font color='#80ff80'>Guild Hall</font>" + (net && net.guild ? "\n<font size='11' color='#cccccc'>" + net.guild.name + "</font>" : "") : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);
 			}
@@ -5379,8 +5419,8 @@ package realm {
 					drawEntity(Sprites.get("chest_locked"), scrX(lat[0], lat[1]), scrY(lat[0], lat[1]), 0);
 				}
 			}
-			if (inNexus || world == vaultWorld) {
-				var stw:String = inNexus ? "nexus" : "vault";
+			if (inNexus || world == vaultWorld || (guildWorld && world == guildWorld)) {
+				var stw:String = inNexus ? "nexus" : world == vaultWorld ? "vault" : "ghall";
 				for each (var st:Object in stations) {
 					if (st.w != stw) continue;
 					var stx:Number = scrX(st.x, st.y);
@@ -5849,8 +5889,10 @@ package realm {
 			// the Guild Hall flies your guild's banner
 			// (this can come while the game is still starting up, before net is set)
 			var gd:Object = net ? net.guild : null;
-			for each (var st:Object in stations) if (st.kind == "guildhall") st.spr = Sprites.hallFlag(gd ? gd.banner : "");
+			for each (var st:Object in stations) if (st.flag) st.spr = Sprites.hallFlag(gd ? gd.banner : "");
 			if (!gd) hallView = null;
+			// out of the guild while in its hall: back to the Nexus
+			if (!gd && guildWorld && world == guildWorld) { guildWorld = null; nexusNow(); }
 		}
 
 		public function toggleSocial(tab:int = -1):void {

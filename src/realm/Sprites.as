@@ -387,6 +387,42 @@ package realm {
 			skull: [[I_SKULL], {W: 0xe8e8e8, E: 0x202020}, 3]
 		};
 
+		// ================================================================ guild banners
+		private static const HALL:Array = [
+			["P.........", "PFFFFFFF..", "PFTTTTTF..", "PFTCCCTFF.", "PFTCCCTF..", "PFTTTTTFF.", "PFFFFFFF..", "PFF...FF..", "P.........", "P.........", "SS........", "SSSS......"],
+			["P.........", "PFFFFFFF..", "PFTTTTTFF.", "PFTCCCTF..", "PFTCCCTFF.", "PFTTTTTF..", "PFFFFFFFF.", "PF....FF..", "P.........", "P.........", "SS........", "SSSS......"]
+		];
+		private static var flags:Object = {};
+
+		/** The Guild Hall's banner pole flying banner `id` (Data.GUILD_BANNERS): a sprite name for get(). */
+		public static function hallFlag(id:String):String {
+			var b:Object = Data.findBanner(id);
+			if (!b) {
+				// no banner yet: a plain grey one with green trim
+				if (!DEFS.guildhall) DEFS.guildhall = [HALL, {P: 0x6a4423, F: 0x4a4a58, T: 0x80ff80, C: 0x80ff80, S: 0x8a8a92}, 6];
+				return "guildhall";
+			}
+			var name:String = "guildhall_" + id;
+			if (!DEFS[name]) DEFS[name] = [HALL, {P: 0x6a4423, F: b.col, T: b.trim, C: b.trim, S: 0x8a8a92}, 6];
+			return name;
+		}
+
+		/** A little banner for a guild member's nameplate (cached). */
+		public static function bannerFlag(id:String):BitmapData {
+			if (flags[id] !== undefined) return flags[id];
+			var b:Object = Data.findBanner(id);
+			if (!b) return flags[id] = null;
+			var bd:BitmapData = new BitmapData(9, 12, true, 0);
+			bd.fillRect(new Rectangle(0, 0, 1, 12), 0xff3a2414);
+			bd.fillRect(new Rectangle(1, 0, 8, 8), 0xff000000 | b.col);
+			bd.fillRect(new Rectangle(1, 0, 8, 1), 0xff000000 | b.trim);
+			bd.fillRect(new Rectangle(1, 7, 8, 1), 0xff000000 | b.trim);
+			bd.fillRect(new Rectangle(4, 3, 2, 2), 0xff000000 | b.trim);
+			// swallowtail
+			bd.fillRect(new Rectangle(4, 6, 2, 2), 0);
+			return flags[id] = bd;
+		}
+
 		// ================================================================ API
 		/** Registers `name` as `base`'s design with a new palette (new bosses reuse boss art). */
 		public static function recolor(name:String, base:String, pal:Object, scale:int = 0):void {

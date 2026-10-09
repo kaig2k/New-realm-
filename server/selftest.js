@@ -835,6 +835,52 @@ async function run() {
     check('no new realm events start just before a restart', noneSoon && !!ws.w.boss);
   }
 
+  console.log('guild hall');
+  {
+    const hall = require('./guildhall');
+    const itemsMod = require('./items');
+    const { Data: GD } = require('./sim/gen/game');
+    const wk = hall.weekOf();
+    const goals = hall.goalsFor(wk);
+    check('three different guild goals a week, changing week to week', goals.length === 3 && new Set(goals).size === 3 && hall.goalsFor(wk + 1).map((x) => x.id).join() !== goals.map((x) => x.id).join());
+    const g = { name: 'Testers', members: {} };
+    const evs = [];
+    for (const goal of goals) for (let k = 0; k < goal.n; k++) evs.push(goal.ev);
+    const done = hall.progress(g, evs.slice(0, goals[0].n));
+    check('a finished goal adds guild fame', done.length === 1 && g.fame === goals[0].fame && g.goals.done[goals[0].id]);
+    const all = hall.progress(g, evs);
+    const ban = all.find((d) => d.banner);
+    check('finishing all three earns that week\'s banner for good (and it flies)', ban && g.banners.includes(ban.banner.id) && g.banner === ban.banner.id && GD.findBanner(ban.banner.id) && g.fame > 2000);
+    check('a goal only counts once', hall.progress(g, evs).length === 0);
+    // the bank: an item leaves its giver's ledger and joins the taker's
+    const giver = { chars: [] }, taker = { chars: [] };
+    const sword = itemsMod.issue(giver, GD.makeWeapon('sword', 5));
+    const ginv = [sword, null], tinv = [null, null];
+    const put = hall.deposit(g, giver, ginv, 0, 'Ann');
+    check('putting an item in the guild bank takes it out of your inventory and ledger', put === sword && !ginv[0] && !giver._ledger[sword.sid] && g.bank.some((b) => b && b.item === sword));
+    const idx = g.bank.findIndex((b) => b && b.item === sword);
+    check('Initiates can\'t take items out', typeof hall.withdraw(g, taker, tinv, idx, 0, 'Bo') === 'string' && !tinv[0]);
+    const got = hall.withdraw(g, taker, tinv, idx, 1, 'Bo');
+    check('members take it with its ledger entry (still a real server item)', got === sword && tinv[0] === sword && taker._ledger[sword.sid] && !g.bank[idx] && !itemsMod.check(taker, { chars: [{ inv: tinv }] }));
+    check('only leaders change the banner, and only to one the guild earned', typeof hall.fly(g, '', 2) === 'string' && hall.fly(g, '', 3) === null && typeof hall.fly(g, 'nope', 4) === 'string');
+    const v = hall.view(g, 'testers', { testers: g, other: { name: 'Others', members: {}, fame: 1e9 } }, 1);
+    check('the Guild Hall shows goals, the bank and the guild ranking', v.goals.length === 3 && v.bank.length === hall.BANK_SLOTS && v.place === 2 && v.top[0].name === 'Others' && v.canTake && !v.canFly);
+    // over the wire
+    const G = await login('Tg' + n, { password: 'pass1234', register: true });
+    G.send({ t: 'guildCreate', name: 'Hall Testers ' + String.fromCharCode(65 + (n % 26)) });
+    await wait(300);
+    G.clear();
+    G.send({ t: 'ghView' });
+    await wait(300);
+    const hv = G.find((m) => m.t === 'hall');
+    check('a guild member can open the Guild Hall', hv && hv.hall && hv.hall.goals.length === 3 && hv.hall.canFly, JSON.stringify(G.find((m) => m.t === 'msg')));
+    G.clear();
+    G.send({ t: 'ghBanner', id: 'crimson' });
+    await wait(250);
+    check('a banner the guild hasn\'t earned can\'t be flown', G.find((m) => m.t === 'msg' && /hasn't earned/.test(m.text)));
+    G.s.destroy();
+  }
+
   console.log('cosmetics');
   {
     const C = await login('Tc' + n, { password: 'pass1234', register: true });

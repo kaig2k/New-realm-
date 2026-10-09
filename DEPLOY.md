@@ -130,6 +130,14 @@ the top three Season Medallist, and the winner Season Champion and the Champion'
 Discord feed announces the winners and the new season. Players see the ladder on the Wiki's Season page.
 The ladder is kept in `server/data/season.json`.
 
+### Guild Halls
+
+The Guild Hall in the Nexus gives every guild a shared bank (24 slots; Initiates can put items in but not
+take them out), three weekly goals counted by the server from what members really do (finishing all three
+earns that week's banner, which members then show by their names), and a ranking by guild fame (from goals
+and a tenth of the fame of members' fallen heroes). A founder can't disband a guild while its bank holds
+items. It's all kept in `guilds.json`.
+
 ## 8. Backups
 
 Everything lives in `server/data/`:

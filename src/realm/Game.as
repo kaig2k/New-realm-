@@ -680,6 +680,7 @@ package realm {
 			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
 			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
 			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
+			stations.push({x: GUILD_X, y: GUILD_Y, kind: "guildhall", spr: Sprites.hallFlag(""), label: makeLabel("Guild Hall", 0x80ff80), w: "nexus"});
 			stations.push({x: 92.5, y: 120.5, kind: "quests", spr: "questboard", label: makeLabel("Quest Board", 0xf0d080), w: "nexus"});
 			// the Vault Keeper sells more chests
 			stations.push({x: 94.5, y: 107.5, kind: "vaultkeeper", spr: "merchant", label: makeLabel("Vault Keeper", Ui.GOLD), w: "vault"});
@@ -2812,7 +2813,8 @@ package realm {
 			pets: "The Pet Yard: hatch a pet that follows you, heals you and shoots monsters. Feed it gold to level it up.",
 			skins: "The Fame Store: spend account fame (earned when heroes die) on skins, dyes, titles and pet skins.",
 			raids: "The Raid Table: use a raid key to open a raid, boss fights one after another for a group. The Starfall Vault changes every week.",
-			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes."
+			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes.",
+			guildhall: "The Guild Hall: your guild's shared bank, its weekly goals (finish all three for a new banner) and the guild ranking."
 		};
 
 		private function closeStation():void {
@@ -2831,8 +2833,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD}[openStation.kind], true, "center", w, true);
-			title.text = {keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper"}[openStation.kind];
+			var title:TextField = Ui.text(20, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80}[openStation.kind], true, "center", w, true);
+			title.text = {keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -2956,6 +2958,8 @@ package realm {
 				y = buildSkinPanel(sp, info, y, w);
 			} else if (openStation.kind == "pets") {
 				y = buildPetPanel(sp, info, y, w);
+			} else if (openStation.kind == "guildhall") {
+				y = buildGuildHall(sp, info, y, w);
 			} else if (openStation.kind == "quests" && showAch) {
 				title.text = "Achievements";
 				var ast0:Object = achState();
@@ -3039,6 +3043,182 @@ package realm {
 			sp.x = (VIEW_W - w) / 2;
 			sp.y = 60;
 			sp.visible = true;
+		}
+
+		// ------------------------------------------------------------ guild hall
+		/** Where the Guild Hall stands in the Nexus. */
+		private static const GUILD_X:Number = 108.5, GUILD_Y:Number = 88.5;
+		/** The server's Guild Hall view: {name, fame, place, bank, log, goals, weekBanner, banner, banners, top, canTake, canFly}. */
+		private var hallView:Object;
+		private var hallMode:String = "goals";
+
+		public function hallArrived(v:Object):void {
+			hallView = v;
+			// the Guild Hall flies your guild's banner
+			for each (var st:Object in stations) if (st.kind == "guildhall") st.spr = Sprites.hallFlag(v ? v.banner : "");
+			if (openStation && openStation.kind == "guildhall") refreshStation();
+		}
+
+		private function buildGuildHall(sp:Sprite, info:TextField, y:int, w:int):int {
+			if (stationTip) stationTip.visible = false;
+			var i:int;
+			if (!net.online || !Online.welcome || !Online.welcome.serverMonsters) {
+				info.htmlText = "Guild Halls are on the server: play online with a guild.";
+				info.y = y; return y + info.height + 8;
+			}
+			if (!net.guild) {
+				info.htmlText = "You're not in a guild. Make one, or accept an invite, in the Social window. A guild shares a bank, works on weekly goals together and earns banners.";
+				info.y = y; return y + info.height + 8;
+			}
+			var v:Object = hallView;
+			if (!v) {
+				info.htmlText = "Opening the Guild Hall...";
+				info.y = y;
+				Online.send({t: "ghView"});
+				return y + info.height + 8;
+			}
+			var tabs:Array = [["goals", "Goals"], ["bank", "Bank"], ["banners", "Banners"], ["rank", "Ranking"]];
+			for (i = 0; i < tabs.length; i++) {
+				var tb:Sprite = Ui.button((hallMode == tabs[i][0] ? "> " : "") + tabs[i][1], 100, 26, hallTabFn(tabs[i][0]), 13);
+				tb.x = 12 + i * 105; tb.y = y;
+				tb.alpha = hallMode == tabs[i][0] ? 1 : 0.7;
+				sp.addChild(tb);
+			}
+			y += 34;
+			var head:String = "<b><font color='#80ff80'>" + v.name + "</font></b>   guild fame <font color='#ff9a2e'><b>" + Ui.commas(v.fame) + "</b></font>" +
+				(v.place ? "  (#" + v.place + ")" : "");
+			if (hallMode == "goals") {
+				info.htmlText = head + "\nThis week's goals count what every member does. Each one adds guild fame; finish all three to earn this week's banner for good.";
+				info.y = y; y += info.height + 8;
+				for each (var gl:Object in v.goals) {
+					var row:TextField = Ui.text(13, gl.done ? 0x9cff7a : 0xffffff, true, "left", w - 120, true);
+					row.htmlText = (gl.done ? "Done: " : "") + gl.text + "  <font color='#aaaaaa'>" + Ui.commas(gl.at) + "/" + Ui.commas(gl.n) + "</font>";
+					row.x = 16; row.y = y;
+					sp.addChild(row);
+					var fm:TextField = Ui.text(12, 0xff9a2e, true, "right", 90, true);
+					fm.text = "+" + gl.fame + " fame";
+					fm.x = w - 106; fm.y = y + 1;
+					sp.addChild(fm);
+					y += 20;
+					// a progress bar
+					sp.graphics.beginFill(0x111111); sp.graphics.drawRect(16, y, w - 32, 6); sp.graphics.endFill();
+					sp.graphics.beginFill(gl.done ? 0x9cff7a : 0x80c0ff); sp.graphics.drawRect(16, y, (w - 32) * Math.min(1, gl.at / gl.n), 6); sp.graphics.endFill();
+					y += 14;
+				}
+				var wb:Object = v.weekBanner;
+				var flag:Bitmap = new Bitmap(Sprites.get(Sprites.hallFlag(wb.id)));
+				flag.x = 16; flag.y = y + 4;
+				sp.addChild(flag);
+				var wt:TextField = Ui.text(13, wb.col, true, "left", w - 90, true);
+				wt.htmlText = "This week's banner: <b>" + wb.name + "</b>" + (v.banners.indexOf(wb.id) >= 0 ? "  <font color='#9cff7a'>(yours!)</font>" : "") +
+					"\n<font color='#aaaaaa' size='12'>All three goals: +1,000 guild fame and the banner. Goals change every Monday.</font>";
+				wt.x = 24 + flag.width; wt.y = y + 8;
+				sp.addChild(wt);
+				y += Math.max(flag.height, wt.height) + 12;
+				for each (var lg:Object in v.log.slice(0, 4)) {
+					var lt:TextField = Ui.text(11, 0x8a8a9a, false, "left", w - 30, true);
+					lt.text = lg.text;
+					lt.x = 16; lt.y = y;
+					sp.addChild(lt);
+					y += 16;
+				}
+			} else if (hallMode == "bank") {
+				info.htmlText = head + "\nClick an item to take it" + (v.canTake ? "" : " (Initiates can't: ask an officer to promote you)") +
+					". Put items in from your inventory below; anyone in the guild can see them.";
+				info.y = y; y += info.height + 8;
+				for (i = 0; i < v.bank.length; i++) {
+					var bx:int = 12 + (i % 8) * 52, by:int = y + int(i / 8) * 52;
+					var slot:Object = v.bank[i];
+					if (slot) marketItem(sp, slot.item, bx, by, hallTakeFn(i), "Put in by " + slot.by + (v.canTake ? ". Click to take it" : ""));
+					else { sp.graphics.beginFill(0x2a2a2a); sp.graphics.drawRoundRect(bx, by, 48, 48, 10, 10); sp.graphics.endFill(); }
+				}
+				y += Math.ceil(v.bank.length / 8) * 52 + 6;
+				var pl:TextField = Ui.text(13, 0xffffff, true, "left", w - 30, true);
+				pl.text = "Your inventory (click to put in):";
+				pl.x = 14; pl.y = y; sp.addChild(pl);
+				y += 22;
+				var n:int = 0;
+				for (i = 0; i < player.inv.length; i++) {
+					var it:Object = player.inv[i];
+					if (!it || !it.sid) continue;
+					marketItem(sp, it, 12 + (n % 8) * 52, y + int(n / 8) * 52, hallPutFn(i), "Click to put it in the guild bank");
+					n++;
+				}
+				if (!n) {
+					var none:TextField = Ui.text(12, 0x888888, false, "left", w - 30);
+					none.text = "Nothing to put in (starter gear stays with its hero).";
+					none.x = 14; none.y = y; sp.addChild(none);
+					y += 24;
+				} else y += (int((n - 1) / 8) + 1) * 52 + 6;
+			} else if (hallMode == "banners") {
+				info.htmlText = head + "\n" + (v.canFly ? "Click a banner to fly it: every member shows it by their name." : "Your guild's leaders choose which banner it flies.") +
+					" A new one each week the guild finishes all three goals.";
+				info.y = y; y += info.height + 8;
+				var list:Array = [""].concat(v.banners);
+				for (i = 0; i < list.length; i++) {
+					var bd:Object = list[i] ? Data.findBanner(list[i]) : null;
+					var box:Sprite = new Sprite();
+					var on:Boolean = (v.banner || "") == list[i];
+					Ui.panel(box.graphics, 0, 0, 100, 96, on ? 0x2e3e2a : 0x2c2c2c, on ? 0x80ff80 : 0x4a4a4a);
+					if (bd) {
+						var fb:Bitmap = new Bitmap(Sprites.get(Sprites.hallFlag(bd.id)));
+						fb.x = (100 - fb.width) / 2; fb.y = 6;
+						box.addChild(fb);
+					}
+					var bn:TextField = Ui.text(11, bd ? bd.col : 0xaaaaaa, true, "center", 100, true);
+					bn.text = bd ? bd.name : "No banner";
+					bn.y = 74;
+					box.addChild(bn);
+					box.x = 12 + (i % 4) * 106; box.y = y + int(i / 4) * 102;
+					if (v.canFly) {
+						box.buttonMode = true; box.mouseChildren = false;
+						box.addEventListener(MouseEvent.CLICK, hallFlyFn(list[i]));
+					}
+					sp.addChild(box);
+				}
+				y += Math.ceil(list.length / 4) * 102 + 4;
+				if (!v.banners.length) {
+					var nb:TextField = Ui.text(12, 0x888888, false, "left", w - 30, true);
+					nb.text = "No banners yet: finish all three of a week's goals to earn one.";
+					nb.x = 14; nb.y = y; sp.addChild(nb);
+					y += 22;
+				}
+			} else {
+				info.htmlText = head + "\nGuilds ranked by guild fame: from weekly goals, and a tenth of the fame of every member's fallen hero.";
+				info.y = y; y += info.height + 8;
+				for (i = 0; i < v.top.length; i++) {
+					var r:Object = v.top[i];
+					var rt:TextField = Ui.text(13, r.name == v.name ? 0x80ff80 : i == 0 ? Ui.GOLD : 0xdddddd, true, "left", w - 30, true);
+					rt.htmlText = "#" + (i + 1) + "  " + r.name + "  <font color='#ff9a2e'>" + Ui.commas(r.fame) + "</font> <font color='#888888' size='11'>(" + r.members + " members)</font>";
+					rt.x = 16; rt.y = y;
+					sp.addChild(rt);
+					y += 22;
+				}
+			}
+			return y;
+		}
+
+		private function hallTabFn(mode:String):Function {
+			return function():void { hallMode = mode; Online.send({t: "ghView"}); refreshStation(); };
+		}
+
+		private function hallTakeFn(idx:int):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (hallView && !hallView.canTake) { msg("Initiates can put items in the guild bank, but not take them out.", 0xff8080); return; }
+				if (net.shopRequest({t: "ghTake", idx: idx})) shopWaiting = true;
+			};
+		}
+
+		private function hallPutFn(slot:int):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (net.shopRequest({t: "ghPut", slot: slot})) shopWaiting = true;
+			};
+		}
+
+		private function hallFlyFn(id:String):Function {
+			return function(e:MouseEvent):void { Online.send({t: "ghBanner", id: id}); };
 		}
 
 		// ------------------------------------------------------------ player marketplace
@@ -5403,6 +5583,7 @@ package realm {
 				tf.visible = true;
 				tf.x = int(cx - tf.width / 2);
 				tf.y = int(cy + TS * 0.4 + 1);
+				if (rp.profile.gb) tagFlag(tf, rp.profile.gb);
 				}
 				if (rp.bubbleT > 0 && bubblesOn) {
 					var b:Sprite = bubbles[nb];
@@ -5541,6 +5722,11 @@ package realm {
 		/** Party or guild changed. */
 		public function socialChanged():void {
 			if (social) social.refresh();
+			// the Guild Hall flies your guild's banner
+			// (this can come while the game is still starting up, before net is set)
+			var gd:Object = net ? net.guild : null;
+			for each (var st:Object in stations) if (st.kind == "guildhall") st.spr = Sprites.hallFlag(gd ? gd.banner : "");
+			if (!gd) hallView = null;
 		}
 
 		public function toggleSocial(tab:int = -1):void {
@@ -5833,6 +6019,16 @@ package realm {
 		}
 
 		/** A name plate: the name, and under it the player's title if they wear one (only redrawn when it changes). */
+		/** A guild member's banner, just left of their name. */
+		private function tagFlag(tf:TextField, id:String):void {
+			var bd:BitmapData = Sprites.bannerFlag(id);
+			if (!bd) return;
+			var lx:Number = tf.x + (tf.width - tf.textWidth) / 2 - bd.width - 3;
+			flagPt.x = int(lx); flagPt.y = int(tf.y + 3);
+			canvas.copyPixels(bd, bd.rect, flagPt, null, null, true);
+		}
+		private var flagPt:Point = new Point();
+
 		private function tagText(tf:TextField, who:String, col:uint, title:String):void {
 			var key:String = who + "|" + col + "|" + (title || "");
 			if (tf.name == key) return;
@@ -5850,6 +6046,7 @@ package realm {
 			tagText(nameTag, p.name, 0xffe36e, p.title);
 			nameTag.x = int(cx - nameTag.width / 2);
 			nameTag.y = int(cy + TS * 0.4 + 1);
+			if (net && net.guild && net.guild.banner) tagFlag(nameTag, net.guild.banner);
 			hpBar(cx - 20, cy + TS * 0.4 + (p.title ? 35 : 21), 40, p.hp / p.maxHp);
 		}
 

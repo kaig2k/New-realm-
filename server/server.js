@@ -26,6 +26,7 @@ const { Sims, WorldSim } = require('./sim/worldsim');
 const items = require('./items');
 const wallet = require('./wallet');
 const season = require('./season');
+const hall = require('./guildhall');
 const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -156,7 +157,11 @@ function seasonSave(c, prev, data) {
   const dead = [];
   for (const [id, h] of old) if (!alive.has(id)) dead.push({ fame: wallet.heroFame(h), seasonal: h.season === cur.id, cls: h.cls, level: h.level });
   if (!dead.length) return;
-  const pts = ladder.heroesDied(c.key, c.name, wallet.fameGain(prev, data), dead);
+  const gain = wallet.fameGain(prev, data);
+  const pts = ladder.heroesDied(c.key, c.name, gain, dead);
+  // a tenth of a fallen hero's fame goes to its guild
+  const g = guildOf(c);
+  if (g && gain > 0) { g.fame = (Number(g.fame) || 0) + gain / 10; save('guilds.json', guilds); }
   if (pts > 0) c.send({ t: 'msg', color: 0x8fd16a, text: '+' + pts.toLocaleString('en') + ' season points (' + cur.name + '). See the Season page in the Wiki (K).' });
 }
 
@@ -184,6 +189,7 @@ function grantTitle(key, id) {
 /** Something the server saw counts toward c's quests (evs: what happened, see WorldSim.questKill). */
 function questProgress(c, evs) {
   if (!c || !c.key || !c.authed) return;
+  guildProgress(c, evs);
   if (evs.includes('darkelder')) grantTitle(c.key, 'elder');
   if (evs.includes('raid:starfall')) grantTitle(c.key, 'vault');
   const sv = onlineSave(c.key);
@@ -466,7 +472,7 @@ function applySave(c, data) {
   c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
   // a cosmetic bought just now: the profile that came before this save can wear it now
   if (c.rawProfile && !isAdmin(c)) {
-    const p = cleanProfile(c.rawProfile, data);
+    const p = withBanner(c, cleanProfile(c.rawProfile, data));
     if (p.dye !== c.profile.dye || p.title !== c.profile.title || p.skin !== c.profile.skin) {
       c.profile = p;
       for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
@@ -600,7 +606,7 @@ const handlers = {
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
     c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
-    c.profile = cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key));
+    c.profile = withBanner(c, cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key)));
     if (c.trade) endTrade(c, 'The trade was cancelled.');
     updateRealms();
     // the first player in a world runs its monsters
@@ -710,7 +716,7 @@ const handlers = {
   profile(c, m) {
     if (!m.profile || typeof m.profile !== 'object') return;
     c.rawProfile = m.profile;
-    c.profile = cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key));
+    c.profile = withBanner(c, cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key)));
     for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
     updateGuildMember(c);
   },
@@ -879,6 +885,7 @@ const handlers = {
     c.guild = gk;
     save('guilds.json', guilds);
     for (const o of byName.values()) if (o.guild === gk) o.note(c.name + ' joined ' + g.name + '.', 0x80ff80);
+    reshowOne(c);
     sendGuild(gk);
   },
 
@@ -887,14 +894,16 @@ const handlers = {
     if (!g) return;
     const gk = c.guild;
     if (g.members[c.key].rank === FOUNDER) {
+      if ((g.bank || []).some(Boolean)) return c.note('Empty the guild bank (Guild Hall, Nexus) before disbanding the guild.');
       // the founder leaving disbands the guild
       delete guilds[gk];
-      for (const o of byName.values()) if (o.guild === gk) { o.guild = null; o.note(g.name + ' was disbanded.', 0x80ff80); o.send({ t: 'guild', guild: null }); }
+      for (const o of byName.values()) if (o.guild === gk) { o.guild = null; o.note(g.name + ' was disbanded.', 0x80ff80); o.send({ t: 'guild', guild: null }); reshowOne(o); }
     } else {
       delete g.members[c.key];
       c.guild = null;
       c.send({ t: 'guild', guild: null });
       c.note('You left ' + g.name + '.', 0x80ff80);
+      reshowOne(c);
       sendGuild(gk);
     }
     save('guilds.json', guilds);
@@ -909,7 +918,7 @@ const handlers = {
     const name = g.members[tk].name;
     delete g.members[tk];
     const o = byName.get(tk);
-    if (o) { o.guild = null; o.send({ t: 'guild', guild: null }); o.note('You were removed from ' + g.name + '.', 0xff8080); }
+    if (o) { o.guild = null; o.send({ t: 'guild', guild: null }); o.note('You were removed from ' + g.name + '.', 0xff8080); reshowOne(o); }
     save('guilds.json', guilds);
     for (const x of byName.values()) if (x.guild === c.guild) x.note(name + ' was removed from the guild.', 0x80ff80);
     sendGuild(c.guild);
@@ -926,6 +935,57 @@ const handlers = {
     g.members[tk].rank = rank;
     save('guilds.json', guilds);
     for (const x of byName.values()) if (x.guild === c.guild) x.note(g.members[tk].name + ' was ' + (up ? 'promoted' : 'demoted') + ' to ' + RANKS[rank] + '.', 0x80ff80);
+    sendGuild(c.guild);
+  },
+
+  // ---------------------------------------------------------------- guild hall
+  /** The Guild Hall page. */
+  ghView(c) {
+    const now = Date.now();
+    if (now - (c.ghT || 0) < 400) return;
+    c.ghT = now;
+    sendHall(c);
+  },
+
+  /** Puts an inventory item in the guild bank. */
+  ghPut(c, m) {
+    const g = guildOf(c);
+    if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was stored.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = hall.deposit(g, sv, ch.inv, num(m.slot) | 0, c.name);
+    if (typeof r === 'string') return c.send({ t: 'shopFail', msg: r });
+    save('guilds.json', guilds);
+    shopDone(c, sv, ch, { market: 'You put ' + (r.name || 'your item') + ' in the guild bank.' });
+    for (const o of byName.values()) if (o.guild === c.guild) sendHall(o);
+  },
+
+  /** Takes an item out of the guild bank. */
+  ghTake(c, m) {
+    const g = guildOf(c);
+    if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
+    if (m.data && !applySave(c, m.data)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = hall.withdraw(g, sv, ch.inv, num(m.idx) | 0, g.members[c.key].rank, c.name);
+    if (typeof r === 'string') { sendHall(c); return c.send({ t: 'shopFail', msg: r }); }
+    save('guilds.json', guilds);
+    shopDone(c, sv, ch, { market: 'You took ' + (r.name || 'an item') + ' from the guild bank.' });
+    for (const o of byName.values()) if (o.guild === c.guild) sendHall(o);
+  },
+
+  /** Flies one of the guild's earned banners (leaders). */
+  ghBanner(c, m) {
+    const g = guildOf(c);
+    if (!g) return;
+    const id = str(m.id, 16);
+    const err = hall.fly(g, id, g.members[c.key].rank);
+    if (err) return c.note(err);
+    save('guilds.json', guilds);
+    const b = hall.findBanner(id);
+    for (const o of byName.values()) if (o.guild === c.guild) { o.note(c.name + (b ? ' raised the ' + b.name + ' banner.' : ' lowered the guild banner.'), 0x80ff80); sendHall(o); }
+    reshowBanner(c.guild);
     sendGuild(c.guild);
   },
 
@@ -1470,6 +1530,54 @@ function sendParty(pid) {
   for (const x of p.members) x.send({ t: 'party', leader: p.leader.id, members });
 }
 
+/** Guild members show their guild's banner (if it flies one) by their name. */
+function withBanner(c, p) {
+  const g = guildOf(c);
+  if (g && g.banner) p.gb = g.banner; else delete p.gb;
+  return p;
+}
+
+/** The guild's banner changed (or someone joined or left): everyone sees the members' new look. */
+function reshowBanner(gk) {
+  for (const o of byName.values()) {
+    if (gk && o.guild !== gk) continue;
+    if (!o.profile || !o.world) continue;
+    withBanner(o, o.profile);
+    for (const x of inWorld(o.world, o)) x.send({ t: 'profile', id: o.id, profile: o.profile });
+  }
+}
+
+function reshowOne(o) {
+  if (!o.profile || !o.world) return;
+  withBanner(o, o.profile);
+  for (const x of inWorld(o.world, o)) x.send({ t: 'profile', id: o.id, profile: o.profile });
+}
+
+/** Sends c the Guild Hall (bank, goals, banners, ranking). */
+function sendHall(c) {
+  const g = guildOf(c);
+  if (!g) return c.send({ t: 'hall', hall: null });
+  c.send({ t: 'hall', hall: hall.view(g, c.guild, guilds, g.members[c.key].rank) });
+}
+
+/** What members did counts toward their guild's weekly goals. */
+function guildProgress(c, evs) {
+  const g = guildOf(c);
+  if (!g) return;
+  const done = hall.progress(g, evs);
+  if (!done.length) { if (Math.random() < 0.05) save('guilds.json', guilds); return; }
+  save('guilds.json', guilds);
+  for (const d of done) {
+    for (const o of byName.values()) {
+      if (o.guild !== c.guild) continue;
+      if (d.banner) o.send({ t: 'banner', text: 'New guild banner: ' + d.banner.name + '!', color: d.banner.col, msg: g.name + ' finished all three weekly goals (+' + d.fame + ' guild fame). Leaders can fly it from the Guild Hall.' });
+      else o.note('Guild goal done: ' + d.text + ' (+' + d.fame + ' guild fame)', 0x80ff80);
+    }
+    if (d.banner && discord.on) discord.post('🚩 **' + desc(g.name) + '** finished all three weekly guild goals and earned the **' + desc(d.banner.name) + '** banner!', d.banner.col);
+  }
+  if (done.some((d) => d.banner)) { reshowBanner(c.guild); sendGuild(c.guild); }
+}
+
 function memberRecord(c, rank) {
   const pr = c.profile || {};
   return { name: c.name, rank, cls: pr.cls || 'wizard', level: pr.level || 1, fame: pr.fame || 0 };
@@ -1497,7 +1605,7 @@ function sendGuild(gk) {
       const m = g.members[k], on = byName.get(k);
       members.push({ name: m.name, rank: m.rank, cls: m.cls, level: m.level, fame: m.fame, online: !!on, world: on ? on.world : '', id: on ? on.id : 0 });
     }
-    o.send({ t: 'guild', guild: { name: g.name, myRank: g.members[o.key].rank, members } });
+    o.send({ t: 'guild', guild: { name: g.name, myRank: g.members[o.key].rank, members, banner: g.banner || '' } });
   }
 }
 

@@ -411,6 +411,10 @@ class Data {
 			for (var d of __vals( Data.DYES)) if (d.id == id) return d;
 			return null;
 		}
+	static findBanner(id) {
+			for (var b of __vals( Data.GUILD_BANNERS)) if (b.id == id) return b;
+			return null;
+		}
 	static findPetSkin(id) {
 			for (var d of __vals( Data.PET_SKINS)) if (d.id == id) return d;
 			return null;
@@ -3765,6 +3769,16 @@ Data.DYE_KEYS = {
 			warrior: ["R", "M", "m"], necromancer: ["D", "d"], huntress: ["R", "r"],
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
+Data.GUILD_BANNERS = [
+			{id: "crimson", name: "Crimson Lion", col: 0xd03030, trim: 0xffd75e},
+			{id: "azure", name: "Azure Tide", col: 0x2a6ad8, trim: 0xd8f0ff},
+			{id: "emerald", name: "Emerald Oak", col: 0x2e9a3a, trim: 0xe0ffb0},
+			{id: "gold", name: "Sunburst", col: 0xf0b020, trim: 0xfff4c0},
+			{id: "violet", name: "Violet Star", col: 0x8a3ad0, trim: 0xf0d0ff},
+			{id: "obsidian", name: "Obsidian Skull", col: 0x26222e, trim: 0xe04060},
+			{id: "frost", name: "Frostfang", col: 0x80d8ff, trim: 0x2050a0},
+			{id: "ember", name: "Emberheart", col: 0xff5a20, trim: 0x401008}
+		];
 Data.PET_SKINS = [
 			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
 			{id: "pskin_shadow", name: "Shadow", cost: 1200, col: 0x3a2a5a}, {id: "pskin_ember", name: "Ember", cost: 1200, col: 0xff5a20},

@@ -226,6 +226,9 @@ package realm {
 				case "market":
 					g.marketArrived(m.m);
 					break;
+				case "hall":
+					g.hallArrived(m.hall);
+					break;
 				case "records":
 					g.recordsArrived(m.r, m.season);
 					break;

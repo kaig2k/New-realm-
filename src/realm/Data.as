@@ -1235,6 +1235,22 @@ package realm {
 			return null;
 		}
 
+		/** Guild banners, earned by finishing a week's three guild goals (server/guildhall.js); members show their guild's by their name. */
+		public static const GUILD_BANNERS:Array = [
+			{id: "crimson", name: "Crimson Lion", col: 0xd03030, trim: 0xffd75e},
+			{id: "azure", name: "Azure Tide", col: 0x2a6ad8, trim: 0xd8f0ff},
+			{id: "emerald", name: "Emerald Oak", col: 0x2e9a3a, trim: 0xe0ffb0},
+			{id: "gold", name: "Sunburst", col: 0xf0b020, trim: 0xfff4c0},
+			{id: "violet", name: "Violet Star", col: 0x8a3ad0, trim: 0xf0d0ff},
+			{id: "obsidian", name: "Obsidian Skull", col: 0x26222e, trim: 0xe04060},
+			{id: "frost", name: "Frostfang", col: 0x80d8ff, trim: 0x2050a0},
+			{id: "ember", name: "Emberheart", col: 0xff5a20, trim: 0x401008}
+		];
+		public static function findBanner(id:String):Object {
+			for each (var b:Object in GUILD_BANNERS) if (b.id == id) return b;
+			return null;
+		}
+
 		/** Pet skins: a colour wash over any pet species. */
 		public static const PET_SKINS:Array = [
 			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},

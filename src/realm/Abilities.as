@@ -235,7 +235,7 @@ package realm {
 
 				// ---- Bard
 				case "valor":
-					Sfx.play("holy", 0.8);
+					Sfx.play("lyre", 0.9);
 					anim("nova", x, y, 0.6, {col: 0xffd060, r: 6});
 					anim("notes", x, y, 1.2, {col: 0xffd060, seed: Math.random() * 100});
 					g.ring(x, y, 0xffd060, 24);
@@ -245,13 +245,13 @@ package realm {
 					}
 					break;
 				case "lullaby":
-					Sfx.play("holy", 0.5);
+					Sfx.play("lull", 0.8);
 					anim("notes", tx, ty, 1.4, {col: 0xb8a8ff, seed: Math.random() * 100});
 					anim("nova", tx, ty, 0.8, {col: 0xb8a8ff, r: n});
 					puff(tx, ty, 0x8a7ad0, 10, 2);
 					break;
 				case "requiem":
-					Sfx.play("boom", 0.7, 0.1);
+					Sfx.play("requiem", 0.9, 0.1);
 					anim("nova", x, y, 0.45, {col: 0xff6a90, r: n});
 					anim("nova", x, y, 0.7, {col: 0xc04a6a, r: n * 0.7});
 					anim("notes", x, y, 0.9, {col: 0xff8aa8, seed: Math.random() * 100});
@@ -261,7 +261,7 @@ package realm {
 				case "acid":
 					anim("throw", x, y, 0.35, {tx: tx, ty: ty});
 					anim("land", tx, ty, 0.35, {fn: function():void {
-						Sfx.play("vines", 0.8);
+						Sfx.play("bubble", 0.8);
 						anim("nova", tx, ty, 0.4, {col: 0x80ff40, r: 2.5});
 						puff(tx, ty, 0x60c020, 12, 3);
 						g.burst(tx, ty, 0xa0ff60, 16);
@@ -270,7 +270,7 @@ package realm {
 					}});
 					break;
 				case "elixir":
-					Sfx.play("holy", 0.9);
+					Sfx.play("glug", 0.9);
 					anim("nova", x, y, 0.55, {col: 0xff70c0, r: 5});
 					g.ring(x, y, 0xff90d0, 22);
 					if (!mine && near(x, y, 5)) {
@@ -282,6 +282,7 @@ package realm {
 					break;
 				case "philbomb":
 					anim("throw", x, y, 0.35, {tx: tx, ty: ty});
+					Sfx.play("fizz", 0.8);
 					anim("mark", tx, ty, 1.85, {col: 0xffb030, r: 3.2});
 					anim("land", tx, ty, 1.85, {fn: function():void {
 						Sfx.play("boom", 1, 0.05);
@@ -295,14 +296,14 @@ package realm {
 
 				// ---- Chronomancer
 				case "rewind":
-					Sfx.play("whoosh", 0.9);
+					Sfx.play("rewind", 0.9);
 					anim("streak", tx, ty, 0.45, {tx: x, ty: y, col: 0x80e0ff, w: 8});
 					anim("nova", x, y, 0.4, {col: 0x80e0ff, r: 1.4});
 					anim("nova", tx, ty, 0.5, {col: 0xf0c040, r: 1.6});
 					g.burst(tx, ty, 0xf0c040, 16);
 					break;
 				case "timestop":
-					Sfx.play("clang", 0.6);
+					Sfx.play("freeze", 0.9);
 					anim("nova", x, y, 0.6, {col: 0x9ad8ff, r: 4});
 					anim("flash", x, y, 0.25, {col: 0xe0f4ff, r: 3});
 					anim("clock", x, y, n, {r: 4});
@@ -310,7 +311,7 @@ package realm {
 					g.freezeShots(x, y, 4, n);
 					break;
 				case "hastefield":
-					Sfx.play("holy", 0.7);
+					Sfx.play("ticks", 0.8);
 					auras.push({x: x, y: y, r: 4, life: n, max: n, def: 0, pow: 0, tick: 0, haste: true});
 					anim("nova", x, y, 0.5, {col: 0xf0d050, r: 4});
 					g.ring(x, y, 0xf0d050, 20);

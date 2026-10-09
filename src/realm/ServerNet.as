@@ -181,7 +181,7 @@ package realm {
 				case "banner":
 					g.showBanner(m.text, m.color || 0xffd75e, 4);
 					g.msg(m.msg || m.text, m.color || 0xffd75e);
-					Sfx.play("portal");
+					Sfx.play(m.sfx || "portal");
 					break;
 				case "quests":
 					g.questsArrived(m.q);

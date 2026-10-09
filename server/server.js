@@ -134,7 +134,7 @@ function seasonTick() {
       discord.post('🌱 **' + desc(cur.name) + ' begins!** Seasonal heroes score double on the new ladder until ' + new Date(cur.ends - 1).toUTCString().slice(5, 16) + '.', 0x8fd16a);
     }
     for (const o of clients.values()) if (o.authed) o.send({ t: 'banner', text: cur.name + ' begins!', color: 0x8fd16a,
-      msg: old.name + (top.length ? ' was won by ' + top[0].name + '.' : ' is over.') + ' Make a Seasonal hero to score double on the new ladder.' });
+      msg: old.name + (top.length ? ' was won by ' + top[0].name + '.' : ' is over.') + ' Make a Seasonal hero to score double on the new ladder.', sfx: 'fanfare' });
   });
 }
 setInterval(seasonTick, 60 * 1000).unref();
@@ -180,7 +180,7 @@ function grantTitle(key, id) {
   if (c) {
     c.send({ t: 'title', id, earned: Object.keys(sv._titles) });
     const kind = Data.findDye(id) ? 'Dye' : 'Title';
-    c.send({ t: 'banner', text: kind + ' earned: ' + t.name + '!', color: t.col || 0xff9a2e, msg: 'Wear it from the Fame Store in the Nexus.' });
+    c.send({ t: 'banner', text: kind + ' earned: ' + t.name + '!', color: t.col || 0xff9a2e, msg: 'Wear it from the Fame Store in the Nexus.', sfx: 'fanfare' });
   }
   return true;
 }
@@ -1570,7 +1570,7 @@ function guildProgress(c, evs) {
   for (const d of done) {
     for (const o of byName.values()) {
       if (o.guild !== c.guild) continue;
-      if (d.banner) o.send({ t: 'banner', text: 'New guild banner: ' + d.banner.name + '!', color: d.banner.col, msg: g.name + ' finished all three weekly goals (+' + d.fame + ' guild fame). Leaders can fly it from the Guild Hall.' });
+      if (d.banner) o.send({ t: 'banner', text: 'New guild banner: ' + d.banner.name + '!', color: d.banner.col, msg: g.name + ' finished all three weekly goals (+' + d.fame + ' guild fame). Leaders can fly it from the Guild Hall.', sfx: 'fanfare' });
       else o.note('Guild goal done: ' + d.text + ' (+' + d.fame + ' guild fame)', 0x80ff80);
     }
     if (d.banner && discord.on) discord.post('🚩 **' + desc(g.name) + '** finished all three weekly guild goals and earned the **' + desc(d.banner.name) + '** banner!', d.banner.col);

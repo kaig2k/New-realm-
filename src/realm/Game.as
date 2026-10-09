@@ -1910,7 +1910,9 @@ package realm {
 				msg("You won the test fight in " + Math.round(time) + "s of play. R fights it again.", Ui.GOLD);
 			}
 			if (!remote) sync.killed(e);
-			Sfx.play(e.isBoss ? "boss" : "kill", e.isBoss ? 1 : 0.6, 0.04);
+			Sfx.play(e.isBoss ? Sfx.voiceOf(e.def) : "kill", e.isBoss ? 1 : 0.6, 0.04);
+			if (e.isBoss) Sfx.play("boom", 0.7, 0.2);
+			if (e.def.splits) soundAt(e.x, e.y, "squish");
 			var p:Player = player;
 			// kills by other players: you share the XP if you're close, but loot and credit need a hit of your own
 			var mine:Boolean = e.playerHit;
@@ -2163,6 +2165,13 @@ package realm {
 		/** A telegraphed blast: a circle on the ground fills up, then boom(). */
 		public function addMarker(x:Number, y:Number, r:Number, delay:Number, col:uint, boom:Function):void {
 			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world});
+		}
+
+		/** A sound from somewhere in the world: quieter the further away it is (silent past 14 tiles). */
+		public function soundAt(x:Number, y:Number, name:String, vol:Number = 1, gap:Number = 0.08):void {
+			var dx:Number = x - player.x, dy:Number = y - player.y;
+			var d:Number = Math.sqrt(dx * dx + dy * dy);
+			if (d < 14) Sfx.play(name, vol * (1 - d / 14 * 0.85), gap);
 		}
 
 		/** Spider webs left on the ground: they slow you while you stand in them. */
@@ -2541,6 +2550,7 @@ package realm {
 				if (po.say) say(nm, po.say);
 				if (po.banner) showBanner(po.banner, b.def.col, 3);
 				if (po.shield) { shake(0.4, 6); burst(b.x, b.y, b.def.col, 30); ring(b.x, b.y, b.def.col, 32); }
+				if (po.shield || po.banner) Sfx.play(Sfx.voiceOf(b ? b.def : null), 0.7, 1.5);
 				if (!(b.def.final && phase == 2)) return;
 			}
 			if (phase == 1) say(nm, "You dare wound me? Feel my power!");
@@ -5460,7 +5470,7 @@ package realm {
 				e.introduced = true;
 				var col:uint = uint(e.def.col) || 0xff6060;
 				showBanner(e.def.name, Sprites.tint(col, 0.3), 2.8);
-				Sfx.play("boss", 0.9, 1);
+				Sfx.play(Sfx.voiceOf(e.def), 0.9, 1);
 				shake(0.45, 6);
 				ring(e.x, e.y, col, 32);
 				abil.anim("nova", e.x, e.y, 0.6, {col: col, r: 4});

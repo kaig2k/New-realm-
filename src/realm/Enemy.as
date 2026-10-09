@@ -452,6 +452,7 @@ package realm {
 		/** All bullet patterns. Deterministic given the same arguments (online replay). */
 		private function shootAttack(a:Object, ang:Number, spin0:Number, dist:Number, g:Game):void {
 			var waves:int = a.waves || 1;
+			if (a.sfx) g.soundAt(x, y, a.sfx, 0.7, a.sfxGap || 0.15);
 			for (var w:int = 0; w < waves; w++) {
 				if (w == 0) shootWave(a, ang, spin0, dist, g, 0);
 				else g.later(w * (a.gap || 0.2), waveFn(a, ang, spin0, dist, g, w));
@@ -527,6 +528,7 @@ package realm {
 		private function novaFn(a:Object, nx:Number, ny:Number, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, base:Number):Function {
 			return function():void {
 				if (a.web) g.addWeb(nx, ny, a.radius || 1.6, a.web);
+				if (a.land) g.soundAt(nx, ny, a.land, 0.9, 0.1);
 				g.areaHit(nx, ny, a.radius || 1.6, dmg, def.name, a.eff || null, a.col, attackName(a));
 				var m:int = a.burst || 0;
 				for (var k:int = 0; k < m; k++) {

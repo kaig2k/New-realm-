@@ -81,7 +81,7 @@ class WorldSim {
       aggroTarget: (e) => sim.target(e),
       spawnEnemy: (id, x, y, zone) => sim.spawn(id, x, y, zone),
       countAlive: (id) => sim.enemies.filter((e) => !e.dead && e.defId === id).length,
-      burst() {}, later() {}, addMarker() {}, addWeb() {}, bossPhase() {},
+      burst() {}, later() {}, addMarker() {}, addWeb() {}, soundAt() {}, bossPhase() {},
       addShot: (s) => sim.trackShot(s), areaHit: (x, y, r) => sim.expectArea(x, y, r),
       sync: { fired: (e, i, ang, spin, code, dist) => sim.fired(e, i, ang, spin, code, dist) }
     };

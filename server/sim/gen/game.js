@@ -839,21 +839,21 @@ class Bosses {
 				if (spr == "goblin" || spr == "goblin_chief") {
 					
 					list.push(Bosses.aim(spr == "goblin" ? 1 : 3, 30, 7, __int(top * 1.15), 2.4, 0xd8d8e0,
-						{life: 1.1, r: 0.16, shape: "blade", spin: true, motion: "return", name: "spinning dagger"}));
+						{life: 1.1, r: 0.16, shape: "blade", spin: true, motion: "return", name: "spinning dagger", sfx: "toss"}));
 				} else if (spr == "spider" || spr == "spider_queen") {
 					
 					list.push({p: "nova", reach: 8, radius: spr == "spider" ? 1.3 : 2, delay: 0.8, dmg: __int(top * 0.5), cd: spr == "spider" ? 3.6 : 3,
-						col: 0xe8e8f0, eff: "slowed", web: 4, name: "sticky web"});
+						col: 0xe8e8f0, eff: "slowed", web: 4, name: "sticky web", sfx: "spit", land: "splat"});
 				} else if (spr == "ghost" || spr == "ghost_god" || spr == "shade") {
 					d.ghostly = true;
-					for (var ga of __vals( list)) if (ga.p != "summon") { ga.ghost = true; if (!ga.name) ga.name = "spectral " + Enemy.attackName(ga); }
+					for (var ga of __vals( list)) if (ga.p != "summon") { ga.ghost = true; ga.sfx = "wail"; ga.sfxGap = 2.5; if (!ga.name) ga.name = "spectral " + Enemy.attackName(ga); }
 				} else if (spr == "golem" || spr == "ogre") {
 					
 					for (var gi = __int(0); gi < list.length; gi++) {
 						var r0 = list[gi];
 						if (r0.p != "ring") continue;
 						list[gi] = {p: "nova", reach: 0, radius: 2.4, delay: 0.9, dmg: __int(r0.dmg * 1.3), cd: r0.cd + 0.8, col: r0.col,
-							burst: r0.n, bspd: r0.spd, blife: r0.life, name: "ground slam"};
+							burst: r0.n, bspd: r0.spd, blife: r0.life, name: "ground slam", land: "slam"};
 					}
 				}
 			}
@@ -2957,6 +2957,7 @@ class Enemy {
 		}
 	shootAttack(a, ang, spin0, dist, g) {
 			var waves = __int(a.waves || 1);
+			if (a.sfx) g.soundAt(this.x, this.y, a.sfx, 0.7, a.sfxGap || 0.15);
 			for (var w = __int(0); w < waves; w++) {
 				if (w == 0) this.shootWave(a, ang, spin0, dist, g, 0);
 				else g.later(w * (a.gap || 0.2), this.waveFn(a, ang, spin0, dist, g, w));
@@ -3029,6 +3030,7 @@ class Enemy {
 	novaFn(a, nx, ny, dmg, bd, spinning, g, base) { dmg = __int(dmg);
 			return () => {
 				if (a.web) g.addWeb(nx, ny, a.radius || 1.6, a.web);
+				if (a.land) g.soundAt(nx, ny, a.land, 0.9, 0.1);
 				g.areaHit(nx, ny, a.radius || 1.6, dmg, this.def.name, a.eff || null, a.col, Enemy.attackName(a));
 				var m = __int(a.burst || 0);
 				for (var k = __int(0); k < m; k++) {

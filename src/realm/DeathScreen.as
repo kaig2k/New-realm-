@@ -35,9 +35,9 @@ package realm {
 			var recapH:int = recap.length ? 34 + recap.length * 20 : 0;
 			listH += recapH;
 			// with a long bonus list the gravestone is dropped to make room
-			var compact:Boolean = bonuses.length > 3 || listH > 150;
 			// new players: what they keep, and a tip for next time
 			var tipH:int = info.newbie ? 92 : 0;
+			var compact:Boolean = bonuses.length > 3 || listH + tipH > 150;
 			var panelH:int = 520 + listH + tipH - (compact ? 100 : 0);
 			var top:int = Math.max(4, int((Ui.H - panelH) / 2));
 			Ui.panel(graphics, Ui.W / 2 - 290, top, 580, panelH, 0x1e1e22, 0x4a4a4a);

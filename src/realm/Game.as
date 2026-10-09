@@ -692,9 +692,10 @@ package realm {
 			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
 			// signposts by the entrance, for finding your way the first time
 			stations.push({x: 96.5, y: 123.2, kind: "deco", spr: "signpost", w: "nexus",
-				label: makeLabel("<font size='11'>\u2196 Vault, Fame Store, Pet Yard\n\u2191 Realm portals (north)\n\u2190 Quest Board</font>", 0xf0e0b0)});
+				label: makeLabel("<font size='12'><b>North:</b> Realm portals\n<b>West:</b> Vault, Fame Store, Pet Yard\n<b>Here:</b> Quest Board</font>", 0xf0e0b0)});
 			stations.push({x: 104.5, y: 123.2, kind: "deco", spr: "signpost", w: "nexus",
-				label: makeLabel("<font size='11'>\u2197 Guild Hall, Starforge, Raids\n\u2192 Marketplace\n\u2191 The fountain heals you</font>", 0xf0e0b0)});
+				label: makeLabel("<font size='12'><b>North-east:</b> Guild Hall\n<b>East:</b> Starforge, Raid Table\n<b>Here:</b> Marketplace</font>", 0xf0e0b0)});
+			for each (var sgn:Object in stations) if (sgn.spr == "signpost") sgn.label.width = 230;
 			// the portal to your guild's hall, with its banner flying beside it
 			addPortal(nexusWorld, GUILD_X, GUILD_Y, "ghall", 0, 0x80ff80, 0, 0, false);
 			stations.push({x: GUILD_X - 2, y: GUILD_Y - 0.4, kind: "deco", spr: Sprites.hallFlag(""), label: makeLabel("", 0xffffff), w: "nexus", flag: true});

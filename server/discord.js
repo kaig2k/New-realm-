@@ -59,6 +59,51 @@ class Discord {
   }
 }
 
+/**
+ * One message in a channel that the server keeps editing: a live status board
+ * (players online, the season, records...). A webhook can edit its own messages,
+ * so no bot is needed. The message's id is remembered (saveId) so a restart edits
+ * the same message instead of posting a new one; if it was deleted, a new one is posted.
+ */
+class StatusBoard {
+  constructor(url, name, id, saveId, log) {
+    this.url = typeof url === 'string' ? url.trim().replace(/\/+$/, '') : '';
+    this.name = name || 'Eldmere';
+    this.id = id || '';
+    this.saveId = saveId || (() => {});
+    this.log = log || (() => {});
+    this.busy = false;
+  }
+
+  get on() { return /^https?:\/\//.test(this.url); }
+
+  /** Shows `text` (an embed with a colour stripe), editing the board's message or posting it the first time. */
+  show(text, color) {
+    if (!this.on || this.busy) return;
+    this.busy = true;
+    const body = JSON.stringify({ username: this.name, embeds: [{ description: String(text).slice(0, 3900), color: (color || 0x8fd16a) & 0xffffff }], allowed_mentions: { parse: [] } });
+    const editing = !!this.id;
+    let u;
+    try { u = new URL(editing ? this.url + '/messages/' + this.id : this.url + '?wait=true'); } catch (e) { this.busy = false; return this.log('discord status: bad webhook address'); }
+    const lib = u.protocol === 'http:' ? http : https;
+    const req = lib.request(u, { method: editing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, timeout: 8000 }, (res) => {
+      let data = '';
+      res.on('data', (d) => { data += d; });
+      res.on('end', () => {
+        this.busy = false;
+        if (editing && res.statusCode === 404) { this.id = ''; this.saveId(''); return; } // deleted: post a new one next time
+        if (res.statusCode < 200 || res.statusCode >= 300) return this.log('discord status: webhook answered ' + res.statusCode);
+        if (!editing) {
+          try { this.id = JSON.parse(data).id || ''; this.saveId(this.id); } catch (e) {}
+        }
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('timed out')));
+    req.on('error', (e) => { this.busy = false; this.log('discord status: ' + e.message); });
+    req.end(body);
+  }
+}
+
 /** Discord markdown would bold or hide parts of names with * _ ~ ` |. */
 function esc(s) { return String(s).replace(/([*_~`|>\\])/g, '\\$1'); }
 
@@ -69,4 +114,4 @@ function names(list) {
   return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0] || 'someone';
 }
 
-module.exports = { Discord, esc, names };
+module.exports = { Discord, StatusBoard, esc, names };

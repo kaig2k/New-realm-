@@ -78,6 +78,7 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
 const store = new Store(DATA_DIR);
 // a copy of everything in data/ each day (data/backups/YYYY-MM-DD, newest 14 kept; config "backups": false turns it off)
 const backup = require('./backup');
+const site = require('./site');
 /** Server-run monsters for every realm, dungeon, raid and Elder chamber (config "serverMonsters": false turns it off). */
 const sims = config.serverMonsters === false ? null : new Sims();
 // loot the server rolls is written into the looter's ledger
@@ -193,6 +194,38 @@ function finishLogin(c, acc, key, session) {
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   log(c.name, 'joined (' + byName.size + ' online)');
 }
+
+// ------------------------------------------------------------------ Discord status board
+/** config "discordStatusWebhook": a webhook (best in its own #status channel) whose one message the server keeps up to date. */
+const statusMeta = load('status.json', {});
+let statusBoard = null;
+function statusTick() {
+  // (made on first use: the Discord module is loaded further down)
+  if (!statusBoard) statusBoard = new StatusBoard(config.discordStatusWebhook, str(config.name, 32) || 'Eldmere', statusMeta.id,
+    (id) => { statusMeta.id = id; save('status.json', statusMeta); }, (t) => log(t));
+  if (!statusBoard.on) return;
+  const on = online();
+  counters.peak = Math.max(counters.peak, on.length);
+  const ranked = ladder.ranked().slice(0, 3);
+  const gtop = Object.keys(guilds).map((k) => guilds[k]).sort((a, b) => (Number(b.fame) || 0) - (Number(a.fame) || 0))[0];
+  // the newest #1 Records time
+  let rec = null;
+  for (const id of Object.keys(records)) {
+    const r = records[id] && records[id][0];
+    if (r && !id.startsWith('vault:') && (!rec || r.at > rec.r.at)) rec = { id, r };
+  }
+  const tw = Bosses.vaultTwist(Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7));
+  const lines = [
+    '🟢 **' + on.length + '** playing now · peak today **' + counters.peak + '**',
+    '🌱 **' + desc(ladder.current.name) + '**' + (ranked.length ? ': ' + ranked.map((e, i) => ['🥇', '🥈', '🥉'][i] + ' ' + desc(e.name) + ' (' + e.pts.toLocaleString('en') + ')').join('  ') : ': nobody on the ladder yet'),
+    gtop ? '🏰 Top guild: **' + desc(gtop.name) + '** (' + Math.round(Number(gtop.fame) || 0).toLocaleString('en') + ' guild fame)' : '🏰 No guilds yet: make one in game!',
+    '🌀 Starfall Vault this week: **' + desc(tw.name) + '**',
+    rec ? '🏆 Latest record: **' + desc((Data.ENEMIES[rec.id] && Data.ENEMIES[rec.id].name) || rec.id) + '** in ' + clock(rec.r.ms) + ' by ' + dnames(rec.r.names) : '🏆 No Records times yet',
+    '_Updated <t:' + Math.floor(Date.now() / 1000) + ':R>_'
+  ];
+  statusBoard.show(lines.join('\n'), 0x8fd16a);
+}
+setInterval(statusTick, 5 * 60 * 1000).unref();
 
 // ------------------------------------------------------------------ daily login reward
 /** Gold for each day in a row (a week, then it starts again); day 7 adds Aether. */
@@ -392,7 +425,7 @@ let nextParty = 1;
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
 
 // ------------------------------------------------------------------ Discord feed
-const { Discord, esc: desc, names: dnames } = require('./discord');
+const { Discord, StatusBoard, esc: desc, names: dnames } = require('./discord');
 const discord = new Discord(config.discordWebhook, config.name || 'Eldmere', log);
 /** What the server did that's worth telling the Discord: (kind, details). */
 function feat(kind, d) {
@@ -1839,8 +1872,27 @@ function serveHttp(sock, req) {
     sock.end(head('text/x-cross-domain-policy', Buffer.byteLength(xml)) + xml);
     return;
   }
-  const msg = 'New Realm server is running.\n';
-  sock.end(head('text/plain', msg.length) + msg);
+  // the website: the landing page, browser play, and the files they use
+  const siteInfo = () => {
+    const top = ladder.ranked()[0];
+    return { name: str(config.name, 32) || 'Eldmere', online: byName.size, discord: str(config.discordInvite, 200),
+      season: { name: ladder.current.name, leader: top ? top.name : '' }, launcher: site.hasLauncher() };
+  };
+  if (pathOnly === '/' || pathOnly === '/index.html' || pathOnly === '/play') {
+    const html = pathOnly === '/play' ? site.play(siteInfo()) : site.landing(siteInfo());
+    sock.end(head('text/html; charset=utf-8', Buffer.byteLength(html)) + html);
+    return;
+  }
+  const f = site.file(pathOnly);
+  if (f) {
+    fs.readFile(f[0], (err, data) => {
+      if (err) { sock.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return; }
+      sock.write(head(f[1], data.length));
+      sock.end(data);
+    });
+    return;
+  }
+  sock.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
 }
 
 const POLICY = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*" to-ports="*"/></cross-domain-policy>\0';
@@ -1953,6 +2005,7 @@ server.listen(PORT, () => {
   discord.post('🟢 **' + desc(config.name || 'Eldmere') + '** is online. Come and play!', 0x60e070);
   announceTwist();
   seasonTick();
+  statusTick();
   if (config.backups !== false) backup.start(DATA_DIR, () => store.flushAll(), log, Number(config.backupKeep) || 14);
   log('Realms: ' + realms.map(r => r.name).join(', '));
   log('Type "help" here for server commands (list, say, kick, stop).');

@@ -101,6 +101,8 @@ Players then join with `play.yourgame.com:2050`.
 | `godmodeKick` | Off by default: players who take almost none of the monster shots the server sees hit them are only flagged (admins are told, and it's logged to `anticheat.log`). Once you've watched the log for a while and trust it, set it to `true` to kick them too. |
 | `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
 | `backupKeep` | How many days of backups to keep (14). |
+| `discordStatusWebhook` | A second Discord webhook (best in its own read-only #status channel). The server posts one message there and keeps editing it every 5 minutes: players online, today's peak, the season leaders, the top guild, this week's Vault twist and the latest Records time. |
+| `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
 
@@ -172,7 +174,24 @@ mkdir -p ~/backups
 
 Copy the backups somewhere off the server now and then (or use your provider's snapshots).
 
-## 9. Give players the Eldmere launcher (updates reach everyone by themselves)
+## 9. The website, and playing in the browser
+
+The server is also a small website, on the same port as the game:
+
+- `http://your-server:2050/` is the landing page: the logo, what the game is, the promo images from
+  `promo/`, live numbers (players online, the season and its leader), and buttons to play. Share
+  this link in your ads.
+- `http://your-server:2050/play` runs the game **right in the browser** (through Ruffle), already
+  connected to your server. No download needed, which makes it the easiest way for new players to
+  try Eldmere. It's marked as beta: the launcher below is still the best way to play.
+- If `bin/EldmereLauncher.swf` exists (see below), the page also offers it as a download, and
+  `discordInvite` in `config.json` adds a Discord button.
+
+For a nicer address (and https), point a domain at the VPS and put a reverse proxy such as Caddy
+or nginx in front of port 2050: the pages and browser play work behind one (browser play then
+connects with secure websockets).
+
+## 10. Give players the Eldmere launcher (updates reach everyone by themselves)
 
 Build once with your server's address:
 

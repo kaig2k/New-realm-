@@ -677,6 +677,14 @@ async function run() {
       swf.toString('latin1', 0, 40));
     const cd = (await get('/crossdomain.xml')).toString();
     check('and the cross-domain file Flash asks for', /allow-access-from domain="\*"/.test(cd));
+    // the website: the landing page, browser play, its images, and nothing else
+    const home = (await get('/')).toString();
+    const play = (await get('/play')).toString();
+    const logo = await get('/logo.png');
+    const sneaky = [await get('/promo/../server/config.json'), await get('/promo/%2e%2e%2fconfig.png'), await get('/../server/data/accounts.json')];
+    check('the server shows a landing page (live player count) and a browser-play page', /Dodge\. Loot\. Survive\./.test(home) && /playing now/.test(home) && /href="\/play"/.test(home)
+      && /ruffle/i.test(play) && /NewRealm\.swf/.test(play) && /^HTTP\/1\.1 200/.test(logo.toString('latin1', 0, 20)) && /image\/png/.test(logo.toString('latin1', 0, 200)));
+    check('...and serves no other files (no ../ tricks)', sneaky.every((b) => /^HTTP\/1\.1 404/.test(b.toString('latin1', 0, 30))), sneaky.map((b) => b.toString('latin1', 0, 30)).join(' | '));
   }
 
   console.log('marketplace');
@@ -1059,6 +1067,27 @@ async function run() {
     boss0.send({ t: 'cmd', text: '/discord' });
     await wait(2600);
     check('/discord (admins) sends a test message', posts.length > before && /Test message/.test(text(posts[posts.length - 1])) && boss0.find((m) => m.t === 'msg' && /Sent a test/.test(m.text)));
+  }
+
+  console.log('discord status board');
+  {
+    const http = require('http');
+    const { StatusBoard } = require('./discord');
+    const seen = [];
+    const fake = http.createServer((req, res) => {
+      let b = ''; req.on('data', (d) => { b += d; });
+      req.on('end', () => { seen.push(req.method + ' ' + req.url); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ id: '777' })); });
+    });
+    await new Promise((r) => fake.listen(0, '127.0.0.1', r));
+    let saved = '';
+    const sb = new StatusBoard('http://127.0.0.1:' + fake.address().port + '/api/webhooks/1/abc', 'Eldmere', '', (id) => { saved = id; });
+    sb.show('12 playing now', 0x8fd16a);
+    await wait(300);
+    sb.show('13 playing now', 0x8fd16a);
+    await wait(300);
+    check('the Discord status board posts once, then keeps editing that message (remembering its id)',
+      seen[0] === 'POST /api/webhooks/1/abc?wait=true' && seen[1] === 'PATCH /api/webhooks/1/abc/messages/777' && saved === '777', seen.join(', '));
+    fake.close();
   }
 
   console.log('gold and fame (wallet)');

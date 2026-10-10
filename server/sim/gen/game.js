@@ -6,13 +6,6 @@ class Data {
 	constructor() {
 
 	}
-	static classUnlocked(id, bestLevel) {
-			var u = Data.CLASS_UNLOCK[id];
-			if (!u) return true;
-			var n = __int(0);
-			for (var k in bestLevel || {}) if (__int(bestLevel[k]) >= u.need) n++;
-			return n >= u.classes;
-		}
 	static grow(cls, s) {
 			return (cls.l20[s] - cls.base[s]) / 19;
 		}
@@ -3248,11 +3241,7 @@ Data.CLASSES = {
 			}
 		};
 Data.CLASS_ORDER = ["wizard", "archer", "knight", "priest", "rogue", "warrior", "necromancer", "huntress", "bard", "alchemist", "chronomancer"];
-Data.CLASS_UNLOCK = {
-			bard: {need: 10, classes: 1, text: "Reach level 10 with any hero"},
-			alchemist: {need: 20, classes: 1, text: "Reach level 20 with any hero"},
-			chronomancer: {need: 20, classes: 3, text: "Reach level 20 with 3 different classes"}
-		};
+Data.ELDMERE_CLASSES = {bard: true, alchemist: true, chronomancer: true};
 Data.RARITIES = ["ut", "st", "fb", "lg", "ar", "gd"];
 Data.RARITY_NAMES = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial", gd: "Godly"};
 Data.RARITY_LABELS = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR", gd: "GD"};
@@ -3854,6 +3843,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-classes", title: "What's new in Eldmere",
+				lines: ["<b>Every class is open</b>: the Bard, Alchemist and Chronomancer can be played straight away, no levels needed.",
+					"<b>Account numbers</b>: your account's number is shown on the character screen, and on players you inspect. Use it in /report.",
+					"<b>Unfair death?</b> If a hero died to lag or a bug, tell an admin: fallen heroes can now be brought back."]},
 			{id: "2026-10-launch", title: "What's new in Eldmere",
 				lines: ["<b>Hero modes</b>: make an Ironman or Hardcore hero for more loot luck (pick on the class screen).",
 					"<b>Guild Halls</b>: walk into your guild's own hall from the Nexus portal. Shared bank, weekly goals, and a Banner Maker.",

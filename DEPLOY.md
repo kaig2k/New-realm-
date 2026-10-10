@@ -220,6 +220,28 @@ open it the same way they opened the game before. Every time it starts it downlo
 game from your server and runs it, already pointed at your server: no address to type, and
 nobody ever needs a new file again.
 
+### A desktop app (the AIR client)
+
+Players can have Eldmere as a normal desktop app instead of a .swf file: the launcher, packaged
+with its own copy of the AIR runtime (nothing else to install). It downloads the latest game from
+your server every time it starts, so you build it **once** and never send players a new copy.
+
+On your Windows PC (not the VPS):
+
+1. Install Java (https://adoptium.net) and the HARMAN AIR SDK (https://airsdk.harman.io/),
+   unzipped to `C:\AIRSDK`.
+2. In the game folder, build the launcher with your server's address:
+   `build.bat YOUR_IP:2050`
+3. Package it: `package-client.bat`
+
+You get `dist\Eldmere\Eldmere.exe` (with the castle icon) and `dist\Eldmere.zip`. Give players the
+zip: they unzip it and run `Eldmere.exe`. On a Mac, `AIR_SDK=~/AIRSDK ./build.sh YOUR_IP:2050` then
+`./package-client.sh` makes the Mac version (each system's app has to be packaged on that system).
+
+The first time, packaging makes a self-signed certificate (`cert.p12`). Keep that file: an app
+signed with a different one counts as a different app. Windows may show a "Windows protected your
+PC" warning for an app nobody has paid to sign; players click **More info → Run anyway** once.
+
 The server hands out the game from its own copy of the repo (`bin/NewRealm.swf`, at
 `http://your-server:2050/NewRealm.swf`, on the same port as the game). So to update everyone:
 

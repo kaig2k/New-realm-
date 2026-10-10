@@ -921,6 +921,8 @@ package realm {
 			if (before >= 0) {
 				if (!climb) climb = {};
 				climb[item.kind] = Math.max(before, Data.climbTier(item));
+				// (each step of the climb goes to the server straight away, so it sees every tier in turn)
+				if (Data.climbTier(item) > before) g.saveNow();
 				if (Data.climbTier(item) > before) g.msg("Hardcore climb: your best " + item.kind + " is now " + (Data.climbTier(item) >= 8 ? "special rarity" : "T" + Data.climbTier(item)) +
 					(Data.climbTier(item) == 7 ? " (special rarities unlocked)" : Data.climbTier(item) < 7 ? " (T" + (Data.climbTier(item) + 1) + " unlocked)" : "") + ".", 0xff8a7a);
 			}

@@ -1255,6 +1255,12 @@ package realm {
 			Save.storeChar(player.serialize());
 		}
 
+		/** Saves and, online, sends it to the server at once (not on the usual short delay). */
+		public function saveNow():void {
+			saveCharacter();
+			if (net.online) Online.sendSave();
+		}
+
 		/** Walk through a nexus portal into its realm. */
 		/** The server's realm list changed (new realm, one closed, populations). */
 		public function realmsUpdated(list:Array):void {
@@ -1274,7 +1280,9 @@ package realm {
 
 		/** The server refused our save: carry on from its copy. */
 		public function saveRejected(reason:String):void {
-			msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
+			// (a Hardcore item equipped too early only goes back to the inventory: nothing else is undone)
+			if (reason.indexOf("went back to your inventory") >= 0) msg(reason, 0xff8a7a);
+			else msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
 			// everything goes back to the server's copy together, so nothing can exist twice
 			if (vaultWorld) fillVault();
 			for each (var c:Object in Save.chars) if (c && c.id == player.id) { player.restore(c); hud.refresh(); return; }

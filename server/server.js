@@ -576,7 +576,8 @@ function applySave(c, data, cid) {
   // (only when the server runs the monsters: otherwise players' games still roll loot)
   if (!why && !isAdmin(c) && sims) why = items.check(prev, data) || items.checkStats(data);
   // hero modes: Ironman and Hardcore rules (and modes can't change)
-  if (!why && prev) why = modes.check(prev, data);
+  const modeFixes = [];
+  if (!why && prev) why = modes.check(prev, data, modeFixes);
   if (why) {
     log('refused save from ' + c.name + ': ' + why);
     counters.savesRefused++;
@@ -616,6 +617,8 @@ function applySave(c, data, cid) {
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
+  // a Hardcore item equipped too early went back to the inventory: the game takes the server's copy
+  if (modeFixes.length) c.send({ t: 'saveRejected', reason: modeFixes.join(' '), data: publicSave(data) });
   // the game says which hero it's playing with each shop request, so the shops never depend on
   // having seen this connection's last 'enter' (a reconnect, or a hero whose id was only just set)
   if (typeof cid === 'string' && cid && (data.chars || []).some((h) => h && h.id === cid)) c.charId = cid.slice(0, 64);

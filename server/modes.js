@@ -43,8 +43,13 @@ function heroItems(ch) {
  * Checks a new save against the stored one. Fixes what it can in `next`
  * (modes can't change; the server's climb record replaces the game's) and
  * returns a reason to refuse the save, or null.
+ *
+ * fixes (optional array): a Hardcore item equipped too early is put back in
+ * the hero's inventory instead of refusing the whole save (which would undo
+ * everything since the last save, loot included); what was done is added to
+ * fixes, and the caller tells the game.
  */
-function check(prev, next) {
+function check(prev, next, fixes) {
   if (!next || !Array.isArray(next.chars)) return null;
   const before = new Map((prev.chars || []).filter((h) => h && h.id).map((h) => [h.id, h]));
   const had = where(prev);
@@ -75,14 +80,46 @@ function check(prev, next) {
       if (it && typeof it === 'object') {
         const t = Data.climbTier(it);
         // (starter gear has no id and is always low tier: it just counts as used)
-        if (it.sid && t > best + 1) return 'Hardcore: ' + (it.name || 'that item') + ' is T' + (t >= 8 ? '8+' : t) + ' but the best ' + slot + ' used so far is T' + best;
-        best = Math.max(best, t);
+        if (it.sid && t > best + 1) {
+          const why = 'Hardcore: ' + (it.name || 'that item') + ' is T' + (t >= 8 ? '8+' : t) + ' but the best ' + slot + ' used so far is T' + best;
+          const back = fixes ? unequip(ch, slot, old, best) : null;
+          if (!back) return why;
+          fixes.push(why + '. It went back to your inventory' + (back.name ? ' and ' + back.name + ' is equipped again' : '') + ': equip T' + (best + 1) + ' first.');
+          if (ch[slot] && typeof ch[slot] === 'object') best = Math.max(best, Data.climbTier(ch[slot]));
+        } else best = Math.max(best, t);
       }
       climb[slot] = best;
     }
     ch._climb = climb;
   }
   return null;
+}
+
+/**
+ * Takes ch[slot] off (it was equipped too early) and puts it in the inventory,
+ * swapping in the item that was there before (or the best allowed one the hero
+ * carries). Returns the item now in the slot ({} if the slot is left empty), or
+ * null if there is no room.
+ */
+function unequip(ch, slot, old, best) {
+  if (!Array.isArray(ch.inv)) return null;
+  const it = ch[slot];
+  const same = (a, b) => a && b && (a.sid ? a.sid === b.sid : JSON.stringify(a) === JSON.stringify(b));
+  let i = old && typeof old === 'object' ? ch.inv.findIndex((o) => same(o, old)) : -1;
+  if (i < 0) {
+    let bt = -1;
+    ch.inv.forEach((o, k) => {
+      if (!o || typeof o !== 'object' || o.kind !== it.kind || o.sub !== it.sub) return;
+      const t = Data.climbTier(o);
+      if (t <= best + 1 && t > bt) { bt = t; i = k; }
+    });
+  }
+  if (i >= 0) { const was = ch.inv[i]; ch.inv[i] = it; ch[slot] = was; return was; }
+  i = ch.inv.indexOf(null);
+  if (i < 0) return null;
+  ch.inv[i] = it;
+  ch[slot] = null;
+  return {};
 }
 
 module.exports = { check, modeOf, restricted, luck };

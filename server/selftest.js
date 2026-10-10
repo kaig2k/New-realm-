@@ -106,6 +106,12 @@ async function run() {
   qst.d[0].p = QD.quest(qst.d[0].id).goal;
   const questReward = QD.quest(qst.d[0].id);
   fs.writeFileSync(path.join(DATA, 'saves', nameB.toLowerCase() + '.json'), JSON.stringify({ gold: 3000, chars: [charSave('cb', [ITEMS.potion])], _quests: qsv._quests }));
+  // a Hardcore hero with T1 equipped and T2 and T3 staffs in the bag
+  {
+    const { Data: HD } = require('./sim/gen/game');
+    fs.writeFileSync(path.join(DATA, 'saves', ('Thx' + n).toLowerCase() + '.json'), JSON.stringify({ gold: 0, fame: 0,
+      chars: [{ id: 'hx', cls: 'wizard', name: 'Hx', level: 5, mode: 'hardcore', weapon: HD.makeWeapon('staff', 1), inv: [HD.makeWeapon('staff', 2), HD.makeWeapon('staff', 3), null, null] }] }));
+  }
   // C has fame to spend in the Fame Store
   fs.writeFileSync(path.join(DATA, 'saves', ('Tc' + n).toLowerCase() + '.json'), JSON.stringify({ fame: 1000, chars: [] }));
   await wait(900);
@@ -947,11 +953,43 @@ async function run() {
     check('...but climb one tier at a time, and the server remembers the climb', modes.check(hp, step) === null && step.chars[0]._climb.weapon === 3
       && modes.check(step, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(2, 'a'), inv: [w(3, 'c')] }] }) === null);
     const t7 = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'd'), inv: [], _climb: { weapon: 7 } }] };
+    {
+      // two tiers between saves: the early one goes back to the inventory instead of the save being refused
+      const pv = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(1, 'a'), inv: [null, null] }] };
+      const nx = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(3, 'c'), inv: [w(1, 'a'), w(2, 'b')] }] };
+      const fx = [];
+      const why = modes.check(pv, nx, fx);
+      const h = nx.chars[0];
+      check('a Hardcore item equipped too early goes back to the inventory (nothing else is undone)', why === null && fx.length === 1 && /went back to your inventory/.test(fx[0]) &&
+        h.weapon.sid === 'a' && h.inv.some((it) => it && it.sid === 'c') && h.inv.some((it) => it && it.sid === 'b') && h._climb.weapon === 1, why || fx.join());
+      check('...and without room for it, the save is refused as before', /Hardcore/.test(modes.check(pv, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(3, 'c'), inv: [w(5, 'd')] }] }, []) || ''));
+    }
     check('special rarities need a T7 first; regular heroes have no climb', modes.check(t7, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'e', 'lg'), inv: [] }] }) === null
       && !!modes.check(hp, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'e', 'lg'), inv: [] }] })
       && modes.check({ chars: [{ id: 'x', weapon: w(1, 'p') }] }, { chars: [{ id: 'x', weapon: w(7, 'q', 'lg') }] }) === null);
     check('Ironman and Hardcore heroes get extra loot luck, Hardcore extra stats', modes.luck('') === 0 && modes.luck('ironman') > 0 && modes.luck('hardcore') > modes.luck('ironman')
       && MD.findMode('hardcore').stats.att > 0 && !MD.findMode('ironman').stats);
+    // over the wire: equipping T3 straight after T1 (no save between) keeps the loot, the T3 just goes back to the bag
+    {
+      const X = await login('Thx' + n, { password: 'pass1234', register: true });
+      const xs = X.find((m) => m.t === 'welcome').save;
+      const hx = xs.chars[0], [t2, t3] = hx.inv;
+      X.clear();
+      X.send({ t: 'save', data: Object.assign({}, xs, { chars: [Object.assign({}, hx, { weapon: t3, inv: [hx.weapon, t2, null, null] })] }) });
+      await wait(450);
+      const back = X.find((m) => m.t === 'saveRejected');
+      const bh = back && back.data.chars[0];
+      check('over the wire: the game is sent the hero with the early item back in the inventory', bh && bh.weapon.sid === hx.weapon.sid && bh.inv.some((it) => it && it.sid === t3.sid) && /went back/.test(back.reason),
+        JSON.stringify(back && back.reason));
+      X.clear();
+      X.send({ t: 'save', data: Object.assign({}, back.data, { chars: [Object.assign({}, bh, { weapon: t2, inv: bh.inv.map((it) => (it && it.sid === t2.sid ? hx.weapon : it)) })] }) });
+      await wait(450);
+      const step2 = Object.assign({}, back.data, { chars: [Object.assign({}, bh, { weapon: t3, inv: bh.inv.map((it) => (it && it.sid === t2.sid ? hx.weapon : it && it.sid === t3.sid ? t2 : it)) })] });
+      X.send({ t: 'save', data: step2 });
+      await wait(450);
+      check('...and climbing one tier per save works', !X.find((m) => m.t === 'saveRejected'), JSON.stringify(X.find((m) => m.t === 'saveRejected')));
+      X.s.destroy();
+    }
     // over the wire: no trading or Marketplace
     const H = await login('Thc' + n, { password: 'pass1234', register: true });
     const R = await login('Trg' + n, { password: 'pass1234', register: true });

@@ -2260,6 +2260,50 @@ class World {
 			this.gates[k] = [];
 			return true;
 		}
+	patchTiles(idx) {
+			var todo = {}, list = [];
+			for (var i of __vals( idx)) {
+				var x = __int(i % this.N), y = __int(__int(i / this.N));
+				if (minimap) minimap.setPixel(x, y, this.miniCol(i));
+				for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) {
+					var nx = __int(x + dx), ny = __int(y + dy);
+					if (nx < 0 || ny < 0 || nx >= this.N || ny >= this.N) continue;
+					var j = __int(ny * this.N + nx);
+					if (!todo[j]) { todo[j] = true; list.push(j); }
+				}
+			}
+			
+			list.sort(Array.NUMERIC);
+			var r = new Rectangle(0, 0, World.PX, World.PX);
+			var lastK = __int(-1), bd = null;
+			for (var t of __vals( list)) {
+				var tx = __int(t % this.N), ty = __int(__int(t / this.N));
+				var cx = __int(__int(tx / World.CHUNK)), cy = __int(__int(ty / World.CHUNK)), k = __int(cy * 1024 + cx);
+				if (k != lastK) {
+					if (bd) bd.unlock();
+					lastK = __int(k);
+					bd = chunks[k];
+					if (bd) { bd.lock(); target = bd; offX = cx * World.CHUNK * World.PX; offY = cy * World.CHUNK * World.PX; }
+				}
+				if (!bd) continue;
+				r.x = tx * World.PX - offX;
+				r.y = ty * World.PX - offY;
+				bd.setVector(r, texture(this.tiles[t], tx, ty));
+				drawEdges(tx, ty, this.tiles[t]);
+			}
+			if (bd) bd.unlock();
+			target = null;
+		}
+	miniCol(i) { i = __int(i);
+			if (this.objs[i] == 1 || this.objs[i] == 2) return __uint(0x1e4a18);
+			if (this.objs[i] == 4 || this.objs[i] == 5) return __uint(0x7a7a7a);
+			return __uint(MINI_COL[this.tiles[i]]);
+		}
+	patchArea(x0, y0, x1, y1) { x0 = __int(x0); y0 = __int(y0); x1 = __int(x1); y1 = __int(y1);
+			var idx = [];
+			for (var y = __int(Math.max(0, y0)); y <= Math.min(this.N - 1, y1); y++) for (var x = __int(Math.max(0, x0)); x <= Math.min(this.N - 1, x1); x++) idx.push(y * this.N + x);
+			this.patchTiles(idx);
+		}
 	blob(cx, cy, r, t) { cx = __int(cx); cy = __int(cy); t = __int(t);
 			var ri = __int(Math.ceil(r) + 2);
 			var wob = [];
@@ -2400,6 +2444,11 @@ class World {
 					if (this.tiles[pi] == World.RUIN) this.objs[pi] = 8;
 				}
 			}
+		}
+	standIn(cx, cy) { cx = __int(cx); cy = __int(cy);
+
+			if (minimap) bd.copyPixels(minimap, new Rectangle(cx * World.CHUNK, cy * World.CHUNK, World.CHUNK, World.CHUNK), new Point(0, 0));
+			return bd;
 		}
 	tileAtI(x, y) { x = __int(x); y = __int(y);
 			if (x < 0 || y < 0 || x >= this.N || y >= this.N) return __int(World.WATER);
@@ -4327,6 +4376,7 @@ World.OBJ_NAMES = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", 
 World.SHRINES = ["might", "haste", "fortune", "vigor", "arcana"];
 World.NEXUS_ZONE = __int(5);
 World.customMap = null;
+World.CHUNKS_PER_FRAME = __int(1);
 SetPieces.SIZE = __int(21);
 SetPieces.HALF = __int(10);
 SetPieces.OBJ_FIRST = __int(20);

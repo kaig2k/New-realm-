@@ -1,6 +1,7 @@
 package realm {
 	import flash.display.BitmapData;
 	import flash.geom.Matrix;
+	import flash.geom.Point;
 	import flash.geom.Rectangle;
 
 	/**
@@ -972,16 +973,61 @@ package realm {
 		}
 
 		/** Redraws the ground and minimap under just these tile indices (after a takeover wave). */
-		public function redrawTiles(idx:Array):void {
-			var done:Object = {};
+		public function redrawTiles(idx:Array):void { patchTiles(idx); }
+
+		/**
+		 * Repaints just these tiles (and their neighbours, whose edges and shallows
+		 * depend on them) in the ground chunks already drawn, and on the minimap.
+		 * Much cheaper than redrawing whole chunks (32 x 32 tiles each): set pieces
+		 * rising and falling change a ring of tiles many times a second.
+		 */
+		public function patchTiles(idx:Array):void {
+			var todo:Object = {}, list:Array = [];
 			for each (var i:int in idx) {
 				var x:int = i % N, y:int = int(i / N);
-				if (minimap) minimap.setPixel(x, y, MINI_COL[tiles[i]]);
+				if (minimap) minimap.setPixel(x, y, miniCol(i));
 				for (var dy:int = -1; dy <= 1; dy++) for (var dx:int = -1; dx <= 1; dx++) {
-					var cx:int = int((x + dx) / CHUNK), cy:int = int((y + dy) / CHUNK), k:int = cy * 1024 + cx;
-					if (!done[k]) { done[k] = true; dropChunk(cx, cy); }
+					var nx:int = x + dx, ny:int = y + dy;
+					if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+					var j:int = ny * N + nx;
+					if (!todo[j]) { todo[j] = true; list.push(j); }
 				}
 			}
+			// (in the order a chunk is first drawn, so edges overlap the same way)
+			list.sort(Array.NUMERIC);
+			var r:Rectangle = new Rectangle(0, 0, PX, PX);
+			var lastK:int = -1, bd:BitmapData = null;
+			for each (var t:int in list) {
+				var tx:int = t % N, ty:int = int(t / N);
+				var cx:int = int(tx / CHUNK), cy:int = int(ty / CHUNK), k:int = cy * 1024 + cx;
+				if (k != lastK) {
+					if (bd) bd.unlock();
+					lastK = k;
+					bd = chunks[k];
+					if (bd) { bd.lock(); target = bd; offX = cx * CHUNK * PX; offY = cy * CHUNK * PX; }
+				}
+				if (!bd) continue;
+				r.x = tx * PX - offX;
+				r.y = ty * PX - offY;
+				bd.setVector(r, texture(tiles[t], tx, ty));
+				drawEdges(tx, ty, tiles[t]);
+			}
+			if (bd) bd.unlock();
+			target = null;
+		}
+
+		/** A tile's colour on the minimap (trees and rocks show over the ground). */
+		private function miniCol(i:int):uint {
+			if (objs[i] == 1 || objs[i] == 2) return 0x1e4a18;
+			if (objs[i] == 4 || objs[i] == 5) return 0x7a7a7a;
+			return MINI_COL[tiles[i]];
+		}
+
+		/** Repaints every tile in (x0, y0)-(x1, y1) in place (see patchTiles). */
+		public function patchArea(x0:int, y0:int, x1:int, y1:int):void {
+			var idx:Array = [];
+			for (var y:int = Math.max(0, y0); y <= Math.min(N - 1, y1); y++) for (var x:int = Math.max(0, x0); x <= Math.min(N - 1, x1); x++) idx.push(y * N + x);
+			patchTiles(idx);
 		}
 
 		private function dropChunk(cx:int, cy:int):void {
@@ -1471,14 +1517,45 @@ package realm {
 		public function drawGround(out:BitmapData, mtx:Matrix, vx:Number, vy:Number, reach:Number):void {
 			var c0:int = Math.max(0, int((vx - reach) / CHUNK)), c1:int = Math.min(int((N - 1) / CHUNK), int((vx + reach) / CHUNK));
 			var r0:int = Math.max(0, int((vy - reach) / CHUNK)), r1:int = Math.min(int((N - 1) / CHUNK), int((vy + reach) / CHUNK));
-			for (var cy:int = r0; cy <= r1; cy++) {
-				for (var cx:int = c0; cx <= c1; cx++) {
+			// ground not drawn yet (after a teleport, a new world): only a couple of chunks a frame,
+			// nearest first, so the game never stalls; the rest show the map's colours meanwhile
+			var missing:Array = [];
+			for (var cy:int = r0; cy <= r1; cy++) for (var cx:int = c0; cx <= c1; cx++) if (!chunks[cy * 1024 + cx]) missing.push(cy * 1024 + cx);
+			if (missing.length > CHUNKS_PER_FRAME) {
+				var ccx:Number = vx / CHUNK - 0.5, ccy:Number = vy / CHUNK - 0.5;
+				missing.sort(function(a:int, b:int):Number {
+					var ax:Number = a % 1024 - ccx, ay:Number = int(a / 1024) - ccy, bx:Number = b % 1024 - ccx, by:Number = int(b / 1024) - ccy;
+					return (ax * ax + ay * ay) - (bx * bx + by * by);
+				});
+			}
+			var later:Object = {};
+			for (var m:int = CHUNKS_PER_FRAME; m < missing.length; m++) later[missing[m]] = true;
+			for (cy = r0; cy <= r1; cy++) {
+				for (cx = c0; cx <= c1; cx++) {
 					drawMtx.identity();
+					if (later[cy * 1024 + cx]) {
+						var stand:BitmapData = standIn(cx, cy);
+						drawMtx.scale(PX, PX);
+						drawMtx.translate(cx * CHUNK * PX, cy * CHUNK * PX);
+						drawMtx.concat(mtx);
+						out.draw(stand, drawMtx, null, null, null, false);
+						stand.dispose();
+						continue;
+					}
 					drawMtx.translate(cx * CHUNK * PX, cy * CHUNK * PX);
 					drawMtx.concat(mtx);
 					out.draw(chunk(cx, cy), drawMtx, null, null, null, false);
 				}
 			}
+		}
+
+		/** New ground chunks drawn per frame at most (each is 32 x 32 tiles, the slow part of a teleport). */
+		private static const CHUNKS_PER_FRAME:int = 1;
+		/** A chunk's tiles in their map colours, one pixel each: shown for the frame or two until it's drawn. */
+		private function standIn(cx:int, cy:int):BitmapData {
+			var bd:BitmapData = new BitmapData(CHUNK, CHUNK, false, 0x202020);
+			if (minimap) bd.copyPixels(minimap, new Rectangle(cx * CHUNK, cy * CHUNK, CHUNK, CHUNK), new Point(0, 0));
+			return bd;
 		}
 
 		/** Frees the rendered ground (it is redrawn when you come back). */

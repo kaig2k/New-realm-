@@ -76,7 +76,7 @@ package realm {
 			}
 			var wv:Object = {cells: cells, upto: WAVE_NEAR, skip: skip, st: st, x: tx + 0.5, y: ty + 0.5};
 			SetPieces.applyTakeover(w, cells, WAVE_NEAR, skip);
-			w.redrawArea(tx - 18, ty - 18, tx + 18, ty + 18);
+			w.patchArea(tx - 18, ty - 18, tx + 18, ty + 18);
 			waves.push(wv);
 			w.raidTint = st.part;
 			var txt:String = WAVE_TAUNT[e.def.setpiece.style] || (e.def.name + " claims the dungeon!");
@@ -218,8 +218,9 @@ package realm {
 			var e:Enemy = ar.e, w:World = g.world;
 			var ph:Object = SetPieces.phasesOf(e.defId)[k];
 			var sel:Array = SetPieces.applyPhase(w, e.defId, ar.cells, k);
-			var x0:int = int(ar.x) - SetPieces.HALF, y0:int = int(ar.y) - SetPieces.HALF;
-			w.redrawArea(x0, y0, x0 + SetPieces.SIZE, y0 + SetPieces.SIZE);
+			var pi:Array = [];
+			for each (var q:Object in sel) pi.push(q.i);
+			w.patchTiles(pi);
 			g.shake(0.7, 7);
 			if (Game.opt("parts")) for (var j:int = 0; j < sel.length; j += Math.max(1, int(sel.length / 14))) g.burst(sel[j].x + 0.5, sel[j].y + 0.5, ph ? ph.col : ar.st.dust, 6);
 			if (!e.remote && g.sync && g.sync.isHost) {
@@ -256,8 +257,10 @@ package realm {
 		private function changed(ar:Object, n:int, rising:Boolean):void {
 			if (n <= 0) return;
 			var w:World = g.world;
-			var x0:int = int(ar.x) - SetPieces.HALF, y0:int = int(ar.y) - SetPieces.HALF;
-			w.redrawArea(x0, y0, x0 + SetPieces.SIZE, y0 + SetPieces.SIZE);
+			// only the ring that just went up (or came down) is repainted
+			var idx:Array = [];
+			for each (var c:Object in ar.cells) if (Boolean(c.flip) != c.on) { c.flip = c.on; idx.push(c.i); }
+			w.patchTiles(idx);
 			var dusty:int = 0;
 			for each (var k:Object in ar.cells) {
 				if (rising ? (!k.on || k.d > ar.upto || k.d <= ar.upto - STEP * SPEED) : (k.on || k.d < ar.from || k.d >= ar.from + STEP * SPEED)) continue;

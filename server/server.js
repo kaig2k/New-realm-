@@ -1723,12 +1723,11 @@ const { godmodeVerdict, damageVerdict } = require('./godmode');
 
 /**
  * A player whose game ignored damage it took (config "combatCheck"): "flag" only tells the admins,
- * "kick" disconnects, "kill" kills the hero (it goes to the graves, so /revive can undo a
- * mistake), and "auto" (the default) kicks the first time and kills if it happens again
- * within a day.
+ * "kick" (the default) disconnects, "kill" kills the hero (it goes to the graves, so /revive can
+ * undo a mistake), and "auto" kicks the first time and kills if it happens again within a day.
  */
 function enforce(c, note) {
-  const mode = ['flag', 'kick', 'kill', 'auto'].includes(config.combatCheck) ? config.combatCheck : 'auto';
+  const mode = ['flag', 'kick', 'kill', 'auto'].includes(config.combatCheck) ? config.combatCheck : 'kick';
   if (mode === 'flag') return false;
   const again = c.meta && Date.now() - (c.meta.cheatAt || 0) < 24 * 3600 * 1000;
   if (c.meta) c.meta.cheatAt = Date.now();
@@ -1752,7 +1751,7 @@ function enforce(c, note) {
     }
   }
   counters.godmodeKicks++;
-  c.send({ t: 'kicked', msg: 'Your game ignored damage it took, so you were disconnected. If it happens again your hero dies. If you think this is a mistake, tell an admin.' });
+  c.send({ t: 'kicked', msg: 'Your game ignored damage it took, so you were disconnected.' + (mode === 'auto' ? ' If it happens again your hero dies.' : '') + ' If you think this is a mistake, tell an admin.' });
   c.close(true);
   return true;
 }

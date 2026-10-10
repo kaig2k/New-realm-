@@ -105,7 +105,7 @@ Players then join with `play.yourgame.com:2050`.
 | `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
-| `combatCheck` | What happens to a player whose game ignores damage (the damage it reports is far below what the clean hits the server saw must have done, or its health is more than its hero can have): `"auto"` (the default) disconnects them the first time and kills the hero if it happens again within a day; `"kick"` only disconnects; `"kill"` kills the hero at once; `"flag"` only logs it and tells online admins. A hero killed this way goes to the graves, so `/revive` brings it back if it was a mistake. Everything is written to `server/data/anticheat.log`. |
+| `combatCheck` | What happens to a player whose game ignores damage (the damage it reports is far below what the clean hits the server saw must have done, or its health is more than its hero can have): `"kick"` (the default) disconnects them; `"auto"` disconnects them the first time and kills the hero if it happens again within a day; `"kill"` kills the hero at once; `"flag"` only logs it and tells online admins. A hero killed this way goes to the graves, so `/revive` brings it back if it was a mistake. Everything is written to `server/data/anticheat.log`. |
 | `teleportToAnyone` | `true` (the default, like RotMG): players can teleport to anyone in the same world by clicking them on the minimap or with `/tp name`. `false`: only to party and guild members. |
 
 Restart the service after editing: `sudo systemctl restart newrealm`.

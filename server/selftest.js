@@ -86,7 +86,7 @@ async function run() {
   const hook = require('http').createServer((q, r) => { let b = ''; q.on('data', (d) => { b += d; }); q.on('end', () => { try { posts.push(JSON.parse(b)); } catch (e) {} r.writeHead(204); r.end(); }); });
   await new Promise((r) => hook.listen(0, '127.0.0.1', r));
   const hookUrl = 'http://127.0.0.1:' + hook.address().port + '/api/webhooks/1/x';
-  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl }));
+  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl, combatCheck: 'auto' }));
   // two accounts from before account numbers (oldest first gets #1)
   fs.writeFileSync(path.join(DATA, 'accounts.json'), JSON.stringify({ yold: { name: 'Yold', created: 2000 }, zold: { name: 'Zold', created: 1000 } }));
   const srv = spawn(process.execPath, [path.join(__dirname, 'server.js'), String(PORT)], {

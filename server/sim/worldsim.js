@@ -296,7 +296,10 @@ class WorldSim {
     if (!s || !s.enemy || s.motion === 'home') return;
     if (!this.shots) this.shots = [];
     if (this.shots.length > 3000) this.shots.shift();
-    this.shots.push({ x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false, walls: !s.passWalls,
+    // (only players whose game was sent this shot can be expected to take it: see fired)
+    const to = new Set();
+    for (const c of this.players.values()) if ((c.x - s.x) * (c.x - s.x) + (c.y - s.y) * (c.y - s.y) < FIRE_RANGE * FIRE_RANGE) to.add(c.id);
+    this.shots.push({ to, x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false, walls: !s.passWalls,
       dmg: Math.max(0, Number(s.dmg) || 0) });
   }
 
@@ -325,7 +328,7 @@ class WorldSim {
         // a clean hit: well inside the shot's reach (weaving shots wander, so they need to be closer)
         const reach = (s.r + 0.4) * (s.motion === 'wave' ? 0.35 : 0.6);
         for (const c of this.players.values()) {
-          if ((c.grace || 0) > now) continue;
+          if ((c.grace || 0) > now || !s.to.has(c.id)) continue;
           const dx = c.x - s.x, dy = c.y - s.y;
           if (dx * dx + dy * dy < reach * reach) {
             c.expHits = (c.expHits || 0) + 1;

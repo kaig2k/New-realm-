@@ -19,7 +19,7 @@ package realm {
 		private var onPick:Function;
 		private var onBack:Function;
 		private var nameField:TextField;
-		/** Under the class cards: the hovered class's description (or why it's locked). */
+		/** Under the class cards: the hovered class's description. */
 		private var hoverTf:TextField;
 		private var classLayer:Sprite;
 		private var charLayer:Sprite;
@@ -87,7 +87,7 @@ package realm {
 			pick.y = 180;
 			classLayer.addChild(pick);
 
-			// 4 to a row, 3 rows (Eldmere's own classes are earned: see Data.CLASS_UNLOCK)
+			// 4 to a row, 3 rows (every class is open from the start)
 			for (var i:int = 0; i < Data.CLASS_ORDER.length; i++) {
 				var card:Sprite = makeCard(Data.CLASSES[Data.CLASS_ORDER[i]], save);
 				card.x = (Ui.W - 4 * 252 - 3 * 10) / 2 + (i % 4) * 262;
@@ -275,26 +275,25 @@ package realm {
 		private function makeCard(cls:Object, save:Object):Sprite {
 			var c:Sprite = new Sprite();
 			var w:int = 252, h:int = 100;
-			var open:Boolean = Data.classUnlocked(cls.id, save.bestLevel);
-			var unlock:Object = Data.CLASS_UNLOCK[cls.id];
+			var eldmere:Boolean = !!Data.ELDMERE_CLASSES[cls.id];
 			var draw:Function = function(hover:Boolean):void {
 				c.graphics.clear();
-				Ui.panel(c.graphics, 0, 0, w, h, hover && open ? 0x3e3e3e : open ? 0x262626 : 0x1a1a1e, hover ? (open ? Ui.GOLD : 0x8a6a6a) : unlock ? 0x6a5a8a : 0x5a5a5a, 0.94);
+				Ui.panel(c.graphics, 0, 0, w, h, hover ? 0x3e3e3e : 0x262626, hover ? Ui.GOLD : eldmere ? 0x6a5a8a : 0x5a5a5a, 0.94);
 				c.graphics.beginFill(0x000000, 0.25);
 				c.graphics.drawRoundRect(6, 6, 64, 64, 10, 10);
 				c.graphics.endFill();
 			};
 			draw(false);
-			var spr:Bitmap = new Bitmap(open ? Sprites.get(cls.id) : Sprites.statue(cls.id));
+			var spr:Bitmap = new Bitmap(Sprites.get(cls.id));
 			spr.scaleX = spr.scaleY = 1.2;
 			spr.x = 38 - spr.width / 2;
 			spr.y = 38 - spr.height / 2;
 			c.addChild(spr);
-			var name:TextField = Ui.text(18, open ? 0xffffff : 0xa0a0a8, true, "left", 0, true);
+			var name:TextField = Ui.text(18, 0xffffff, true, "left", 0, true);
 			name.text = cls.name;
 			name.x = 78; name.y = 4;
 			c.addChild(name);
-			if (unlock) {
+			if (eldmere) {
 				// (Eldmere's own classes: a little mark under the portrait)
 				var tag:TextField = Ui.text(9, 0xc0a0ff, true, "center", 64, true);
 				tag.text = "ELDMERE";
@@ -303,26 +302,21 @@ package realm {
 			}
 			var best:int = save.bestLevel ? int(save.bestLevel[cls.id] || 0) : 0;
 			var info:TextField = Ui.text(11, 0xaaaaaa, false, "left", w - 84);
-			info.htmlText = open
-				? "<font color='#ffd75e'><b>" + cls.ability.name + "</b></font>  " + cls.ability.desc
-				: "<font color='#ff9a9a'><b>Locked</b></font>  " + unlock.text + " to unlock.";
+			info.htmlText = "<font color='#ffd75e'><b>" + cls.ability.name + "</b></font>  " + cls.ability.desc;
 			info.x = 78; info.y = 28;
 			c.addChild(info);
-			// stats (or, while locked, what the class is about)
-			var desc:TextField = Ui.text(open ? 11 : 10, open ? 0xcccccc : 0x8a8a90, false, "left", w - 14);
-			if (open) desc.htmlText = "HP " + cls.base.hp + "  ATT " + cls.base.att + "  DEX " + cls.base.dex +
+			var desc:TextField = Ui.text(11, 0xcccccc, false, "left", w - 14);
+			desc.htmlText = "HP " + cls.base.hp + "  ATT " + cls.base.att + "  DEX " + cls.base.dex +
 				(best > 0 ? "   <font color='#80ff80'>Best level " + best + "</font>" : "");
-			else desc.text = cls.desc;
 			desc.x = 7;
-			desc.y = open ? 76 : 71;
+			desc.y = 76;
 			c.addChild(desc);
 
-			c.buttonMode = open;
+			c.buttonMode = true;
 			c.mouseChildren = false;
 			c.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { draw(true); if (hoverTf) hoverTf.text = cls.name + ": " + cls.desc; });
 			c.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { draw(false); if (hoverTf) hoverTf.text = ""; });
 			c.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void {
-				if (!open) { if (hoverTf) hoverTf.htmlText = "<font color='#ff9a9a'>" + cls.name + " is locked: " + unlock.text + ".</font>"; return; }
 				var n:String = nameField.text.replace(/[^A-Za-z0-9]/g, "");
 				if (!n) n = NAMES[int(Math.random() * NAMES.length)];
 				Save.data.name = n;

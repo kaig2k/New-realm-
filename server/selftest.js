@@ -384,8 +384,7 @@ async function run() {
       if (!Object.values(Godly.DROPS).some((l) => l.some((d) => d[0] === id))) missing.push(id + ': Godly drops');
     }
     check('all ' + Data.CLASS_ORDER.length + ' classes are complete (stats, sets, skins, dyes, 3 abilities, tooltips, starter gear)', missing.length === 0, missing.join('; '));
-    check('Eldmere\'s own classes unlock by playing', !Data.classUnlocked('chronomancer', { wizard: 20, priest: 20 }) && Data.classUnlocked('chronomancer', { wizard: 20, priest: 20, rogue: 20 }) &&
-      Data.classUnlocked('bard', { knight: 12 }) && !Data.classUnlocked('alchemist', { knight: 19 }) && Data.classUnlocked('wizard', {}));
+    check('every class, Eldmere\'s own included, is open from the start', !Data.classUnlocked && ['bard', 'alchemist', 'chronomancer'].every((k) => Data.CLASSES[k] && Data.ELDMERE_CLASSES[k]));
   }
 
   console.log('raids');

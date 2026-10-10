@@ -82,7 +82,7 @@ package realm {
 				max: {hp: 680, mp: 252, att: 75, def: 25, spd: 50, dex: 50, vit: 40, wis: 50, mgt: 60, luc: 50, prt: 25},
 				ability: {name: "Snare", cost: 25, desc: "Trap roots enemies in vines, then bursts."}
 			},
-			// ---- Eldmere's own classes (unlocked by playing: see CLASS_UNLOCK)
+			// ---- Eldmere's own classes (open to everyone: see ELDMERE_CLASSES)
 			bard: {
 				id: "bard", name: "Bard", weapon: "bow", armor: "leather", abilityType: "lyre",
 				desc: "The party's heart. Songs that make allies hit harder, lull monsters to sleep or shatter them.",
@@ -114,19 +114,8 @@ package realm {
 		 * Classes you earn (RotMG style): {need: best level to reach, classes: how many different classes must reach it, text}.
 		 * The rest are open from the start.
 		 */
-		public static const CLASS_UNLOCK:Object = {
-			bard: {need: 10, classes: 1, text: "Reach level 10 with any hero"},
-			alchemist: {need: 20, classes: 1, text: "Reach level 20 with any hero"},
-			chronomancer: {need: 20, classes: 3, text: "Reach level 20 with 3 different classes"}
-		};
-		/** Is class id open for this save? (bestLevel: class id -> best level reached) */
-		public static function classUnlocked(id:String, bestLevel:Object):Boolean {
-			var u:Object = CLASS_UNLOCK[id];
-			if (!u) return true;
-			var n:int = 0;
-			for (var k:String in bestLevel || {}) if (int(bestLevel[k]) >= u.need) n++;
-			return n >= u.classes;
-		}
+		/** The classes found only in Eldmere (marked on the class screen). Every class is open from the start. */
+		public static const ELDMERE_CLASSES:Object = {bard: true, alchemist: true, chronomancer: true};
 
 		/** Per-level growth, derived from the level 1 and level 20 stat tables. */
 		public static function grow(cls:Object, s:String):Number {
@@ -1237,6 +1226,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-classes", title: "What's new in Eldmere",
+				lines: ["<b>Every class is open</b>: the Bard, Alchemist and Chronomancer can be played straight away, no levels needed.",
+					"<b>Account numbers</b>: your account's number is shown on the character screen, and on players you inspect. Use it in /report.",
+					"<b>Unfair death?</b> If a hero died to lag or a bug, tell an admin: fallen heroes can now be brought back."]},
 			{id: "2026-10-launch", title: "What's new in Eldmere",
 				lines: ["<b>Hero modes</b>: make an Ironman or Hardcore hero for more loot luck (pick on the class screen).",
 					"<b>Guild Halls</b>: walk into your guild's own hall from the Nexus portal. Shared bank, weekly goals, and a Banner Maker.",

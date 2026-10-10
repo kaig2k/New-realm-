@@ -810,7 +810,7 @@ class Godly {
 		}
 	static describe(it) {
 			var src = Godly.source[it.gid];
-			return "<font color='#fff6e0'>Godly: 1 in 3,000" + (src ? " from " + src : "") + ".</font>\n";
+			return "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ".</font>\n";
 		}
 }
 
@@ -4224,7 +4224,7 @@ Uniques.bossOf = {};
 Uniques.STAT_MUL = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
 Uniques.DMG_MUL = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
 Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
-Godly.CHANCE = 1 / 3000;
+Godly.CHANCE = 1 / 1000;
 Godly.SETS = {
 			wizard: {name: "Astral Archmage", items: ["Staff of the Endless Cosmos", "Grimoire of Creation", "Robes of the Astral Archmage", "Ring of Infinite Stars"],
 				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 18, wis: 15, dex: 10, frt: 15}},

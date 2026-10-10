@@ -1,11 +1,11 @@
 package realm {
 	/**
-	 * Godly items: the rarest tier (1 in 3,000 per kill). Every class has a full
+	 * Godly items: the rarest tier (1 in 1,000 per kill). Every class has a full
 	 * four-piece Godly set (weapon, ability, armor, ring), 32 items in all with no
 	 * duplicates, spread over the endgame, finale and raid bosses.
 	 */
 	public class Godly {
-		public static const CHANCE:Number = 1 / 3000;
+		public static const CHANCE:Number = 1 / 1000;
 
 		/** Per class: set name, the four item names, weapon twist and set bonus. */
 		public static const SETS:Object = {
@@ -101,7 +101,7 @@ package realm {
 			return it;
 		}
 
-		/** Rolls a boss's Godly pieces (each 1 in 3,000, a little better with Bounty). */
+		/** Rolls a boss's Godly pieces (each 1 in 1,000, a little better with Bounty). */
 		public static function roll(def:Object, items:Array, boost:Number):void {
 			if (!def.godly) return;
 			// one roll a kill, however many Godly items the boss can drop (then which one)
@@ -113,7 +113,7 @@ package realm {
 
 		public static function describe(it:Object):String {
 			var src:String = source[it.gid];
-			return "<font color='#fff6e0'>Godly: 1 in 3,000" + (src ? " from " + src : "") + ".</font>\n";
+			return "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ".</font>\n";
 		}
 	}
 }

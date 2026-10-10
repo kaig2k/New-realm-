@@ -38,7 +38,7 @@ package realm {
 			"Tiered gear goes from T0 to T7. Above that, from common to rarest: " +
 			"<font color='#6aa8ff'>Runed</font>, <font color='#4ee08a'>Bonded</font> (class sets, 4-piece bonus), " +
 			"<font color='#c85cff'>Eldritch</font>, <font color='#ffc23a'>Starforged</font>, <font color='#ff5533'>Primordial</font> and " +
-			"<font color='#fff6e0'>Godly</font>. Godly items drop 1 in 3,000 from the bosses that carry them (a little more with Bounty).\n\n" +
+			"<font color='#fff6e0'>Godly</font>. Godly items drop 1 in 1,000 from the bosses that carry them (a little more with Bounty).\n\n" +
 			"<font size='15' color='#ffd75e'><b>Boss uniques</b></font>\n" +
 			"Every boss has its own unique items, and their rarity matches the boss: Runed from the early dungeons, Eldritch from the " +
 			"other dungeons and realm events, Starforged from the biggest events, endgame dungeons, realm finales and raid bosses, and " +

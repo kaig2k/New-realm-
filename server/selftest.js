@@ -45,7 +45,10 @@ function client() {
         } catch (e) {}
       }
     });
-    s.on('close', () => { c.closed = true; });
+    // (like the game: a keep-alive every 10 seconds, or the server drops a connection quiet for 45)
+    const keep = setInterval(() => c.send({ t: 'ping', at: -1 }), 10000);
+    keep.unref();
+    s.on('close', () => { c.closed = true; clearInterval(keep); });
     s.on('error', () => {});
     c.send = (o) => { if (!c.closed) s.write((typeof o === 'string' ? o : JSON.stringify(o)) + '\n'); };
     c.find = (fn) => c.msgs.find(fn);

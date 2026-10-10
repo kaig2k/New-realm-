@@ -2130,7 +2130,7 @@ package realm {
 					// a 1 in 5,000 drop: make a scene
 					for each (var gi:Object in items) if (gi.rarity == "gd") {
 						showBanner("GODLY DROP: " + gi.name + "!", Data.RARITY_COLORS.gd, 6);
-						msg("*** You found a Godly item: " + gi.name + "! (1 in 3,000) ***", Data.RARITY_COLORS.gd);
+						msg("*** You found a Godly item: " + gi.name + "! (1 in 1,000) ***", Data.RARITY_COLORS.gd);
 						if (net.online) net.chat("I just found a Godly " + gi.name + "!!!");
 					}
 					Sfx.play("rare"); Sfx.play("level");

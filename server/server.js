@@ -28,6 +28,7 @@ const wallet = require('./wallet');
 const season = require('./season');
 const hall = require('./guildhall');
 const modes = require('./modes');
+const graves = require('./graves');
 const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -188,11 +189,13 @@ function finishLogin(c, acc, key, session) {
   c.meta = accountMeta.get(key) || { lastSave: Date.now(), lastGodly: 0 };
   accountMeta.set(key, c.meta);
   c.chatTimes = [];
-  c.send({ t: 'welcome', id: c.id, name: c.name, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
+  acc.lastSeen = Date.now();
+  save('accounts.json', accounts);
+  c.send({ t: 'welcome', id: c.id, name: c.name, no: acc.no || 0, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
     save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current });
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
-  log(c.name, 'joined (' + byName.size + ' online)');
+  log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
 }
 
 // ------------------------------------------------------------------ Discord status board
@@ -322,6 +325,58 @@ setInterval(() => {
 }, 60000).unref();
 /** accounts[lowername] = {name, created, pwSalt, pwHash, sessions: [hashes]} (+ salt/hash on accounts made before passwords) */
 const accounts = load('accounts.json', {});
+/**
+ * Every account has a number (accounts[key].no), in the order they were made, for
+ * moderation: #1 is the server's owner (config "owner", else the first admin).
+ * Accounts from before numbers get theirs the first time the server starts.
+ */
+function numberAccounts() {
+  const keys = Object.keys(accounts);
+  let next = 1 + keys.reduce((n, k) => Math.max(n, Number(accounts[k].no) || 0), 0);
+  const todo = keys.filter((k) => !(Number(accounts[k].no) > 0)).sort((a, b) => (accounts[a].created || 0) - (accounts[b].created || 0));
+  if (!todo.length) return;
+  const owner = String(config.owner || config.admins[0] || '').toLowerCase();
+  if (next === 1 && todo.includes(owner)) { todo.splice(todo.indexOf(owner), 1); todo.unshift(owner); }
+  for (const k of todo) accounts[k].no = next++;
+  save('accounts.json', accounts);
+}
+function nextAccountNo() { return 1 + Object.keys(accounts).reduce((n, k) => Math.max(n, Number(accounts[k].no) || 0), 0); }
+/** An account from what an admin typed: a name, or #number. Returns its key, or ''. */
+function accountKey(arg) {
+  const t = String(arg || '').trim().toLowerCase();
+  const m = /^#(\d+)$/.exec(t);
+  if (m) { const n = Number(m[1]); return Object.keys(accounts).find((k) => accounts[k].no === n) || ''; }
+  return accounts[t] ? t : '';
+}
+numberAccounts();
+const accountTag = (key) => (accounts[key] ? accounts[key].name + ' (#' + accounts[key].no + ')' : key);
+/** The server's owner: config "owner", else the first admin. */
+const isOwner = (c) => String(config.owner || config.admins[0] || '').toLowerCase() === c.key;
+const clsName = (id) => (Data.CLASSES[id] && Data.CLASSES[id].name) || id || 'hero';
+const ago = (t) => { const s = Math.max(0, (Date.now() - (t || 0)) / 1000); return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago'; };
+const dayOf = (t) => (t ? new Date(t).toISOString().slice(0, 10) : '?');
+function heroLine(h) {
+  return (h.name || '?') + ', level ' + (h.level || 1) + ' ' + clsName(h.cls) + (h.mode === 'ironman' ? ', Ironman' : h.mode === 'hardcore' ? ', Hardcore' : '') + (h.season ? ', Seasonal' : '');
+}
+function graveLine(e) {
+  return heroLine(e.hero) + ', ' + (e.died ? 'died ' + ago(e.at) + (e.killer ? ' to ' + e.killer : '') : 'gone ' + ago(e.at)) + (e.fame ? ' (' + e.fame.toLocaleString('en') + ' fame)' : '');
+}
+/** /whois: number, dates, heroes and standing, so an admin can check someone owns an account before helping. */
+function whoisLines(key) {
+  const a = accounts[key], sv = store.getSave(key) || {};
+  const on = byName.get(key), ban = bans[key];
+  const out = ['#' + a.no + ' ' + a.name + (config.admins.some((x) => String(x).toLowerCase() === key) ? ' (admin)' : '') +
+    ': made ' + dayOf(a.created) + ', ' + (on ? 'online now' + (on.world ? ' in ' + on.world.split(':')[0] : '') : 'last seen ' + (a.lastSeen ? ago(a.lastSeen) : 'before numbers')) +
+    (ban && (!ban.until || ban.until > Date.now()) ? ', BANNED' + (ban.until ? ' until ' + dayOf(ban.until) : '') + (ban.reason ? ' (' + ban.reason + ')' : '') : '')];
+  out.push('  Fame ' + (sv.fame || 0).toLocaleString('en') + ', gold ' + (sv.gold || 0).toLocaleString('en') + ', Aether ' + (sv.onrane || 0).toLocaleString('en') +
+    ', heroes lost ' + (sv.deaths || 0) + (c2g(key) ? ', guild ' + c2g(key) : ''));
+  const live = (sv.chars || []).filter(Boolean);
+  out.push('  Heroes: ' + (live.length ? live.map(heroLine).join('; ') : 'none'));
+  const g = graves.list(sv);
+  if (g.length) out.push('  ' + g.length + ' fallen hero' + (g.length === 1 ? '' : 'es') + ' can be brought back: /graves ' + a.name);
+  return out;
+}
+function c2g(key) { for (const gk in guilds) if (guilds[gk].members[key]) return guilds[gk].name || gk; return ''; }
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
 const guilds = load('guilds.json', {});
 /** bans[lowername] = {until (ms, 0 = forever), reason, by} */
@@ -504,6 +559,7 @@ function publicSave(s) {
   delete o._titles;
   delete o._fame;
   delete o._login;
+  delete o._graves;
   o.earned = Object.keys(s._titles || {});
   return o;
 }
@@ -538,6 +594,9 @@ function applySave(c, data, cid) {
   if (prev._market) data._market = prev._market; else delete data._market;
   // and the daily login streak
   if (prev._login) data._login = prev._login; else delete data._login;
+  // and the fallen heroes an admin can bring back (see graves.js)
+  if (prev._graves) data._graves = prev._graves; else delete data._graves;
+  const fell = graves.fallen(prev, data);
   // gold and fame only go up by what the server saw earned
   if (sims && !isAdmin(c)) {
     const cut = wallet.settle(prev, data, c.meta, Date.now());
@@ -548,8 +607,9 @@ function applySave(c, data, cid) {
       c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
   } else if (prev._fame) data._fame = prev._fame;
-  // heroes that died go on the season ladder
+  // heroes that died go on the season ladder, and into the server's graves
   seasonSave(c, prev, data);
+  graves.bury(data, fell, wallet.fameGain(prev, data));
   // and earned titles (the game's list is only a copy)
   if (prev._titles) data._titles = prev._titles; else delete data._titles;
   data.earned = Object.keys(data._titles || {});
@@ -652,10 +712,10 @@ const handlers = {
       const salt = crypto.randomBytes(16).toString('hex');
       return hashThen(password, salt, (hash) => {
         if (accounts[key]) return c.fail('That username is already taken.');
-        const a = accounts[key] = { name, created: Date.now(), pwSalt: salt, pwHash: hash };
+        const a = accounts[key] = { name, no: nextAccountNo(), created: Date.now(), pwSalt: salt, pwHash: hash };
         const session = newSession(a);
         save('accounts.json', accounts);
-        log('new account', name);
+        log('new account', name, '#' + a.no);
         finishLogin(c, a, key, session);
       });
     }
@@ -1351,7 +1411,8 @@ const handlers = {
   cmd(c, m) {
     const parts = str(m.text, 200).trim().split(/\s+/);
     const cmd = (parts[0] || '').toLowerCase();
-    const who = (parts[1] || '').toLowerCase();
+    // (an account can be named by its number too: /ban #12)
+    const who = accountKey(parts[1]) || (parts[1] || '').toLowerCase();
     const rest = parts.slice(2).join(' ');
     if (cmd === '/report') {
       if (!who) return c.note('Usage: /report name reason');
@@ -1412,6 +1473,53 @@ const handlers = {
           target.note(c.name + (amount > 0 ? ' gave you ' : ' took ') + Math.abs(amount).toLocaleString('en') + ' ' + label + '.', 0x80ff80);
         }
         return c.note((amount > 0 ? 'Gave ' : 'Took ') + Math.abs(amount).toLocaleString('en') + ' ' + label + (amount > 0 ? ' to ' : ' from ') + accounts[who].name + '.', 0x80ff80);
+      }
+      case '/whois': {
+        // /whois name or #number: the account at a glance (also helps check someone really owns it)
+        if (!accounts[who]) return c.note('Usage: /whois name or /whois #number');
+        for (const line of whoisLines(who)) c.note(line, 0x9fe0ff);
+        return;
+      }
+      case '/graves': {
+        // /graves name: the account's fallen heroes, newest first, to pick one for /revive
+        if (!accounts[who]) return c.note('Usage: /graves name (then /revive name number)');
+        const g = graves.list(onlineSave(who));
+        if (!g.length) return c.note(accountTag(who) + ' has no fallen heroes the server kept.');
+        c.note(accountTag(who) + ': fallen heroes (newest first). /revive ' + accounts[who].name + ' number', 0x9fe0ff);
+        g.forEach((e, i) => c.note('  ' + (i + 1) + ') ' + graveLine(e), 0x9fe0ff));
+        return;
+      }
+      case '/revive': {
+        // /revive name number: bring a fallen hero back (after an unfair death)
+        const n = Math.floor(Number(parts[2]));
+        if (!accounts[who] || !(n >= 1)) return c.note('Usage: /revive name number (see /graves name for the numbers)');
+        const sv = onlineSave(who);
+        const r = graves.revive(sv, n);
+        if (r.error) return c.note(r.error);
+        store.putSave(who, sv);
+        const h = r.hero, what = h.name + ' (level ' + (h.level || 1) + ' ' + clsName(h.cls) + ')';
+        log(c.name + ' revived ' + what + ' for ' + accountTag(who) + (r.fameBack ? ', taking back ' + r.fameBack + ' fame' : ''));
+        store.appendLog('admin.log', new Date().toISOString() + ' ' + c.name + ' revived ' + what + ' for ' + accountTag(who));
+        if (target) {
+          target.send({ t: 'revived', hero: h, fame: sv.fame || 0, deaths: sv.deaths || 0, graves: sv.graves || [], seq: sv.tradeSeq });
+          target.note(c.name + ' brought back your hero ' + h.name + '. Pick it on the character screen.' + (r.fameBack ? ' (The ' + r.fameBack.toLocaleString('en') + ' fame its death gave was taken back.)' : ''), 0x80ff80);
+        }
+        return c.note('Revived ' + what + ' for ' + accountTag(who) + '.' + (r.fameBack ? ' Took back the ' + r.fameBack.toLocaleString('en') + ' fame its death gave.' : ''), 0x80ff80);
+      }
+      case '/setpassword': {
+        // /setpassword name newpassword: for players who forgot theirs (check it's really them first: /whois)
+        const pw = parts[2] || '';
+        if (!accounts[who] || !pw) return c.note('Usage: /setpassword name newpassword (they log in with it, then can change it under Account)');
+        if (pw.length < 4 || pw.length > 64) return c.note('Passwords need 4-64 characters.');
+        if (who !== c.key && config.admins.some((a) => String(a).toLowerCase() === who) && !isOwner(c)) return c.note('Only the server owner can reset another admin\'s password.');
+        setPassword(accounts[who], pw);
+        // every PC logged in to it has to use the new password
+        accounts[who].sessions = [];
+        save('accounts.json', accounts);
+        log(c.name + ' set a new password for ' + accountTag(who));
+        store.appendLog('admin.log', new Date().toISOString() + ' ' + c.name + ' set a new password for ' + accountTag(who));
+        if (target && target !== c) { target.send({ t: 'kicked', msg: 'An admin set a new password for your account. Log in with it.' }); target.close(true); }
+        return c.note('New password set for ' + accountTag(who) + '. Every PC logged in to it now has to log in again.', 0x80ff80);
       }
       case '/discord':
         if (!discord.on) return c.note('No Discord webhook is set. Put "discordWebhook" in server/config.json and restart.');
@@ -1699,6 +1807,8 @@ function sendParty(pid) {
 function withBanner(c, p) {
   // (the hero's mode, as the server knows it, shows by the name too)
   if (c.mode) p.md = c.mode; else delete p.md;
+  // the account number, so players can name someone exactly in a report
+  if (accounts[c.key] && accounts[c.key].no) p.no = accounts[c.key].no;
   const g = guildOf(c);
   if (g && g.banner) p.gb = g.banner; else delete p.gb;
   return p;
@@ -2029,7 +2139,7 @@ setInterval(() => {
 }, 1000);
 
 // ------------------------------------------------------------------ console
-const HELP = 'Commands: list | stats | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | realms (new realms) | stop';
+const HELP = 'Commands: list | stats | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | whois <name|#n> | setpassword <name|#n> <password> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
 function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
 process.stdin.setEncoding('utf8');
@@ -2075,6 +2185,24 @@ process.stdin.on('data', (data) => {
         const on = byName.get(k);
         if (on) { on.send({ t: 'kicked', msg: 'You were banned.' }); on.close(true); }
         log('banned ' + who);
+        break;
+      }
+      case 'whois': {
+        const k = accountKey(rest[0]);
+        if (!k) { console.log('No account called ' + rest[0] + '.'); break; }
+        for (const line of whoisLines(k)) console.log(line);
+        break;
+      }
+      case 'setpassword': {
+        // (from the VPS itself: for when the owner is locked out too)
+        const k = accountKey(rest[0]), pw = rest[1] || '';
+        if (!k || pw.length < 4) { console.log('Usage: setpassword <name|#n> <password of 4+ characters>'); break; }
+        setPassword(accounts[k], pw);
+        accounts[k].sessions = [];
+        save('accounts.json', accounts);
+        const on = byName.get(k);
+        if (on) { on.send({ t: 'kicked', msg: 'Your password was changed. Log in with the new one.' }); on.close(true); }
+        log('set a new password for ' + accountTag(k));
         break;
       }
       case 'unban':

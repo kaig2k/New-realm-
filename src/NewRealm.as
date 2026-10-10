@@ -93,6 +93,8 @@ package {
 
 		private function showTitle():void {
 			Online.onDropped = connectionDropped;
+			// a revived hero shows up on the character screen straight away
+			Online.onRevived = function(m:Object):void { if (screen is Menu) showMenu(); };
 			setScreen(new TitleScreen(showMenu));
 		}
 

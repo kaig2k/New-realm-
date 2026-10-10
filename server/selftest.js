@@ -84,6 +84,8 @@ async function run() {
   await new Promise((r) => hook.listen(0, '127.0.0.1', r));
   const hookUrl = 'http://127.0.0.1:' + hook.address().port + '/api/webhooks/1/x';
   fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl }));
+  // two accounts from before account numbers (oldest first gets #1)
+  fs.writeFileSync(path.join(DATA, 'accounts.json'), JSON.stringify({ yold: { name: 'Yold', created: 2000 }, zold: { name: 'Zold', created: 1000 } }));
   const srv = spawn(process.execPath, [path.join(__dirname, 'server.js'), String(PORT)], {
     env: Object.assign({}, process.env, { NEWREALM_DATA: DATA, NEWREALM_CONFIG: path.join(DATA, 'config.json') }), stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -114,6 +116,7 @@ async function run() {
   const A = await login(nameA, { password: 'pass1234', register: true });
   check('register works', A.id > 0 && A.find((m) => m.t === 'welcome' && m.session));
   const tokenA = A.find((m) => m.t === 'welcome').session;
+  const noA = A.find((m) => m.t === 'welcome').no;
   const dup = await login(nameA.toLowerCase(), { password: 'pass1234', register: true });
   check('a taken name is refused', dup.find((m) => m.t === 'error' && /taken/.test(m.msg)));
   const wrong = await login(nameA, { password: 'nope1234' });
@@ -122,6 +125,7 @@ async function run() {
   check('a bad username is refused', bad.find((m) => m.t === 'error'));
   const B = await login(nameB, { password: 'pass1234', register: true });
   check('second account registers', B.id > 0);
+  const noB = (B.find((m) => m.t === 'welcome') || {}).no;
   const boss0 = await login('TestBoss', { password: 'pass1234', register: true });
   const bossWelcome = boss0.find((m) => m.t === 'welcome');
 
@@ -1229,6 +1233,65 @@ async function run() {
   ws.s.write(hdr);
   await wait(300);
   check('a websocket frame claiming a huge size is dropped at once', ws.closed);
+
+  console.log('account numbers, revives and password resets');
+  {
+    const bz = await login('TestBoss', { password: 'pass1234' });
+    const notes = (c) => c.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join('\n');
+    check('accounts made before numbers are numbered oldest first', noA === 3 && noB === 4, noA + ',' + noB);
+    bz.clear();
+    bz.send({ t: 'cmd', text: '/whois #1' });
+    await wait(200);
+    check('/whois #number finds the account', /#1 Zold/.test(notes(bz)), notes(bz));
+    const vn = 'Tv' + n;
+    const V = await login(vn, { password: 'pass1234', register: true });
+    const noV = V.find((m) => m.t === 'welcome').no;
+    check('a new account gets the next number', noV > noB, String(noV));
+    const hero = { id: 'hv', cls: 'wizard', name: 'Vic', level: 5, inv: [null, null, null, null, null, null, null, null] };
+    V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [hero] } });
+    await wait(450);
+    V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [], deaths: 1, graves: [{ name: 'Vic', cls: 'wizard', level: 5, killer: 'Gorehorn' }] } });
+    await wait(450);
+    bz.clear();
+    bz.send({ t: 'cmd', text: '/graves ' + vn });
+    await wait(200);
+    check('/graves lists a fallen hero and what killed it', /1\) Vic, level 5 Wizard, died .* to Gorehorn/.test(notes(bz)), notes(bz));
+    B.clear();
+    B.send({ t: 'cmd', text: '/revive ' + vn + ' 1' });
+    await wait(200);
+    check('players who are not admins cannot revive heroes', /Only server admins/.test(notes(B)));
+    V.clear(); bz.clear();
+    bz.send({ t: 'cmd', text: '/revive #' + noV + ' 1' });
+    await wait(250);
+    const rv = V.find((m) => m.t === 'revived');
+    check('/revive brings the hero back, and the player is told at once', rv && rv.hero.id === 'hv' && rv.deaths === 0 && !rv.graves.length && /Revived Vic/.test(notes(bz)), notes(bz));
+    // the game's next save from before it heard of the revive can't undo it
+    V.clear();
+    V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [] } });
+    await wait(450);
+    const kept = V.find((m) => m.t === 'saveRejected');
+    check('a save sent before the revive arrived cannot remove the hero again', kept && kept.data.chars.some((h) => h && h.id === 'hv'));
+    V.clear();
+    V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [rv.hero], tradeSeq: rv.seq } });
+    await wait(450);
+    check('the revived hero saves normally', !V.find((m) => m.t === 'saveRejected'), JSON.stringify(V.find((m) => m.t === 'saveRejected')));
+    bz.clear();
+    bz.send({ t: 'cmd', text: '/revive ' + vn + ' 1' });
+    await wait(200);
+    check('a hero can only be revived once', /no fallen heroes/.test(notes(bz)), notes(bz));
+    bz.clear(); V.clear();
+    bz.send({ t: 'cmd', text: '/setpassword ' + vn + ' fresh5678' });
+    await wait(400);
+    check('/setpassword sets a new password and logs the player out', /New password set/.test(notes(bz)) && V.find((m) => m.t === 'kicked'), notes(bz));
+    const vOld = await login(vn, { password: 'pass1234' });
+    const vNew = await login(vn, { password: 'fresh5678' });
+    check('the old password no longer works and the new one does', vOld.find((m) => m.t === 'error') && vNew.find((m) => m.t === 'welcome'));
+    B.clear();
+    B.send({ t: 'cmd', text: '/setpassword ' + vn + ' hacked123' });
+    await wait(200);
+    check('players who are not admins cannot set passwords', /Only server admins/.test(notes(B)));
+    for (const c of [V, vOld, vNew, bz]) c.s.destroy();
+  }
 
   console.log('log out');
   A2.send({ t: 'logout', token: tokenA });

@@ -19,7 +19,7 @@ package realm {
 			pic.x = 14; pic.y = 10;
 			addChild(pic);
 			var name:TextField = Ui.text(22, 0xffffff, true, "left", 200, true);
-			name.text = p.name;
+			name.htmlText = p.name.replace(/</g, "&lt;") + (profile.no ? " <font size='14' color='#b9a9d4'>#" + int(profile.no) + "</font>" : "");
 			name.x = 84; name.y = 12;
 			addChild(name);
 			var info:TextField = Ui.text(13, 0xcccccc, true, "left", 210, true);

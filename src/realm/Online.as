@@ -44,6 +44,8 @@ package realm {
 			return ServerConfig.home ? "the game server" : address;
 		}
 		public static var connected:Boolean = false;
+		/** An admin revived one of our heroes (it's in Save.chars already): the menus show it. */
+		public static var onRevived:Function;
 		/** The server's welcome: {id, name, realms: [{name, seed}], online}. */
 		public static var welcome:Object;
 		/** The connection to a game in progress was lost (the server restarted, most likely). */
@@ -281,6 +283,19 @@ package realm {
 				return;
 			}
 			if (m.t == "realms" && welcome) welcome.realms = m.list;
+			if (m.t == "revived" && m.hero) {
+				// an admin brought back a fallen hero: it joins this account's heroes, wherever we are
+				var list:Array = Save.chars, have:Boolean = false;
+				for each (var h:Object in list) if (h && h.id == m.hero.id) have = true;
+				if (!have) list.push(m.hero);
+				Save.data.fame = int(m.fame);
+				Save.data.deaths = int(m.deaths);
+				if (m.graves is Array) Save.data.graves = m.graves;
+				Save.data.tradeSeq = int(m.seq);
+				Save.flush();
+				if (onRevived != null) onRevived(m);
+				return;
+			}
 			// the answer to a keep-alive: nothing to do
 			if (m.t == "pong" && m.at == -1) return;
 			if (_onMessage != null) _onMessage(m);

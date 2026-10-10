@@ -121,9 +121,13 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/restart 5`, `/restart now`, `/restart cancel`
   - `/give name 1000 gold` (or `fame`, `aether`; a minus number takes it away), works on offline accounts too
   - `/discord` sends a test message to the Discord feed
+  - **Account numbers:** every account has a number, in the order they were made (players see theirs on the character screen and other players' when they inspect them). The owner is #1: set `"owner": "YourName"` in `config.json`, otherwise the first name in `admins` counts as the owner. Accounts made before numbers are numbered the first time the updated server starts. Any command that takes a name also takes `#number`, e.g. `/ban #12 2 spamming`.
+  - `/whois name` (or `/whois #12`): the account's number, when it was made and last seen, its fame, gold and heroes, its guild, and any ban. Use it to check that someone really owns an account (ask them which heroes they have) before helping them.
+  - `/graves name` lists the account's last 20 fallen heroes, newest first, with what killed them. `/revive name 1` brings back hero 1 exactly as the server last saw it (items, level, stats, mode). The fame its death gave is taken back, so a revive can't earn a hero's fame twice. The player sees it straight away on their character screen. Every revive is written to `server/data/admin.log`.
+  - `/setpassword name newpassword` sets a new password for a player who forgot theirs (passwords are stored scrambled, so nobody can look one up). Every PC logged in to that account has to log in again. Give the player the new password privately (a Discord DM), and tell them to change it under Account. Only the owner can reset another admin's password.
   - `/stats` shows the server's health: players online and where, world tick time, memory, how late the server is answering, and anti-cheat counts. On the VPS: `curl http://127.0.0.1:2050/stats` (or `stats` in the server console).
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
-- **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `realms`, `stop`.
+- **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `whois`, `setpassword name password` (for when you're locked out yourself), `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
 
 ### Seasons

@@ -121,7 +121,8 @@ package realm {
 
 			// account bar: who is logged in, and a way back to the home screen
 			var acc:TextField = Ui.text(15, 0xd8d0ff, true, "left", 400, true);
-			acc.htmlText = "Account: <font color='#ffd75e'>" + (Accounts.current || "Guest") + "</font>   " +
+			acc.htmlText = "Account: <font color='#ffd75e'>" + (Accounts.current || "Guest") + "</font>" +
+				(Online.connected && Online.welcome && Online.welcome.no ? " <font color='#b9a9d4'>#" + Online.welcome.no + "</font>" : "") + "   " +
 				(Online.connected ? "<font color='#5ae06a'>Online characters</font>" : "<font color='#aaaaaa'>Offline characters</font>");
 			acc.x = 20; acc.y = 26;
 			addChild(acc);

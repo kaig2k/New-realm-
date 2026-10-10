@@ -350,6 +350,8 @@ package realm {
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
+					if (net.online && Online.welcome && Online.welcome.admin)
+						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  (any name can be #number)", 0xffb040);
 					break;
 				case "/p":
 					var pt:String = t.substr(3);
@@ -384,6 +386,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
+				case "/whois": case "/graves": case "/revive": case "/setpassword":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
 					break;

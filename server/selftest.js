@@ -1265,6 +1265,7 @@ async function run() {
     // the server's progress checks must never put anything back
     {
       const progress = require('./progress');
+      const items = require('./items');
       const { WorldSim } = require('./sim/worldsim');
       const { Data: GD2 } = require('./sim/gen/game');
       const cls = GD2.CLASSES.wizard, pm = {}, t0 = Date.now();
@@ -1289,6 +1290,8 @@ async function run() {
       const fixes = [];
       const save = (extra) => {
         const next = Object.assign(clone(stored), { chars: [clone(h)], pet: clone(pet) }, extra || {});
+        // (as applySave does: the ledger is the server's, carried over as it is)
+        next._ledger = stored._ledger;
         const f = progress.check(stored, next, pm, Date.now());
         fixes.push(...f);
         stored = next;
@@ -1312,9 +1315,23 @@ async function run() {
         }
         save();
       }
-      // a backpack, bought with gold, and a stat potion drunk from the bag
+      // a backpack (the server sells it: its copy has it first), then the game's save with it
+      stored.chars[0].backpack = true; stored.gold -= 3000;
       h.backpack = true; while (h.inv.length < 16) h.inv.push(null);
-      save({ gold: stored.gold - 3000 });
+      save({ gold: stored.gold });
+      // a stat potion the server dropped for it, drunk straight from the loot bag (never in the inventory)
+      stored._ledger = stored._ledger || {};
+      stored._ledger.bagpot = { f: items.fingerprint(GD2.makePotion('stat', 'att')), t: Date.now() };
+      h.stats.att = Math.min(cls.max.att, h.stats.att + 1); h.potsDrunk++;
+      save();
+      const bagOk = fixes.length === 0 && !stored._ledger.bagpot;
+      // ...and drinking another that it was never given is put back
+      const fx0 = fixes.length;
+      h.stats.dex = Math.min(cls.max.dex, h.stats.dex + 1); h.potsDrunk++;
+      save();
+      const twiceOut = fixes.length === fx0 + 1 && /stat potions drunk/.test(fixes[fixes.length - 1]);
+      fixes.length = fx0;
+      Object.assign(h, clone(stored.chars[0]));
       // and the skill points spent in the tree
       h.skills = { brutality: 2 }; h.skillPoints -= 2;
       save();
@@ -1323,6 +1340,7 @@ async function run() {
       // ...while the same hero claiming one level more than its XP buys is put back
       const cheat = Object.assign(clone(stored), { chars: [Object.assign(clone(h), { skillPoints: h.skillPoints + 5 })] });
       check('...and five skill points more than it earned are put back', progress.check(stored, cheat, pm, Date.now()).length === 1 && cheat.chars[0].skillPoints === h.skillPoints);
+      check('a stat potion drunk straight from a loot bag counts (once); one the server never gave is put back', bagOk && twiceOut, bagOk + ' ' + twiceOut + ' ' + fixes.join(' | '));
     }
     {
       const am = {}, asv = { gold: 0, onrane: 5, chars: [], _fame: {} };
@@ -1469,6 +1487,46 @@ async function run() {
     await wait(200);
     check('players who are not admins cannot set passwords', /Only server admins/.test(notes(B)));
     for (const c of [V, vOld, vNew, bz]) c.s.destroy();
+  }
+
+  console.log('backpacks and pet feeds through the server');
+  {
+    const nm = 'Tf' + n;
+    const F = await login(nm, { password: 'pass1234', register: true });
+    const { Data: FD3 } = require('./sim/gen/game');
+    const fh = { id: 'fh1', cls: 'wizard', name: 'Feeder', level: 1, stats: clone(FD3.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] };
+    F.send({ t: 'save', data: { gold: 0, fame: 0, chars: [fh] } });
+    await wait(400);
+    F.send({ t: 'enter', key: 'nexus', cid: 'fh1', x: 100, y: 100 });
+    const bz3 = await login('TestBoss', { password: 'pass1234' });
+    bz3.send({ t: 'cmd', text: '/give ' + nm + ' 10000 gold' });
+    await wait(300);
+    const given = F.find((m) => m.t === 'given');
+    let seqF = given ? given.seq : 0, goldF = given ? given.gold : 0;
+    const dataF = (extra) => Object.assign({ gold: goldF, fame: 0, chars: [clone(fh)], tradeSeq: seqF }, extra || {});
+    F.clear();
+    F.send({ t: 'buy', what: 'backpack', data: dataF(), cid: 'fh1' });
+    await wait(400);
+    const bp = F.find((m) => m.t === 'shopDone');
+    check('the server sells a backpack (the gold goes, the bag gets 8 more slots)', bp && bp.backpack && bp.inv.length === 16 && bp.gold === 7000, JSON.stringify(bp || F.find((m) => m.t === 'shopFail')));
+    if (bp) { seqF = bp.seq; goldF = bp.gold; fh.backpack = true; fh.inv = bp.inv; }
+    F.clear();
+    F.send({ t: 'hatch', data: dataF(), cid: 'fh1' });
+    await wait(400);
+    const hp2 = F.find((m) => m.t === 'shopDone');
+    if (hp2) { seqF = hp2.seq; goldF = hp2.gold; }
+    F.clear();
+    F.send({ t: 'petFeed', data: dataF({ pet: hp2 && hp2.pet }), cid: 'fh1' });
+    await wait(400);
+    const fed = F.find((m) => m.t === 'shopDone');
+    check('...and feeds the pet (the gold goes, the pet grows)', fed && fed.fed && fed.pet && fed.gold === goldF - 200 && (fed.pet.xp > 0 || fed.pet.level > 1), JSON.stringify(fed || F.find((m) => m.t === 'shopFail')));
+    if (fed) { seqF = fed.seq; goldF = fed.gold; }
+    F.clear();
+    // the game's next save, with gold picked up meanwhile: nothing is put back
+    F.send({ t: 'save', data: dataF({ pet: fed && fed.pet, gold: goldF }) });
+    await wait(450);
+    check('a save after buying a backpack and feeding the pet keeps both', !F.find((m) => m.t === 'saveRejected'), JSON.stringify(F.find((m) => m.t === 'saveRejected')));
+    for (const c of [F, bz3]) c.s.destroy();
   }
 
   console.log('health and damage the game reports');

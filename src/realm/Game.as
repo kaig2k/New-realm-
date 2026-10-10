@@ -4970,6 +4970,9 @@ package realm {
 		private function feedPet():void {
 			if (!pet) return;
 			if (gold < Data.PET_FEED_PRICE) { msg("Not enough gold to feed your pet.", 0xff8080); return; }
+			// online, the server takes the gold and feeds it (see shopResult)
+			if (shopWaiting) return;
+			if (net.shopRequest({t: "petFeed"})) { shopWaiting = true; return; }
 			addGold(-Data.PET_FEED_PRICE);
 			petGainXp(Data.PET_FEED_XP);
 			burst(petX, petY, 0x60ff90, 10);
@@ -5077,6 +5080,8 @@ package realm {
 			if (gold < e.price) { msg("Not enough gold for " + e.name + ".", 0xff8080); return; }
 			// items for sale come from the server online (potions that fit your potion slots and backpacks don't)
 			var potionSlot:Boolean = (e.id == "hp" && player.hpPots < Player.MAX_POTS) || (e.id == "mp" && player.mpPots < Player.MAX_POTS);
+			// (online, the server sells backpacks too)
+			if (e.id == "backpack" && !player.backpack && net.shopRequest({t: "buy", what: "backpack"})) { shopWaiting = true; return; }
 			if (e.id != "backpack" && !potionSlot) {
 				if (player.freeSlot() < 0) { msg("Inventory full!", 0xff8080); return; }
 				if (net.shopRequest({t: "buy", what: e.id})) { shopWaiting = true; return; }
@@ -5132,13 +5137,22 @@ package realm {
 			shopWaiting = false;
 			if (m.t == "shopFail") { msg(m.msg || "That didn't go through.", 0xff8080); refreshStation(); return; }
 			var inv:Array = m.inv || [];
+			if (m.backpack) { player.backpack = true; while (player.inv.length < 16) player.inv.push(null); }
 			for (var i:int = 0; i < player.inv.length; i++) player.inv[i] = i < inv.length ? inv[i] : null;
 			Save.data.gold = int(m.gold);
 			Save.data.onrane = int(m.onrane);
 			Save.data.tradeSeq = int(m.seq);
 			saveCharacter();
 			Save.flush();
-			if (m.pet) {
+			if (m.pet && m.fed) {
+				Save.data.pet = m.pet;
+				burst(petX, petY, 0x60ff90, 10);
+				msg(m.pet.name + " enjoyed that (level " + m.pet.level + ").", 0x60ff90);
+				Save.flush();
+			} else if (m.backpack) {
+				msg("You bought a backpack! Switch inventory pages with the button by the tabs.", Ui.GOLD);
+				Sfx.play("coin");
+			} else if (m.pet) {
 				petHatched(m.pet);
 			} else if (m.rerolled) {
 				rerolled(m.rerolled);

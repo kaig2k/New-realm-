@@ -610,6 +610,7 @@ function publicSave(s) {
   delete o._login;
   delete o._graves;
   delete o._xpb;
+  delete o._petb;
   delete o._dead;
   o.earned = Object.keys(s._titles || {});
   return o;
@@ -676,6 +677,7 @@ function applySave(c, data, cid) {
   } else {
     if (prev._fame) data._fame = prev._fame;
     if (prev._xpb) data._xpb = prev._xpb; else delete data._xpb;
+    if (prev._petb !== undefined) data._petb = prev._petb; else delete data._petb;
   }
   // heroes that died go on the season ladder, and into the server's graves
   seasonSave(c, prev, data);
@@ -1341,12 +1343,39 @@ const handlers = {
     shopDone(c, sv, ch, { pet: sv.pet });
   },
 
+  /** Feeding the pet: the server takes the gold and grows it. */
+  petFeed(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so your pet wasn\'t fed.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const p = sv.pet;
+    if (!p || typeof p !== 'object') return c.send({ t: 'shopFail', msg: 'You have no pet.' });
+    if ((sv.gold || 0) < Data.PET_FEED_PRICE) return c.send({ t: 'shopFail', msg: 'Not enough gold to feed your pet.' });
+    const max = (Data.PET_RARITIES[p.rarity] || { max: 30 }).max;
+    if ((Number(p.level) || 1) >= max) return c.send({ t: 'shopFail', msg: (p.name || 'Your pet') + ' is already at its highest level.' });
+    sv.gold -= Data.PET_FEED_PRICE;
+    p.xp = (Number(p.xp) || 0) + Data.PET_FEED_XP;
+    p.level = Number(p.level) || 1;
+    while (p.level < max && p.xp >= Data.petXpNeeded(p.level)) { p.xp -= Data.petXpNeeded(p.level); p.level++; }
+    shopDone(c, sv, ch, { pet: p, fed: true });
+  },
+
   /** Marketplace and Key Merchant: the server checks the gold and hands out the item. */
   buy(c, m) {
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const what = str(m.what, 12);
+    // a backpack: eight more slots for this hero (the server's record of it is what counts, see progress.js)
+    if (what === 'backpack') {
+      const e = Data.SHOP.find((x) => x.id === 'backpack');
+      if (ch.backpack) return c.send({ t: 'shopFail', msg: 'This character already has a backpack.' });
+      if ((sv.gold || 0) < e.price) return c.send({ t: 'shopFail', msg: 'Not enough gold.' });
+      sv.gold -= e.price;
+      ch.backpack = true;
+      while (ch.inv.length < 16) ch.inv.push(null);
+      return shopDone(c, sv, ch, { backpack: true, bought: e.name });
+    }
     let price, make;
     if (what === 'key') {
       const di = num(m.dg) | 0;

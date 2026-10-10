@@ -14,15 +14,17 @@
  *               (and only as many potions as really left the account).
  *   skills      one point a level, then one per 1,000+ XP at level 20.
  *   potions     the F/G slots hold at most Player.MAX_POTS.
- *   backpack    only with its price in gold paid in the same save.
- *   pet         hatched by the server (handlers.hatch); its kind and rarity
- *               never change, and it grows only by kills and paid feeds.
+ *   backpack    bought from the server (handlers.buy), never just claimed.
+ *   pet         hatched and fed by the server (handlers.hatch, petFeed); its kind
+ *               and rarity never change, and otherwise it grows only by the
+ *               kills the server saw (wallet.credit, sv._petb).
  *
  * Nothing is refused outright: what doesn't add up goes back to the last
  * good save's values (loot and everything else stay), the game is sent the
  * fixed save, and the reason goes to the anti-cheat log.
  */
 const { Data } = require('./sim/gen/game');
+const items = require('./items');
 
 const MAX_LEVEL = 20, MAX_POTS = 6;
 const xpFor = (level) => 40 + level * 45 + level * level * 3; // Player.xpFor
@@ -30,18 +32,10 @@ const xpFor = (level) => 40 + level * 45 + level * level * 3; // Player.xpFor
 const ALLOW = [400, 1];
 /** The progress fields that go back together when XP, level, stats or skills don't add up. */
 const PROGRESS = ['level', 'xp', 'xpNext', 'totalXp', 'ascXp', 'kills', 'bossKills', 'potsDrunk', 'stats', 'skills', 'skillPoints', 'highStakes', 'tree2'];
-const BACKPACK = (Data.SHOP.find((e) => e.id === 'backpack') || { price: 3000 }).price;
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 const clone = (o) => (o === undefined ? undefined : JSON.parse(JSON.stringify(o)));
 const ranks = (h) => { let n = 0; for (const k in (h.skills && typeof h.skills === 'object' ? h.skills : {})) n += Math.max(0, num(h.skills[k])); return n; };
-const statItems = (sv) => {
-  let n = 0;
-  const count = (it) => { if (it && typeof it === 'object' && it.kind === 'stat') n++; };
-  for (const c of sv.chars || []) if (c) for (const it of [].concat(c.inv || [])) count(it);
-  for (const it of sv.vault || []) count(it);
-  return n;
-};
 
 /** A hero as it starts (what a hero new to the server is compared with). */
 function fresh(h) {
@@ -82,11 +76,10 @@ function check(prev, next, meta, now) {
   const before = new Map((prev.chars || []).filter((h) => h && h.id).map((h) => [h.id, h]));
   const credit = prev._xpb && typeof prev._xpb === 'object' ? prev._xpb : {};
   const allow = allowance(meta, now);
-  // stat potions drunk can only be ones that left the account's items
-  let potsLeft = Math.max(0, statItems(prev) - statItems(next));
-  // gold spent in this save pays for backpacks and pet feeds (it can only go down by spending: see wallet)
-  let spent = Math.max(0, num(prev.gold) - num(next.gold));
-  let killsGain = 0, bossGain = 0;
+  // stat potions drunk can only be ones the server gave the account that it no longer holds
+  // (drunk from the inventory or straight from a loot bag); each counts once
+  const potIds = items.unheldStat(prev._ledger, next);
+  let potsLeft = potIds.length, potsUsed = 0;
   for (const h of next.chars) {
     if (!h || typeof h !== 'object') continue;
     const was = before.get(h.id) || fresh(h);
@@ -109,7 +102,7 @@ function check(prev, next, meta, now) {
       const drunk = Math.max(0, num(h.potsDrunk) - num(was.potsDrunk));
       if (drunk > potsLeft) bad = drunk + ' stat potions drunk but ' + potsLeft + ' left the account';
       else {
-        potsLeft -= drunk;
+        potsLeft -= drunk; potsUsed += drunk;
         let need = 0;
         const ws = was.stats && typeof was.stats === 'object' ? was.stats : cls.base;
         for (const k of Data.STATS) {
@@ -131,26 +124,23 @@ function check(prev, next, meta, now) {
       // the progress goes back to the last good save (or a new hero's start)
       for (const k of PROGRESS) { if (was[k] === undefined) delete h[k]; else h[k] = clone(was[k]); }
       fixes.push(name + ': ' + bad);
-    } else {
-      killsGain += Math.max(0, num(h.kills) - num(was.kills));
-      bossGain += Math.max(0, num(h.bossKills) - num(was.bossKills));
     }
     // ---- potion slots
     for (const k of ['hpPots', 'mpPots']) if (num(h[k]) > MAX_POTS) { h[k] = MAX_POTS; fixes.push(name + ': more than ' + MAX_POTS + ' potions'); }
-    // ---- backpack: bought with gold in this same save
+    // ---- backpack: the server sells them (handlers.buy), so it already knows of every one
     if (h.backpack && !(before.get(h.id) && before.get(h.id).backpack)) {
-      if (spent >= BACKPACK) spent -= BACKPACK;
-      else {
-        h.backpack = false;
-        if (Array.isArray(h.inv)) {
-          while (h.inv.length > 8 && h.inv[h.inv.length - 1] == null) h.inv.pop();
-          if (h.inv.length > 8) fixes.push(name + ': a backpack that wasn\'t paid for (items in it kept)');
-          else fixes.push(name + ': a backpack that wasn\'t paid for');
-        }
+      h.backpack = false;
+      if (Array.isArray(h.inv)) {
+        while (h.inv.length > 8 && h.inv[h.inv.length - 1] == null) h.inv.pop();
+        fixes.push(name + ': a backpack the server didn\'t sell' + (h.inv.length > 8 ? ' (items in it kept)' : ''));
       }
     }
   }
   next._xpb = credit;
+  // (the pet's kill credit is the server's: whatever the game sent is replaced)
+  if (prev._petb !== undefined) next._petb = prev._petb; else delete next._petb;
+  // the potions counted as drunk can't be counted again
+  if (potsUsed > 0 && prev._ledger) for (const sid of potIds.slice(0, potsUsed)) delete prev._ledger[sid];
   // ---- the pet: the server hatches it; it grows by kills and by feeds paid for
   if (next.pet && typeof next.pet === 'object') {
     const had = prev.pet && typeof prev.pet === 'object' ? prev.pet : null;
@@ -159,12 +149,13 @@ function check(prev, next, meta, now) {
       const p = next.pet;
       for (const k of ['species', 'name', 'rarity']) p[k] = had[k];
       const max = (Data.PET_RARITIES[p.rarity] || { max: 30 }).max;
-      const feeds = Math.floor(spent / Data.PET_FEED_PRICE);
-      const room = feeds * Data.PET_FEED_XP + killsGain + bossGain * 20 + 2;
-      if (num(p.level) > max || petXpTotal(p) - petXpTotal(had) > room) {
+      // (feeds go through the server and are already in its copy; kills it saw were credited)
+      const room = Math.max(0, num(prev._petb)) + 3;
+      const grew = petXpTotal(p) - petXpTotal(had);
+      if (num(p.level) > max || grew > room) {
         p.level = had.level; p.xp = had.xp;
-        fixes.push('pet grew faster than kills and feeds allow');
-      }
+        fixes.push('pet grew faster than its kills allow');
+      } else next._petb = Math.max(0, num(prev._petb) - Math.max(0, grew));
     }
   } else if (prev.pet && next.pet === undefined) {
     // (a pet only goes when the game releases it: keep that)

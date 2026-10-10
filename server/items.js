@@ -144,4 +144,19 @@ function adopt(save, item, entry) {
   trim(save);
 }
 
-module.exports = { fingerprint, issue, migrate, transfer, check, checkStats, eachItem, release, adopt, STARTERS };
+/**
+ * Ids of stat potions this account was given (its ledger) that `save` no longer holds: the
+ * ones it may have drunk, whether from its inventory or straight from a loot bag.
+ */
+function unheldStat(ledger, save) {
+  const held = new Set();
+  eachItem(save, (it) => { if (it.sid) held.add(it.sid); });
+  const out = [];
+  for (const sid in ledger || {}) {
+    const e = ledger[sid];
+    if (e && typeof e.f === 'string' && e.f.indexOf('kind=stat;') === 0 && !held.has(sid)) out.push(sid);
+  }
+  return out;
+}
+
+module.exports = { fingerprint, issue, migrate, transfer, check, checkStats, eachItem, release, adopt, unheldStat, STARTERS };

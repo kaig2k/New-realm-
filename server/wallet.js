@@ -18,6 +18,7 @@
  */
 
 const { Data } = require('./sim/gen/game');
+const items = require('./items');
 
 const GOLD_LIFE = 20 * 60 * 1000;
 /** The small allowance: [most it holds, per second]. */
@@ -75,6 +76,8 @@ function credit(meta, sv, charId, e, now, near) {
     // and XP the hero may gain (see progress.js), killed by them or close by
     if (!sv._xpb || typeof sv._xpb !== 'object') sv._xpb = {};
     sv._xpb[charId] = Math.min(5e7, (sv._xpb[charId] || 0) + v.xp);
+    // and the pet's growth (Game.killEnemy: 1 a kill, 20 a boss)
+    if (!near) sv._petb = Math.min(1e6, (Number(sv._petb) || 0) + (e.isBoss ? 20 : 1));
   }
 }
 
@@ -182,9 +185,8 @@ function settle(prev, next, meta, now) {
   }
   const book = fameBook(prev);
   // stat potions drunk (5 fame each): as many as really left the account's items
-  const stat = (sv) => { let k = 0; for (const c of sv.chars || []) if (c) for (const it of [].concat(c.inv || [])) if (it && it.kind === 'stat') k++;
-    for (const it of sv.vault || []) if (it && it.kind === 'stat') k++; return k; };
-  let gone = Math.max(0, stat(prev) - stat(next));
+  // (the ones the account was given and no longer holds: drunk from the inventory or straight from a bag)
+  let gone = items.unheldStat(prev._ledger, next).length;
   for (const c of next.chars || []) {
     if (!c || !gone) continue;
     const was = (prev.chars || []).find((o) => o && o.id === c.id);

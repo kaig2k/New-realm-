@@ -47,7 +47,9 @@ const DEFAULT_CONFIG = {
   // a Discord webhook address: records, raid clears, Godly drops, titles and restarts are posted there
   discordWebhook: '',
   viewRange: 32,
-  chatPerTenSeconds: 8
+  chatPerTenSeconds: 8,
+  // true: click anyone on the minimap (or /tp name) to teleport to them, like RotMG; false: party and guild only
+  teleportToAnyone: true
 };
 let config = Object.assign({}, DEFAULT_CONFIG);
 try { Object.assign(config, JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))); }
@@ -192,11 +194,28 @@ function finishLogin(c, acc, key, session) {
   acc.lastSeen = Date.now();
   save('accounts.json', accounts);
   c.send({ t: 'welcome', id: c.id, name: c.name, no: acc.no || 0, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current });
+    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
 }
+
+// ------------------------------------------------------------------ the minimap
+// everyone sees where everyone else in their world is, about every 1.5 seconds (like RotMG's
+// map): one small message per player, so it costs little even in a full realm
+setInterval(() => {
+  const byWorld = new Map();
+  for (const c of clients.values()) {
+    if (!c.authed || !c.world) continue;
+    if (!byWorld.has(c.world)) byWorld.set(c.world, []);
+    byWorld.get(c.world).push(c);
+  }
+  for (const list of byWorld.values()) {
+    if (list.length < 2) continue;
+    const l = list.map((c) => [c.id, Math.round(num(c.x) * 10) / 10, Math.round(num(c.y) * 10) / 10]);
+    for (const c of list) c.send({ t: 'map', l });
+  }
+}, 1500).unref();
 
 // ------------------------------------------------------------------ Discord status board
 /** config "discordStatusWebhook": a webhook (best in its own #status channel) whose one message the server keeps up to date. */
@@ -830,7 +849,7 @@ const handlers = {
   tpreq(c, m) {
     const o = clients.get(Number(m.id));
     if (!o || !o.authed || o.world !== c.world) return c.note('They are not in this world.');
-    if (!friends(c, o)) return c.note('You can only teleport to party and guild members.');
+    if (!config.teleportToAnyone && !friends(c, o)) return c.note('You can only teleport to party and guild members.');
     c.send({ t: 'tppos', id: o.id, name: o.name, x: o.x, y: o.y });
     // the jump to them is expected
     c.tpTo = { x: o.x, y: o.y, until: Date.now() + 8000 };
@@ -1658,7 +1677,7 @@ function moveAllowed(c, nx, ny) {
   mv.budget = Math.min(MOVE_BURST, mv.budget + MOVE_SPEED * Math.min(2, (now - mv.t) / 1000));
   mv.t = now;
   const dx = nx - c.x, dy = ny - c.y, dist = Math.sqrt(dx * dx + dy * dy);
-  // a teleport to a party or guild member the server handed out
+  // a teleport (to a player in the same world) the server handed out
   if (c.tpTo && now < c.tpTo.until && Math.abs(nx - c.tpTo.x) < 3 && Math.abs(ny - c.tpTo.y) < 3) { c.tpTo = null; return true; }
   let why = null;
   if (dist > mv.budget + 0.5) why = 'too fast (' + dist.toFixed(1) + ' tiles)';

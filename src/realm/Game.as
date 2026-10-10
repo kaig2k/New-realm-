@@ -382,7 +382,7 @@ package realm {
 					break;
 				case "/tp": case "/teleport":
 					var tpw:RemotePlayer = net.find(t.split(" ")[1] || "");
-					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (party or guild member here)", 0xff8080);
+					if (tpw) teleportTo(tpw); else msg("Usage: /tp name (a player in this world; or click them on the minimap)", 0xff8080);
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
@@ -6093,9 +6093,11 @@ package realm {
 			addChild(wiki);
 		}
 
-		/** Teleport to a party or guild member in the same world (RotMG style). */
+		/** Teleport to a player in the same world (RotMG style: click them on the minimap, or /tp name). */
 		public function teleportTo(rp:RemotePlayer):void {
-			if (!net.isFriend(rp)) { msg("You can only teleport to party and guild members.", 0xff8080); return; }
+			// (the server may keep teleports to party and guild members only: config teleportToAnyone)
+			var anyone:Boolean = Online.welcome && Online.welcome.tpAny;
+			if (!anyone && !net.isFriend(rp)) { msg("You can only teleport to party and guild members.", 0xff8080); return; }
 			if (net.players.indexOf(rp) < 0) { msg(rp.name + " isn't in this world.", 0xff8080); return; }
 			if (tpT > 0) { msg("Teleport is ready in " + Math.ceil(tpT) + "s.", 0xff8080); return; }
 			// where they really are comes from the server, not from our (possibly old) copy

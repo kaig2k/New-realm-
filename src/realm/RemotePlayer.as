@@ -32,6 +32,10 @@ package realm {
 		public var gone:Boolean = false;
 		/** Out of your sight: not drawn (party and guild members still show on the minimap). */
 		public var far:Boolean = false;
+		/** Their spot from the server's minimap update (out of sight, the map uses this). */
+		public var mapX:Number = NaN, mapY:Number = NaN;
+		/** Which way they're heading (radians, 0 = east), for their minimap arrow. */
+		public var heading:Number = -Math.PI / 2;
 		private var walkT:Number = 0;
 
 		public function RemotePlayer(id:String, name:String, x:Number, y:Number, profile:Object) {
@@ -67,8 +71,19 @@ package realm {
 				if (Math.abs(dx) > 0.05 && attacking <= 0) facingLeft = dx < 0;
 				walkT += dt;
 			}
+			if (moving && d > 0.1) heading = Math.atan2(dy, dx);
 			if (attacking > 0) attacking -= dt;
 			if (bubbleT > 0) bubbleT -= dt;
+		}
+
+		/** The server's minimap update: their spot, and the way they've been going since the last one. */
+		public function setMapPos(nx:Number, ny:Number):void {
+			if (!isNaN(mapX)) {
+				var dx:Number = nx - mapX, dy:Number = ny - mapY;
+				if (dx * dx + dy * dy > 0.25) heading = Math.atan2(dy, dx);
+			}
+			mapX = nx; mapY = ny;
+			if (far) { x = tx = nx; y = ty = ny; }
 		}
 
 		public function get sprite():BitmapData {

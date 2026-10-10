@@ -271,9 +271,13 @@ async function run() {
   B.send({ t: 'raidOpen', name: 'The Conclave', color: 0xff3050 });
   await wait(150);
   check('raid openings are announced to everyone', A2.find((m) => m.t === 'banner' && /Conclave/.test(m.text)));
+  A2.clear();
   A2.send({ t: 'tpreq', id: B.id });
   await wait(150);
-  check('teleport to a stranger is refused', A2.find((m) => m.t === 'msg' && /party and guild/.test(m.text)));
+  check('teleport to anyone in the same world (RotMG style): the server sends their real spot', A2.find((m) => m.t === 'tppos' && m.id === B.id));
+  await wait(1600);
+  const mapMsg = A2.find((m) => m.t === 'map');
+  check('everyone in a world gets the minimap positions of everyone there', mapMsg && mapMsg.l.some((e) => e[0] === B.id) && mapMsg.l.some((e) => e[0] === A2.id), JSON.stringify(mapMsg));
 
   console.log('trades');
   A2.clear(); B.clear();

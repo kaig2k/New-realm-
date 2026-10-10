@@ -179,6 +179,13 @@ package realm {
 						}
 					}
 					break;
+				case "map":
+					// where everyone in this world is (about every 1.5s), for the minimap
+					for each (var mp:Array in m.l) {
+						rp = byId(mp[0]);
+						if (rp) rp.setMapPos(Number(mp[1]), Number(mp[2]));
+					}
+					break;
 				case "banner":
 					g.showBanner(m.text, m.color || 0xffd75e, 4);
 					g.msg(m.msg || m.text, m.color || 0xffd75e);

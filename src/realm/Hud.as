@@ -25,6 +25,14 @@ package realm {
 		private var g:Game;
 		private var mini:BitmapData;
 		private var miniDots:Shape;
+		/** Over the minimap: hover a player for their name, click to teleport to them. */
+		private var miniHit:Sprite;
+		private var miniLabel:TextField;
+		/** The players drawn on the minimap last time: {rp, x, y}. */
+		private var marks:Array = [];
+		/** Which way you're heading (radians), and where you were, for your own arrow. */
+		private var myHeading:Number = -Math.PI / 2;
+		private var lastPx:Number = NaN, lastPy:Number = NaN;
 		private var zoom:int = 1;
 		private var frameN:int = 0;
 		private var nameTf:TextField;
@@ -69,8 +77,30 @@ package realm {
 			miniDots = new Shape();
 			miniDots.x = 2;
 			addChild(miniDots);
+			miniHit = new Sprite();
+			miniHit.graphics.beginFill(0, 0);
+			miniHit.graphics.drawRect(0, 0, W - 2, MINI_H);
+			miniHit.graphics.endFill();
+			miniHit.x = 2;
+			miniHit.addEventListener(MouseEvent.MOUSE_MOVE, function(e:MouseEvent):void { miniHover(e.localX, e.localY); });
+			miniHit.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { miniLabel.visible = false; miniHit.buttonMode = false; });
+			miniHit.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void {
+				var m:Object = markAt(e.localX, e.localY);
+				if (m) g.teleportTo(m.rp);
+			});
+			addChild(miniHit);
+			miniLabel = Ui.text(12, 0xffffff, true, "left", 0, true);
+			miniLabel.autoSize = "left";
+			miniLabel.background = true;
+			miniLabel.backgroundColor = 0x14141c;
+			miniLabel.border = true;
+			miniLabel.borderColor = 0x55556a;
+			miniLabel.visible = false;
+			miniLabel.mouseEnabled = false;
+			addChild(miniLabel);
 			addChild(zoomButton("+", W - 24, 6, 1));
 			addChild(zoomButton("-", W - 24, 28, -1));
+			setChildIndex(miniLabel, numChildren - 1);
 
 			// --- name row: portrait, name, nexus button
 			var y:int = MINI_H + 4;
@@ -525,14 +555,16 @@ package realm {
 				gr.endFill();
 				gr.lineStyle();
 			}
-			// other players are yellow, like RotMG
+			// other players: arrows pointing the way they're going (yellow, like RotMG; party blue, guild green)
+			marks.length = 0;
 			for each (var rp:RemotePlayer in g.net.players) {
-				if (!g.shown(rp) && !g.net.isFriend(rp)) continue;
-				var rx:Number = ox + rp.x * z, ry:Number = oy + rp.y * z;
+				var seen:Boolean = g.shown(rp);
+				var mpx:Number = seen ? rp.x : rp.mapX, mpy:Number = seen ? rp.y : rp.mapY;
+				if (isNaN(mpx)) continue;
+				var rx:Number = ox + mpx * z, ry:Number = oy + mpy * z;
 				if (rx < 0 || ry < 0 || rx > mw || ry > mh) continue;
-				gr.beginFill(g.net.inParty(rp) ? 0x7fd8ff : g.net.inGuild(rp) ? 0x60ff60 : 0xffe040);
-				gr.drawRect(rx - ds / 2, ry - ds / 2, ds, ds);
-				gr.endFill();
+				arrow(gr, rx, ry, rp.heading, 4.5, g.net.inParty(rp) ? 0x7fd8ff : g.net.inGuild(rp) ? 0x60ff60 : 0xffe040);
+				marks.push({rp: rp, x: rx, y: ry});
 			}
 			if (g.boss) {
 				var bx:Number = Math.max(4, Math.min(mw - 4, ox + g.boss.x * z));
@@ -543,17 +575,51 @@ package realm {
 				gr.endFill();
 				gr.lineStyle();
 			}
-			// player arrow
-			var px:Number = ox + p.x * z, py:Number = oy + p.y * z;
+			// your arrow: turns to the way you're walking
+			if (!isNaN(lastPx)) {
+				var mdx:Number = p.x - lastPx, mdy:Number = p.y - lastPy;
+				if (mdx * mdx + mdy * mdy > 0.0004 && mdx * mdx + mdy * mdy < 9) myHeading = Math.atan2(mdy, mdx);
+			}
+			lastPx = p.x; lastPy = p.y;
+			arrow(gr, ox + p.x * z, oy + p.y * z, myHeading, 6, 0x4aa0ff);
+		}
+
+		/** A minimap arrow at (x, y) pointing at angle ang (radians, 0 = east). */
+		private static function arrow(gr:*, x:Number, y:Number, ang:Number, r:Number, color:uint):void {
+			var c:Number = Math.cos(ang), sn:Number = Math.sin(ang);
+			// the shape pointing east: tip, back corners and the notch
+			var pts:Array = [[r, 0], [-r * 0.85, r * 0.85], [-r * 0.35, 0], [-r * 0.85, -r * 0.85]];
 			gr.lineStyle(1, 0x000000);
-			gr.beginFill(0x4aa0ff);
-			gr.moveTo(px, py - 6);
-			gr.lineTo(px + 5, py + 5);
-			gr.lineTo(px, py + 2);
-			gr.lineTo(px - 5, py + 5);
-			gr.lineTo(px, py - 6);
+			gr.beginFill(color);
+			for (var i:int = 0; i <= pts.length; i++) {
+				var q:Array = pts[i % pts.length];
+				var ax:Number = x + q[0] * c - q[1] * sn, ay:Number = y + q[0] * sn + q[1] * c;
+				if (i == 0) gr.moveTo(ax, ay); else gr.lineTo(ax, ay);
+			}
 			gr.endFill();
 			gr.lineStyle();
+		}
+
+		/** The player marker nearest (x, y) on the minimap, if one is close enough. */
+		private function markAt(x:Number, y:Number):Object {
+			var best:Object = null, bd:Number = 9 * 9;
+			for each (var m:Object in marks) {
+				var dx:Number = m.x - x, dy:Number = m.y - y, d:Number = dx * dx + dy * dy;
+				if (d < bd && g.net.players.indexOf(m.rp) >= 0) { bd = d; best = m; }
+			}
+			return best;
+		}
+
+		private function miniHover(x:Number, y:Number):void {
+			var m:Object = markAt(x, y);
+			miniHit.buttonMode = m != null;
+			if (!m) { miniLabel.visible = false; return; }
+			var rp:RemotePlayer = m.rp;
+			var lv:String = rp.profile && rp.profile.level ? " (" + rp.profile.level + ")" : "";
+			miniLabel.htmlText = " " + rp.name.replace(/</g, "&lt;") + lv + "  <font color='#9a7cff'>click to teleport</font> ";
+			miniLabel.x = Math.max(2, Math.min(W - miniLabel.width - 2, miniHit.x + m.x - miniLabel.width / 2));
+			miniLabel.y = m.y > MINI_H - 24 ? m.y - 24 : m.y + 8;
+			miniLabel.visible = true;
 		}
 		/**
 		 * Taking loot: the item's icon arcs from its bag slot to where it went

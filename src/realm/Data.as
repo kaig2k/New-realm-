@@ -1226,8 +1226,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
-			{id: "2026-10-classes", title: "What's new in Eldmere",
-				lines: ["<b>Every class is open</b>: the Bard, Alchemist and Chronomancer can be played straight away, no levels needed.",
+			{id: "2026-10-map", title: "What's new in Eldmere",
+				lines: ["<b>A living minimap</b>: every player in your world shows as an arrow pointing the way they're going. Hover one for their name, click to teleport to them (every 10s).",
+					"<b>Every class is open</b>: the Bard, Alchemist and Chronomancer can be played straight away, no levels needed.",
 					"<b>Account numbers</b>: your account's number is shown on the character screen, and on players you inspect. Use it in /report.",
 					"<b>Unfair death?</b> If a hero died to lag or a bug, tell an admin: fallen heroes can now be brought back."]},
 			{id: "2026-10-launch", title: "What's new in Eldmere",

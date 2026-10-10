@@ -179,6 +179,11 @@ package realm {
 						}
 					}
 					break;
+				case "toNexus":
+					// the server wouldn't let us into that world
+					g.msg(m.msg || "You can't go there.", 0xff8080);
+					g.nexusNow();
+					break;
 				case "map":
 					// where everyone in this world is (about every 1.5s), for the minimap
 					for each (var mp:Array in m.l) {

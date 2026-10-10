@@ -1281,7 +1281,7 @@ package realm {
 		/** The server refused our save: carry on from its copy. */
 		public function saveRejected(reason:String):void {
 			// (a Hardcore item equipped too early only goes back to the inventory: nothing else is undone)
-			if (reason.indexOf("went back to your inventory") >= 0) msg(reason, 0xff8a7a);
+			if (reason.indexOf("went back to your inventory") >= 0 || reason.indexOf("put back what its records") >= 0) msg(reason, 0xff8a7a);
 			else msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
 			// everything goes back to the server's copy together, so nothing can exist twice
 			if (vaultWorld) fillVault();
@@ -1681,8 +1681,10 @@ package realm {
 		/** The realm has closed: the Dark Elder pulls you into his chamber. */
 		private function enterArena():void {
 			arenaWorld = new World("arena", "Dark Elder's Chamber");
-			// everyone coming from the same Citadel shares the chamber
-			arenaWorld.key = net is ServerNet && world.kind == "dungeon" ? "arena:" + world.seed : soloKey();
+			// everyone coming from the same Citadel (or the same closing realm) shares the chamber, and the
+			// server runs it like every other fight online (so its kills, loot and XP are the server's)
+			arenaWorld.key = net is ServerNet && world.kind == "dungeon" ? "arena:" + world.seed
+				: net is ServerNet && world.kind == "realm" ? "arena:r" + world.key.split(":").pop() : soloKey();
 			switchWorld(arenaWorld, arenaWorld.spawnX, arenaWorld.spawnY);
 			player.invulnT = 3;
 			var aw:World = arenaWorld;
@@ -3741,15 +3743,17 @@ package realm {
 			var i:int = Data.keyRaid(item);
 			if (i < 0) return false;
 			if (!inNexus) { msg("Raid keys open their portal in the Nexus. Bring it there and click it.", item.color); return false; }
-			openRaid(i);
+			openRaid(i, item);
 			return true;
 		}
 
 		/** Opens a raid portal next to the table (everyone in the Nexus sees it). */
-		public function openRaid(i:int):void {
+		public function openRaid(i:int, key:Object = null):void {
 			var rd:Object = Bosses.RAIDS[i];
 			Save.flush();
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
+			// the server takes the key and lets people through the portal (admins open raids without one)
+			if (serverLoot) Online.send({t: "portalKey", sid: key ? key.sid : "", k: "raid", i: i, s: seed});
 			var px:Number = 113.5, py:Number = 107.5;
 			addPortal(nexusWorld, px, py, "raid", i, rd.color, PORTAL_TIME, seed, false);
 			if (net.online) net.sendWorld("all", {t: "portal", x: px, y: py, k: "raid", i: i, c: rd.color, l: PORTAL_TIME, s: seed});
@@ -4943,8 +4947,16 @@ package realm {
 		private function hatchPet():void {
 			if (pet) return;
 			if (gold < Data.PET_EGG_PRICE) { msg("You need " + Ui.commas(Data.PET_EGG_PRICE) + " gold to buy a pet egg.", 0xff8080); return; }
+			// online, the server takes the gold and hatches the egg (see petHatched)
+			if (shopWaiting) return;
+			if (net.shopRequest({t: "hatch"})) { shopWaiting = true; return; }
 			addGold(-Data.PET_EGG_PRICE);
-			var pt:Object = Save.data.pet = Data.hatchPet();
+			petHatched(Data.hatchPet());
+		}
+
+		/** A pet came out of its egg (rolled by the server online). */
+		private function petHatched(pt:Object):void {
+			Save.data.pet = pt;
 			questEvent("pet");
 			petX = player.x - 1; petY = player.y + 0.5;
 			var r:Object = Data.PET_RARITIES[pt.rarity];
@@ -5024,6 +5036,8 @@ package realm {
 			var px:Number = player.x + 1.2, py:Number = player.y;
 			if (!world.canStand(px, py, 0.4, false)) px = player.x;
 			addPortal(world, px, py, "dungeon", i, d.color, PORTAL_TIME, seed);
+			// the server takes the key and lets people through the portal
+			if (serverLoot) Online.send({t: "portalKey", sid: item.sid, k: "dungeon", i: i, s: seed});
 			if (inNexus && net.online) net.sendWorld("all", {t: "portal", x: Math.round(px * 100) / 100, y: Math.round(py * 100) / 100, k: "dungeon", i: i, c: d.color, l: PORTAL_TIME, s: seed});
 			msg("The " + item.name + " opened a portal to the " + d.name + "! (30 seconds)", d.color);
 			ring(px, py, d.color, 24);
@@ -5124,7 +5138,9 @@ package realm {
 			Save.data.tradeSeq = int(m.seq);
 			saveCharacter();
 			Save.flush();
-			if (m.rerolled) {
+			if (m.pet) {
+				petHatched(m.pet);
+			} else if (m.rerolled) {
 				rerolled(m.rerolled);
 			} else if (m.forged) {
 				questEvent("legendary");

@@ -49,7 +49,9 @@ function killValue(e) {
   // death fame: xp / 8 (streak and elite xp up to 3.5x), half a fame a kill, 150 a boss, then the bonuses
   const xpFame = (d.xp || 0) * 3.5 / 8 * FAME_BONUS;
   const fame = xpFame + (0.5 + (e.isBoss ? 150 : 0)) * FAME_BONUS;
-  return { gold, fame, xpFame, onrane: d.onrane || 0 };
+  // the most XP the kill gives (Game.killEnemy: x1, up to +0.5 for the kill streak, +2 if elite)
+  const xp = Math.ceil((d.xp || 0) * (1.5 + (e.elite ? 2 : 0)));
+  return { gold, fame, xpFame, xp, onrane: d.onrane || 0 };
 }
 
 /** A saved hero's own fame (Player.fame), from its saved counters. */
@@ -70,6 +72,9 @@ function credit(meta, sv, charId, e, now, near) {
   if (charId) {
     const book = fameBook(sv);
     book[charId] = (book[charId] || 0) + (near ? v.xpFame : v.fame);
+    // and XP the hero may gain (see progress.js), killed by them or close by
+    if (!sv._xpb || typeof sv._xpb !== 'object') sv._xpb = {};
+    sv._xpb[charId] = Math.min(5e7, (sv._xpb[charId] || 0) + v.xp);
   }
 }
 

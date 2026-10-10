@@ -130,6 +130,13 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
 - **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `whois`, `setpassword name password` (for when you're locked out yourself), `realms`, `stop`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
+- **Admin powers are the server's.** Only accounts in `admins` are admins, and the server decides that, not the game. A changed copy of the game can still open its admin menu, but nothing it does sticks:
+  - items the server didn't hand out are refused (as before);
+  - gold, Aether and fame are cut back to what was earned (as before);
+  - XP is checked against the kills the server saw, and levels, stats (level growth plus stat potions really drunk) and skill points against that XP; potion slots, backpacks (paid for in gold) and pets (hatched by the server, grown by kills and paid feeds) are checked too. Anything that doesn't add up is put back to the last good save, without undoing loot, and logged;
+  - dungeons and raids can only be entered through a portal the server knows about (dropped by its monsters, or opened with a key it takes from the player), and the Dark Elder's chamber only from its Citadel or closing realm;
+  - what other players see of someone's level and gear comes from the server's copy.
+  Admins' own saves are trusted, so the admin menu keeps working for real admins.
 
 ### Seasons
 

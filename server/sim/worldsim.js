@@ -138,6 +138,8 @@ class WorldSim {
   portal(x, y, kind, idx, color) {
     const seed = 1 + Math.floor(Math.random() * 0x7ffffffe);
     this.all({ t: 'portal', x: r2(x), y: r2(y), k: kind, i: idx, c: color, l: PORTAL_TIME, s: seed });
+    // (the server lets people into the world behind it: see server.js openWorlds)
+    if (this.onPortal) this.onPortal((kind === 'raid' ? 'raid:' : 'dg:') + idx + ':' + seed);
   }
 
   // ------------------------------------------------------------ players
@@ -818,7 +820,7 @@ class Sims {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; s.onPortal = this.onPortal; } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);
@@ -831,7 +833,7 @@ class Sims {
     for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
     for (const key of want) {
       if (this.map.has(key)) continue;
-      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; s.onPortal = this.onPortal; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
     }
   }
 

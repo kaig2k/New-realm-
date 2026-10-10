@@ -324,8 +324,27 @@ async function run() {
   check('the honest save after a trade is accepted', !A2.find((m) => m.t === 'saveRejected'), JSON.stringify(A2.find((m) => m.t === 'saveRejected')));
 
   console.log('server-run monsters');
-  A2.send({ t: 'enter', key: 'dg:4:777', x: 100, y: 180, cid: 'ca' });
-  B.send({ t: 'enter', key: 'dg:4:777', x: 100, y: 180, cid: 'cb' });
+  // dungeons open only through a portal: B uses the Sunken Crypt key it was traded
+  const { Data: PD } = require('./sim/gen/game');
+  const ci = PD.dungeonIndex('crypt'), dg = 'dg:' + ci + ':777';
+  A2.clear();
+  A2.send({ t: 'enter', key: 'dg:' + ci + ':778', x: 100, y: 180, cid: 'ca' });
+  await wait(200);
+  check('nobody gets into a dungeon without a portal (a changed game can\'t walk in)', A2.find((m) => m.t === 'toNexus'));
+  const dkey = doneB && doneB.inv.find((it) => it && it.sub === 'dg_crypt');
+  B.send({ t: 'portalKey', sid: 'not-a-key', k: 'dungeon', i: ci, s: 999 });
+  B.send({ t: 'portalKey', sid: dkey ? dkey.sid : '', k: 'dungeon', i: ci, s: 777 });
+  await wait(200);
+  A2.clear(); B.clear();
+  A2.send({ t: 'enter', key: dg, x: 100, y: 180, cid: 'ca' });
+  B.send({ t: 'enter', key: dg, x: 100, y: 180, cid: 'cb' });
+  await wait(200);
+  check('...but a key opens one, for everyone who takes its portal', !A2.find((m) => m.t === 'toNexus') && !B.find((m) => m.t === 'toNexus'));
+  const C9 = await login('Tk' + n, { password: 'pass1234', register: true });
+  C9.send({ t: 'enter', key: 'dg:' + ci + ':999', x: 100, y: 180 });
+  await wait(200);
+  check('a key the server never saw opens nothing', C9.find((m) => m.t === 'toNexus'));
+  C9.s.destroy();
   await wait(300);
   A2.clear(); B.clear();
   A2.send({ t: 'w', to: 'host', d: { t: 'sync' } });
@@ -1187,6 +1206,69 @@ async function run() {
       const r2 = wallet.settle(saved, died, hm, t0 + 1000);
       check('an honest dungeon clear (' + n + ' kills, ' + gold + ' gold, ' + died.fame + ' death fame) is never cut back', n > 10 && r1 === null && r2 === null, r1 + ' / ' + r2);
     }
+    // an honest hero plays the way the game does (the most XP and stat growth it can roll), saving as it goes:
+    // the server's progress checks must never put anything back
+    {
+      const progress = require('./progress');
+      const { WorldSim } = require('./sim/worldsim');
+      const { Data: GD2 } = require('./sim/gen/game');
+      const cls = GD2.CLASSES.wizard, pm = {}, t0 = Date.now();
+      const h = { id: 'hp', cls: 'wizard', name: 'Honest', level: 1, xp: 0, xpNext: progress.xpFor(1), totalXp: 0, ascXp: 0, kills: 0, bossKills: 0, potsDrunk: 0,
+        stats: clone(cls.base), skills: {}, skillPoints: 0, tree2: true, inv: [null, null, null, null, null, null, null, null] };
+      let stored = { gold: 5000, fame: 0, chars: [clone(h)], pet: { species: 'pup', name: 'Realm Pup', rarity: 'common', level: 1, xp: 0 }, _fame: {} };
+      const pet = clone(stored.pet);
+      const gainXp = (amount) => {
+        h.totalXp += amount;
+        if (h.level >= 20) {
+          h.ascXp += amount;
+          for (;;) { let n = h.skillPoints; for (const k in h.skills) n += h.skills[k]; const cost = GD2.skillPointXp(Math.max(0, n - (h.level - 1))); if (h.ascXp < cost) break; h.ascXp -= cost; h.skillPoints++; }
+          return;
+        }
+        h.xp += amount;
+        while (h.xp >= h.xpNext && h.level < 20) {
+          h.xp -= h.xpNext; h.level++; h.xpNext = progress.xpFor(h.level);
+          for (const k of GD2.STATS) h.stats[k] = Math.min(cls.max[k], h.stats[k] + GD2.grow(cls, k) * 1.2);
+          h.skillPoints++;
+        }
+      };
+      const fixes = [];
+      const save = (extra) => {
+        const next = Object.assign(clone(stored), { chars: [clone(h)], pet: clone(pet) }, extra || {});
+        const f = progress.check(stored, next, pm, Date.now());
+        fixes.push(...f);
+        stored = next;
+      };
+      let n = 0;
+      for (let run = 0; run < 14 && h.ascXp < 1500; run++) {
+        const ws = new WorldSim('dg:6:' + (4300 + run));
+        const me = { id: 7, x: 100, y: 100, maxDps: 1e9, send: () => {} };
+        ws.join(me);
+        ws.onEarn = (c, e, near) => wallet.credit(pm, stored, 'hp', e, t0, near);
+        for (let pass = 0; pass < 6; pass++) for (const e of ws.enemies.slice()) {
+          if (e.dead || e.immune) continue;
+          me.x = e.x; me.y = e.y + 1;
+          ws.hit(me, { id: e.id, d: 6000 });
+          if (!e.dead) continue;
+          gainXp(Math.floor(e.def.xp * (1.5 + (e.elite ? 2 : 0))));
+          h.kills++; if (e.isBoss) h.bossKills++;
+          pet.xp += e.isBoss ? 20 : 1;
+          while (pet.level < 30 && pet.xp >= GD2.petXpNeeded(pet.level)) { pet.xp -= GD2.petXpNeeded(pet.level); pet.level++; }
+          if (++n % 25 === 0) save();
+        }
+        save();
+      }
+      // a backpack, bought with gold, and a stat potion drunk from the bag
+      h.backpack = true; while (h.inv.length < 16) h.inv.push(null);
+      save({ gold: stored.gold - 3000 });
+      // and the skill points spent in the tree
+      h.skills = { brutality: 2 }; h.skillPoints -= 2;
+      save();
+      check('an honest hero (' + n + ' kills, level ' + h.level + ', ' + (h.skillPoints + 2) + ' skill points, pet level ' + pet.level + ') never has progress put back',
+        h.level === 20 && h.skillPoints > 19 && fixes.length === 0, fixes.slice(0, 3).join(' | '));
+      // ...while the same hero claiming one level more than its XP buys is put back
+      const cheat = Object.assign(clone(stored), { chars: [Object.assign(clone(h), { skillPoints: h.skillPoints + 5 })] });
+      check('...and five skill points more than it earned are put back', progress.check(stored, cheat, pm, Date.now()).length === 1 && cheat.chars[0].skillPoints === h.skillPoints);
+    }
     {
       const am = {}, asv = { gold: 0, onrane: 5, chars: [], _fame: {} };
       const lord = { def: { xp: 900, onrane: 3, gold: 200 }, zone: 4, isBoss: true, hitters: [] };
@@ -1288,15 +1370,15 @@ async function run() {
     const V = await login(vn, { password: 'pass1234', register: true });
     const noV = V.find((m) => m.t === 'welcome').no;
     check('a new account gets the next number', noV > noB, String(noV));
-    const hero = { id: 'hv', cls: 'wizard', name: 'Vic', level: 5, inv: [null, null, null, null, null, null, null, null] };
+    const hero = { id: 'hv', cls: 'wizard', name: 'Vic', level: 1, inv: [null, null, null, null, null, null, null, null] };
     V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [hero] } });
     await wait(450);
-    V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [], deaths: 1, graves: [{ name: 'Vic', cls: 'wizard', level: 5, killer: 'Gorehorn' }] } });
+    V.send({ t: 'save', data: { gold: 0, fame: 0, chars: [], deaths: 1, graves: [{ name: 'Vic', cls: 'wizard', level: 1, killer: 'Gorehorn' }] } });
     await wait(450);
     bz.clear();
     bz.send({ t: 'cmd', text: '/graves ' + vn });
     await wait(200);
-    check('/graves lists a fallen hero and what killed it', /1\) Vic, level 5 Wizard, died .* to Gorehorn/.test(notes(bz)), notes(bz));
+    check('/graves lists a fallen hero and what killed it', /1\) Vic, level 1 Wizard, died .* to Gorehorn/.test(notes(bz)), notes(bz));
     B.clear();
     B.send({ t: 'cmd', text: '/revive ' + vn + ' 1' });
     await wait(200);

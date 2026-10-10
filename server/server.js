@@ -29,6 +29,7 @@ const season = require('./season');
 const hall = require('./guildhall');
 const modes = require('./modes');
 const graves = require('./graves');
+const progress = require('./progress');
 const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -303,6 +304,34 @@ function questProgress(c, evs) {
   for (const text of done) c.send({ t: 'questComplete', text: text + ' Claim it at the Quest Board in the Nexus.' });
 }
 if (sims) sims.onQuest = questProgress;
+/**
+ * Dungeons and raids open behind portals: ones the server's monsters drop, and ones opened
+ * with a key the server saw used (handlers.portalKey). Their worlds can be entered while the
+ * portal is up (and a little after), or while anyone is still inside: world key -> until (ms).
+ */
+const openWorlds = new Map();
+const PORTAL_MS = 90 * 1000;
+function openWorld(key) {
+  openWorlds.set(key, Date.now() + PORTAL_MS);
+  if (openWorlds.size > 2000) { const now = Date.now(); for (const [k, t] of openWorlds) if (t < now) openWorlds.delete(k); }
+}
+/** May c go into world (from the world it was in)? Admins go anywhere. */
+function mayEnter(c, world, from) {
+  if (!sims || isAdmin(c)) return true;
+  const kind = world.split(':')[0];
+  if (kind !== 'dg' && kind !== 'raid' && kind !== 'arena') return true;
+  // someone is in there now (a party member followed with /join, a reconnect)
+  const sm = sims.get(world);
+  if (sm && sm.players && sm.players.size > 0) return true;
+  if (kind === 'arena') {
+    // the Elder's chamber: from the Citadel (or the realm) it belongs to
+    const seed = world.slice(6);
+    const f = (from || '').split(':');
+    return seed.charAt(0) === 'r' ? f[0] === 'realm' && f[f.length - 1] === seed.slice(1) : f[0] === 'dg' && f[2] === seed;
+  }
+  return (openWorlds.get(world) || 0) > Date.now();
+}
+if (sims) sims.onPortal = openWorld;
 if (sims) sims.onFeat = (k, d) => { if (k === 'raid' && d.week !== undefined && d.ms > 0) vaultCleared(d); feat(k, d); };
 
 /** The Starfall Vault's weekly board: records['vault:<week>'], fastest clears on that week's twist (top 5 earn Twistbreaker). */
@@ -579,6 +608,7 @@ function publicSave(s) {
   delete o._fame;
   delete o._login;
   delete o._graves;
+  delete o._xpb;
   o.earned = Object.keys(s._titles || {});
   return o;
 }
@@ -626,7 +656,19 @@ function applySave(c, data, cid) {
       store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + cut);
       c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
-  } else if (prev._fame) data._fame = prev._fame;
+    // and hero progress (XP, levels, stats, skill points, potions, backpacks, the pet) only by what was earned
+    const fixed = progress.check(prev, data, c.meta, Date.now());
+    if (fixed.length) {
+      const why2 = 'put back: ' + fixed.join('; ');
+      log('progress ' + c.name + ': ' + why2);
+      counters.savesCut++;
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why2);
+      modeFixes.push('The server put back what its records don\'t show you earned (' + fixed.join('; ') + ').');
+    }
+  } else {
+    if (prev._fame) data._fame = prev._fame;
+    if (prev._xpb) data._xpb = prev._xpb; else delete data._xpb;
+  }
   // heroes that died go on the season ladder, and into the server's graves
   seasonSave(c, prev, data);
   graves.bury(data, fell, wallet.fameGain(prev, data));
@@ -636,7 +678,7 @@ function applySave(c, data, cid) {
   // admins' own new items join their ledger
   if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
-  // a Hardcore item equipped too early went back to the inventory: the game takes the server's copy
+  // a Hardcore item equipped too early went back to the inventory, or progress was put back: the game takes the server's copy
   if (modeFixes.length) c.send({ t: 'saveRejected', reason: modeFixes.join(' '), data: publicSave(data) });
   // the game says which hero it's playing with each shop request, so the shops never depend on
   // having seen this connection's last 'enter' (a reconnect, or a hero whose id was only just set)
@@ -647,7 +689,7 @@ function applySave(c, data, cid) {
   // a cosmetic bought just now: the profile that came before this save can wear it now
   if (c.rawProfile && !isAdmin(c)) {
     const p = withBanner(c, cleanProfile(c.rawProfile, data));
-    if (p.dye !== c.profile.dye || p.title !== c.profile.title || p.skin !== c.profile.skin) {
+    if (p.dye !== c.profile.dye || p.title !== c.profile.title || p.skin !== c.profile.skin || p.level !== c.profile.level || JSON.stringify(p.equip) !== JSON.stringify(c.profile.equip)) {
       c.profile = p;
       for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
     }
@@ -773,6 +815,13 @@ const handlers = {
     let world = str(m.key, 80);
     // a guild's hall is for its members: anyone else gets a hall of their own (empty)
     if (world.startsWith('ghall:') && world !== 'ghall:' + c.guild) world = 'solo:hall:' + c.id;
+    // dungeons and raids only through an open portal (a changed game can't walk into one)
+    if (!mayEnter(c, world, c.world)) {
+      log(c.name + ' tried to enter ' + world + ' without a portal');
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': entered ' + world + ' without a portal');
+      c.send({ t: 'toNexus', msg: 'That portal has closed.' });
+      world = 'solo:closed:' + c.id;
+    }
     leaveWorld(c);
     c.world = world;
     c.x = num(m.x); c.y = num(m.y);
@@ -1239,6 +1288,36 @@ const handlers = {
     }
     c.saveAt = now;
     applySave(c, m.data);
+  },
+
+  /** A key was used: it leaves the server's copy of the hero, and the portal it opened lets people in. */
+  portalKey(c, m) {
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    const sid = str(m.sid, 40), i = num(m.i) | 0, seed = num(m.s) >>> 0;
+    // (admins open raids for everyone from the admin menu, without a key)
+    if (isAdmin(c) && !sid && seed) return openWorld((m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed);
+    if (!ch || !Array.isArray(ch.inv)) return;
+    const at = sid ? ch.inv.findIndex((it) => it && it.sid === sid) : -1;
+    const key = at >= 0 ? ch.inv[at] : null;
+    const ok = key && (m.k === 'raid' ? Data.keyRaid(key) === i : Data.keyDungeon(key) === i);
+    if (!ok || !seed) { log(c.name + ' opened a portal without a key it has'); return; }
+    ch.inv[at] = null;
+    // (used up: a save that still holds it is refused, see items.check)
+    items.release(sv, key);
+    store.putSave(c.key, sv);
+    openWorld((m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed);
+  },
+
+  /** A pet egg: the server takes the gold and rolls the pet (the game can't pick its own). */
+  hatch(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so no egg was bought.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    if (sv.pet) return c.send({ t: 'shopFail', msg: 'You already have a pet.' });
+    if ((sv.gold || 0) < Data.PET_EGG_PRICE) return c.send({ t: 'shopFail', msg: 'You need ' + Data.PET_EGG_PRICE.toLocaleString('en') + ' gold to buy a pet egg.' });
+    sv.gold -= Data.PET_EGG_PRICE;
+    sv.pet = progress.hatch();
+    shopDone(c, sv, ch, { pet: sv.pet });
   },
 
   /** Marketplace and Key Merchant: the server checks the gold and hands out the item. */
@@ -1827,6 +1906,13 @@ function sendParty(pid) {
 
 /** Guild members show their guild's banner (if it flies one) by their name. */
 function withBanner(c, p) {
+  // level and gear as the server knows them (the game's own claim is never shown to others)
+  const ch = sims && !isAdmin(c) ? serverChar(c) : null;
+  if (ch) {
+    p.level = Math.max(1, Math.min(20, Number(ch.level) | 0));
+    if (Data.CLASSES[ch.cls]) p.cls = ch.cls;
+    p.equip = [ch.weapon, ch.ability, ch.armor, ch.ring].map((it) => (it && typeof it === 'object' && JSON.stringify(it).length < 4000 ? it : null));
+  }
   // (the hero's mode, as the server knows it, shows by the name too)
   if (c.mode) p.md = c.mode; else delete p.md;
   // the account number, so players can name someone exactly in a report

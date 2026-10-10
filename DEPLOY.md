@@ -135,7 +135,8 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - gold, Aether and fame are cut back to what was earned (as before);
   - XP is checked against the kills the server saw, and levels, stats (level growth plus stat potions really drunk) and skill points against that XP; potion slots, backpacks (paid for in gold) and pets (hatched by the server, grown by kills and paid feeds) are checked too. Anything that doesn't add up is put back to the last good save, without undoing loot, and logged;
   - dungeons and raids can only be entered through a portal the server knows about (dropped by its monsters, or opened with a key it takes from the player), and the Dark Elder's chamber only from its Citadel or closing realm;
-  - what other players see of someone's level and gear comes from the server's copy.
+  - what other players see of someone's level and gear comes from the server's copy;
+  - damage: every hit a player's game reports is capped at the biggest hit that hero's gear, stats and skills (as the server knows them) could land, and each monster takes no more damage a second from one player than their weapon, ability and pet could deal (`server/combat.js`). Editing damage numbers or stats in the game changes nothing on the server.
   Admins' own saves are trusted, so the admin menu keeps working for real admins.
 
 ### Seasons

@@ -30,6 +30,7 @@ const hall = require('./guildhall');
 const modes = require('./modes');
 const graves = require('./graves');
 const progress = require('./progress');
+const combat = require('./combat');
 const { Data, Bosses } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
@@ -684,7 +685,7 @@ function applySave(c, data, cid) {
   // having seen this connection's last 'enter' (a reconnect, or a hero whose id was only just set)
   if (typeof cid === 'string' && cid && (data.chars || []).some((h) => h && h.id === cid)) c.charId = cid.slice(0, 64);
   // what this hero can deal now (new weapon, more Attack...), and its mode (a new hero's first save sets it)
-  c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
+  setCaps(c);
   c.mode = modes.modeOf(serverChar(c));
   // a cosmetic bought just now: the profile that came before this save can wear it now
   if (c.rawProfile && !isAdmin(c)) {
@@ -698,22 +699,16 @@ function applySave(c, data, cid) {
 }
 
 /**
- * The most damage a second this hero could possibly deal with its own weapon and stats: every
- * shot hitting, crits, berserk, haste and might all at once, then half as much again for
- * abilities, pets and minions. The world simulations refuse damage beyond it (see WorldSim.hit).
+ * How hard this player can hit, from the server's copy of their hero (combat.js): c.caps limits
+ * each hit and each monster's damage a second; c.maxDps all their damage a second together
+ * (area attacks spread over many monsters). Admins aren't limited.
  */
-function maxDps(ch) {
-  if (!ch || typeof ch !== 'object') return 0;
-  const w = ch.weapon;
-  const gear = (k) => [ch.weapon, ch.ability, ch.armor, ch.ring].reduce((n, it) => n + (it && typeof it === 'object' ? Number(it[k]) || 0 : 0), 0);
-  const att = (Number(ch.stats && ch.stats.att) || 0) + gear('att') + 40;
-  const dex = (Number(ch.stats && ch.stats.dex) || 0) + gear('dex') + 40;
-  if (!w || typeof w !== 'object') return 3000;
-  const avg = ((Number(w.dmin) || 0) + (Number(w.dmax) || 0)) / 2 * (Number(w.mult) || 1);
-  const shots = Math.max(1, Math.min(9, Number(w.shots) || 1));
-  const rate = (1.5 + 6.5 * dex / 75) * Math.min(2.5, Number(w.rate) || 1) * 1.5 * 1.4;
-  const dps = avg * (0.5 + att / 50) * 1.3 * 1.6 * shots * rate;
-  return Math.max(3000, Math.round(dps * 1.5 + 2000));
+const NEW_HERO_CAPS = { hit: 300, rate: 1500, burst: 6000 };
+function setCaps(c) {
+  if (isAdmin(c)) { c.caps = null; c.maxDps = 1e9; return; }
+  const sv = store.getSave(c.key) || {};
+  c.caps = combat.caps(serverChar(c), sv.pet) || NEW_HERO_CAPS;
+  c.maxDps = c.caps.rate * 3;
 }
 
 /** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
@@ -829,7 +824,7 @@ const handlers = {
     if (m.cid) c.charId = str(m.cid, 64);
     // the godmode count starts over in each world
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
-    c.maxDps = isAdmin(c) ? 1e9 : maxDps(serverChar(c));
+    setCaps(c);
     c.mode = modes.modeOf(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
     c.profile = withBanner(c, cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key)));

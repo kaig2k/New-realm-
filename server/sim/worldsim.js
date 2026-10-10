@@ -173,7 +173,20 @@ class WorldSim {
     const sl = Math.min(5, Math.max(0, Number(d.sl) || 0)), st = Math.min(5, Math.max(0, Number(d.st) || 0));
     if (sl) e.slowT = Math.max(e.slowT, sl);
     if (st) e.stunT = Math.max(e.stunT, e.isBoss ? st * 0.4 : st);
-    let dmg = Math.min(6000, Math.max(0, Number(d.d) || 0));
+    // no bigger than the hero's own gear and stats allow (server/combat.js; admins have no caps)
+    let dmg = Math.min(c.caps ? c.caps.hit : 6000, Math.max(0, Number(d.d) || 0));
+    if (dmg > 0 && c.caps) {
+      // and no faster on any one monster than its weapon, ability and pet could manage
+      const now = Date.now();
+      const tb = e.tb || (e.tb = new Map());
+      const b = tb.get(c.id) || { left: c.caps.burst, t: now };
+      b.left = Math.min(c.caps.burst, b.left + c.caps.rate * (now - b.t) / 1000);
+      b.t = now;
+      tb.set(c.id, b);
+      if (b.left <= 0) { c.dpsCut = (c.dpsCut || 0) + 1; return; }
+      if (dmg > b.left) { c.dpsCut = (c.dpsCut || 0) + 1; dmg = b.left; }
+      b.left -= dmg;
+    }
     // nobody deals damage faster than the best gear can: a budget that refills at MAX_DPS
     // (with room for big ability bursts); hits beyond it don't count
     if (dmg > 0) {

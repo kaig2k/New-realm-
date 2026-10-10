@@ -461,6 +461,47 @@ async function run() {
     const dealt = hp0 - boss.hp, secs = (Date.now() - t0) / 1000;
     // (a slow machine takes longer over the 300 hits, and the budget refills meanwhile)
     check('damage is capped by what the hero\'s own gear can deal (300 hits of 6,000 at once)', dealt <= 8000 * (3 + secs) + 20000 && cheat.dpsCut > 0, Math.round(dealt) + ' dealt in ' + secs + 's');
+    // ...and per hit and per monster, by the hero the server knows (combat.js), whatever the game claims
+    {
+      const combat = require('./combat');
+      const cls = PD.CLASSES.wizard;
+      const starter = { cls: 'wizard', level: 1, stats: clone(cls.base), weapon: PD.makeWeapon('staff', 0), ability: PD.makeAbility(cls.abilityType, 0), armor: PD.makeArmor(cls.armor, 0) };
+      const cw = new WorldSim('dg:6:779'), cb = cw.w.boss;
+      cb.maxHp = cb.hp = 1e7;
+      const hk = { id: 4, x: cb.x, y: cb.y + 1, maxDps: 1e9, caps: combat.caps(starter, null), send: () => {} };
+      cw.join(hk);
+      const h0 = cb.hp, s0 = Date.now();
+      cw.hit(hk, { id: cb.id, d: 6000 });
+      const one = h0 - cb.hp;
+      for (let i = 0; i < 300; i++) cw.hit(hk, { id: cb.id, d: 6000 });
+      const all = h0 - cb.hp, sec = (Date.now() - s0) / 1000;
+      check('a hacked starter\'s 6,000 hit lands as at most ' + hk.caps.hit + ' (what a starter staff and ability can do)', one <= hk.caps.hit && one > 0, String(one));
+      check('...and 300 of them deal no more than a starter could on one monster (' + Math.round(all) + ')', all <= hk.caps.burst + hk.caps.rate * (sec + 0.1), Math.round(all) + ' vs ' + hk.caps.burst);
+      // an honest late hero firing as fast as it can (crits and all) for 8 seconds is never held back
+      const late = { cls: 'wizard', level: 20, stats: clone(cls.max), weapon: PD.makeWeapon('staff', 7), ability: PD.makeAbility(cls.abilityType, 6), armor: PD.makeArmor(cls.armor, 7),
+        skills: { brutality: 3 } };
+      const hw = new WorldSim('dg:6:780'), hb = hw.w.boss;
+      hb.maxHp = hb.hp = 1e9;
+      const me2 = { id: 5, x: hb.x, y: hb.y + 1, maxDps: 1e9, caps: combat.caps(late, null), send: () => {} };
+      hw.join(me2);
+      const att = combat.stat(late, 'att'), dex = combat.stat(late, 'dex'), w7 = late.weapon;
+      const perSec = (1.5 + 6.5 * dex / 75) * w7.rate * w7.shots * 1.5 * 1.4;
+      const t1 = Date.now();
+      let fakeT = 0;
+      const realNow = Date.now;
+      Date.now = () => t1 + fakeT;
+      try {
+        for (let k = 0; k < Math.ceil(perSec * 8); k++) {
+          fakeT = Math.floor(k / perSec * 1000);
+          let dmg = Math.floor((w7.dmin + Math.random() * (w7.dmax - w7.dmin)) * (0.5 + att / 50) * 1.15 * 1.3);
+          if (Math.random() < 0.15) dmg = Math.floor(dmg * 1.7);
+          hw.hit(me2, { id: hb.id, d: dmg });
+          // and its ability on cooldown
+          if (k % Math.ceil(perSec * 3) === 0) hw.hit(me2, { id: hb.id, d: Math.floor((130 + 16 * 20) * late.ability.power * 1.3) });
+        }
+      } finally { Date.now = realNow; }
+      check('an honest late-game hero firing flat out (' + Math.round(perSec) + ' shots a second, Haste and Berserk) is never cut', !me2.dpsCut, me2.dpsCut + ' hits cut');
+    }
     // bosses grow with the players fighting them, not with everyone in the world
     const rw = new WorldSim('dg:6:778');
     const rb = rw.w.boss;

@@ -296,7 +296,8 @@ class WorldSim {
     if (!s || !s.enemy || s.motion === 'home') return;
     if (!this.shots) this.shots = [];
     if (this.shots.length > 3000) this.shots.shift();
-    this.shots.push({ x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false, walls: !s.passWalls });
+    this.shots.push({ x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false, walls: !s.passWalls,
+      dmg: Math.max(0, Number(s.dmg) || 0) });
   }
 
   expectArea(x, y, r) {
@@ -326,7 +327,14 @@ class WorldSim {
         for (const c of this.players.values()) {
           if ((c.grace || 0) > now) continue;
           const dx = c.x - s.x, dy = c.y - s.y;
-          if (dx * dx + dy * dy < reach * reach) { c.expHits = (c.expHits || 0) + 1; gone = true; break; }
+          if (dx * dx + dy * dy < reach * reach) {
+            c.expHits = (c.expHits || 0) + 1;
+            // the least this hit can have done to them: their Defense as the server knows it (with every
+            // Defense boost there is), or 15% of it, whichever is more (Player.takeHit)
+            c.expDmg = (c.expDmg || 0) + Math.max(s.dmg - (c.defMax || 0), Math.floor(s.dmg * 0.15));
+            gone = true;
+            break;
+          }
         }
       }
       if (gone) list.splice(i, 1);

@@ -610,6 +610,7 @@ function publicSave(s) {
   delete o._login;
   delete o._graves;
   delete o._xpb;
+  delete o._dead;
   o.earned = Object.keys(s._titles || {});
   return o;
 }
@@ -620,6 +621,11 @@ function publicSave(s) {
  */
 function applySave(c, data, cid) {
   const prev = onlineSave(c.key);
+  // heroes the anti-cheat killed stay dead, whatever the game still holds (an admin's /revive brings one back)
+  if (Array.isArray(prev._dead) && data && Array.isArray(data.chars)) {
+    const dead = new Set(prev._dead);
+    data.chars = data.chars.filter((h) => !(h && dead.has(h.id)));
+  }
   // (with server-run monsters, gold and fame are checked against what was earned instead of a time budget)
   let why = checkSave(prev, data, c.meta, Date.now(), sims && !isAdmin(c) ? ['gold', 'fame', 'onrane'] : null);
   // items must come from the server (admins are trusted), and stats stay within the class limits
@@ -647,6 +653,7 @@ function applySave(c, data, cid) {
   if (prev._login) data._login = prev._login; else delete data._login;
   // and the fallen heroes an admin can bring back (see graves.js)
   if (prev._graves) data._graves = prev._graves; else delete data._graves;
+  if (prev._dead) data._dead = prev._dead; else delete data._dead;
   const fell = graves.fallen(prev, data);
   // gold and fame only go up by what the server saw earned
   if (sims && !isAdmin(c)) {
@@ -703,12 +710,14 @@ function applySave(c, data, cid) {
  * each hit and each monster's damage a second; c.maxDps all their damage a second together
  * (area attacks spread over many monsters). Admins aren't limited.
  */
-const NEW_HERO_CAPS = { hit: 300, rate: 1500, burst: 6000 };
+const NEW_HERO_CAPS = { hit: 300, rate: 1500, burst: 6000, def: 0, maxHp: 0 };
 function setCaps(c) {
-  if (isAdmin(c)) { c.caps = null; c.maxDps = 1e9; return; }
+  if (isAdmin(c)) { c.caps = null; c.maxDps = 1e9; c.defMax = 1e9; return; }
   const sv = store.getSave(c.key) || {};
   c.caps = combat.caps(serverChar(c), sv.pet) || NEW_HERO_CAPS;
   c.maxDps = c.caps.rate * 3;
+  // (damage checks: the most Defense, and the most health, this hero can have)
+  c.defMax = c.caps.def;
 }
 
 /** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
@@ -822,8 +831,10 @@ const handlers = {
     c.x = num(m.x); c.y = num(m.y);
     c.mv = null; // a new world: movement checks start again from where you arrive
     if (m.cid) c.charId = str(m.cid, 64);
-    // the godmode count starts over in each world
+    // the godmode count starts over in each world (and arriving, you can't be hit for a moment)
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
+    c.expDmg = 0; c.expDmgBase = 0; c.dmgBase = c.dmgRep || 0;
+    c.grace = Math.max(c.grace || 0, Date.now() + 3500);
     setCaps(c);
     c.mode = modes.modeOf(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
@@ -895,8 +906,9 @@ const handlers = {
     if (!o || !o.authed || o.world !== c.world) return c.note('They are not in this world.');
     if (!config.teleportToAnyone && !friends(c, o)) return c.note('You can only teleport to party and guild members.');
     c.send({ t: 'tppos', id: o.id, name: o.name, x: o.x, y: o.y });
-    // the jump to them is expected
+    // the jump to them is expected (and you can't be hit for a moment as you land)
     c.tpTo = { x: o.x, y: o.y, until: Date.now() + 8000 };
+    c.grace = Math.max(c.grace || 0, Date.now() + 2500);
   },
 
   shoot(c, m) {
@@ -928,12 +940,26 @@ const handlers = {
     }
   },
 
-  /** The game's count of monster hits it has taken (it only grows); see godmodeCheck. */
+  /**
+   * The game's count of monster hits it has taken and the damage they did (both only grow), and its
+   * health now; see godmodeCheck.
+   */
   hits(c, m) {
-    const n = num(m.n) | 0;
-    // (the count runs for the whole game session: a reconnect starts from wherever it is)
-    if (c.hitsRep === undefined) { c.hitsRep = c.hitsBase = n; return; }
-    if (n > c.hitsRep && n - c.hitsRep < 500) c.hitsRep = n;
+    const n = num(m.n) | 0, d = Math.max(0, num(m.d));
+    if (m.d !== undefined && m.mhp !== undefined) c.sendsDmg = true;
+    // (the counts run for the whole game session: a reconnect starts from wherever they are)
+    if (c.hitsRep === undefined) { c.hitsRep = c.hitsBase = n; c.dmgRep = c.dmgBase = d; }
+    else {
+      if (n > c.hitsRep && n - c.hitsRep < 500) c.hitsRep = n;
+      if (d > c.dmgRep && d - c.dmgRep < 1e6) c.dmgRep = d;
+    }
+    // health beyond what the hero can have (its saved stats and gear): an edited game
+    if (m.mhp !== undefined && c.caps && c.caps.maxHp > 0) {
+      const top = c.caps.maxHp * 1.02 + 5;
+      if (num(m.hp) > top || num(m.mhp) > top) c.hpOver = (c.hpOver || 0) + 1;
+      else c.hpOver = 0;
+      c.hpSeen = { hp: num(m.hp), mhp: num(m.mhp), top: Math.round(top) };
+    }
   },
 
   profile(c, m) {
@@ -1664,7 +1690,43 @@ const handlers = {
 };
 
 // ------------------------------------------------------------------ godmode checks
-const { godmodeVerdict } = require('./godmode');
+const { godmodeVerdict, damageVerdict } = require('./godmode');
+
+/**
+ * A player whose game ignored damage it took (config "combatCheck"): "flag" only tells the admins,
+ * "kick" disconnects, "kill" kills the hero (it goes to the graves, so /revive can undo a
+ * mistake), and "auto" (the default) kicks the first time and kills if it happens again
+ * within a day.
+ */
+function enforce(c, note) {
+  const mode = ['flag', 'kick', 'kill', 'auto'].includes(config.combatCheck) ? config.combatCheck : 'auto';
+  if (mode === 'flag') return false;
+  const again = c.meta && Date.now() - (c.meta.cheatAt || 0) < 24 * 3600 * 1000;
+  if (c.meta) c.meta.cheatAt = Date.now();
+  if (mode === 'kill' || (mode === 'auto' && again)) {
+    const ch = serverChar(c);
+    if (ch) {
+      const sv = onlineSave(c.key);
+      sv.chars = (sv.chars || []).filter((h) => h !== ch);
+      if (!Array.isArray(sv._graves)) sv._graves = [];
+      sv._graves.unshift({ hero: JSON.parse(JSON.stringify(ch)), at: Date.now(), book: (sv._fame && sv._fame[ch.id]) || 0, fame: 0, killer: 'the anti-cheat', died: true });
+      if (sv._graves.length > graves.KEEP) sv._graves.length = graves.KEEP;
+      // (a save that still has it can't bring it back: see applySave)
+      sv._dead = (Array.isArray(sv._dead) ? sv._dead : []).concat([ch.id]).slice(-50);
+      sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+      store.putSave(c.key, sv);
+      log(c.name + ': hero ' + (ch.name || ch.id) + ' killed by the anti-cheat (' + note + ')');
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': hero killed (' + note + ')');
+      c.send({ t: 'kicked', msg: 'Your game ignored damage it took again, so your hero died. If you think this is a mistake, tell an admin: they can bring it back.' });
+      c.close(true);
+      return true;
+    }
+  }
+  counters.godmodeKicks++;
+  c.send({ t: 'kicked', msg: 'Your game ignored damage it took, so you were disconnected. If it happens again your hero dies. If you think this is a mistake, tell an admin.' });
+  c.close(true);
+  return true;
+}
 
 // ------------------------------------------------------------------ server health (/stats)
 /** NEWREALM_SLOW_LOG=1: log any message that takes the server over 30 ms (for load tests). */
@@ -1709,6 +1771,22 @@ function godmodeCheck() {
     if (!c.authed || isAdmin(c) || !c.sim) continue;
     const exp = (c.expHits || 0) - (c.expBase || 0), took = (c.hitsRep || 0) - (c.hitsBase || 0);
     const v = godmodeVerdict(exp, took);
+    // the damage those hits did, and the health the game says it has
+    const expD = (c.expDmg || 0) - (c.expDmgBase || 0), tookD = (c.dmgRep || 0) - (c.dmgBase || 0);
+    const dmgBad = c.sendsDmg && damageVerdict(exp, expD, tookD);
+    const hpBad = (c.hpOver || 0) >= 3;
+    // (a game that never says what damage it took is too old, or changed: it has to be the current one)
+    const silent = !c.sendsDmg && exp >= 40;
+    if (dmgBad || hpBad || silent) {
+      const note = c.name + (dmgBad ? ' took ' + Math.round(tookD) + ' damage from hits that did at least ' + Math.round(expD) + ' (' + exp + ' clean hits)'
+        : hpBad ? ' has ' + c.hpSeen.hp + '/' + c.hpSeen.mhp + ' health, more than its hero can have (' + c.hpSeen.top + ')' : '\'s game does not report the damage it takes');
+      log('anti-cheat ' + note);
+      counters.godmodeFlags++;
+      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + note);
+      for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + note, 0xffb040);
+      if (silent) { c.send({ t: 'kicked', msg: 'Your game is out of date. Open it again to get the latest version.' }); c.close(true); continue; }
+      if (enforce(c, note)) continue;
+    }
     if (v) {
       const note = c.name + ' took ' + took + ' of ' + exp + ' clean monster hits (godmode?)';
       log('godmode ' + note);
@@ -1719,15 +1797,11 @@ function godmodeCheck() {
         for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + note, 0xffb040);
       }
       // (kicking is off unless config.json says "godmodeKick": true: until you've seen the log, honest players are only flagged)
-      if (v === 'kick' && config.godmodeKick === true) {
-        counters.godmodeKicks++;
-        c.send({ t: 'kicked', msg: 'Your game ignored hits from monsters, so you were disconnected. If you think this is a mistake, tell an admin.' });
-        c.close(true);
-        continue;
-      }
+      // (kicking on the hit count alone is off unless config.json says "godmodeKick": true; the damage check above acts by itself)
+      if (v === 'kick' && config.godmodeKick === true) { if (enforce(c, note)) continue; }
     }
     // a settled window starts again (so an old good record can't hide new cheating)
-    if (exp >= 60 || v) { c.expBase = c.expHits || 0; c.hitsBase = c.hitsRep || 0; }
+    if (exp >= 60 || v) { c.expBase = c.expHits || 0; c.hitsBase = c.hitsRep || 0; c.expDmgBase = c.expDmg || 0; c.dmgBase = c.dmgRep || 0; }
   }
 }
 setInterval(godmodeCheck, 10000).unref();

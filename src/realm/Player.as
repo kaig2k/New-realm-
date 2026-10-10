@@ -1023,6 +1023,8 @@ package realm {
 
 		/** Monster hits taken this game session (the server compares them with the shots it saw land). */
 		public static var hitsTaken:int = 0;
+		/** Damage those hits did (after Defense and shields, before Ward and Protection soak it up): the server checks it. */
+		public static var dmgTaken:Number = 0;
 
 		public function takeHit(raw:int, src:String, g:Game, effect:String = null, attack:String = ""):void {
 			if (invulnT > 0 || g.godMode) return;
@@ -1036,6 +1038,7 @@ package realm {
 			}
 			var d:int = Math.max(raw - def, int(raw * 0.15));
 			if (shielded) d = Math.max(1, int(d * 0.4));
+			dmgTaken += d;
 			// Divine Ward soaks up damage first
 			if (wardHp > 0) {
 				var soak:int = Math.min(int(wardHp), d);

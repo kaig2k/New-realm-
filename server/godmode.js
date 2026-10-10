@@ -16,4 +16,14 @@ function godmodeVerdict(exp, took) {
   return '';
 }
 
-module.exports = { godmodeVerdict };
+/**
+ * Damage: the server added up the least each clean hit could have done (expDmg); the game says
+ * it took tookDmg from every hit (clean or not). An honest game always reports at least that
+ * much (more, from hits the server couldn't be sure of); one that edits Defense, or ignores
+ * hits, reports far less. True when it is far too little, over enough hits to be sure.
+ */
+function damageVerdict(expHits, expDmg, tookDmg) {
+  return expHits >= 20 && expDmg >= 400 && tookDmg < expDmg * 0.35;
+}
+
+module.exports = { godmodeVerdict, damageVerdict };

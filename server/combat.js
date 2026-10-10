@@ -79,7 +79,10 @@ function caps(ch, pet) {
   const petHit = pet && typeof pet === 'object' ? Data.petAttack(pet) : 0;
   const hit = Math.ceil(Math.max(weaponHit, abilityHit, petHit, 10) * boost) + 5;
   const rate = Math.ceil((weaponDps + abilityDps + petHit * 1.5 + (8 + level) * pow * 2) * boost * 1.25) + 50;
-  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2 };
+  // (and what it can take: its Defense with the best Defense aura there is, and its health)
+  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def') + AURA_DEF, maxHp: stat(ch, 'hp') };
 }
+/** The most Defense a Warrior's banner (Abilities: 10 x its power) gives everyone near it. */
+const AURA_DEF = 30;
 
-module.exports = { caps, stat, ABILITY };
+module.exports = { caps, stat, ABILITY, AURA_DEF };

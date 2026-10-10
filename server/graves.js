@@ -89,6 +89,7 @@ function revive(sv, n) {
   }
   sv.chars.push(hero);
   g.splice(n - 1, 1);
+  if (Array.isArray(sv._dead)) sv._dead = sv._dead.filter((id) => id !== hero.id);
   // newer than any save the game has in flight, so the revive can't be overwritten
   sv.tradeSeq = (sv.tradeSeq || 0) + 1;
   return { hero, fameBack };

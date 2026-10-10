@@ -105,6 +105,7 @@ Players then join with `play.yourgame.com:2050`.
 | `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
+| `combatCheck` | What happens to a player whose game ignores damage (the damage it reports is far below what the clean hits the server saw must have done, or its health is more than its hero can have): `"auto"` (the default) disconnects them the first time and kills the hero if it happens again within a day; `"kick"` only disconnects; `"kill"` kills the hero at once; `"flag"` only logs it and tells online admins. A hero killed this way goes to the graves, so `/revive` brings it back if it was a mistake. Everything is written to `server/data/anticheat.log`. |
 | `teleportToAnyone` | `true` (the default, like RotMG): players can teleport to anyone in the same world by clicking them on the minimap or with `/tp name`. `false`: only to party and guild members. |
 
 Restart the service after editing: `sudo systemctl restart newrealm`.
@@ -136,7 +137,8 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - XP is checked against the kills the server saw, and levels, stats (level growth plus stat potions really drunk) and skill points against that XP; potion slots, backpacks (paid for in gold) and pets (hatched by the server, grown by kills and paid feeds) are checked too. Anything that doesn't add up is put back to the last good save, without undoing loot, and logged;
   - dungeons and raids can only be entered through a portal the server knows about (dropped by its monsters, or opened with a key it takes from the player), and the Dark Elder's chamber only from its Citadel or closing realm;
   - what other players see of someone's level and gear comes from the server's copy;
-  - damage: every hit a player's game reports is capped at the biggest hit that hero's gear, stats and skills (as the server knows them) could land, and each monster takes no more damage a second from one player than their weapon, ability and pet could deal (`server/combat.js`). Editing damage numbers or stats in the game changes nothing on the server.
+  - damage: every hit a player's game reports is capped at the biggest hit that hero's gear, stats and skills (as the server knows them) could land, and each monster takes no more damage a second from one player than their weapon, ability and pet could deal (`server/combat.js`). Editing damage numbers or stats in the game changes nothing on the server;
+  - damage taken: the server follows every monster shot and adds up the least each clean hit could have done to that hero (its Defense, with the best Defense aura, as the server knows it). A game reporting far less (an edited Defense, or ignoring hits), or more health than its hero can have, is dealt with as `combatCheck` says.
   Admins' own saves are trusted, so the admin menu keeps working for real admins.
 
 ### Seasons

@@ -531,6 +531,17 @@ async function run() {
     check('no hits are expected while a shield wall, Time Stop or a dash protects you', (me.expHits || 0) === before);
     check('taking almost none of many clean hits is flagged, then kicked; honest dodging is not',
       godmodeVerdict(35, 1) === 'flag' && godmodeVerdict(80, 2) === 'kick' && godmodeVerdict(80, 20) === '' && godmodeVerdict(10, 0) === '');
+    // the damage of those hits: the least each could do to this hero (its Defense, or 15%)
+    {
+      const { damageVerdict } = require('./godmode');
+      const tough = { id: 11, x: room.x + 0.5, y: room.y + 0.5, maxDps: 1e9, defMax: 10, send: () => {} };
+      const ws2 = new WorldSim('dg:6:31');
+      ws2.join(tough);
+      for (let i = 0; i < 400; i++) ws2.tick(0.05);
+      check('the server adds up the damage of the clean hits (' + (tough.expHits || 0) + ' hits, at least ' + Math.round(tough.expDmg || 0) + ' damage)', (tough.expHits || 0) > 0 && tough.expDmg > 0, String(tough.expDmg));
+      check('a game reporting far less damage than those hits did (edited Defense, ignored hits) is caught; an honest one is not',
+        damageVerdict(30, 2000, 300) && !damageVerdict(30, 2000, 1800) && !damageVerdict(30, 2000, 2600) && !damageVerdict(10, 2000, 0) && !damageVerdict(30, 200, 0));
+    }
   }
 
   console.log('monster families');
@@ -1455,6 +1466,58 @@ async function run() {
     await wait(200);
     check('players who are not admins cannot set passwords', /Only server admins/.test(notes(B)));
     for (const c of [V, vOld, vNew, bz]) c.s.destroy();
+  }
+
+  console.log('health and damage the game reports');
+  {
+    const nm = 'Th' + n;
+    let H = await login(nm, { password: 'pass1234', register: true });
+    const realmsH = H.find((m) => m.t === 'welcome').realms;
+    const { Data: HD2 } = require('./sim/gen/game');
+    const hero = { id: 'hh1', cls: 'wizard', name: 'Hpx', level: 1, stats: clone(HD2.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] };
+    H.send({ t: 'save', data: { gold: 0, fame: 0, chars: [hero] } });
+    await wait(400);
+    const rk = 'realm:' + realmsH[0].name + ':' + realmsH[0].seed;
+    const goIn = (c) => { c.send({ t: 'enter', key: rk, cid: 'hh1', x: 100, y: 100, profile: { cls: 'wizard' } }); };
+    goIn(H);
+    await wait(300);
+    // an honest report is left alone
+    H.send({ t: 'hits', n: 0, d: 0, hp: 80, mhp: 80 });
+    // ...a game claiming 99,999 health (its hero has 80) is disconnected at the next check
+    const spam = (c) => setInterval(() => c.send({ t: 'hits', n: 0, d: 0, hp: 99999, mhp: 99999 }), 800);
+    let t1 = spam(H);
+    for (let k = 0; k < 30 && !H.find((m) => m.t === 'kicked'); k++) await wait(500);
+    clearInterval(t1);
+    const k1 = H.find((m) => m.t === 'kicked');
+    check('a game claiming more health than its hero can have is disconnected (and warned)', k1 && /If it happens again your hero dies/.test(k1.msg), JSON.stringify(k1));
+    H.s.destroy();
+    H = await login(nm, { password: 'pass1234' });
+    goIn(H);
+    await wait(300);
+    t1 = spam(H);
+    for (let k = 0; k < 30 && !H.find((m) => m.t === 'kicked'); k++) await wait(500);
+    clearInterval(t1);
+    const k2 = H.find((m) => m.t === 'kicked');
+    check('...and the second time that day its hero dies', k2 && /your hero died/.test(k2.msg), JSON.stringify(k2));
+    H.s.destroy();
+    H = await login(nm, { password: 'pass1234' });
+    const after = H.find((m) => m.t === 'welcome').save;
+    check('the hero is gone from the account', after && !(after.chars || []).some((h) => h && h.id === 'hh1'));
+    H.clear();
+    H.send({ t: 'save', data: { gold: 0, fame: 0, chars: [hero], tradeSeq: after.tradeSeq } });
+    await wait(450);
+    const bz2 = await login('TestBoss', { password: 'pass1234' });
+    bz2.send({ t: 'cmd', text: '/graves ' + nm });
+    await wait(250);
+    const gl = bz2.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join('\n');
+    check('a save that still has it can\'t bring it back, and it waits in the graves (killed by the anti-cheat)', /1\) Hpx.*the anti-cheat/.test(gl), gl);
+    bz2.send({ t: 'cmd', text: '/revive ' + nm + ' 1' });
+    await wait(300);
+    H.s.destroy();
+    H = await login(nm, { password: 'pass1234' });
+    const back = H.find((m) => m.t === 'welcome').save;
+    check('...so an admin can bring it back if it was a mistake', back && (back.chars || []).some((h) => h && h.id === 'hh1'));
+    for (const c of [H, bz2]) c.s.destroy();
   }
 
   console.log('log out');

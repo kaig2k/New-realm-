@@ -74,7 +74,7 @@ package realm {
 			"<font color='#b8c4d8'><b>Ironman</b></font>: no trading, no Marketplace, no vault and no guild bank: everything you use, you found. " +
 			"The merchant and the Key Merchant still sell to you. In return: <b>+30 loot luck</b>.\n\n" +
 			"<font color='#ff5a4a'><b>Hardcore</b></font>: Ironman's rules, and you climb the tiers. In each slot (weapon, ability, armor, ring) " +
-			"you must use a T1 before a T2, a T2 before a T3 and so on; special rarities (Runed and up, uniques) need a T7 first. " +
+			"you must use a T1 before a T2, a T2 before a T3 and so on; special rarities (Runed and up, uniques) open up once you have used the top tier in that slot (T7 weapons and armor, T6 abilities, T5 rings). " +
 			"In return: <b>+60 loot luck</b> and <b>+5 to every stat</b> (+30 HP, +20 MP).\n\n" +
 			"Ironman and Hardcore heroes show IM or HC by their name. The server checks every rule."
 		];

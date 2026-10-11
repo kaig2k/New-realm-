@@ -409,11 +409,14 @@ class Data {
 			return Data.MODES[0];
 		}
 	static modeRestricted(id) { return id == "ironman" || id == "hardcore"; }
+	static climbTop(kind) { return __int(Data.CLIMB_TOP[kind] != undefined ? __int(Data.CLIMB_TOP[kind]) : 7); }
 	static climbTier(it) {
 			if (!it) return __int(0);
-			if (it.rarity || it.tier == undefined) return __int(8);
-			return __int(Math.max(0, Math.min(8, __int(it.tier))));
+			var top = __int(Data.climbTop(it.kind));
+			if (it.rarity || it.tier == undefined) return __int(top + 1);
+			return __int(Math.max(0, Math.min(top, __int(it.tier))));
 		}
+	static climbName(kind, t) { t = __int(t); return t > Data.climbTop(kind) ? "special rarity" : "T" + t; }
 	static findBanner(id) {
 			if (!id) return null;
 			for (var b of __vals( Data.GUILD_BANNERS)) if (b.id == id) return b;
@@ -3911,6 +3914,7 @@ Data.MODES = [
 			{id: "hardcore", name: "Hardcore", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
 				desc: "Ironman's rules, and you climb the tiers: use each tier in a slot before the next (T1, T2, T3...). +60 loot luck and +5 to every stat (+30 HP, +20 MP)."}
 		];
+Data.CLIMB_TOP = {weapon: 7, ability: 6, armor: 7, ring: 5};
 Data.CLIMB_SLOTS = ["weapon", "ability", "armor", "ring"];
 Data.GUILD_BANNERS = [
 			{id: "crimson", name: "Crimson Lion", col: 0xd03030, trim: 0xffd75e},

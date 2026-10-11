@@ -155,7 +155,7 @@ The ladder is kept in `server/data/season.json`.
 Players pick a mode when they make a hero, and it never changes. **Regular** is the normal game.
 **Ironman** heroes can't trade or use the Marketplace, the guild bank or the vault, and get +30 loot luck.
 **Hardcore** heroes follow the same rules and must climb the gear tiers one at a time in each slot (a T3
-before a T4, a T7 before anything rarer), for +60 loot luck and +5 to every stat. The server enforces all
+before a T4, and the slot's top tier before anything rarer: T7 weapons and armor, T6 abilities, T5 rings), for +60 loot luck and +5 to every stat. The server enforces all
 of it: refused trades and Marketplace/guild bank use, and saves where such a hero gained an item from the
 vault or another hero, or skipped a tier, are refused (logged in `anticheat.log`).
 

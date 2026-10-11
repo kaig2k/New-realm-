@@ -867,7 +867,7 @@ package realm {
 			if (mode != "hardcore" || !it || Data.CLIMB_SLOTS.indexOf(it.kind) < 0) return null;
 			var t:int = Data.climbTier(it), best:int = climbBest(it.kind);
 			if (t <= best + 1) return null;
-			return "Hardcore: use a " + (best + 1 >= 8 ? "special-rarity" : "T" + (best + 1)) + " " + it.kind + " before this one (your best so far is T" + best + ").";
+			return "Hardcore: use a " + Data.climbName(it.kind, best + 1) + " " + it.kind + " before this one (your best so far is " + Data.climbName(it.kind, best) + ").";
 		}
 
 		/** The highest tier used in a slot so far (what's on now counts). */
@@ -923,8 +923,9 @@ package realm {
 				climb[item.kind] = Math.max(before, Data.climbTier(item));
 				// (each step of the climb goes to the server straight away, so it sees every tier in turn)
 				if (Data.climbTier(item) > before) g.saveNow();
-				if (Data.climbTier(item) > before) g.msg("Hardcore climb: your best " + item.kind + " is now " + (Data.climbTier(item) >= 8 ? "special rarity" : "T" + Data.climbTier(item)) +
-					(Data.climbTier(item) == 7 ? " (special rarities unlocked)" : Data.climbTier(item) < 7 ? " (T" + (Data.climbTier(item) + 1) + " unlocked)" : "") + ".", 0xff8a7a);
+				var ct:int = Data.climbTier(item), top:int = Data.climbTop(item.kind);
+				if (ct > before) g.msg("Hardcore climb: your best " + item.kind + " is now " + Data.climbName(item.kind, ct) +
+					(ct == top ? " (special rarities unlocked)" : ct < top ? " (T" + (ct + 1) + " unlocked)" : "") + ".", 0xff8a7a);
 			}
 			hp = Math.min(hp, maxHp);
 			mp = Math.min(mp, maxMp);

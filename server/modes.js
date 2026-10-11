@@ -81,7 +81,7 @@ function check(prev, next, fixes) {
         const t = Data.climbTier(it);
         // (starter gear has no id and is always low tier: it just counts as used)
         if (it.sid && t > best + 1) {
-          const why = 'Hardcore: ' + (it.name || 'that item') + ' is T' + (t >= 8 ? '8+' : t) + ' but the best ' + slot + ' used so far is T' + best;
+          const why = 'Hardcore: ' + (it.name || 'that item') + ' is ' + Data.climbName(slot, t) + ' but the best ' + slot + ' used so far is ' + Data.climbName(slot, best);
           const back = fixes ? unequip(ch, slot, old, best) : null;
           if (!back) return why;
           fixes.push(why + '. It went back to your inventory' + (back.name ? ' and ' + back.name + ' is equipped again' : '') + ': equip T' + (best + 1) + ' first.');

@@ -1045,6 +1045,16 @@ async function run() {
     check('special rarities need a T7 first; regular heroes have no climb', modes.check(t7, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'e', 'lg'), inv: [] }] }) === null
       && !!modes.check(hp, { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(7, 'e', 'lg'), inv: [] }] })
       && modes.check({ chars: [{ id: 'x', weapon: w(1, 'p') }] }, { chars: [{ id: 'x', weapon: w(7, 'q', 'lg') }] }) === null);
+    {
+      // abilities top out at T6 and rings at T5: their special rarities open up after those (not a T7 that doesn't exist)
+      const r = (tier, sid, rarity) => Object.assign(MD.makeRing('att', tier, rarity || null), { sid });
+      const ab = (tier, sid, rarity) => Object.assign(MD.makeAbility('spell', tier, rarity || null), { sid });
+      const hr = (ring, ability, climb) => ({ chars: [{ id: 'hc', mode: 'hardcore', ring, ability, inv: [], _climb: climb }] });
+      const okRing = modes.check(hr(r(5, 'r5'), ab(6, 'a6'), { ring: 5, ability: 6 }), hr(r(5, 'rx', 'lg'), ab(6, 'ax', 'lg')));
+      const earlyRing = modes.check(hr(r(4, 'r4'), ab(5, 'a5'), { ring: 4, ability: 5 }), hr(r(4, 'ry', 'lg'), ab(5, 'a5')));
+      check('Hardcore: a special ring after a T5 ring and a special ability after a T6 ability (their top tiers) are fine; earlier they are not',
+        okRing === null && /Hardcore/.test(earlyRing || '') && MD.climbTop('ring') === 5 && MD.climbTop('ability') === 6, okRing + ' / ' + earlyRing);
+    }
     check('Ironman and Hardcore heroes get extra loot luck, Hardcore extra stats', modes.luck('') === 0 && modes.luck('ironman') > 0 && modes.luck('hardcore') > modes.luck('ironman')
       && MD.findMode('hardcore').stats.att > 0 && !MD.findMode('ironman').stats);
     // over the wire: equipping T3 straight after T1 (no save between) keeps the loot, the T3 just goes back to the bag

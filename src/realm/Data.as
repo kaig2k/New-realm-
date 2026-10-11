@@ -1259,12 +1259,22 @@ package realm {
 		}
 		/** Ironman and Hardcore heroes can't trade, use the Marketplace, the guild bank or the vault. */
 		public static function modeRestricted(id:String):Boolean { return id == "ironman" || id == "hardcore"; }
-		/** An item's tier for Hardcore's climb: T0-T7, and 8 for anything rarer (uniques, Runed and up). */
+		/** The highest regular tier in each Hardcore slot (abilities stop at T6, rings at T5). */
+		public static const CLIMB_TOP:Object = {weapon: 7, ability: 6, armor: 7, ring: 5};
+		/** The slot's top regular tier. */
+		public static function climbTop(kind:String):int { return CLIMB_TOP[kind] != undefined ? int(CLIMB_TOP[kind]) : 7; }
+		/**
+		 * An item's tier for Hardcore's climb: its regular tier, and one above its slot's top tier for
+		 * anything rarer (uniques, Runed and up), so they open up after the slot's best regular item.
+		 */
 		public static function climbTier(it:Object):int {
 			if (!it) return 0;
-			if (it.rarity || it.tier == undefined) return 8;
-			return Math.max(0, Math.min(8, int(it.tier)));
+			var top:int = climbTop(it.kind);
+			if (it.rarity || it.tier == undefined) return top + 1;
+			return Math.max(0, Math.min(top, int(it.tier)));
 		}
+		/** How a climb tier reads: "T5", or "special rarity" past the slot's top tier. */
+		public static function climbName(kind:String, t:int):String { return t > climbTop(kind) ? "special rarity" : "T" + t; }
 		public static const CLIMB_SLOTS:Array = ["weapon", "ability", "armor", "ring"];
 
 		/** Guild banners, earned by finishing a week's three guild goals (server/guildhall.js); members show their guild's by their name. */

@@ -31,7 +31,7 @@ const modes = require('./modes');
 const graves = require('./graves');
 const progress = require('./progress');
 const combat = require('./combat');
-const { Data, Bosses } = require('./sim/gen/game');
+const { Data, Bosses, World } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
 
@@ -1311,6 +1311,26 @@ const handlers = {
     }
     c.saveAt = now;
     applySave(c, m.data);
+  },
+
+  /** /glands: the server picks a spot in this realm's Godlands and expects the jump there. */
+  glands(c, m) {
+    const sm = c.sim;
+    if (!sm || !sm.w || !String(c.world || '').startsWith('realm:')) return c.note('/glands only works inside a realm.');
+    const now = Date.now();
+    if (now - (c.glandsAt || 0) < 5000) return c.note('Wait a moment before using /glands again.');
+    const w = sm.w;
+    for (let i = 0; i < 600; i++) {
+      const x = Math.random() * w.N, y = Math.random() * w.N;
+      if (w.zoneAt(x, y) === World.GOD_ZONE && w.canStand(x, y, 0.5, false)) {
+        c.glandsAt = now;
+        const px = Math.round(x * 100) / 100, py = Math.round(y * 100) / 100;
+        c.tpTo = { x: px, y: py, until: now + 8000 };
+        c.grace = Math.max(c.grace || 0, now + 2500);
+        return c.send({ t: 'glandsPos', x: px, y: py });
+      }
+    }
+    c.note('Couldn\'t find a spot in the Godlands.');
   },
 
   /** A key was used: it leaves the server's copy of the hero, and the portal it opened lets people in. */

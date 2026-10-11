@@ -259,6 +259,10 @@ package realm {
 					rp = byId(m.id);
 					if (rp) rp.far = true;
 					break;
+				case "glandsPos":
+					// the server picked our spot in the Godlands (and expects the jump)
+					g.glandsArrive(Number(m.x), Number(m.y));
+					break;
 				case "tppos":
 					g.teleportArrive(m.x, m.y, m.name);
 					break;

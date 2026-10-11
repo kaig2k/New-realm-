@@ -1499,6 +1499,28 @@ async function run() {
     for (const c of [V, vOld, vNew, bz]) c.s.destroy();
   }
 
+  console.log('/glands');
+  {
+    const G2 = await login('Tgl' + n, { password: 'pass1234', register: true });
+    const rl = G2.find((m) => m.t === 'welcome').realms[0];
+    const { Data: GL, World: GW } = require('./sim/gen/game');
+    G2.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'gl1', cls: 'wizard', name: 'Gl', level: 1, stats: clone(GL.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] }] } });
+    await wait(300);
+    const rw = new GW('realm', rl.name, null, rl.seed >>> 0);
+    G2.send({ t: 'enter', key: 'realm:' + rl.name + ':' + rl.seed, cid: 'gl1', x: rw.spawnX, y: rw.spawnY });
+    await wait(300);
+    G2.clear();
+    G2.send({ t: 'glands' });
+    await wait(200);
+    const gp = G2.find((m) => m.t === 'glandsPos');
+    check('/glands: the server picks a spot in the Godlands', gp && rw.zoneAt(gp.x, gp.y) === GW.GOD_ZONE, JSON.stringify(gp));
+    G2.clear();
+    if (gp) G2.send({ t: 'move', x: gp.x, y: gp.y, f: 0 });
+    await wait(200);
+    check('...and the jump there is allowed (not put back)', gp && !G2.find((m) => m.t === 'pos'), JSON.stringify(G2.find((m) => m.t === 'pos')));
+    G2.s.destroy();
+  }
+
   console.log('backpacks and pet feeds through the server');
   {
     const nm = 'Tf' + n;

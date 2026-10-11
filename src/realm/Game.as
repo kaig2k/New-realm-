@@ -418,6 +418,8 @@ package realm {
 					break;
 				case "/glands":
 					if (world.kind != "realm") { msg("/glands only works inside a realm.", 0xff8080); break; }
+					// online, the server picks the spot (it checks every move, so a jump it didn't expect is undone)
+					if (net.online) { Online.send({t: "glands"}); break; }
 					for (var i:int = 0; i < 600; i++) {
 						var x:Number = Math.random() * world.N, y:Number = Math.random() * world.N;
 						if (world.zoneAt(x, y) == World.GOD_ZONE && world.canStand(x, y, 0.5, false)) {
@@ -6132,6 +6134,17 @@ package realm {
 			if (tpT > 0) { msg("Teleport is ready in " + Math.ceil(tpT) + "s.", 0xff8080); return; }
 			// where they really are comes from the server, not from our (possibly old) copy
 			net.requestTeleport(rp);
+		}
+
+		/** /glands: the server's spot in the Godlands arrived. */
+		public function glandsArrive(x:Number, y:Number):void {
+			if (world.kind != "realm" || player.hp <= 0) return;
+			burst(player.x, player.y, 0xd090ff, 14);
+			player.x = x; player.y = y; player.invulnT = 1.5;
+			camX = player.x; camY = player.y;
+			burst(player.x, player.y, 0xd090ff, 18);
+			msg("Teleported to the Godlands.", 0xd090ff);
+			Sfx.play("portal");
 		}
 
 		/** The teleport target's real position arrived. */

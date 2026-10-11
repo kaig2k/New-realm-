@@ -1499,6 +1499,27 @@ async function run() {
     for (const c of [V, vOld, vNew, bz]) c.s.destroy();
   }
 
+  console.log('realm close: into its finale, then the Dark Elder');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: RD, Bosses: RB } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Medusa:123456789');
+    const me = { id: 1, x: ws.w.spawnX, y: ws.w.spawnY, maxDps: 1e9, send: () => {} };
+    ws.join(me);
+    let opened = null;
+    ws.onPortal = (k) => { opened = k; };
+    ws.w.eventsDone = RD.EVENTS_PER_REALM - 1;
+    for (let i = 0; i < 4000 && !ws.w.boss; i++) ws.tick(0.1);
+    const b = ws.w.boss;
+    if (b) { me.x = b.x; me.y = b.y + 2; for (let i = 0; i < 400 && !b.dead; i++) { ws.hit(me, { id: b.id, d: 6000 }); for (const e of ws.enemies) if (e.def.prop && !e.dead) ws.hit(me, { id: e.id, d: 6000 }); } }
+    // the game's own choice (Game.finaleFor and enterCitadel), worked out here the same way
+    const seed = 123456789, fid = RB.FINALES[seed % RB.FINALES.length];
+    const want = 'dg:' + RD.dungeonIndex(fid) + ':' + ((((seed * 2654435761) & 0x7fffffff) | 1) >>> 0);
+    check('when a realm starts closing, the server opens the way into its finale (the one every player there is pulled into)', b && b.dead && ws.closeT > 0 && opened === want, opened + ' vs ' + want);
+    check('every finale ends in a way to the Dark Elder: the Citadel by its lieutenants, the others by their boss',
+      RB.FINALES.every((f) => { const d = RD.DUNGEONS[RD.dungeonIndex(f)]; return d && (d.toElder || (d.boss && RD.ENEMIES[d.boss] && RD.ENEMIES[d.boss].finale)); }));
+  }
+
   console.log('/glands');
   {
     const G2 = await login('Tgl' + n, { password: 'pass1234', register: true });

@@ -2047,6 +2047,14 @@ package realm {
 					guardianDown(e);
 				} else if (e.def.trio && aliveWith("trio") > 0) {
 					kingDown(e);
+				} else if (e.def.finale && world.kind == "dungeon") {
+					// a closing realm's finale (the Drowned Throne, the Foundry, the Void Rift): Azrakor's chamber
+					// opens beside the way home, as the Citadel's does
+					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
+					addPortal(world, e.x - 1.5, e.y + 2, "elder", 0, 0xc060ff);
+					addPortal(world, e.x + 1.5, e.y + 2, "nexus", 0, 0xffffff);
+					say(SOVEREIGN, "You have broken my champion... Come, then. Face me!");
+					msg("A portal to the Dark Elder's Chamber has opened (and one back to the Nexus).", 0xc060ff);
 				} else if (e.def.dungeon) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
 					msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);

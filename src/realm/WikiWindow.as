@@ -128,7 +128,7 @@ package realm {
 				for each (var gid:String in d.guardians || []) add(list, gid, where + ", guardian");
 				for each (var tid:String in d.trio || []) add(list, tid, where);
 				if (d.boss) add(list, d.boss, where);
-				if (d.toElder) add(finales, "elder", "Dark Elder's Chamber (after the Citadel)");
+				if (d.toElder) add(finales, "elder", "Dark Elder's Chamber (after any realm finale)");
 			}
 			for each (var r:Object in Bosses.RAIDS) {
 				for (var s:int = 0; s < r.stages.length; s++) {

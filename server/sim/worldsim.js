@@ -135,6 +135,19 @@ class WorldSim {
     this.near(e.x, e.y, FIRE_RANGE, { t: 'efire', id: e.id, i, a: Math.round(ang * 1000) / 1000, s: Math.round(spin * 1000) / 1000, p: code, d: Math.round(dist * 10) / 10 });
   }
 
+  /**
+   * The dungeon a closing realm pulls its players into (Game.enterCitadel and finaleFor): one of
+   * the finales, picked by the realm's seed, with a seed of its own made from it, so everyone from
+   * the realm lands in the same one.
+   */
+  finaleKey() {
+    const seed = Number(this.key.split(':').pop()) >>> 0;
+    const ids = Bosses.FINALES;
+    const fid = ids[seed % ids.length];
+    const dseed = (((seed * 2654435761) & 0x7fffffff) | 1) >>> 0;
+    return 'dg:' + Data.dungeonIndex(fid) + ':' + dseed;
+  }
+
   portal(x, y, kind, idx, color) {
     const seed = 1 + Math.floor(Math.random() * 0x7ffffffe);
     this.all({ t: 'portal', x: r2(x), y: r2(y), k: kind, i: idx, c: color, l: PORTAL_TIME, s: seed });
@@ -714,7 +727,11 @@ class WorldSim {
           if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
           this.portal(e.x + 1.5, e.y, 'dungeon', di, Data.DUNGEONS[di].color);
         }
-        if (w.eventsDone >= Data.EVENTS_PER_REALM) this.closeT = 15;
+        if (w.eventsDone >= Data.EVENTS_PER_REALM) {
+          this.closeT = 15;
+          // everyone here is about to be pulled into the realm's finale: its way in is open
+          if (this.onPortal) this.onPortal(this.finaleKey());
+        }
       }
     } else if (this.kind === 'realm' && !(w.boss && !w.boss.dead) && e.def.drop > 0) {
       w.eventT -= 1.2;

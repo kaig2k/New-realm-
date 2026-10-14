@@ -2086,7 +2086,8 @@ package realm {
 			if (e.dead) return;
 			e.dead = true;
 			// a quick squash-and-fade where it fell
-			if (corpses.length < 40) corpses.push({bd: e.sprite, x: e.x, y: e.y, t: 0, big: e.isBoss});
+			if (e.def.seq && e.def.seq.death) corpses.push({seq: e.def.spr + "_death", n: e.def.seq.death, flip: e.facingLeft, x: e.x, y: e.y, t: 0, big: true});
+			else if (corpses.length < 40) corpses.push({bd: e.sprite, x: e.x, y: e.y, t: 0, big: e.isBoss});
 			if (sandbox && e.defId == "custom_test") {
 				showBanner("Victory!  " + sandbox.name + " is down.", Ui.GOLD, 4);
 				msg("You won the test fight in " + Math.round(time) + "s of play. R fights it again.", Ui.GOLD);
@@ -2388,8 +2389,51 @@ package realm {
 		}
 
 		/** A telegraphed blast: a circle on the ground fills up, then boom(). */
-		public function addMarker(x:Number, y:Number, r:Number, delay:Number, col:uint, boom:Function):void {
-			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world});
+		public function addMarker(x:Number, y:Number, r:Number, delay:Number, col:uint, boom:Function, style:String = null):void {
+			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world, style: style});
+		}
+
+		/** Effects left on the ground by a blow landing: "spikes" (crystal spikes bursting up). */
+		private var gfx:Array = [];
+
+		public function groundFx(kind:String, x:Number, y:Number, r:Number, col:uint):void {
+			if (gfx.length > 40) gfx.shift();
+			var spikes:Array = [];
+			// spikes scattered over the blast, the tallest in the middle
+			var n:int = Math.min(26, 5 + int(r * r * 1.6));
+			for (var i:int = 0; i < n; i++) {
+				var a:Number = Math.random() * Math.PI * 2, d:Number = Math.sqrt(Math.random()) * r * 0.9;
+				spikes.push({x: Math.cos(a) * d, y: Math.sin(a) * d, h: (1 - d / r * 0.6) * (0.7 + Math.random() * 0.6), w: 0.12 + Math.random() * 0.1, lag: Math.random() * 0.12});
+			}
+			spikes.sortOn("y", Array.NUMERIC);
+			gfx.push({k: kind, x: x, y: y, r: r, col: col, t: 0, sp: spikes, w: world});
+		}
+
+		/** Spikes rise fast, hold, then sink back into the ground. */
+		private function drawGroundFx():void {
+			for (var i:int = gfx.length - 1; i >= 0; i--) {
+				var f:Object = gfx[i];
+				f.t += 1 / 60;
+				if (f.w != world || f.t > 0.9) { gfx.splice(i, 1); continue; }
+				var gr:* = markShape.graphics;
+				gr.clear();
+				for each (var sp:Object in f.sp) {
+					var t:Number = f.t - sp.lag;
+					if (t <= 0) continue;
+					var grow:Number = t < 0.1 ? t / 0.1 : t < 0.5 ? 1 : Math.max(0, 1 - (t - 0.5) / 0.3);
+					if (grow <= 0) continue;
+					var bx:Number = sp.x * TS, by:Number = sp.y * TS * 0.6;
+					var hh:Number = sp.h * TS * 1.5 * grow, ww:Number = sp.w * TS;
+					gr.lineStyle(1, 0x200006, 0.9);
+					gr.beginFill(f.col, 0.95);
+					gr.moveTo(bx - ww, by); gr.lineTo(bx, by - hh); gr.lineTo(bx + ww, by); gr.lineTo(bx - ww, by);
+					gr.endFill();
+					gr.lineStyle(1, 0xffe0d0, 0.85);
+					gr.moveTo(bx - ww * 0.2, by - 1); gr.lineTo(bx, by - hh * 0.9);
+				}
+				markMtx.tx = scrX(f.x, f.y); markMtx.ty = scrY(f.x, f.y) + TS * 0.3;
+				canvas.draw(markShape, markMtx);
+			}
 		}
 
 		/** A sound from somewhere in the world: quieter the further away it is (silent past 14 tiles). */
@@ -2491,6 +2535,38 @@ package realm {
 				var rx:Number = m.r * TS, ry:Number = rx * 0.6;
 				var gr:* = markShape.graphics;
 				gr.clear();
+				if (m.style == "rune") {
+					// a war-cry circle: two rings, turning spokes and runes, brighter as it's about to go
+					var rot:Number = time * 1.4;
+					gr.lineStyle(3, m.col, 0.6 + f * 0.4);
+					gr.beginFill(m.col, 0.08 + f * 0.18);
+					gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+					gr.endFill();
+					gr.lineStyle(2, m.col, 0.7);
+					gr.drawEllipse(-rx * 0.74, -ry * 0.74, rx * 1.48, ry * 1.48);
+					for (var rn:int = 0; rn < 12; rn++) {
+						var ra:Number = rot + rn * Math.PI / 6;
+						gr.lineStyle(2, rn % 3 == 0 ? 0xffe0d0 : m.col, 0.8);
+						gr.moveTo(Math.cos(ra) * rx * 0.74, Math.sin(ra) * ry * 0.74);
+						gr.lineTo(Math.cos(ra) * rx, Math.sin(ra) * ry);
+						var rb:Number = ra + Math.PI / 12;
+						gr.drawRect(Math.cos(rb) * rx * 0.87 - 2, Math.sin(rb) * ry * 0.87 - 2, 4, 4);
+					}
+					// the inner star
+					gr.lineStyle(2, m.col, 0.5 + f * 0.5);
+					for (var sk3:int = 0; sk3 <= 5; sk3++) {
+						var sa3:Number = -rot * 0.6 + sk3 * Math.PI * 4 / 5;
+						if (sk3 == 0) gr.moveTo(Math.cos(sa3) * rx * 0.7, Math.sin(sa3) * ry * 0.7);
+						else gr.lineTo(Math.cos(sa3) * rx * 0.7, Math.sin(sa3) * ry * 0.7);
+					}
+					gr.lineStyle();
+					gr.beginFill(m.col, 0.2 + f * 0.25);
+					gr.drawEllipse(-rx * f, -ry * f, rx * 2 * f, ry * 2 * f);
+					gr.endFill();
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
 				gr.lineStyle(2, m.col, 0.9);
 				gr.beginFill(m.col, 0.12);
 				gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
@@ -6361,6 +6437,7 @@ package realm {
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
 			drawCorpses();
+			drawGroundFx();
 			drawCloudShadows();
 			if (inNexus && decor) decor.drawTop(canvas);
 			if (arenas) arenas.drawTop(canvas);
@@ -6538,6 +6615,17 @@ package realm {
 		private function drawCorpses():void {
 			for (var i:int = corpses.length - 1; i >= 0; i--) {
 				var c:Object = corpses[i];
+				if (c.seq) {
+					// a boss with a death of its own: staggers, kneels, falls, and crumbles to smoke
+					c.t += 1 / 60;
+					var dk:int = int(c.t / 0.26);
+					if (dk >= c.n) { corpses.splice(i, 1); continue; }
+					var dbd:BitmapData = Sprites.get(c.seq, dk, c.flip);
+					corpseMtx.identity();
+					corpseMtx.translate(scrX(c.x, c.y) - dbd.width / 2, scrY(c.x, c.y) + TS * 0.4 - dbd.height);
+					canvas.draw(dbd, corpseMtx, null, null, null, false);
+					continue;
+				}
 				var life:Number = c.big ? 0.9 : 0.35;
 				c.t += 1 / 60;
 				var f:Number = c.t / life;

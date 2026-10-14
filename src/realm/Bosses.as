@@ -621,6 +621,44 @@ package realm {
 			for each (var ev:String in ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"]) Data.EVENTS.push(ev);
 		}
 
+		// ---- Vorgath's attacks, after his design sheet (each with its own animation)
+		private static const V_RED:uint = 0xff2a3a, V_GOLD:uint = 0xd8a030;
+		// Mace Swing: a wide sweep of crimson crescents in front of him
+		private static function vSwing(dmg:int, cd:Number, n:int = 7):Object {
+			return aim(n, 120, 8.5, dmg, cd, V_RED, {shape: "crescent", r: 0.42, life: 1.1, anim: "swing", animMs: 85, name: "mace swing"});
+		}
+		// Mace Smash: overhead and down, the ground erupts in spikes where you stood and shards fly
+		private static function vSmash(dmg:int, cd:Number, radius:Number = 3.4, delay:Number = 1.0):Object {
+			return nova(radius, delay, dmg, cd, V_RED, {burst: 16, bspd: 5.5, blife: 1.4, land: "slam", radius: radius, fx: "spikes", shape: "spike",
+				anim: "smash", animMs: 110, animHit: 2, animHold: delay, name: "mace smash"});
+		}
+		// Shield Bash: a wall of shield-crescents driven at you (a gap to slip through), it knocks the wind out of you
+		private static function vBash(dmg:int, cd:Number):Object {
+			return wall(9, 9.5, dmg, cd, V_RED, {shape: "crescent", r: 0.4, life: 1.2, hole: 2, eff: "slowed", anim: "bash", animMs: 100, name: "shield bash"});
+		}
+		// Flail Throw: the morning star hurled at you, and it comes back
+		private static function vFlail(dmg:int, cd:Number, n:int = 1):Object {
+			return aim(n, 26, 9, dmg, cd, V_GOLD, {shape: "mace", r: 0.5, life: 1.6, motion: "return", anim: "swing", animMs: 85, name: "thrown morning star"});
+		}
+		// Spike Barrage: spikes flung into the sky rain down around you and burst out of the ground
+		private static function vBarrage(n:int, dmg:int, cd:Number):Object {
+			return rain(n, 5.5, dmg, cd, V_RED, {radius: 1.5, delay: 1.0, stagger: 0.07, burst: 5, bspd: 4.5, blife: 0.9, fx: "spikes", shape: "spike",
+				anim: "barrage", animMs: 110, animHit: 3, animHold: 1.0, name: "spike barrage"});
+		}
+		// War spears: a volley of thrown spears
+		private static function vSpears(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 44, 11, dmg, cd, 0xff5060, {shape: "spear", r: 0.26, waves: 2, gap: 0.2, anim: "swing", animMs: 70, name: "war spear volley"});
+		}
+		// War Cry: a rune circle blazes around him, get out before it bursts into spikes and a ring of crescents
+		private static function vWarcry(dmg:int, cd:Number, radius:Number = 5.5):Object {
+			return nova(radius, 1.4, dmg, cd, V_RED, {reach: 0.01, marker: "rune", radius: radius, burst: 24, bspd: 6, blife: 1.6, fx: "spikes", land: "slam",
+				shape: "crescent", eff: "armorbroken", anim: "warcry", animMs: 130, animHit: 3, animHold: 1.4, name: "war cry"});
+		}
+		// Dash / Charge: crescents loosed ahead, and he barrels after them
+		private static function vCharge(dmg:int, cd:Number):Object {
+			return aim(5, 50, 10, dmg, cd, V_RED, {shape: "crescent", r: 0.4, life: 1.0, dash: 0.55, dashSpd: 10, anim: "charge", animMs: 140, name: "warlord's charge"});
+		}
+
 		// ------------------------------------------------------------ the Realm Siege
 		/**
 		 * The Realm Siege (server.js starts one every couple of hours): a warlord
@@ -636,35 +674,31 @@ package realm {
 				name: "Siege Ballista", spr: "siege_ballista", hp: 14000, def: 34, col: 0xff7a1a,
 				attacks: [aim(1, 0, 15, 165, 1.3, 0xe8dcc0, {shape: "blade", r: 0.34, life: 1.3}),
 					rain(3, 5, 120, 3.2, 0xff5010, {burst: 6, radius: 1.6})]});
-			// Vorgath: five phases, his camp burning around him as he weakens (SetPieces "siege")
-			boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 600000, def: 48, spd: 0.9, xp: 9000, col: 0xff7a1a,
-				gold: 3000, onrane: 25, r: 1.8, siege: true, scales: true, aggro: 22, range: 20, phases: [
-				// the March: hammer slams that send out a shockwave of shrapnel, spear volleys, a war-cry ring
-				P(1, {move: "chase", speed: 0.9, attacks: [
-					nova(3.4, 1.3, 170, 3.4, 0xff7a1a, {burst: 18, bspd: 5.5, blife: 1.6, land: "slam", radius: 3.4}),
-					aim(7, 54, 9, 115, 1.7, 0xd8d0c0, {shape: "blade", r: 0.3, waves: 2, gap: 0.22}),
-					ring(24, 7.5, 5, 100, 2.6, 0xff4020, {shape: "ring"})]}),
-				// Siege Engines: he plants the banner and calls the bombardment
+			// Vorgath: five phases, his camp burning around him as he weakens (SetPieces "siege").
+			// Every attack has its own animation (tools/bossart/vorgath.py): anim names it, animHit is
+			// the frame the blow lands on, held until animHold seconds (when a telegraphed blast goes off).
+			boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 600000, def: 48, spd: 0.9, xp: 9000, col: V_RED,
+				gold: 3000, onrane: 25, r: 1.8, siege: true, scales: true, aggro: 22, range: 20,
+				seq: {idle: 4, move: 6, swing: 5, smash: 6, bash: 4, barrage: 6, warcry: 5, charge: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
+				// the March: he comes on swinging, smashing and bashing
+				P(1, {move: "chase", speed: 0.9, attacks: [vSwing(150, 2.2), vSmash(175, 3.6), vBash(130, 4.4), vFlail(160, 5.2)]}),
+				// Siege Engines: he plants himself, and the sky fills with spikes and spears
 				P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 6}],
-					attacks: [rain(12, 10, 155, 1.8, 0xff5010, {burst: 8, radius: 1.9}),
-						wall(27, 5, 125, 2.3, 0xd8a030, {hole: 3}),
-						aim(3, 40, 6, 125, 2.4, 0xff7a1a, {motion: "home", r: 0.34})]}),
-				// the Warlord's Charge: he barrels through the camp, blades spiralling off the hammer
-				P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "charge", speed: 1.7,
-					attacks: [spiral(5, 11, 7, 115, 0.1, 0xff7a1a, {shape: "blade"}),
-						flower(16, 9, 6, 125, 1.4, 0xd8a030, {motion: "return"}),
-						nova(3, 1.1, 180, 3, 0xff3010, {burst: 14, eff: "armorbroken", land: "slam", radius: 3})]}),
-				// the Camp Burns: the ground ignites, his elite guard storms in, every weapon at once
-				P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS!", shield: 3, move: "orbit", speed: 1.2,
-					summon: [{what: "siege_soldier", n: 8}], every: 2.6, cycle: [
-						[spiral(8, 9, 6.5, 125, 0.09, 0xff7a1a), aim(1, 0, 11, 140, 0.9, 0xfff0b0, {eff: "paralyzed", r: 0.3})],
-						[wall(31, 5.5, 130, 1.3, 0xd8a030, {hole: 3}), rain(8, 7, 150, 1.4, 0xff5010, {burst: 10})],
-						[flower(24, 7.5, 6.5, 130, 0.8, 0xff4020), nova(3.6, 1.0, 190, 2.6, 0xff7a1a, {burst: 20, land: "slam", radius: 3.6})]]}),
-				// the Last Stand: enraged, faster, everything harder
-				P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "VORGATH IS ENRAGED!", move: "chase", speed: 1.5,
-					attacks: [spiral(10, 9, 8, 140, 0.08, 0xff3010, {shape: "blade"}),
-						nova(4.2, 0.9, 210, 2.4, 0xfff0b0, {burst: 26, bspd: 6, land: "slam", radius: 4.2}),
-						aim(9, 72, 11, 135, 1.0, 0xd8d0c0, {shape: "blade", r: 0.3})]})
+					attacks: [vBarrage(10, 155, 2.6), vSpears(5, 125, 2.2), vWarcry(190, 7)]}),
+				// the Warlord's Charge: he dashes through the camp, crescents ahead of him
+				P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "chase", speed: 1.4,
+					attacks: [vCharge(160, 3.2), vSwing(150, 2.6, 9), vSmash(180, 4.2, 3.6), vFlail(160, 4.8, 2)]}),
+				// the Camp Burns: enraged and wreathed in fire, every weapon in turn
+				P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS! VORGATH IS ENRAGED!", shield: 3, move: "orbit", speed: 1.2,
+					summon: [{what: "siege_soldier", n: 8}], every: 3.2, cycle: [
+						[vBarrage(12, 160, 1.6), vSpears(7, 130, 1.4)],
+						[vWarcry(210, 3.2, 6), vFlail(170, 1.6, 3)],
+						[vSwing(160, 1.0, 9), vSmash(190, 1.6, 3.8, 0.9)],
+						[vBash(140, 1.3), vCharge(170, 1.6)]]}),
+				// the Last Stand: faster, everything at once
+				P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "THE LAST STAND!", move: "chase", speed: 1.5,
+					attacks: [vSwing(170, 1.6, 11), vSmash(210, 2.6, 4.2, 0.85), vCharge(180, 4.0), vWarcry(230, 6.5, 6.5), vBarrage(8, 165, 3.4),
+						spiral(8, 9, 8, 140, 0.12, V_RED, {shape: "spike"})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 

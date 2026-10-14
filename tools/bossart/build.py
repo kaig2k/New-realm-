@@ -14,6 +14,9 @@ out = []
 for name, fn, pal, scale in DESIGNS:
     frames, pal = animate(fn, pal)
     out.append((name, frames, pal, scale))
+# Vorgath: an animation for each of his attacks (see vorgath.py)
+from vorgath import sequences
+out += sequences()
 
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])

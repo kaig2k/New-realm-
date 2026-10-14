@@ -1575,6 +1575,33 @@ class Bosses {
 			]}, ["krakens_grasp", "abyssal_mail"]);
 			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"])) Data.EVENTS.push(ev);
 		}
+	static vSwing(dmg, cd, n = 7) { dmg = __int(dmg); n = __int(n);
+			return Bosses.aim(n, 120, 8.5, dmg, cd, Bosses.V_RED, {shape: "crescent", r: 0.42, life: 1.1, anim: "swing", animMs: 85, name: "mace swing"});
+		}
+	static vSmash(dmg, cd, radius = 3.4, delay = 1.0) { dmg = __int(dmg);
+			return Bosses.nova(radius, delay, dmg, cd, Bosses.V_RED, {burst: 16, bspd: 5.5, blife: 1.4, land: "slam", radius: radius, fx: "spikes", shape: "spike",
+				anim: "smash", animMs: 110, animHit: 2, animHold: delay, name: "mace smash"});
+		}
+	static vBash(dmg, cd) { dmg = __int(dmg);
+			return Bosses.wall(9, 9.5, dmg, cd, Bosses.V_RED, {shape: "crescent", r: 0.4, life: 1.2, hole: 2, eff: "slowed", anim: "bash", animMs: 100, name: "shield bash"});
+		}
+	static vFlail(dmg, cd, n = 1) { dmg = __int(dmg); n = __int(n);
+			return Bosses.aim(n, 26, 9, dmg, cd, Bosses.V_GOLD, {shape: "mace", r: 0.5, life: 1.6, motion: "return", anim: "swing", animMs: 85, name: "thrown morning star"});
+		}
+	static vBarrage(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 5.5, dmg, cd, Bosses.V_RED, {radius: 1.5, delay: 1.0, stagger: 0.07, burst: 5, bspd: 4.5, blife: 0.9, fx: "spikes", shape: "spike",
+				anim: "barrage", animMs: 110, animHit: 3, animHold: 1.0, name: "spike barrage"});
+		}
+	static vSpears(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 44, 11, dmg, cd, 0xff5060, {shape: "spear", r: 0.26, waves: 2, gap: 0.2, anim: "swing", animMs: 70, name: "war spear volley"});
+		}
+	static vWarcry(dmg, cd, radius = 5.5) { dmg = __int(dmg);
+			return Bosses.nova(radius, 1.4, dmg, cd, Bosses.V_RED, {reach: 0.01, marker: "rune", radius: radius, burst: 24, bspd: 6, blife: 1.6, fx: "spikes", land: "slam",
+				shape: "crescent", eff: "armorbroken", anim: "warcry", animMs: 130, animHit: 3, animHold: 1.4, name: "war cry"});
+		}
+	static vCharge(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(5, 50, 10, dmg, cd, Bosses.V_RED, {shape: "crescent", r: 0.4, life: 1.0, dash: 0.55, dashSpd: 10, anim: "charge", animMs: 140, name: "warlord's charge"});
+		}
 	static siege() {
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
 				attacks: [Bosses.aim(3, 18, 8, 95, 1.1, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.2, 0xff6010, {motion: "home", r: 0.28})]});
@@ -1584,34 +1611,30 @@ class Bosses {
 				attacks: [Bosses.aim(1, 0, 15, 165, 1.3, 0xe8dcc0, {shape: "blade", r: 0.34, life: 1.3}),
 					Bosses.rain(3, 5, 120, 3.2, 0xff5010, {burst: 6, radius: 1.6})]});
 			
-			Bosses.boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 600000, def: 48, spd: 0.9, xp: 9000, col: 0xff7a1a,
-				gold: 3000, onrane: 25, r: 1.8, siege: true, scales: true, aggro: 22, range: 20, phases: [
+			
+			
+			Bosses.boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 600000, def: 48, spd: 0.9, xp: 9000, col: Bosses.V_RED,
+				gold: 3000, onrane: 25, r: 1.8, siege: true, scales: true, aggro: 22, range: 20,
+				seq: {idle: 4, move: 6, swing: 5, smash: 6, bash: 4, barrage: 6, warcry: 5, charge: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				
-				Bosses.P(1, {move: "chase", speed: 0.9, attacks: [
-					Bosses.nova(3.4, 1.3, 170, 3.4, 0xff7a1a, {burst: 18, bspd: 5.5, blife: 1.6, land: "slam", radius: 3.4}),
-					Bosses.aim(7, 54, 9, 115, 1.7, 0xd8d0c0, {shape: "blade", r: 0.3, waves: 2, gap: 0.22}),
-					Bosses.ring(24, 7.5, 5, 100, 2.6, 0xff4020, {shape: "ring"})]}),
+				Bosses.P(1, {move: "chase", speed: 0.9, attacks: [Bosses.vSwing(150, 2.2), Bosses.vSmash(175, 3.6), Bosses.vBash(130, 4.4), Bosses.vFlail(160, 5.2)]}),
 				
 				Bosses.P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 6}],
-					attacks: [Bosses.rain(12, 10, 155, 1.8, 0xff5010, {burst: 8, radius: 1.9}),
-						Bosses.wall(27, 5, 125, 2.3, 0xd8a030, {hole: 3}),
-						Bosses.aim(3, 40, 6, 125, 2.4, 0xff7a1a, {motion: "home", r: 0.34})]}),
+					attacks: [Bosses.vBarrage(10, 155, 2.6), Bosses.vSpears(5, 125, 2.2), Bosses.vWarcry(190, 7)]}),
 				
-				Bosses.P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "charge", speed: 1.7,
-					attacks: [Bosses.spiral(5, 11, 7, 115, 0.1, 0xff7a1a, {shape: "blade"}),
-						Bosses.flower(16, 9, 6, 125, 1.4, 0xd8a030, {motion: "return"}),
-						Bosses.nova(3, 1.1, 180, 3, 0xff3010, {burst: 14, eff: "armorbroken", land: "slam", radius: 3})]}),
+				Bosses.P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "chase", speed: 1.4,
+					attacks: [Bosses.vCharge(160, 3.2), Bosses.vSwing(150, 2.6, 9), Bosses.vSmash(180, 4.2, 3.6), Bosses.vFlail(160, 4.8, 2)]}),
 				
-				Bosses.P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS!", shield: 3, move: "orbit", speed: 1.2,
-					summon: [{what: "siege_soldier", n: 8}], every: 2.6, cycle: [
-						[Bosses.spiral(8, 9, 6.5, 125, 0.09, 0xff7a1a), Bosses.aim(1, 0, 11, 140, 0.9, 0xfff0b0, {eff: "paralyzed", r: 0.3})],
-						[Bosses.wall(31, 5.5, 130, 1.3, 0xd8a030, {hole: 3}), Bosses.rain(8, 7, 150, 1.4, 0xff5010, {burst: 10})],
-						[Bosses.flower(24, 7.5, 6.5, 130, 0.8, 0xff4020), Bosses.nova(3.6, 1.0, 190, 2.6, 0xff7a1a, {burst: 20, land: "slam", radius: 3.6})]]}),
+				Bosses.P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS! VORGATH IS ENRAGED!", shield: 3, move: "orbit", speed: 1.2,
+					summon: [{what: "siege_soldier", n: 8}], every: 3.2, cycle: [
+						[Bosses.vBarrage(12, 160, 1.6), Bosses.vSpears(7, 130, 1.4)],
+						[Bosses.vWarcry(210, 3.2, 6), Bosses.vFlail(170, 1.6, 3)],
+						[Bosses.vSwing(160, 1.0, 9), Bosses.vSmash(190, 1.6, 3.8, 0.9)],
+						[Bosses.vBash(140, 1.3), Bosses.vCharge(170, 1.6)]]}),
 				
-				Bosses.P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "VORGATH IS ENRAGED!", move: "chase", speed: 1.5,
-					attacks: [Bosses.spiral(10, 9, 8, 140, 0.08, 0xff3010, {shape: "blade"}),
-						Bosses.nova(4.2, 0.9, 210, 2.4, 0xfff0b0, {burst: 26, bspd: 6, land: "slam", radius: 4.2}),
-						Bosses.aim(9, 72, 11, 135, 1.0, 0xd8d0c0, {shape: "blade", r: 0.3})]})
+				Bosses.P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "THE LAST STAND!", move: "chase", speed: 1.5,
+					attacks: [Bosses.vSwing(170, 1.6, 11), Bosses.vSmash(210, 2.6, 4.2, 0.85), Bosses.vCharge(180, 4.0), Bosses.vWarcry(230, 6.5, 6.5), Bosses.vBarrage(8, 165, 3.4),
+						Bosses.spiral(8, 9, 8, 140, 0.12, Bosses.V_RED, {shape: "spike"})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 	static deep() {
@@ -3184,6 +3207,14 @@ class Enemy {
 		this.orbitA = 0;
 		this.blinkT = 2 + Math.random() * 2;
 		this.lastAttack = __int(-100000);
+		this.anim = "";
+		this.animAt = __int(0);
+		this.animMs = __int(90);
+		this.animHit = __int(0);
+		this.animHold = __int(0);
+		this.dashT = 0;
+		this.dashA = 0;
+		this.dashSpd = 0;
 
 			this.defId = id;
 			this.def = Data.ENEMIES[id];
@@ -3229,6 +3260,42 @@ class Enemy {
 				this.timers.push(0.5 + Math.random() * list[i].cd);
 				this.spins.push(Math.random() * Math.PI * 2);
 			}
+		}
+	startAnim(a) {
+			if (!a.anim || !this.def.seq || !this.def.seq[a.anim]) return;
+			
+			var now = __int(__getTimer());
+			if (this.anim && this.animHold > 0 && now - this.animAt < this.animHold + 200 && !a.animHold) return;
+			this.anim = a.anim;
+			this.animAt = __int(now);
+			this.animMs = __int(a.animMs || 90);
+			this.animHit = __int(a.animHit || 0);
+			this.animHold = __int(a.animHold ? __int(a.animHold * 1000) : 0);
+		}
+	animFrame(now) { now = __int(now);
+			var t = __int(now - this.animAt), n = __int(this.def.seq[this.anim]), k = 0;
+			if (this.animHold > 0 && this.animHit > 0) {
+				if (t < this.animHit * this.animMs) k = __int(__int(t / this.animMs));
+				else if (t < this.animHold) k = __int(this.animHit - 1);
+				else k = __int(this.animHit + __int((t - this.animHold) / this.animMs));
+			} else k = __int(__int(t / this.animMs));
+			return __int(k < n ? k : -1);
+		}
+	seqSprite(now, off) { now = __int(now); off = __int(off);
+			var name = null, frame = 0;
+			if (this.anim) {
+				frame = __int(this.animFrame(now));
+				if (frame >= 0) name = this.def.spr + "_" + this.anim;
+				else this.anim = "";
+			}
+			if (!name) {
+				var rage = this.def.rageAt != undefined && this.phase >= this.def.rageAt && this.def.seq.ridle;
+				var st = (rage ? "r" : "") + (this.moving ? "move" : "idle");
+				name = this.def.spr + "_" + st;
+				frame = __int(__int((now + off) / (this.moving ? 110 : 190)) % this.def.seq[st]);
+			}
+			if (this.hitT > 0) return Sprites.hit(name, frame, this.facingLeft);
+			return Sprites.get(name, frame, this.facingLeft);
 		}
 	get enraged() {
 			return this.isBoss && this.phases && this.phase == this.phases.length - 1 && this.phases.length > 1;
@@ -3357,10 +3424,17 @@ class Enemy {
 				if (bx * bx + by * by > leash) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
 			if (this.def.ai == "still" || (this.isBoss && this.shieldT > 0 && mode != "orbit")) { mvx = 0; mvy = 0; }
-			
-			var accel = Math.min(1, dt * (mode == "charge" ? 18 : 7));
-			this.velX += (mvx * speed - this.velX) * accel;
-			this.velY += (mvy * speed - this.velY) * accel;
+			if (this.dashT > 0) {
+				
+				this.dashT -= dt;
+				this.velX = Math.cos(this.dashA) * this.dashSpd;
+				this.velY = Math.sin(this.dashA) * this.dashSpd;
+			} else {
+				
+				var accel = Math.min(1, dt * (mode == "charge" ? 18 : 7));
+				this.velX += (mvx * speed - this.velX) * accel;
+				this.velY += (mvy * speed - this.velY) * accel;
+			}
 			this.move(this.velX * dt, this.velY * dt, g.world);
 
 			if (aggro && dist < (this.def.range || 10) && this.shieldT <= 0) {
@@ -3488,12 +3562,14 @@ class Enemy {
 			
 			var spin0 = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : this.spins[i];
 			this.shootAttack(a, ang, spin0, dist, g);
+			if (a.dash) { this.dashT = a.dash; this.dashA = ang; this.dashSpd = a.dashSpd || 9; }
 			if (a.p == "ring" || a.p == "spiral" || a.p == "flower") this.spins[i] += (a.rot || 0) * Enemy.DEG;
 			g.sync.fired(this, i, ang, spin0, this.phaseCode, dist);
 		}
 	shootAttack(a, ang, spin0, dist, g) {
 			var waves = __int(a.waves || 1);
 			if (a.sfx) g.soundAt(this.x, this.y, a.sfx, 0.7, a.sfxGap || 0.15);
+			this.startAnim(a);
 			for (var w = __int(0); w < waves; w++) {
 				if (w == 0) this.shootWave(a, ang, spin0, dist, g, 0);
 				else g.later(w * (a.gap || 0.2), this.waveFn(a, ang, spin0, dist, g, w));
@@ -3540,7 +3616,7 @@ class Enemy {
 					
 					var nd = Math.min(dist, a.reach || 9);
 					var nx = this.x + Math.cos(ang) * nd, ny = this.y + Math.sin(ang) * nd;
-					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, this.novaFn(a, nx, ny, dmg, bd, spinning, g, spin0));
+					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, this.novaFn(a, nx, ny, dmg, bd, spinning, g, spin0), a.marker || null);
 					break;
 				case "rain":
 					
@@ -3553,7 +3629,7 @@ class Enemy {
 						seed = __uint(seed ^ (seed << 13)); seed = __uint(seed ^ (seed >>> 17)); seed = __uint(seed ^ (seed << 5));
 						var rr = k == 0 ? 0 : 1 + (seed % 1000) / 1000 * (a.spread || 4);
 						var mx = cx + Math.cos(ra) * rr, my = cy + Math.sin(ra) * rr;
-						g.addMarker(mx, my, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, this.novaFn(a, mx, my, dmg, bd, spinning, g, ra));
+						g.addMarker(mx, my, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, this.novaFn(a, mx, my, dmg, bd, spinning, g, ra), a.marker || null);
 					}
 					break;
 				default: 
@@ -3567,6 +3643,7 @@ class Enemy {
 			return () => {
 				if (a.web) g.addWeb(nx, ny, a.radius || 1.6, a.web);
 				if (a.land) g.soundAt(nx, ny, a.land, 0.9, 0.1);
+				if (a.fx) g.groundFx(a.fx, nx, ny, a.radius || 1.6, a.col);
 				g.areaHit(nx, ny, a.radius || 1.6, dmg, this.def.name, a.eff || null, a.col, Enemy.attackName(a));
 				var m = __int(a.burst || 0);
 				for (var k = __int(0); k < m; k++) {
@@ -4857,6 +4934,8 @@ Bosses.SETPIECES = {
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
 			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne!"}
 		};
+Bosses.V_RED = __uint(0xff2a3a);
+Bosses.V_GOLD = __uint(0xd8a030);
 Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
 Bosses.VAULT_TWISTS = [
 			{id: "quick", name: "Quickened Sands", desc: "Everything in the Vault attacks 25% faster.", rate: 1.25},

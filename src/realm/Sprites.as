@@ -236,7 +236,13 @@ package realm {
 		private static const P_KNIFE:Array = ["........", "........", "........", "SSGHHHHL", "........", "........", "........", "........"];
 		private static const P_FIRE:Array = ["........", "..a.CC..", ".a.CWWC.", "aaCWWWWC", "aaCWWWWC", ".a.CWWC.", "..a.CC..", "........"];
 		private static const P_SOUL:Array = ["..CCCC..", ".CWWWWC.", "CWaWWaWC", "CWaWWaWC", "CWWWWWWC", ".CWaaWC.", "..C..C..", "........"];
-		private static const PROJ:Object = {fire: P_FIRE, soul: P_SOUL, knife: P_KNIFE, arrow: P_ARROW, bolt: P_BOLT, blade: P_BLADE, orb: P_ORB, star: P_STAR, ring: P_RING, dart: P_DART};
+		// Vorgath's: a crescent slash, his thrown morning star, a blood-crystal spike and a war spear
+		private static const P_CRESCENT:Array = ["...aC.....", ".....CC...", "......CW..", ".......CW.", ".......CWW", ".......CWW", ".......CW.", "......CW..", ".....CC...", "...aC....."];
+		private static const P_MACE:Array = ["....G...", ".G.II.G.", "..IiII..", "GIiICIIG", ".IIIIIa.", "..IIIa..", ".G.II.G.", "....G..."];
+		private static const P_SPIKE:Array = ["........", "........", "aaC.....", "aCCCCW..", "aCCCWWWW", "aaC.....", "........", "........"];
+		private static const P_SPEAR:Array = ["........", "........", "......C.", "SSSSSCWW", "......C.", "........", "........", "........"];
+		private static const PROJ:Object = {fire: P_FIRE, soul: P_SOUL, knife: P_KNIFE, arrow: P_ARROW, bolt: P_BOLT, blade: P_BLADE, orb: P_ORB, star: P_STAR, ring: P_RING, dart: P_DART,
+			crescent: P_CRESCENT, mace: P_MACE, spike: P_SPIKE, spear: P_SPEAR};
 
 		// ================================================================ item icons
 		private static const I_STAFF:Array = ["......TT", ".....TLT", "....TTT.", "...W....", "..W.....", ".W......", "W.......", "........"];
@@ -838,7 +844,7 @@ package realm {
 			var frames:Vector.<BitmapData> = cache[key];
 			if (frames) return frames;
 			var rows:Array = PROJ[shape] || P_ORB;
-			var pal:Object = {C: color, a: shade(color, 0.6), W: tint(color, 0.75), S: 0x8a5a2a, H: 0xe8e8e8, F: color};
+			var pal:Object = {C: color, a: shade(color, 0.6), W: tint(color, 0.75), S: 0x8a5a2a, H: 0xe8e8e8, F: color, I: 0x2c3046, i: 0x5a6280, G: 0xd8a030};
 			var base:BitmapData = build(rows, pal, scale, 1);
 			var D:int = Math.ceil(Math.sqrt(base.width * base.width + base.height * base.height));
 			frames = new Vector.<BitmapData>(ROT_FRAMES, true);

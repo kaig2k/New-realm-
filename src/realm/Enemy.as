@@ -155,9 +155,60 @@ package realm {
 		/** When it last attacked (ms, getTimer): its attack animation plays for a moment after. */
 		public var lastAttack:int = -100000;
 
+		/**
+		 * Bosses with an animation per attack (def.seq, e.g. Vorgath): the one playing,
+		 * when it started, ms a frame, and its impact frame held until the blow lands.
+		 */
+		public var anim:String = "";
+		private var animAt:int = 0, animMs:int = 90, animHit:int = 0, animHold:int = 0;
+		/** A lunge at a target (an attack's dash): seconds left, angle and speed. */
+		private var dashT:Number = 0, dashA:Number = 0, dashSpd:Number = 0;
+
+		private function startAnim(a:Object):void {
+			if (!a.anim || !def.seq || !def.seq[a.anim]) return;
+			// a blow that's still coming down isn't cut short by a smaller attack
+			var now:int = getTimer();
+			if (anim && animHold > 0 && now - animAt < animHold + 200 && !a.animHold) return;
+			anim = a.anim;
+			animAt = now;
+			animMs = a.animMs || 90;
+			animHit = a.animHit || 0;
+			animHold = a.animHold ? int(a.animHold * 1000) : 0;
+		}
+
+		/** Which frame of its attack animation is showing (-1 once it's over). */
+		private function animFrame(now:int):int {
+			var t:int = now - animAt, n:int = def.seq[anim], k:int;
+			if (animHold > 0 && animHit > 0) {
+				if (t < animHit * animMs) k = int(t / animMs);
+				else if (t < animHold) k = animHit - 1;
+				else k = animHit + int((t - animHold) / animMs);
+			} else k = int(t / animMs);
+			return k < n ? k : -1;
+		}
+
+		/** A boss drawn with its own animations (def.seq): attack, or idle / move (enraged ones past def.rageAt). */
+		private function seqSprite(now:int, off:int):BitmapData {
+			var name:String, frame:int;
+			if (anim) {
+				frame = animFrame(now);
+				if (frame >= 0) name = def.spr + "_" + anim;
+				else anim = "";
+			}
+			if (!name) {
+				var rage:Boolean = def.rageAt != undefined && phase >= def.rageAt && def.seq.ridle;
+				var st:String = (rage ? "r" : "") + (moving ? "move" : "idle");
+				name = def.spr + "_" + st;
+				frame = int((now + off) / (moving ? 110 : 190)) % def.seq[st];
+			}
+			if (hitT > 0) return Sprites.hit(name, frame, facingLeft);
+			return Sprites.get(name, frame, facingLeft);
+		}
+
 		public function get sprite():BitmapData {
 			// idle breathing, a stepping walk, or the wind-up and strike of an attack (in its last phase a boss pulses red)
 			var now:int = getTimer(), since:int = now - lastAttack, off:int = id * 37;
+			if (def.seq) return seqSprite(now, off);
 			var frame:int = since < 380 ? Sprites.anim(Sprites.ATTACK, since < 160 ? 0 : 1)
 				: moving ? Sprites.anim(Sprites.MOVE, int((now + off) / (def.spd > 2.5 ? 130 : 190)) % 2)
 				: Sprites.anim(Sprites.IDLE, int((now + off) / (isBoss ? 340 : 460)) % 2);
@@ -299,10 +350,17 @@ package realm {
 				if (bx * bx + by * by > leash) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
 			if (def.ai == "still" || (isBoss && shieldT > 0 && mode != "orbit")) { mvx = 0; mvy = 0; }
-			// ease toward the wanted velocity (charges lunge, everything else turns smoothly)
-			var accel:Number = Math.min(1, dt * (mode == "charge" ? 18 : 7));
-			velX += (mvx * speed - velX) * accel;
-			velY += (mvy * speed - velY) * accel;
+			if (dashT > 0) {
+				// mid-lunge: straight at where the target was
+				dashT -= dt;
+				velX = Math.cos(dashA) * dashSpd;
+				velY = Math.sin(dashA) * dashSpd;
+			} else {
+				// ease toward the wanted velocity (charges lunge, everything else turns smoothly)
+				var accel:Number = Math.min(1, dt * (mode == "charge" ? 18 : 7));
+				velX += (mvx * speed - velX) * accel;
+				velY += (mvy * speed - velY) * accel;
+			}
 			move(velX * dt, velY * dt, g.world);
 
 			if (aggro && dist < (def.range || 10) && shieldT <= 0) {
@@ -445,6 +503,7 @@ package realm {
 			// patterns that rotate or scatter carry their own seed so every player sees the same bullets
 			var spin0:Number = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : spins[i];
 			shootAttack(a, ang, spin0, dist, g);
+			if (a.dash) { dashT = a.dash; dashA = ang; dashSpd = a.dashSpd || 9; }
 			if (a.p == "ring" || a.p == "spiral" || a.p == "flower") spins[i] += (a.rot || 0) * DEG;
 			g.sync.fired(this, i, ang, spin0, phaseCode, dist);
 		}
@@ -453,6 +512,7 @@ package realm {
 		private function shootAttack(a:Object, ang:Number, spin0:Number, dist:Number, g:Game):void {
 			var waves:int = a.waves || 1;
 			if (a.sfx) g.soundAt(x, y, a.sfx, 0.7, a.sfxGap || 0.15);
+			startAnim(a);
 			for (var w:int = 0; w < waves; w++) {
 				if (w == 0) shootWave(a, ang, spin0, dist, g, 0);
 				else g.later(w * (a.gap || 0.2), waveFn(a, ang, spin0, dist, g, w));
@@ -501,7 +561,7 @@ package realm {
 					// a blast marked on the ground where you stand, then a ring bursts out of it
 					var nd:Number = Math.min(dist, a.reach || 9);
 					var nx:Number = x + Math.cos(ang) * nd, ny:Number = y + Math.sin(ang) * nd;
-					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, novaFn(a, nx, ny, dmg, bd, spinning, g, spin0));
+					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, novaFn(a, nx, ny, dmg, bd, spinning, g, spin0), a.marker || null);
 					break;
 				case "rain":
 					// several blasts scattered around you
@@ -514,7 +574,7 @@ package realm {
 						seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
 						var rr:Number = k == 0 ? 0 : 1 + (seed % 1000) / 1000 * (a.spread || 4);
 						var mx:Number = cx + Math.cos(ra) * rr, my:Number = cy + Math.sin(ra) * rr;
-						g.addMarker(mx, my, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, novaFn(a, mx, my, dmg, bd, spinning, g, ra));
+						g.addMarker(mx, my, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, novaFn(a, mx, my, dmg, bd, spinning, g, ra), a.marker || null);
 					}
 					break;
 				default: // ring / spiral
@@ -529,6 +589,7 @@ package realm {
 			return function():void {
 				if (a.web) g.addWeb(nx, ny, a.radius || 1.6, a.web);
 				if (a.land) g.soundAt(nx, ny, a.land, 0.9, 0.1);
+				if (a.fx) g.groundFx(a.fx, nx, ny, a.radius || 1.6, a.col);
 				g.areaHit(nx, ny, a.radius || 1.6, dmg, def.name, a.eff || null, a.col, attackName(a));
 				var m:int = a.burst || 0;
 				for (var k:int = 0; k < m; k++) {

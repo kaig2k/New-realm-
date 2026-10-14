@@ -579,6 +579,21 @@ async function run() {
     check('a siege that isn\'t beaten in 15 minutes ends (the Warlord leaves)', r2 === 'fail' && !ws2.siege && !ws2.enemies.some((o) => !o.dead && (o.defId === 'siege_warlord' || o.defId === 'siege_soldier' || o.defId === 'siege_ballista')));
     check('...and his camp comes down with him, the land as it was', camp2.every((k) => ws2.w.tiles[k.i] === k.t && ws2.w.objs[k.i] === k.o));
     check('the Warlord has three Starforged uniques and the titles exist', SD.bossUniques('siege_warlord').length === 3 && SD.findTitle('siege') && SD.findTitle('siegeguard'));
+    // his attacks from the design sheet: each plays its own animation, and the charge really lunges
+    const VD = SD.ENEMIES.siege_warlord;
+    const vAll = [].concat(...VD.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
+    check('every one of Vorgath\'s attacks but his last-stand spiral has an animation he has frames for', vAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && VD.seq[a.anim]) &&
+      ['swing', 'smash', 'bash', 'barrage', 'warcry', 'charge'].every((k) => vAll.some((a) => a.anim === k)), vAll.map((a) => a.anim).join(','));
+    const ws3 = new WorldSim('realm:Siegetest3:4545');
+    ws3.join({ id: 81, name: 'R', x: 10, y: 10, send: () => {} });
+    ws3.startSiege();
+    const v = ws3.siege.e;
+    const ci = VD.phases[2].attacks.findIndex((a) => a.dash);
+    v.setAttacks([VD.phases[2].attacks[ci]]);
+    const vx0 = v.x, vy0 = v.y;
+    v.fire(0, 0, 8, ws3.g);
+    for (let k = 0; k < 10; k++) v.update(0.05, ws3.g);
+    check('...and his charge carries him several tiles at whoever he charged', v.x - vx0 > 3 && Math.abs(v.y - vy0) < 1, [vx0, v.x, vy0, v.y].join(' '));
   }
 
   console.log('guild territory');

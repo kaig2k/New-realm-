@@ -670,17 +670,30 @@ class Data {
 			var sk = Data.PET_SKILLS[pet.species];
 			return Data.PET_STAGES[Data.petStage(pet)].name + " " + (p && sk ? sk[p].name : pet.name);
 		}
-	static deepMobs(wave) { wave = __int(wave); return Data.DEEP_MOBS[Math.min(Data.DEEP_MOBS.length - 1, __int((wave - 1) / 6))]; }
-	static deepCount(wave) { wave = __int(wave); return __int(Math.min(26, 3 + __int(wave * 1.4)) - (wave % Data.DEEP_CHEST_EVERY == 0 ? 4 : 0)); }
-	static deepBoss(wave) { wave = __int(wave);
-			if (wave % Data.DEEP_CHEST_EVERY != 0) return null;
-			if (wave % Data.DEEP_HERALD == 0) return "abyss_herald";
-			return Data.DEEP_BOSSES[__int(wave / Data.DEEP_CHEST_EVERY / 2) % Data.DEEP_BOSSES.length];
+	static deepMobs(wave) { wave = __int(wave); return Data.DEEP_MOBS[Math.min(Data.DEEP_MOBS.length - 1, __int((wave - 1) / 4))]; }
+	static deepCount(wave, players = 1) { wave = __int(wave); players = __int(players);
+			var n = Math.min(30, 5 + wave * 1.6) * (1 + 0.5 * (Math.max(1, players) - 1));
+			return __int(__int(n) - (wave % Data.DEEP_CHEST_EVERY == 0 ? 5 : 0));
 		}
+	static deepBosses(wave) { wave = __int(wave);
+			if (wave % Data.DEEP_CHEST_EVERY != 0) return [];
+			var k = __int(__int(wave / Data.DEEP_CHEST_EVERY));
+			var pool = wave >= 25 ? Data.DEEP_BOSSES_LATE : Data.DEEP_BOSSES;
+			var out = [wave % Data.DEEP_HERALD == 0 ? "abyss_herald" : pool[k % pool.length]];
+			if (wave >= 20) out.push(pool[(k * 3 + 1) % pool.length]);
+			return out;
+		}
+	static deepBoss(wave) { wave = __int(wave); var b = Data.deepBosses(wave); return b.length ? b[0] : null; }
 	static deepScale(wave) { wave = __int(wave);
 			var f = __int(Math.max(0, wave - 1));
-			return [1 + 0.15 * f, 1 + 0.05 * f];
+			return [1 + 0.22 * f + 0.004 * f * f, 1 + 0.08 * f];
 		}
+	static deepEliteChance(wave) { wave = __int(wave); return Math.min(0.45, 0.02 * wave); }
+	static findDeepMod(id) {
+			for (var m of __vals( Data.DEEP_MODS)) if (m.id == id) return m;
+			return null;
+		}
+	static deepModCount(wave) { wave = __int(wave); return __int(wave < 2 ? 0 : wave < 11 ? 1 : wave < 21 ? 2 : 3); }
 	static deepChestTier(wave) { wave = __int(wave); return __int(Math.max(1, Math.min(6, __int(wave / Data.DEEP_CHEST_EVERY)))); }
 	static deepChest(tier, cls, lk) { tier = __int(tier); lk = __int(lk);
 			var items = [];
@@ -1809,6 +1822,7 @@ class World {
 			else if (kind == "vault") this.generateVault();
 			else if (kind == "guildhall") this.generateGuildHall();
 			else if (kind == "arena") this.generateArena();
+			else if (kind == "abyss") this.generateAbyss();
 			else if (kind == "custom") this.generateCustom();
 			else if (kind == "dungeon") this.generateDungeon(theme);
 			else this.generate();
@@ -2675,6 +2689,49 @@ class World {
 			for (var lp of __vals( [[88, 86], [112, 86], [88, 114], [112, 114]])) this.objs[lp[1] * this.N + lp[0]] = 7;
 			this.spawnX = 100.5;
 			this.spawnY = 113.5;
+		}
+	generateAbyss() {
+			var x = 0, y = 0, i = 0;
+			for (i = __int(0); i < this.N * this.N; i++) { this.tiles[i] = World.VOID; this.zones[i] = -1; this.objs[i] = 0; }
+			var cx = 100.5, cy = 100.5, R = 17.5;
+			var disc = (ox, oy, r, t, zone) => { t = __int(t); zone = __int(zone);
+				for (var yy = __int(__int(oy - r) - 1); yy <= __int(oy + r) + 1; yy++) for (var xx = __int(__int(ox - r) - 1); xx <= __int(ox + r) + 1; xx++) {
+					var dx = xx + 0.5 - ox, dy = yy + 0.5 - oy;
+					if (dx * dx + dy * dy > r * r) continue;
+					var k = __int(yy * this.N + xx);
+					this.tiles[k] = t; this.zones[k] = zone;
+				}
+			};
+			
+			disc(cx, cy, R, World.OBSIDIAN, World.ARENA_ZONE);
+			for (y = __int(0); y < this.N; y++) for (x = __int(0); x < this.N; x++) {
+				i = __int(y * this.N + x);
+				if (this.tiles[i] == World.VOID) continue;
+				var ddx = x + 0.5 - cx, ddy = y + 0.5 - cy;
+				var d = Math.sqrt(ddx * ddx + ddy * ddy), a = Math.atan2(ddy, ddx);
+				if (d > R - 1.3) this.tiles[i] = World.ASH;
+				else if (d > 4 && Math.abs(((a / (Math.PI / 4)) % 1 + 1) % 1 - 0.5) > 0.47) this.tiles[i] = World.SPECTRAL;
+				
+				else if (d > 11 && d < 12.6 && Math.abs(((a + Math.PI / 8) / (Math.PI / 2) % 1 + 1) % 1 - 0.5) < 0.12) this.tiles[i] = World.HEXFIRE;
+			}
+			
+			disc(cx, cy, 3.6, World.HEXSTONE, World.ARENA_ZONE);
+			disc(cx, cy, 2.2, World.GOLD, World.ARENA_ZONE);
+			
+			for (var pa of __vals( [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4])) disc(cx + Math.cos(pa) * 9, cy + Math.sin(pa) * 9, 2.3, World.VOID, -1);
+			
+			for (var qa of __vals( [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2])) this.objs[__int(cy + Math.sin(qa) * 6.5) * this.N + __int(cx + Math.cos(qa) * 6.5)] = 24;
+			for (var b = __int(0); b < 12; b++) {
+				var ba = b * Math.PI / 6 + Math.PI / 12;
+				this.objs[__int(cy + Math.sin(ba) * (R - 2.2)) * this.N + __int(cx + Math.cos(ba) * (R - 2.2))] = 30;
+			}
+			
+			for (var s = __int(0); s < 7; s++) {
+				var sa = s * 0.9 + 0.4, sr = R + 5 + (s % 3) * 2;
+				disc(cx + Math.cos(sa) * sr, cy + Math.sin(sa) * sr, 1.4 + (s % 2), s % 2 ? World.OBSIDIAN : World.HEXSTONE, -1);
+			}
+			this.spawnX = 100.5;
+			this.spawnY = cy + 13.5;
 		}
 	makeRuins() {
 			var count = __int(this.kind == "realm" ? __int(30 * (this.N / 320) * (this.N / 320)) : 26);
@@ -4372,11 +4429,24 @@ Data.DUNGEONS = [
 Data.DEEP_CHEST_EVERY = __int(5);
 Data.DEEP_HERALD = __int(10);
 Data.DEEP_BOSSES = ["warden", "pyrelord", "spider_boss", "seraph", "lich_boss", "serpent_boss", "sorcerer", "demon_boss", "sprite_boss"];
+Data.DEEP_BOSSES_LATE = ["sun_king", "moon_queen", "star_prince", "frost_warden", "flame_warden", "blood_knight", "hex_queen", "shattered_seraph"];
 Data.DEEP_MOBS = [
-			["skeleton", "imp", "orc", "goblin", "spider", "great_snake"],
-			["shade", "gazer", "lesser_demon", "ghost", "djinn", "elf"],
-			["lich", "sprite_god", "lesser_demon", "shade", "ghost"],
-			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "lich"]
+			["shade", "gazer", "lesser_demon", "ghost", "orc", "imp"],
+			["lich", "djinn", "elf", "lesser_demon", "shade", "great_snake"],
+			["lich", "sprite_god", "lesser_demon", "ghost", "djinn"],
+			["gale_harpy", "bone_thrall", "blood_hound", "lich", "sprite_god"],
+			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "cloud_serpent"]
+		];
+Data.DEEP_RESTLESS = __int(40);
+Data.DEEP_MODS = [
+			{id: "swarm", name: "Swarm", desc: "Twice as many monsters, weaker each", col: 0x80ff80},
+			{id: "elite", name: "Elite Pack", desc: "Many of them are elites", col: 0xffd040},
+			{id: "frenzy", name: "Frenzy", desc: "Faster and they hit harder", col: 0xff6040},
+			{id: "giants", name: "Juggernauts", desc: "Fewer, but all giants", col: 0xc08060},
+			{id: "blood", name: "Bloodthirst", desc: "Monsters regenerate", col: 0xff3060},
+			{id: "split", name: "Splitters", desc: "Monsters split when they die", col: 0x60e0a0},
+			{id: "reinforce", name: "Reinforcements", desc: "The wave comes in three pulses", col: 0x80b0ff},
+			{id: "ambush", name: "Ambush", desc: "They appear right beside you", col: 0xd080ff}
 		];
 Data.DEEP_CHEST_NAMES = ["", "Abyssal Chest", "Abyssal Chest II", "Abyssal Chest III", "Abyssal Chest IV", "Abyssal Chest V", "The Abyss's Hoard"];
 Data.DEEP_CHEST_INFO = ["",

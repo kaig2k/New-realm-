@@ -62,8 +62,8 @@ class WorldSim {
       if (rd.twists) { this.week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7); this.twist = Bosses.vaultTwist(this.week); }
     } else if (this.kind === 'deep') {
       // the Endless Abyss: an arena where the waves keep coming (updateWaves)
-      this.w = new World('arena', 'The Endless Abyss');
-      this.deep = { wave: 0, state: 'break', t: 10, left: 0 };
+      this.w = new World('abyss', 'The Endless Abyss');
+      this.deep = { wave: 0, state: 'break', t: 10, left: 0, mods: [], pulses: [], fightT: 0, restT: 0 };
     } else if (this.kind === 'arena') {
       this.w = new World('arena', "Dark Elder's Chamber");
     } else throw new Error('not a simulated world: ' + key);
@@ -720,7 +720,11 @@ class WorldSim {
       for (let k = 0; k < sp.n; k++) { const a = k * Math.PI * 2 / sp.n + Math.random(); this.spawn(sp.what, e.x + Math.cos(a) * 0.8, e.y + Math.sin(a) * 0.8, e.zone); }
     }
     if (e.elite === 'Splitting') {
-      for (let k = 0; k < 3; k++) { const a = k * Math.PI * 2 / 3; this.spawn(e.defId, e.x + Math.cos(a) * 1.2, e.y + Math.sin(a) * 1.2, e.zone); }
+      for (let k = 0; k < 3; k++) {
+        const a = k * Math.PI * 2 / 3, sp = this.spawn(e.defId, e.x + Math.cos(a) * 1.2, e.y + Math.sin(a) * 1.2, e.zone);
+        // (the Abyss's splitters split into smaller ones)
+        if (sp && this.deep) { sp.maxHp *= 0.35; sp.hp = sp.maxHp; }
+      }
     }
     if (e.def.crystal && w.boss && w.boss.invuln && !this.enemies.some((o) => !o.dead && o.def.crystal)) w.boss.invuln = false;
     if (e.site) { e.site.cleared = true; e.site.active = false; if (this.kind === 'realm') w.eventT -= 8; }
@@ -854,33 +858,107 @@ class WorldSim {
       if (d.t <= 0) this.startWave(d.wave + 1);
       return;
     }
+    d.fightT += dt;
+    // Reinforcements: the rest of the wave comes in pulses
+    if (d.pulses && d.pulses.length && d.fightT >= d.pulses[0].at) this.waveSpawn(d.pulses.shift().n, d.mods);
+    // a wave left too long: the Abyss grows restless and sends elites, more and more often
+    if (d.fightT > Data.DEEP_RESTLESS) {
+      d.restT -= dt;
+      if (d.restT <= 0) {
+        if (!d.restless) {
+          d.restless = true;
+          for (const c of this.players.values()) c.send({ t: 'deepWave', wave: d.wave, state: 'restless', left: d.left });
+        }
+        d.restT = Math.max(4, 10 - (d.fightT - Data.DEEP_RESTLESS) / 10);
+        this.waveSpawn(2 + Math.floor(d.wave / 8), ['ambush'], true);
+      }
+    }
     const left = this.enemies.filter((e) => !e.dead && !e.def.abyssChest).length;
     if (left !== d.left) { d.left = left; this.waveStatus(); }
-    if (!left) this.waveCleared();
+    if (!left && !(d.pulses && d.pulses.length)) this.waveCleared();
+  }
+
+  /** Where a wave monster appears: away from the players, or (Ambush) right beside one. */
+  waveSpot(ambush) {
+    const w = this.w, ps = [...this.players.values()];
+    for (let k = 0; k < 80; k++) {
+      let x, y;
+      if (ambush && ps.length) {
+        const c = ps[Math.floor(Math.random() * ps.length)], a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 3;
+        x = Math.floor(c.x + Math.cos(a) * r) + 0.5; y = Math.floor(c.y + Math.sin(a) * r) + 0.5;
+      } else {
+        // anywhere on the platform, away from the dais
+        const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 10.5;
+        x = Math.floor(100.5 + Math.cos(a) * r) + 0.5; y = Math.floor(100.5 + Math.sin(a) * r) + 0.5;
+      }
+      if (!w.canStand(x, y, 0.5, true)) continue;
+      if (!ambush) {
+        let near = false;
+        for (const c of ps) if ((c.x - x) * (c.x - x) + (c.y - y) * (c.y - y) < 49) near = true;
+        if (near) continue;
+      }
+      return [x, y];
+    }
+    return [100.5, 90.5];
+  }
+
+  /** n monsters of this wave, with its modifiers (allElite: the restless Abyss's elites). */
+  waveSpawn(n, mods, allElite) {
+    const d = this.deep, pool = Data.deepMobs(d.wave);
+    const has = (m) => mods.includes(m);
+    const eliteP = allElite ? 1 : Data.deepEliteChance(d.wave) + (has('elite') ? 0.35 : 0);
+    for (let k = 0; k < n; k++) {
+      const p = this.waveSpot(has('ambush'));
+      const e = this.spawn(pool[Math.floor(Math.random() * pool.length)], p[0], p[1], World.ARENA_ZONE, true);
+      if (!e) continue;
+      if (has('giants')) this.makeElite(e, 'Giant');
+      else if (Math.random() < eliteP) this.makeElite(e);
+      if (has('swarm')) { e.maxHp *= 0.55; e.hp = e.maxHp; }
+      if (has('frenzy')) { e.dmgMult *= 1.3; e.spdMult = (e.spdMult || 1) * 1.35; }
+      if (has('blood') && !e.elite) e.elite = 'Vampiric';
+      if (has('split') && !e.elite) e.elite = 'Splitting';
+    }
   }
 
   startWave(n) {
     const d = this.deep, w = this.w;
     d.wave = n;
     d.state = 'fight';
-    const pool = Data.deepMobs(n), boss = Data.deepBoss(n);
-    const spot = () => {
-      for (let k = 0; k < 60; k++) {
-        const x = 86.5 + Math.floor(Math.random() * 29), y = 84.5 + Math.floor(Math.random() * 33);
-        if (!w.canStand(x, y, 0.5, true)) continue;
-        let near = false;
-        for (const c of this.players.values()) if ((c.x - x) * (c.x - x) + (c.y - y) * (c.y - y) < 36) near = true;
-        if (!near) return [x, y];
-      }
-      return [100.5, 88.5];
-    };
-    for (let k = 0; k < Data.deepCount(n); k++) { const p = spot(); this.spawn(pool[Math.floor(Math.random() * pool.length)], p[0], p[1], World.ARENA_ZONE, true); }
-    if (boss) {
-      w.boss = new Enemy(boss, 100.5, 90.5, World.ARENA_ZONE);
-      this.add(w.boss);
+    d.fightT = 0; d.restT = 0; d.restless = false;
+    // this wave's modifiers
+    const ids = Data.DEEP_MODS.map((m) => m.id).sort(() => Math.random() - 0.5);
+    const mods = [];
+    // (Juggernauts and Swarm pull against each other: never both)
+    for (const id of ids) {
+      if (mods.length >= Data.deepModCount(n)) break;
+      if ((id === 'swarm' && mods.includes('giants')) || (id === 'giants' && mods.includes('swarm'))) continue;
+      mods.push(id);
     }
+    d.mods = mods;
+    let count = Data.deepCount(n, this.players.size);
+    if (mods.includes('swarm')) count = Math.round(count * 1.8);
+    if (mods.includes('giants')) count = Math.max(2, Math.round(count * 0.4));
+    if (mods.includes('split')) count = Math.max(2, Math.round(count * 0.6));
+    d.pulses = [];
+    if (mods.includes('reinforce')) {
+      const part = Math.ceil(count / 3);
+      d.pulses = [{ at: 10, n: part }, { at: 20, n: part }];
+      count -= part * 2;
+    }
+    this.waveSpawn(count, mods);
+    // the bosses (the Herald on every 10th), with elite escorts from wave 20
+    const bosses = Data.deepBosses(n);
+    for (let i = 0; i < bosses.length; i++) {
+      const b = new Enemy(bosses[i], bosses.length > 1 ? (i ? 106.5 : 94.5) : 100.5, 92.5, World.ARENA_ZONE);
+      this.add(b);
+      if (!b.def.scales && this.players.size > 1) { b.maxHp *= 1 + 0.6 * (this.players.size - 1); b.hp = b.maxHp; }
+      if (mods.includes('frenzy')) b.dmgMult *= 1.15;
+      if (i === 0) w.boss = b;
+    }
+    if (bosses.length && n >= 20) this.waveSpawn(2, mods, true);
     d.left = this.enemies.filter((e) => !e.dead && !e.def.abyssChest).length;
-    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'fight', left: d.left, boss: boss ? Data.ENEMIES[boss].name : '' });
+    const names = bosses.map((b) => Data.ENEMIES[b].name).join(' & ');
+    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'fight', left: d.left, boss: names, mods });
   }
 
   waveStatus() {
@@ -893,8 +971,8 @@ class WorldSim {
     const d = this.deep, n = d.wave;
     const chest = n % Data.DEEP_CHEST_EVERY === 0;
     d.state = 'break';
-    d.t = chest ? 20 : 8;
-    if (chest) this.spawn('abyss_chest_' + Data.deepChestTier(n), 100.5, 98.5, World.ARENA_ZONE, true);
+    d.t = chest ? 15 : 6;
+    if (chest) this.spawn('abyss_chest_' + Data.deepChestTier(n), 100.5, 100.5, World.ARENA_ZONE, true);
     for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'cleared', secs: d.t, chest: chest ? Data.DEEP_CHEST_NAMES[Data.deepChestTier(n)] : '' });
     if (this.onDeep) this.onDeep(this, [...this.players.values()], n, chest);
   }

@@ -4142,6 +4142,7 @@ package realm {
 			if (world.raid) return world.raid.id == "storm" ? [0x001030, 0.18] : [0x500010, 0.16];
 			if (world.kind == "dungeon") return [0x000010, 0.12];
 			if (world.kind == "arena") return [0x300008, 0.12];
+			if (world.kind == "abyss") return [0x1a0030, 0.2];
 			if (world.kind != "realm") return [0x000000, 0];
 			switch (world.zoneAt(player.x, player.y)) {
 				case World.SHORE_ZONE: return [0xfff0c0, 0.04];
@@ -4214,6 +4215,7 @@ package realm {
 			if (world.raid) return world.raid.id == "storm" ? ["rain", [0xb0c8ff], 70] : ["ash", [0xa01020, 0x501010], 14];
 			if (world.kind == "nexus") return ["mote", [0xffe080, 0xfff0c0], 4];
 			if (world.kind == "arena") return ["ember", [0xff3040, 0xff8040], 10];
+			if (world.kind == "abyss") return ["ember", [0xa040ff, 0xd080ff, 0x6020c0], 16];
 			if (world.kind == "dungeon") {
 				var th:Object = world.theme;
 				if (th && th.hazard == "lava") return ["ember", [0xff6020, 0xffa040], 12];
@@ -6737,7 +6739,7 @@ package realm {
 		public function enterDeep(seed:uint):void {
 			if (!deepAllowed()) return;
 			if (!seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
-			dungeonWorld = new World("arena", "The Endless Abyss");
+			dungeonWorld = new World("abyss", "The Endless Abyss");
 			dungeonWorld.key = "deep:" + seed;
 			if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
 			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
@@ -6753,14 +6755,20 @@ package realm {
 			if (!world || world.key.indexOf("deep:") != 0) return;
 			if (!wavePanel) {
 				wavePanel = new WavePanel();
-				wavePanel.x = int((VIEW_W - WavePanel.W) / 2);
+				wavePanel.x = 306; // (between the boss panel and the currencies)
 				wavePanel.y = 8;
 				addChild(wavePanel);
 			}
 			wavePanel.update(m);
-			if (m.state == "fight") {
+			if (m.state == "fight" && m.mods is Array) {
 				showBanner("Wave " + m.wave + (m.boss ? ": " + m.boss + "!" : ""), m.boss ? 0xff60ff : 0xd080ff, 2.5);
 				Sfx.play(m.boss ? "boss" : "portal");
+				var md:Array = [];
+				for each (var mid:String in m.mods) { var mo:Object = Data.findDeepMod(mid); if (mo) md.push(mo.name + " (" + mo.desc.toLowerCase() + ")"); }
+				if (md.length) msg("Wave " + m.wave + ": " + md.join(", ") + ".", 0xd080ff);
+			} else if (m.state == "restless") {
+				msg("The Abyss grows restless... elites pour in until the wave is cleared!", 0xff5060);
+				Sfx.play("boss");
 			} else if (m.state == "cleared" && m.chest) {
 				msg("Wave " + m.wave + " cleared! " + m.chest + " has appeared in the middle of the arena.", 0xd080ff);
 				Sfx.play("fanfare");
@@ -6771,6 +6779,8 @@ package realm {
 			if (!wavePanel) return;
 			if (!world || world.key.indexOf("deep:") != 0) { if (wavePanel.parent) removeChild(wavePanel); wavePanel = null; return; }
 			wavePanel.tick(1 / 30);
+			// (above the quest arrow and name tags, which the boss up north brings close to it)
+			if (wavePanel.parent == this && getChildIndex(wavePanel) < numChildren - 1) setChildIndex(wavePanel, numChildren - 1);
 		}
 
 		public function toggleAbyss():void {

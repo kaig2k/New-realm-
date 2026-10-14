@@ -1826,29 +1826,60 @@ package realm {
 		public static const DEEP_CHEST_EVERY:int = 5;
 		/** Every 10th wave the Abyssal Herald comes (with the other boss waves between). */
 		public static const DEEP_HERALD:int = 10;
-		/** Boss waves (every 5th), in turn: dungeon masters, then the Herald on every 10th. */
+		/** Boss waves (every 5th): dungeon masters first, the hard dungeons' bosses from wave 25; the Herald on every 10th. */
 		public static const DEEP_BOSSES:Array = ["warden", "pyrelord", "spider_boss", "seraph", "lich_boss", "serpent_boss", "sorcerer", "demon_boss", "sprite_boss"];
-		/** The monsters of a wave, by how deep it is. */
+		public static const DEEP_BOSSES_LATE:Array = ["sun_king", "moon_queen", "star_prince", "frost_warden", "flame_warden", "blood_knight", "hex_queen", "shattered_seraph"];
+		/** The monsters of a wave, by how deep it is (a new, nastier mix every 4 waves). */
 		public static const DEEP_MOBS:Array = [
-			["skeleton", "imp", "orc", "goblin", "spider", "great_snake"],
-			["shade", "gazer", "lesser_demon", "ghost", "djinn", "elf"],
-			["lich", "sprite_god", "lesser_demon", "shade", "ghost"],
-			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "lich"]
+			["shade", "gazer", "lesser_demon", "ghost", "orc", "imp"],
+			["lich", "djinn", "elf", "lesser_demon", "shade", "great_snake"],
+			["lich", "sprite_god", "lesser_demon", "ghost", "djinn"],
+			["gale_harpy", "bone_thrall", "blood_hound", "lich", "sprite_god"],
+			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "cloud_serpent"]
 		];
-		public static function deepMobs(wave:int):Array { return DEEP_MOBS[Math.min(DEEP_MOBS.length - 1, int((wave - 1) / 6))]; }
-		/** How many monsters come in wave n (a boss wave brings fewer). */
-		public static function deepCount(wave:int):int { return Math.min(26, 3 + int(wave * 1.4)) - (wave % DEEP_CHEST_EVERY == 0 ? 4 : 0); }
-		/** The boss of wave n, or null for an ordinary wave. */
-		public static function deepBoss(wave:int):String {
-			if (wave % DEEP_CHEST_EVERY != 0) return null;
-			if (wave % DEEP_HERALD == 0) return "abyss_herald";
-			return DEEP_BOSSES[int(wave / DEEP_CHEST_EVERY / 2) % DEEP_BOSSES.length];
+		public static function deepMobs(wave:int):Array { return DEEP_MOBS[Math.min(DEEP_MOBS.length - 1, int((wave - 1) / 4))]; }
+		/** How many monsters come in wave n for this many players (before its modifiers; a boss wave brings fewer). */
+		public static function deepCount(wave:int, players:int = 1):int {
+			var n:Number = Math.min(30, 5 + wave * 1.6) * (1 + 0.5 * (Math.max(1, players) - 1));
+			return int(n) - (wave % DEEP_CHEST_EVERY == 0 ? 5 : 0);
 		}
+		/** The bosses of wave n (none for an ordinary wave; two at once from wave 20). */
+		public static function deepBosses(wave:int):Array {
+			if (wave % DEEP_CHEST_EVERY != 0) return [];
+			var k:int = int(wave / DEEP_CHEST_EVERY);
+			var pool:Array = wave >= 25 ? DEEP_BOSSES_LATE : DEEP_BOSSES;
+			var out:Array = [wave % DEEP_HERALD == 0 ? "abyss_herald" : pool[k % pool.length]];
+			if (wave >= 20) out.push(pool[(k * 3 + 1) % pool.length]);
+			return out;
+		}
+		/** (the first boss of wave n, or null) */
+		public static function deepBoss(wave:int):String { var b:Array = deepBosses(wave); return b.length ? b[0] : null; }
 		/** How much tougher wave n's monsters are: [health, damage]. */
 		public static function deepScale(wave:int):Array {
 			var f:int = Math.max(0, wave - 1);
-			return [1 + 0.15 * f, 1 + 0.05 * f];
+			return [1 + 0.22 * f + 0.004 * f * f, 1 + 0.08 * f];
 		}
+		/** The chance any monster of wave n comes as an elite. */
+		public static function deepEliteChance(wave:int):Number { return Math.min(0.45, 0.02 * wave); }
+		/** A wave left too long: after this many seconds the Abyss grows restless and sends elites. */
+		public static const DEEP_RESTLESS:int = 40;
+		/** Wave modifiers (one from wave 2, two from 11, three from 21; the server rolls them). */
+		public static const DEEP_MODS:Array = [
+			{id: "swarm", name: "Swarm", desc: "Twice as many monsters, weaker each", col: 0x80ff80},
+			{id: "elite", name: "Elite Pack", desc: "Many of them are elites", col: 0xffd040},
+			{id: "frenzy", name: "Frenzy", desc: "Faster and they hit harder", col: 0xff6040},
+			{id: "giants", name: "Juggernauts", desc: "Fewer, but all giants", col: 0xc08060},
+			{id: "blood", name: "Bloodthirst", desc: "Monsters regenerate", col: 0xff3060},
+			{id: "split", name: "Splitters", desc: "Monsters split when they die", col: 0x60e0a0},
+			{id: "reinforce", name: "Reinforcements", desc: "The wave comes in three pulses", col: 0x80b0ff},
+			{id: "ambush", name: "Ambush", desc: "They appear right beside you", col: 0xd080ff}
+		];
+		public static function findDeepMod(id:String):Object {
+			for each (var m:Object in DEEP_MODS) if (m.id == id) return m;
+			return null;
+		}
+		/** How many modifiers wave n has. */
+		public static function deepModCount(wave:int):int { return wave < 2 ? 0 : wave < 11 ? 1 : wave < 21 ? 2 : 3; }
 		/** The chest after wave n is cleared (1 at wave 5 .. 6 from wave 30). */
 		public static function deepChestTier(wave:int):int { return Math.max(1, Math.min(6, int(wave / DEEP_CHEST_EVERY))); }
 		public static const DEEP_CHEST_NAMES:Array = ["", "Abyssal Chest", "Abyssal Chest II", "Abyssal Chest III", "Abyssal Chest IV", "Abyssal Chest V", "The Abyss's Hoard"];

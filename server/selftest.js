@@ -608,8 +608,15 @@ async function run() {
     check('the Abyss is an arena: empty until the first wave', ws.enemies.length === 0 && said.some((m) => m.t === 'deepWave' && m.wave === 0 && m.state === 'break'));
     ws.deep.t = 0; ws.updateWaves(0.05);
     const mobs = ws.enemies.filter((e) => !e.dead);
-    check('wave 1 comes: its monsters, and everyone is told', ws.deep.wave === 1 && mobs.length === DD.deepCount(1) && said.some((m) => m.t === 'deepWave' && m.wave === 1 && m.state === 'fight'), mobs.length + '');
-    const killAll = () => { for (const e of ws.enemies.slice()) if (!e.dead && !e.def.abyssChest) { e.hitters.set(92, 100); ws.kill(e); } ws.updateWaves(0.05); };
+    check('wave 1 comes: its monsters, and everyone is told', ws.deep.wave === 1 && mobs.length === DD.deepCount(1, 1) && said.some((m) => m.t === 'deepWave' && m.wave === 1 && m.state === 'fight'), mobs.length + '');
+    // (kill everything, splitters' children and late pulses too, until the wave is over)
+    const killAll = () => {
+      for (let r = 0; r < 30 && ws.deep.state !== 'break'; r++) {
+        for (const e of ws.enemies.slice()) if (!e.dead && !e.def.abyssChest) { e.hitters.set(92, 100); ws.kill(e); }
+        if (ws.deep.pulses.length) ws.deep.fightT = 99;
+        ws.updateWaves(0.05);
+      }
+    };
     killAll();
     check('its monsters drop nothing', got.length === 0, got.map((i) => i.name).join(','));
     check('wave cleared: a short break, and it counts', ws.deep.state === 'break' && cleared.length === 1 && cleared[0][0] === 1 && !cleared[0][1]);
@@ -625,7 +632,20 @@ async function run() {
     let early = 0;
     for (let k = 0; k < 300; k++) early += DD.deepChest(2, DD.CLASSES.wizard, 200).filter((i) => i.uid).length;
     check('deeper chests give more, and the Abyss uniques only from wave 15 on', t6.length > t1.length && early === 0 && DD.deepChestTier(30) === 6 && DD.deepChestTier(5) === 1, [t1.length, t6.length, early].join(' '));
-    check('wave sizes and bosses: every 5th a boss, every 10th the Herald', DD.deepBoss(10) === 'abyss_herald' && DD.deepBoss(7) === null && DD.deepCount(20) > DD.deepCount(3));
+    check('wave sizes and bosses: every 5th a boss, every 10th the Herald, two at once from wave 20', DD.deepBoss(10) === 'abyss_herald' && DD.deepBoss(7) === null &&
+      DD.deepCount(20) > DD.deepCount(3) && DD.deepBosses(25).length === 2 && DD.deepCount(8, 3) > DD.deepCount(8, 1));
+    // modifiers, and the restless Abyss
+    const w2 = new DW('deep:654'), said2 = [];
+    w2.join({ id: 93, name: 'Mod', x: 100.5, y: 113.5, send: (m) => said2.push(m) });
+    w2.startWave(12);
+    const st = said2.find((m) => m.t === 'deepWave' && m.state === 'fight');
+    check('from wave 11 a wave has two modifiers, and the players are told', w2.deep.mods.length === 2 && st && st.mods.length === 2 && st.mods.every((id) => DD.findDeepMod(id)), JSON.stringify(st && st.mods));
+    const before = w2.enemies.filter((e) => !e.dead).length;
+    w2.deep.fightT = DD.DEEP_RESTLESS + 1; w2.deep.pulses = [];
+    w2.updateWaves(0.05);
+    const added = w2.enemies.filter((e) => !e.dead).slice(before);
+    check('a wave left too long: the Abyss sends elites', added.length >= 2 && added.every((e) => e.elite) && said2.some((m) => m.state === 'restless'), added.length + '');
+    check('deep waves are much tougher than early ones', DD.deepScale(20)[0] > 5 && DD.deepScale(20)[1] > 2.4 && DD.deepEliteChance(20) >= 0.4);
     check('boons add stats (and Greed adds luck)', DD.deepBonus(['might', 'might', 'life']).att === 8 && DD.deepBonus(['life']).hp === 60 && DD.deepBoonLuck(['greed', 'might']) === 15);
   }
 
@@ -1744,7 +1764,9 @@ async function run() {
     if (gp) G2.send({ t: 'move', x: gp.x, y: gp.y, f: 0 });
     await wait(200);
     check('...and the jump there is allowed (not put back)', gp && !G2.find((m) => m.t === 'pos'), JSON.stringify(G2.find((m) => m.t === 'pos')));
-    await wait(1200);
+    G2.clear();
+    G2.send({ t: 'enter', key: 'realm:' + rl.name + ':' + rl.seed, cid: 'gl1', x: gp ? gp.x : rw.spawnX, y: gp ? gp.y : rw.spawnY });
+    await wait(1300);
     const spm = G2.msgs.filter((m) => m.t === 'spires').pop();
     check('players in a realm are shown its four Godlands Spires', spm && spm.l.length === 4 && spm.l.every((sp) => rw.zoneAt(sp.x, sp.y) === GW.GOD_ZONE && sp.name), JSON.stringify(spm && spm.l));
     G2.clear();

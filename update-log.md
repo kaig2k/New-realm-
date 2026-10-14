@@ -1,13 +1,13 @@
 **📜 ELDMERE UPDATE: Endgame, Pets & More** (part 1/4)
 
 **🕳️ The Endless Abyss**
-A new portal in the Nexus east wing (or `/abyss`) leads level 20 heroes into a **wave arena**.
-• Endless waves, each harder than the last. A boss every 5th wave, and the **Abyssal Herald** every 10th
-• Monsters here drop **nothing**. Instead, every 5 waves an **Abyssal Chest** appears, and the further you get, the better it is (up to **The Abyss's Hoard** at wave 30+)
-• The 3 Abyss uniques can only be found in the deeper chests
-• After each boss wave, pick 1 of 3 **boons** for the rest of your run
-• Weekly leaderboard for each class. Each class's #1 earns **Abyss Champion**
-• Titles for clearing waves 10 and 25
+A new portal in the Nexus east wing (or `/abyss`) leads level 20 heroes to a **floating arena in the void**, where the waves never stop.
+• Waves get much harder fast, with elites everywhere later on and more monsters for bigger groups
+• **Wave modifiers**: Swarm, Elite Pack, Frenzy, Juggernauts, Bloodthirst, Splitters, Reinforcements, Ambush (up to 3 at once!)
+• Take longer than 40s on a wave and **the Abyss grows restless**, sending elites until you finish it
+• A boss every 5th wave, the **Abyssal Herald** every 10th, and **two bosses at once** from wave 20
+• Monsters drop **nothing**. Instead, every 5 waves an **Abyssal Chest** appears, and the further you get, the better it is (up to **The Abyss's Hoard** at wave 30+, the only source of the 3 Abyss uniques)
+• Pick a **boon** after each boss wave. Weekly leaderboard for each class: the #1s earn **Abyss Champion**
 
 **⚔️ Realm Siege**
 Every 2 hours, **Vorgath the Siege Warlord** attacks the Godlands with his army.

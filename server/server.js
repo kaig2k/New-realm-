@@ -982,6 +982,7 @@ const handlers = {
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
     c.expDmg = 0; c.expDmgBase = 0; c.dmgBase = c.dmgRep || 0;
     c.grace = Math.max(c.grace || 0, Date.now() + 3500);
+    c.spireJson = null; // (a new world: its Spires are sent again)
     deepEnter(c, world);
     setCaps(c);
     c.mode = modes.modeOf(serverChar(c));

@@ -160,6 +160,7 @@ package realm {
 			else if (kind == "vault") generateVault();
 			else if (kind == "guildhall") generateGuildHall();
 			else if (kind == "arena") generateArena();
+			else if (kind == "abyss") generateAbyss();
 			else if (kind == "custom") generateCustom();
 			else if (kind == "dungeon") generateDungeon(theme);
 			else generate();
@@ -1164,6 +1165,56 @@ package realm {
 			for each (var lp:Array in [[88, 86], [112, 86], [88, 114], [112, 114]]) objs[lp[1] * N + lp[0]] = 7;
 			spawnX = 100.5;
 			spawnY = 113.5;
+		}
+
+		/**
+		 * The Endless Abyss: a round obsidian platform floating in the void. Four
+		 * pits drop into nothing, dark pillars give cover, arcs of burning runes
+		 * cut across the ring, purple braziers burn at the edge and a dais of gold
+		 * in the middle is where its chests appear. Broken islets drift around it.
+		 */
+		private function generateAbyss():void {
+			var x:int, y:int, i:int;
+			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
+			var cx:Number = 100.5, cy:Number = 100.5, R:Number = 17.5;
+			var disc:Function = function(ox:Number, oy:Number, r:Number, t:int, zone:int):void {
+				for (var yy:int = int(oy - r) - 1; yy <= int(oy + r) + 1; yy++) for (var xx:int = int(ox - r) - 1; xx <= int(ox + r) + 1; xx++) {
+					var dx:Number = xx + 0.5 - ox, dy:Number = yy + 0.5 - oy;
+					if (dx * dx + dy * dy > r * r) continue;
+					var k:int = yy * N + xx;
+					tiles[k] = t; zones[k] = zone;
+				}
+			};
+			// the platform, its rim and the spokes of spectral light
+			disc(cx, cy, R, OBSIDIAN, ARENA_ZONE);
+			for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
+				i = y * N + x;
+				if (tiles[i] == VOID) continue;
+				var ddx:Number = x + 0.5 - cx, ddy:Number = y + 0.5 - cy;
+				var d:Number = Math.sqrt(ddx * ddx + ddy * ddy), a:Number = Math.atan2(ddy, ddx);
+				if (d > R - 1.3) tiles[i] = ASH;
+				else if (d > 4 && Math.abs(((a / (Math.PI / 4)) % 1 + 1) % 1 - 0.5) > 0.47) tiles[i] = SPECTRAL;
+				// the burning runes: four arcs across the ring, between the spokes
+				else if (d > 11 && d < 12.6 && Math.abs(((a + Math.PI / 8) / (Math.PI / 2) % 1 + 1) % 1 - 0.5) < 0.12) tiles[i] = HEXFIRE;
+			}
+			// the dais
+			disc(cx, cy, 3.6, HEXSTONE, ARENA_ZONE);
+			disc(cx, cy, 2.2, GOLD, ARENA_ZONE);
+			// four pits into the void
+			for each (var pa:Number in [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4]) disc(cx + Math.cos(pa) * 9, cy + Math.sin(pa) * 9, 2.3, VOID, -1);
+			// pillars for cover, braziers round the edge
+			for each (var qa:Number in [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]) objs[int(cy + Math.sin(qa) * 6.5) * N + int(cx + Math.cos(qa) * 6.5)] = 24;
+			for (var b:int = 0; b < 12; b++) {
+				var ba:Number = b * Math.PI / 6 + Math.PI / 12;
+				objs[int(cy + Math.sin(ba) * (R - 2.2)) * N + int(cx + Math.cos(ba) * (R - 2.2))] = 30;
+			}
+			// broken islets drifting in the dark (out of reach)
+			for (var s:int = 0; s < 7; s++) {
+				var sa:Number = s * 0.9 + 0.4, sr:Number = R + 5 + (s % 3) * 2;
+				disc(cx + Math.cos(sa) * sr, cy + Math.sin(sa) * sr, 1.4 + (s % 2), s % 2 ? OBSIDIAN : HEXSTONE, -1);
+			}
+			spawnX = 100.5;
+			spawnY = cy + 13.5;
 		}
 
 		/** Brick ruins in the midlands and godlands; godland ruins have lava rivers. */

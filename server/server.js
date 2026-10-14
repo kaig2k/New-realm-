@@ -62,7 +62,21 @@ if (!config.realmsSet) {
   config.minRealms = 1; config.maxRealms = 1; config.realmsSet = true;
   try { const f = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); Object.assign(f, { minRealms: 1, maxRealms: 1, realmsSet: true }); fs.writeFileSync(CONFIG_FILE, JSON.stringify(f, null, 2)); } catch (e) {}
 }
-const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key);
+/**
+ * Roles, from most to least: the owner (config "owner", else the first admin: everything,
+ * including making admins), admins (everything else), moderators (config "mods": kick,
+ * mute, short bans, /whois, /flags, /bugs, /graves) and VIPs (vips.json, often for a
+ * while: /l20, /backpack, a little more loot luck and a badge).
+ */
+const lcName = (a) => String(a).toLowerCase();
+// (config "owner"; else account #1 if it's an admin; else the first admin)
+function ownerKey() {
+  if (config.owner) return lcName(config.owner);
+  if (typeof accounts !== 'undefined') for (const k in accounts) if (Number(accounts[k].no) === 1 && config.admins.some((a) => lcName(a) === k)) return k;
+  return lcName(config.admins[0] || '');
+}
+const isAdmin = (c) => !!c.key && (c.key === ownerKey() || config.admins.some(a => lcName(a) === c.key));
+const isMod = (c) => isAdmin(c) || (Array.isArray(config.mods) && config.mods.some(a => lcName(a) === c.key));
 /** Writes the admin list back to config.json (keeping everything else in the file as it is). */
 function saveAdmins() { return saveConfig(['admins']); }
 /** Writes these settings back to config.json (keeping everything else in the file as it is). */
@@ -196,6 +210,7 @@ function finishLogin(c, acc, key, session) {
   const old = byName.get(key);
   if (old) { old.send({ t: 'kicked', msg: 'You logged in from somewhere else.' }); old.replaced = true; setTimeout(() => old.close(true), 200); }
   c.authed = true;
+  c.vip = isVip(c);
   c.name = acc.name;
   c.key = key;
   byName.set(key, c);
@@ -208,7 +223,7 @@ function finishLogin(c, acc, key, session) {
   acc.lastSeen = Date.now();
   save('accounts.json', accounts);
   c.send({ t: 'welcome', id: c.id, name: c.name, no: acc.no || 0, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
+    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), role: roleOf(c), vip: isVip(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
@@ -412,7 +427,15 @@ function accountKey(arg) {
 numberAccounts();
 const accountTag = (key) => (accounts[key] ? accounts[key].name + ' (#' + accounts[key].no + ')' : key);
 /** The server's owner: config "owner", else the first admin. */
-const isOwner = (c) => String(config.owner || config.admins[0] || '').toLowerCase() === c.key;
+const isOwner = (c) => ownerKey() === c.key;
+/** vips[key] = {until: 0 (for good) or ms, by, at}. */
+const vips = load('vips.json', {});
+function isVipKey(key) { const v = vips[key]; return !!v && (!v.until || v.until > Date.now()); }
+const isVip = (c) => isVipKey(c.key);
+/** owner, admin, mod, vip or '' (shown as a badge in chat). */
+const roleOf = (c) => isOwner(c) ? 'owner' : isAdmin(c) ? 'admin' : isMod(c) ? 'mod' : isVip(c) ? 'vip' : '';
+/** The most loot luck VIP adds (WorldSim.dropLoot). */
+const VIP_LUCK = 15;
 const clsName = (id) => (Data.CLASSES[id] && Data.CLASSES[id].name) || id || 'hero';
 const ago = (t) => { const s = Math.max(0, (Date.now() - (t || 0)) / 1000); return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago'; };
 const dayOf = (t) => (t ? new Date(t).toISOString().slice(0, 10) : '?');
@@ -708,6 +731,8 @@ function applySave(c, data, cid) {
     return false;
   }
   c.meta.lastSave = Date.now();
+  // (a VIP that ran out mid-session stops counting)
+  c.vip = isVip(c);
   data.tradeSeq = Math.max(data.tradeSeq || 0, prev ? prev.tradeSeq || 0 : 0);
   // the ledger is the server's: the game's copy is never trusted
   data._ledger = prev._ledger || {};
@@ -1045,7 +1070,7 @@ const handlers = {
   chat(c, m) {
     const text = str(m.text, 120);
     if (!text || !chatAllowed(c)) return;
-    for (const o of inWorld(c.world, c)) o.send({ t: 'chat', id: c.id, name: c.name, text });
+    for (const o of inWorld(c.world, c)) o.send({ t: 'chat', id: c.id, name: c.name, text, role: roleOf(c) || undefined });
   },
 
   pchat(c, m) {
@@ -1774,7 +1799,20 @@ const handlers = {
       for (const a of byName.values()) if (isAdmin(a)) a.note('[Report] ' + c.name + ' reported ' + parts[1] + ': ' + rest, 0xffb040);
       return c.note('Thanks, your report was sent to the server admins.', 0x80ff80);
     }
-    if (!isAdmin(c)) return c.note('Only server admins can use ' + cmd + '.');
+    // VIP perks
+    if (cmd === '/l20' || cmd === '/backpack') {
+      if (!isVip(c) && !isAdmin(c)) return c.note(cmd + ' is a VIP perk. Ask the server owner about VIP.', 0xffd75e);
+      return vipPerk(c, cmd);
+    }
+    // moderators have the moderation commands; everything else is the admins'
+    if (!isAdmin(c)) {
+      if (!(isMod(c) && MOD_CMDS.has(cmd))) return c.note('Only server ' + (MOD_CMDS.has(cmd) ? 'moderators' : 'admins') + ' can use ' + cmd + '.');
+      // (and they can't act on staff)
+      const tk = accountKey(parts[1]) || (parts[1] || '').toLowerCase();
+      if (['/kick', '/ban', '/mute'].includes(cmd) && tk && (tk === ownerKey() || config.admins.some(a => lcName(a) === tk) || (config.mods || []).some(a => lcName(a) === tk)))
+        return c.note('Moderators can\'t ' + cmd.slice(1) + ' other staff.');
+      if (cmd === '/ban' && !(parseFloat(parts[2]) > 0 && parseFloat(parts[2]) <= MOD_BAN_HOURS)) return c.note('Moderators ban for up to ' + MOD_BAN_HOURS + ' hours: /ban name hours reason');
+    }
     const target = byName.get(who);
     switch (cmd) {
       case '/kick':
@@ -1987,8 +2025,57 @@ const handlers = {
         return;
       case '/admins':
         return c.note('Admins: ' + (config.admins.join(', ') || 'none'), 0x80ff80);
+      case '/mod': case '/unmod': {
+        // /mod name, /unmod name: moderators (saved in config.json)
+        if (!who || !accounts[who]) return c.note('Usage: ' + cmd + ' name');
+        const name = accounts[who].name || parts[1];
+        const mods = Array.isArray(config.mods) ? config.mods : [];
+        const has = mods.some((a) => lcName(a) === who);
+        if (cmd === '/mod') {
+          if (has) return c.note(name + ' is already a moderator.');
+          config.mods = mods.concat([name]);
+        } else {
+          if (!has) return c.note(name + ' is not a moderator.');
+          config.mods = mods.filter((a) => lcName(a) !== who);
+        }
+        saveConfig(['mods']);
+        log(c.name + (cmd === '/mod' ? ' made ' + name + ' a moderator' : ' removed ' + name + ' from the moderators'));
+        if (target) { target.send({ t: 'role', role: roleOf(target), vip: isVip(target) }); target.note(cmd === '/mod' ? c.name + ' made you a moderator. Type /help to see your commands.' : 'You are no longer a moderator.', 0x80ff80); }
+        return c.note(name + (cmd === '/mod' ? ' is now a moderator.' : ' is no longer a moderator.'), 0x80ff80);
+      }
+      case '/mods':
+        return c.note('Owner: ' + (accounts[ownerKey()] ? accounts[ownerKey()].name : ownerKey() || 'none') + '   Admins: ' + (config.admins.join(', ') || 'none') + '   Moderators: ' + ((config.mods || []).join(', ') || 'none'), 0x80ff80);
+      case '/vip': case '/unvip': {
+        // /vip name [days] (none: for good), /unvip name
+        if (!who || !accounts[who]) return c.note('Usage: /vip name [days]  (no days: for good)   /unvip name   /vips');
+        const name = accounts[who].name || parts[1];
+        if (cmd === '/vip') {
+          const days = parseFloat(parts[2]);
+          const from = isVipKey(who) && vips[who].until ? vips[who].until : Date.now();
+          vips[who] = { until: days > 0 ? from + days * 86400000 : 0, by: c.name, at: Date.now() };
+        } else {
+          if (!vips[who]) return c.note(name + ' is not a VIP.');
+          delete vips[who];
+        }
+        save('vips.json', vips);
+        const v = vips[who];
+        const left = v ? (v.until ? Math.ceil((v.until - Date.now()) / 86400000) + ' days' : 'for good') : '';
+        log(c.name + (v ? ' made ' + name + ' a VIP (' + left + ')' : ' removed ' + name + '\'s VIP'));
+        if (target) {
+          target.vip = isVip(target);
+          target.send({ t: 'role', role: roleOf(target), vip: target.vip });
+          target.note(v ? 'You are a VIP (' + left + ')! /l20 levels your hero to 20, /backpack gives it a backpack, and you find a little more loot. Thank you!' : 'Your VIP has ended. Thanks for your support!', 0xffd75e);
+        }
+        return c.note(v ? name + ' is a VIP (' + left + ').' : name + ' is no longer a VIP.', 0x80ff80);
+      }
+      case '/vips': {
+        const now = Date.now();
+        const list = Object.keys(vips).filter(isVipKey).map((k) => (accounts[k] ? accounts[k].name : k) + (vips[k].until ? ' (' + Math.ceil((vips[k].until - now) / 86400000) + 'd)' : ''));
+        return c.note('VIPs: ' + (list.join(', ') || 'none'), 0xffd75e);
+      }
       case '/admin': {
         // /admin name: make an account an admin (saved in config.json, so it lasts)
+        if (!isOwner(c) && parts[1]) return c.note('Only the server owner can make admins.');
         if (!who) return c.note('Usage: /admin name (also /unadmin name, /admins)');
         if (!accounts[who]) return c.note('No account called ' + parts[1] + '.');
         const name = accounts[who].name || parts[1];
@@ -2001,6 +2088,7 @@ const handlers = {
       }
       case '/unadmin': {
         if (!who) return c.note('Usage: /unadmin name');
+        if (!isOwner(c)) return c.note('Only the server owner can remove admins.');
         if (who === c.key) return c.note('You can\'t remove yourself (ask another admin, or edit server/config.json).');
         const before = config.admins.length;
         config.admins = config.admins.filter((a) => String(a).toLowerCase() !== who);
@@ -2023,6 +2111,43 @@ const handlers = {
     c.note('Unknown command.');
   }
 };
+
+// ------------------------------------------------------------------ roles: moderator commands and VIP perks
+/** What moderators may use (admins and the owner have everything). */
+const MOD_CMDS = new Set(['/kick', '/mute', '/unmute', '/ban', '/unban', '/whois', '/graves', '/flags', '/bugs', '/mods', '/vips']);
+const MOD_BAN_HOURS = 72;
+
+/** /l20 (the hero you're playing goes to level 20) and /backpack (it gets a backpack). */
+function vipPerk(c, cmd) {
+  const sv = onlineSave(c.key), ch = serverChar(c);
+  if (!sv || !ch) return c.note('Pick a hero and enter the game first.');
+  if (cmd === '/backpack') {
+    if (ch.backpack) return c.note((ch.name || 'This hero') + ' already has a backpack.');
+    ch.backpack = true;
+    if (!Array.isArray(ch.inv)) ch.inv = [];
+    while (ch.inv.length < 16) ch.inv.push(null);
+    log(c.name + ' used VIP /backpack on ' + (ch.name || ch.id));
+    return shopDone(c, sv, ch, { backpack: true });
+  }
+  if (modes.restricted(modes.modeOf(ch))) return c.note('VIP levelling doesn\'t work on Ironman or Hardcore heroes: they earn every level.');
+  const L = Math.max(1, Number(ch.level) || 1);
+  if (L >= 20) return c.note((ch.name || 'This hero') + ' is already level 20.');
+  // the levels, the stats they grow, the XP they took and a skill point each
+  const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+  const lv = 20 - L;
+  if (!ch.stats || typeof ch.stats !== 'object') ch.stats = Object.assign({}, cls.base);
+  for (const k of Data.STATS) ch.stats[k] = Math.min(cls.max[k], (Number(ch.stats[k]) || cls.base[k] || 0) + Data.grow(cls, k) * lv);
+  let xp = -(Number(ch.xp) || 0);
+  for (let l = L; l < 20; l++) xp += progress.xpFor(l);
+  ch.totalXp = (Number(ch.totalXp) || 0) + Math.max(0, xp);
+  ch.level = 20; ch.xp = 0; ch.xpNext = progress.xpFor(20); ch.ascXp = 0;
+  ch.skillPoints = (Number(ch.skillPoints) || 0) + lv;
+  sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+  store.putSave(c.key, sv);
+  setCaps(c);
+  log(c.name + ' used VIP /l20 on ' + (ch.name || ch.id) + ' (was level ' + L + ')');
+  c.send({ t: 'saveRejected', reason: 'VIP: ' + (ch.name || 'your hero') + ' is level 20! (+' + lv + ' skill points)', data: publicSave(sv) });
+}
 
 // ------------------------------------------------------------------ bug reports (/bug, /bugs)
 const bugs = load('bugs.json', { next: 0, list: [] });

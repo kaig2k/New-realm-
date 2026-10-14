@@ -793,7 +793,8 @@ class WorldSim {
       const prof = c.profile || {};
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
-      const lk = Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0);
+      // (VIPs find a little more: VIP_LUCK in server.js)
+      const lk = Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0);
       let items = Data.rollLoot(e.def, zone, cls, lk);
       if (e.elite) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 50));
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));

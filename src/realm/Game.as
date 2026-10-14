@@ -350,7 +350,7 @@ package realm {
 		/** slash commands; anything else is said in chat. */
 		public function runCommand(t:String):void {
 			if (t.charAt(0) != "/") {
-				pushChat("<font color='#ffe36e'><b>&lt;" + player.name + "&gt;</b></font> " + t.replace(/</g, "&lt;"));
+				pushChat(roleBadge(Online.welcome && net.online ? String(Online.welcome.role || "") : "") + "<font color='#ffe36e'><b>&lt;" + player.name + "&gt;</b></font> " + t.replace(/</g, "&lt;"));
 				net.chat(t);
 				return;
 			}
@@ -360,6 +360,13 @@ package realm {
 					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /bug what happened", 0x8fd0ff);
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
+					var myRole:String = net.online && Online.welcome ? String(Online.welcome.role || "") : "";
+					if (net.online && Online.welcome && (Online.welcome.vip || Online.welcome.admin))
+						msg("VIP: /l20 (your hero to level 20)  /backpack (a free backpack)  and +15 loot luck. Thank you!", 0xffd75e);
+					if (myRole == "mod")
+						msg("Moderator: /kick name  /mute name minutes  /unmute  /ban name hours reason (up to 72h)  /unban  /whois name  /graves name  /flags  /bugs  /mods  /vips", 0x60c8ff);
+					if (net.online && Online.welcome && Online.welcome.admin)
+						msg("Roles: /mod name  /unmod name  /vip name [days]  /unvip name  /vips  /mods" + (myRole == "owner" ? "  /admin name  /unadmin name" : ""), 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 1 cursed, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
@@ -400,6 +407,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
+				case "/l20": case "/backpack": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -6579,9 +6587,15 @@ package realm {
 		}
 
 		/** The connection says another player said something. */
-		public function netSay(rp:RemotePlayer, text:String):void {
+		/** A role's badge in chat: [Owner], [Admin], [Mod] or [VIP]. */
+		public static function roleBadge(role:String):String {
+			var b:Object = {owner: ["Owner", "#ff5a5a"], admin: ["Admin", "#ffb040"], mod: ["Mod", "#60c8ff"], vip: ["VIP", "#ffd75e"]}[role];
+			return b ? "<font color='" + b[1] + "'><b>[" + b[0] + "]</b></font> " : "";
+		}
+
+		public function netSay(rp:RemotePlayer, text:String, role:String = ""):void {
 			if (!shown(rp)) return;
-			pushChat("<font color='#ffffff'><b>&lt;" + rp.name + "&gt;</b></font> <font color='#d8d8d8'>" + text.replace(/</g, "&lt;") + "</font>");
+			pushChat(roleBadge(role) + "<font color='#ffffff'><b>&lt;" + rp.name + "&gt;</b></font> <font color='#d8d8d8'>" + text.replace(/</g, "&lt;") + "</font>");
 			rp.say(text);
 		}
 

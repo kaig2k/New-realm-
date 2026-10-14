@@ -286,10 +286,14 @@ package realm {
 					break;
 				case "chat":
 					if (m.ch) g.channelSay(m.name, m.text, m.ch);
-					else if ((rp = byId(m.id))) g.netSay(rp, m.text);
+					else if ((rp = byId(m.id))) g.netSay(rp, m.text, m.role || "");
 					break;
 				case "msg":
 					g.msg(m.text, m.color || 0xff8080);
+					break;
+				case "role":
+					// promoted, demoted, or VIP started or ended
+					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; }
 					break;
 				case "bugs":
 					g.openBugs(m.list as Array);

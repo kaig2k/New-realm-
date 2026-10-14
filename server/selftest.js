@@ -1655,6 +1655,59 @@ async function run() {
     for (const c of [F, bz3]) c.s.destroy();
   }
 
+  console.log('roles: owner, moderators and VIPs');
+  {
+    const { Data: RD } = require('./sim/gen/game');
+    const bz8 = await login('TestBoss', { password: 'pass1234' });
+    const M8 = await login('Tmod' + n, { password: 'pass1234', register: true });
+    const V8 = await login('Tvip' + n, { password: 'pass1234', register: true });
+    const P8 = await login('Tpl' + n, { password: 'pass1234', register: true });
+    const note = (c) => c.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join(' | ');
+    check('the owner (the first admin here) is told so', bz8.find((m) => m.t === 'welcome').role === 'owner');
+    bz8.send({ t: 'cmd', text: '/mod Tmod' + n });
+    bz8.send({ t: 'cmd', text: '/vip Tvip' + n + ' 30' });
+    await wait(400);
+    check('/mod and /vip: the players are told their new role', M8.find((m) => m.t === 'role' && m.role === 'mod') && V8.find((m) => m.t === 'role' && m.role === 'vip' && m.vip), JSON.stringify([M8.msgs.slice(-2), V8.msgs.slice(-2)]));
+    M8.clear();
+    M8.send({ t: 'cmd', text: '/give Tpl' + n + ' 1000 gold' });
+    M8.send({ t: 'cmd', text: '/kick TestBoss' });
+    M8.send({ t: 'cmd', text: '/ban Tpl' + n + ' spam' });
+    await wait(400);
+    check('moderators can\'t /give, can\'t touch staff, and only ban for a while', /Only server admins can use \/give/.test(note(M8)) && /can't kick other staff/.test(note(M8)) && /up to 72 hours/.test(note(M8)), note(M8));
+    M8.clear();
+    M8.send({ t: 'cmd', text: '/kick Tpl' + n + ' calm down' });
+    await wait(400);
+    check('...but they can kick players', P8.find((m) => m.t === 'kicked') && /Kicked/.test(note(M8)), note(M8));
+    // VIP: /l20 and /backpack on the hero being played
+    const vh = { id: 'vh1', cls: 'wizard', name: 'Vippy', level: 1, xp: 0, stats: clone(RD.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] };
+    V8.send({ t: 'save', data: { gold: 0, fame: 0, chars: [vh] } });
+    await wait(400);
+    V8.send({ t: 'enter', key: 'nexus', cid: 'vh1', x: 100, y: 100 });
+    await wait(200);
+    V8.clear();
+    V8.send({ t: 'cmd', text: '/l20' });
+    await wait(400);
+    const lv = V8.find((m) => m.t === 'saveRejected');
+    const h20 = lv && lv.data.chars.find((h) => h.id === 'vh1');
+    check('VIP /l20 takes the hero to level 20 with its stats and skill points (the game reloads it)', h20 && h20.level === 20 && h20.skillPoints === 19 && h20.stats.att > RD.CLASSES.wizard.base.att && /VIP/.test(lv.reason), JSON.stringify(lv && lv.reason));
+    V8.clear();
+    V8.send({ t: 'cmd', text: '/backpack' });
+    await wait(400);
+    const bp8 = V8.find((m) => m.t === 'shopDone');
+    check('...and /backpack gives it a backpack', bp8 && bp8.backpack && bp8.inv.length === 16, JSON.stringify(bp8 || note(V8)));
+    // and the next save, from the game that took the server's copy, is fine
+    V8.clear();
+    V8.send({ t: 'save', data: Object.assign({}, lv.data, { chars: [Object.assign({}, h20, { backpack: true, inv: bp8.inv })], tradeSeq: bp8.seq }) });
+    await wait(400);
+    check('...and the game\'s next save keeps both', !V8.find((m) => m.t === 'saveRejected'), JSON.stringify(V8.find((m) => m.t === 'saveRejected')));
+    P8.s.destroy();
+    const P9 = await login('Tpl' + n, { password: 'pass1234' });
+    P9.send({ t: 'cmd', text: '/l20' });
+    await wait(300);
+    check('players without VIP can\'t use /l20', /VIP perk/.test(note(P9)), note(P9));
+    for (const c of [bz8, M8, V8, P9]) c.s.destroy();
+  }
+
   console.log('bug reports');
   {
     const B7 = await login('Tbug' + n, { password: 'pass1234', register: true });

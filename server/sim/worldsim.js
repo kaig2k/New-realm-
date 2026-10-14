@@ -809,7 +809,7 @@ class WorldSim {
       if (this.issuer) for (const it of items) this.issuer(c, it);
       // the Oracle counts every boss kill and what it dropped for you
       if (this.onOracle && e.isBoss) this.onOracle(c, e, items);
-      if (this.onFeat) for (const it of items) if (it && it.rarity === 'gd') this.onFeat('godly', { name: c.name, item: it.name, from: e.def.name });
+      if (this.onFeat) for (const it of items) if (it && (it.rarity === 'gd' || it.rarity === 'ar')) this.onFeat(it.rarity === 'gd' ? 'godly' : 'primordial', { name: c.name, item: it.name, from: e.def.name });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
   }

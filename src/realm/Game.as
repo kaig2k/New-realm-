@@ -2199,7 +2199,7 @@ package realm {
 				if (bag.spr == "bag_godly") {
 					// a 1 in 5,000 drop: make a scene
 					for each (var gi:Object in items) if (gi.rarity == "gd") {
-						showBanner("GODLY DROP: " + gi.name + "!", Data.RARITY_COLORS.gd, 6);
+						reveal(gi, from);
 						msg("*** You found a Godly item: " + gi.name + "! (1 in 1,000) ***", Data.RARITY_COLORS.gd);
 						if (net.online) net.chat("I just found a Godly " + gi.name + "!!!");
 					}
@@ -2210,7 +2210,15 @@ package realm {
 					questEvent("legendary");
 				}
 				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary") questEvent("legendary");
-				if (bag.spr == "bag_relic" || bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
+				if (bag.spr == "bag_relic") {
+					// Primordial: its own reveal too
+					for each (var ri:Object in items) if (ri.rarity == "ar") { reveal(ri, from); break; }
+					msg("*** A Primordial item dropped from " + from + "! ***", Data.RARITY_COLORS.ar);
+					Sfx.play("rare"); Sfx.play("level");
+					shake(0.6, 8);
+					burst(x, y, Data.RARITY_COLORS.ar, 45);
+					ring(x, y, Data.RARITY_COLORS.ar, 34);
+				} else if (bag.spr == "bag_legendary" || bag.spr == "bag_fabled") {
 					var kind:String = bag.spr == "bag_relic" ? Data.RARITY_NAMES.ar : bag.spr == "bag_legendary" ? Data.RARITY_NAMES.lg : Data.RARITY_NAMES.fb;
 					var kc:uint = bag.spr == "bag_relic" ? Data.RARITY_COLORS.ar : bag.spr == "bag_legendary" ? Data.RARITY_COLORS.lg : Data.RARITY_COLORS.fb;
 					showBanner(kind + " drop!", kc, 3);
@@ -5743,7 +5751,20 @@ package realm {
 			return n;
 		}
 
+		/** The full-screen moment for a Godly or Primordial drop (DropReveal). */
+		private function reveal(item:Object, from:String):void {
+			if (activeReveal && activeReveal.parent) removeChild(activeReveal);
+			activeReveal = new DropReveal(item, from, VIEW_W, VIEW_H);
+			addChild(activeReveal);
+			// (other banners wait until it's over)
+			banner.visible = false;
+		}
+		private var activeReveal:DropReveal;
+		private var pendingBanner:Array;
+		private function get revealing():Boolean { return activeReveal != null && !activeReveal.done; }
+
 		public function showBanner(text:String, color:uint, secs:Number):void {
+			if (revealing) { pendingBanner = [text, color, secs]; return; }
 			banner.text = text;
 			banner.textColor = color;
 			banner.visible = true;
@@ -5752,6 +5773,8 @@ package realm {
 		}
 
 		private function updateOverlays():void {
+			if (pendingBanner && !revealing) { var pb:Array = pendingBanner; pendingBanner = null; showBanner(pb[0], pb[1], pb[2]); }
+			if (revealing) banner.visible = false;
 			fameTf.text = Ui.commas(player.fame);
 			killTf.text = Ui.commas(player.kills);
 			goldTf.text = Ui.commas(gold);

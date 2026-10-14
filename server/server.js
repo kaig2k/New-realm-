@@ -591,10 +591,16 @@ const { Discord, StatusBoard, esc: desc, names: dnames } = require('./discord');
 const discord = new Discord(config.discordWebhook, config.name || 'Eldmere', log);
 /** What the server did that's worth telling the Discord: (kind, details). */
 function feat(kind, d) {
+  // the rarest drops are news for everyone online too
+  if (kind === 'godly' || kind === 'primordial') {
+    const text = (kind === 'godly' ? '✦ GODLY DROP ✦ ' : '✦ Primordial drop ✦ ') + d.name + ' found ' + d.item + (d.from ? ' from ' + d.from : '') + '!';
+    for (const o of clients.values()) if (o.authed) o.send({ t: 'msg', text, color: kind === 'godly' ? 0xfff6e0 : 0xff5533 });
+  }
   if (!discord.on) return;
   if (kind === 'record') discord.post('🏆 **New record!** ' + dnames(d.names) + ' killed **' + desc(d.boss) + '** in **' + d.time + '**' + (d.old ? ' (beating ' + d.old + ')' : '') + '.', 0xffd75e);
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
+  else if (kind === 'primordial') discord.post('🔥 **' + desc(d.name) + '** found a Primordial item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff5533);
   else if (kind === 'godly') discord.post('✨ **' + desc(d.name) + '** found a Godly item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff60ff);
   else if (kind === 'vaultrecord') discord.post('⏱️ **Fastest Starfall Vault clear this week** (' + desc(d.twist) + '): ' + dnames(d.names) + ' in **' + d.time + '**!', 0x80e0ff);
   else if (kind === 'twist') discord.post('🌀 **This week in the Starfall Vault: ' + desc(d.name) + '.** ' + desc(d.desc) + ' Fastest clears earn the Twistbreaker title.', 0x80e0ff);

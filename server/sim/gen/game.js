@@ -1100,6 +1100,7 @@ class Bosses {
 			Bosses.lowDungeons();
 			Bosses.midDungeons();
 			Bosses.events();
+			Bosses.siege();
 			Bosses.hardDungeons();
 			Bosses.finales();
 			Bosses.raids();
@@ -1463,6 +1464,20 @@ class Bosses {
 					attacks: [Bosses.spiral(8, 11, 6, 70, 0.11, 0xff6080), Bosses.wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
 			]}, ["krakens_grasp", "abyssal_mail"]);
 			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"])) Data.EVENTS.push(ev);
+		}
+	static siege() {
+			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 2600, def: 22, spd: 2.4, xp: 140, col: 0xffa020, keep: 2,
+				attacks: [Bosses.aim(3, 18, 7, 70, 1.2, 0xffa020, {shape: "blade"}), Bosses.aim(1, 0, 5, 80, 2.4, 0xff6010, {motion: "home", r: 0.26})]});
+			Bosses.boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 90000, def: 40, spd: 1.0, xp: 6000, col: 0xff8020,
+				gold: 1500, onrane: 15, r: 1.2, siege: true, scales: true, phases: [
+				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(5, 40, 8, 90, 1.0, 0xffa020, {shape: "blade", r: 0.3}), Bosses.ring(16, 11, 5, 80, 1.6, 0xff6010)]}),
+				Bosses.P(0.75, {say: "SOLDIERS! TO ME!", banner: "The Warlord calls his army!", shield: 3, summon: [{what: "siege_soldier", n: 6}], move: "still",
+					attacks: [Bosses.rain(6, 5, 100, 2.2, 0xff6010, {burst: 6}), Bosses.wall(19, 4.5, 90, 2, 0xffa020, {hole: 3})]}),
+				Bosses.P(0.5, {say: "The walls of this realm will fall!", move: "chase", speed: 1.3,
+					attacks: [Bosses.spiral(6, 10, 6.5, 85, 0.12, 0xffa020), Bosses.nova(2.6, 1.2, 130, 2.6, 0xff4010, {burst: 12})]}),
+				Bosses.P(0.25, {say: "*Vorgath raises the war banner*", banner: "VORGATH IS ENRAGED!", shield: 3, summon: [{what: "siege_soldier", n: 8}], move: "orbit",
+					attacks: [Bosses.flower(24, 7.5, 5.5, 90, 0.9, 0xff8020), Bosses.aim(3, 20, 11, 110, 0.8, 0xffffff, {shape: "blade"}), Bosses.rain(5, 4, 110, 2, 0xff4010)]})
+			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 	static hardDungeons() {
 			Bosses.boss("sun_king", {phases: [
@@ -4163,6 +4178,8 @@ Data.TITLES = [
 			{id: "record", name: "Record Holder", earn: "Hold the #1 time for any realm event on the Records board", col: 0xffd75e},
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
+			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
+			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
 			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080},
 			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff},
@@ -4430,6 +4447,10 @@ Uniques.ALL = {
 			prismatic_wand: ["Prismatic Wand", "weapon", "wand", {}, {shots: 3, arc: 30, rate: 1.1, mult: 0.6, col: 0xff80e0}, "Every color at once."],
 			fae_quiver: ["Quiver of the Fae", "ability", "quiver", {spd: 10}, {power: 1.7}, "Light as a sprite's wing."],
 			pixie_ring: ["Pixie Ring", "ring", "spd", {spd: 10, dex: 6}, null, "It giggles."],
+			
+			siegebreaker: ["Siegebreaker", "weapon", "sword", {att: 6, def: 4}, {mult: 1.9, size: 7, pierce: true, rate: 0.75, col: 0xffa020}, "Forged to bring down gates. Works on warlords too."],
+			warlords_banner: ["Warlord's Banner", "ability", "helm", {att: 5, vit: 5}, {power: 1.9}, "Where it flies, armies follow."],
+			rampart_plate: ["Rampart Plate", "armor", "heavy", {def: 10, hp: 80}, null, "A piece of the wall he couldn't break."],
 			
 			cube_core: ["Cube Core", "ring", "hp", {hp: 100, def: 5}, null, "A perfect, humming cube."],
 			cubic_staff: ["Cubic Staff", "weapon", "staff", {wis: 4}, {shots: 4, parallel: true, mult: 0.55, col: 0xc060ff}, "Four parallel bolts, perfectly aligned."],

@@ -1520,6 +1520,8 @@ package realm {
 			{id: "record", name: "Record Holder", earn: "Hold the #1 time for any realm event on the Records board", col: 0xffd75e},
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
+			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
+			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
 			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080},
 			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff},

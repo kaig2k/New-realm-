@@ -295,6 +295,9 @@ package realm {
 					// promoted, demoted, or VIP started or ended
 					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; }
 					break;
+				case "siege":
+					g.siegeUpdate(m);
+					break;
 				case "asc":
 					g.ascUpdated(m);
 					break;

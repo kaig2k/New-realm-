@@ -517,6 +517,46 @@ async function run() {
     check('reaching level 20 takes a real climb (' + total + ' XP)', total > 15000 && PD.SHOP.find((x) => x.id === 'stat').price >= 1200);
   }
 
+  console.log('realm siege');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: SD, World: SW } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Siegetest:4242');
+    const sent = [[], [], []];
+    const ps = [0, 1, 2].map((i) => ({ id: 70 + i, name: 'S' + i, x: 10, y: 10, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => sent[i].push(m) }));
+    for (const p of ps) ws.join(p);
+    let result = null;
+    ws.onSiege = (sim, kind, d) => { result = { kind, d }; };
+    const got = [];
+    ws.issuer = (c, it) => got.push([c.id, it]);
+    check('a siege starts in the realm\'s Godlands, with soldiers', ws.startSiege() && ws.siege && SW.GOD_ZONE === ws.w.zoneAt(ws.siege.e.x, ws.siege.e.y) &&
+      ws.enemies.some((e) => e.defId === 'siege_soldier') && !ws.startSiege());
+    const e = ws.siege.e;
+    check('...and everyone in the realm gets the siege panel', sent.every((l) => l.some((m) => m.t === 'siege' && m.on && m.id === e.id && m.left > 800)));
+    for (const p of ps) { p.x = e.x; p.y = e.y + 2; }
+    // S0 does most of the damage, S1 some, S2 a scratch (under half a percent: no loot)
+    e.hitters.set(70, 70000); e.hitters.set(71, 20000); e.hitters.set(72, 100);
+    ws.siegeStatus(false);
+    const panel = sent[1].filter((m) => m.t === 'siege').pop();
+    check('the panel shows the top damage dealers and your own share', panel.top[0][0] === 'S0' && panel.rank === 2 && panel.me > 20 && panel.me < 23, JSON.stringify(panel));
+    ws.kill(e);
+    check('when the Warlord falls: the result, MVP first, and the soldiers go', result && result.kind === 'win' && result.d.team[0].c.name === 'S0' && !ws.siege &&
+      !ws.enemies.some((o) => !o.dead && o.defId === 'siege_soldier') && sent[2].some((m) => m.t === 'siege' && m.won && m.mvp === 'S0'), JSON.stringify(result && result.kind));
+    const lootOf = (id) => got.filter((g) => g[0] === id).length;
+    check('loot follows the share: the MVP rolls the most, a scratch gets nothing', lootOf(70) > 0 && lootOf(72) === 0 && !(ws.w.eventsDone > 0), [lootOf(70), lootOf(71), lootOf(72)].join(','));
+    // not beaten in time: he leaves
+    const ws2 = new WorldSim('realm:Siegetest2:4343');
+    const q = { id: 80, name: 'Q', x: 10, y: 10, send: () => {} };
+    ws2.join(q);
+    let r2 = null;
+    ws2.onSiege = (sim, kind) => { r2 = kind; };
+    ws2.startSiege();
+    ws2.siege.left = 0.01;
+    ws2.updateSiege(0.05);
+    check('a siege that isn\'t beaten in 15 minutes ends (the Warlord leaves)', r2 === 'fail' && !ws2.siege && !ws2.enemies.some((o) => !o.dead && (o.defId === 'siege_warlord' || o.defId === 'siege_soldier')));
+    check('the Warlord has three Starforged uniques and the titles exist', SD.bossUniques('siege_warlord').length === 3 && SD.findTitle('siege') && SD.findTitle('siegeguard'));
+  }
+
   console.log('godmode checks');
   {
     const { WorldSim } = require('./sim/worldsim');
@@ -1603,6 +1643,13 @@ async function run() {
     bz5.send({ t: 'oracleView' });
     await wait(250);
     check('the game can ask for its Oracle record', !!bz5.find((m) => m.t === 'oracle' && m.o && m.o.b));
+    bz5.clear();
+    bz5.send({ t: 'cmd', text: '/siege' });
+    await wait(400);
+    check('admins can start a Realm Siege (/siege): everyone is told', bz5.find((m) => m.t === 'banner' && /SIEGE/.test(m.text)) && bz5.find((m) => m.t === 'msg' && /begun/.test(m.text)), JSON.stringify(bz5.msgs.slice(0, 4)));
+    bz5.send({ t: 'cmd', text: '/siege' });
+    await wait(300);
+    check('...one at a time', bz5.find((m) => m.t === 'msg' && /already a siege/.test(m.text)));
     bz5.s.destroy();
   }
 

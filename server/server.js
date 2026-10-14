@@ -131,6 +131,22 @@ if (sims) sims.onOracle = (c, e, got) => {
   if (sv.oracleDone.length >= oracle.collectionCount()) grantTitle(c.key, 'oracleall');
   setCaps(c);
 };
+// the Realm Siege: everyone who fought is a Realm Defender; the top damage dealer earns Siegebreaker
+if (sims) sims.onSiege = (sim, kind, d) => {
+  const realm = sim.key.split(':').slice(1, -1).join(':') || 'the realm';
+  if (kind === 'fail') {
+    broadcast('' + d.name + ' has withdrawn from ' + realm + '. The siege was not broken this time.', 0xd09060);
+    feat('siege', { won: false, realm });
+    return;
+  }
+  const team = d.team || [];
+  for (const r of team) if (r.pct >= 0.5) grantTitle(r.c.key, 'siegeguard');
+  if (team.length) grantTitle(team[0].c.key, 'siege');
+  const mvp = team[0];
+  broadcast('' + d.name + ' has fallen in ' + realm + '! ' + team.length + ' defender' + (team.length === 1 ? '' : 's') + (mvp ? '. MVP: ' + mvp.c.name + ' (' + mvp.pct + '% of the damage)' : '') + '.', 0xffa020);
+  log('siege won in ' + realm + ' by ' + team.map((r) => r.c.name + ' ' + r.pct + '%').join(', '));
+  feat('siege', { won: true, realm, names: team.map((r) => r.c.name), mvp: mvp ? mvp.c.name : '', pct: mvp ? mvp.pct : 0 });
+};
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
 
@@ -640,6 +656,8 @@ function feat(kind, d) {
   if (kind === 'record') discord.post('🏆 **New record!** ' + dnames(d.names) + ' killed **' + desc(d.boss) + '** in **' + d.time + '**' + (d.old ? ' (beating ' + d.old + ')' : '') + '.', 0xffd75e);
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
+  else if (kind === 'siege') discord.post(d.won ? '⚔️ **The Realm Siege is broken!** ' + dnames(d.names) + ' brought down Vorgath the Siege Warlord in ' + desc(d.realm) + (d.mvp ? '. MVP: **' + desc(d.mvp) + '** (' + d.pct + '%)' : '') + '.' : '⚔️ Vorgath withdrew from ' + desc(d.realm) + ' undefeated.', 0xffa020);
+  else if (kind === 'siegestart') discord.post('⚔️ **A Realm Siege has begun!** Vorgath the Siege Warlord marches on the Godlands of ' + desc(d.realm) + '. 15 minutes to break it.', 0xffa020);
   else if (kind === 'ascend') discord.post('✦ **' + desc(d.name) + '**\'s ' + desc(d.hero) + ' has **Ascended**' + (d.n > 1 ? ' (×' + d.n + ')' : '') + '!', 0xffd75e);
   else if (kind === 'oracle') discord.post('👁️ **' + desc(d.name) + '** completed the Oracle\'s collection for **' + desc(d.boss) + '**!', 0xb9a9ff);
   else if (kind === 'primordial') discord.post('🔥 **' + desc(d.name) + '** found a Primordial item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff5533);
@@ -1919,6 +1937,13 @@ const handlers = {
       case '/announce':
         broadcast('[Server] ' + parts.slice(1).join(' '));
         return;
+      case '/siege': {
+        // (admins: a Realm Siege now, in the realm you're in or the busiest one)
+        const why = startSiege(realms.some((r) => realmKey(r) === c.world) ? c.world : '');
+        if (why) return c.note(why);
+        siege.at = Date.now() + (Number(config.siegeEveryMinutes) || 120) * 60000; siege.warned = false;
+        return c.note('The siege has begun.', 0x80ff80);
+      }
       case '/maxhero': {
         // (admins, for testing: the hero being played, yours or /maxhero name's, to level 20 with every stat maxed)
         const tc = parts[1] ? target : c;
@@ -2868,6 +2893,47 @@ setInterval(() => {
 // ------------------------------------------------------------------ console
 const HELP = 'Commands: list | stats | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | whois <name|#n> | setpassword <name|#n> <password> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
+// ------------------------------------------------------------------ the Realm Siege
+/** Every siegeEveryMinutes (config, default 120; 0 turns it off): a two minute warning, then the Warlord comes. */
+const siege = { at: Date.now() + (Number(config.siegeFirstMinutes) || 40) * 60000, warned: false, key: '' };
+function siegeRealm() {
+  // the realm with the most players in it
+  let best = null;
+  for (const r of realms) { const sm = sims && sims.get(realmKey(r)); if (sm && !sm.w.closed && !sm.closeT && (!best || r.count > best.r.count)) best = { r, sm }; }
+  return best;
+}
+/** Starts one now (admins' /siege, or the timer). Returns why not, or ''. */
+function startSiege(key) {
+  const best = key ? { sm: sims && sims.get(key), r: realms.find((r) => realmKey(r) === key) } : siegeRealm();
+  if (!best || !best.sm) return 'No realm is open.';
+  if (best.sm.siege) return 'There is already a siege in ' + best.r.name + '.';
+  if (!best.sm.startSiege()) return 'The Warlord found no room in ' + best.r.name + '\'s Godlands.';
+  for (const c of online()) c.send({ t: 'banner', text: 'THE REALM SIEGE HAS BEGUN!', color: 0xffa020, msg: 'Vorgath the Siege Warlord marches on the Godlands of ' + best.r.name + '. Beat him in 15 minutes! (/glands)', sfx: 'fanfare' });
+  log('siege started in ' + best.r.name);
+  feat('siegestart', { realm: best.r.name });
+  return '';
+}
+function siegeTick() {
+  const every = config.siegeEveryMinutes === undefined ? 120 : Number(config.siegeEveryMinutes);
+  if (!sims || !(every > 0) || WorldSim.restartSoon) return;
+  const now = Date.now();
+  if (!siege.warned && now >= siege.at - 120000) {
+    const best = siegeRealm();
+    // nobody in a realm: try again in ten minutes
+    if (!best || !best.r.count) { siege.at = now + 600000; return; }
+    siege.warned = true;
+    siege.key = realmKey(best.r);
+    broadcast('In 2 minutes Vorgath the Siege Warlord marches on the Godlands of ' + best.r.name + '! Gather your strongest heroes.', 0xffa020);
+    return;
+  }
+  if (siege.warned && now >= siege.at) {
+    const why = startSiege(realms.some((r) => realmKey(r) === siege.key) ? siege.key : '');
+    siege.warned = false;
+    siege.at = now + (why ? 60000 : every * 60000);
+  }
+}
+setInterval(siegeTick, 5000).unref();
+
 function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (data) => {

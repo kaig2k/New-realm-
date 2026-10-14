@@ -113,6 +113,7 @@ package realm {
 			lowDungeons();
 			midDungeons();
 			events();
+			siege();
 			hardDungeons();
 			finales();
 			raids();
@@ -355,6 +356,9 @@ package realm {
 			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
+			// the Realm Siege
+			Sprites.recolor("siege_warlord", "elder", {H: 0x8a8a96, h: 0x4a4a56, P: 0x5a1a10, p: 0x2a0a06, Q: 0xffa020, K: 0x0a0806, E: 0xff6010, W: 0xffd080, O: 0xff8030}, 9);
+			Sprites.recolor("siege_soldier", "bandit", {H: 0x7a7a86, h: 0x4a4a56, S: 0xd8c0a0, E: 0xff6010, B: 0x5a1a10, b: 0x3a0a06, A: 0xffa020, L: 0x2a2a30, W: 0xc0c0d0});
 			// every boss its own design (tools/bossart), drawn over the recoloured stand-ins above
 			BossArt.register();
 		}
@@ -607,6 +611,28 @@ package realm {
 					attacks: [spiral(8, 11, 6, 70, 0.11, 0xff6080), wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
 			]}, ["krakens_grasp", "abyssal_mail"]);
 			for each (var ev:String in ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"]) Data.EVENTS.push(ev);
+		}
+
+		// ------------------------------------------------------------ the Realm Siege
+		/**
+		 * The Realm Siege (server.js starts one every couple of hours): a warlord
+		 * marches on the Godlands with soldiers at his back. He grows with every
+		 * player fighting him, and leaves if he isn't beaten in 15 minutes. Loot
+		 * follows how much of the fight was yours; the top damage dealer is the MVP.
+		 */
+		private static function siege():void {
+			mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 2600, def: 22, spd: 2.4, xp: 140, col: 0xffa020, keep: 2,
+				attacks: [aim(3, 18, 7, 70, 1.2, 0xffa020, {shape: "blade"}), aim(1, 0, 5, 80, 2.4, 0xff6010, {motion: "home", r: 0.26})]});
+			boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 90000, def: 40, spd: 1.0, xp: 6000, col: 0xff8020,
+				gold: 1500, onrane: 15, r: 1.2, siege: true, scales: true, phases: [
+				P(1, {move: "wander", attacks: [aim(5, 40, 8, 90, 1.0, 0xffa020, {shape: "blade", r: 0.3}), ring(16, 11, 5, 80, 1.6, 0xff6010)]}),
+				P(0.75, {say: "SOLDIERS! TO ME!", banner: "The Warlord calls his army!", shield: 3, summon: [{what: "siege_soldier", n: 6}], move: "still",
+					attacks: [rain(6, 5, 100, 2.2, 0xff6010, {burst: 6}), wall(19, 4.5, 90, 2, 0xffa020, {hole: 3})]}),
+				P(0.5, {say: "The walls of this realm will fall!", move: "chase", speed: 1.3,
+					attacks: [spiral(6, 10, 6.5, 85, 0.12, 0xffa020), nova(2.6, 1.2, 130, 2.6, 0xff4010, {burst: 12})]}),
+				P(0.25, {say: "*Vorgath raises the war banner*", banner: "VORGATH IS ENRAGED!", shield: 3, summon: [{what: "siege_soldier", n: 8}], move: "orbit",
+					attacks: [flower(24, 7.5, 5.5, 90, 0.9, 0xff8020), aim(3, 20, 11, 110, 0.8, 0xffffff, {shape: "blade"}), rain(5, 4, 110, 2, 0xff4010)]})
+			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 
 		// ------------------------------------------------------------ hard dungeons

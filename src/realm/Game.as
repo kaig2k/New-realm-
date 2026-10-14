@@ -157,6 +157,7 @@ package realm {
 		private var marketWin:MarketWindow;
 		private var oracleWin:OracleWindow;
 		private var ascWin:AscendWindow;
+		private var siegePanel:SiegePanel;
 		private var petWin:PetWindow;
 		private var bugsWin:BugsWindow;
 		/** Frames a second, smoothed (sent with bug reports). */
@@ -408,7 +409,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/l20": case "/backpack": case "/maxhero": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
+				case "/l20": case "/backpack": case "/maxhero": case "/siege": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -5789,7 +5790,32 @@ package realm {
 			bannerT = secs;
 		}
 
+		/** The Realm Siege's panel (the server's "siege" messages; ServerNet). */
+		public function siegeUpdate(m:Object):void {
+			if (!siegePanel) {
+				if (!m.on && !m.won && !m.lost) return;
+				siegePanel = new SiegePanel();
+				siegePanel.x = 308;
+				siegePanel.y = 8;
+				addChild(siegePanel);
+			}
+			siegePanel.update(m);
+			if (m.won) { Sfx.play("fanfare"); showBanner("THE SIEGE IS BROKEN!", 0xffa020, 4); }
+		}
+
+		private function tickSiege():void {
+			if (!siegePanel) return;
+			siegePanel.quiet += 1 / 30;
+			if (siegePanel.endT > 0) siegePanel.endT -= 1 / 30;
+			// (the result shown long enough, or no word for a while: we left the realm)
+			if ((!siegePanel.active && siegePanel.endT <= 0) || (siegePanel.active && siegePanel.quiet > 6)) {
+				if (siegePanel.parent) removeChild(siegePanel);
+				siegePanel = null;
+			}
+		}
+
 		private function updateOverlays():void {
+			tickSiege();
 			if (pendingBanner && !revealing) { var pb:Array = pendingBanner; pendingBanner = null; showBanner(pb[0], pb[1], pb[2]); }
 			if (revealing) banner.visible = false;
 			fameTf.text = Ui.commas(player.fame);
@@ -5919,6 +5945,11 @@ package realm {
 			}
 			var b:Enemy = world.boss;
 			var e:Enemy, best:Enemy = null, bestD:Number = 1e9, d:Number;
+			// a Realm Siege: everyone to the Warlord
+			if (siegePanel && siegePanel.active && world.kind == "realm") {
+				var sw:Enemy = world.eById[siegePanel.bossId];
+				if (sw && !sw.dead) return sw;
+			}
 			if (!b || b.dead) {
 				// multi-boss dungeons: head for the nearest boss
 				for each (e in enemies) {

@@ -23,6 +23,7 @@ const DESPAWN_RANGE = 34;
 const MAX_NEAR = 15;
 const PORTAL_TIME = 30;
 const ELITES = ['Swift', 'Armored', 'Frenzied', 'Giant', 'Splitting', 'Vampiric'];
+const SIEGE_TIME = 15 * 60;
 const r2 = (v) => Math.round(v * 100) / 100;
 
 let nextId = 1;
@@ -374,6 +375,7 @@ class WorldSim {
       if (this.closeT > 0) { this.closeT -= dt; if (this.closeT <= 0) this.w.closed = true; }
     }
     if (this.w.raid) this.updateRaid(dt);
+    if (this.siege) this.updateSiege(dt);
     this.updateArena(dt);
     for (const e of this.enemies) {
       if (e.elite === 'Vampiric' && !e.dead && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.03 * dt);
@@ -484,7 +486,7 @@ class WorldSim {
     const w = this.w;
     // a restart is close: no new event bosses that nobody could finish
     if (WorldSim.restartSoon) return;
-    if (this.closeT > 0 || w.closed || w.eventsDone >= Data.EVENTS_PER_REALM || (w.boss && !w.boss.dead)) return;
+    if (this.closeT > 0 || w.closed || this.siege || w.eventsDone >= Data.EVENTS_PER_REALM || (w.boss && !w.boss.dead)) return;
     w.eventT -= dt;
     if (w.eventT > 0) return;
     if (!w.recentEvents) w.recentEvents = [];
@@ -714,6 +716,7 @@ class WorldSim {
       if (e.arena) { SetPieces.undo(w, e.arena); e.arena = null; }
       if (e.def.guardian) this.guardianDown();
       else if (e.def.trio && this.enemies.some((o) => !o.dead && o.def.trio)) this.kingDown();
+      else if (e.def.siege) this.siegeDown(e);
       else if (this.kind === 'realm' && !e.def.dungeon && !e.def.raid && !e.def.final) {
         w.eventsDone++;
         if (this.onEventKill && e.firstHit && e.def.setpiece) {
@@ -787,9 +790,14 @@ class WorldSim {
   dropLoot(e) {
     const zone = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
     const siteHoard = e.site && !e.site.cleared;
+    // the Siege: loot follows your share of the fight (under 0.5%, nothing); the MVP rolls twice
+    let total = 0, mvp = null;
+    if (e.def.siege) for (const [cid, dmg] of e.hitters || []) { total += Math.max(0, dmg); if (!mvp || dmg > e.hitters.get(mvp)) mvp = cid; }
     for (const [cid, dmg] of e.hitters || []) {
       const c = this.players.get(cid);
       if (!c || dmg <= 0) continue;
+      const share = total ? dmg / total : 0;
+      if (e.def.siege && share < 0.005) continue;
       const prof = c.profile || {};
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
@@ -801,6 +809,10 @@ class WorldSim {
       if (e.def.crate && Math.random() < 0.45) items.push(Math.random() < 0.67 ? Data.makePotion(Math.random() < 0.5 ? 'hp' : 'mp') : Data.makePotion('stat', Data.randomStat()));
       if (e.def.mimic) items = items.concat(mimicLoot(cls));
       if (siteHoard) items = items.concat(Data.rollLoot(e.def, zone, cls, lk));
+      if (e.def.siege) {
+        items = items.concat(Data.rollLoot(e.def, zone, cls, lk + Math.min(80, Math.round(share * 300))));
+        if (cid === mvp) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 120));
+      }
       // High Stakes (a skill): the drop is doubled or lost on a coin flip
       let hs = '';
       if (items.length && prof.hs) {
@@ -813,6 +825,85 @@ class WorldSim {
       if (this.onFeat) for (const it of items) if (it && (it.rarity === 'gd' || it.rarity === 'ar')) this.onFeat(it.rarity === 'gd' ? 'godly' : 'primordial', { name: c.name, item: it.name, from: e.def.name });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
+  }
+
+  // ------------------------------------------------------------ the Realm Siege
+  /** The Warlord marches into this realm's Godlands (server.js decides when). False if there's no room. */
+  startSiege() {
+    const w = this.w;
+    if (this.kind !== 'realm' || this.siege || w.closed || this.closeT > 0) return false;
+    for (let tries = 0; tries < 800; tries++) {
+      const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5;
+      if (w.zoneAt(x, y) !== World.GOD_ZONE || !w.canStand(x, y, 1.2, true)) continue;
+      const e = this.spawn('siege_warlord', x, y, World.GOD_ZONE, true);
+      if (!e) return false;
+      this.siege = { e, left: SIEGE_TIME, waveT: 20, sendT: 0 };
+      this.siegeSoldiers(4);
+      this.siegeStatus(true);
+      return true;
+    }
+    return false;
+  }
+
+  /** Soldiers march out around the Warlord (never more than 10 at once). */
+  siegeSoldiers(n) {
+    const e = this.siege.e;
+    const alive = this.enemies.filter((o) => !o.dead && o.defId === 'siege_soldier').length;
+    for (let k = 0; k < Math.min(n, 10 - alive); k++) {
+      const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 3;
+      this.spawn('siege_soldier', e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, World.GOD_ZONE);
+    }
+  }
+
+  updateSiege(dt) {
+    const sg = this.siege, e = sg.e;
+    if (e.dead) return;
+    sg.left -= dt;
+    sg.waveT -= dt;
+    if (sg.waveT <= 0) { sg.waveT = 25; this.siegeSoldiers(2 + Math.min(6, (e.scalePlayers || 1))); }
+    if (sg.left <= 0) {
+      // time's up: he marches away, and his soldiers with him
+      e.dead = true;
+      for (const o of this.enemies) if (!o.dead && (o === e || o.defId === 'siege_soldier')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+      this.all({ t: 'edel', id: e.id });
+      this.siege = null;
+      for (const c of this.players.values()) c.send({ t: 'siege', on: false, lost: true });
+      if (this.onSiege) this.onSiege(this, 'fail', { name: e.def.name });
+      return;
+    }
+    sg.sendT -= dt;
+    if (sg.sendT <= 0) { sg.sendT = 2; this.siegeStatus(false); }
+  }
+
+  /** Who's done what so far, most damage first: [[client, damage], ...] and the total. */
+  siegeBoard() {
+    const e = this.siege.e;
+    let total = 0;
+    const rows = [];
+    for (const [cid, dmg] of e.hitters || []) { if (dmg <= 0) continue; total += dmg; rows.push([cid, dmg]); }
+    rows.sort((a, b) => b[1] - a[1]);
+    return { rows, total };
+  }
+
+  /** The siege panel for everyone in the realm: his health, the time left, the top three and your own share. */
+  siegeStatus(start) {
+    const sg = this.siege, e = sg.e;
+    const { rows, total } = this.siegeBoard();
+    const top = rows.slice(0, 3).map((r) => { const c = this.players.get(r[0]); return [c ? c.name : '?', Math.round(r[1] / total * 1000) / 10]; });
+    for (const c of this.players.values()) {
+      const i = rows.findIndex((r) => r[0] === c.id);
+      c.send({ t: 'siege', on: true, start: !!start, id: e.id, name: e.def.name, hp: Math.ceil(e.hp), max: Math.ceil(e.maxHp), left: Math.ceil(sg.left),
+        x: r2(e.x), y: r2(e.y), top, me: i >= 0 ? Math.round(rows[i][1] / total * 1000) / 10 : 0, rank: i + 1, n: rows.length });
+    }
+  }
+
+  siegeDown(e) {
+    const { rows, total } = this.siegeBoard();
+    this.siege = null;
+    for (const o of this.enemies) if (!o.dead && o.defId === 'siege_soldier') { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+    const team = rows.map((r) => ({ c: this.players.get(r[0]), pct: Math.round(r[1] / total * 1000) / 10 })).filter((r) => r.c);
+    for (const c of this.players.values()) c.send({ t: 'siege', on: false, won: true, mvp: team.length ? team[0].c.name : '', top: team.slice(0, 3).map((r) => [r.c.name, r.pct]) });
+    if (this.onSiege) this.onSiege(this, 'win', { name: e.def.name, team });
   }
 
   guardianDown() {
@@ -860,11 +951,16 @@ class Sims {
 
   get(key) { return this.map.get(key); }
 
+  /** Hands a new world the server's hooks. */
+  wire(s) {
+    for (const k of ['issuer', 'onEventKill', 'onQuest', 'onEarn', 'onFeat', 'onPortal', 'onOracle', 'onSiege']) s[k] = this[k];
+  }
+
   join(key, c) {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; s.onPortal = this.onPortal; s.onOracle = this.onOracle; } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); this.wire(s); } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);
@@ -877,7 +973,7 @@ class Sims {
     for (const s of this.map.values()) if (s.kind === 'realm') s.keep = want.has(s.key);
     for (const key of want) {
       if (this.map.has(key)) continue;
-      try { const s = new WorldSim(key); s.keep = true; s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; s.onPortal = this.onPortal; this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
+      try { const s = new WorldSim(key); s.keep = true; this.wire(s); this.map.set(key, s); } catch (e) { console.error('could not start world', key, e.message); }
     }
   }
 

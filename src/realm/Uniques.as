@@ -64,6 +64,10 @@ package realm {
 			prismatic_wand: ["Prismatic Wand", "weapon", "wand", {}, {shots: 3, arc: 30, rate: 1.1, mult: 0.6, col: 0xff80e0}, "Every color at once."],
 			fae_quiver: ["Quiver of the Fae", "ability", "quiver", {spd: 10}, {power: 1.7}, "Light as a sprite's wing."],
 			pixie_ring: ["Pixie Ring", "ring", "spd", {spd: 10, dex: 6}, null, "It giggles."],
+			// ---- the Realm Siege (Vorgath)
+			siegebreaker: ["Siegebreaker", "weapon", "sword", {att: 6, def: 4}, {mult: 1.9, size: 7, pierce: true, rate: 0.75, col: 0xffa020}, "Forged to bring down gates. Works on warlords too."],
+			warlords_banner: ["Warlord's Banner", "ability", "helm", {att: 5, vit: 5}, {power: 1.9}, "Where it flies, armies follow."],
+			rampart_plate: ["Rampart Plate", "armor", "heavy", {def: 10, hp: 80}, null, "A piece of the wall he couldn't break."],
 			// ---- realm events
 			cube_core: ["Cube Core", "ring", "hp", {hp: 100, def: 5}, null, "A perfect, humming cube."],
 			cubic_staff: ["Cubic Staff", "weapon", "staff", {wis: 4}, {shots: 4, parallel: true, mult: 0.55, col: 0xc060ff}, "Four parallel bolts, perfectly aligned."],

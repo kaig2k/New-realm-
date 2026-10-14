@@ -200,7 +200,7 @@ package realm {
 					break;
 				case "banner":
 					g.showBanner(m.text, m.color || 0xffd75e, 4);
-					g.msg(m.msg || m.text, m.color || 0xffd75e);
+					g.msg(Ui.esc(m.msg || m.text), m.color || 0xffd75e);
 					Sfx.play(m.sfx || "portal");
 					break;
 				case "quests":
@@ -289,7 +289,8 @@ package realm {
 					else if ((rp = byId(m.id))) g.netSay(rp, m.text, m.role || "");
 					break;
 				case "msg":
-					g.msg(m.text, m.color || 0xff8080);
+					// (the server's notes are plain text, often with players' names in: never markup)
+					g.msg(Ui.esc(m.text), m.color || 0xff8080);
 					break;
 				case "role":
 					// promoted, demoted, or VIP started or ended

@@ -105,7 +105,7 @@ class StatusBoard {
 }
 
 /** Discord markdown would bold or hide parts of names with * _ ~ ` |. */
-function esc(s) { return String(s).replace(/([*_~`|>\\])/g, '\\$1'); }
+function esc(s) { return String(s).replace(/([*_~`|>\\\[\]()])/g, '\\$1'); }
 
 /** "A, B and C" (and "and 3 more" past five). */
 function names(list) {

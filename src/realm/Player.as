@@ -158,23 +158,33 @@ package realm {
 			return setPieces >= 4 && weapon ? weapon.set : null;
 		}
 
-		/** The Oracle's collection bonuses (Data.oracleBonus of Save.data.oracleDone), worked out again only when that list changes. */
-		private static var oracleKey:String = null, oracleCache:Object = {};
+		/**
+		 * The Oracle's collection bonuses with the Ascendant Tree's (Data.oracleBonus), worked out
+		 * again only when the server hands the game a new list or tree (they're replaced, never edited).
+		 */
+		private static var oracleDoneRef:Array = null, oracleAscRef:Object = null, oracleLen:int = -1, oracleCache:Object = {};
 		public static function oracleBonus():Object {
 			var done:Array = Save.data.oracleDone as Array;
 			var asc:Object = Save.data.asc;
-			var k:String = (done ? done.join(",") : "") + "|" + (asc ? JSON.stringify(asc.r) : "");
-			if (k != oracleKey) { oracleKey = k; oracleCache = Data.oracleBonus(done, asc); }
+			var len:int = done ? done.length : 0;
+			if (done !== oracleDoneRef || asc !== oracleAscRef || len != oracleLen) {
+				oracleDoneRef = done; oracleAscRef = asc; oracleLen = len;
+				oracleCache = Data.oracleBonus(done, asc);
+			}
 			return oracleCache;
 		}
 
-		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
 		/** The Endless Abyss run's boons (Game.abyssRun), or null. */
 		public static var deepBoons:Array = null;
+		private static var deepRef:Array = null, deepLen:int = -1, deepCache:Object = {};
 
+		/** Stat bonus from all equipped gear (and the 4-piece set bonus), the Oracle, Ascension and Abyss boons. */
 		public function bonus(s:String):int {
 			var b:int = int(oracleBonus()[s] || 0);
-			if (deepBoons && deepBoons.length) b += int(Data.deepBonus(deepBoons)[s] || 0);
+			if (deepBoons && deepBoons.length) {
+				if (deepBoons !== deepRef || deepBoons.length != deepLen) { deepRef = deepBoons; deepLen = deepBoons.length; deepCache = Data.deepBonus(deepBoons); }
+				b += int(deepCache[s] || 0);
+			}
 			// a weapon's "spd" is its bullet speed, not a Speed bonus
 			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s] && !(s == "spd" && it.kind == "weapon")) b += it[s];
 			var set:String = activeSet;

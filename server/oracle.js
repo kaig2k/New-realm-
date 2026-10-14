@@ -14,16 +14,15 @@ const RARE = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
 
 function notable(it) { return !!(it && (RARE.has(it.rarity) || it.uid || it.curse || it.kind === 'material')); }
 
-/** A boss died with c's help: count it and its drops (items: what c got, maybe none). */
-function record(sv, bossId, bossName, items, now) {
+/** A boss died with c's help: count it and its drops (items: what c got, maybe none; noKill: drops only, e.g. its chest). */
+function record(sv, bossId, bossName, items, now, noKill) {
   now = now || Date.now();
   const o = sv._oracle && typeof sv._oracle === 'object' ? sv._oracle : (sv._oracle = { b: {}, log: [] });
   if (!o.b) o.b = {};
   if (!Array.isArray(o.log)) o.log = [];
   const b = o.b[bossId] || (o.b[bossId] = { n: bossName, k: 0, f: now, l: 0, d: {} });
   b.n = bossName;
-  b.k++;
-  b.l = now;
+  if (!noKill) { b.k++; b.l = now; }
   for (const it of items || []) {
     if (!it || !it.name) continue;
     const d = b.d[it.name] || (b.d[it.name] = { c: 0, r: it.rarity || '' });

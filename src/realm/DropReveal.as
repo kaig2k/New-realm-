@@ -105,6 +105,13 @@ package realm {
 			addEventListener(Event.ENTER_FRAME, tick);
 		}
 
+		/** Stops it at once (another reveal took its place). */
+		public function stop():void {
+			removeEventListener(Event.ENTER_FRAME, tick);
+			if (parent) parent.removeChild(this);
+			done = true;
+		}
+
 		private function spark(burst:Boolean):void {
 			var s:Shape = new Shape();
 			var c:uint = Math.random() < 0.4 ? 0xffffff : col;

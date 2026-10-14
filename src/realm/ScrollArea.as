@@ -49,7 +49,11 @@ package realm {
 			bar.graphics.endFill();
 		}
 
+		/** The stage a scroll-bar drag listens on (kept, so the listeners go even if we're closed mid-drag). */
+		private var dragStage:flash.display.Stage;
+
 		private function barDown(e:MouseEvent):void {
+			dragStage = stage;
 			stage.addEventListener(MouseEvent.MOUSE_MOVE, barMove);
 			stage.addEventListener(MouseEvent.MOUSE_UP, barUp);
 			barMove(null);
@@ -62,7 +66,7 @@ package realm {
 		}
 
 		private function barUp(e:MouseEvent):void {
-			if (stage) { stage.removeEventListener(MouseEvent.MOUSE_MOVE, barMove); stage.removeEventListener(MouseEvent.MOUSE_UP, barUp); }
+			if (dragStage) { dragStage.removeEventListener(MouseEvent.MOUSE_MOVE, barMove); dragStage.removeEventListener(MouseEvent.MOUSE_UP, barUp); dragStage = null; }
 		}
 	}
 }

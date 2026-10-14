@@ -79,6 +79,13 @@ function charSave(id, inv) {
     inv: pad, skills: { brutality: 2, highstakes: 1 }, skillPoints: 3, highStakes: true, tree2: true };
 }
 
+/** The skills of hero id in the last save the server sent back (saveRejected), if any. */
+function AQ_skills(cl, id) {
+  const r = cl.msgs.filter((m) => m.t === 'saveRejected').pop();
+  const h = r && r.data && (r.data.chars || []).find((x) => x && x.id === id);
+  return h ? h.skills || {} : null;
+}
+
 async function run() {
   console.log('New Realm server self-test (port ' + PORT + ')');
   // a stand-in for Discord: collects what the server posts to its webhook
@@ -1916,6 +1923,18 @@ async function run() {
     A1.send({ t: 'save', data: Object.assign({}, rs.data, { asc: sp.asc, tradeSeq: sp.seq }) });
     await wait(400);
     check('...and the game\'s next save is fine', !A1.find((m) => m.t === 'saveRejected'), JSON.stringify(A1.find((m) => m.t === 'saveRejected')));
+    // skill ranks: never past a skill's top, and no made-up skills (whatever a changed game saves)
+    const hk = Object.assign({}, ha, { skills: { brutality: 50, made_up: 3 } });
+    A1.clear();
+    A1.send({ t: 'save', data: Object.assign({}, rs.data, { asc: sp.asc, tradeSeq: sp.seq, chars: [hk] }) });
+    await wait(400);
+    const sk = AQ_skills(A1, 'as1');
+    check('a save can\'t raise a skill past its top rank or invent one', !sk || (!(sk.brutality > 5) && sk.made_up === undefined), JSON.stringify(sk));
+    // the damage limits never count ranks past the top either
+    const combat2 = require('./combat');
+    const capsA = combat2.caps({ cls: 'wizard', level: 20, stats: clone(AD.CLASSES.wizard.max), skills: { brutality: 5 } }, null);
+    const capsB = combat2.caps({ cls: 'wizard', level: 20, stats: clone(AD.CLASSES.wizard.max), skills: { brutality: 5000 } }, null);
+    check('...and the damage limits ignore ranks past the top', capsA.hit === capsB.hit, capsA.hit + ' vs ' + capsB.hit);
     A1.s.destroy();
     AB.s.destroy();
   }

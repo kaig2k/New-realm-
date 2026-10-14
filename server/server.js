@@ -70,12 +70,19 @@ if (!config.realmsSet) {
  */
 const lcName = (a) => String(a).toLowerCase();
 // (config "owner"; else account #1 if it's an admin; else the first admin)
+// (worked out again only when the owner or admin list changes: it's asked on every move)
+let ownerCache = { sig: null, key: '' };
 function ownerKey() {
   if (config.owner) return lcName(config.owner);
-  if (typeof accounts !== 'undefined') for (const k in accounts) if (Number(accounts[k].no) === 1 && config.admins.some((a) => lcName(a) === k)) return k;
-  return lcName(config.admins[0] || '');
+  const sig = config.admins.join('\n');
+  if (ownerCache.sig === sig) return ownerCache.key;
+  let key = lcName(config.admins[0] || '');
+  if (typeof accounts !== 'undefined') for (const k in accounts) if (Number(accounts[k].no) === 1 && config.admins.some((a) => lcName(a) === k)) { key = k; break; }
+  ownerCache = { sig, key };
+  return key;
 }
-const isAdmin = (c) => !!c.key && (c.key === ownerKey() || config.admins.some(a => lcName(a) === c.key));
+// (the fallback owner is always one of the admins, so only a configured owner needs its own check)
+const isAdmin = (c) => !!c.key && (config.admins.some(a => lcName(a) === c.key) || (!!config.owner && c.key === lcName(config.owner)));
 const isMod = (c) => isAdmin(c) || (Array.isArray(config.mods) && config.mods.some(a => lcName(a) === c.key));
 /** Writes the admin list back to config.json (keeping everything else in the file as it is). */
 function saveAdmins() { return saveConfig(['admins']); }
@@ -116,7 +123,9 @@ const oracle = require('./oracle');
 if (sims) sims.onOracle = (c, e, got) => {
   if (!c.key) return;
   const sv = onlineSave(c.key);
-  oracle.record(sv, e.defId, e.def.name, got);
+  // (the Abyss's chests hold the Herald's uniques: they count toward its collection, not as kills)
+  if (e.def.abyssChest) oracle.record(sv, 'abyss_herald', Data.ENEMIES.abyss_herald.name, got, 0, true);
+  else oracle.record(sv, e.defId, e.def.name, got);
   // a boss's collection finished: its title, and +1 to a stat for every hero
   const fresh = oracle.completions(sv);
   store.putSave(c.key, sv);
@@ -534,6 +543,15 @@ function renameAccount(key, name) {
     config.admins = config.admins.map((a) => (String(a).toLowerCase() === key ? name : a));
     saveAdmins();
   }
+  // the owner, moderator and VIP roles go with the account (nobody can take them by registering the old name)
+  const roles = [];
+  if (config.owner && String(config.owner).toLowerCase() === key) { config.owner = name; roles.push('owner'); }
+  if (Array.isArray(config.mods) && config.mods.some((a) => String(a).toLowerCase() === key)) {
+    config.mods = config.mods.map((a) => (String(a).toLowerCase() === key ? name : a));
+    roles.push('mods');
+  }
+  if (roles.length) saveConfig(roles);
+  if (nk !== key && vips[key]) { vips[nk] = vips[key]; delete vips[key]; save('vips.json', vips); }
 }
 
 function c2g(key) { for (const gk in guilds) if (guilds[gk].members[key]) return guilds[gk].name || gk; return ''; }
@@ -753,6 +771,8 @@ function publicSave(s) {
  */
 function applySave(c, data, cid) {
   const prev = onlineSave(c.key);
+  // hero names: letters, digits and spaces, as the game's hero menu allows (others see them)
+  if (data && Array.isArray(data.chars)) for (const h of data.chars) if (h && typeof h === 'object' && h.name !== undefined) h.name = String(h.name).replace(/[^A-Za-z0-9 ]/g, '').slice(0, 16);
   // heroes the anti-cheat killed stay dead, whatever the game still holds (an admin's /revive brings one back)
   if (Array.isArray(prev._dead) && data && Array.isArray(data.chars)) {
     const dead = new Set(prev._dead);
@@ -832,7 +852,8 @@ function applySave(c, data, cid) {
   if (modeFixes.length) c.send({ t: 'saveRejected', reason: modeFixes.join(' '), data: publicSave(data) });
   // the game says which hero it's playing with each shop request, so the shops never depend on
   // having seen this connection's last 'enter' (a reconnect, or a hero whose id was only just set)
-  if (typeof cid === 'string' && cid && (data.chars || []).some((h) => h && h.id === cid)) c.charId = cid.slice(0, 64);
+  // (no swapping heroes in the middle of an Abyss run)
+  if (typeof cid === 'string' && cid && (data.chars || []).some((h) => h && h.id === cid) && !(String(c.world || '').startsWith('deep:') && c.charId && c.charId !== cid)) c.charId = cid.slice(0, 64);
   // what this hero can deal now (new weapon, more Attack...), and its mode (a new hero's first save sets it)
   setCaps(c);
   c.mode = modes.modeOf(serverChar(c));
@@ -966,6 +987,8 @@ const handlers = {
     let world = str(m.key, 80);
     // a guild's hall is for its members: anyone else gets a hall of their own (empty)
     if (world.startsWith('ghall:') && world !== 'ghall:' + c.guild) world = 'solo:hall:' + c.id;
+    // (the hero going in is the one checked: the Abyss is for level 20 heroes)
+    if (m.cid) c.charId = str(m.cid, 64);
     // dungeons and raids only through an open portal (a changed game can't walk into one)
     if (!mayEnter(c, world, c.world)) {
       log(c.name + ' tried to enter ' + world + ' without a portal');
@@ -973,10 +996,16 @@ const handlers = {
       c.send({ t: 'toNexus', msg: 'That portal has closed.' });
       world = 'solo:closed:' + c.id;
     }
+    // (entering the world you're already in is no way to jump across it: you stay where the server has you)
+    const same = c.world === world && !!c.sim;
     leaveWorld(c);
     c.world = world;
-    c.x = num(m.x); c.y = num(m.y);
-    c.mv = null; // a new world: movement checks start again from where you arrive
+    if (!same) {
+      c.x = num(m.x); c.y = num(m.y);
+      // (the Abyss: everyone arrives at its spawn)
+      if (world.startsWith('deep:')) { c.x = 100.5; c.y = 114; }
+      c.mv = null; // a new world: movement checks start again from where you arrive
+    }
     if (m.cid) c.charId = str(m.cid, 64);
     // the godmode count starts over in each world (and arriving, you can't be hit for a moment)
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
@@ -1439,8 +1468,9 @@ const handlers = {
     const text = str(m.text, 400).trim();
     if (text.length < 5) return c.note('Usage: /bug what happened (a sentence or two helps a lot).');
     const now = Date.now();
-    if (c.bugAt && now - c.bugAt < 30000) return c.note('Thanks! Wait a moment before sending another report.');
-    c.bugAt = now;
+    // (per account, so reconnecting doesn't reset it)
+    if (now - (bugAt.get(c.key) || 0) < 30000) return c.note('Thanks! Wait a moment before sending another report.');
+    bugAt.set(c.key, now);
     const x = m.ctx && typeof m.ctx === 'object' ? m.ctx : {};
     const ch = serverChar(c), sv = onlineSave(c.key) || {};
     const p = sv.pet;
@@ -1516,8 +1546,8 @@ const handlers = {
   /** The Endless Abyss's board for one class (the window). */
   deepBoard(c, m) {
     deepWeek();
-    const cls = Data.CLASSES[m.cls] ? m.cls : 'wizard';
-    const list = (deep.cls[cls] || []).map((r) => ({ name: r.name, hero: r.hero, wave: r.wave || 0 }));
+    const cls = typeof m.cls === 'string' && Object.prototype.hasOwnProperty.call(Data.CLASSES, m.cls) ? m.cls : 'wizard';
+    const list = (Object.prototype.hasOwnProperty.call(deep.cls, cls) ? deep.cls[cls] : []).map((r) => ({ name: r.name, hero: r.hero, wave: r.wave || 0 }));
     let best = 0;
     for (const k in deep.cls) for (const r of deep.cls[k]) if (r.key === c.key) best = Math.max(best, r.wave || 0);
     c.send({ t: 'deepBoard', cls, list, best, week: deep.week });
@@ -1996,7 +2026,7 @@ const handlers = {
         ch.skillPoints = (Number(ch.skillPoints) || 0) + Math.max(0, 20 - (Number(ch.level) || 1));
         ch.level = 20; ch.xp = 0; ch.xpNext = progress.xpFor(20); ch.ascXp = 0;
         sv.tradeSeq = (sv.tradeSeq || 0) + 1;
-        store.putSave(c.key, sv);
+        store.putSave(tc.key, sv);
         setCaps(tc);
         log(c.name + ' used /maxhero on ' + tc.name + '\'s ' + (ch.name || ch.id));
         if (tc !== c) c.note('Maxed ' + tc.name + '\'s ' + (ch.name || 'hero') + '.', 0x80ff80);
@@ -3009,12 +3039,22 @@ function deepWeek() {
 setInterval(deepWeek, 60000).unref();
 
 /** c steps into a world: the Abyss starts a run (its boons start empty); anywhere else ends it. */
+/** Runs by account, so a dropped connection rejoining the same arena keeps its boons. */
+const deepRuns = new Map();
+/** When each account last sent a /bug report. */
+const bugAt = new Map();
 function deepEnter(c, world) {
   if (!world.startsWith('deep:')) {
-    if (c.abyss) { c.abyss = null; c.abyssOffer = null; c.send({ t: 'abyssRun', on: false }); }
+    if (c.key) deepRuns.delete(c.key);
+    // (always say so: a game that reconnected may still think it's on a run)
+    c.send({ t: 'abyssRun', on: false });
+    c.abyss = null; c.abyssOffer = null;
     return;
   }
-  if (!c.abyss || c.abyss.key !== world) c.abyss = { key: world, wave: 0, boons: [], start: Date.now() };
+  const kept = c.key && deepRuns.get(c.key);
+  if (kept && kept.key === world) c.abyss = kept;
+  else if (!c.abyss || c.abyss.key !== world) c.abyss = { key: world, wave: 0, boons: [], start: Date.now() };
+  if (c.key) deepRuns.set(c.key, c.abyss);
   c.abyssOffer = null;
   c.send({ t: 'abyssRun', on: true, wave: c.abyss.wave, boons: c.abyss.boons });
 }
@@ -3028,8 +3068,8 @@ if (sims) sims.onDeep = (sim, players, wave, chest) => {
     c.abyss.wave = wave;
     const ch = serverChar(c);
     // the week's board (each account once per class, its best)
-    if (ch) {
-      const list = deep.cls[ch.cls] || (deep.cls[ch.cls] = []);
+    if (ch && typeof ch.cls === 'string' && Object.prototype.hasOwnProperty.call(Data.CLASSES, ch.cls)) {
+      const list = Object.prototype.hasOwnProperty.call(deep.cls, ch.cls) ? deep.cls[ch.cls] : (deep.cls[ch.cls] = []);
       let row = list.find((r) => r.key === c.key);
       if (!row) { row = { key: c.key, name: c.name, hero: ch.name || '', wave: 0, at: 0 }; list.push(row); }
       if (wave > (row.wave || 0)) {
@@ -3059,11 +3099,13 @@ const siege = { at: Date.now() + (Number(config.siegeFirstMinutes) || 40) * 6000
 function siegeRealm() {
   // the realm with the most players in it
   let best = null;
-  for (const r of realms) { const sm = sims && sims.get(realmKey(r)); if (sm && !sm.w.closed && !sm.closeT && (!best || r.count > best.r.count)) best = { r, sm }; }
+  for (const r of realms) { const sm = sims && sims.get(realmKey(r)); if (sm && !sm.w.closed && !sm.closeT && !sm.siege && (!best || r.count > best.r.count)) best = { r, sm }; }
   return best;
 }
 /** Starts one now (admins' /siege, or the timer). Returns why not, or ''. */
 function startSiege(key) {
+  // (one at a time)
+  for (const r of realms) { const sm = sims && sims.get(realmKey(r)); if (sm && sm.siege) return 'There is already a siege in ' + r.name + '.'; }
   const best = key ? { sm: sims && sims.get(key), r: realms.find((r) => realmKey(r) === key) } : siegeRealm();
   if (!best || !best.sm) return 'No realm is open.';
   if (best.sm.siege) return 'There is already a siege in ' + best.r.name + '.';
@@ -3089,7 +3131,8 @@ function siegeTick() {
   if (siege.warned && now >= siege.at) {
     const why = startSiege(realms.some((r) => realmKey(r) === siege.key) ? siege.key : '');
     siege.warned = false;
-    siege.at = now + (why ? 60000 : every * 60000);
+    // (it couldn't start: try again in five minutes, warning again first, rather than repeating the warning every minute)
+    siege.at = now + (why ? 300000 : every * 60000);
   }
 }
 setInterval(siegeTick, 5000).unref();

@@ -18,6 +18,8 @@
  * below what a hacked game could otherwise claim.
  */
 const { Data } = require('./sim/gen/game');
+/** Each skill's top rank (Data.SKILLS). */
+const SKILL_MAX = (() => { const m = Object.create(null); for (const sk of Data.SKILLS) m[sk.id] = sk.max; return m; })();
 
 /** Damage per ability, as (a + b * level) * power: the largest formula in each (Player.useAbility). */
 const ABILITY = {
@@ -49,7 +51,7 @@ function stat(ch, k, extra) {
   const md = ch.mode ? Data.findMode(ch.mode) : null;
   if (md && md.stats && md.stats[k]) n += num(md.stats[k]);
   const skills = ch.skills && typeof ch.skills === 'object' ? ch.skills : {};
-  for (const sk in Data.SKILL_STATS) if (skills[sk] && Data.SKILL_STATS[sk][k]) n += num(skills[sk]) * Data.SKILL_STATS[sk][k];
+  for (const sk in Data.SKILL_STATS) if (skills[sk] && Data.SKILL_STATS[sk][k]) n += Math.min(SKILL_MAX[sk] || 0, Math.max(0, num(skills[sk]))) * Data.SKILL_STATS[sk][k];
   return n;
 }
 
@@ -57,7 +59,8 @@ function stat(ch, k, extra) {
 function caps(ch, pet, extra) {
   if (!ch || typeof ch !== 'object') return null;
   const skills = ch.skills && typeof ch.skills === 'object' ? ch.skills : {};
-  const rank = (id) => Math.max(0, num(skills[id]));
+  // (never past a skill's top rank, whatever a save says)
+  const rank = (id) => Math.min(SKILL_MAX[id] || 0, Math.max(0, num(skills[id])));
   const level = Math.max(1, Math.min(20, num(ch.level) || 1));
   // every boost at once (Player.damageMult, Game.hurtEnemy, Player.critMult)
   const boost = (1 + rank('brutality') * 0.05) * 1.3 * (1 + 5 * 0.06) * 1.25 * (1 + rank('executioner') * 0.1) * 1.5 *

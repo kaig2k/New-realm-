@@ -186,6 +186,9 @@ package realm {
 			return sp;
 		}
 
+		/** Text from players (names, reports) made safe to show in an htmlText field. */
+		public static function esc(s:*):String { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
 		public static function hex(c:uint):String {
 			var s:String = c.toString(16);
 			while (s.length < 6) s = "0" + s;

@@ -90,7 +90,7 @@ package realm {
 		private static function topLine(top:Array):String {
 			if (!top || !top.length) return "<font color='#a89878'>Nobody has hurt him yet.</font>";
 			var cols:Array = ["#ffd75e", "#e0e0f0", "#e0a060"], out:Array = [];
-			for (var i:int = 0; i < top.length; i++) out.push("<font color='" + cols[i] + "'>" + (i + 1) + ". " + top[i][0] + " " + top[i][1] + "%</font>");
+			for (var i:int = 0; i < top.length; i++) out.push("<font color='" + cols[i] + "'>" + (i + 1) + ". " + Ui.esc(top[i][0]) + " " + top[i][1] + "%</font>");
 			return out.join("   ");
 		}
 	}

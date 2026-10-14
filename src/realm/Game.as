@@ -158,6 +158,8 @@ package realm {
 		private var oracleWin:OracleWindow;
 		private var ascWin:AscendWindow;
 		private var siegePanel:SiegePanel;
+		/** This frame's length in seconds (for panels that count down in real time). */
+		private var frameDt:Number = 1 / 60;
 		private var abyssWin:AbyssWindow, boonPicker:BoonPicker;
 		/** The Endless Abyss run this hero is on ({wave, boons}, the server's), or null. */
 		public var abyssRunInfo:Object = null;
@@ -178,6 +180,8 @@ package realm {
 		private var tpT:Number = 0;
 
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
+			// (no Abyss boons carried in from an earlier game or connection)
+			Player.deepBoons = null;
 			this.onDeath = onDeath;
 			world = nexusWorld = new World("nexus", "Nexus");
 			nexusWorld.key = "nexus";
@@ -1237,6 +1241,7 @@ package realm {
 		private function enterDungeon(idx:int, seed:uint = 0):void {
 			var th:Object = Data.DUNGEONS[idx];
 			if (!seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
+			dropWorldLabels(dungeonWorld);
 			dungeonWorld = new World("dungeon", th.name, th, seed);
 			dungeonWorld.key = "dg:" + idx + ":" + seed;
 			Sfx.play("portal");
@@ -1349,7 +1354,7 @@ package realm {
 			else msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
 			// everything goes back to the server's copy together, so nothing can exist twice
 			if (vaultWorld) fillVault();
-			for each (var c:Object in Save.chars) if (c && c.id == player.id) { player.restore(c); hud.refresh(); return; }
+			for each (var c:Object in Save.chars) if (c && c.id == player.id) { player.restore(c); hud.refresh(); if (ascWin) ascWin.refresh(); return; }
 			msg("This character isn't on the server. Save & Quit and pick a character.", 0xff8080);
 		}
 
@@ -1382,12 +1387,19 @@ package realm {
 			taunt(r.boss ? r.boss.def.name + " awaits you, fool!" : "Another fool enters my " + r.name + " realm...");
 		}
 
+		/** A dungeon (or Abyss) world being replaced: its portal names go for good (unless we're standing in it). */
+		private function dropWorldLabels(w:World):void {
+			if (!w || w == world) return;
+			for each (var p:Object in w.portals) if (p.label && p.label.parent) p.label.parent.removeChild(p.label);
+			w.portals.length = 0;
+		}
+
 		private function switchWorld(w:World, x:Number, y:Number):void {
 			if (world && world != w) {
 				world.releaseGround();
 				// the world we leave hides its portal names; one that's gone for good
 				// (the last dungeon, replaced before we got here) takes them away
-				var gone:Boolean = world.kind == "dungeon" && world != dungeonWorld;
+				var gone:Boolean = (world.kind == "dungeon" || world.kind == "abyss") && world != dungeonWorld;
 				for each (var op:Object in world.portals) {
 					op.label.visible = false;
 					if (gone && op.label.parent) op.label.parent.removeChild(op.label);
@@ -1395,6 +1407,8 @@ package realm {
 				if (gone) world.portals.length = 0;
 			}
 			world = w;
+			// (out of the Abyss, its run and boons are over, whatever the server managed to say)
+			if (!w.key || w.key.indexOf("deep:") != 0) { abyssRunInfo = null; Player.deepBoons = null; }
 			player.x = x;
 			player.y = y;
 			player.invulnT = 1.5;
@@ -1474,6 +1488,7 @@ package realm {
 			lastT = now;
 			if (dt > 0) fpsAvg = fpsAvg * 0.95 + Math.min(120, 1 / dt) * 0.05;
 			if (dt > 0.05) dt = 0.05;
+			frameDt = dt;
 
 			if (input.pressed(Keys.k("mute"))) {
 				Sfx.muted = !Sfx.muted;
@@ -4038,6 +4053,7 @@ package realm {
 		private function enterRaid(i:int, seed:uint):void {
 			var rd:Object = Bosses.RAIDS[i];
 			if (!rd) return;
+			dropWorldLabels(dungeonWorld);
 			dungeonWorld = new World("dungeon", rd.name, rd.theme, seed);
 			dungeonWorld.key = "raid:" + i + ":" + seed;
 			dungeonWorld.raid = rd;
@@ -5521,7 +5537,7 @@ package realm {
 		public function useDungeonKey(item:Object):Boolean {
 			var i:int = Data.keyDungeon(item);
 			if (i < 0) return false;
-			if (world.kind == "dungeon" || world == vaultWorld || world == arenaWorld || (guildWorld && world == guildWorld)) { msg("Use dungeon keys in the Nexus or a realm.", 0xff8080); return false; }
+			if (world.kind == "dungeon" || world.kind == "abyss" || world == vaultWorld || world == arenaWorld || (guildWorld && world == guildWorld)) { msg("Use dungeon keys in the Nexus or a realm.", 0xff8080); return false; }
 			var d:Object = Data.DUNGEONS[i];
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
 			var px:Number = player.x + 1.2, py:Number = player.y;
@@ -5798,7 +5814,7 @@ package realm {
 
 		/** The full-screen moment for a Godly or Primordial drop (DropReveal). */
 		private function reveal(item:Object, from:String):void {
-			if (activeReveal && activeReveal.parent) removeChild(activeReveal);
+			if (activeReveal) activeReveal.stop();
 			activeReveal = new DropReveal(item, from, VIEW_W, VIEW_H);
 			addChild(activeReveal);
 			// (other banners wait until it's over)
@@ -5892,8 +5908,10 @@ package realm {
 			}
 			var tf:TextField = spireTags[sp.i];
 			if (!tf) return;
-			tf.htmlText = "<font color='#7fd8ff'>" + sp.name + "</font><br>" + (sp.g ? "<font color='#ffffff'>" + sp.g + "</font>" : "<font color='#a0a0a0'>unclaimed</font>") +
-				(sp.cp > 0 ? "<br><font size='11' color='#ffa020'>" + sp.cg + " taking it: " + int(sp.cp * 100) + "%</font>" : "");
+			// (only when it changes: setting htmlText lays the text out again)
+			var html:String = "<font color='#7fd8ff'>" + sp.name + "</font><br>" + (sp.g ? "<font color='#ffffff'>" + Ui.esc(sp.g) + "</font>" : "<font color='#a0a0a0'>unclaimed</font>") +
+				(sp.cp > 0 ? "<br><font size='11' color='#ffa020'>" + Ui.esc(sp.cg) + " taking it: " + int(sp.cp * 100) + "%</font>" : "");
+			if (tf.name != html) { tf.name = html; tf.htmlText = html; }
 			tf.x = int(sx - tf.width / 2);
 			tf.y = int(top - tf.height - 2);
 			tf.visible = true;
@@ -5901,8 +5919,8 @@ package realm {
 
 		private function tickSiege():void {
 			if (!siegePanel) return;
-			siegePanel.quiet += 1 / 30;
-			if (siegePanel.endT > 0) siegePanel.endT -= 1 / 30;
+			siegePanel.quiet += frameDt;
+			if (siegePanel.endT > 0) siegePanel.endT -= frameDt;
 			// (the result shown long enough, or no word for a while: we left the realm)
 			if ((!siegePanel.active && siegePanel.endT <= 0) || (siegePanel.active && siegePanel.quiet > 6)) {
 				if (siegePanel.parent) removeChild(siegePanel);
@@ -6728,7 +6746,7 @@ package realm {
 		// ------------------------------------------------------------ the Endless Abyss
 		/** Whether this hero may go into the Endless Abyss now (says why not). */
 		private function deepAllowed():Boolean {
-			if (!net.online) { msg("The Endless Abyss is on the server: play online to go in.", 0xff8080); return false; }
+			if (!net.online || !(Online.welcome && Online.welcome.serverMonsters)) { msg("The Endless Abyss needs a server that runs its monsters: play online on Eldmere to go in.", 0xff8080); return false; }
 			if (player.level < Player.MAX_LEVEL) { msg("Only level 20 heroes can enter the Endless Abyss.", 0xff8080); return false; }
 			return true;
 		}
@@ -6739,6 +6757,7 @@ package realm {
 		public function enterDeep(seed:uint):void {
 			if (!deepAllowed()) return;
 			if (!seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
+			dropWorldLabels(dungeonWorld);
 			dungeonWorld = new World("abyss", "The Endless Abyss");
 			dungeonWorld.key = "deep:" + seed;
 			if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
@@ -6778,7 +6797,7 @@ package realm {
 		private function tickWaves():void {
 			if (!wavePanel) return;
 			if (!world || world.key.indexOf("deep:") != 0) { if (wavePanel.parent) removeChild(wavePanel); wavePanel = null; return; }
-			wavePanel.tick(1 / 30);
+			wavePanel.tick(frameDt);
 			// (above the quest arrow and name tags, which the boss up north brings close to it)
 			if (wavePanel.parent == this && getChildIndex(wavePanel) < numChildren - 1) setChildIndex(wavePanel, numChildren - 1);
 		}

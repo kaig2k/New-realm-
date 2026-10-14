@@ -36,6 +36,8 @@ const PROGRESS = ['level', 'xp', 'xpNext', 'totalXp', 'ascXp', 'kills', 'bossKil
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 const clone = (o) => (o === undefined ? undefined : JSON.parse(JSON.stringify(o)));
 /** Points spent in the skill tree (each rank costs its tier's price: Data.skillSpent). */
+/** Each skill's top rank (Data.SKILLS). */
+const SKILL_MAX = (() => { const m = Object.create(null); for (const s of Data.SKILLS) m[s.id] = s.max; return m; })();
 const ranks = (h) => Data.skillSpent(h.skills && typeof h.skills === 'object' ? h.skills : {});
 
 /** A hero as it starts (what a hero new to the server is compared with). */
@@ -117,9 +119,18 @@ function check(prev, next, meta, now) {
     if (!bad) {
       const had = num(was.skillPoints) + ranks(was), has = num(h.skillPoints) + ranks(h);
       const lv = Math.max(0, num(h.level) - num(was.level));
-      const asc = num(h.level) >= MAX_LEVEL ? Math.ceil(Math.max(0, gain) / Data.XP_PER_SKILL_POINT) + 1 : 0;
+      // (the +1 covers a point whose XP straddles two saves: only when XP was actually earned)
+      const asc = num(h.level) >= MAX_LEVEL && gain > 0 ? Math.ceil(gain / Data.XP_PER_SKILL_POINT) + 1 : 0;
       const refund = !was.tree2 && h.tree2 ? Math.max(0, num(h.level) - 1) : 0;
       if (has > had + lv + asc + refund) bad = has + ' skill points (at most ' + (had + lv + asc + refund) + ')';
+      // every skill is a real one, at a whole rank no higher than its top (old or made-up ones go)
+      const sk = h.skills && typeof h.skills === 'object' ? h.skills : {};
+      for (const id of Object.keys(sk)) {
+        const top = SKILL_MAX[id], r = num(sk[id]);
+        if (!top) { delete sk[id]; continue; }
+        const ok = Math.max(0, Math.min(top, Math.floor(r)));
+        if (ok !== sk[id]) { sk[id] = ok; fixes.push(name + ': skill ' + id + ' set back to rank ' + ok); }
+      }
     }
     // (how often it has ascended is the server's: see handlers.ascend)
     if (was.asc) h.asc = was.asc; else delete h.asc;
@@ -157,7 +168,8 @@ function check(prev, next, meta, now) {
         const room = Data.petBagSlots(p);
         if (!Array.isArray(p.bag)) delete p.bag;
         else while (p.bag.length > room && p.bag[p.bag.length - 1] == null) p.bag.pop();
-        if (Array.isArray(p.bag) && p.bag.length > room) fixes.push('pet carries more than its bag holds');
+        // (more than that only comes from a changed game: the extra goes)
+        if (Array.isArray(p.bag) && p.bag.length > room) { p.bag.length = room; fixes.push('pet carries more than its bag holds'); }
       }
       const max = (Data.PET_RARITIES[p.rarity] || { max: 30 }).max;
       // (feeds go through the server and are already in its copy; kills it saw were credited)

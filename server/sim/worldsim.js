@@ -375,7 +375,8 @@ class WorldSim {
   // ------------------------------------------------------------ the clock
   tick(dt) {
     this.time += dt;
-    if (!this.players.size) { this.emptyFor += dt; return; }
+    // (a siege's clock runs on with nobody there, so an abandoned one still ends)
+    if (!this.players.size) { this.emptyFor += dt; if (this.siege) this.updateSiege(dt); return; }
     for (const e of this.enemies.slice()) {
       if (e.dead) continue;
       try { e.update(dt, this.g); } catch (err) { e.dead = true; console.error('monster error', e.defId, err.message); }
@@ -733,7 +734,9 @@ class WorldSim {
       // the boss's arena goes with it
       if (e.props) for (const pr of e.props) if (!pr.dead) { pr.dead = true; this.all({ t: 'edel', id: pr.id }); }
       if (e.arena) { SetPieces.undo(w, e.arena); e.arena = null; }
-      if (e.def.guardian) this.guardianDown();
+      // (the Abyss borrows these bosses but not their dungeons' rules)
+      if (this.deep) { /* nothing */ }
+      else if (e.def.guardian) this.guardianDown();
       else if (e.def.trio && this.enemies.some((o) => !o.dead && o.def.trio)) this.kingDown();
       else if (e.def.siege) this.siegeDown(e);
       else if (this.kind === 'realm' && !e.def.dungeon && !e.def.raid && !e.def.final) {
@@ -787,7 +790,7 @@ class WorldSim {
       if (this.kind === 'raid' && this.w.raidStage === this.w.raid.stages.length - 1 &&
         !this.enemies.some((o) => o !== e && !o.dead && o.isBoss)) evs.push('raid:' + this.w.raid.id);
       if (e.def.final || e.def.finale) evs.push('elder');
-      else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
+      else if (this.kind === 'dg' && e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
       else if (this.kind === 'realm' && e.def.setpiece) {
         evs.push('events', 'event:' + e.defId);
         if (e.firstHit && Date.now() - e.firstHit < 90000) evs.push('fastevent');
@@ -811,7 +814,8 @@ class WorldSim {
     const siteHoard = e.site && !e.site.cleared;
     // the Siege: loot follows your share of the fight (under 0.5%, nothing); the MVP rolls twice
     let total = 0, mvp = null;
-    if (e.def.siege) for (const [cid, dmg] of e.hitters || []) { total += Math.max(0, dmg); if (!mvp || dmg > e.hitters.get(mvp)) mvp = cid; }
+    // (the MVP is the top damage dealer still here: the same one siegeDown names)
+    if (e.def.siege) for (const [cid, dmg] of e.hitters || []) { total += Math.max(0, dmg); if (this.players.has(cid) && (!mvp || dmg > e.hitters.get(mvp))) mvp = cid; }
     for (const [cid, dmg] of e.hitters || []) {
       const c = this.players.get(cid);
       if (!c || dmg <= 0) continue;
@@ -870,7 +874,10 @@ class WorldSim {
           for (const c of this.players.values()) c.send({ t: 'deepWave', wave: d.wave, state: 'restless', left: d.left });
         }
         d.restT = Math.max(4, 10 - (d.fightT - Data.DEEP_RESTLESS) / 10);
-        this.waveSpawn(2 + Math.floor(d.wave / 8), ['ambush'], true);
+        // (never more than so many alive at once: a group that can't keep up isn't buried, and the server isn't either)
+        const alive = this.enemies.filter((e) => !e.dead && !e.def.abyssChest).length;
+        const room = 40 + 10 * this.players.size - alive;
+        if (room > 0) this.waveSpawn(Math.min(room, 2 + Math.floor(d.wave / 8)), ['ambush'], true);
       }
     }
     const left = this.enemies.filter((e) => !e.dead && !e.def.abyssChest).length;
@@ -981,7 +988,8 @@ class WorldSim {
   /** The Warlord marches into this realm's Godlands (server.js decides when). False if there's no room. */
   startSiege() {
     const w = this.w;
-    if (this.kind !== 'realm' || this.siege || w.closed || this.closeT > 0) return false;
+    // (not while a realm event boss is up or the realm is about to close: its finale would cut the siege short)
+    if (this.kind !== 'realm' || this.siege || w.closed || this.closeT > 0 || (w.boss && !w.boss.dead) || w.eventsDone >= Data.EVENTS_PER_REALM - 1) return false;
     for (let tries = 0; tries < 800; tries++) {
       const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5;
       if (w.zoneAt(x, y) !== World.GOD_ZONE || !w.canStand(x, y, 1.2, true)) continue;
@@ -1007,22 +1015,25 @@ class WorldSim {
 
   updateSiege(dt) {
     const sg = this.siege, e = sg.e;
+    // (the Warlord gone without a kill, e.g. an error, or the realm closing under it: the siege fails)
+    if (e.dead && !this.byId.has(e.id)) { this.siegeFail(); return; }
     if (e.dead) return;
+    if (this.closeT > 0 || this.w.closed) { this.siegeFail(); return; }
     sg.left -= dt;
     sg.waveT -= dt;
     if (sg.waveT <= 0) { sg.waveT = 25; this.siegeSoldiers(2 + Math.min(6, (e.scalePlayers || 1))); }
-    if (sg.left <= 0) {
-      // time's up: he marches away, and his soldiers with him
-      e.dead = true;
-      for (const o of this.enemies) if (!o.dead && (o === e || o.defId === 'siege_soldier')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
-      this.all({ t: 'edel', id: e.id });
-      this.siege = null;
-      for (const c of this.players.values()) c.send({ t: 'siege', on: false, lost: true });
-      if (this.onSiege) this.onSiege(this, 'fail', { name: e.def.name });
-      return;
-    }
+    if (sg.left <= 0) { this.siegeFail(); return; }
     sg.sendT -= dt;
     if (sg.sendT <= 0) { sg.sendT = 2; this.siegeStatus(false); }
+  }
+
+  /** Time's up (or the siege can't go on): he marches away, and his soldiers with him. */
+  siegeFail() {
+    const e = this.siege.e;
+    for (const o of this.enemies) if (!o.dead && (o === e || o.defId === 'siege_soldier')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+    this.siege = null;
+    for (const c of this.players.values()) c.send({ t: 'siege', on: false, lost: true });
+    if (this.onSiege) this.onSiege(this, 'fail', { name: e.def.name });
   }
 
   /** Who's done what so far, most damage first: [[client, damage], ...] and the total. */

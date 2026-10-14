@@ -121,6 +121,9 @@ package realm {
 				var many:String = pd ? (pd.name.charAt(pd.name.length - 1) == "y" ? pd.name.slice(0, -1) + "ies" : pd.name + "s") : "";
 				add(events, ev, pd ? "Arena: " + sp.n + " " + many + " " + (pd.ward ? "shield it" : pd.mend ? "heal it" : "attack you") : "Realm event (Godlands and highlands)");
 			}
+			// the Realm Siege's Warlord and the Endless Abyss's Herald (their collections count in the Oracle too)
+			add(events, "siege_warlord", "The Realm Siege (every couple of hours, in the Godlands)");
+			add(events, "abyss_herald", "The Endless Abyss, every 10th wave (its uniques are in the Abyss's chests)");
 			for each (var d:Object in Data.DUNGEONS) {
 				var finale:Boolean = Bosses.FINALES.indexOf(d.id) >= 0;
 				var list:Array = finale ? finales : d.hard ? hard : dungeons;

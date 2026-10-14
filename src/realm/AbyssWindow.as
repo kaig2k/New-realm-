@@ -86,7 +86,7 @@ package realm {
 			for (var i:int = 0; i < rows.length; i++) {
 				var r:Object = rows[i];
 				var col:String = i == 0 ? "#ffd75e" : i == 1 ? "#e0e0f0" : i == 2 ? "#e0a060" : "#c8b8e0";
-				out += "<font color='" + col + "'>" + (i + 1) + ".  <b>" + r.name + "</b>  " + r.hero + "  ·  wave " + r.wave + "</font><br>";
+				out += "<font color='" + col + "'>" + (i + 1) + ".  <b>" + Ui.esc(r.name) + "</b>  " + Ui.esc(r.hero) + "  ·  wave " + r.wave + "</font><br>";
 			}
 			lt.htmlText = out;
 			lt.width = 300;

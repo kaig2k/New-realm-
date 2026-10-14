@@ -2070,8 +2070,38 @@ const handlers = {
           if (target) { const ch = serverChar(target); if (ch) shopDone(target, sv, ch, { pet: p, petxp: amount }); }
           return c.note(accounts[who].name + '\'s pet is level ' + p.level + ' now.', 0x80ff80);
         }
+        // /give name [count] item name: any item by name (the catalogue: uniques, Godly pieces, potions,
+        // runes, keys, "T7 Armor", "Starforged Ring", "Bloodbound Weapon"...), into an online player's inventory
+        const currency = { gold: 1, fame: 1, aether: 1, onrane: 1 };
+        if (parts.length >= 3 && !(parts.length <= 4 && (parts.length === 3 ? Number.isFinite(amount) : currency[kind]))) {
+          const counted = Number.isFinite(amount) && parts.length > 3;
+          const count = counted ? amount : 1;
+          const query = parts.slice(counted ? 3 : 2).join(' ');
+          if (!who || !accounts[who]) return c.note('No account called ' + parts[1] + '.');
+          if (!target) return c.note(accounts[who].name + ' has to be online to get items.');
+          if (!(count > 0 && count <= 16)) return c.note('Give 1 to 16 at a time: /give name [count] item name');
+          const found = Data.findCatalog(query, 8);
+          if (!found.length) return c.note('No item called "' + query + '". Try part of its name, e.g. /give ' + parts[1] + ' starforged armor');
+          if (found.length > 1) return c.note('Which one? ' + found.map((e) => e.name).join(', ') + (found.length >= 8 ? '...' : ''), 0xffd75e);
+          const ch = serverChar(target), sv = onlineSave(who);
+          if (!ch || !Array.isArray(ch.inv)) return c.note(accounts[who].name + ' has to pick a hero and enter the game first.');
+          const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+          let n = 0, name = found[0].name;
+          for (let i = 0; i < ch.inv.length && n < count; i++) {
+            if (ch.inv[i]) continue;
+            const it = Data.makeCatalogItem(found[0], cls);
+            if (!it) break;
+            name = it.name;
+            ch.inv[i] = items.issue(sv, it);
+            n++;
+          }
+          if (!n) return c.note(accounts[who].name + '\'s inventory is full.');
+          log(c.name + ' gave ' + accounts[who].name + ' ' + n + ' x ' + name);
+          shopDone(target, sv, ch, { market: c.name + ' gave you ' + (n > 1 ? n + ' x ' : '') + name + '.' });
+          return c.note('Gave ' + accounts[who].name + ' ' + (n > 1 ? n + ' x ' : '') + name + (n < count ? ' (their inventory filled up)' : '') + '.', 0x80ff80);
+        }
         const what = { gold: 'gold', fame: 'fame', aether: 'onrane', onrane: 'onrane' }[(parts[3] || 'gold').toLowerCase()];
-        if (!who || !accounts[who] || !(Math.abs(amount) > 0 && Math.abs(amount) <= 10000000) || !what) return c.note('Usage: /give name amount gold|fame|aether');
+        if (!who || !accounts[who] || !(Math.abs(amount) > 0 && Math.abs(amount) <= 10000000) || !what) return c.note('Usage: /give name amount gold|fame|aether, or /give name [count] item name');
         const sv = onlineSave(who);
         sv[what] = Math.max(0, (sv[what] || 0) + amount);
         // (newer than any save the game has in flight, so the gift can't be overwritten)

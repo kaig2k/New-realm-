@@ -1,5 +1,7 @@
 package realm {
 	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.events.KeyboardEvent;
 	import flash.text.TextField;
 
 	/**
@@ -8,7 +10,7 @@ package realm {
 	 */
 	public class AdminMenu extends Sprite {
 		public static const W:int = 540, H:int = 470;
-		private static const TABS:Array = ["Player", "Monsters", "Bosses", "Dungeons", "Items"];
+		private static const TABS:Array = ["Player", "Monsters", "Bosses", "Dungeons", "Items", "Give", "Endgame"];
 
 		private var g:Game;
 		private var tab:int = 0;
@@ -44,8 +46,8 @@ package realm {
 			tab = t;
 			tabBtns.removeChildren();
 			for (var i:int = 0; i < TABS.length; i++) {
-				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 100, 30, tabFn(i), 14);
-				b.x = 14 + i * 104;
+				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 70, 30, tabFn(i), 12);
+				b.x = 14 + i * 74;
 				b.alpha = i == tab ? 1 : 0.75;
 				tabBtns.addChild(b);
 			}
@@ -56,6 +58,8 @@ package realm {
 				case 2: buildSpawnList(true); break;
 				case 3: buildDungeons(); break;
 				case 4: buildItems(); break;
+				case 5: buildGive(); break;
+				case 6: buildEndgame(); break;
 			}
 		}
 
@@ -229,6 +233,119 @@ package realm {
 			for (var i:int = 0; i < Data.STATS.length; i++) {
 				btn(Data.STAT_SHORT[Data.STATS[i]], 14 + (i % 6) * 86, y2 + int(i / 6) * 32, 82, statFn(Data.STATS[i]), 12, 28);
 			}
+		}
+
+		// ------------------------------------------------------------ Give: any item by name, to you or a player
+		private var query:String = "", toName:String = "", toCount:String = "1";
+
+		/** A text box for the menu: typing in it never reaches the game. */
+		private function field(x:int, y:int, w:int, value:String, max:int, onChange:Function):TextField {
+			var f:TextField = Ui.input(w, value, max, 13);
+			f.x = x; f.y = y;
+			f.addEventListener(KeyboardEvent.KEY_DOWN, function(e:KeyboardEvent):void { e.stopPropagation(); if (e.keyCode == 27) g.toggleAdmin(); });
+			f.addEventListener(KeyboardEvent.KEY_UP, function(e:KeyboardEvent):void { e.stopPropagation(); });
+			f.addEventListener(Event.CHANGE, function(e:Event):void { onChange(f.text); });
+			body.addChild(f);
+			return f;
+		}
+
+		private var results:Sprite;
+
+		private function buildGive():void {
+			label("Any item by name: uniques, Godly, potions, runes, keys, <b>T7 Armor</b>, <b>Starforged Ring</b>...", 14, 0, 0xcccccc, 512);
+			label("Item", 14, 34, 0xffd75e, 60);
+			var q:TextField = field(60, 32, 290, query, 40, function(t:String):void { query = t; listResults(); });
+			label("Player", 362, 34, 0xffd75e, 60);
+			field(412, 32, 80, toName, 12, function(t:String):void { toName = t; });
+			field(498, 32, 30, toCount, 2, function(t:String):void { toCount = t; });
+			label("<font size='11'>Me: into your inventory. Player: sends /give (they must be online; the count is how many).</font>", 14, 58, 0x999999, 512);
+			results = new Sprite();
+			results.y = 78;
+			body.addChild(results);
+			listResults();
+			if (stage) stage.focus = q;
+			// quick picks for the newer things
+			var y:int = 306;
+			label("Quick", 14, y + 5, 0xffd75e, 60);
+			btn("Evolution Stone", 60, y, 116, function():void { g.giveItem(Data.makeStone()); }, 11, 26);
+			btn("Random rune", 180, y, 100, function():void { g.giveItem(Data.makeRune(Data.STATS[int(Math.random() * Data.STATS.length)])); }, 11, 26);
+			btn("Cursed gear", 284, y, 100, function():void { g.giveItem(Data.makeCursed(g.player.cls)); }, 11, 26);
+			btn("Star Shard", 388, y, 90, function():void { g.giveItem(Data.makeSor()); }, 11, 26);
+			y += 30;
+			btn("Abyss uniques", 60, y, 116, function():void { for each (var u:String in Data.DEEP_UNIQUES) g.giveItem(Uniques.make(u)); }, 11, 26);
+			btn("Siege uniques", 180, y, 100, function():void { for each (var u2:String in ["siegebreaker", "warlords_banner", "rampart_plate"]) g.giveItem(Uniques.make(u2)); }, 11, 26);
+			btn("All raid keys", 284, y, 100, function():void { g.adminGiveKeys(); }, 11, 26);
+		}
+
+		private function listResults():void {
+			if (!results) return;
+			results.removeChildren();
+			var found:Array = Data.findCatalog(query, 14);
+			if (!query) { var hint:TextField = Ui.text(12, 0x888888, false, "left", 500, true); hint.text = "Start typing an item's name..."; results.addChild(hint); return; }
+			if (!found.length) { var none:TextField = Ui.text(12, 0xff8080, false, "left", 500, true); none.text = "Nothing called that."; results.addChild(none); return; }
+			for (var i:int = 0; i < found.length; i++) {
+				var e:Object = found[i];
+				var x:int = 14 + (i % 2) * 260, y:int = int(i / 2) * 30;
+				var it:Object = Data.makeCatalogItem(e, g.player.cls);
+				var nm:TextField = Ui.text(12, it ? (Data.RARITY_COLORS[it.rarity] || 0xffffff) : 0xffffff, true, "left", 150, true);
+				nm.text = e.name;
+				nm.x = x; nm.y = y + 5;
+				results.addChild(nm);
+				var me:Sprite = Ui.button("Me", 40, 24, giveMeFn(e), 11);
+				me.x = x + 156; me.y = y;
+				results.addChild(me);
+				var pl:Sprite = Ui.button("Player", 54, 24, givePlayerFn(e), 11);
+				pl.x = x + 198; pl.y = y;
+				results.addChild(pl);
+			}
+		}
+
+		private function giveMeFn(e:Object):Function {
+			return function():void {
+				var it:Object = Data.makeCatalogItem(e, g.player.cls);
+				if (it) { g.giveItem(it); g.msg("Gave you " + it.name + ".", 0x80ff80); }
+			};
+		}
+
+		private function givePlayerFn(e:Object):Function {
+			return function():void {
+				var who:String = toName.replace(/\s/g, "");
+				if (!who) { g.msg("Type the player's name in the Player box first.", 0xff8080); return; }
+				var n:int = Math.max(1, Math.min(16, int(toCount) || 1));
+				g.runCommand("/give " + who + " " + n + " " + e.name);
+			};
+		}
+
+		// ------------------------------------------------------------ Endgame: the newer systems
+		private function buildEndgame():void {
+			var col:Array = [14, 190, 366], w:int = 168, y:int = 0;
+			label("Realm Siege and the Endless Abyss", 14, y, 0xffd75e);
+			y += 22;
+			btn("Start a Realm Siege now", col[0], y, w, function():void { g.runCommand("/siege"); });
+			btn("Enter the Endless Abyss", col[1], y, w, function():void { g.toggleAdmin(); g.enterDeep(0); });
+			btn("Abyss board", col[2], y, w, function():void { g.toggleAbyss(); });
+			y += 40;
+			label("Your hero", 14, y, 0xffd75e);
+			y += 22;
+			btn("Max hero (to ascend)", col[0], y, w, function():void { g.runCommand("/maxhero"); });
+			btn("Ascension window", col[1], y, w, function():void { g.toggleAdmin(); g.toggleAscend(); });
+			btn("The Oracle", col[2], y, w, function():void { g.toggleAdmin(); g.toggleOracle(); });
+			y += 34;
+			btn("Pets window", col[0], y, w, function():void { g.toggleAdmin(); g.togglePet(); });
+			btn("+200 pet XP", col[1], y, w, function():void { g.runCommand("/give " + g.player.name + " 200 petxp"); });
+			btn("Godlands Spires", col[2], y, w, function():void { g.runCommand("/spires"); });
+			y += 40;
+			label("Moderation", 14, y, 0xffd75e);
+			y += 22;
+			btn("Flagged players", col[0], y, w, function():void { g.toggleAdmin(); g.runCommand("/flags"); });
+			btn("Bug reports", col[1], y, w, function():void { g.toggleAdmin(); g.runCommand("/bugs"); });
+			btn("Server stats", col[2], y, w, function():void { g.runCommand("/stats"); });
+			y += 34;
+			btn("Staff list", col[0], y, w, function():void { g.runCommand("/mods"); });
+			btn("VIP list", col[1], y, w, function():void { g.runCommand("/vips"); });
+			btn("Who's online", col[2], y, w, function():void { g.runCommand("/who"); });
+			y += 40;
+			label("<font size='11'>Also: /give name [count] item, /vip name [days], /mod name, /rename, /heroname, /maxhero name, /siege, /realms n</font>", 14, y, 0x999999, 512);
 		}
 
 		private function itemFn(slot:int, tier:int, rarity:String):Function {

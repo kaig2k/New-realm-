@@ -170,6 +170,53 @@ class Data {
 			if (kind == "mp") return {kind: "mp", tier: 0, name: "Magic Potion", color: 0x3060ff};
 			return {kind: "stat", sub: stat, tier: 0, name: "Potion of " + Data.STAT_NAMES[stat], color: Data.STAT_COLORS[stat]};
 		}
+	static itemCatalog() {
+			if (Data.catalog) return Data.catalog;
+			var out = [];
+			var id = null, i = 0, s = 0;
+			for (id in Uniques.ALL) out.push({name: Uniques.ALL[id][0], k: "u", a: id});
+			for (id in Godly.SETS) for (s = __int(0); s < 4; s++) out.push({name: Godly.SETS[id].items[s], k: "g", a: id, b: s});
+			out.push({name: "Health Potion", k: "p", a: "hp"}, {name: "Magic Potion", k: "p", a: "mp"});
+			for (var st of __vals( Data.STATS)) {
+				out.push({name: "Potion of " + Data.STAT_NAMES[st], k: "p", a: st});
+				out.push({name: Data.STAT_NAMES[st] + " Rune", k: "n", a: st});
+			}
+			out.push({name: "Star Shard", k: "m", a: "sor"}, {name: "Evolution Stone", k: "m", a: "stone"});
+			for (i = __int(0); i < Bosses.RAIDS.length; i++) out.push({name: Bosses.RAIDS[i].name + " Key", k: "k", a: i});
+			for (i = __int(0); i < Data.DUNGEONS.length; i++) out.push({name: Data.DUNGEONS[i].name + " Key", k: "d", a: i});
+			var slots = ["Weapon", "Ability", "Armor", "Ring"], tops = [7, 6, 7, 5];
+			for (s = __int(0); s < 4; s++) {
+				for (i = __int(0); i <= tops[s]; i++) out.push({name: "T" + i + " " + slots[s], k: "t", a: s, b: i});
+				for (var rar of __vals( ["ut", "st", "fb", "lg", "ar", "gd"])) out.push({name: Data.RARITY_NAMES[rar] + " " + slots[s], k: "r", a: s, b: rar});
+				out.push({name: "Cursed " + slots[s], k: "c", a: s, b: ""});
+				for (var cu of __vals( Data.CURSE_IDS)) out.push({name: Data.CURSES[cu].name + " " + slots[s], k: "c", a: s, b: cu});
+			}
+			return Data.catalog = out;
+		}
+	static catKey(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+	static findCatalog(query, max = 8) { max = __int(max);
+			var q = Data.catKey(query);
+			if (!q) return [];
+			var all = Data.itemCatalog(), out = [];
+			for (var e of __vals( all)) if (Data.catKey(e.name) == q) return [e];
+			for (e of __vals( all)) if (Data.catKey(e.name).indexOf(q) >= 0) { out.push(e); if (out.length >= max) break; }
+			return out;
+		}
+	static makeCatalogItem(e, cls) {
+			switch (e.k) {
+				case "u": return Uniques.make(e.a);
+				case "g": return Godly.make(e.a, e.b);
+				case "p": return e.a == "hp" || e.a == "mp" ? Data.makePotion(e.a) : Data.makePotion("stat", e.a);
+				case "m": return e.a == "sor" ? Data.makeSor() : Data.makeStone();
+				case "n": return Data.makeRune(e.a);
+				case "k": return Data.makeKey(e.a);
+				case "d": return Data.makeDungeonKey(e.a);
+				case "t": return Data.makeForSlot(cls, e.a, e.b, null);
+				case "r": return e.b == "gd" ? Godly.make(cls.id, e.a) : Data.makeForSlot(cls, e.a, 7, e.b);
+				case "c": return Data.makeCursed(cls, e.a, e.b || null);
+			}
+			return null;
+		}
 	static makeKey(raid) { raid = __int(raid);
 			var rd = Bosses.RAIDS[raid];
 			return {kind: "key", sub: rd.id, tier: 0, name: rd.name + " Key", color: rd.color};
@@ -3770,6 +3817,7 @@ Data.ABILITY_SETS = {
 			lyre: ["valor", "lullaby", "requiem"], flask: ["acidflask", "elixir", "philbomb"], hourglass: ["rewind", "timestop", "hastefield"]
 		};
 Data.RING_PREFIX = ["Minor", "", "Greater", "Superior", "Paramount", "Exalted"];
+Data.catalog = null;
 Data.SHOP = [
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},

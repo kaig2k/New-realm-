@@ -445,6 +445,68 @@ package realm {
 			return {kind: "stat", sub: stat, tier: 0, name: "Potion of " + STAT_NAMES[stat], color: STAT_COLORS[stat]};
 		}
 
+		// ---- the item catalogue: every item that can be named (admins' /give and the Admin Menu's search)
+		private static var catalog:Array = null;
+		/**
+		 * [{name, k, a, b}]: k says how to make it (Data.makeCatalogItem): "u" a unique (a: its id),
+		 * "g" a Godly piece (a: class, b: slot), "p" a potion (a: hp, mp or a stat), "m" a material
+		 * (a: sor or stone), "n" a rune (a: stat), "k" a raid key / "d" a dungeon key (a: index),
+		 * "t" class gear (a: slot, b: tier), "r" class gear of a rarity (a: slot, b: rarity),
+		 * "c" cursed class gear (a: slot, b: curse or "").
+		 */
+		public static function itemCatalog():Array {
+			if (catalog) return catalog;
+			var out:Array = [];
+			var id:String, i:int, s:int;
+			for (id in Uniques.ALL) out.push({name: Uniques.ALL[id][0], k: "u", a: id});
+			for (id in Godly.SETS) for (s = 0; s < 4; s++) out.push({name: Godly.SETS[id].items[s], k: "g", a: id, b: s});
+			out.push({name: "Health Potion", k: "p", a: "hp"}, {name: "Magic Potion", k: "p", a: "mp"});
+			for each (var st:String in STATS) {
+				out.push({name: "Potion of " + STAT_NAMES[st], k: "p", a: st});
+				out.push({name: STAT_NAMES[st] + " Rune", k: "n", a: st});
+			}
+			out.push({name: "Star Shard", k: "m", a: "sor"}, {name: "Evolution Stone", k: "m", a: "stone"});
+			for (i = 0; i < Bosses.RAIDS.length; i++) out.push({name: Bosses.RAIDS[i].name + " Key", k: "k", a: i});
+			for (i = 0; i < DUNGEONS.length; i++) out.push({name: DUNGEONS[i].name + " Key", k: "d", a: i});
+			var slots:Array = ["Weapon", "Ability", "Armor", "Ring"], tops:Array = [7, 6, 7, 5];
+			for (s = 0; s < 4; s++) {
+				for (i = 0; i <= tops[s]; i++) out.push({name: "T" + i + " " + slots[s], k: "t", a: s, b: i});
+				for each (var rar:String in ["ut", "st", "fb", "lg", "ar", "gd"]) out.push({name: RARITY_NAMES[rar] + " " + slots[s], k: "r", a: s, b: rar});
+				out.push({name: "Cursed " + slots[s], k: "c", a: s, b: ""});
+				for each (var cu:String in CURSE_IDS) out.push({name: CURSES[cu].name + " " + slots[s], k: "c", a: s, b: cu});
+			}
+			return catalog = out;
+		}
+
+		private static function catKey(s:String):String { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+		/** Catalogue entries matching what was typed: an exact name first, else every name containing it (at most max). */
+		public static function findCatalog(query:String, max:int = 8):Array {
+			var q:String = catKey(query);
+			if (!q) return [];
+			var all:Array = itemCatalog(), out:Array = [];
+			for each (var e:Object in all) if (catKey(e.name) == q) return [e];
+			for each (e in all) if (catKey(e.name).indexOf(q) >= 0) { out.push(e); if (out.length >= max) break; }
+			return out;
+		}
+
+		/** Makes a catalogue entry's item (class gear for cls). */
+		public static function makeCatalogItem(e:Object, cls:Object):Object {
+			switch (e.k) {
+				case "u": return Uniques.make(e.a);
+				case "g": return Godly.make(e.a, e.b);
+				case "p": return e.a == "hp" || e.a == "mp" ? makePotion(e.a) : makePotion("stat", e.a);
+				case "m": return e.a == "sor" ? makeSor() : makeStone();
+				case "n": return makeRune(e.a);
+				case "k": return makeKey(e.a);
+				case "d": return makeDungeonKey(e.a);
+				case "t": return makeForSlot(cls, e.a, e.b, null);
+				case "r": return e.b == "gd" ? Godly.make(cls.id, e.a) : makeForSlot(cls, e.a, 7, e.b);
+				case "c": return makeCursed(cls, e.a, e.b || null);
+			}
+			return null;
+		}
+
 		/** A raid key: use it in the Nexus to open that raid's portal. */
 		public static function makeKey(raid:int):Object {
 			var rd:Object = Bosses.RAIDS[raid];

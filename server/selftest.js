@@ -2083,6 +2083,25 @@ async function run() {
     await wait(400);
     take(E.find((m) => m.t === 'shopDone'));
     check('/give name 200 petxp grows an online player\'s pet', pet && pet.level >= 10, JSON.stringify(pet));
+    // /give name [count] item name: any item, by name
+    E.clear();
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' siegebreaker' });
+    await wait(400);
+    take(E.find((m) => m.t === 'shopDone'));
+    check('/give name siegebreaker hands an online player that unique', eh.inv.some((it) => it && it.name === 'Siegebreaker'), JSON.stringify(eh.inv));
+    E.clear();
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' 2 health potion' });
+    await wait(400);
+    take(E.find((m) => m.t === 'shopDone'));
+    check('/give name 2 health potion gives two', eh.inv.filter((it) => it && it.kind === 'hp').length === 2, JSON.stringify(eh.inv));
+    bz6.clear();
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' potion' });
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' zzqqxx' });
+    await wait(400);
+    const notes = JSON.stringify(bz6.msgs);
+    check('/give with a vague name asks which one; an unknown name says so', /Which one\?/.test(notes) && /zzqqxx|No item|no item/i.test(notes), notes);
+    // make room again for what follows
+    eh.inv = eh.inv.map((it) => it && (it.kind === 'hp' || it.name === 'Siegebreaker') ? null : it);
     const goldBefore = gold;
     const evo = await ask({ t: 'petEvolve' });
     check('at level 10, a Stone and 500 gold evolve it to Juvenile (the server takes both)',

@@ -1570,6 +1570,23 @@ async function run() {
     const ob = oracle.view(osv).b.cube;
     check('the Oracle counts boss kills and what they dropped, and logs the rare ones',
       ob && ob.k === 2 && ob.d['Cube Crown'].c === 1 && ob.d['Health Potion'].c === 1 && oracle.view(osv).log.length === 1 && oracle.view(osv).log[0].name === 'Cube Crown', JSON.stringify(oracle.view(osv)));
+    // a boss's collection: all its uniques found -> done (once), and its stat for every hero
+    {
+      const { Data: OD, Uniques: OU } = require('./sim/gen/game');
+      const combat = require('./combat');
+      const osv2 = {};
+      const need = OD.bossUniques('ev_cube');
+      oracle.record(osv2, 'ev_cube', 'Cube Overlord', [OU.make(need[0])], 1000);
+      const none = oracle.completions(osv2);
+      oracle.record(osv2, 'ev_cube', 'Cube Overlord', need.map((u) => OU.make(u)), 2000);
+      const got = oracle.completions(osv2), again = oracle.completions(osv2);
+      const st = OD.oracleStat('ev_cube');
+      const hero = { cls: 'wizard', stats: { hp: 100, mp: 100, att: 20, def: 0, spd: 10, dex: 10, vit: 10, wis: 10, mgt: 0, luc: 0, prt: 0 }, level: 1 };
+      const base = combat.stat(hero, st), withB = combat.stat(hero, st, OD.oracleBonus(osv2.oracleDone));
+      check('the Oracle: finding every unique of a boss completes its collection once, and its stat counts for every hero (server caps too)',
+        none.length === 0 && got.length === 1 && got[0] === 'ev_cube' && again.length === 0 && withB - base === (st === 'hp' || st === 'mp' ? 5 : 1) && oracle.collectionCount() > 20 && OD.findTitle('oracle_ev_cube'),
+        JSON.stringify([none, got, again, base, withB]));
+    }
     const bz5 = await login('TestBoss', { password: 'pass1234' });
     const realmsBefore = bz5.find((m) => m.t === 'welcome').realms.length;
     check('one realm is open by default', realmsBefore === 1, String(realmsBefore));

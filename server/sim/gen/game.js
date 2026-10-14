@@ -560,9 +560,34 @@ class Data {
 			for (var d of __vals( Data.PET_SKINS)) if (d.id == id) return d;
 			return null;
 		}
+	static bossUniques(id) {
+			var d = Data.ENEMIES[id];
+			if (!d || !d.uniques) return [];
+			var ids = d.uniques.concat();
+			if (id == "zealot_a" && Data.ENEMIES.zealot_b && Data.ENEMIES.zealot_b.uniques) ids = ids.concat(Data.ENEMIES.zealot_b.uniques);
+			return ids;
+		}
+	static oracleStat(id) {
+			var h = __int(0);
+			for (var i = __int(0); i < id.length; i++) h = __int((h * 31 + id.charCodeAt(i)) & 0xffff);
+			return Data.STATS[h % Data.STATS.length];
+		}
+	static oracleBonus(done) {
+			var out = {};
+			for (var id of __vals( done || [])) {
+				var s = Data.oracleStat(id);
+				out[s] = (out[s] || 0) + (s == "hp" || s == "mp" ? 5 : 1);
+			}
+			return out;
+		}
 	static findTitle(id) {
 			if (!id) return null;
 			for (var t of __vals( Data.TITLES)) if (t.id == id) return t;
+			if (id.indexOf("oracle_") == 0 && Data.ENEMIES[id.substr(7)]) {
+				var bn = String(Data.ENEMIES[id.substr(7)].name).split(" ")[0];
+				if (bn == "The") bn = String(Data.ENEMIES[id.substr(7)].name).split(" ")[1];
+				return {id: id, name: bn + "'s Chosen", earn: "Find every unique drop of " + Data.ENEMIES[id.substr(7)].name + " (the Oracle)", col: 0xb9a9ff};
+			}
 			if (id.indexOf("slayer_") == 0 && Data.SLAYER[id.substr(7)]) {
 				var ev = id.substr(7);
 				return {id: id, name: Data.SLAYER[ev], earn: "A top-5 time against " + (Data.ENEMIES[ev] ? Data.ENEMIES[ev].name : ev) + " on the Records board", col: 0xff9a2e};
@@ -4133,13 +4158,16 @@ Data.TITLES = [
 			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff},
 			{id: "season_top10", name: "Ladder Elite", earn: "Finish a season in the ladder's top ten", col: 0x8fd16a},
 			{id: "season_podium", name: "Season Medallist", earn: "Finish a season in the ladder's top three", col: 0xc0e8ff},
-			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a}
+			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a},
+			{id: "oracle5", name: "Oracle's Favoured", earn: "Complete 5 boss collections in the Oracle", col: 0xb9a9ff},
+			{id: "oracleall", name: "the All-Seeing", earn: "Complete every boss collection in the Oracle", col: 0xe0d0ff}
 		];
 Data.SLAYER = {
 			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
 			ev_regent: "Regent's Bane", ev_sphinx: "Riddle Breaker", ev_lord: "Tidebreaker", ev_hermit: "Hermit Hunter", ev_shrine: "Shrine Breaker",
 			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
 		};
+Data.ORACLE_TITLES = [[5, "oracle5"], [0, "oracleall"]];
 Data.PET_SPECIES = [
 			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},
 			{id: "drake", name: "Ember Drake"}, {id: "wisp", name: "Wisp"}, {id: "golem", name: "Pebble Golem"}

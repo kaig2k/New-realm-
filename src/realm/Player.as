@@ -157,8 +157,17 @@ package realm {
 		}
 
 		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
+		/** The Oracle's collection bonuses (Data.oracleBonus of Save.data.oracleDone), worked out again only when that list changes. */
+		private static var oracleKey:String = null, oracleCache:Object = {};
+		public static function oracleBonus():Object {
+			var done:Array = Save.data.oracleDone as Array;
+			var k:String = done ? done.join(",") : "";
+			if (k != oracleKey) { oracleKey = k; oracleCache = Data.oracleBonus(done); }
+			return oracleCache;
+		}
+
 		public function bonus(s:String):int {
-			var b:int = 0;
+			var b:int = int(oracleBonus()[s] || 0);
 			// a weapon's "spd" is its bullet speed, not a Speed bonus
 			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s] && !(s == "spd" && it.kind == "weapon")) b += it[s];
 			var set:String = activeSet;

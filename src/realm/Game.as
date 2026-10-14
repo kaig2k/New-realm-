@@ -6554,6 +6554,19 @@ package realm {
 			Online.send({t: "oracleView"});
 		}
 
+		/** The server says a boss's Oracle collection is complete: its stat for every hero. */
+		public function oracleCompleted(id:String, done:Array, stat:String):void {
+			Save.data.oracleDone = done;
+			var d:Object = Data.ENEMIES[id];
+			var amt:int = stat == "hp" || stat == "mp" ? 5 : 1;
+			showBanner("Collection complete: " + (d ? d.name : id) + "!", 0xb9a9ff, 4);
+			msg("The Oracle: you've found every unique drop of " + (d ? d.name : id) + ". Every hero gets +" + amt + " " + Data.STAT_NAMES[stat] + ", and you earned the title \"" + Data.findTitle("oracle_" + id).name + "\".", 0xb9a9ff);
+			Sfx.play("rare");
+			burst(player.x, player.y, 0xb9a9ff, 40);
+			hud.refresh();
+			if (oracleWin) Online.send({t: "oracleView"});
+		}
+
 		public function openOracle(o:Object):void {
 			if (oracleWin) { oracleWin.setData(o); return; }
 			oracleWin = new OracleWindow(this, o);

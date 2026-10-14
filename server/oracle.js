@@ -43,10 +43,41 @@ function record(sv, bossId, bossName, items, now) {
   }
 }
 
+/**
+ * Boss collections finished: a boss is done once every one of its unique drops has
+ * been found (by any of its kills: the zealot pair share one). Adds the new ones to
+ * sv.oracleDone (server-owned; Data.oracleBonus turns it into stats) and returns them.
+ */
+function completions(sv) {
+  const { Data } = require('./sim/gen/game');
+  const o = sv._oracle && sv._oracle.b ? sv._oracle : null;
+  if (!o) return [];
+  const found = new Set();
+  for (const id in o.b) for (const n in (o.b[id].d || {})) if (o.b[id].d[n].u) found.add(o.b[id].d[n].u);
+  const done = Array.isArray(sv.oracleDone) ? sv.oracleDone : (sv.oracleDone = []);
+  const fresh = [];
+  for (const id in Data.ENEMIES) {
+    if (done.includes(id) || id === 'zealot_b') continue;
+    const need = Data.bossUniques(id);
+    if (!need.length || !need.every((u) => found.has(u))) continue;
+    done.push(id);
+    fresh.push(id);
+  }
+  return fresh;
+}
+
+/** How many boss collections there are (bosses with unique drops). */
+function collectionCount() {
+  const { Data } = require('./sim/gen/game');
+  let n = 0;
+  for (const id in Data.ENEMIES) if (id !== 'zealot_b' && Data.bossUniques(id).length) n++;
+  return n;
+}
+
 /** What the game is sent (/oracle): the whole record. */
 function view(sv) {
   const o = sv && sv._oracle && typeof sv._oracle === 'object' ? sv._oracle : { b: {}, log: [] };
   return { b: o.b || {}, log: o.log || [] };
 }
 
-module.exports = { record, view, notable };
+module.exports = { record, view, notable, completions, collectionCount };

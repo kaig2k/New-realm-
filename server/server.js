@@ -113,7 +113,24 @@ const sims = config.serverMonsters === false ? null : new Sims();
 // loot the server rolls is written into the looter's ledger
 if (sims) sims.issuer = (c, it) => { const sv = onlineSave(c.key); items.issue(sv, it); store.putSave(c.key, sv); };
 const oracle = require('./oracle');
-if (sims) sims.onOracle = (c, e, got) => { if (!c.key) return; const sv = onlineSave(c.key); oracle.record(sv, e.defId, e.def.name, got); store.putSave(c.key, sv); };
+if (sims) sims.onOracle = (c, e, got) => {
+  if (!c.key) return;
+  const sv = onlineSave(c.key);
+  oracle.record(sv, e.defId, e.def.name, got);
+  // a boss's collection finished: its title, and +1 to a stat for every hero
+  const fresh = oracle.completions(sv);
+  store.putSave(c.key, sv);
+  if (!fresh.length) return;
+  for (const id of fresh) {
+    const st = Data.oracleStat(id);
+    grantTitle(c.key, 'oracle_' + id);
+    c.send({ t: 'oracleDone', id, done: sv.oracleDone, stat: st });
+    feat('oracle', { name: c.name, boss: Data.ENEMIES[id].name });
+  }
+  if (sv.oracleDone.length >= 5) grantTitle(c.key, 'oracle5');
+  if (sv.oracleDone.length >= oracle.collectionCount()) grantTitle(c.key, 'oracleall');
+  setCaps(c);
+};
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
 
@@ -623,6 +640,7 @@ function feat(kind, d) {
   if (kind === 'record') discord.post('🏆 **New record!** ' + dnames(d.names) + ' killed **' + desc(d.boss) + '** in **' + d.time + '**' + (d.old ? ' (beating ' + d.old + ')' : '') + '.', 0xffd75e);
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
+  else if (kind === 'oracle') discord.post('👁️ **' + desc(d.name) + '** completed the Oracle\'s collection for **' + desc(d.boss) + '**!', 0xb9a9ff);
   else if (kind === 'primordial') discord.post('🔥 **' + desc(d.name) + '** found a Primordial item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff5533);
   else if (kind === 'godly') discord.post('✨ **' + desc(d.name) + '** found a Godly item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff60ff);
   else if (kind === 'vaultrecord') discord.post('⏱️ **Fastest Starfall Vault clear this week** (' + desc(d.twist) + '): ' + dnames(d.names) + ' in **' + d.time + '**!', 0x80e0ff);
@@ -742,6 +760,7 @@ function applySave(c, data, cid) {
   if (prev._market) data._market = prev._market; else delete data._market;
   // and the Oracle's record of boss kills and drops
   if (prev._oracle) data._oracle = prev._oracle; else delete data._oracle;
+  if (prev.oracleDone) data.oracleDone = prev.oracleDone; else delete data.oracleDone;
   // and the Pet Stable (it only changes through petStable and hatch)
   if (prev.stable) data.stable = prev.stable; else delete data.stable;
   // and the daily login streak
@@ -810,7 +829,7 @@ const NEW_HERO_CAPS = { hit: 300, rate: 1500, burst: 6000, def: 0, maxHp: 0 };
 function setCaps(c) {
   if (isAdmin(c)) { c.caps = null; c.maxDps = 1e9; c.defMax = 1e9; return; }
   const sv = store.getSave(c.key) || {};
-  c.caps = combat.caps(serverChar(c), sv.pet) || NEW_HERO_CAPS;
+  c.caps = combat.caps(serverChar(c), sv.pet, Data.oracleBonus(sv.oracleDone || [])) || NEW_HERO_CAPS;
   c.maxDps = c.caps.rate * 3;
   // (damage checks: the most Defense, and the most health, this hero can have)
   c.defMax = c.caps.def;

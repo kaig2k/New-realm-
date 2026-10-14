@@ -114,8 +114,14 @@ package realm {
 				total++;
 				for each (var it:Object in specials(e.id)) { all++; if (found(e.id, it)) have++; }
 			}
-			var sub:TextField = Ui.text(13, 0xb0a8d0, false, "left", 560, true);
-			sub.htmlText = "<b>" + Ui.commas(kills) + "</b> boss kills  ·  <b>" + bosses + "</b> of " + total + " bosses slain  ·  <b>" + have + "</b> of " + all + " unique drops found";
+			var done:Array = (Save.data.oracleDone as Array) || [];
+			var cols:int = 0;
+			for each (var gl2:Array in groups) for each (var e2:Object in gl2) if (Data.bossUniques(e2.id).length) cols++;
+			var bon:Object = Data.oracleBonus(done), bl:Array = [];
+			for (var bk:String in bon) bl.push("+" + bon[bk] + " " + Data.STAT_NAMES[bk]);
+			var sub:TextField = Ui.text(13, 0xb0a8d0, false, "left", 640, true);
+			sub.htmlText = "<b>" + Ui.commas(kills) + "</b> boss kills  ·  <b>" + bosses + "</b> of " + total + " slain  ·  <b>" + have + "</b> of " + all + " drops found  ·  <font color='#e0d0ff'><b>" + done.length + "</b> of " + cols + " collections</font>" +
+				(bl.length ? "<br><font color='#9cff7a' size='11'>For every hero: " + bl.join(", ") + "</font>" : "");
 			sub.x = 66; sub.y = 42;
 			head.addChild(sub);
 			var close:Sprite = Ui.button("X", 32, 28, function():void { g.closeOracle(); }, 15);
@@ -236,9 +242,13 @@ package realm {
 			var sp:Array = specials(sel);
 			var y:int = 232;
 			var sh:TextField = Ui.text(11, 0x8a80b0, true, "left", pw, true);
-			var have:int = 0;
-			for each (var it0:Object in sp) if (found(sel, it0)) have++;
-			sh.htmlText = "UNIQUE DROPS  <font color='" + (sp.length && have == sp.length ? "#ffd75e" : "#6a6a7a") + "'>" + have + " / " + sp.length + (sp.length && have == sp.length ? "  COMPLETE!" : "") + "</font>";
+			// (the collection is the uniques; Godly items show too, but aren't needed)
+			var have:int = 0, need:int = 0;
+			for each (var it0:Object in sp) if (!it0.gid) { need++; if (found(sel, it0)) have++; }
+			var isDone:Boolean = ((Save.data.oracleDone as Array) || []).indexOf(sel) >= 0;
+			var rs:String = Data.oracleStat(sel);
+			sh.htmlText = "COLLECTION  <font color='" + (isDone ? "#ffd75e" : "#6a6a7a") + "'>" + have + " / " + need + (isDone ? "  COMPLETE!" : "") + "</font>" +
+				(need ? "   <font color='" + (isDone ? "#9cff7a" : "#8a80b0") + "'>reward: \"" + Data.findTitle("oracle_" + sel).name + "\" and +" + (rs == "hp" || rs == "mp" ? 5 : 1) + " " + Data.STAT_NAMES[rs] + " for every hero" + (isDone ? " ✓" : "") + "</font>" : "");
 			sh.x = x0; sh.y = y;
 			body.addChild(sh);
 			y += 20;

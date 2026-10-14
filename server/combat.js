@@ -36,9 +36,9 @@ const HITS_PER_CAST = 12;
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 
-/** A hero's total for stat k: base stats, gear, set bonus, mode and skill-tree stats (Player.stat). */
-function stat(ch, k) {
-  let n = num((ch.stats || {})[k]);
+/** A hero's total for stat k: base stats, gear, set bonus, mode, skill-tree stats and account bonuses (extra: the Oracle's) (Player.stat). */
+function stat(ch, k, extra) {
+  let n = num((ch.stats || {})[k]) + (extra ? num(extra[k]) : 0);
   let set = null;
   for (const it of [ch.weapon, ch.ability, ch.armor, ch.ring]) {
     if (!it || typeof it !== 'object') continue;
@@ -54,21 +54,21 @@ function stat(ch, k) {
 }
 
 /** {hit, rate, burst} for hero ch (and the account's pet), or null for no hero. */
-function caps(ch, pet) {
+function caps(ch, pet, extra) {
   if (!ch || typeof ch !== 'object') return null;
   const skills = ch.skills && typeof ch.skills === 'object' ? ch.skills : {};
   const rank = (id) => Math.max(0, num(skills[id]));
   const level = Math.max(1, Math.min(20, num(ch.level) || 1));
   // every boost at once (Player.damageMult, Game.hurtEnemy, Player.critMult)
   const boost = (1 + rank('brutality') * 0.05) * 1.3 * (1 + 5 * 0.06) * 1.25 * (1 + rank('executioner') * 0.1) * 1.5 *
-    (1.5 + stat(ch, 'mgt') / 100 + rank('ferocity') * 0.1) *
+    (1.5 + stat(ch, 'mgt', extra) / 100 + rank('ferocity') * 0.1) *
     // (Predator on bosses, Ambush on untouched monsters, Apex Predator crits on bosses)
     (1 + rank('predator') * 0.04) * (1 + rank('ambush') * 0.1) * (rank('apex') > 0 ? 1.5 : 1);
-  const mult = 0.5 + stat(ch, 'att') / 50;
+  const mult = 0.5 + stat(ch, 'att', extra) / 50;
   const w = ch.weapon && typeof ch.weapon === 'object' ? ch.weapon : null;
   const weaponHit = w ? num(w.dmax) * mult : 0;
   const shots = w ? Math.max(1, Math.min(9, num(w.shots) || 1)) : 0;
-  const fireRate = (1.5 + 6.5 * stat(ch, 'dex') / 75) * (w ? Math.min(2.5, num(w.rate) || 1) : 1) * 1.5 * 1.4;
+  const fireRate = (1.5 + 6.5 * stat(ch, 'dex', extra) / 75) * (w ? Math.min(2.5, num(w.rate) || 1) : 1) * 1.5 * 1.4;
   // (Rampage: a ring of ten every twelfth shot)
   const weaponDps = weaponHit * shots * fireRate * (w && w.passive === 'rampage' ? 1.9 : 1);
   const a = ch.ability && typeof ch.ability === 'object' ? ch.ability : null;
@@ -84,7 +84,7 @@ function caps(ch, pet) {
   const rate = Math.ceil((weaponDps + abilityDps + petHit * 1.5 * petVolley + (8 + level) * pow * 2) * boost * 1.25) + 50;
   // (and what it can take: its Defense with the best Defense aura there is, and its health)
   // (pets: Stone Guard, Bastion and Ash Guardian add Defense)
-  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def') + AURA_DEF + (pet && typeof pet === 'object' ? Data.petDef(pet) : 0), maxHp: stat(ch, 'hp') };
+  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def', extra) + AURA_DEF + (pet && typeof pet === 'object' ? Data.petDef(pet) : 0), maxHp: stat(ch, 'hp', extra) };
 }
 /** The most Defense a Warrior's banner (Abilities: 10 x its power) gives everyone near it. */
 const AURA_DEF = 30;

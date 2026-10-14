@@ -1525,7 +1525,9 @@ package realm {
 			{id: "twistbreaker", name: "Twistbreaker", earn: "A top-5 Starfall Vault clear on its weekly twist board", col: 0x80e0ff},
 			{id: "season_top10", name: "Ladder Elite", earn: "Finish a season in the ladder's top ten", col: 0x8fd16a},
 			{id: "season_podium", name: "Season Medallist", earn: "Finish a season in the ladder's top three", col: 0xc0e8ff},
-			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a}
+			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a},
+			{id: "oracle5", name: "Oracle's Favoured", earn: "Complete 5 boss collections in the Oracle", col: 0xb9a9ff},
+			{id: "oracleall", name: "the All-Seeing", earn: "Complete every boss collection in the Oracle", col: 0xe0d0ff}
 		];
 		/** Short names for the "<boss> Slayer" titles earned with a top-5 Records time. */
 		public static const SLAYER:Object = {
@@ -1533,10 +1535,41 @@ package realm {
 			ev_regent: "Regent's Bane", ev_sphinx: "Riddle Breaker", ev_lord: "Tidebreaker", ev_hermit: "Hermit Hunter", ev_shrine: "Shrine Breaker",
 			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
 		};
+		// ---- Oracle collections: every unique a boss drops, found -> a title and +1 to a stat for every hero
+		/** The unique items that make up a boss's collection (the zealot pair share one). */
+		public static function bossUniques(id:String):Array {
+			var d:Object = ENEMIES[id];
+			if (!d || !d.uniques) return [];
+			var ids:Array = d.uniques.concat();
+			if (id == "zealot_a" && ENEMIES.zealot_b && ENEMIES.zealot_b.uniques) ids = ids.concat(ENEMIES.zealot_b.uniques);
+			return ids;
+		}
+		/** The stat a boss's collection raises (the same for everyone). */
+		public static function oracleStat(id:String):String {
+			var h:int = 0;
+			for (var i:int = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+			return STATS[h % STATS.length];
+		}
+		/** What completed collections (boss ids) add to every hero: {stat: amount}; HP and MP get 5 a collection. */
+		public static function oracleBonus(done:Array):Object {
+			var out:Object = {};
+			for each (var id:String in done || []) {
+				var s:String = oracleStat(id);
+				out[s] = (out[s] || 0) + (s == "hp" || s == "mp" ? 5 : 1);
+			}
+			return out;
+		}
+		public static const ORACLE_TITLES:Array = [[5, "oracle5"], [0, "oracleall"]];
+
 		/** A title by id: {id, name, cost} for bought ones, {id, name, earn, col} for earned ones; null if unknown. */
 		public static function findTitle(id:String):Object {
 			if (!id) return null;
 			for each (var t:Object in TITLES) if (t.id == id) return t;
+			if (id.indexOf("oracle_") == 0 && ENEMIES[id.substr(7)]) {
+				var bn:String = String(ENEMIES[id.substr(7)].name).split(" ")[0];
+				if (bn == "The") bn = String(ENEMIES[id.substr(7)].name).split(" ")[1];
+				return {id: id, name: bn + "'s Chosen", earn: "Find every unique drop of " + ENEMIES[id.substr(7)].name + " (the Oracle)", col: 0xb9a9ff};
+			}
 			if (id.indexOf("slayer_") == 0 && SLAYER[id.substr(7)]) {
 				var ev:String = id.substr(7);
 				return {id: id, name: SLAYER[ev], earn: "A top-5 time against " + (ENEMIES[ev] ? ENEMIES[ev].name : ev) + " on the Records board", col: 0xff9a2e};

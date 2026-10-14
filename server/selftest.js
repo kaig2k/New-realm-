@@ -626,6 +626,12 @@ async function run() {
     const ex0 = el.x, ey0 = el.y;
     el.fire(ti, 0, 5, wa.g);
     check('...and his teleport takes him elsewhere on the platform', Math.hypot(el.x - ex0, el.y - ey0) > 1.5 && wa.w.canStand(el.x, el.y, 0.6, true), [ex0, ey0, el.x, el.y].join(' '));
+    // the Abyssal Herald, after its design sheet: an animation for every attack, and its own spawn of the deep
+    const HD = SD.ENEMIES.abyss_herald;
+    const hAll = [].concat(...HD.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
+    check('every one of the Abyssal Herald\'s attacks but its last spiral has an animation it has frames for, and it calls its own spawn',
+      hAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && HD.seq[a.anim]) && ['barrage', 'rain', 'slam', 'spread', 'explode', 'gravity', 'teleport', 'summon', 'rift'].every((k) => hAll.some((a) => a.anim === k)) &&
+      SD.ENEMIES.abyss_spawn && !SD.ENEMIES.abyss_spawn.drop && hAll.some((a) => a.p === 'summon' && a.what === 'abyss_spawn'), hAll.map((a) => a.anim).join(','));
     // online the server runs his crystal phase, and his chamber burns as he weakens
     const el2 = new WorldSim('arena:elder-test2');
     const E2 = el2.w.boss;

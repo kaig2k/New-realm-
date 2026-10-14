@@ -1268,8 +1268,8 @@ package realm {
 				var d:Number = Math.sqrt(ddx * ddx + ddy * ddy), a:Number = Math.atan2(ddy, ddx);
 				if (d > R - 1.3) tiles[i] = ASH;
 				else if (d > 4 && Math.abs(((a / (Math.PI / 4)) % 1 + 1) % 1 - 0.5) > 0.47) tiles[i] = SPECTRAL;
-				// the burning runes: four arcs across the ring, between the spokes
-				else if (d > 11 && d < 12.6 && Math.abs(((a + Math.PI / 8) / (Math.PI / 2) % 1 + 1) % 1 - 0.5) < 0.12) tiles[i] = HEXFIRE;
+				// the burning runes: four arcs of violet void fire across the ring, between the spokes
+				else if (d > 11 && d < 12.6 && Math.abs(((a + Math.PI / 8) / (Math.PI / 2) % 1 + 1) % 1 - 0.5) < 0.12) tiles[i] = VOIDFIRE;
 			}
 			// the dais
 			disc(cx, cy, 3.6, HEXSTONE, ARENA_ZONE);

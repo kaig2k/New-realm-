@@ -361,7 +361,6 @@ package realm {
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
 			// the Endless Abyss
 			Sprites.recolor("abyss_chest", "chest", {K: 0x1a0a2a, C: 0x8040c0, c: 0x4a1a7a, Y: 0xff80ff}, 6);
-			Sprites.recolor("abyss_herald", "elder_classic", {H: 0x3a2a5a, h: 0x1a1030, P: 0x2a0a4a, p: 0x12041e, Q: 0xd080ff, K: 0x000000, E: 0xff60ff, W: 0xe0c0ff, O: 0xa040ff}, 8);
 			// the Godlands Spires (guild territory)
 			Sprites.recolor("godspire", "crystal", {W: 0xffffff, C: 0xd8e8ff, c: 0x8aa0c8, D: 0x4a5a7a, S: 0x7fd8ff}, 9);
 			// the Realm Siege
@@ -703,14 +702,68 @@ package realm {
 		}
 
 		/** The Endless Abyss's boss on every 10th wave (its uniques come from the Abyss's chests). */
+		// ---- the Abyssal Herald's attacks, after its design sheet (each with its own animation)
+		private static const H_CYAN:uint = 0x30d8ff, H_PALE:uint = 0xb8f6ff, H_DEEP:uint = 0x2050e0;
+		// Orb Barrage: a stream of orbs from the trident, one after another down a line
+		private static function hBarrage(dmg:int, cd:Number, waves:int = 5):Object {
+			return aim(1, 0, 9, dmg, cd, H_CYAN, {shape: "voidorb", r: 0.34, life: 1.6, waves: waves, gap: 0.12, anim: "barrage", animMs: 100, name: "orb barrage"});
+		}
+		// Orb Barrage (vertical): orbs fall from above and burst out of the ground in columns
+		private static function hRain(n:int, dmg:int, cd:Number):Object {
+			return rain(n, 5, dmg, cd, H_CYAN, {radius: 1.3, delay: 0.9, stagger: 0.1, fx: "pillar", burst: 4, bspd: 4, blife: 0.8, shape: "voidorb",
+				anim: "rain", animMs: 120, animHit: 2, animHold: 0.9, name: "falling orbs"});
+		}
+		// Tentacle Slam: the deep's tentacles burst up in a line toward you
+		private static function hSlam(dmg:int, cd:Number):Object {
+			return rain(6, 0, dmg, cd, H_DEEP, {line: true, step: 1.7, radius: 1.4, delay: 0.7, stagger: 0.14, fx: "tentacles",
+				burst: 3, bspd: 4, blife: 0.8, shape: "wisp", anim: "slam", animMs: 120, animHit: 2, animHold: 0.7, name: "tentacle slam"});
+		}
+		// Ranged Spread: a fan of orbs
+		private static function hSpread(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 76, 7.5, dmg, cd, H_CYAN, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "orb spread"});
+		}
+		// Void Explosion: it plants the trident, a ring blazes round it, then the deep bursts out
+		private static function hExplode(dmg:int, cd:Number, radius:Number):Object {
+			return nova(radius, 1.3, dmg, cd, H_CYAN, {reach: 0.01, marker: "rune", radius: radius, burst: 18, bspd: 5.5, blife: 1.5, shape: "spike", fx: "spikes",
+				anim: "explode", animMs: 130, animHit: 2, animHold: 1.3, name: "abyssal burst"});
+		}
+		// Gravity Pull: a ring of orbs round you falling inward (they slow you)
+		private static function hGravity(n:int, dmg:int, cd:Number):Object {
+			return o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: H_PALE, shape: "voidorb", eff: "slowed"},
+				{anim: "gravity", animMs: 150, name: "the deep's pull"});
+		}
+		// Teleport: a star of cold light, and it's somewhere else (leaving a ring of sparks)
+		private static function hTeleport(cd:Number):Object {
+			return ring(10, 18, 4, 55, cd, H_PALE, {shape: "star", life: 2.0, blink: 6, anim: "teleport", animMs: 110, name: "the Herald's step"});
+		}
+		// Summon Minions: spawn of the deep swim up out of a ring of light
+		private static function hSummon(n:int, cd:Number):Object {
+			return o(summon("abyss_spawn", n, cd, 6), {anim: "summon", animMs: 130});
+		}
+		// Phase 2: a column of the deep tears open, drifts at you and bursts
+		private static function hRift(dmg:int, cd:Number):Object {
+			return aim(1, 0, 3.5, dmg, cd, H_CYAN, {shape: "rift", r: 0.6, life: 2.6, split: {n: 16, spd: 5.5, life: 1.4, dmg: int(dmg / 2)},
+				anim: "rift", animMs: 130, name: "abyssal rift"});
+		}
+
+		/** The Endless Abyss's boss on every 10th wave (its uniques come from the Abyss's chests). */
 		private static function deep():void {
-			boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: 0xc060ff,
-				gold: 600, onrane: 6, r: 1.0, scales: true, phases: [
-				P(1, {move: "orbit", attacks: [spiral(4, 12, 6, 75, 0.12, 0xc060ff), aim(3, 22, 9, 85, 1.0, 0xff60ff, {shape: "star"})]}),
-				P(0.6, {say: "Deeper... always deeper.", shield: 2.5, summon: [{what: "shade", n: 4}], move: "center",
-					attacks: [flower(20, 9, 5, 80, 1.0, 0xa040ff, {motion: "return"}), rain(5, 4, 100, 2.2, 0xff60ff, {burst: 6})]}),
-				P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald unravels!", move: "chase", speed: 1.3,
-					attacks: [spiral(8, -10, 6.5, 85, 0.1, 0xd080ff), nova(2.5, 1.1, 120, 2.4, 0xff40ff, {burst: 12})]})
+			// its spawn of the deep: little squids that drift round you and spit
+			mob("abyss_spawn", {name: "Spawn of the Deep", spr: "abyss_spawn", hp: 900, def: 12, spd: 3.0, xp: 30, ai: "orbit", keep: 4, col: H_CYAN,
+				attacks: [aim(1, 0, 7, 50, 1.4, H_CYAN, {shape: "voidorb", r: 0.22})]});
+			boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: H_CYAN,
+				gold: 600, onrane: 6, r: 1.0, scales: true,
+				seq: {idle: 4, move: 6, barrage: 6, rain: 5, summon: 5, slam: 5, teleport: 6, spread: 5, explode: 5, gravity: 5, rift: 5, death: 7, ridle: 4, rmove: 6},
+				rageAt: 2, phases: [
+				// it does not speak; it calls
+				P(1, {move: "orbit", attacks: [hBarrage(85, 2.2), hSpread(7, 70, 1.6), hSlam(100, 4.6), hTeleport(9)]}),
+				P(0.6, {say: "...Deeper. Always deeper.", shield: 2.5, summon: [{what: "abyss_spawn", n: 4}], move: "center", every: 5,
+					cycle: [[hRain(8, 95, 1.8), hSpread(9, 70, 1.4)],
+						[hGravity(14, 75, 3.2), hBarrage(85, 2.0)],
+						[hExplode(120, 4.0, 5.5), hSummon(2, 8)]]}),
+				P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald calls the deep! It is enraged!", move: "orbit", speed: 1.3,
+					attacks: [hRift(115, 3.4), hGravity(16, 80, 4.2), hSlam(110, 2.6), hRain(10, 100, 2.2), hTeleport(5),
+						spiral(6, -10, 6.5, 80, 0.1, H_PALE, {shape: "voidorb"})]})
 			]}, ["voidrend", "abyssal_crown", "depthstone"]);
 		}
 

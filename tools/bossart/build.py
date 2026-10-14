@@ -20,6 +20,9 @@ out += sequences()
 # the Dark Elder: the same (see elder.py)
 import elder
 out += elder.sequences()
+# the Abyssal Herald and its spawn (see herald.py)
+import herald
+out += herald.sequences()
 
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])

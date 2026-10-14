@@ -1637,14 +1637,55 @@ class Bosses {
 						Bosses.spiral(8, 9, 8, 140, 0.12, Bosses.V_RED, {shape: "spike"})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
+	static hBarrage(dmg, cd, waves = 5) { dmg = __int(dmg); waves = __int(waves);
+			return Bosses.aim(1, 0, 9, dmg, cd, Bosses.H_CYAN, {shape: "voidorb", r: 0.34, life: 1.6, waves: waves, gap: 0.12, anim: "barrage", animMs: 100, name: "orb barrage"});
+		}
+	static hRain(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 5, dmg, cd, Bosses.H_CYAN, {radius: 1.3, delay: 0.9, stagger: 0.1, fx: "pillar", burst: 4, bspd: 4, blife: 0.8, shape: "voidorb",
+				anim: "rain", animMs: 120, animHit: 2, animHold: 0.9, name: "falling orbs"});
+		}
+	static hSlam(dmg, cd) { dmg = __int(dmg);
+			return Bosses.rain(6, 0, dmg, cd, Bosses.H_DEEP, {line: true, step: 1.7, radius: 1.4, delay: 0.7, stagger: 0.14, fx: "tentacles",
+				burst: 3, bspd: 4, blife: 0.8, shape: "wisp", anim: "slam", animMs: 120, animHit: 2, animHold: 0.7, name: "tentacle slam"});
+		}
+	static hSpread(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 76, 7.5, dmg, cd, Bosses.H_CYAN, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "orb spread"});
+		}
+	static hExplode(dmg, cd, radius) { dmg = __int(dmg);
+			return Bosses.nova(radius, 1.3, dmg, cd, Bosses.H_CYAN, {reach: 0.01, marker: "rune", radius: radius, burst: 18, bspd: 5.5, blife: 1.5, shape: "spike", fx: "spikes",
+				anim: "explode", animMs: 130, animHit: 2, animHold: 1.3, name: "abyssal burst"});
+		}
+	static hGravity(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: Bosses.H_PALE, shape: "voidorb", eff: "slowed"},
+				{anim: "gravity", animMs: 150, name: "the deep's pull"});
+		}
+	static hTeleport(cd) {
+			return Bosses.ring(10, 18, 4, 55, cd, Bosses.H_PALE, {shape: "star", life: 2.0, blink: 6, anim: "teleport", animMs: 110, name: "the Herald's step"});
+		}
+	static hSummon(n, cd) { n = __int(n);
+			return Bosses.o(Bosses.summon("abyss_spawn", n, cd, 6), {anim: "summon", animMs: 130});
+		}
+	static hRift(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(1, 0, 3.5, dmg, cd, Bosses.H_CYAN, {shape: "rift", r: 0.6, life: 2.6, split: {n: 16, spd: 5.5, life: 1.4, dmg: __int(dmg / 2)},
+				anim: "rift", animMs: 130, name: "abyssal rift"});
+		}
 	static deep() {
-			Bosses.boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: 0xc060ff,
-				gold: 600, onrane: 6, r: 1.0, scales: true, phases: [
-				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(4, 12, 6, 75, 0.12, 0xc060ff), Bosses.aim(3, 22, 9, 85, 1.0, 0xff60ff, {shape: "star"})]}),
-				Bosses.P(0.6, {say: "Deeper... always deeper.", shield: 2.5, summon: [{what: "shade", n: 4}], move: "center",
-					attacks: [Bosses.flower(20, 9, 5, 80, 1.0, 0xa040ff, {motion: "return"}), Bosses.rain(5, 4, 100, 2.2, 0xff60ff, {burst: 6})]}),
-				Bosses.P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald unravels!", move: "chase", speed: 1.3,
-					attacks: [Bosses.spiral(8, -10, 6.5, 85, 0.1, 0xd080ff), Bosses.nova(2.5, 1.1, 120, 2.4, 0xff40ff, {burst: 12})]})
+			
+			Bosses.mob("abyss_spawn", {name: "Spawn of the Deep", spr: "abyss_spawn", hp: 900, def: 12, spd: 3.0, xp: 30, ai: "orbit", keep: 4, col: Bosses.H_CYAN,
+				attacks: [Bosses.aim(1, 0, 7, 50, 1.4, Bosses.H_CYAN, {shape: "voidorb", r: 0.22})]});
+			Bosses.boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: Bosses.H_CYAN,
+				gold: 600, onrane: 6, r: 1.0, scales: true,
+				seq: {idle: 4, move: 6, barrage: 6, rain: 5, summon: 5, slam: 5, teleport: 6, spread: 5, explode: 5, gravity: 5, rift: 5, death: 7, ridle: 4, rmove: 6},
+				rageAt: 2, phases: [
+				
+				Bosses.P(1, {move: "orbit", attacks: [Bosses.hBarrage(85, 2.2), Bosses.hSpread(7, 70, 1.6), Bosses.hSlam(100, 4.6), Bosses.hTeleport(9)]}),
+				Bosses.P(0.6, {say: "...Deeper. Always deeper.", shield: 2.5, summon: [{what: "abyss_spawn", n: 4}], move: "center", every: 5,
+					cycle: [[Bosses.hRain(8, 95, 1.8), Bosses.hSpread(9, 70, 1.4)],
+						[Bosses.hGravity(14, 75, 3.2), Bosses.hBarrage(85, 2.0)],
+						[Bosses.hExplode(120, 4.0, 5.5), Bosses.hSummon(2, 8)]]}),
+				Bosses.P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald calls the deep! It is enraged!", move: "orbit", speed: 1.3,
+					attacks: [Bosses.hRift(115, 3.4), Bosses.hGravity(16, 80, 4.2), Bosses.hSlam(110, 2.6), Bosses.hRain(10, 100, 2.2), Bosses.hTeleport(5),
+						Bosses.spiral(6, -10, 6.5, 80, 0.1, Bosses.H_PALE, {shape: "voidorb"})]})
 			]}, ["voidrend", "abyssal_crown", "depthstone"]);
 		}
 	static hardDungeons() {
@@ -2898,7 +2939,7 @@ class World {
 				if (d > R - 1.3) this.tiles[i] = World.ASH;
 				else if (d > 4 && Math.abs(((a / (Math.PI / 4)) % 1 + 1) % 1 - 0.5) > 0.47) this.tiles[i] = World.SPECTRAL;
 				
-				else if (d > 11 && d < 12.6 && Math.abs(((a + Math.PI / 8) / (Math.PI / 2) % 1 + 1) % 1 - 0.5) < 0.12) this.tiles[i] = World.HEXFIRE;
+				else if (d > 11 && d < 12.6 && Math.abs(((a + Math.PI / 8) / (Math.PI / 2) % 1 + 1) % 1 - 0.5) < 0.12) this.tiles[i] = World.VOIDFIRE;
 			}
 			
 			disc(cx, cy, 3.6, World.HEXSTONE, World.ARENA_ZONE);
@@ -5071,6 +5112,9 @@ Bosses.SETPIECES = {
 		};
 Bosses.V_RED = __uint(0xff2a3a);
 Bosses.V_GOLD = __uint(0xd8a030);
+Bosses.H_CYAN = __uint(0x30d8ff);
+Bosses.H_PALE = __uint(0xb8f6ff);
+Bosses.H_DEEP = __uint(0x2050e0);
 Bosses.E_VOID = __uint(0xb040ff);
 Bosses.E_LIGHT = __uint(0xe0a0ff);
 Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];

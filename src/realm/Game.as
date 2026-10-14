@@ -158,6 +158,9 @@ package realm {
 		private var oracleWin:OracleWindow;
 		private var ascWin:AscendWindow;
 		private var siegePanel:SiegePanel;
+		private var abyssWin:AbyssWindow, boonPicker:BoonPicker;
+		/** The Endless Abyss run this hero is on ({floor, boons}, the server's), or null. */
+		public var abyssRunInfo:Object = null;
 		/** The Godlands Spires in this realm (the server's "spires"), and their name plates. */
 		private var spires:Array = null, spiresWorld:World = null, spireTags:Array = [];
 		private var petWin:PetWindow;
@@ -361,7 +364,7 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /bug what happened", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /abyss  /ascend  /spires  /bug what happened", 0x8fd0ff);
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					var myRole:String = net.online && Online.welcome ? String(Online.welcome.role || "") : "";
@@ -427,6 +430,10 @@ package realm {
 					break;
 				case "/oracle":
 					toggleOracle();
+					break;
+				case "/abyss":
+				case "/deep":
+					toggleAbyss();
 					break;
 				case "/ascend":
 				case "/ascension":
@@ -735,6 +742,8 @@ package realm {
 			for (var i:int = 0; i < px.length; i++) addPortal(nexusWorld, px[i], 70.5, "realm", i, PORTAL_COLORS[i]);
 			// the vault: a portal in the west wing to your own treasury
 			addPortal(nexusWorld, 70.5, 98.5, "vault", 0, 0xf0c030, 0, 0, false);
+			// and across from it in the east wing, the way down into the Endless Abyss
+			if (Online.connected) addPortal(nexusWorld, 130.5, 98.5, "deep", 1, 0xa060ff, 0, 0, false);
 
 			// east wing: the Starforge and Raid Table; west wing: Fame Store and Pet Yard; south: Marketplace and Quest Board
 			stations.push({x: 127.5, y: 92.5, kind: "forge", spr: "anvil", label: makeLabel("Starforge", 0xc080ff), w: "nexus"});
@@ -816,6 +825,11 @@ package realm {
 				addPortal(world, x, y, kind, idx, color, life, seed, false);
 				showBanner(Bosses.RAIDS[idx].name + " is open!", color, 3);
 				msg("A portal to " + Bosses.RAIDS[idx].name + " has opened by the Raid Table!", color);
+				return;
+			}
+			if (kind == "deep") {
+				addPortal(world, x, y, kind, idx, color, life, seed, false);
+				msg("The way down to Floor " + idx + " has opened" + (idx % Data.DEEP_HERALD == 0 ? ". The Abyssal Herald waits below..." : "!"), color);
 				return;
 			}
 			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
@@ -948,6 +962,7 @@ package realm {
 			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
 			if (p.kind == "elder") return "Dark Elder's Chamber";
 			if (p.kind == "raid") return Bosses.RAIDS[p.idx].name;
+			if (p.kind == "deep") return "The Endless Abyss";
 			if (p.kind == "vault") return "Your Vault";
 			if (p.kind == "ghall") return "Guild Hall";
 			return "Nexus";
@@ -958,6 +973,7 @@ package realm {
 				msg(Data.findMode(player.mode).name + " heroes can't use the vault: everything they use, they find themselves.", 0xff8080);
 				return;
 			}
+			if (p.kind == "deep" && !deepAllowed(p.idx)) return;
 			if (p.kind == "ghall" && !(net && net.online && net.guild)) {
 				msg("Only guild members can enter a Guild Hall (online). Make or join a guild in the Social window.", 0xff8080);
 				return;
@@ -970,6 +986,7 @@ package realm {
 			else if (p.kind == "dungeon") enterDungeon(p.idx, p.seed);
 			else if (p.kind == "elder") enterArena();
 			else if (p.kind == "raid") enterRaid(p.idx, p.seed);
+			else if (p.kind == "deep") enterDeep(p.idx, p.seed);
 			else if (p.kind == "vault") enterVault();
 			else if (p.kind == "ghall") enterGuildHall();
 			else nexusNow();
@@ -1016,7 +1033,7 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, ascWin, petWin, bugsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, ascWin, abyssWin, boonPicker, petWin, bugsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1458,7 +1475,7 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || ascWin || petWin || bugsWin || playerMenu || social || wiki || skillWin)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || ascWin || abyssWin || petWin || bugsWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
 				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
@@ -1468,6 +1485,7 @@ package realm {
 				else if (marketWin) closeMarket();
 				else if (oracleWin) closeOracle();
 				else if (ascWin) toggleAscend();
+				else if (abyssWin) toggleAbyss();
 				else if (petWin) togglePet();
 				else if (bugsWin) closeBugs();
 				else closeTrade();
@@ -6148,6 +6166,7 @@ package realm {
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
 					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
+					: p.kind == "deep" ? "<font color='#d080ff'>" + (p.idx > 1 || p.seed ? "Floor " + p.idx : "The Endless Abyss") + "</font>" + (p.life > 0 ? "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>" : "\n<font size='11' color='#cccccc'>level 20 · /abyss</font>")
 					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>"
 					: p.kind == "ghall" ? "<font color='#80ff80'>Guild Hall</font>" + (net && net.guild ? "\n<font size='11' color='#cccccc'>" + net.guild.name + "</font>" : "") : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
@@ -6696,6 +6715,72 @@ package realm {
 			oracleWin.x = int((Ui.W - OracleWindow.W) / 2);
 			oracleWin.y = int((Ui.H - OracleWindow.H) / 2);
 			addChild(oracleWin);
+		}
+
+		// ------------------------------------------------------------ the Endless Abyss
+		/** Whether this hero may go down to floor n now (says why not). */
+		private function deepAllowed(floor:int):Boolean {
+			if (!net.online) { msg("The Endless Abyss is on the server: play online to go down.", 0xff8080); return false; }
+			if (floor <= 1 && player.level < Player.MAX_LEVEL) { msg("Only level 20 heroes can go down into the Endless Abyss.", 0xff8080); return false; }
+			return true;
+		}
+
+		/** Down to floor n (a new run from floor 1; the next floor through the portal the last boss left). */
+		public function enterDeep(floor:int, seed:uint):void {
+			if (!deepAllowed(floor)) return;
+			if (!seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
+			var th:Object = Data.deepTheme(floor);
+			dungeonWorld = new World("dungeon", th.name, th, seed);
+			dungeonWorld.key = "deep:" + floor + ":" + seed;
+			if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
+			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
+			player.invulnT = 3;
+			player.bossDmg = 0;
+			Sfx.play("portal");
+			showBanner("Floor " + floor, 0xd080ff, 3);
+			var sc:Array = Data.deepScale(floor);
+			msg("The Endless Abyss, floor " + floor + (floor > 1 ? ": monsters have " + Math.round(sc[0] * 100) + "% health and hit " + Math.round(sc[1] * 100) + "% as hard" : ". Clear it to the last boss to go deeper") +
+				(floor % Data.DEEP_HERALD == 0 ? ". The Abyssal Herald waits at the bottom." : "."), 0xd080ff);
+		}
+
+		public function toggleAbyss():void {
+			if (abyssWin) { if (abyssWin.parent) removeChild(abyssWin); abyssWin = null; refocus(); return; }
+			if (!net.online) { msg("The Endless Abyss is on the server: play online to see it.", 0xff8080); return; }
+			abyssWin = new AbyssWindow(this, player.cls.id);
+			abyssWin.x = int((Ui.W - AbyssWindow.W) / 2);
+			abyssWin.y = int((Ui.H - AbyssWindow.H) / 2);
+			addChild(abyssWin);
+		}
+
+		/** The server's board for the window. */
+		public function deepBoard(m:Object):void { if (abyssWin) abyssWin.setData(m); }
+
+		/** The run: on (floor, boons) or over. */
+		public function abyssRun(m:Object):void {
+			if (m.on) abyssRunInfo = {floor: int(m.floor), boons: (m.boons as Array) || []};
+			else {
+				abyssRunInfo = null;
+				if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
+			}
+			Player.deepBoons = abyssRunInfo ? abyssRunInfo.boons : null;
+			hud.refresh();
+			if (abyssWin) abyssWin.refresh();
+		}
+
+		/** The floor is cleared: pick a boon. */
+		public function abyssBoons(m:Object):void {
+			if (boonPicker && boonPicker.parent) removeChild(boonPicker);
+			boonPicker = new BoonPicker(this, int(m.floor), m.choices as Array);
+			boonPicker.x = int((VIEW_W - BoonPicker.W) / 2);
+			boonPicker.y = int(VIEW_H * 0.52);
+			addChild(boonPicker);
+			Sfx.play("fanfare");
+			showBanner("Floor " + m.floor + " cleared!", 0xd080ff, 3);
+		}
+
+		public function pickBoon(id:String):void {
+			Online.send({t: "abyssBoon", id: id});
+			if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; refocus(); }
 		}
 
 		/** Ascension (/ascend, or the Skill Tree's button): the hero's reset and the account's tree. */

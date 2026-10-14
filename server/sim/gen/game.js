@@ -670,6 +670,39 @@ class Data {
 			var sk = Data.PET_SKILLS[pet.species];
 			return Data.PET_STAGES[Data.petStage(pet)].name + " " + (p && sk ? sk[p].name : pet.name);
 		}
+	static deepTheme(floor) { floor = __int(floor);
+			var base = Data.DUNGEONS[Data.dungeonIndex(Data.DEEP_POOL[(Math.max(1, floor) - 1) % Data.DEEP_POOL.length])];
+			var th = {};
+			for (var k in base) th[k] = base[k];
+			th.id = "deep";
+			th.name = "The Endless Abyss · Floor " + floor;
+			th.dark = floor >= 10 || base.dark;
+			th.small = false;
+			if (floor % Data.DEEP_HERALD == 0) th.boss = "abyss_herald";
+			return th;
+		}
+	static deepScale(floor) { floor = __int(floor);
+			var f = __int(Math.max(0, floor - 1));
+			return [1 + 0.2 * f, 1 + 0.06 * f];
+		}
+	static deepLuck(floor) { floor = __int(floor); return __int(Math.min(120, floor * 3)); }
+	static findBoon(id) {
+			for (var b of __vals( Data.DEEP_BOONS)) if (b.id == id) return b;
+			return null;
+		}
+	static deepBonus(boons) {
+			var out = {};
+			for (var id of __vals( boons || [])) {
+				var b = Data.findBoon(id);
+				if (b && b.st) for (var k in b.st) out[k] = (out[k] || 0) + b.st[k];
+			}
+			return out;
+		}
+	static deepBoonLuck(boons) {
+			var n = __int(0);
+			for (var id of __vals( boons || [])) { var b = Data.findBoon(id); if (b && b.luck) n = __int(n + (b.luck)); }
+			return __int(n);
+		}
 	static dungeonIndex(id) {
 			for (var i = __int(0); i < Data.DUNGEONS.length; i++) if (Data.DUNGEONS[i].id == id) return __int(i);
 			return __int(-1);
@@ -1101,6 +1134,7 @@ class Bosses {
 			Bosses.midDungeons();
 			Bosses.events();
 			Bosses.siege();
+			Bosses.deep();
 			Bosses.hardDungeons();
 			Bosses.finales();
 			Bosses.raids();
@@ -1478,6 +1512,16 @@ class Bosses {
 				Bosses.P(0.25, {say: "*Vorgath raises the war banner*", banner: "VORGATH IS ENRAGED!", shield: 3, summon: [{what: "siege_soldier", n: 8}], move: "orbit",
 					attacks: [Bosses.flower(24, 7.5, 5.5, 90, 0.9, 0xff8020), Bosses.aim(3, 20, 11, 110, 0.8, 0xffffff, {shape: "blade"}), Bosses.rain(5, 4, 110, 2, 0xff4010)]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
+		}
+	static deep() {
+			Bosses.boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: 0xc060ff,
+				gold: 600, onrane: 6, r: 1.0, scales: true, phases: [
+				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(4, 12, 6, 75, 0.12, 0xc060ff), Bosses.aim(3, 22, 9, 85, 1.0, 0xff60ff, {shape: "star"})]}),
+				Bosses.P(0.6, {say: "Deeper... always deeper.", shield: 2.5, summon: [{what: "shade", n: 4}], move: "center",
+					attacks: [Bosses.flower(20, 9, 5, 80, 1.0, 0xa040ff, {motion: "return"}), Bosses.rain(5, 4, 100, 2.2, 0xff60ff, {burst: 6})]}),
+				Bosses.P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald unravels!", move: "chase", speed: 1.3,
+					attacks: [Bosses.spiral(8, -10, 6.5, 85, 0.1, 0xd080ff), Bosses.nova(2.5, 1.1, 120, 2.4, 0xff40ff, {burst: 12})]})
+			]}, ["voidrend", "abyssal_crown", "depthstone"]);
 		}
 	static hardDungeons() {
 			Bosses.boss("sun_king", {phases: [
@@ -4179,6 +4223,9 @@ Data.TITLES = [
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
+			{id: "deep10", name: "the Abyssal", earn: "Clear floor 10 of the Endless Abyss", col: 0xa060ff},
+			{id: "deep25", name: "Voidwalker", earn: "Clear floor 25 of the Endless Abyss", col: 0xd080ff},
+			{id: "deepking", name: "Abyss Champion", earn: "Go deepest of your class in the Endless Abyss in a week", col: 0xff60ff},
 			{id: "spirelord", name: "Lord of the Godlands", earn: "Be in the guild that held the Godlands Spires longest in a week", col: 0x7fd8ff},
 			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
@@ -4298,6 +4345,18 @@ Data.DUNGEONS = [
 			{id: "citadel", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
 			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
+		];
+Data.DEEP_POOL = ["crypt", "depths", "undead_lair", "spire", "spider_den", "abyss", "cellar", "snake_pit", "sprite_world"];
+Data.DEEP_HERALD = __int(5);
+Data.DEEP_BOONS = [
+			{id: "might", name: "Abyssal Might", desc: "+4 Attack", st: {att: 4}, col: 0xff6a50},
+			{id: "haste", name: "Quickened", desc: "+5 Speed", st: {spd: 5}, col: 0x80ffa0},
+			{id: "dex", name: "Steady Hand", desc: "+5 Dexterity", st: {dex: 5}, col: 0xffd040},
+			{id: "guard", name: "Stoneskin", desc: "+5 Defense", st: {def: 5}, col: 0xb0b0c0},
+			{id: "life", name: "Deep Vigor", desc: "+60 max HP", st: {hp: 60}, col: 0xff4060},
+			{id: "mind", name: "Void Mind", desc: "+40 max MP, +3 Wisdom", st: {mp: 40, wis: 3}, col: 0x6080ff},
+			{id: "mend", name: "Regrowth", desc: "+5 Vitality", st: {vit: 5}, col: 0x60e060},
+			{id: "greed", name: "Greed", desc: "+15 loot luck", luck: 15, col: 0xf0c030}
 		];
 Data.EVENT_DUNGEONS = __int(4);
 Data.DUNGEON_DROP_CHANCE = 0.7;
@@ -4448,6 +4507,10 @@ Uniques.ALL = {
 			prismatic_wand: ["Prismatic Wand", "weapon", "wand", {}, {shots: 3, arc: 30, rate: 1.1, mult: 0.6, col: 0xff80e0}, "Every color at once."],
 			fae_quiver: ["Quiver of the Fae", "ability", "quiver", {spd: 10}, {power: 1.7}, "Light as a sprite's wing."],
 			pixie_ring: ["Pixie Ring", "ring", "spd", {spd: 10, dex: 6}, null, "It giggles."],
+			
+			voidrend: ["Voidrend", "weapon", "dagger", {dex: 6, att: 3}, {shots: 3, arc: 16, pierce: true, mult: 0.75, col: 0xc060ff}, "It cuts the dark itself."],
+			abyssal_crown: ["Abyssal Crown", "ability", "helm", {wis: 6, hp: 40}, {power: 1.9}, "Worn by whoever reaches the bottom. Nobody has."],
+			depthstone: ["Depthstone", "ring", "def", {def: 8, vit: 6, hp: 40}, null, "Heavier the deeper you go."],
 			
 			siegebreaker: ["Siegebreaker", "weapon", "sword", {att: 6, def: 4}, {mult: 1.9, size: 7, pierce: true, rate: 0.75, col: 0xffa020}, "Forged to bring down gates. Works on warlords too."],
 			warlords_banner: ["Warlord's Banner", "ability", "helm", {att: 5, vit: 5}, {power: 1.9}, "Where it flies, armies follow."],

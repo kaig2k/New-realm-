@@ -104,6 +104,8 @@ Players then join with `play.yourgame.com:2050`.
 | `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
+| `siegeEveryMinutes` | How often a Realm Siege comes (120). `0` turns sieges off. Admins can start one at any time with `/siege`. |
+| `siegeFirstMinutes` | Minutes after a restart before the first siege (40). |
 | `teleportToAnyone` | `true` (the default, like RotMG): players can teleport to anyone in the same world by clicking them on the minimap or with `/tp name`. `false`: only to party and guild members. |
 
 Restart the service after editing: `sudo systemctl restart newrealm`.
@@ -167,6 +169,14 @@ Players pick a mode when they make a hero, and it never changes. **Regular** is 
 before a T4, and the slot's top tier before anything rarer: T7 weapons and armor, T6 abilities, T5 rings), for +60 loot luck and +5 to every stat. The server enforces all
 of it: refused trades and Marketplace/guild bank use, and saves where such a hero gained an item from the
 vault or another hero, or skipped a tier, are refused (logged in `anticheat.log`).
+
+### Endgame
+
+- **Ascension** (`/ascend`, or the button in the Skill Tree): a level 20 hero with all 11 stats maxed starts again at level 1, keeping its gear, and the account earns a point in the Ascendant Tree (XP, luck, gold, pet XP, HP and Attack perks for every hero). Each ascension makes the hero's aura brighter. Admins can test it with `/maxhero [name]`. All of it is kept in the save, decided by the server.
+- **Oracle collections**: finding every unique of a boss gives every hero +1 to a stat (+5 HP or MP) and a title.
+- **Realm Siege**: every `siegeEveryMinutes`, after a 2-minute warning, Vorgath the Siege Warlord marches on the busiest realm's Godlands for 15 minutes. He grows with the number of players fighting him. Loot follows each player's share of the damage, and the MVP gets an extra roll and the Siegebreaker title. Realm events pause while he's there.
+- **Guild territory**: four Spires stand at the edge of every realm's Godlands. Guild members standing by one capture it (60 s alone, 20 s with three or more). A defender stops them. Each Spire held gives the guild's members +5 loot luck. The guild that holds the Spires longest each week becomes Lord of the Godlands (+500 guild fame). `/spires` shows who holds what. Kept in `territory.json`.
+- **The Endless Abyss** (the portal in the Nexus's east wing, or `/abyss`): level 20 heroes go down floor after floor, each tougher with better loot. After each floor everyone picks one of three boons for the run. Every 5th floor the Abyssal Herald waits at the bottom with its own uniques. There's a weekly board per class, and its #1s earn Abyss Champion. Kept in `deep.json`.
 
 ### Guild Halls
 

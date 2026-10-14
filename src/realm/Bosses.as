@@ -114,6 +114,7 @@ package realm {
 			midDungeons();
 			events();
 			siege();
+			deep();
 			hardDungeons();
 			finales();
 			raids();
@@ -356,6 +357,8 @@ package realm {
 			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
+			// the Endless Abyss
+			Sprites.recolor("abyss_herald", "elder", {H: 0x3a2a5a, h: 0x1a1030, P: 0x2a0a4a, p: 0x12041e, Q: 0xd080ff, K: 0x000000, E: 0xff60ff, W: 0xe0c0ff, O: 0xa040ff}, 8);
 			// the Godlands Spires (guild territory)
 			Sprites.recolor("godspire", "crystal", {W: 0xffffff, C: 0xd8e8ff, c: 0x8aa0c8, D: 0x4a5a7a, S: 0x7fd8ff}, 9);
 			// the Realm Siege
@@ -635,6 +638,18 @@ package realm {
 				P(0.25, {say: "*Vorgath raises the war banner*", banner: "VORGATH IS ENRAGED!", shield: 3, summon: [{what: "siege_soldier", n: 8}], move: "orbit",
 					attacks: [flower(24, 7.5, 5.5, 90, 0.9, 0xff8020), aim(3, 20, 11, 110, 0.8, 0xffffff, {shape: "blade"}), rain(5, 4, 110, 2, 0xff4010)]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
+		}
+
+		/** The Endless Abyss's milestone boss (every 5th floor; the server scales it with the floor). */
+		private static function deep():void {
+			boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: 0xc060ff,
+				gold: 600, onrane: 6, r: 1.0, scales: true, phases: [
+				P(1, {move: "orbit", attacks: [spiral(4, 12, 6, 75, 0.12, 0xc060ff), aim(3, 22, 9, 85, 1.0, 0xff60ff, {shape: "star"})]}),
+				P(0.6, {say: "Deeper... always deeper.", shield: 2.5, summon: [{what: "shade", n: 4}], move: "center",
+					attacks: [flower(20, 9, 5, 80, 1.0, 0xa040ff, {motion: "return"}), rain(5, 4, 100, 2.2, 0xff60ff, {burst: 6})]}),
+				P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald unravels!", move: "chase", speed: 1.3,
+					attacks: [spiral(8, -10, 6.5, 85, 0.1, 0xd080ff), nova(2.5, 1.1, 120, 2.4, 0xff40ff, {burst: 12})]})
+			]}, ["voidrend", "abyssal_crown", "depthstone"]);
 		}
 
 		// ------------------------------------------------------------ hard dungeons

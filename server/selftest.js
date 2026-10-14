@@ -595,6 +595,25 @@ async function run() {
       Math.hypot(sp[0].x - sp[2].x, sp[0].y - sp[2].y) > 20, JSON.stringify(sp));
   }
 
+  console.log('the endless abyss (world)');
+  {
+    const { WorldSim: DW } = require('./sim/worldsim');
+    const { Data: DD } = require('./sim/gen/game');
+    const f1 = new DW('deep:1:321'), f5 = new DW('deep:5:321'), f12 = new DW('deep:12:321');
+    const hp = (ws) => ws.w.boss.maxHp / ws.w.boss.def.hp;
+    check('Abyss floors are built from dungeons, the Herald at the bottom of every 5th', f1.w.boss && f5.w.boss.defId === 'abyss_herald' && f1.w.boss.defId !== 'abyss_herald' && f12.enemies.length > 8);
+    check('...and get tougher floor by floor (health and damage)', Math.abs(hp(f1) - 1) < 0.01 && hp(f12) > hp(f5) && f12.w.boss.dmgMult > f5.w.boss.dmgMult && f5.w.boss.dmgMult > 1,
+      [hp(f1), hp(f5), hp(f12)].map((v) => v.toFixed(2)).join(' '));
+    const opened = [], told = [];
+    f5.onPortal = (k) => opened.push(k);
+    f5.onDeep = (sim, pl) => told.push([sim.floor, pl.length]);
+    const pp = { id: 91, name: 'Deep', x: 0, y: 0, send: () => {} };
+    f5.join(pp);
+    f5.kill(f5.w.boss);
+    check('the last boss down: a portal to the next floor, and the floor counts for everyone on it', opened.some((k) => /^deep:6:\d+$/.test(k)) && told.length === 1 && told[0][0] === 5 && told[0][1] === 1, JSON.stringify([opened, told]));
+    check('boons add stats (and Greed adds luck)', DD.deepBonus(['might', 'might', 'life']).att === 8 && DD.deepBonus(['life']).hp === 60 && DD.deepBoonLuck(['greed', 'might']) === 15);
+  }
+
   console.log('godmode checks');
   {
     const { WorldSim } = require('./sim/worldsim');
@@ -1862,6 +1881,75 @@ async function run() {
     check('...and the game\'s next save is fine', !A1.find((m) => m.t === 'saveRejected'), JSON.stringify(A1.find((m) => m.t === 'saveRejected')));
     A1.s.destroy();
     AB.s.destroy();
+  }
+
+  console.log('the endless abyss (online)');
+  {
+    const { Data: AQ } = require('./sim/gen/game');
+    const nm = 'Tdeep' + n;
+    const P = await login(nm, { password: 'pass1234', register: true });
+    const AD2 = await login('TestBoss', { password: 'pass1234' });
+    P.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'dp1', cls: 'wizard', name: 'Diver', level: 1, xp: 0, stats: clone(AQ.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] }] } });
+    await wait(400);
+    P.send({ t: 'enter', key: 'nexus', cid: 'dp1', x: 100, y: 100 });
+    await wait(200);
+    P.clear();
+    P.send({ t: 'enter', key: 'deep:1:4545', cid: 'dp1', x: 0, y: 0 });
+    await wait(300);
+    check('a hero under level 20 can\'t go down into the Abyss', P.find((m) => m.t === 'toNexus'));
+    P.send({ t: 'enter', key: 'nexus', cid: 'dp1', x: 100, y: 100 });
+    AD2.send({ t: 'cmd', text: '/maxhero ' + nm });
+    await wait(400);
+    P.clear();
+    P.send({ t: 'enter', key: 'deep:1:4545', cid: 'dp1', x: 0, y: 0 });
+    await wait(300);
+    check('a level 20 hero can, and starts a run on floor 1', !P.find((m) => m.t === 'toNexus') && P.find((m) => m.t === 'abyssRun' && m.on && m.floor === 1), JSON.stringify(P.msgs.slice(0, 3)));
+    P.clear();
+    P.send({ t: 'enter', key: 'deep:7:1234', cid: 'dp1', x: 0, y: 0 });
+    await wait(300);
+    check('...but not straight to floor 7', P.find((m) => m.t === 'toNexus'));
+    P.send({ t: 'enter', key: 'deep:1:4545', cid: 'dp1', x: 0, y: 0 });
+    // an admin in the same floor brings its boss down
+    AD2.send({ t: 'enter', key: 'deep:1:4545', x: 0, y: 0 });
+    await wait(300);
+    AD2.clear(); P.clear();
+    AD2.send({ t: 'w', to: 'host', d: { t: 'sync' } });
+    await wait(300);
+    const dsp = AD2.find((m) => m.t === 'w' && m.d.t === 'espawn');
+    const dboss = dsp && dsp.d.l.find((e) => e[9] === 1);
+    if (dboss) {
+      AD2.send({ t: 'move', x: dboss[2], y: dboss[3] + 1 });
+      await wait(150);
+      for (let k = 0; k < 40; k++) AD2.send({ t: 'w', to: 'host', d: { t: 'ehit', id: dboss[0], d: 5e6 } });
+      await wait(500);
+    }
+    const offer = P.find((m) => m.t === 'abyssBoons');
+    const port = P.find((m) => m.t === 'w' && m.d.t === 'portal' && m.d.k === 'deep');
+    check('floor cleared: three boons to pick from, and the way down to floor 2', dboss && offer && offer.choices.length === 3 && offer.floor === 1 && port && port.d.i === 2, JSON.stringify([!!dboss, offer, port && port.d]));
+    if (offer && port) {
+      P.clear();
+      P.send({ t: 'abyssBoon', id: 'nope' });
+      P.send({ t: 'abyssBoon', id: offer.choices[0] });
+      P.send({ t: 'abyssBoon', id: offer.choices[1] });
+      await wait(300);
+      const runs = P.msgs.filter((m) => m.t === 'abyssRun');
+      check('the boon picked joins the run (only one, and only one offered)', runs.length === 1 && runs[0].boons.length === 1 && runs[0].boons[0] === offer.choices[0], JSON.stringify(runs));
+      P.clear();
+      P.send({ t: 'enter', key: 'deep:2:' + port.d.s, cid: 'dp1', x: 0, y: 0 });
+      await wait(300);
+      const r2 = P.find((m) => m.t === 'abyssRun');
+      check('through the portal: floor 2, the boon kept', !P.find((m) => m.t === 'toNexus') && r2 && r2.floor === 2 && r2.boons[0] === offer.choices[0], JSON.stringify(r2));
+      P.clear();
+      P.send({ t: 'deepBoard', cls: 'wizard' });
+      await wait(250);
+      const bd = P.find((m) => m.t === 'deepBoard');
+      check('the week\'s board: the deepest wizards (the diver is on it)', bd && bd.list.some((r) => r.name === nm && r.floor === 1 && r.hero === 'Diver') && bd.best === 1, JSON.stringify(bd));
+      P.clear();
+      P.send({ t: 'enter', key: 'nexus', cid: 'dp1', x: 100, y: 100 });
+      await wait(250);
+      check('leaving the Abyss ends the run (and its boons)', P.find((m) => m.t === 'abyssRun' && !m.on));
+    }
+    P.s.destroy(); AD2.s.destroy();
   }
 
   console.log('bug reports');

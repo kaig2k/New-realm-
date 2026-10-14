@@ -60,6 +60,12 @@ class WorldSim {
       this.w.raidT = 1;
       // the Starfall Vault's rule for this week (fixed for the run, even past midnight on Sunday)
       if (rd.twists) { this.week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7); this.twist = Bosses.vaultTwist(this.week); }
+    } else if (this.kind === 'deep') {
+      // the Endless Abyss: floor p[1], each tougher than the last
+      this.floor = Math.max(1, Math.min(999, Number(p[1]) | 0));
+      this.theme = Data.deepTheme(this.floor);
+      this.deepMult = Data.deepScale(this.floor);
+      this.w = new World('dungeon', this.theme.name, this.theme, Number(p[2]) >>> 0);
     } else if (this.kind === 'arena') {
       this.w = new World('arena', "Dark Elder's Chamber");
     } else throw new Error('not a simulated world: ' + key);
@@ -69,7 +75,7 @@ class WorldSim {
     this.populate();
   }
 
-  static simulates(key) { return /^(realm|dg|raid|arena):/.test(key); }
+  static simulates(key) { return /^(realm|dg|raid|arena|deep):/.test(key); }
 
   get enemies() { return this.w.enemies; }
 
@@ -108,6 +114,13 @@ class WorldSim {
   }
 
   add(e) {
+    // (the Endless Abyss: everything on a floor is as tough as the floor)
+    if (this.deepMult && !e.def.treasure && !e.deepScaled) {
+      e.deepScaled = true;
+      e.maxHp *= this.deepMult[0];
+      e.hp = e.maxHp;
+      e.dmgMult = (e.dmgMult || 1) * this.deepMult[1];
+    }
     e.id = nextId++;
     e.hitters = new Map(); // client id -> damage dealt (who gets loot)
     this.w.enemies.push(e);
@@ -153,7 +166,7 @@ class WorldSim {
     const seed = 1 + Math.floor(Math.random() * 0x7ffffffe);
     this.all({ t: 'portal', x: r2(x), y: r2(y), k: kind, i: idx, c: color, l: PORTAL_TIME, s: seed });
     // (the server lets people into the world behind it: see server.js openWorlds)
-    if (this.onPortal) this.onPortal((kind === 'raid' ? 'raid:' : 'dg:') + idx + ':' + seed);
+    if (this.onPortal) this.onPortal((kind === 'raid' ? 'raid:' : kind === 'deep' ? 'deep:' : 'dg:') + idx + ':' + seed);
   }
 
   // ------------------------------------------------------------ players
@@ -228,7 +241,7 @@ class WorldSim {
   // ------------------------------------------------------------ the world's monsters
   populate() {
     const w = this.w;
-    if (this.kind === 'dg') this.populateDungeon(this.theme);
+    if (this.kind === 'dg' || this.kind === 'deep') this.populateDungeon(this.theme);
     else if (this.kind === 'raid') this.populateRaid();
     else if (this.kind === 'arena') {
       w.boss = new Enemy('elder', 100.5, 91.5, World.ARENA_ZONE);
@@ -710,7 +723,9 @@ class WorldSim {
     if (e.def.crystal && w.boss && w.boss.invuln && !this.enemies.some((o) => !o.dead && o.def.crystal)) w.boss.invuln = false;
     if (e.site) { e.site.cleared = true; e.site.active = false; if (this.kind === 'realm') w.eventT -= 8; }
     if (e.isBoss) {
+      const deepDone = this.kind === 'deep' && w.boss === e;
       if (w.boss === e) w.boss = null;
+      if (deepDone) this.deepCleared(e);
       // the boss's arena goes with it
       if (e.props) for (const pr of e.props) if (!pr.dead) { pr.dead = true; this.all({ t: 'edel', id: pr.id }); }
       if (e.arena) { SetPieces.undo(w, e.arena); e.arena = null; }
@@ -802,7 +817,7 @@ class WorldSim {
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
       // (VIPs find a little more: VIP_LUCK in server.js)
-      const lk = Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
+      const lk = (this.floor ? Data.deepLuck(this.floor) + Data.deepBoonLuck(c.abyss ? c.abyss.boons : null) : 0) + Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
       let items = Data.rollLoot(e.def, zone, cls, lk);
       if (e.elite) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 50));
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));
@@ -825,6 +840,13 @@ class WorldSim {
       if (this.onFeat) for (const it of items) if (it && (it.rarity === 'gd' || it.rarity === 'ar')) this.onFeat(it.rarity === 'gd' ? 'godly' : 'primordial', { name: c.name, item: it.name, from: e.def.name });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
+  }
+
+  // ------------------------------------------------------------ the Endless Abyss
+  /** A floor's last boss is down: the way to the next floor opens, and everyone here picks a boon (server.js). */
+  deepCleared(e) {
+    this.portal(e.x + 1.5, e.y, 'deep', this.floor + 1, this.floor % Data.DEEP_HERALD === Data.DEEP_HERALD - 1 ? 0xff60ff : 0xa060ff);
+    if (this.onDeep) this.onDeep(this, [...this.players.values()]);
   }
 
   // ------------------------------------------------------------ the Realm Siege
@@ -953,7 +975,7 @@ class Sims {
 
   /** Hands a new world the server's hooks. */
   wire(s) {
-    for (const k of ['issuer', 'onEventKill', 'onQuest', 'onEarn', 'onFeat', 'onPortal', 'onOracle', 'onSiege']) s[k] = this[k];
+    for (const k of ['issuer', 'onEventKill', 'onQuest', 'onEarn', 'onFeat', 'onPortal', 'onOracle', 'onSiege', 'onDeep']) s[k] = this[k];
   }
 
   join(key, c) {

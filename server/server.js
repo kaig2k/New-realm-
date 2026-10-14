@@ -380,7 +380,9 @@ function openWorld(key) {
 function mayEnter(c, world, from) {
   if (!sims || isAdmin(c)) return true;
   const kind = world.split(':')[0];
-  if (kind !== 'dg' && kind !== 'raid' && kind !== 'arena') return true;
+  // the Endless Abyss: floor 1 for any level 20 hero, deeper floors through the portal the last boss left
+  if (kind === 'deep' && (Number(world.split(':')[1]) | 0) <= 1) { const ch = serverChar(c); return !!(ch && Number(ch.level) >= 20); }
+  if (kind !== 'dg' && kind !== 'raid' && kind !== 'arena' && kind !== 'deep') return true;
   // someone is in there now (a party member followed with /join, a reconnect)
   const sm = sims.get(world);
   if (sm && sm.players && sm.players.size > 0) return true;
@@ -657,6 +659,8 @@ function feat(kind, d) {
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
   else if (kind === 'siege') discord.post(d.won ? '⚔️ **The Realm Siege is broken!** ' + dnames(d.names) + ' brought down Vorgath the Siege Warlord in ' + desc(d.realm) + (d.mvp ? '. MVP: **' + desc(d.mvp) + '** (' + d.pct + '%)' : '') + '.' : '⚔️ Vorgath withdrew from ' + desc(d.realm) + ' undefeated.', 0xffa020);
+  else if (kind === 'deep') discord.post('🕳️ **' + desc(d.name) + '** leads the ' + desc(d.cls) + 's in the Endless Abyss: floor **' + d.floor + '**!', 0xa060ff);
+  else if (kind === 'deepweek') discord.post('🕳️ **The Endless Abyss\'s champions this week:** ' + d.champs.map(desc).join(', ') + '.', 0xa060ff);
   else if (kind === 'spire') discord.post('🏰 **' + desc(d.guild) + '** has taken the **' + desc(d.spire) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0x7fd8ff);
   else if (kind === 'spireweek') discord.post('👑 **' + desc(d.guild) + '** are this week\'s **Lords of the Godlands**, holding the Spires for ' + d.hours + ' hours!', 0xffd75e);
   else if (kind === 'siegestart') discord.post('⚔️ **A Realm Siege has begun!** Vorgath the Siege Warlord marches on the Godlands of ' + desc(d.realm) + '. 15 minutes to break it.', 0xffa020);
@@ -852,7 +856,10 @@ const NEW_HERO_CAPS = { hit: 300, rate: 1500, burst: 6000, def: 0, maxHp: 0 };
 function setCaps(c) {
   if (isAdmin(c)) { c.caps = null; c.maxDps = 1e9; c.defMax = 1e9; return; }
   const sv = store.getSave(c.key) || {};
-  c.caps = combat.caps(serverChar(c), sv.pet, Data.oracleBonus(sv.oracleDone || [], sv.asc)) || NEW_HERO_CAPS;
+  const extra = Data.oracleBonus(sv.oracleDone || [], sv.asc);
+  // (the Endless Abyss run's boons)
+  if (c.abyss) { const db = Data.deepBonus(c.abyss.boons); for (const k in db) extra[k] = (extra[k] || 0) + db[k]; }
+  c.caps = combat.caps(serverChar(c), sv.pet, extra) || NEW_HERO_CAPS;
   // (Ascendant Fortune: loot luck the server adds to its own drops)
   c.ascLuck = Data.ascRank(sv.asc, 'fortune') * 3;
   c.maxDps = c.caps.rate * 3;
@@ -975,6 +982,7 @@ const handlers = {
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
     c.expDmg = 0; c.expDmgBase = 0; c.dmgBase = c.dmgRep || 0;
     c.grace = Math.max(c.grace || 0, Date.now() + 3500);
+    deepEnter(c, world);
     setCaps(c);
     c.mode = modes.modeOf(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
@@ -1492,6 +1500,26 @@ const handlers = {
     store.putSave(c.key, sv);
     setCaps(c);
     c.send({ t: 'asc', asc: a, seq: sv.tradeSeq });
+  },
+
+  /** The Endless Abyss: the boon picked after a floor (one of the three offered). */
+  abyssBoon(c, m) {
+    const off = c.abyssOffer;
+    if (!c.abyss || !off || !off.ids.includes(m.id)) return;
+    c.abyssOffer = null;
+    c.abyss.boons.push(m.id);
+    setCaps(c);
+    c.send({ t: 'abyssRun', on: true, floor: c.abyss.floor, boons: c.abyss.boons });
+  },
+
+  /** The Endless Abyss's board for one class (the window). */
+  deepBoard(c, m) {
+    deepWeek();
+    const cls = Data.CLASSES[m.cls] ? m.cls : 'wizard';
+    const list = (deep.cls[cls] || []).map((r) => ({ name: r.name, hero: r.hero, floor: r.floor }));
+    let best = 0;
+    for (const k in deep.cls) for (const r of deep.cls[k]) if (r.key === c.key) best = Math.max(best, r.floor);
+    c.send({ t: 'deepBoard', cls, list, best, week: deep.week });
   },
 
   /** The Oracle (O, or /oracle): the bosses you've killed and what they dropped. */
@@ -2958,6 +2986,75 @@ function territoryTick() {
   }
 }
 setInterval(territoryTick, 1000).unref();
+
+// ------------------------------------------------------------------ the Endless Abyss
+/** The week's deepest floors cleared, per class: deep.cls[cls] = [{key, name, hero, floor, at}] (top DEEP_KEEP). */
+const DEEP_KEEP = 10;
+const deep = load('deep.json', {});
+if (!deep.cls) deep.cls = {};
+const deepWeekOf = (t) => Math.floor((Math.floor(t / 86400000) + 3) / 7);
+if (!deep.week) deep.week = deepWeekOf(Date.now());
+/** A new week: the deepest of each class are crowned (Abyss Champion), then the board starts over. */
+function deepWeek() {
+  const wk = deepWeekOf(Date.now());
+  if (wk === deep.week) return;
+  const champs = [];
+  for (const cls in deep.cls) { const top = deep.cls[cls][0]; if (top) { grantTitle(top.key, 'deepking'); champs.push(top.name + ' (' + (Data.CLASSES[cls] ? Data.CLASSES[cls].name : cls) + ', floor ' + top.floor + ')'); } }
+  if (champs.length) { broadcast('The Endless Abyss\'s champions this week: ' + champs.join(', ') + '!', 0xd080ff); feat('deepweek', { champs }); }
+  deep.week = wk;
+  deep.cls = {};
+  save('deep.json', deep);
+}
+setInterval(deepWeek, 60000).unref();
+
+/** c steps into a world: an Abyss floor carries its run on (or starts one); anywhere else ends it. */
+function deepEnter(c, world) {
+  const p = world.split(':');
+  if (p[0] !== 'deep') {
+    if (c.abyss) { c.abyss = null; c.abyssOffer = null; c.send({ t: 'abyssRun', on: false }); }
+    return;
+  }
+  const floor = Math.max(1, Number(p[1]) | 0);
+  if (floor === 1 || !c.abyss) c.abyss = { floor, boons: [], start: Date.now() };
+  else if (c.abyss.floor !== floor) {
+    // (an offer not taken is lost going down)
+    c.abyss.floor = floor;
+  }
+  c.abyssOffer = null;
+  c.send({ t: 'abyssRun', on: true, floor, boons: c.abyss.boons });
+}
+
+/** A floor's last boss is down: everyone on it counts the floor, and picks a boon. */
+if (sims) sims.onDeep = (sim, players) => {
+  deepWeek();
+  const floor = sim.floor;
+  let changed = false;
+  for (const c of players) {
+    if (!c.key || !c.abyss) continue;
+    const ch = serverChar(c);
+    // the week's board (each account once per class, its best)
+    if (ch) {
+      const list = deep.cls[ch.cls] || (deep.cls[ch.cls] = []);
+      let row = list.find((r) => r.key === c.key);
+      if (!row) { row = { key: c.key, name: c.name, hero: ch.name || '', floor: 0, at: 0 }; list.push(row); }
+      if (floor > row.floor) {
+        row.floor = floor; row.at = Date.now(); row.hero = ch.name || ''; row.name = c.name;
+        list.sort((a, b) => b.floor - a.floor || a.at - b.at);
+        if (list.length > DEEP_KEEP) list.length = DEEP_KEEP;
+        changed = true;
+        if (list[0] === row && floor >= 10) feat('deep', { name: c.name, cls: Data.CLASSES[ch.cls] ? Data.CLASSES[ch.cls].name : ch.cls, floor });
+      }
+    }
+    if (floor >= 10) grantTitle(c.key, 'deep10');
+    if (floor >= 25) grantTitle(c.key, 'deep25');
+    // three boons to pick from
+    const ids = Data.DEEP_BOONS.map((b) => b.id).sort(() => Math.random() - 0.5).slice(0, 3);
+    c.abyssOffer = { floor, ids };
+    c.send({ t: 'abyssBoons', floor, choices: ids });
+  }
+  if (changed) save('deep.json', deep);
+  if (floor % 10 === 0 && players.length) broadcast(players.map((c) => c.name).join(', ') + ' cleared floor ' + floor + ' of the Endless Abyss!', 0xd080ff);
+};
 
 // ------------------------------------------------------------------ the Realm Siege
 /** Every siegeEveryMinutes (config, default 120; 0 turns it off): a two minute warning, then the Warlord comes. */

@@ -64,6 +64,10 @@ package realm {
 			prismatic_wand: ["Prismatic Wand", "weapon", "wand", {}, {shots: 3, arc: 30, rate: 1.1, mult: 0.6, col: 0xff80e0}, "Every color at once."],
 			fae_quiver: ["Quiver of the Fae", "ability", "quiver", {spd: 10}, {power: 1.7}, "Light as a sprite's wing."],
 			pixie_ring: ["Pixie Ring", "ring", "spd", {spd: 10, dex: 6}, null, "It giggles."],
+			// ---- the Endless Abyss (the Abyssal Herald)
+			voidrend: ["Voidrend", "weapon", "dagger", {dex: 6, att: 3}, {shots: 3, arc: 16, pierce: true, mult: 0.75, col: 0xc060ff}, "It cuts the dark itself."],
+			abyssal_crown: ["Abyssal Crown", "ability", "helm", {wis: 6, hp: 40}, {power: 1.9}, "Worn by whoever reaches the bottom. Nobody has."],
+			depthstone: ["Depthstone", "ring", "def", {def: 8, vit: 6, hp: 40}, null, "Heavier the deeper you go."],
 			// ---- the Realm Siege (Vorgath)
 			siegebreaker: ["Siegebreaker", "weapon", "sword", {att: 6, def: 4}, {mult: 1.9, size: 7, pierce: true, rate: 0.75, col: 0xffa020}, "Forged to bring down gates. Works on warlords too."],
 			warlords_banner: ["Warlord's Banner", "ability", "helm", {att: 5, vit: 5}, {power: 1.9}, "Where it flies, armies follow."],

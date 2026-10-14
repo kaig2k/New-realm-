@@ -169,8 +169,12 @@ package realm {
 		}
 
 		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
+		/** The Endless Abyss run's boons (Game.abyssRun), or null. */
+		public static var deepBoons:Array = null;
+
 		public function bonus(s:String):int {
 			var b:int = int(oracleBonus()[s] || 0);
+			if (deepBoons && deepBoons.length) b += int(Data.deepBonus(deepBoons)[s] || 0);
 			// a weapon's "spd" is its bullet speed, not a Speed bonus
 			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it[s] && !(s == "spd" && it.kind == "weapon")) b += it[s];
 			var set:String = activeSet;

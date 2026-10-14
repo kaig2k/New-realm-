@@ -1521,6 +1521,9 @@ package realm {
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
+			{id: "deep10", name: "the Abyssal", earn: "Clear floor 10 of the Endless Abyss", col: 0xa060ff},
+			{id: "deep25", name: "Voidwalker", earn: "Clear floor 25 of the Endless Abyss", col: 0xd080ff},
+			{id: "deepking", name: "Abyss Champion", earn: "Go deepest of your class in the Endless Abyss in a week", col: 0xff60ff},
 			{id: "spirelord", name: "Lord of the Godlands", earn: "Be in the guild that held the Godlands Spires longest in a week", col: 0x7fd8ff},
 			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
@@ -1810,6 +1813,61 @@ package realm {
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
 			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
+		// ---- The Endless Abyss (/abyss): floor after floor, each harder, for level 20 heroes (world key "deep:floor:seed")
+		/** The dungeons its floors are built from, in turn. */
+		public static const DEEP_POOL:Array = ["crypt", "depths", "undead_lair", "spire", "spider_den", "abyss", "cellar", "snake_pit", "sprite_world"];
+		/** Every DEEP_HERALD floors the Abyssal Herald waits at the bottom instead (with its own uniques). */
+		public static const DEEP_HERALD:int = 5;
+		/** Floor n's dungeon: one of the pool's, renamed, its last boss swapped for the Herald on milestone floors. */
+		public static function deepTheme(floor:int):Object {
+			var base:Object = DUNGEONS[dungeonIndex(DEEP_POOL[(Math.max(1, floor) - 1) % DEEP_POOL.length])];
+			var th:Object = {};
+			for (var k:String in base) th[k] = base[k];
+			th.id = "deep";
+			th.name = "The Endless Abyss · Floor " + floor;
+			th.dark = floor >= 10 || base.dark;
+			th.small = false;
+			if (floor % DEEP_HERALD == 0) th.boss = "abyss_herald";
+			return th;
+		}
+		/** How much tougher floor n's monsters are: [health, damage]. */
+		public static function deepScale(floor:int):Array {
+			var f:int = Math.max(0, floor - 1);
+			return [1 + 0.2 * f, 1 + 0.06 * f];
+		}
+		/** Extra loot luck on floor n. */
+		public static function deepLuck(floor:int):int { return Math.min(120, floor * 3); }
+		/** Boons: after each floor everyone picks one of three; they last for the run. */
+		public static const DEEP_BOONS:Array = [
+			{id: "might", name: "Abyssal Might", desc: "+4 Attack", st: {att: 4}, col: 0xff6a50},
+			{id: "haste", name: "Quickened", desc: "+5 Speed", st: {spd: 5}, col: 0x80ffa0},
+			{id: "dex", name: "Steady Hand", desc: "+5 Dexterity", st: {dex: 5}, col: 0xffd040},
+			{id: "guard", name: "Stoneskin", desc: "+5 Defense", st: {def: 5}, col: 0xb0b0c0},
+			{id: "life", name: "Deep Vigor", desc: "+60 max HP", st: {hp: 60}, col: 0xff4060},
+			{id: "mind", name: "Void Mind", desc: "+40 max MP, +3 Wisdom", st: {mp: 40, wis: 3}, col: 0x6080ff},
+			{id: "mend", name: "Regrowth", desc: "+5 Vitality", st: {vit: 5}, col: 0x60e060},
+			{id: "greed", name: "Greed", desc: "+15 loot luck", luck: 15, col: 0xf0c030}
+		];
+		public static function findBoon(id:String):Object {
+			for each (var b:Object in DEEP_BOONS) if (b.id == id) return b;
+			return null;
+		}
+		/** The stats a run's boons add. */
+		public static function deepBonus(boons:Array):Object {
+			var out:Object = {};
+			for each (var id:String in boons || []) {
+				var b:Object = findBoon(id);
+				if (b && b.st) for (var k:String in b.st) out[k] = (out[k] || 0) + b.st[k];
+			}
+			return out;
+		}
+		/** Loot luck from a run's boons. */
+		public static function deepBoonLuck(boons:Array):int {
+			var n:int = 0;
+			for each (var id:String in boons || []) { var b:Object = findBoon(id); if (b && b.luck) n += b.luck; }
+			return n;
+		}
+
 		/** The first 4 dungeons are the ones realm events drop. */
 		public static const EVENT_DUNGEONS:int = 4;
 

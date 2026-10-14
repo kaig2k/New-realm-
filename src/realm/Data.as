@@ -1857,6 +1857,8 @@ package realm {
 		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
 		public static const EVENTS_PER_REALM:int = 8;
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
+		/** Where the Dark Elder's four crystals rise in his third phase (from his home, plus 7 tiles down). */
+		public static const ELDER_CRYSTALS:Array = [[-8, -5], [8, -5], [-8, 5], [8, 5]];
 
 		/**
 		 * Dungeons. Event bosses drop the endgame ones; realm monsters drop

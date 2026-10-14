@@ -626,6 +626,24 @@ async function run() {
     const ex0 = el.x, ey0 = el.y;
     el.fire(ti, 0, 5, wa.g);
     check('...and his teleport takes him elsewhere on the platform', Math.hypot(el.x - ex0, el.y - ey0) > 1.5 && wa.w.canStand(el.x, el.y, 0.6, true), [ex0, ey0, el.x, el.y].join(' '));
+    // online the server runs his crystal phase, and his chamber burns as he weakens
+    const el2 = new WorldSim('arena:elder-test2');
+    const E2 = el2.w.boss;
+    E2.hp = E2.maxHp * 0.4;
+    E2.update(0.05, el2.g);
+    const crystals = el2.enemies.filter((o) => !o.dead && o.defId === 'elder_crystal');
+    let veins = 0;
+    for (let i = 0; i < N * N; i++) if (el2.w.tiles[i] === SW.VOIDFIRE) veins++;
+    check('his third phase on the server: four crystals rise and he can\'t be hurt, and the veins of the chamber catch void fire', crystals.length === 4 && E2.invuln && veins > 20 &&
+      el2.w.tiles[Math.floor(el2.w.spawnY) * N + Math.floor(el2.w.spawnX)] !== SW.VOIDFIRE, [crystals.length, E2.invuln, veins].join(' '));
+    for (const cr of crystals) { cr.hitters.set(90, 1); el2.kill(cr); }
+    check('...break the crystals and he can be hurt again', !E2.invuln);
+    E2.hp = E2.maxHp * 0.15;
+    E2.update(0.05, el2.g);
+    let rim = 0;
+    for (let i = 0; i < N * N; i++) if (el2.w.tiles[i] === SW.VOIDFIRE) rim++;
+    check('...and in his last phase the rim of the platform burns too (the middle and the way in stay clear)', rim > veins + 60 &&
+      el2.w.tiles[Math.floor(el2.w.spawnY) * N + Math.floor(el2.w.spawnX)] !== SW.VOIDFIRE && el2.w.tiles[91 * N + 100] !== SW.VOIDFIRE, [veins, rim].join(' '));
   }
 
   console.log('guild territory');

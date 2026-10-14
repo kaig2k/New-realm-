@@ -86,7 +86,7 @@ class WorldSim {
       aggroTarget: (e) => sim.target(e),
       spawnEnemy: (id, x, y, zone) => sim.spawn(id, x, y, zone),
       countAlive: (id) => sim.enemies.filter((e) => !e.dead && e.defId === id).length,
-      burst() {}, later() {}, addMarker() {}, groundFx() {}, addWeb() {}, soundAt() {}, bossPhase() {},
+      burst() {}, later() {}, addMarker() {}, groundFx() {}, addWeb() {}, soundAt() {}, bossPhase: (ph, b) => sim.bossPhase(ph, b),
       addShot: (s) => sim.trackShot(s), areaHit: (x, y, r) => sim.expectArea(x, y, r),
       sync: { fired: (e, i, ang, spin, code, dist) => sim.fired(e, i, ang, spin, code, dist) }
     };
@@ -320,6 +320,21 @@ class WorldSim {
    * report the hits they took; a game that keeps taking none of them is
    * ignoring damage (see godmodeCheck in server.js).
    */
+  /**
+   * A boss entered a new phase. The Dark Elder's chamber burns (World.elderPhase,
+   * as every game does), and in his third phase his four crystals rise and keep
+   * him immune until they're broken (see the crystal check in kill).
+   */
+  bossPhase(ph, b) {
+    if (!b || !b.def.final || this.kind !== 'arena') return;
+    for (let k = 0; k <= ph; k++) this.w.elderPhase(k);
+    if (ph === 2) {
+      let n = 0;
+      for (const [dx, dy] of Data.ELDER_CRYSTALS) if (this.spawn('elder_crystal', b.homeX + dx, b.homeY + 7 + dy, World.ARENA_ZONE, true)) n++;
+      if (n) b.invuln = true;
+    }
+  }
+
   trackShot(s) {
     if (!s || !s.enemy || s.motion === 'home') return;
     if (!this.shots) this.shots = [];

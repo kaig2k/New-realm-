@@ -2801,12 +2801,34 @@ class World {
 			this.spawnX = this.mapX + m.spawn[0] + 0.5;
 			this.spawnY = this.mapY + m.spawn[1] + 0.5;
 		}
+	elderPhase(k) { k = __int(k);
+			var out = [];
+			if (this.kind != "arena" || World.customMap) return out;
+			for (var y = __int(__int(World.EYE_CY - World.EYE_HH) - 1); y <= __int(World.EYE_CY + World.EYE_HH) + 1; y++) {
+				for (var x = __int(__int(World.EYE_CX - World.EYE_HW) - 1); x <= __int(World.EYE_CX + World.EYE_HW) + 1; x++) {
+					var i = __int(y * this.N + x);
+					if (this.zones[i] != World.ARENA_ZONE || this.tiles[i] == World.VOIDFIRE) continue;
+					var dy = (y + 0.5 - World.EYE_CY) / World.EYE_HH;
+					var half = World.EYE_HW * Math.pow(Math.max(0, 1 - dy * dy), 0.85);
+					var dx = Math.abs(x + 0.5 - World.EYE_CX);
+					var ex = x + 0.5 - World.IRIS_X, ey = y + 0.5 - World.IRIS_Y;
+					var r = Math.sqrt(ex * ex + ey * ey), a = Math.atan2(ey, ex);
+					var burn = false;
+					if (k == 2) burn = half - dx >= 1.4 && r > 9 && Math.abs(Math.sin(a * 4 + r * 0.22)) < 0.1;
+					else if (k == 3) burn = half - dx < 3.4 && this.objs[i] == 0;
+					if (!burn) continue;
+					this.tiles[i] = World.VOIDFIRE;
+					out.push(i);
+				}
+			}
+			return out;
+		}
 	generateArena() {
 			var x = 0, y = 0, i = 0;
 			for (i = __int(0); i < this.N * this.N; i++) { this.tiles[i] = World.VOID; this.zones[i] = -1; this.objs[i] = 0; }
-			var cx = 100.5, cy = 96, HW = 17, HH = 24;
+			var cx = World.EYE_CX, cy = World.EYE_CY, HW = World.EYE_HW, HH = World.EYE_HH;
 			
-			var ix = 100.5, iy = 92;
+			var ix = World.IRIS_X, iy = World.IRIS_Y;
 			for (y = __int(__int(cy - HH) - 1); y <= __int(cy + HH) + 1; y++) {
 				for (x = __int(__int(cx - HW) - 1); x <= __int(cx + HW) + 1; x++) {
 					var dy = (y + 0.5 - cy) / HH;
@@ -4685,6 +4707,7 @@ Data.SITES = [
 Data.EVENTS = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
 Data.EVENTS_PER_REALM = __int(8);
 Data.OVERLORD = "Azrakor the Dark Elder";
+Data.ELDER_CRYSTALS = [[-8, -5], [8, -5], [-8, 5], [8, 5]];
 Data.DUNGEONS = [
 			{id: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
 			{id: "depths", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
@@ -5113,6 +5136,7 @@ World.GOLD = __int(26);
 World.ASH = __int(27);
 World.SPECTRAL = __int(28);
 World.HEXFIRE = __int(29);
+World.VOIDFIRE = __int(30);
 World.SHORE_ZONE = __int(0);
 World.LOW_ZONE = __int(1);
 World.MID_ZONE = __int(2);
@@ -5129,6 +5153,12 @@ World.OBJ_NAMES = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", 
 World.SHRINES = ["might", "haste", "fortune", "vigor", "arcana"];
 World.NEXUS_ZONE = __int(5);
 World.customMap = null;
+World.EYE_CX = 100.5;
+World.EYE_CY = 96;
+World.EYE_HW = 17;
+World.EYE_HH = 24;
+World.IRIS_X = 100.5;
+World.IRIS_Y = 92;
 World.CHUNKS_PER_FRAME = __int(1);
 SetPieces.SIZE = __int(21);
 SetPieces.HALF = __int(10);

@@ -2914,6 +2914,17 @@ package realm {
 				if (po.banner) showBanner(po.banner, b.def.col, 3);
 				if (po.shield) { shake(0.4, 6); burst(b.x, b.y, b.def.col, 30); ring(b.x, b.y, b.def.col, 32); }
 				if (po.shield || po.banner) Sfx.play(Sfx.voiceOf(b ? b.def : null), 0.7, 1.5);
+				// the Dark Elder's chamber burns as he weakens (the server does the same)
+				if (b.def.final) {
+					// (every change so far, for anyone arriving mid-fight)
+					var burnt:Array = [];
+					for (var bk:int = 0; bk <= phase; bk++) burnt = burnt.concat(world.elderPhase(bk));
+					if (burnt.length) {
+						world.redrawTiles(burnt);
+						shake(0.5, 6);
+						showBanner(phase == 2 ? "The veins of the chamber ignite!" : "The edge of the chamber burns with void fire!", 0xb040ff, 3);
+					}
+				}
 				if (!(b.def.final && phase == 2)) return;
 			}
 			if (phase == 1) say(nm, "You dare wound me? Feel my power!");
@@ -2921,13 +2932,16 @@ package realm {
 				// the Dark Elder shields himself with four crystals
 				say(nm, "Crystals of the Abyss, shield your master!");
 				showBanner("The Dark Elder is immune! Destroy the crystals!", 0xff4080, 4);
-				b.invuln = true;
 				shake(0.5, 7);
-				for each (var cp:Array in [[-8, -5], [8, -5], [-8, 5], [8, 5]]) {
-					var c:Enemy = spawnEnemy("elder_crystal", b.homeX + cp[0], b.homeY + 7 + cp[1], World.ARENA_ZONE);
-					if (c) burst(c.x, c.y, 0xff4080, 20);
+				// online the server raises them (and keeps him immune); offline, or hosting, we do
+				if (!net.online || sync.hostKey == world.key) {
+					b.invuln = true;
+					for each (var cp:Array in Data.ELDER_CRYSTALS) {
+						var c:Enemy = spawnEnemy("elder_crystal", b.homeX + cp[0], b.homeY + 7 + cp[1], World.ARENA_ZONE);
+						if (c) burst(c.x, c.y, 0xff4080, 20);
+					}
+					if (crystalsLeft() == 0) b.invuln = false;
 				}
-				if (crystalsLeft() == 0) b.invuln = false;
 				tip("crystals", "While the Elder Crystals stand, the Dark Elder takes no damage.");
 			}
 			else if (phase == 2) say(nm, "ENOUGH! I will end you!");

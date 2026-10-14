@@ -416,14 +416,14 @@ package realm {
 
 			// --- lava
 			var underfoot:int = w.tileAt(x, y);
-			burning = underfoot == World.LAVA || underfoot == World.HEXFIRE;
+			burning = underfoot == World.LAVA || underfoot == World.HEXFIRE || underfoot == World.VOIDFIRE;
 			if (burning) {
 				burnTick -= dt;
 				if (burnTick <= 0) {
 					burnTick = 0.5;
 					hp -= 15;
 					hitT = 0.1;
-					lastHitBy = underfoot == World.HEXFIRE ? "Cursed runes" : "Lava";
+					lastHitBy = underfoot == World.HEXFIRE ? "Cursed runes" : underfoot == World.VOIDFIRE ? "Void fire" : "Lava";
 					lastHitWith = "";
 					noteHit(lastHitBy, "", 15);
 					g.floatText(x, y - 1, "-15", 0xff8030);

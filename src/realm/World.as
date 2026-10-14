@@ -29,6 +29,8 @@ package realm {
 		public static const BONE:int = 25, GOLD:int = 26, ASH:int = 27, SPECTRAL:int = 28;
 		/** Cursed runes: burn whoever stands on them, like lava. */
 		public static const HEXFIRE:int = 29;
+		/** Void fire: the Dark Elder's chamber burning violet (burns like lava). */
+		public static const VOIDFIRE:int = 30;
 		/** Realm biomes, from the coast inwards (RotMG order). */
 		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
 		public static const SAFE_ZONE:int = 9;
@@ -45,7 +47,7 @@ package realm {
 
 		public static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
 			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96,
-			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040];
+			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040, 0xa040ff];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -1153,12 +1155,44 @@ package realm {
 		 * run from it out over spectral stone to an obsidian rim; four pits drop into nothing, dark pillars give cover and
 		 * violet braziers burn round the edge. Tentacle-like islets drift beyond.
 		 */
+		/** The chamber's shape: centre, half-width and half-height of the almond, and its iris. */
+		private static const EYE_CX:Number = 100.5, EYE_CY:Number = 96, EYE_HW:Number = 17, EYE_HH:Number = 24, IRIS_X:Number = 100.5, IRIS_Y:Number = 92;
+
+		/**
+		 * The chamber burns as the Elder weakens (his phase k): at the third (k 2,
+		 * his crystals) the veins in the floor catch violet fire; at the last (k 3)
+		 * the platform's rim does too. The same tiles every time, so the server and
+		 * every player (even one arriving late) agree. Returns the tiles it changed.
+		 */
+		public function elderPhase(k:int):Array {
+			var out:Array = [];
+			if (kind != "arena" || customMap) return out;
+			for (var y:int = int(EYE_CY - EYE_HH) - 1; y <= int(EYE_CY + EYE_HH) + 1; y++) {
+				for (var x:int = int(EYE_CX - EYE_HW) - 1; x <= int(EYE_CX + EYE_HW) + 1; x++) {
+					var i:int = y * N + x;
+					if (zones[i] != ARENA_ZONE || tiles[i] == VOIDFIRE) continue;
+					var dy:Number = (y + 0.5 - EYE_CY) / EYE_HH;
+					var half:Number = EYE_HW * Math.pow(Math.max(0, 1 - dy * dy), 0.85);
+					var dx:Number = Math.abs(x + 0.5 - EYE_CX);
+					var ex:Number = x + 0.5 - IRIS_X, ey:Number = y + 0.5 - IRIS_Y;
+					var r:Number = Math.sqrt(ex * ex + ey * ey), a:Number = Math.atan2(ey, ex);
+					var burn:Boolean = false;
+					if (k == 2) burn = half - dx >= 1.4 && r > 9 && Math.abs(Math.sin(a * 4 + r * 0.22)) < 0.1;
+					else if (k == 3) burn = half - dx < 3.4 && objs[i] == 0;
+					if (!burn) continue;
+					tiles[i] = VOIDFIRE;
+					out.push(i);
+				}
+			}
+			return out;
+		}
+
 		private function generateArena():void {
 			var x:int, y:int, i:int;
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
-			var cx:Number = 100.5, cy:Number = 96, HW:Number = 17, HH:Number = 24;
+			var cx:Number = EYE_CX, cy:Number = EYE_CY, HW:Number = EYE_HW, HH:Number = EYE_HH;
 			// the iris is where the Elder waits
-			var ix:Number = 100.5, iy:Number = 92;
+			var ix:Number = IRIS_X, iy:Number = IRIS_Y;
 			for (y = int(cy - HH) - 1; y <= int(cy + HH) + 1; y++) {
 				for (x = int(cx - HW) - 1; x <= int(cx + HW) + 1; x++) {
 					var dy:Number = (y + 0.5 - cy) / HH;
@@ -1437,6 +1471,12 @@ package realm {
 							c = spc == "S" ? 0x34325a : spc == "H" ? 0x403e6a : spc == "h" ? 0x3a3862 : 0x1c1a34;
 							if (mark(gx, gy, 15, hs)) c = 0xa0c0ff;
 							break;
+						case VOIDFIRE:
+							// violet flame licking over black glass
+							var vf:int = (gx * 5 + gy * 3 + (gy >> 1)) % 7;
+							c = vf == 0 ? 0xf0c8ff : vf < 3 ? 0xb040ff : (gx + gy) % 4 == 0 ? 0x6a1ab0 : 0x1a0a2a;
+							if (r < 0.05) c = 0xffffff;
+							break;
 						case HEXFIRE:
 							// burning green runes on black stone
 							var hf:int = (gx * 3 + gy * 5) % 7;
@@ -1451,7 +1491,7 @@ package realm {
 					}
 					// variety, so no two stretches of ground look stamped from the same tile:
 					// a slow wash of light and shade, each flagstone its own shade, and the odd detail
-					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != CARPET) {
+					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != VOIDFIRE && t != CARPET) {
 						var f:Number = wash(gx, gy);
 						if (t == STONE || t == ROAD || t == PLAZA || t == RUIN || t == BRICK || t == SANDSTONE || t == ICE || t == BONE || t == SPECTRAL || t == HEXSTONE || t == OBSIDIAN)
 							f *= 0.965 + ((hs >> 3) & 7) * 0.01;

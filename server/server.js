@@ -640,6 +640,7 @@ function feat(kind, d) {
   if (kind === 'record') discord.post('🏆 **New record!** ' + dnames(d.names) + ' killed **' + desc(d.boss) + '** in **' + d.time + '**' + (d.old ? ' (beating ' + d.old + ')' : '') + '.', 0xffd75e);
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
+  else if (kind === 'ascend') discord.post('✦ **' + desc(d.name) + '**\'s ' + desc(d.hero) + ' has **Ascended**' + (d.n > 1 ? ' (×' + d.n + ')' : '') + '!', 0xffd75e);
   else if (kind === 'oracle') discord.post('👁️ **' + desc(d.name) + '** completed the Oracle\'s collection for **' + desc(d.boss) + '**!', 0xb9a9ff);
   else if (kind === 'primordial') discord.post('🔥 **' + desc(d.name) + '** found a Primordial item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff5533);
   else if (kind === 'godly') discord.post('✨ **' + desc(d.name) + '** found a Godly item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff60ff);
@@ -761,6 +762,8 @@ function applySave(c, data, cid) {
   // and the Oracle's record of boss kills and drops
   if (prev._oracle) data._oracle = prev._oracle; else delete data._oracle;
   if (prev.oracleDone) data.oracleDone = prev.oracleDone; else delete data.oracleDone;
+  // and the Ascension tree
+  if (prev.asc) data.asc = prev.asc; else delete data.asc;
   // and the Pet Stable (it only changes through petStable and hatch)
   if (prev.stable) data.stable = prev.stable; else delete data.stable;
   // and the daily login streak
@@ -829,7 +832,9 @@ const NEW_HERO_CAPS = { hit: 300, rate: 1500, burst: 6000, def: 0, maxHp: 0 };
 function setCaps(c) {
   if (isAdmin(c)) { c.caps = null; c.maxDps = 1e9; c.defMax = 1e9; return; }
   const sv = store.getSave(c.key) || {};
-  c.caps = combat.caps(serverChar(c), sv.pet, Data.oracleBonus(sv.oracleDone || [])) || NEW_HERO_CAPS;
+  c.caps = combat.caps(serverChar(c), sv.pet, Data.oracleBonus(sv.oracleDone || [], sv.asc)) || NEW_HERO_CAPS;
+  // (Ascendant Fortune: loot luck the server adds to its own drops)
+  c.ascLuck = Data.ascRank(sv.asc, 'fortune') * 3;
   c.maxDps = c.caps.rate * 3;
   // (damage checks: the most Defense, and the most health, this hero can have)
   c.defMax = c.caps.def;
@@ -954,6 +959,8 @@ const handlers = {
     c.mode = modes.modeOf(serverChar(c));
     if (m.profile && typeof m.profile === 'object') c.rawProfile = m.profile;
     c.profile = withBanner(c, cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key)));
+    // (its Ascension aura: how often the hero being played has ascended, by the server's copy)
+    if (c.profile) c.profile.asc = Math.min(99, Number((serverChar(c) || {}).asc) || 0);
     if (c.trade) endTrade(c, 'The trade was cancelled.');
     updateRealms();
     // the first player in a world runs its monsters
@@ -1082,6 +1089,8 @@ const handlers = {
     if (!m.profile || typeof m.profile !== 'object') return;
     c.rawProfile = m.profile;
     c.profile = withBanner(c, cleanProfile(m.profile, isAdmin(c) ? null : onlineSave(c.key)));
+    // (its Ascension aura: how often the hero being played has ascended, by the server's copy)
+    if (c.profile) c.profile.asc = Math.min(99, Number((serverChar(c) || {}).asc) || 0);
     for (const o of inWorld(c.world, c)) o.send({ t: 'profile', id: c.id, profile: c.profile });
     updateGuildMember(c);
   },
@@ -1418,6 +1427,49 @@ const handlers = {
     for (const a of byName.values()) if (isAdmin(a)) a.note('[Bug #' + b.id + '] ' + c.name + ': ' + text + '  (/bugs to see them all)', 0xffb040);
     if (discord.on) discord.post('🐞 **Bug #' + b.id + '** from **' + desc(c.name) + '**: ' + desc(text) + '\n_' + desc(b.hero) + (b.pet ? ', ' + desc(b.pet) : '') + ' · ' + desc(b.world || 'menu') + (b.fps ? ' · ' + b.fps + ' fps' : '') + (b.ping ? ' · ' + b.ping + ' ms' : '') + '_', 0xffa040);
     c.note('Thanks! Bug #' + b.id + ' was sent to the admins.', 0x80ff80);
+  },
+
+  /**
+   * Ascension: a level 20 hero with every stat maxed starts again at level 1 (it keeps
+   * its gear and the skill points it earned past 20) for a point in the account's tree.
+   */
+  ascend(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved. Try again in a moment.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch) return c.send({ t: 'shopFail', msg: 'Pick a hero and enter the game first.' });
+    if (!Data.canAscend(ch)) return c.send({ t: 'shopFail', msg: 'Only a level 20 hero with every stat maxed can ascend.' });
+    const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+    const kept = Math.max(0, (Number(ch.skillPoints) || 0) + Data.skillSpent(ch.skills || {}) - 19);
+    ch.level = 1; ch.xp = 0; ch.xpNext = progress.xpFor(1); ch.ascXp = 0;
+    ch.stats = JSON.parse(JSON.stringify(cls.base));
+    ch.skills = {}; ch.skillPoints = kept; ch.highStakes = false;
+    ch.asc = (Number(ch.asc) || 0) + 1;
+    const a = sv.asc && typeof sv.asc === 'object' ? sv.asc : (sv.asc = { pts: 0, r: {}, n: 0 });
+    a.pts = (a.pts || 0) + 1; a.n = (a.n || 0) + 1;
+    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    store.putSave(c.key, sv);
+    setCaps(c);
+    log(c.name + '\'s ' + (ch.name || 'hero') + ' ascended (' + ch.asc + ')');
+    feat('ascend', { name: c.name, hero: ch.name || cls.name, n: ch.asc });
+    for (const o of clients.values()) if (o.authed && o !== c) o.send({ t: 'msg', text: '✦ ' + c.name + '\'s ' + (ch.name || cls.name) + ' has Ascended' + (ch.asc > 1 ? ' for the ' + ch.asc + (ch.asc === 2 ? 'nd' : ch.asc === 3 ? 'rd' : 'th') + ' time' : '') + '! ✦', color: 0xffd75e });
+    c.send({ t: 'asc', asc: a, ascended: ch.asc });
+    c.send({ t: 'saveRejected', reason: 'OK: ' + (ch.name || 'Your hero') + ' has Ascended! Level 1 again, gear kept' + (kept ? ', ' + kept + ' skill point' + (kept === 1 ? '' : 's') + ' kept' : '') + ', and +1 Ascension point to spend.', data: publicSave(sv) });
+  },
+
+  /** A point into the Ascension tree (m.id: an ASC_PERKS id). */
+  ascSpend(c, m) {
+    const sv = onlineSave(c.key);
+    const p = Data.ASC_PERKS.find((x) => x.id === m.id);
+    const a = sv && sv.asc;
+    if (!p || !a || !(a.pts > 0)) return c.send({ t: 'shopFail', msg: 'You have no Ascension points: ascend a maxed hero to earn one.' });
+    if (!a.r) a.r = {};
+    if ((a.r[p.id] || 0) >= p.max) return c.send({ t: 'shopFail', msg: p.name + ' is already at its highest rank.' });
+    a.r[p.id] = (a.r[p.id] || 0) + 1;
+    a.pts--;
+    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    store.putSave(c.key, sv);
+    setCaps(c);
+    c.send({ t: 'asc', asc: a, seq: sv.tradeSeq });
   },
 
   /** The Oracle (O, or /oracle): the bosses you've killed and what they dropped. */
@@ -1867,6 +1919,23 @@ const handlers = {
       case '/announce':
         broadcast('[Server] ' + parts.slice(1).join(' '));
         return;
+      case '/maxhero': {
+        // (admins, for testing: the hero being played, yours or /maxhero name's, to level 20 with every stat maxed)
+        const tc = parts[1] ? target : c;
+        if (!tc) return c.note('Nobody called ' + parts[1] + ' is online.');
+        const sv = onlineSave(tc.key), ch = serverChar(tc);
+        if (!sv || !ch) return c.note((tc === c ? 'Pick a hero' : tc.name + ' has to pick a hero') + ' and enter the game first.');
+        const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+        ch.stats = Object.assign({}, cls.max);
+        ch.skillPoints = (Number(ch.skillPoints) || 0) + Math.max(0, 20 - (Number(ch.level) || 1));
+        ch.level = 20; ch.xp = 0; ch.xpNext = progress.xpFor(20); ch.ascXp = 0;
+        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        store.putSave(c.key, sv);
+        setCaps(tc);
+        log(c.name + ' used /maxhero on ' + tc.name + '\'s ' + (ch.name || ch.id));
+        if (tc !== c) c.note('Maxed ' + tc.name + '\'s ' + (ch.name || 'hero') + '.', 0x80ff80);
+        return tc.send({ t: 'saveRejected', reason: 'OK: ' + (ch.name || 'Your hero') + ' is level 20 with every stat maxed.', data: publicSave(sv) });
+      }
       case '/give': {
         // /give name 1000 gold|fame|aether: gold and fame are the server's to hand out now
         const amount = Math.floor(Number(parts[2]));

@@ -121,6 +121,8 @@ function check(prev, next, meta, now) {
       const refund = !was.tree2 && h.tree2 ? Math.max(0, num(h.level) - 1) : 0;
       if (has > had + lv + asc + refund) bad = has + ' skill points (at most ' + (had + lv + asc + refund) + ')';
     }
+    // (how often it has ascended is the server's: see handlers.ascend)
+    if (was.asc) h.asc = was.asc; else delete h.asc;
     if (bad) {
       // the progress goes back to the last good save (or a new hero's start)
       for (const k of PROGRESS) { if (was[k] === undefined) delete h[k]; else h[k] = clone(was[k]); }

@@ -572,13 +572,23 @@ class Data {
 			for (var i = __int(0); i < id.length; i++) h = __int((h * 31 + id.charCodeAt(i)) & 0xffff);
 			return Data.STATS[h % Data.STATS.length];
 		}
-	static oracleBonus(done) {
+	static oracleBonus(done, asc = null) {
 			var out = {};
+			
+			if (asc) { var ast = Data.ascStats(asc); for (var ak in ast) if (ast[ak]) out[ak] = ast[ak]; }
 			for (var id of __vals( done || [])) {
 				var s = Data.oracleStat(id);
 				out[s] = (out[s] || 0) + (s == "hp" || s == "mp" ? 5 : 1);
 			}
 			return out;
+		}
+	static ascRank(asc, id) { return __int(asc && asc.r ? Math.max(0, __int(asc.r[id] || 0)) : 0); }
+	static ascStats(asc) { return {hp: Data.ascRank(asc, "vigor") * 10, att: Data.ascRank(asc, "might")}; }
+	static canAscend(h) {
+			var cls = Data.CLASSES[typeof h.cls == "string" ? h.cls : h.cls.id];
+			if (!cls || __int(h.level) < 20 || !h.stats) return false;
+			for (var s of __vals( Data.STATS)) if (Number(h.stats[s]) < cls.max[s] - 0.001) return false;
+			return true;
 		}
 	static findTitle(id) {
 			if (!id) return null;
@@ -599,7 +609,7 @@ class Data {
 			for (var ev of __vals( Data.EVENTS)) if (Data.SLAYER[ev]) out.push(Data.findTitle("slayer_" + ev));
 			return out;
 		}
-	static petKillXp(xp) { return __int(Math.max(1, Math.round(xp / Data.PET_XP_SHARE))); }
+	static petKillXp(xp, asc = null) { return __int(Math.max(1, Math.round(xp * (1 + Data.ascRank(asc, "bond") * 0.08) / Data.PET_XP_SHARE))); }
 	static hatchPet() {
 			var sp = Data.pick(Data.PET_SPECIES);
 			var r = Math.random();
@@ -4168,6 +4178,15 @@ Data.SLAYER = {
 			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
 		};
 Data.ORACLE_TITLES = [[5, "oracle5"], [0, "oracleall"]];
+Data.ASC_PERKS = [
+			{id: "wisdom", name: "Ascendant Wisdom", desc: "+4% XP", max: 5, col: 0x80e0ff},
+			{id: "fortune", name: "Ascendant Fortune", desc: "+3 loot luck", max: 5, col: 0xffd040},
+			{id: "wealth", name: "Ascendant Wealth", desc: "+5% gold from monsters", max: 5, col: 0xf0c030},
+			{id: "bond", name: "Ascendant Bond", desc: "+8% pet XP", max: 5, col: 0x60f0a0},
+			{id: "vigor", name: "Ascendant Vigor", desc: "+10 max HP", max: 5, col: 0xff6a6a},
+			{id: "might", name: "Ascendant Might", desc: "+1 Attack", max: 5, col: 0xff9a50}
+		];
+Data.ASC_AURAS = [0, 0xcd7f32, 0xd8e0f0, 0xffd75e, 0xff60ff];
 Data.PET_SPECIES = [
 			{id: "pup", name: "Realm Pup"}, {id: "slime", name: "Jelly"}, {id: "owl", name: "Night Owl"},
 			{id: "drake", name: "Ember Drake"}, {id: "wisp", name: "Wisp"}, {id: "golem", name: "Pebble Golem"}

@@ -156,6 +156,7 @@ package realm {
 		private var flagsWin:FlagsWindow;
 		private var marketWin:MarketWindow;
 		private var oracleWin:OracleWindow;
+		private var ascWin:AscendWindow;
 		private var petWin:PetWindow;
 		private var bugsWin:BugsWindow;
 		/** Frames a second, smoothed (sent with bug reports). */
@@ -407,7 +408,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/l20": case "/backpack": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
+				case "/l20": case "/backpack": case "/maxhero": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -423,6 +424,10 @@ package realm {
 					break;
 				case "/oracle":
 					toggleOracle();
+					break;
+				case "/ascend":
+				case "/ascension":
+					toggleAscend();
 					break;
 				case "/wiki":
 					toggleWiki();
@@ -1008,7 +1013,7 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, petWin, bugsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, ascWin, petWin, bugsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1323,7 +1328,9 @@ package realm {
 		/** The server refused our save: carry on from its copy. */
 		public function saveRejected(reason:String):void {
 			// (a Hardcore item equipped too early only goes back to the inventory: nothing else is undone)
-			if (reason.indexOf("went back to your inventory") >= 0 || reason.indexOf("put back what its records") >= 0) msg(reason, 0xff8a7a);
+			// (the server changed the hero itself: VIP /l20, Ascension)
+			if (reason.indexOf("OK: ") == 0 || reason.indexOf("VIP: ") == 0) msg(reason.replace(/^OK: /, ""), 0xffd75e);
+			else if (reason.indexOf("went back to your inventory") >= 0 || reason.indexOf("put back what its records") >= 0) msg(reason, 0xff8a7a);
 			else msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
 			// everything goes back to the server's copy together, so nothing can exist twice
 			if (vaultWorld) fillVault();
@@ -1448,7 +1455,7 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || petWin || bugsWin || playerMenu || social || wiki || skillWin)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || ascWin || petWin || bugsWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
 				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
@@ -1457,6 +1464,7 @@ package realm {
 				else if (flagsWin) closeFlags();
 				else if (marketWin) closeMarket();
 				else if (oracleWin) closeOracle();
+				else if (ascWin) toggleAscend();
 				else if (petWin) togglePet();
 				else if (bugsWin) closeBugs();
 				else closeTrade();
@@ -2073,9 +2081,10 @@ package realm {
 			if (e.def.crate) crateBroken(e, mine, remote);
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
 			if (mine || near) {
-				p.gainXp(int(e.def.xp * xpMult), this);
+				// (Ascendant Wisdom: more XP; Ascendant Bond: more for the pet)
+				p.gainXp(int(e.def.xp * xpMult * (1 + Data.ascRank(Save.data.asc, "wisdom") * 0.04)), this);
 				// your pet grows with the XP you earn
-				if (!e.def.crate && !e.def.prop) petGainXp(Data.petKillXp(e.def.xp * xpMult));
+				if (!e.def.crate && !e.def.prop) petGainXp(Data.petKillXp(e.def.xp * xpMult, Save.data.asc));
 			}
 			if (e.elite && !remote && e.elite == "Splitting") splitElite(e);
 			if (e.def.splits && !remote) splitSlime(e);
@@ -2086,7 +2095,7 @@ package realm {
 
 			// currencies (account-wide gold and Aether)
 			var g:int = mine ? e.def.gold || int(e.def.xp / 6) : 0;
-			g = int(g * (1 + p.rank("scavenger") * 0.08 + p.rank("goldrush") * 0.1));
+			g = int(g * (1 + p.rank("scavenger") * 0.08 + p.rank("goldrush") * 0.1) * (1 + Data.ascRank(Save.data.asc, "wealth") * 0.05));
 			if (g > 0) addGold(g);
 			if (mine && e.def.onrane) addOnrane(e.def.onrane);
 			if (mine && e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " Aether", Ui.GOLD);
@@ -6376,6 +6385,7 @@ package realm {
 		private function drawRemote(rp:RemotePlayer):void {
 			var cx:Number = scrX(rp.x, rp.y), cy:Number = scrY(rp.x, rp.y);
 			if (rp == hoverRemote || (playerMenu && playerMenu.name == rp.id)) drawAura(cx, cy + TS * 0.4, 0xffffff, 0.45);
+			if (rp.profile && rp.profile.asc > 0) drawAscAura(cx, cy, int(rp.profile.asc), rp.x, rp.y);
 			drawEntity(rp.sprite, cx, cy, 0, world.inWater(rp.x, rp.y));
 		}
 
@@ -6573,6 +6583,36 @@ package realm {
 			oracleWin.x = int((Ui.W - OracleWindow.W) / 2);
 			oracleWin.y = int((Ui.H - OracleWindow.H) / 2);
 			addChild(oracleWin);
+		}
+
+		/** Ascension (/ascend, or the Skill Tree's button): the hero's reset and the account's tree. */
+		public function toggleAscend():void {
+			if (ascWin) { if (ascWin.parent) removeChild(ascWin); ascWin = null; refocus(); return; }
+			if (!net.online) { msg("Ascension is kept by the server: play online to ascend.", 0xff8080); return; }
+			ascWin = new AscendWindow(this);
+			ascWin.x = int((Ui.W - AscendWindow.W) / 2);
+			ascWin.y = int((Ui.H - AscendWindow.H) / 2);
+			addChild(ascWin);
+		}
+
+		/** Asks the server to ascend this hero (it answers with "asc" and the reset hero). */
+		public function ascend():void {
+			if (shopWaiting) return;
+			if (net.shopRequest({t: "ascend"})) shopWaiting = true;
+		}
+
+		/** The server's answer: the account's tree (and, after an ascension, the hero's new count). */
+		public function ascUpdated(m:Object):void {
+			shopWaiting = false;
+			Save.data.asc = m.asc;
+			if (m.seq) Save.data.tradeSeq = int(m.seq);
+			if (m.ascended) {
+				showBanner("ASCENDED!", 0xffd75e, 4);
+				Sfx.play("rare");
+				burst(player.x, player.y, 0xffd75e, 60);
+			}
+			hud.refresh();
+			if (ascWin) ascWin.refresh();
 		}
 
 		public function closeOracle():void {
@@ -6965,9 +7005,20 @@ package realm {
 				(t ? "\n<font size='10' color='" + Ui.hex(t.col || 0xc8c8d8) + "'>" + t.name + "</font>" : "");
 		}
 
+		/** An ascended hero's aura: a ring of light at its feet, its colour by how often it has ascended. */
+		private function drawAscAura(cx:Number, cy:Number, n:int, wx:Number, wy:Number):void {
+			if (n <= 0) return;
+			var col:uint = Data.ASC_AURAS[Math.min(4, n)];
+			if (n >= 4) col = [0xff60ff, 0x60c0ff, 0x60ff90, 0xffe060][int(time * 2) % 4];
+			drawAura(cx, cy + TS * 0.4, col, 0.5 + Math.min(4, n) * 0.08);
+			if (opt("parts") && Math.random() < 0.08 * Math.min(4, n) && parts.length < 400)
+				parts.push(new Particle(wx + (Math.random() - 0.5) * 0.8, wy - Math.random() * 0.4, 0, -0.9, 0.6, Sprites.glow(col)));
+		}
+
 		private function drawPlayer():void {
 			var p:Player = player;
 			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
+			if (p.asc > 0 && p.hp > 0) drawAscAura(cx, cy, p.asc, p.x, p.y);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
 			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, p.moving ? 0 : int(time * 1.6) % 2, world.inWater(p.x, p.y));
 			tagText(nameTag, p.name, 0xffe36e, p.title, p.mode);

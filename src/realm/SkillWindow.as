@@ -151,6 +151,9 @@ package realm {
 			var reset:Sprite = Ui.button("Reset (" + RESET_COST + "g)", 116, 28, resetTree, 12);
 			reset.x = W - 172; reset.y = 14;
 			head.addChild(reset);
+			var asc:Sprite = Ui.button(p.ascended ? "✦ Ascend" : "Ascension", 100, 28, function():void { g.toggleSkills(); g.toggleAscend(); }, 12);
+			asc.x = W - 280; asc.y = 14;
+			head.addChild(asc);
 			var close:Sprite = Ui.button("X", 32, 28, function():void { g.toggleSkills(); }, 14);
 			close.x = W - 48; close.y = 14;
 			head.addChild(close);

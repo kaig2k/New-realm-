@@ -295,6 +295,9 @@ package realm {
 					// promoted, demoted, or VIP started or ended
 					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; }
 					break;
+				case "asc":
+					g.ascUpdated(m);
+					break;
 				case "oracleDone":
 					g.oracleCompleted(m.id, m.done as Array, m.stat);
 					break;

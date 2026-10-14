@@ -1551,8 +1551,10 @@ package realm {
 			return STATS[h % STATS.length];
 		}
 		/** What completed collections (boss ids) add to every hero: {stat: amount}; HP and MP get 5 a collection. */
-		public static function oracleBonus(done:Array):Object {
+		public static function oracleBonus(done:Array, asc:Object = null):Object {
 			var out:Object = {};
+			// (and the Ascension tree's stats)
+			if (asc) { var ast:Object = ascStats(asc); for (var ak:String in ast) if (ast[ak]) out[ak] = ast[ak]; }
 			for each (var id:String in done || []) {
 				var s:String = oracleStat(id);
 				out[s] = (out[s] || 0) + (s == "hp" || s == "mp" ? 5 : 1);
@@ -1560,6 +1562,29 @@ package realm {
 			return out;
 		}
 		public static const ORACLE_TITLES:Array = [[5, "oracle5"], [0, "oracleall"]];
+
+		// ---- Ascension: a maxed hero starts again at level 1 (gear kept) for a point in the account's tree
+		/** The tree (Save.data.asc = {pts, r: {id: rank}}, the server's): every perk is for every hero. */
+		public static const ASC_PERKS:Array = [
+			{id: "wisdom", name: "Ascendant Wisdom", desc: "+4% XP", max: 5, col: 0x80e0ff},
+			{id: "fortune", name: "Ascendant Fortune", desc: "+3 loot luck", max: 5, col: 0xffd040},
+			{id: "wealth", name: "Ascendant Wealth", desc: "+5% gold from monsters", max: 5, col: 0xf0c030},
+			{id: "bond", name: "Ascendant Bond", desc: "+8% pet XP", max: 5, col: 0x60f0a0},
+			{id: "vigor", name: "Ascendant Vigor", desc: "+10 max HP", max: 5, col: 0xff6a6a},
+			{id: "might", name: "Ascendant Might", desc: "+1 Attack", max: 5, col: 0xff9a50}
+		];
+		/** Aura colours by how many times a hero has ascended (1, 2, 3, 4+: prismatic). */
+		public static const ASC_AURAS:Array = [0, 0xcd7f32, 0xd8e0f0, 0xffd75e, 0xff60ff];
+		public static function ascRank(asc:Object, id:String):int { return asc && asc.r ? Math.max(0, int(asc.r[id] || 0)) : 0; }
+		/** Stats the tree adds to every hero. */
+		public static function ascStats(asc:Object):Object { return {hp: ascRank(asc, "vigor") * 10, att: ascRank(asc, "might")}; }
+		/** Can this hero (a save entry or Player) ascend: level 20 and every stat at its class's best. */
+		public static function canAscend(h:Object):Boolean {
+			var cls:Object = CLASSES[typeof h.cls == "string" ? h.cls : h.cls.id];
+			if (!cls || int(h.level) < 20 || !h.stats) return false;
+			for each (var s:String in STATS) if (Number(h.stats[s]) < cls.max[s] - 0.001) return false;
+			return true;
+		}
 
 		/** A title by id: {id, name, cost} for bought ones, {id, name, earn, col} for earned ones; null if unknown. */
 		public static function findTitle(id:String):Object {
@@ -1596,7 +1621,7 @@ package realm {
 		public static const PET_EGG_PRICE:int = 1000;
 		/** Pets grow from the XP you earn fighting: 1 pet XP for every PET_XP_SHARE of yours (at least 1 a kill). */
 		public static const PET_XP_SHARE:int = 25;
-		public static function petKillXp(xp:Number):int { return Math.max(1, Math.round(xp / PET_XP_SHARE)); }
+		public static function petKillXp(xp:Number, asc:Object = null):int { return Math.max(1, Math.round(xp * (1 + ascRank(asc, "bond") * 0.08) / PET_XP_SHARE)); }
 
 		public static function hatchPet():Object {
 			var sp:Object = pick(PET_SPECIES);

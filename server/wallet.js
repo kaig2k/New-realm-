@@ -41,8 +41,8 @@ function fameBook(sv) {
 /** The most gold and fame one kill of enemy e can pay a player who hit it. */
 function killValue(e) {
   const d = e.def || {}, z = Math.max(0, e.zone | 0);
-  // kill gold with the best Scavenger and Gold Rush ranks, and the streak bonus (5 a kill)
-  let gold = Math.ceil((d.gold || Math.floor((d.xp || 0) / 6)) * 1.9) + 5;
+  // kill gold with the best Scavenger, Gold Rush and Ascendant Wealth ranks, and the streak bonus (5 a kill)
+  let gold = Math.ceil((d.gold || Math.floor((d.xp || 0) / 6)) * 2.4) + 5;
   if (e.elite) gold += Math.floor((d.xp || 0) / 2) + 20;
   if (d.goblin) gold += (d.gold || 0) * (z + 1);
   if (d.crate) gold += 26 * (z + 1);
@@ -64,6 +64,8 @@ function heroFame(c) {
 /** Player (meta, save, hero id) took part in killing e; near: only close by (XP, so fame, but no gold). */
 function credit(meta, sv, charId, e, now, near) {
   const v = killValue(e);
+  // (Ascendant Wisdom: the account's tree gives more XP)
+  v.xp = Math.ceil(v.xp * (1 + Data.ascRank(sv.asc, 'wisdom') * 0.04));
   if (!near) {
     const w = state(meta);
     w.gold.push({ n: v.gold, at: now || Date.now() });
@@ -77,7 +79,7 @@ function credit(meta, sv, charId, e, now, near) {
     if (!sv._xpb || typeof sv._xpb !== 'object') sv._xpb = {};
     sv._xpb[charId] = Math.min(5e7, (sv._xpb[charId] || 0) + v.xp);
     // and the pet's growth: a share of the XP (Data.petKillXp), killed by them or close by
-    if (!(e.def && (e.def.crate || e.def.prop))) sv._petb = Math.min(1e6, (Number(sv._petb) || 0) + Data.petKillXp(v.xp));
+    if (!(e.def && (e.def.crate || e.def.prop))) sv._petb = Math.min(1e6, (Number(sv._petb) || 0) + Data.petKillXp(v.xp, sv.asc));
   }
 }
 

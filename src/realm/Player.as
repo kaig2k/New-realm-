@@ -118,6 +118,8 @@ package realm {
 		public var skills:Object = {};
 		public var skillPoints:int = 0;
 		public var ascXp:int = 0;
+		/** Times this hero has ascended (its aura). */
+		public var asc:int = 0;
 
 		private var shootT:Number = 0;
 		private var attackT:Number = 0;
@@ -156,16 +158,17 @@ package realm {
 			return setPieces >= 4 && weapon ? weapon.set : null;
 		}
 
-		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
 		/** The Oracle's collection bonuses (Data.oracleBonus of Save.data.oracleDone), worked out again only when that list changes. */
 		private static var oracleKey:String = null, oracleCache:Object = {};
 		public static function oracleBonus():Object {
 			var done:Array = Save.data.oracleDone as Array;
-			var k:String = done ? done.join(",") : "";
-			if (k != oracleKey) { oracleKey = k; oracleCache = Data.oracleBonus(done); }
+			var asc:Object = Save.data.asc;
+			var k:String = (done ? done.join(",") : "") + "|" + (asc ? JSON.stringify(asc.r) : "");
+			if (k != oracleKey) { oracleKey = k; oracleCache = Data.oracleBonus(done, asc); }
 			return oracleCache;
 		}
 
+		/** Stat bonus from all equipped gear (and the 4-piece set bonus). */
 		public function bonus(s:String):int {
 			var b:int = int(oracleBonus()[s] || 0);
 			// a weapon's "spd" is its bullet speed, not a Speed bonus
@@ -271,7 +274,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "tree3", "season", "mode", "climb", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "asc", "highStakes", "tree2", "tree3", "season", "mode", "climb", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};

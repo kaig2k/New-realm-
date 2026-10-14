@@ -1725,6 +1725,53 @@ async function run() {
     for (const c of [bz8, M8, V8, P9]) c.s.destroy();
   }
 
+  console.log('ascension');
+  {
+    const { Data: AD } = require('./sim/gen/game');
+    const A1 = await login('Tasc' + n, { password: 'pass1234', register: true });
+    const AB = await login('TestBoss', { password: 'pass1234' });
+    const ah = { id: 'as1', cls: 'wizard', name: 'Asc', level: 1, xp: 0, stats: clone(AD.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] };
+    A1.send({ t: 'save', data: { gold: 0, fame: 0, chars: [ah] } });
+    await wait(400);
+    A1.send({ t: 'enter', key: 'nexus', cid: 'as1', x: 100, y: 100 });
+    await wait(200);
+    A1.clear();
+    A1.send({ t: 'ascend' });
+    await wait(300);
+    check('a hero that isn\'t maxed can\'t ascend', A1.find((m) => m.t === 'shopFail' && /level 20/.test(m.msg)), JSON.stringify(A1.msgs));
+    AB.send({ t: 'cmd', text: '/maxhero Tasc' + n });
+    await wait(300);
+    const mx = A1.find((m) => m.t === 'saveRejected');
+    const hm = mx && mx.data.chars.find((h) => h.id === 'as1');
+    check('/maxhero: level 20, every stat maxed', hm && hm.level === 20 && AD.canAscend(hm), JSON.stringify(mx && mx.reason));
+    A1.clear();
+    A1.send({ t: 'ascend' });
+    await wait(400);
+    const as = A1.find((m) => m.t === 'asc'), rs = A1.find((m) => m.t === 'saveRejected');
+    const ha = rs && rs.data.chars.find((h) => h.id === 'as1');
+    check('ascending: back to level 1 with base stats, its inventory kept, the skill points past 20 kept, +1 point', as && as.asc.pts === 1 && as.ascended === 1 && ha && ha.level === 1 && ha.asc === 1 &&
+      ha.stats.att === AD.CLASSES.wizard.base.att && ha.name === 'Asc' && ha.inv.length === 8 && ha.skillPoints === 0 && /Ascended/.test(rs.reason), JSON.stringify([as, ha && ha.level, ha && ha.skillPoints, rs && rs.reason]));
+    A1.clear();
+    A1.send({ t: 'ascSpend', id: 'might' });
+    await wait(300);
+    const sp = A1.find((m) => m.t === 'asc');
+    check('spending the point: a rank of Ascendant Might', sp && sp.asc.pts === 0 && sp.asc.r.might === 1, JSON.stringify(A1.msgs));
+    A1.clear();
+    A1.send({ t: 'ascSpend', id: 'might' });
+    await wait(300);
+    check('...and no more without points', A1.find((m) => m.t === 'shopFail'), JSON.stringify(A1.msgs));
+    const combat = require('./combat');
+    const ob = AD.oracleBonus([], sp.asc);
+    check('Ascendant Might and Vigor count in the server\'s stat caps', combat.stat(ha, 'att', ob) - combat.stat(ha, 'att') === 1 && AD.oracleBonus([], { r: { vigor: 2 } }).hp === 20);
+    // the game's next save, from the reloaded hero, is accepted
+    A1.clear();
+    A1.send({ t: 'save', data: Object.assign({}, rs.data, { asc: sp.asc, tradeSeq: sp.seq }) });
+    await wait(400);
+    check('...and the game\'s next save is fine', !A1.find((m) => m.t === 'saveRejected'), JSON.stringify(A1.find((m) => m.t === 'saveRejected')));
+    A1.s.destroy();
+    AB.s.destroy();
+  }
+
   console.log('bug reports');
   {
     const B7 = await login('Tbug' + n, { password: 'pass1234', register: true });

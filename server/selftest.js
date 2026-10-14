@@ -542,17 +542,21 @@ async function run() {
     // his war camp: laid into the realm round him, with four ballistas and scorched earth beyond
     const camp = e.arena || [];
     const scorched = camp.filter((k) => k.ch === 's');
-    check('Vorgath\'s war camp rises round him: palisade, lava trenches, four ballistas, scorched ground', camp.length > 300 && e.props.length === 4 &&
-      e.props.every((p) => p.defId === 'siege_ballista') && camp.some((k) => k.ch === '#' && ws.w.tiles[k.i] === SW.WALL) &&
+    check('Vorgath\'s war camp rises round him: open (no walls), 35 tiles across, lava trenches, tents, four ballistas, scorched ground', camp.length > 900 && e.props.length === 4 &&
+      e.props.every((p) => p.defId === 'siege_ballista') && !camp.some((k) => k.ch === '#' || k.nt === SW.WALL) && camp.some((k) => k.d > 15) &&
+      camp.some((k) => k.ch === 'b') &&
       camp.some((k) => k.ch === '~' && ws.w.tiles[k.i] === SW.LAVA) && scorched.length > 40, [camp.length, e.props.length, scorched.length].join(' '));
-    // breaking the ballistas brings the palisade down (after the warning)
+    // breaking the ballistas tears the tents open and his guard pours out (after the warning)
+    const soldiers0 = ws.enemies.filter((o) => !o.dead && o.defId === 'siege_soldier').length;
     for (const pr of e.props) { pr.hitters.set(70, 1); ws.kill(pr); }
     ws.updateArena(0.05); ws.updateArena(3);
-    check('...break its ballistas and the palisade comes down (and his guard storms in)', camp.filter((k) => k.ch === '#').every((k) => ws.w.tiles[k.i] !== SW.WALL) && (e.spMask & 1));
-    // at 30% the camp burns: everything outside the palisade turns to fire
+    check('...break its ballistas and the tents are torn open, his guard storming out', camp.filter((k) => k.ch === 'b').every((k) => ws.w.objs[k.i] === 0) && (e.spMask & 1) &&
+      ws.enemies.filter((o) => !o.dead && o.defId === 'siege_soldier').length > soldiers0);
+    // at 30% the camp burns: the outer camp and the scorched land beyond turn to fire
     e.hp = e.maxHp * 0.25;
     for (let k = 0; k < 4; k++) { ws.updateArena(0.05); ws.updateArena(3); }
-    check('...and at 30% the whole camp outside the palisade burns', scorched.filter((k) => k.d >= 9.5).every((k) => ws.w.tiles[k.i] === SW.LAVA), String(e.spMask));
+    check('...and at 30% the outer camp burns, the middle stays standing', scorched.every((k) => ws.w.tiles[k.i] === SW.LAVA) &&
+      camp.filter((k) => k.d >= 12.5 && k.ch !== 'P').every((k) => ws.w.tiles[k.i] === SW.LAVA) && camp.some((k) => k.d < 6 && ws.w.tiles[k.i] !== SW.LAVA), String(e.spMask));
     e.hp = e.maxHp;
     check('...and everyone in the realm gets the siege panel', sent.every((l) => l.some((m) => m.t === 'siege' && m.on && m.id === e.id && m.left > 800)));
     for (const p of ps) { p.x = e.x; p.y = e.y + 2; }

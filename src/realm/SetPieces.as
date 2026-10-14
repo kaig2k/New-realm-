@@ -5,7 +5,7 @@ package realm {
 	 * again when it dies. The server lays them down too, so walls stop shots and
 	 * bodies for everyone.
 	 *
-	 * Layouts are 21 x 21, centred on the boss:
+	 * Layouts are 21 x 21 (Vorgath's war camp is bigger: any odd size works), centred on the boss:
 	 *   ' ' leave the ground as it is     '-' ragged edge (floor on some tiles)
 	 *   '.' floor   ',' second floor   ':' trim   '~' hazard (lava or water)
 	 *   '#' wall    a b c  decorations (they block walking, not shots)
@@ -36,7 +36,7 @@ package realm {
 			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
 			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
 			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23},
-			// Vorgath's war camp: ash and roads, a palisade, braziers, tents and war banners, lava trenches
+			// Vorgath's war camp: ash and roads round a brick dais, braziers, tents and war banners, lava trenches
 			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19}
 		};
 
@@ -350,27 +350,41 @@ package realm {
 				"   --,,,,,,,,,,,--   ",
 				"     -----------     "],
 			siege: [
-				"---------------------",
-				"-,,,,,,,c,,,c,,,,,,,-",
-				"-,#######:::#######,-",
-				"-,#.b..a..:..a..b.#,-",
-				"-,#b~.....:.....~b#,-",
-				"-,#.~P....:....P~.#,-",
-				"-,#...~...:...~...#,-",
-				"-,#a..~~..:..~~..a#,-",
-				"-c#....~~.:.~~....#c-",
-				"-,:.....~.:.~.....:,-",
-				"-,::::::::B::::::::,-",
-				"-,:.....~.:.~.....:,-",
-				"-c#....~~.:.~~....#c-",
-				"-,#a..~~..:..~~..a#,-",
-				"-,#...~...:...~...#,-",
-				"-,#.~P....:....P~.#,-",
-				"-,#b~.....:.....~b#,-",
-				"-,#.b..a..:..a..b.#,-",
-				"-,#######:::#######,-",
-				"-,,,,,,,c,,,c,,,,,,,-",
-				"---------------------"],
+				"               -----               ",
+				"           -------------           ",
+				"         ----..c,,,c..----         ",
+				"        ---..b..,,,..b..---        ",
+				"      ---..b....,,,....b..---      ",
+				"     ---........,,,........---     ",
+				"    --.......,,c,,,c,,.......--    ",
+				"    --.b...,,,..,,,..,,,...b.--    ",
+				"   --...P.,,....,,,....,,.P...--   ",
+				"  --.....,,....a,,,a....,,.....--  ",
+				"  --....,,...~..,,,..~...,,....--  ",
+				" --.b..,,...~~~.,,,.~~~...,,..b.-- ",
+				" --....,...~~~.:,,,:.~~~...,....-- ",
+				" -.b..,,..~~~a.:,,,:.a~~~..,,..b.- ",
+				" -....,....~...:::::...~....,....- ",
+				"--c...c..a..:::::::::::..a..c...c--",
+				"--,,,,,,,,,,,,:::::::,,,,,,,,,,,,--",
+				"--,,,,,,,,,,,,:::B:::,,,,,,,,,,,,--",
+				"--,,,,,,,,,,,,:::::::,,,,,,,,,,,,--",
+				"--c...c..a..:::::::::::..a..c...c--",
+				" -....,....~...:::::...~....,....- ",
+				" -.b..,,..~~~a.:,,,:.a~~~..,,..b.- ",
+				" --....,...~~~.:,,,:.~~~...,....-- ",
+				" --.b..,,...~~~.,,,.~~~...,,..b.-- ",
+				"  --....,,...~..,,,..~...,,....--  ",
+				"  --.....,,....a,,,a....,,.....--  ",
+				"   --...P.,,....,,,....,,.P...--   ",
+				"    --.b...,,,..,,,..,,,...b.--    ",
+				"    --.......,,c,,,c,,.......--    ",
+				"     ---........,,,........---     ",
+				"      ---..b....,,,....b..---      ",
+				"        ---..b..,,,..b..---        ",
+				"         ----..c,,,c..----         ",
+				"           -------------           ",
+				"               -----               "],
 			reef: [
 				"     ~~~~~~~~~~~     ",
 				"   ~~~----~----~~~   ",
@@ -401,17 +415,24 @@ package realm {
 			return sp ? LAYOUTS[sp.style] : null;
 		}
 
+		/** Tiles from a set piece's centre to its edge (HALF for most; more for a bigger layout). */
+		public static function halfOf(id:String):int {
+			var rows:Array = layoutOf(id);
+			return rows ? int(rows.length / 2) : HALF;
+		}
+
 		/** True if the set piece can go down with its centre on tile (cx, cy): on land, clear of the haven, shrines and landmarks. */
 		public static function fits(id:String, w:World, cx:int, cy:int):Boolean {
 			var rows:Array = layoutOf(id);
 			if (!rows) return true;
-			if (w.siteAt(cx + 0.5, cy + 0.5, HALF + 1)) return false;
+			var h:int = int(rows.length / 2);
+			if (w.siteAt(cx + 0.5, cy + 0.5, h + 1)) return false;
 			var sea:int = 0, total:int = 0;
-			for (var r:int = 0; r < SIZE; r++) {
+			for (var r:int = 0; r < rows.length; r++) {
 				var row:String = rows[r];
-				for (var c:int = 0; c < SIZE; c++) {
+				for (var c:int = 0; c < row.length; c++) {
 					if (row.charAt(c) == " ") continue;
-					var x:int = cx - HALF + c, y:int = cy - HALF + r;
+					var x:int = cx - h + c, y:int = cy - h + r;
 					if (x < 3 || y < 3 || x >= w.N - 3 || y >= w.N - 3) return false;
 					var i:int = y * w.N + x;
 					var t:int = w.tiles[i], z:int = w.zones[i], o:int = w.objs[i];
@@ -433,14 +454,15 @@ package realm {
 			var rows:Array = layoutOf(id);
 			if (!rows) return out;
 			var st:Object = STYLES[Bosses.SETPIECES[id].style];
-			for (var r:int = 0; r < SIZE; r++) {
+			var h:int = int(rows.length / 2);
+			for (var r:int = 0; r < rows.length; r++) {
 				var row:String = rows[r];
-				for (var c:int = 0; c < SIZE; c++) {
+				for (var c:int = 0; c < row.length; c++) {
 					var ch:String = row.charAt(c);
 					if (ch == " ") continue;
 					// ragged edge: the same tiles every time, so the server and every player agree
 					if (ch == "-" && (c * 7 + r * 13) % 10 >= 6) continue;
-					var x:int = cx - HALF + c, y:int = cy - HALF + r;
+					var x:int = cx - h + c, y:int = cy - h + r;
 					if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
 					var i:int = y * w.N + x;
 					var nt:int = st.floor, no:int = 0;
@@ -451,25 +473,25 @@ package realm {
 					else if (ch == "a") no = st.a;
 					else if (ch == "b") no = st.b;
 					else if (ch == "c") no = st.c;
-					var dx:int = c - HALF, dy:int = r - HALF;
+					var dx:int = c - h, dy:int = r - h;
 					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false, ch: ch, c: c, r: r});
 				}
 			}
-			if (Bosses.SETPIECES[id].style == "siege") scorch(w, cx, cy, out);
+			if (Bosses.SETPIECES[id].style == "siege") scorch(w, cx, cy, out, h);
 			return out;
 		}
 
 		/**
-		 * Vorgath's war camp scorches the land around it: ash out to about 14 tiles
-		 * (ragged, the same for everyone), trees burnt to dead husks. Its tiles are
-		 * marked 's', so the camp's last phase can set them all alight.
+		 * Vorgath's war camp scorches the land around it: ash a few tiles past its
+		 * edge (ragged, the same for everyone), trees burnt to dead husks. Its tiles
+		 * are marked 's', so the camp's last phase can set them all alight.
 		 */
-		private static function scorch(w:World, cx:int, cy:int, out:Array):void {
-			for (var y:int = cy - 16; y <= cy + 16; y++) for (var x:int = cx - 16; x <= cx + 16; x++) {
+		private static function scorch(w:World, cx:int, cy:int, out:Array, h:int):void {
+			for (var y:int = cy - h - 6; y <= cy + h + 6; y++) for (var x:int = cx - h - 6; x <= cx + h + 6; x++) {
 				var dx:int = x - cx, dy:int = y - cy;
-				if (Math.max(dx < 0 ? -dx : dx, dy < 0 ? -dy : dy) <= HALF) continue;
+				if (Math.max(dx < 0 ? -dx : dx, dy < 0 ? -dy : dy) <= h) continue;
 				var d:Number = Math.sqrt(dx * dx + dy * dy);
-				if (d > 13 + ((x * 7 + y * 13) % 5) * 0.6) continue;
+				if (d > h + 3 + ((x * 7 + y * 13) % 5) * 0.6) continue;
 				if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
 				var i:int = y * w.N + x;
 				var t:int = w.tiles[i], z:int = w.zones[i], o:int = w.objs[i];
@@ -477,7 +499,7 @@ package realm {
 				if (o >= 14 && o <= 18) continue;
 				var nt:int = ((x * 73856093) ^ (y * 19349663)) % 13 == 0 ? World.OBSIDIAN : World.ASH;
 				var no:int = o == 1 || o == 2 || o == 3 ? 6 : o;
-				out.push({i: i, x: x, y: y, t: t, o: o, nt: nt, no: no, d: d, on: false, ch: "s", c: dx + HALF, r: dy + HALF});
+				out.push({i: i, x: x, y: y, t: t, o: o, nt: nt, no: no, d: d, on: false, ch: "s", c: dx + h, r: dy + h});
 			}
 		}
 
@@ -622,12 +644,12 @@ package realm {
 			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
 				msg: "The Kraken drags the reef under! The water floods inward!"}],
 			// the Star Throne changes three times as Astraeon weakens
-			// Vorgath's camp: the palisade falls with its ballistas, the trenches overflow, then everything outside burns
-			siege: [{when: "broken", sel: "walls", to: "floor", spawn: "siege_soldier", n: 6, col: 0xffa020,
-				msg: "The ballistas fall and the palisade collapses! Vorgath's guard pours through the breach!"},
+			// Vorgath's camp: his guard bursts out of the tents when the ballistas fall, the trenches overflow, then the outer camp burns
+			siege: [{when: "broken", sel: "char", ch: "b", to: "floor", spawn: "siege_soldier", n: 6, col: 0xffa020,
+				msg: "The ballistas fall! The tents are torn open and Vorgath's guard pours out!"},
 				{when: "hp", at: 0.55, sel: "widen", to: "hz", col: 0xff6010,
 				msg: "The trenches overflow! Rivers of fire split the war camp!"},
-				{when: "hp", at: 0.3, sel: "ring", a: 9.5, b: 99, to: "hz", col: 0xff3010,
+				{when: "hp", at: 0.3, sel: "ring", a: 12.5, b: 99, to: "hz", col: 0xff3010,
 				msg: "THE WAR CAMP BURNS! The flames close in from every side: stay near Vorgath!"}],
 			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
@@ -716,9 +738,10 @@ package realm {
 			var rows:Array = layoutOf(id);
 			if (!rows) return out;
 			var prop:String = Bosses.SETPIECES[id].prop;
-			for (var r:int = 0; r < SIZE; r++) {
+			var h:int = int(rows.length / 2);
+			for (var r:int = 0; r < rows.length; r++) {
 				var row:String = rows[r];
-				for (var c:int = 0; c < SIZE; c++) if (row.charAt(c) == "P") out.push({what: prop, x: cx - HALF + c + 0.5, y: cy - HALF + r + 0.5});
+				for (var c:int = 0; c < row.length; c++) if (row.charAt(c) == "P") out.push({what: prop, x: cx - h + c + 0.5, y: cy - h + r + 0.5});
 			}
 			return out;
 		}

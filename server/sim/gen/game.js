@@ -2923,16 +2923,21 @@ class SetPieces {
 			var sp = Bosses.SETPIECES[id];
 			return sp ? SetPieces.LAYOUTS[sp.style] : null;
 		}
+	static halfOf(id) {
+			var rows = SetPieces.layoutOf(id);
+			return __int(rows ? __int(rows.length / 2) : SetPieces.HALF);
+		}
 	static fits(id, w, cx, cy) { cx = __int(cx); cy = __int(cy);
 			var rows = SetPieces.layoutOf(id);
 			if (!rows) return true;
-			if (w.siteAt(cx + 0.5, cy + 0.5, SetPieces.HALF + 1)) return false;
+			var h = __int(__int(rows.length / 2));
+			if (w.siteAt(cx + 0.5, cy + 0.5, h + 1)) return false;
 			var sea = __int(0), total = __int(0);
-			for (var r = __int(0); r < SetPieces.SIZE; r++) {
+			for (var r = __int(0); r < rows.length; r++) {
 				var row = rows[r];
-				for (var c = __int(0); c < SetPieces.SIZE; c++) {
+				for (var c = __int(0); c < row.length; c++) {
 					if (row.charAt(c) == " ") continue;
-					var x = __int(cx - SetPieces.HALF + c), y = __int(cy - SetPieces.HALF + r);
+					var x = __int(cx - h + c), y = __int(cy - h + r);
 					if (x < 3 || y < 3 || x >= w.N - 3 || y >= w.N - 3) return false;
 					var i = __int(y * w.N + x);
 					var t = __int(w.tiles[i]), z = __int(w.zones[i]), o = __int(w.objs[i]);
@@ -2949,14 +2954,15 @@ class SetPieces {
 			var rows = SetPieces.layoutOf(id);
 			if (!rows) return out;
 			var st = SetPieces.STYLES[Bosses.SETPIECES[id].style];
-			for (var r = __int(0); r < SetPieces.SIZE; r++) {
+			var h = __int(__int(rows.length / 2));
+			for (var r = __int(0); r < rows.length; r++) {
 				var row = rows[r];
-				for (var c = __int(0); c < SetPieces.SIZE; c++) {
+				for (var c = __int(0); c < row.length; c++) {
 					var ch = row.charAt(c);
 					if (ch == " ") continue;
 					
 					if (ch == "-" && (c * 7 + r * 13) % 10 >= 6) continue;
-					var x = __int(cx - SetPieces.HALF + c), y = __int(cy - SetPieces.HALF + r);
+					var x = __int(cx - h + c), y = __int(cy - h + r);
 					if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
 					var i = __int(y * w.N + x);
 					var nt = __int(st.floor), no = __int(0);
@@ -2967,19 +2973,19 @@ class SetPieces {
 					else if (ch == "a") no = __int(st.a);
 					else if (ch == "b") no = __int(st.b);
 					else if (ch == "c") no = __int(st.c);
-					var dx = __int(c - SetPieces.HALF), dy = __int(r - SetPieces.HALF);
+					var dx = __int(c - h), dy = __int(r - h);
 					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false, ch: ch, c: c, r: r});
 				}
 			}
-			if (Bosses.SETPIECES[id].style == "siege") SetPieces.scorch(w, cx, cy, out);
+			if (Bosses.SETPIECES[id].style == "siege") SetPieces.scorch(w, cx, cy, out, h);
 			return out;
 		}
-	static scorch(w, cx, cy, out) { cx = __int(cx); cy = __int(cy);
-			for (var y = __int(cy - 16); y <= cy + 16; y++) for (var x = __int(cx - 16); x <= cx + 16; x++) {
+	static scorch(w, cx, cy, out, h) { cx = __int(cx); cy = __int(cy); h = __int(h);
+			for (var y = __int(cy - h - 6); y <= cy + h + 6; y++) for (var x = __int(cx - h - 6); x <= cx + h + 6; x++) {
 				var dx = __int(x - cx), dy = __int(y - cy);
-				if (Math.max(dx < 0 ? -dx : dx, dy < 0 ? -dy : dy) <= SetPieces.HALF) continue;
+				if (Math.max(dx < 0 ? -dx : dx, dy < 0 ? -dy : dy) <= h) continue;
 				var d = Math.sqrt(dx * dx + dy * dy);
-				if (d > 13 + ((x * 7 + y * 13) % 5) * 0.6) continue;
+				if (d > h + 3 + ((x * 7 + y * 13) % 5) * 0.6) continue;
 				if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
 				var i = __int(y * w.N + x);
 				var t = __int(w.tiles[i]), z = __int(w.zones[i]), o = __int(w.objs[i]);
@@ -2987,7 +2993,7 @@ class SetPieces {
 				if (o >= 14 && o <= 18) continue;
 				var nt = __int(((x * 73856093) ^ (y * 19349663)) % 13 == 0 ? World.OBSIDIAN : World.ASH);
 				var no = __int(o == 1 || o == 2 || o == 3 ? 6 : o);
-				out.push({i: i, x: x, y: y, t: t, o: o, nt: nt, no: no, d: d, on: false, ch: "s", c: dx + SetPieces.HALF, r: dy + SetPieces.HALF});
+				out.push({i: i, x: x, y: y, t: t, o: o, nt: nt, no: no, d: d, on: false, ch: "s", c: dx + h, r: dy + h});
 			}
 		}
 	static apply(w, cells, upto = 99) {
@@ -3134,9 +3140,10 @@ class SetPieces {
 			var rows = SetPieces.layoutOf(id);
 			if (!rows) return out;
 			var prop = Bosses.SETPIECES[id].prop;
-			for (var r = __int(0); r < SetPieces.SIZE; r++) {
+			var h = __int(__int(rows.length / 2));
+			for (var r = __int(0); r < rows.length; r++) {
 				var row = rows[r];
-				for (var c = __int(0); c < SetPieces.SIZE; c++) if (row.charAt(c) == "P") out.push({what: prop, x: cx - SetPieces.HALF + c + 0.5, y: cy - SetPieces.HALF + r + 0.5});
+				for (var c = __int(0); c < row.length; c++) if (row.charAt(c) == "P") out.push({what: prop, x: cx - h + c + 0.5, y: cy - h + r + 0.5});
 			}
 			return out;
 		}
@@ -4927,7 +4934,7 @@ Bosses.SETPIECES = {
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
 			
-			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and the palisade comes down. Stay out of the trenches when the camp burns!"},
+			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
 			
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
@@ -5348,27 +5355,41 @@ SetPieces.LAYOUTS = {
 				"   --,,,,,,,,,,,--   ",
 				"     -----------     "],
 			siege: [
-				"---------------------",
-				"-,,,,,,,c,,,c,,,,,,,-",
-				"-,#######:::#######,-",
-				"-,#.b..a..:..a..b.#,-",
-				"-,#b~.....:.....~b#,-",
-				"-,#.~P....:....P~.#,-",
-				"-,#...~...:...~...#,-",
-				"-,#a..~~..:..~~..a#,-",
-				"-c#....~~.:.~~....#c-",
-				"-,:.....~.:.~.....:,-",
-				"-,::::::::B::::::::,-",
-				"-,:.....~.:.~.....:,-",
-				"-c#....~~.:.~~....#c-",
-				"-,#a..~~..:..~~..a#,-",
-				"-,#...~...:...~...#,-",
-				"-,#.~P....:....P~.#,-",
-				"-,#b~.....:.....~b#,-",
-				"-,#.b..a..:..a..b.#,-",
-				"-,#######:::#######,-",
-				"-,,,,,,,c,,,c,,,,,,,-",
-				"---------------------"],
+				"               -----               ",
+				"           -------------           ",
+				"         ----..c,,,c..----         ",
+				"        ---..b..,,,..b..---        ",
+				"      ---..b....,,,....b..---      ",
+				"     ---........,,,........---     ",
+				"    --.......,,c,,,c,,.......--    ",
+				"    --.b...,,,..,,,..,,,...b.--    ",
+				"   --...P.,,....,,,....,,.P...--   ",
+				"  --.....,,....a,,,a....,,.....--  ",
+				"  --....,,...~..,,,..~...,,....--  ",
+				" --.b..,,...~~~.,,,.~~~...,,..b.-- ",
+				" --....,...~~~.:,,,:.~~~...,....-- ",
+				" -.b..,,..~~~a.:,,,:.a~~~..,,..b.- ",
+				" -....,....~...:::::...~....,....- ",
+				"--c...c..a..:::::::::::..a..c...c--",
+				"--,,,,,,,,,,,,:::::::,,,,,,,,,,,,--",
+				"--,,,,,,,,,,,,:::B:::,,,,,,,,,,,,--",
+				"--,,,,,,,,,,,,:::::::,,,,,,,,,,,,--",
+				"--c...c..a..:::::::::::..a..c...c--",
+				" -....,....~...:::::...~....,....- ",
+				" -.b..,,..~~~a.:,,,:.a~~~..,,..b.- ",
+				" --....,...~~~.:,,,:.~~~...,....-- ",
+				" --.b..,,...~~~.,,,.~~~...,,..b.-- ",
+				"  --....,,...~..,,,..~...,,....--  ",
+				"  --.....,,....a,,,a....,,.....--  ",
+				"   --...P.,,....,,,....,,.P...--   ",
+				"    --.b...,,,..,,,..,,,...b.--    ",
+				"    --.......,,c,,,c,,.......--    ",
+				"     ---........,,,........---     ",
+				"      ---..b....,,,....b..---      ",
+				"        ---..b..,,,..b..---        ",
+				"         ----..c,,,c..----         ",
+				"           -------------           ",
+				"               -----               "],
 			reef: [
 				"     ~~~~~~~~~~~     ",
 				"   ~~~----~----~~~   ",
@@ -5427,11 +5448,11 @@ SetPieces.PHASES = {
 				msg: "The Kraken drags the reef under! The water floods inward!"}],
 			
 			
-			siege: [{when: "broken", sel: "walls", to: "floor", spawn: "siege_soldier", n: 6, col: 0xffa020,
-				msg: "The ballistas fall and the palisade collapses! Vorgath's guard pours through the breach!"},
+			siege: [{when: "broken", sel: "char", ch: "b", to: "floor", spawn: "siege_soldier", n: 6, col: 0xffa020,
+				msg: "The ballistas fall! The tents are torn open and Vorgath's guard pours out!"},
 				{when: "hp", at: 0.55, sel: "widen", to: "hz", col: 0xff6010,
 				msg: "The trenches overflow! Rivers of fire split the war camp!"},
-				{when: "hp", at: 0.3, sel: "ring", a: 9.5, b: 99, to: "hz", col: 0xff3010,
+				{when: "hp", at: 0.3, sel: "ring", a: 12.5, b: 99, to: "hz", col: 0xff3010,
 				msg: "THE WAR CAMP BURNS! The flames close in from every side: stay near Vorgath!"}],
 			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},

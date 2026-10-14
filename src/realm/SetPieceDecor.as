@@ -126,7 +126,7 @@ package realm {
 				// a raid master remakes the whole dungeon first (so its arena rises from the new ground)
 				if (w.raid && w.raid.takeover) startTakeover(e, tx, ty, st);
 				var nar:Object = {e: e, x: tx + 0.5, y: ty + 0.5, st: st, cells: SetPieces.plan(e.defId, w, tx, ty), t: 0, end: -1, upto: -1, from: 99,
-					r: SetPieces.HALF * 1.5, done: 0, pend: []};
+					r: SetPieces.halfOf(e.defId) * 1.5, done: 0, pend: []};
 				list.push(nar);
 				// arriving mid-fight: the arena is already as the fight has left it
 				var nph:int = SetPieces.phasesOf(e.defId).length;
@@ -167,7 +167,7 @@ package realm {
 				}
 				// the arena's own particles
 				if (ar.end < 0 && Game.opt("parts") && g.parts.length < 380 && Math.random() < dt * 14) {
-					var pa:Number = Math.random() * Math.PI * 2, pr:Number = Math.sqrt(Math.random()) * SetPieces.HALF * 0.9;
+					var pa:Number = Math.random() * Math.PI * 2, pr:Number = Math.sqrt(Math.random()) * ar.r * 0.6;
 					var vy:Number = ar.st.move == "rise" ? -1.2 : ar.st.move == "fall" ? 1 : -0.2;
 					var vx:Number = ar.st.move == "drift" ? 0.6 : (Math.random() - 0.5) * 0.3;
 					g.parts.push(new Particle(ar.x + Math.cos(pa) * pr, ar.y + Math.sin(pa) * pr - (ar.st.move == "fall" ? 2 : 0), vx, vy, 1.2, Sprites.glow(ar.st.part)));

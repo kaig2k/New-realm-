@@ -2393,7 +2393,7 @@ package realm {
 			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world, style: style});
 		}
 
-		/** Effects left on the ground by a blow landing: "spikes" (crystal spikes bursting up). */
+		/** Effects left on the ground by a blow landing: "spikes" (crystal spikes bursting up), "pillar" (a column of light), "tentacles". */
 		private var gfx:Array = [];
 
 		public function groundFx(kind:String, x:Number, y:Number, r:Number, col:uint):void {
@@ -2417,6 +2417,41 @@ package realm {
 				if (f.w != world || f.t > 0.9) { gfx.splice(i, 1); continue; }
 				var gr:* = markShape.graphics;
 				gr.clear();
+				if (f.k == "pillar") {
+					// a column of void light bursting up out of the ground
+					var pg:Number = f.t < 0.12 ? f.t / 0.12 : Math.max(0, 1 - (f.t - 0.12) / 0.6);
+					var pw:Number = f.r * TS * 0.55 * (0.6 + pg * 0.4), ph:Number = TS * 5 * Math.min(1, f.t / 0.12);
+					gr.beginFill(f.col, 0.55 * pg);
+					gr.drawRect(-pw, -ph, pw * 2, ph);
+					gr.endFill();
+					gr.beginFill(0xfff0ff, 0.8 * pg);
+					gr.drawRect(-pw * 0.25, -ph, pw * 0.5, ph);
+					gr.endFill();
+					gr.lineStyle(2, f.col, pg);
+					gr.drawEllipse(-pw * 1.6, -pw * 0.5, pw * 3.2, pw);
+					markMtx.tx = scrX(f.x, f.y); markMtx.ty = scrY(f.x, f.y) + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
+				if (f.k == "tentacles") {
+					// tentacles burst out of the ground, lash, and sink back
+					var tg:Number = f.t < 0.15 ? f.t / 0.15 : f.t < 0.55 ? 1 : Math.max(0, 1 - (f.t - 0.55) / 0.3);
+					for (var tk:int = 0; tk < 3; tk++) {
+						var tx0:Number = (tk - 1) * f.r * TS * 0.5, th:Number = TS * (1.6 + (tk % 2) * 0.6) * f.r * tg;
+						var lean:Number = (tk - 1) * TS * 0.4 + Math.sin(f.t * 9 + tk) * TS * 0.25;
+						gr.lineStyle(Math.max(2, TS * 0.32 * tg), 0x2c1e52, 1);
+						gr.moveTo(tx0, 0);
+						gr.curveTo(tx0 - lean, -th * 0.6, tx0 + lean, -th);
+						gr.lineStyle(Math.max(1, TS * 0.1 * tg), 0x54409a, 1);
+						gr.moveTo(tx0 - 2, -2);
+						gr.curveTo(tx0 - lean - 2, -th * 0.6, tx0 + lean - 2, -th + 2);
+					}
+					gr.lineStyle(2, f.col, tg);
+					gr.drawEllipse(-f.r * TS, -f.r * TS * 0.3, f.r * TS * 2, f.r * TS * 0.6);
+					markMtx.tx = scrX(f.x, f.y); markMtx.ty = scrY(f.x, f.y) + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
 				for each (var sp:Object in f.sp) {
 					var t:Number = f.t - sp.lag;
 					if (t <= 0) continue;
@@ -2484,7 +2519,7 @@ package realm {
 				var m:Object = markers[i];
 				if (m.w != world) { markers.splice(i, 1); continue; }
 				m.t += dt;
-				if (m.t >= m.d) { markers.splice(i, 1); m.fn(); }
+				if (m.t >= m.d) { markers.splice(i, 1); if (m.fn != null) m.fn(); }
 			}
 			for (i = webs.length - 1; i >= 0; i--) {
 				var wb:Object = webs[i];
@@ -2535,6 +2570,28 @@ package realm {
 				var rx:Number = m.r * TS, ry:Number = rx * 0.6;
 				var gr:* = markShape.graphics;
 				gr.clear();
+				if (m.style == "vortex") {
+					// a gravity well: rings spiralling in toward its middle, tighter as it closes
+					for (var vk:int = 0; vk < 4; vk++) {
+						var vf:Number = ((vk / 4 + time * 0.8) % 1);
+						var vr:Number = 1 - vf;
+						gr.lineStyle(2, vk % 2 ? 0xffe0ff : m.col, 0.25 + vf * 0.6);
+						gr.drawEllipse(-rx * vr, -ry * vr, rx * 2 * vr, ry * 2 * vr);
+					}
+					for (var vs:int = 0; vs < 6; vs++) {
+						var va:Number = vs * Math.PI / 3 - time * 2.5;
+						gr.lineStyle(2, m.col, 0.7);
+						gr.moveTo(Math.cos(va) * rx, Math.sin(va) * ry);
+						gr.curveTo(Math.cos(va + 0.6) * rx * 0.6, Math.sin(va + 0.6) * ry * 0.6, Math.cos(va + 1.2) * rx * 0.15, Math.sin(va + 1.2) * ry * 0.15);
+					}
+					gr.lineStyle();
+					gr.beginFill(0x06000c, 0.35 + f * 0.4);
+					gr.drawEllipse(-rx * 0.18, -ry * 0.18, rx * 0.36, ry * 0.36);
+					gr.endFill();
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
 				if (m.style == "rune") {
 					// a war-cry circle: two rings, turning spokes and runes, brighter as it's about to go
 					var rot:Number = time * 1.4;

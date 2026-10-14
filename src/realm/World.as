@@ -1147,22 +1147,62 @@ package realm {
 			spawnY = mapY + m.spawn[1] + 0.5;
 		}
 
+		/**
+		 * The Dark Elder's chamber: an eye-shaped platform floating in the void.
+		 * Its iris, a disc of black glass, is where the Elder waits; dark veins
+		 * run from it out over spectral stone to an obsidian rim; four pits drop into nothing, dark pillars give cover and
+		 * violet braziers burn round the edge. Tentacle-like islets drift beyond.
+		 */
 		private function generateArena():void {
 			var x:int, y:int, i:int;
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
-			var x0:int = 84, x1:int = 116, y0:int = 82, y1:int = 118;
-			for (y = y0; y <= y1; y++) {
-				for (x = x0; x <= x1; x++) {
+			var cx:Number = 100.5, cy:Number = 96, HW:Number = 17, HH:Number = 24;
+			// the iris is where the Elder waits
+			var ix:Number = 100.5, iy:Number = 92;
+			for (y = int(cy - HH) - 1; y <= int(cy + HH) + 1; y++) {
+				for (x = int(cx - HW) - 1; x <= int(cx + HW) + 1; x++) {
+					var dy:Number = (y + 0.5 - cy) / HH;
+					if (dy * dy >= 1) continue;
+					// an almond: widest in the middle, coming to a point at each end
+					var half:Number = HW * Math.pow(1 - dy * dy, 0.85);
+					var dx:Number = Math.abs(x + 0.5 - cx);
+					if (dx > half) continue;
 					i = y * N + x;
 					zones[i] = ARENA_ZONE;
-					var edge:int = Math.min(Math.min(x - x0, x1 - x), Math.min(y - y0, y1 - y));
-					tiles[i] = edge == 0 ? WALL : edge <= 3 ? BLOODSTONE : ARENA;
+					var ex:Number = x + 0.5 - ix, ey:Number = y + 0.5 - iy;
+					var r:Number = Math.sqrt(ex * ex + ey * ey), a:Number = Math.atan2(ey, ex);
+					// spectral stone, dark veins running out from the iris to an obsidian rim
+					var t:int = SPECTRAL;
+					if (half - dx < 1.4) t = OBSIDIAN;
+					else if (r < 7.6) t = OBSIDIAN;
+					else if (r > 9 && Math.abs(Math.sin(a * 4 + r * 0.22)) < 0.1) t = OBSIDIAN;
+					tiles[i] = t;
 				}
 			}
-			// a band of bloodstone across the hall, like a throne-room runner
-			for (y = 97; y <= 99; y++) for (x = x0 + 1; x < x1; x++) tiles[y * N + x] = BLOODSTONE;
-			for each (var pp:Array in [[91, 90], [109, 90], [91, 108], [109, 108]]) tiles[pp[1] * N + pp[0]] = WALL;
-			for each (var lp:Array in [[88, 86], [112, 86], [88, 114], [112, 114]]) objs[lp[1] * N + lp[0]] = 7;
+			// four pits into the void, clear of the crystals' spots (Game: the Elder's third phase)
+			for each (var pp:Array in [[88.5, 99.5], [112.5, 99.5], [94.5, 83.5], [106.5, 83.5]]) {
+				for (y = int(pp[1]) - 2; y <= int(pp[1]) + 2; y++) for (x = int(pp[0]) - 2; x <= int(pp[0]) + 2; x++) {
+					var px:Number = x + 0.5 - pp[0], py:Number = y + 0.5 - pp[1];
+					if (px * px + py * py <= 2.6) { tiles[y * N + x] = VOID; zones[y * N + x] = -1; }
+				}
+			}
+			// dark pillars for cover, violet braziers round the rim
+			for each (var qp:Array in [[93, 96], [108, 96], [96, 108], [105, 108]]) objs[qp[1] * N + qp[0]] = 24;
+			for (var b:int = 0; b < 12; b++) {
+				var by:Number = cy - HH + 4 + b * (HH * 2 - 8) / 11;
+				var bdy:Number = (by - cy) / HH;
+				var bh:Number = HW * Math.pow(1 - bdy * bdy, 0.85) - 2.4;
+				objs[int(by) * N + int(cx + (b % 2 ? bh : -bh))] = 30;
+			}
+			// broken islets curling away in the dark (out of reach)
+			for (var s:int = 0; s < 9; s++) {
+				var sa:Number = s * 0.7 + 0.2, sr:Number = 24 + (s % 3) * 2.5;
+				var sx:int = int(cx + Math.cos(sa) * sr * 0.8), sy:int = int(cy + Math.sin(sa) * sr);
+				for (var k:int = 0; k < 3; k++) {
+					var kx:int = sx + int(Math.cos(sa + k) * k), ky:int = sy + k;
+					if (zones[ky * N + kx] < 0) tiles[ky * N + kx] = k % 2 ? SPECTRAL : OBSIDIAN;
+				}
+			}
 			spawnX = 100.5;
 			spawnY = 113.5;
 		}

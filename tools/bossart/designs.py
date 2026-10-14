@@ -1093,7 +1093,8 @@ DESIGNS += [
     ('sunken_lord', sunken_lord, SUNKEN_PAL, 4),
     ('hermit', tide_hermit, HERMIT_PAL, 4),
     ('shrine', skull_shrine, SHRINE_PAL, 4),
-    ('elder', dark_elder, ELDER_PAL, 4),
+    # the old Dark Elder: the Archon and the Abyssal Herald are recoloured from it (the Elder has elder.py now)
+    ('elder_classic', dark_elder, ELDER_PAL, 4),
 ]
 
 

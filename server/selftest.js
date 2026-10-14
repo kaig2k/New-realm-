@@ -598,6 +598,34 @@ async function run() {
     v.fire(0, 0, 8, ws3.g);
     for (let k = 0; k < 10; k++) v.update(0.05, ws3.g);
     check('...and his charge carries him several tiles at whoever he charged', v.x - vx0 > 3 && Math.abs(v.y - vy0) < 1, [vx0, v.x, vy0, v.y].join(' '));
+
+    // the Dark Elder, after his design sheet: an animation for every attack, a gravity well, a blink, and his new chamber
+    const ED = SD.ENEMIES.elder;
+    const eAll = [].concat(...ED.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
+    check('every one of the Dark Elder\'s attacks but his last spiral has an animation he has frames for', eAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && ED.seq[a.anim]) &&
+      ['blast', 'pillars', 'slam', 'spread', 'explode', 'gravity', 'teleport', 'summon', 'rift'].every((k) => eAll.some((a) => a.anim === k)), eAll.map((a) => a.anim).join(','));
+    const wa = new WorldSim('arena:elder-test');
+    const N = wa.w.N, at = (x, y) => wa.w.tiles[Math.floor(y) * N + Math.floor(x)];
+    let walls = 0, floor = 0;
+    for (let i = 0; i < N * N; i++) { if (wa.w.tiles[i] === SW.WALL) walls++; if (wa.w.zones[i] === SW.ARENA_ZONE) floor++; }
+    const crystalSpots = [[-8, -5], [8, -5], [-8, 5], [8, 5]].map(([dx, dy]) => [100.5 + dx, 91.5 + 7 + dy]);
+    check('his chamber is an eye-shaped platform in the void: no walls, room to fight, and the spawn, his spot and the crystals\' spots all stand on it',
+      walls === 0 && floor > 900 && wa.w.canStand(wa.w.spawnX, wa.w.spawnY, 0.4, true) && wa.w.canStand(100.5, 91.5, 0.6, true) &&
+      crystalSpots.every(([x, y]) => wa.w.canStand(x, y, 0.35, true)) && at(100.5, 70) === SW.VOID, [walls, floor].join(' '));
+    const el = wa.w.boss;
+    const gi = ED.phases[1].cycle.findIndex((c) => c.some((a) => a.p === 'implode'));
+    el.setAttacks(ED.phases[1].cycle[gi]);
+    wa.shots = [];
+    el.fire(ED.phases[1].cycle[gi].findIndex((a) => a.p === 'implode'), Math.PI / 2, 8, wa.g);
+    const well = wa.shots;
+    const cxw = el.x, cyw = el.y + 8;
+    check('...his gravity well: a ring of shots round you, every one falling inward', well.length === 14 &&
+      well.every((sh) => Math.abs(Math.hypot(sh.x - cxw, sh.y - cyw) - 5.5) < 0.2 && ((cxw - sh.x) * Math.cos(sh.a) + (cyw - sh.y) * Math.sin(sh.a)) > 0), String(well.length));
+    const ti = ED.phases[0].attacks.findIndex((a) => a.blink);
+    el.setAttacks(ED.phases[0].attacks);
+    const ex0 = el.x, ey0 = el.y;
+    el.fire(ti, 0, 5, wa.g);
+    check('...and his teleport takes him elsewhere on the platform', Math.hypot(el.x - ex0, el.y - ey0) > 1.5 && wa.w.canStand(el.x, el.y, 0.6, true), [ex0, ey0, el.x, el.y].join(' '));
   }
 
   console.log('guild territory');

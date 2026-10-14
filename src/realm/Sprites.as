@@ -241,7 +241,11 @@ package realm {
 		private static const P_MACE:Array = ["....G...", ".G.II.G.", "..IiII..", "GIiICIIG", ".IIIIIa.", "..IIIa..", ".G.II.G.", "....G..."];
 		private static const P_SPIKE:Array = ["........", "........", "aaC.....", "aCCCCW..", "aCCCWWWW", "aaC.....", "........", "........"];
 		private static const P_SPEAR:Array = ["........", "........", "......C.", "SSSSSCWW", "......C.", "........", "........", "........"];
-		private static const PROJ:Object = {fire: P_FIRE, soul: P_SOUL, knife: P_KNIFE, arrow: P_ARROW, bolt: P_BOLT, blade: P_BLADE, orb: P_ORB, star: P_STAR, ring: P_RING, dart: P_DART,
+		// the Dark Elder's: a void orb (a black heart in a violet ring), a rift (an eye-shaped tear) and a wisp
+		private static const P_VOID:Array = ["..CCCC..", ".CaKKaC.", "CaKKKKaC", "CKKKKKWC", "CKKKKKKC", "CaKKKKaC", ".CaKKaC.", "..CCCC.."];
+		private static const P_RIFT:Array = ["...CC.....", ".CCaaCC...", "CaKKKKaCC.", "CKKWWKKKCW", "CaKKKKaCC.", ".CCaaCC...", "...CC....."];
+		private static const P_WISP:Array = ["........", "aa..C...", ".aaCWC..", "aaCWWWC.", ".aaCWC..", "aa..C...", "........", "........"];
+		private static const PROJ:Object = {voidorb: P_VOID, rift: P_RIFT, wisp: P_WISP, fire: P_FIRE, soul: P_SOUL, knife: P_KNIFE, arrow: P_ARROW, bolt: P_BOLT, blade: P_BLADE, orb: P_ORB, star: P_STAR, ring: P_RING, dart: P_DART,
 			crescent: P_CRESCENT, mace: P_MACE, spike: P_SPIKE, spear: P_SPEAR};
 
 		// ================================================================ item icons
@@ -844,7 +848,7 @@ package realm {
 			var frames:Vector.<BitmapData> = cache[key];
 			if (frames) return frames;
 			var rows:Array = PROJ[shape] || P_ORB;
-			var pal:Object = {C: color, a: shade(color, 0.6), W: tint(color, 0.75), S: 0x8a5a2a, H: 0xe8e8e8, F: color, I: 0x2c3046, i: 0x5a6280, G: 0xd8a030};
+			var pal:Object = {C: color, a: shade(color, 0.6), W: tint(color, 0.75), S: 0x8a5a2a, H: 0xe8e8e8, F: color, I: 0x2c3046, i: 0x5a6280, G: 0xd8a030, K: 0x06000c};
 			var base:BitmapData = build(rows, pal, scale, 1);
 			var D:int = Math.ceil(Math.sqrt(base.width * base.width + base.height * base.height));
 			frames = new Vector.<BitmapData>(ROT_FRAMES, true);

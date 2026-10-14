@@ -1693,18 +1693,53 @@ class Bosses {
 					attacks: [Bosses.flower(20, 9, 5, 75, 1.0, 0x80ff60, {split: {n: 4, spd: 4, life: 0.9, dmg: 45}, life: 1.5}), Bosses.wall(13, 5, 90, 2.2, 0xd060ff, {eff: "slowed"})]})
 			]}, ["hexweave_robe", "cursed_skull"]);
 		}
+	static eBlast(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(1, 0, 6.5, dmg, cd, Bosses.E_VOID, {shape: "voidorb", r: 0.5, life: 1.8, split: {n: 10, spd: 5, life: 1.2, dmg: __int(dmg / 2)},
+				anim: "blast", animMs: 110, name: "void blast"});
+		}
+	static ePillars(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 5, dmg, cd, Bosses.E_VOID, {radius: 1.3, delay: 0.9, stagger: 0.1, fx: "pillar",
+				anim: "pillars", animMs: 120, animHit: 2, animHold: 0.9, name: "void pillars"});
+		}
+	static eSlam(dmg, cd) { dmg = __int(dmg);
+			return Bosses.rain(6, 0, dmg, cd, 0x8a50ff, {line: true, step: 1.7, radius: 1.4, delay: 0.7, stagger: 0.14, fx: "tentacles",
+				burst: 3, bspd: 4, blife: 0.8, shape: "wisp", anim: "slam", animMs: 120, animHit: 2, animHold: 0.7, name: "tentacle slam"});
+		}
+	static eSpread(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 80, 7.5, dmg, cd, Bosses.E_VOID, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "void spread"});
+		}
+	static eExplode(dmg, cd, radius) { dmg = __int(dmg);
+			return Bosses.nova(radius, 1.3, dmg, cd, Bosses.E_VOID, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 5.5, blife: 1.6, shape: "voidorb", fx: "pillar",
+				anim: "explode", animMs: 130, animHit: 2, animHold: 1.3, name: "void explosion"});
+		}
+	static eGravity(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: Bosses.E_LIGHT, shape: "voidorb", eff: "slowed"},
+				{anim: "gravity", animMs: 150, name: "gravity well"});
+		}
+	static eTeleport(cd) {
+			return Bosses.ring(12, 15, 4, 60, cd, Bosses.E_LIGHT, {shape: "orb", life: 2.2, blink: 6, anim: "teleport", animMs: 110, name: "void step"});
+		}
+	static eSummon(n, cd) { n = __int(n);
+			return Bosses.o(Bosses.summon("shade", n, cd, 6), {anim: "summon", animMs: 130});
+		}
+	static eRift(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(1, 0, 3.5, dmg, cd, 0xd080ff, {shape: "rift", r: 0.6, life: 2.6, split: {n: 16, spd: 5.5, life: 1.4, dmg: __int(dmg / 2)},
+				anim: "rift", animMs: 130, name: "void rift"});
+		}
 	static finales() {
 			
-			Bosses.boss("elder", {phases: [
-				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(4, 12, 5.5, 60, 0.12, 0xc060ff), Bosses.aim(3, 18, 10, 80, 1.2, 0xffe060, {shape: "blade"})]}),
+			
+			Bosses.boss("elder", {seq: {idle: 4, move: 6, blast: 6, pillars: 5, slam: 5, summon: 5, teleport: 6, spread: 5, explode: 5, gravity: 5, rift: 5, death: 7, ridle: 4, rmove: 6},
+				rageAt: 3, col: Bosses.E_VOID, phases: [
+				Bosses.P(1, {move: "orbit", attacks: [Bosses.eBlast(110, 2.4), Bosses.eSpread(7, 70, 1.6), Bosses.eSlam(120, 4.5), Bosses.eTeleport(9)]}),
 				Bosses.P(0.75, {say: "You amuse me. Let us see you dance.", shield: 2, move: "center", every: 5,
-					cycle: [[Bosses.ring(32, 5.6, 4.5, 65, 1.0, 0xe02040), Bosses.aim(7, 60, 8, 70, 1.3, 0xffffff, {eff: "confused"})],
-						[Bosses.wall(17, 5, 85, 1.5, 0xa040ff, {hole: 2}), Bosses.summon("shade", 2, 8, 6)]]}),
-				Bosses.P(0.45, {move: "still",
-					attacks: [Bosses.rain(6, 6, 100, 2.4, 0xff4080, {burst: 6}), Bosses.ring(12, 15, 3, 60, 2.0, 0xa040ff)]}),
-				Bosses.P(0.2, {say: "ENOUGH! I will end you myself!", banner: "Azrakor's true power!", shield: 2, move: "teleport",
-					attacks: [Bosses.spiral(6, -10, 6, 70, 0.1, 0xff40a0), Bosses.aim(1, 0, 14, 130, 0.6, 0xffe060, {shape: "blade", eff: "armorbroken", r: 0.32}),
-						Bosses.nova(3, 1.3, 140, 3.2, 0xc060ff, {burst: 16})]})
+					cycle: [[Bosses.ePillars(8, 100, 1.6), Bosses.eSpread(9, 70, 1.4)],
+						[Bosses.eGravity(14, 75, 3.2), Bosses.eBlast(110, 2.0)],
+						[Bosses.eSlam(120, 1.6), Bosses.eSummon(2, 8)]]}),
+				Bosses.P(0.45, {move: "still", attacks: [Bosses.eExplode(150, 4.5, 6), Bosses.ePillars(6, 100, 2.2), Bosses.eSpread(7, 70, 1.8)]}),
+				Bosses.P(0.2, {say: "ENOUGH! THE VOID WILL HAVE YOU!", banner: "The Dark Elder awakens! It hungers!", shield: 2, move: "orbit", speed: 1.3,
+					attacks: [Bosses.eRift(130, 3.5), Bosses.eGravity(18, 85, 4), Bosses.eSlam(130, 2.4), Bosses.ePillars(10, 110, 2.0), Bosses.eTeleport(5),
+						Bosses.spiral(6, -10, 6, 70, 0.1, Bosses.E_LIGHT, {shape: "voidorb"})]})
 			]}, ["elder_scepter", "crown_of_azrakor"]);
 
 			Bosses.boss("tide_empress", {name: "Nerezza, the Tide Empress", spr: "tide_empress", hp: 40000, def: 30, spd: 1.6, xp: 5000, col: 0x40d0ff,
@@ -2769,19 +2804,53 @@ class World {
 	generateArena() {
 			var x = 0, y = 0, i = 0;
 			for (i = __int(0); i < this.N * this.N; i++) { this.tiles[i] = World.VOID; this.zones[i] = -1; this.objs[i] = 0; }
-			var x0 = __int(84), x1 = __int(116), y0 = __int(82), y1 = __int(118);
-			for (y = __int(y0); y <= y1; y++) {
-				for (x = __int(x0); x <= x1; x++) {
+			var cx = 100.5, cy = 96, HW = 17, HH = 24;
+			
+			var ix = 100.5, iy = 92;
+			for (y = __int(__int(cy - HH) - 1); y <= __int(cy + HH) + 1; y++) {
+				for (x = __int(__int(cx - HW) - 1); x <= __int(cx + HW) + 1; x++) {
+					var dy = (y + 0.5 - cy) / HH;
+					if (dy * dy >= 1) continue;
+					
+					var half = HW * Math.pow(1 - dy * dy, 0.85);
+					var dx = Math.abs(x + 0.5 - cx);
+					if (dx > half) continue;
 					i = __int(y * this.N + x);
 					this.zones[i] = World.ARENA_ZONE;
-					var edge = __int(Math.min(Math.min(x - x0, x1 - x), Math.min(y - y0, y1 - y)));
-					this.tiles[i] = edge == 0 ? World.WALL : edge <= 3 ? World.BLOODSTONE : World.ARENA;
+					var ex = x + 0.5 - ix, ey = y + 0.5 - iy;
+					var r = Math.sqrt(ex * ex + ey * ey), a = Math.atan2(ey, ex);
+					
+					var t = __int(World.SPECTRAL);
+					if (half - dx < 1.4) t = __int(World.OBSIDIAN);
+					else if (r < 7.6) t = __int(World.OBSIDIAN);
+					else if (r > 9 && Math.abs(Math.sin(a * 4 + r * 0.22)) < 0.1) t = __int(World.OBSIDIAN);
+					this.tiles[i] = t;
 				}
 			}
 			
-			for (y = __int(97); y <= 99; y++) for (x = __int(x0 + 1); x < x1; x++) this.tiles[y * this.N + x] = World.BLOODSTONE;
-			for (var pp of __vals( [[91, 90], [109, 90], [91, 108], [109, 108]])) this.tiles[pp[1] * this.N + pp[0]] = World.WALL;
-			for (var lp of __vals( [[88, 86], [112, 86], [88, 114], [112, 114]])) this.objs[lp[1] * this.N + lp[0]] = 7;
+			for (var pp of __vals( [[88.5, 99.5], [112.5, 99.5], [94.5, 83.5], [106.5, 83.5]])) {
+				for (y = __int(__int(pp[1]) - 2); y <= __int(pp[1]) + 2; y++) for (x = __int(__int(pp[0]) - 2); x <= __int(pp[0]) + 2; x++) {
+					var px = x + 0.5 - pp[0], py = y + 0.5 - pp[1];
+					if (px * px + py * py <= 2.6) { this.tiles[y * this.N + x] = World.VOID; this.zones[y * this.N + x] = -1; }
+				}
+			}
+			
+			for (var qp of __vals( [[93, 96], [108, 96], [96, 108], [105, 108]])) this.objs[qp[1] * this.N + qp[0]] = 24;
+			for (var b = __int(0); b < 12; b++) {
+				var by = cy - HH + 4 + b * (HH * 2 - 8) / 11;
+				var bdy = (by - cy) / HH;
+				var bh = HW * Math.pow(1 - bdy * bdy, 0.85) - 2.4;
+				this.objs[__int(by) * this.N + __int(cx + (b % 2 ? bh : -bh))] = 30;
+			}
+			
+			for (var s = __int(0); s < 9; s++) {
+				var sa = s * 0.7 + 0.2, sr = 24 + (s % 3) * 2.5;
+				var sx = __int(__int(cx + Math.cos(sa) * sr * 0.8)), sy = __int(__int(cy + Math.sin(sa) * sr));
+				for (var k = __int(0); k < 3; k++) {
+					var kx = __int(sx + __int(Math.cos(sa + k) * k)), ky = __int(sy + k);
+					if (this.zones[ky * this.N + kx] < 0) this.tiles[ky * this.N + kx] = k % 2 ? World.SPECTRAL : World.OBSIDIAN;
+				}
+			}
 			this.spawnX = 100.5;
 			this.spawnY = 113.5;
 		}
@@ -3564,16 +3633,20 @@ class Enemy {
 				var alive = __int(g.countAlive(a.what));
 				if (alive >= (a.max || 8)) return;
 				for (k = __int(0); k < a.n; k++) g.spawnEnemy(a.what, this.x + Math.random() * 2 - 1, this.y + Math.random() * 2 - 1, this.zone);
+				
+				if (a.anim) { this.startAnim(a); g.sync.fired(this, i, ang, 0, this.phaseCode, dist); }
 				return;
 			}
 			
 			var spin0 = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : this.spins[i];
 			this.shootAttack(a, ang, spin0, dist, g);
 			if (a.dash) { this.dashT = a.dash; this.dashA = ang; this.dashSpd = a.dashSpd || 9; }
-			if (a.p == "ring" || a.p == "spiral" || a.p == "flower") this.spins[i] += (a.rot || 0) * Enemy.DEG;
+			if (a.blink) this.blinkAway(a.blink, g);
+			if (a.p == "ring" || a.p == "spiral" || a.p == "flower" || a.p == "implode") this.spins[i] += (a.rot || 0) * Enemy.DEG;
 			g.sync.fired(this, i, ang, spin0, this.phaseCode, dist);
 		}
 	shootAttack(a, ang, spin0, dist, g) {
+			if (a.p == "summon") { this.startAnim(a); return; }
 			var waves = __int(a.waves || 1);
 			if (a.sfx) g.soundAt(this.x, this.y, a.sfx, 0.7, a.sfxGap || 0.15);
 			this.startAnim(a);
@@ -3625,8 +3698,27 @@ class Enemy {
 					var nx = this.x + Math.cos(ang) * nd, ny = this.y + Math.sin(ang) * nd;
 					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, this.novaFn(a, nx, ny, dmg, bd, spinning, g, spin0), a.marker || null);
 					break;
+				case "implode":
+					
+					var id2 = Math.min(dist, a.reach || 9);
+					var gx = this.x + Math.cos(ang) * id2, gy = this.y + Math.sin(ang) * id2;
+					var gr = a.radius || 5;
+					g.addMarker(gx, gy, gr, gr / a.spd, col, null, "vortex");
+					for (k = __int(0); k < n; k++) {
+						t = spin0 + rot + k * Math.PI * 2 / n;
+						this.shot(t + Math.PI, a.spd, a, dmg, bd, spinning, g, gx + Math.cos(t) * gr, gy + Math.sin(t) * gr, k);
+					}
+					break;
 				case "rain":
 					
+					if (a.line) {
+						for (k = __int(0); k < n; k++) {
+							var ld = 2 + k * (a.step || 1.7);
+							var lx = this.x + Math.cos(ang) * ld, ly = this.y + Math.sin(ang) * ld;
+							g.addMarker(lx, ly, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, this.novaFn(a, lx, ly, dmg, bd, spinning, g, ang + k), a.marker || null);
+						}
+						break;
+					}
 					var seed = __uint(__uint(spin0 * 1000) | 1);
 					var rd = Math.min(dist, a.reach || 9);
 					var cx = this.x + Math.cos(ang) * rd, cy = this.y + Math.sin(ang) * rd;
@@ -3644,6 +3736,19 @@ class Enemy {
 						t = spin0 + rot + k * Math.PI * 2 / n;
 						this.shot(t, a.spd, a, dmg, bd, spinning, g, this.x, this.y, k);
 					}
+			}
+		}
+	blinkAway(r, g) {
+			for (var bt = __int(0); bt < 12; bt++) {
+				var ba = Math.random() * Math.PI * 2, br = r * (0.5 + Math.random() * 0.5);
+				var bx2 = this.homeX + Math.cos(ba) * br, by2 = this.homeY + Math.sin(ba) * br;
+				if (g.world.canStand(bx2, by2, 0.6, true)) {
+					g.burst(this.x, this.y, this.def.col, 20);
+					this.x = bx2; this.y = by2;
+					this.velX = this.velY = 0;
+					g.burst(this.x, this.y, this.def.col, 20);
+					return;
+				}
 			}
 		}
 	novaFn(a, nx, ny, dmg, bd, spinning, g, base) { dmg = __int(dmg);
@@ -4943,6 +5048,8 @@ Bosses.SETPIECES = {
 		};
 Bosses.V_RED = __uint(0xff2a3a);
 Bosses.V_GOLD = __uint(0xd8a030);
+Bosses.E_VOID = __uint(0xb040ff);
+Bosses.E_LIGHT = __uint(0xe0a0ff);
 Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
 Bosses.VAULT_TWISTS = [
 			{id: "quick", name: "Quickened Sands", desc: "Everything in the Vault attacks 25% faster.", rate: 1.25},

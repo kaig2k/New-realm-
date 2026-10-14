@@ -498,18 +498,22 @@ package realm {
 				var alive:int = g.countAlive(a.what);
 				if (alive >= (a.max || 8)) return;
 				for (k = 0; k < a.n; k++) g.spawnEnemy(a.what, x + Math.random() * 2 - 1, y + Math.random() * 2 - 1, zone);
+				// its summoning animation, for everyone watching
+				if (a.anim) { startAnim(a); g.sync.fired(this, i, ang, 0, phaseCode, dist); }
 				return;
 			}
 			// patterns that rotate or scatter carry their own seed so every player sees the same bullets
 			var spin0:Number = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : spins[i];
 			shootAttack(a, ang, spin0, dist, g);
 			if (a.dash) { dashT = a.dash; dashA = ang; dashSpd = a.dashSpd || 9; }
-			if (a.p == "ring" || a.p == "spiral" || a.p == "flower") spins[i] += (a.rot || 0) * DEG;
+			if (a.blink) blinkAway(a.blink, g);
+			if (a.p == "ring" || a.p == "spiral" || a.p == "flower" || a.p == "implode") spins[i] += (a.rot || 0) * DEG;
 			g.sync.fired(this, i, ang, spin0, phaseCode, dist);
 		}
 
 		/** All bullet patterns. Deterministic given the same arguments (online replay). */
 		private function shootAttack(a:Object, ang:Number, spin0:Number, dist:Number, g:Game):void {
+			if (a.p == "summon") { startAnim(a); return; }
 			var waves:int = a.waves || 1;
 			if (a.sfx) g.soundAt(x, y, a.sfx, 0.7, a.sfxGap || 0.15);
 			startAnim(a);
@@ -563,8 +567,27 @@ package realm {
 					var nx:Number = x + Math.cos(ang) * nd, ny:Number = y + Math.sin(ang) * nd;
 					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, novaFn(a, nx, ny, dmg, bd, spinning, g, spin0), a.marker || null);
 					break;
+				case "implode":
+					// a gravity well: a ring of shots appears round you and falls inward
+					var id2:Number = Math.min(dist, a.reach || 9);
+					var gx:Number = x + Math.cos(ang) * id2, gy:Number = y + Math.sin(ang) * id2;
+					var gr:Number = a.radius || 5;
+					g.addMarker(gx, gy, gr, gr / a.spd, col, null, "vortex");
+					for (k = 0; k < n; k++) {
+						t = spin0 + rot + k * Math.PI * 2 / n;
+						shot(t + Math.PI, a.spd, a, dmg, bd, spinning, g, gx + Math.cos(t) * gr, gy + Math.sin(t) * gr, k);
+					}
+					break;
 				case "rain":
-					// several blasts scattered around you
+					// several blasts scattered around you (or, with line, marching out toward you)
+					if (a.line) {
+						for (k = 0; k < n; k++) {
+							var ld:Number = 2 + k * (a.step || 1.7);
+							var lx:Number = x + Math.cos(ang) * ld, ly:Number = y + Math.sin(ang) * ld;
+							g.addMarker(lx, ly, a.radius || 1.2, (a.delay || 1) + k * (a.stagger || 0.12), col, novaFn(a, lx, ly, dmg, bd, spinning, g, ang + k), a.marker || null);
+						}
+						break;
+					}
 					var seed:uint = uint(spin0 * 1000) | 1;
 					var rd:Number = Math.min(dist, a.reach || 9);
 					var cx:Number = x + Math.cos(ang) * rd, cy:Number = y + Math.sin(ang) * rd;
@@ -582,6 +605,21 @@ package realm {
 						t = spin0 + rot + k * Math.PI * 2 / n;
 						shot(t, a.spd, a, dmg, bd, spinning, g, x, y, k);
 					}
+			}
+		}
+
+		/** Vanishes and reappears a few tiles away (an attack's blink: up to that many tiles from its home). */
+		private function blinkAway(r:Number, g:Game):void {
+			for (var bt:int = 0; bt < 12; bt++) {
+				var ba:Number = Math.random() * Math.PI * 2, br:Number = r * (0.5 + Math.random() * 0.5);
+				var bx2:Number = homeX + Math.cos(ba) * br, by2:Number = homeY + Math.sin(ba) * br;
+				if (g.world.canStand(bx2, by2, 0.6, true)) {
+					g.burst(x, y, def.col, 20);
+					x = bx2; y = by2;
+					velX = velY = 0;
+					g.burst(x, y, def.col, 20);
+					return;
+				}
 			}
 		}
 

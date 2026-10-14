@@ -17,6 +17,9 @@ for name, fn, pal, scale in DESIGNS:
 # Vorgath: an animation for each of his attacks (see vorgath.py)
 from vorgath import sequences
 out += sequences()
+# the Dark Elder: the same (see elder.py)
+import elder
+out += elder.sequences()
 
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])

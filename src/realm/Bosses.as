@@ -352,7 +352,7 @@ package realm {
 			Sprites.recolor("gearmind", "boss", {Y: 0xc0a060, y: 0x806030, Q: 0x60e0ff, P: 0x6a6a72, p: 0x3a3a42, W: 0xffffff, E: 0x40ff80, K: 0x101010}, 6);
 			Sprites.recolor("void_dragon", "wyrm", {C: 0x4a2a7a, c: 0x1a0a2a, W: 0xc080ff, w: 0x8040c0, E: 0xff40ff, K: 0xffffff}, 7);
 			Sprites.recolor("matron", "regent", {Y: 0xff4040, y: 0xa01010, C: 0x6a0a1a, c: 0x3a0008, Q: 0xffd0d0, E: 0xff2020, W: 0xffa0a0, M: 0x8a2030, m: 0x5a1020}, 6);
-			Sprites.recolor("archon", "elder", {H: 0xffe0e0, h: 0xa08080, P: 0x8a0a2a, p: 0x4a0414, Q: 0xffd040, K: 0x100004, E: 0xff2040, W: 0xffd0e0, O: 0xff6080}, 7);
+			Sprites.recolor("archon", "elder_classic", {H: 0xffe0e0, h: 0xa08080, P: 0x8a0a2a, p: 0x4a0414, Q: 0xffd040, K: 0x100004, E: 0xff2040, W: 0xffd0e0, O: 0xff6080}, 7);
 			Sprites.recolor("zealot", "sorcerer", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
 			Sprites.recolor("galecaller", "seraph", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
 			Sprites.recolor("tempestus", "wyrm", {C: 0x80b0ff, c: 0x4060c0, W: 0xffff80, w: 0xc0c060, E: 0xffffff, K: 0xffff00}, 7);
@@ -361,7 +361,7 @@ package realm {
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
 			// the Endless Abyss
 			Sprites.recolor("abyss_chest", "chest", {K: 0x1a0a2a, C: 0x8040c0, c: 0x4a1a7a, Y: 0xff80ff}, 6);
-			Sprites.recolor("abyss_herald", "elder", {H: 0x3a2a5a, h: 0x1a1030, P: 0x2a0a4a, p: 0x12041e, Q: 0xd080ff, K: 0x000000, E: 0xff60ff, W: 0xe0c0ff, O: 0xa040ff}, 8);
+			Sprites.recolor("abyss_herald", "elder_classic", {H: 0x3a2a5a, h: 0x1a1030, P: 0x2a0a4a, p: 0x12041e, Q: 0xd080ff, K: 0x000000, E: 0xff60ff, W: 0xe0c0ff, O: 0xa040ff}, 8);
 			// the Godlands Spires (guild territory)
 			Sprites.recolor("godspire", "crystal", {W: 0xffffff, C: 0xd8e8ff, c: 0x8aa0c8, D: 0x4a5a7a, S: 0x7fd8ff}, 9);
 			// the Realm Siege
@@ -762,22 +762,69 @@ package realm {
 			]}, ["hexweave_robe", "cursed_skull"]);
 		}
 
+		// ---- the Dark Elder's attacks, after his design sheet (each with its own animation)
+		private static const E_VOID:uint = 0xb040ff, E_LIGHT:uint = 0xe0a0ff;
+		// Void Blast: an orb gathered in his hand and hurled, bursting into shards
+		private static function eBlast(dmg:int, cd:Number):Object {
+			return aim(1, 0, 6.5, dmg, cd, E_VOID, {shape: "voidorb", r: 0.5, life: 1.8, split: {n: 10, spd: 5, life: 1.2, dmg: int(dmg / 2)},
+				anim: "blast", animMs: 110, name: "void blast"});
+		}
+		// Void Blast (vertical): columns of void light burst from the ground round you
+		private static function ePillars(n:int, dmg:int, cd:Number):Object {
+			return rain(n, 5, dmg, cd, E_VOID, {radius: 1.3, delay: 0.9, stagger: 0.1, fx: "pillar",
+				anim: "pillars", animMs: 120, animHit: 2, animHold: 0.9, name: "void pillars"});
+		}
+		// Tentacle Slam: a line of tentacles bursting out of the ground toward you
+		private static function eSlam(dmg:int, cd:Number):Object {
+			return rain(6, 0, dmg, cd, 0x8a50ff, {line: true, step: 1.7, radius: 1.4, delay: 0.7, stagger: 0.14, fx: "tentacles",
+				burst: 3, bspd: 4, blife: 0.8, shape: "wisp", anim: "slam", animMs: 120, animHit: 2, animHold: 0.7, name: "tentacle slam"});
+		}
+		// Ranged Spread: a fan of void orbs
+		private static function eSpread(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 80, 7.5, dmg, cd, E_VOID, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "void spread"});
+		}
+		// Void Explosion: a rune circle round him, then the void bursts out of it
+		private static function eExplode(dmg:int, cd:Number, radius:Number):Object {
+			return nova(radius, 1.3, dmg, cd, E_VOID, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 5.5, blife: 1.6, shape: "voidorb", fx: "pillar",
+				anim: "explode", animMs: 130, animHit: 2, animHold: 1.3, name: "void explosion"});
+		}
+		// Gravity Pull: a ring of orbs appears round you and falls inward (it slows you)
+		private static function eGravity(n:int, dmg:int, cd:Number):Object {
+			return o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: E_LIGHT, shape: "voidorb", eff: "slowed"},
+				{anim: "gravity", animMs: 150, name: "gravity well"});
+		}
+		// Teleport: he comes apart, leaving a ring of motes behind, and pours back out elsewhere
+		private static function eTeleport(cd:Number):Object {
+			return ring(12, 15, 4, 60, cd, E_LIGHT, {shape: "orb", life: 2.2, blink: 6, anim: "teleport", animMs: 110, name: "void step"});
+		}
+		// Summon Minions: shades rise from a ring on the ground
+		private static function eSummon(n:int, cd:Number):Object {
+			return o(summon("shade", n, cd, 6), {anim: "summon", animMs: 130});
+		}
+		// Phase 2: he tears the world open, and the rift drifts at you and bursts
+		private static function eRift(dmg:int, cd:Number):Object {
+			return aim(1, 0, 3.5, dmg, cd, 0xd080ff, {shape: "rift", r: 0.6, life: 2.6, split: {n: 16, spd: 5.5, life: 1.4, dmg: int(dmg / 2)},
+				anim: "rift", animMs: 130, name: "void rift"});
+		}
+
 		// ------------------------------------------------------------ realm finales
 		/** Where a closing realm sends everyone: one of these, picked per realm. */
 		public static const FINALES:Array = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
 
 		private static function finales():void {
-			// Azrakor (the Citadel's master) keeps his crystal phase and gets a fuller script
-			boss("elder", {phases: [
-				P(1, {move: "orbit", attacks: [spiral(4, 12, 5.5, 60, 0.12, 0xc060ff), aim(3, 18, 10, 80, 1.2, 0xffe060, {shape: "blade"})]}),
+			// Azrakor, after his design sheet: every attack has its own animation (tools/bossart/elder.py).
+			// He keeps his crystal phase (the third), and burns with the void in the last (rageAt).
+			boss("elder", {seq: {idle: 4, move: 6, blast: 6, pillars: 5, slam: 5, summon: 5, teleport: 6, spread: 5, explode: 5, gravity: 5, rift: 5, death: 7, ridle: 4, rmove: 6},
+				rageAt: 3, col: E_VOID, phases: [
+				P(1, {move: "orbit", attacks: [eBlast(110, 2.4), eSpread(7, 70, 1.6), eSlam(120, 4.5), eTeleport(9)]}),
 				P(0.75, {say: "You amuse me. Let us see you dance.", shield: 2, move: "center", every: 5,
-					cycle: [[ring(32, 5.6, 4.5, 65, 1.0, 0xe02040), aim(7, 60, 8, 70, 1.3, 0xffffff, {eff: "confused"})],
-						[wall(17, 5, 85, 1.5, 0xa040ff, {hole: 2}), summon("shade", 2, 8, 6)]]}),
-				P(0.45, {move: "still",
-					attacks: [rain(6, 6, 100, 2.4, 0xff4080, {burst: 6}), ring(12, 15, 3, 60, 2.0, 0xa040ff)]}),
-				P(0.2, {say: "ENOUGH! I will end you myself!", banner: "Azrakor's true power!", shield: 2, move: "teleport",
-					attacks: [spiral(6, -10, 6, 70, 0.1, 0xff40a0), aim(1, 0, 14, 130, 0.6, 0xffe060, {shape: "blade", eff: "armorbroken", r: 0.32}),
-						nova(3, 1.3, 140, 3.2, 0xc060ff, {burst: 16})]})
+					cycle: [[ePillars(8, 100, 1.6), eSpread(9, 70, 1.4)],
+						[eGravity(14, 75, 3.2), eBlast(110, 2.0)],
+						[eSlam(120, 1.6), eSummon(2, 8)]]}),
+				P(0.45, {move: "still", attacks: [eExplode(150, 4.5, 6), ePillars(6, 100, 2.2), eSpread(7, 70, 1.8)]}),
+				P(0.2, {say: "ENOUGH! THE VOID WILL HAVE YOU!", banner: "The Dark Elder awakens! It hungers!", shield: 2, move: "orbit", speed: 1.3,
+					attacks: [eRift(130, 3.5), eGravity(18, 85, 4), eSlam(130, 2.4), ePillars(10, 110, 2.0), eTeleport(5),
+						spiral(6, -10, 6, 70, 0.1, E_LIGHT, {shape: "voidorb"})]})
 			]}, ["elder_scepter", "crown_of_azrakor"]);
 
 			boss("tide_empress", {name: "Nerezza, the Tide Empress", spr: "tide_empress", hp: 40000, def: 30, spd: 1.6, xp: 5000, col: 0x40d0ff,

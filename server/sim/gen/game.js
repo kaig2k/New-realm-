@@ -551,6 +551,7 @@ class Data {
 			for (var ev of __vals( Data.EVENTS)) if (Data.SLAYER[ev]) out.push(Data.findTitle("slayer_" + ev));
 			return out;
 		}
+	static petKillXp(xp) { return __int(Math.max(1, Math.round(xp / Data.PET_XP_SHARE))); }
 	static hatchPet() {
 			var sp = Data.pick(Data.PET_SPECIES);
 			var r = Math.random();
@@ -4114,8 +4115,7 @@ Data.PET_RARITIES = {
 			legendary: {name: "Legendary", max: 70, col: 0xd8e040}
 		};
 Data.PET_EGG_PRICE = __int(1000);
-Data.PET_FEED_PRICE = __int(200);
-Data.PET_FEED_XP = __int(20);
+Data.PET_XP_SHARE = __int(25);
 Data.PET_STAGES = [
 			{name: "Hatchling", lv: 1, stones: 0, gold: 0, mult: 1, scale: 1, bag: 0},
 			{name: "Juvenile", lv: 10, stones: 1, gold: 500, mult: 1.25, scale: 1.2, bag: 0},

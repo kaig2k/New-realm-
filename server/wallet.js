@@ -76,8 +76,8 @@ function credit(meta, sv, charId, e, now, near) {
     // and XP the hero may gain (see progress.js), killed by them or close by
     if (!sv._xpb || typeof sv._xpb !== 'object') sv._xpb = {};
     sv._xpb[charId] = Math.min(5e7, (sv._xpb[charId] || 0) + v.xp);
-    // and the pet's growth (Game.killEnemy: 1 a kill, 20 a boss)
-    if (!near) sv._petb = Math.min(1e6, (Number(sv._petb) || 0) + (e.isBoss ? 20 : 1));
+    // and the pet's growth: a share of the XP (Data.petKillXp), killed by them or close by
+    if (!(e.def && (e.def.crate || e.def.prop))) sv._petb = Math.min(1e6, (Number(sv._petb) || 0) + Data.petKillXp(v.xp));
   }
 }
 

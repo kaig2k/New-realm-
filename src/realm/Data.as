@@ -1521,8 +1521,9 @@ package realm {
 			legendary: {name: "Legendary", max: 70, col: 0xd8e040}
 		};
 		public static const PET_EGG_PRICE:int = 1000;
-		public static const PET_FEED_PRICE:int = 200;
-		public static const PET_FEED_XP:int = 20;
+		/** Pets grow from the XP you earn fighting: 1 pet XP for every PET_XP_SHARE of yours (at least 1 a kill). */
+		public static const PET_XP_SHARE:int = 25;
+		public static function petKillXp(xp:Number):int { return Math.max(1, Math.round(xp / PET_XP_SHARE)); }
 
 		public static function hatchPet():Object {
 			var sp:Object = pick(PET_SPECIES);

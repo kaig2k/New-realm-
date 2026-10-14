@@ -1319,7 +1319,7 @@ async function run() {
           if (!e.dead) continue;
           gainXp(Math.floor(e.def.xp * (1.5 + (e.elite ? 2 : 0))));
           h.kills++; if (e.isBoss) h.bossKills++;
-          pet.xp += e.isBoss ? 20 : 1;
+          if (!e.def.crate && !e.def.prop) pet.xp += GD2.petKillXp(Math.floor(e.def.xp * (1.5 + (e.elite ? 2 : 0))));
           while (pet.level < 30 && pet.xp >= GD2.petXpNeeded(pet.level)) { pet.xp -= GD2.petXpNeeded(pet.level); pet.level++; }
           if (++n % 25 === 0) save();
         }
@@ -1640,14 +1640,18 @@ async function run() {
     F.clear();
     F.send({ t: 'petFeed', data: dataF({ pet: hp2 && hp2.pet }), cid: 'fh1' });
     await wait(400);
-    const fed = F.find((m) => m.t === 'shopDone');
-    check('...and feeds the pet (the gold goes, the pet grows)', fed && fed.fed && fed.pet && fed.gold === goldF - 200 && (fed.pet.xp > 0 || fed.pet.level > 1), JSON.stringify(fed || F.find((m) => m.t === 'shopFail')));
-    if (fed) { seqF = fed.seq; goldF = fed.gold; }
+    check('pets aren\'t fed for gold any more (they grow from the XP you earn)', !F.find((m) => m.t === 'shopDone') && /XP you earn/.test((F.find((m) => m.t === 'shopFail') || {}).msg), JSON.stringify(F.msgs.slice(-2)));
+    const fed = hp2;
+    const { wallet: W2 } = { wallet: require('./wallet') };
+    const psv = {};
+    W2.credit({}, psv, 'x', { def: { xp: 500 }, zone: 4, isBoss: true }, Date.now(), false);
+    W2.credit({}, psv, 'x', { def: { xp: 100 }, zone: 4 }, Date.now(), true);
+    check('...and the server credits the pet a share of each kill\'s XP, close-by kills too', psv._petb === FD3.petKillXp(750) + FD3.petKillXp(150), String(psv._petb));
     F.clear();
     // the game's next save, with gold picked up meanwhile: nothing is put back
     F.send({ t: 'save', data: dataF({ pet: fed && fed.pet, gold: goldF }) });
     await wait(450);
-    check('a save after buying a backpack and feeding the pet keeps both', !F.find((m) => m.t === 'saveRejected'), JSON.stringify(F.find((m) => m.t === 'saveRejected')));
+    check('a save after buying a backpack and hatching a pet keeps both', !F.find((m) => m.t === 'saveRejected'), JSON.stringify(F.find((m) => m.t === 'saveRejected')));
     for (const c of [F, bz3]) c.s.destroy();
   }
 
@@ -1689,7 +1693,11 @@ async function run() {
     await ask({ t: 'hatch' });
     const early = await ask({ t: 'petEvolve' });
     check('a pet can\'t evolve before its level allows', early && early.t === 'shopFail' && /level 10/.test(early.msg), JSON.stringify(early));
-    for (let k = 0; k < 9 && pet && pet.level < 10; k++) await ask({ t: 'petFeed' });
+    E.clear();
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' 200 petxp' });
+    await wait(400);
+    take(E.find((m) => m.t === 'shopDone'));
+    check('/give name 200 petxp grows an online player\'s pet', pet && pet.level >= 10, JSON.stringify(pet));
     const goldBefore = gold;
     const evo = await ask({ t: 'petEvolve' });
     check('at level 10, a Stone and 500 gold evolve it to Juvenile (the server takes both)',

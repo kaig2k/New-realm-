@@ -1489,21 +1489,9 @@ const handlers = {
     shopDone(c, sv, ch, { pet: sv.pet || null, stable, stabled: m.op });
   },
 
-  /** Feeding the pet: the server takes the gold and grows it. */
+  /** (Pets aren't fed any more: they grow from the XP you earn. An older game may still ask.) */
   petFeed(c, m) {
-    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so your pet wasn\'t fed.' });
-    const sv = onlineSave(c.key), ch = serverChar(c);
-    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
-    const p = sv.pet;
-    if (!p || typeof p !== 'object') return c.send({ t: 'shopFail', msg: 'You have no pet.' });
-    if ((sv.gold || 0) < Data.PET_FEED_PRICE) return c.send({ t: 'shopFail', msg: 'Not enough gold to feed your pet.' });
-    const max = (Data.PET_RARITIES[p.rarity] || { max: 30 }).max;
-    if ((Number(p.level) || 1) >= max) return c.send({ t: 'shopFail', msg: (p.name || 'Your pet') + ' is already at its highest level.' });
-    sv.gold -= Data.PET_FEED_PRICE;
-    p.xp = (Number(p.xp) || 0) + Data.PET_FEED_XP;
-    p.level = Number(p.level) || 1;
-    while (p.level < max && p.xp >= Data.petXpNeeded(p.level)) { p.xp -= Data.petXpNeeded(p.level); p.level++; }
-    shopDone(c, sv, ch, { pet: p, fed: true });
+    c.send({ t: 'shopFail', msg: 'Pets don\'t need feeding any more: they grow from the XP you earn in the realm.' });
   },
 
   /** Marketplace and Key Merchant: the server checks the gold and hands out the item. */
@@ -1808,6 +1796,21 @@ const handlers = {
           log(c.name + ' gave ' + accounts[who].name + ' ' + n + ' ' + kind);
           shopDone(target, sv, ch, { market: c.name + ' gave you ' + n + ' ' + (kind.startsWith('rune') ? Data.STAT_NAMES[stat] + ' Rune' : 'Evolution Stone') + (n === 1 ? '' : 's') + '.' });
           return c.note('Gave ' + accounts[who].name + ' ' + n + ' of them.', 0x80ff80);
+        }
+        // /give name 200 petxp: grows their active pet (events, testing)
+        if (kind === 'petxp') {
+          const sv = onlineSave(who), p = sv.pet;
+          if (!p || !(amount > 0 && amount <= 100000)) return c.note('Usage: /give name 200 petxp (they need a pet)');
+          const max = (Data.PET_RARITIES[p.rarity] || { max: 30 }).max;
+          p.level = Number(p.level) || 1;
+          p.xp = (Number(p.xp) || 0) + amount;
+          while (p.level < max && p.xp >= Data.petXpNeeded(p.level)) { p.xp -= Data.petXpNeeded(p.level); p.level++; }
+          if (p.level >= max) p.xp = 0;
+          sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+          store.putSave(who, sv);
+          log(c.name + ' gave ' + accounts[who].name + '\'s pet ' + amount + ' XP');
+          if (target) { const ch = serverChar(target); if (ch) shopDone(target, sv, ch, { pet: p, petxp: amount }); }
+          return c.note(accounts[who].name + '\'s pet is level ' + p.level + ' now.', 0x80ff80);
         }
         const what = { gold: 'gold', fame: 'fame', aether: 'onrane', onrane: 'onrane' }[(parts[3] || 'gold').toLowerCase()];
         if (!who || !accounts[who] || !(Math.abs(amount) > 0 && Math.abs(amount) <= 10000000) || !what) return c.note('Usage: /give name amount gold|fame|aether');

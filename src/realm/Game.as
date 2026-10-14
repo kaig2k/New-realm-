@@ -358,7 +358,7 @@ package realm {
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
-						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
+						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
 						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  /rename name newname  /heroname name hero newname  (any name can be #number)", 0xffb040);
 						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)   Realms: /realms 1 (how many are open)", 0xffb040);
@@ -2043,7 +2043,6 @@ package realm {
 				else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0)) { questEvent("dungeon"); p.dungeons++; }
 				else if (e.isBoss) questEvent("events");
 				p.kills++;
-				petGainXp(e.isBoss ? 20 : 1);
 			}
 			if (mine && !e.def.treasure && !e.def.crate) addStreak(e);
 			// Clarity: mana back from every kill
@@ -2054,7 +2053,11 @@ package realm {
 			}
 			if (e.def.crate) crateBroken(e, mine, remote);
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
-			if (mine || near) p.gainXp(int(e.def.xp * xpMult), this);
+			if (mine || near) {
+				p.gainXp(int(e.def.xp * xpMult), this);
+				// your pet grows with the XP you earn
+				if (!e.def.crate && !e.def.prop) petGainXp(Data.petKillXp(e.def.xp * xpMult));
+			}
 			if (e.elite && !remote && e.elite == "Splitting") splitElite(e);
 			if (e.def.splits && !remote) splitSlime(e);
 			if (e.elite && mine) { addGold(int(e.def.xp / 2) + 20); floatText(e.x, e.y - 1.2, "Elite slain!", eliteCol(e.elite)); }
@@ -5033,7 +5036,7 @@ package realm {
 			var b:Sprite;
 			var stable:Array = Save.data.stable || [];
 			if (!pt) {
-				info.htmlText = "Pets follow you into the realm, heal your HP and MP and shoot monsters. They grow with every kill, " +
+				info.htmlText = "Pets follow you into the realm, heal your HP and MP and shoot monsters. They grow with the XP you earn fighting, " +
 					"and with <font color='#60f0a0'>Evolution Stones</font> from bosses they evolve: bigger, stronger, with their own skill.";
 				info.y = y;
 				y += info.height + 10;
@@ -5107,11 +5110,10 @@ package realm {
 					y += 78;
 				}
 			}
-			if (!max) {
-				b = Ui.button("Feed (+" + Data.PET_FEED_XP + " XP) - " + Data.PET_FEED_PRICE + "g", 174, 28, feedPet, 12);
-				b.x = 10; b.y = y;
-				sp.addChild(b);
-			}
+			var grow:TextField = Ui.text(11, 0x9cff7a, false, "left", w - 270, true);
+			grow.text = max ? "Fully grown." : "Grows with the XP you earn fighting.";
+			grow.x = 14; grow.y = y + 6;
+			sp.addChild(grow);
 			b = Ui.button("To the Stable", 110, 28, stableFn("store", 0), 13);
 			b.x = w - 248; b.y = y;
 			sp.addChild(b);
@@ -5401,19 +5403,6 @@ package realm {
 			refreshStation();
 		}
 
-		private function feedPet():void {
-			if (!pet) return;
-			if (gold < Data.PET_FEED_PRICE) { msg("Not enough gold to feed your pet.", 0xff8080); return; }
-			// online, the server takes the gold and feeds it (see shopResult)
-			if (shopWaiting) return;
-			if (net.shopRequest({t: "petFeed"})) { shopWaiting = true; return; }
-			addGold(-Data.PET_FEED_PRICE);
-			petGainXp(Data.PET_FEED_XP);
-			burst(petX, petY, 0x60ff90, 10);
-			Save.flush();
-			refreshStation();
-		}
-
 		private function releasePet():void {
 			if (!pet) return;
 			if (pet.bag && (pet.bag as Array).some(function(it:*, ...r):Boolean { return it != null; })) { msg("Take out what your pet carries first (press " + Keys.name(Keys.k("pet")) + ").", 0xff8080); return; }
@@ -5580,18 +5569,16 @@ package realm {
 			saveCharacter();
 			Save.flush();
 			if (m.stable) Save.data.stable = m.stable;
-			if (m.anvil) {
+			if (m.petxp) {
+				Save.data.pet = m.pet;
+				msg("Your pet got " + m.petxp + " XP (level " + m.pet.level + ").", 0x60ff90);
+			} else if (m.anvil) {
 				anvilDone(m);
 			} else if (m.evolved) {
 				petEvolved(m.pet, m.evolved);
 			} else if (m.stabled) {
 				if (m.pet) { Save.data.pet = m.pet; petX = player.x - 1; petY = player.y + 0.5; } else delete Save.data.pet;
 				msg(m.stabled == "store" ? "Your pet went to the Stable." : m.stabled == "release" ? "The pet returned to the wild." : (m.pet ? Data.petTitle(m.pet) : "Your pet") + " is with you now.", 0xc8a8ff);
-			} else if (m.pet && m.fed) {
-				Save.data.pet = m.pet;
-				burst(petX, petY, 0x60ff90, 10);
-				msg(m.pet.name + " enjoyed that (level " + m.pet.level + ").", 0x60ff90);
-				Save.flush();
 			} else if (m.backpack) {
 				msg("You bought a backpack! Switch inventory pages with the button by the tabs.", Ui.GOLD);
 				Sfx.play("coin");

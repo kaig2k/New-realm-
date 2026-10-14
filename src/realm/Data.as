@@ -2,7 +2,7 @@ package realm {
 	/**
 	 * Game balance: classes, enemies, items and loot tables.
 	 * New Realm's systems: 11 maxable stats (the classic 8 +
-	 * Fury, Focus, Warding), Bounty from gear, and the T0-T7 / RN / BD /
+	 * Fury, Focus, Warding), Luck (better loot) from gear, and the T0-T7 / RN / BD /
 	 * EL / SF / PR item rarities.
 	 */
 	public class Data {
@@ -10,9 +10,9 @@ package realm {
 		/** Stats that only come from gear. */
 		public static const GEAR_STATS:Array = ["frt"];
 		public static const STAT_NAMES:Object = {hp: "Life", mp: "Mana", att: "Attack", def: "Defense", spd: "Speed", dex: "Dexterity", vit: "Vitality",
-			wis: "Wisdom", mgt: "Fury", luc: "Focus", prt: "Warding", frt: "Bounty"};
+			wis: "Wisdom", mgt: "Fury", luc: "Focus", prt: "Warding", frt: "Luck"};
 		public static const STAT_SHORT:Object = {hp: "HP", mp: "MP", att: "ATT", def: "DEF", spd: "SPD", dex: "DEX", vit: "VIT", wis: "WIS",
-			mgt: "FUR", luc: "FOC", prt: "WRD", frt: "BNT"};
+			mgt: "FUR", luc: "FOC", prt: "WRD", frt: "LCK"};
 		public static const STAT_COLORS:Object = {hp: 0xff70b0, mp: 0x5080ff, att: 0xa040e0, def: 0x303030, spd: 0x40c040, dex: 0xff9020, vit: 0xd02020,
 			wis: 0x40e0e0, mgt: 0xff5a2a, luc: 0x3ae07a, prt: 0xe8e8f0, frt: 0xf0c030};
 
@@ -246,7 +246,7 @@ package realm {
 		public static function setBonusText(id:String):String {
 			var b:Object = setBonus(id), parts:Array = [];
 			for each (var k:String in STATS) if (b[k]) parts.push("+" + b[k] + " " + STAT_SHORT[k]);
-			if (b.frt) parts.push("+" + b.frt + " Bounty");
+			if (b.frt) parts.push("+" + b.frt + " Luck");
 			return parts.join(", ");
 		}
 
@@ -1990,11 +1990,11 @@ package realm {
 			{id: "secondwind", b: 1, t: 2, name: "Second Wind", desc: "Health potions heal 25% more", max: 3},
 			{id: "laststand", b: 1, t: 3, name: "Last Stand", desc: "Once a minute, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true, cost: 6},
 			// ---- Fortune
-			{id: "fortune", b: 2, t: 0, name: "Prosperity", desc: "+5 Bounty (better loot)", max: 5},
+			{id: "fortune", b: 2, t: 0, name: "Prosperity", desc: "+5 Luck (better loot)", max: 5},
 			{id: "luckystar", b: 2, t: 0, name: "Lucky Star", desc: "+4 Luck", max: 5},
 			{id: "scavenger", b: 2, t: 1, name: "Scavenger", desc: "+8% gold from monsters", max: 3},
-			{id: "favor", b: 2, t: 1, name: "Fortune's Favor", desc: "+3 Luck and +3 Bounty", max: 5},
-			{id: "treasure", b: 2, t: 2, name: "Treasure Hunter", desc: "+8 Bounty", max: 3},
+			{id: "favor", b: 2, t: 1, name: "Fortune's Favor", desc: "+3 Focus and +3 Luck", max: 5},
+			{id: "treasure", b: 2, t: 2, name: "Treasure Hunter", desc: "+8 Luck", max: 3},
 			{id: "goldrush", b: 2, t: 2, name: "Gold Rush", desc: "+10% gold from monsters", max: 3},
 			{id: "highstakes", b: 2, t: 3, name: "High Stakes", desc: "Every loot bag: 50% doubled, 50% gone. Toggle it any time.", max: 1, cap: true, cost: 5},
 			// ---- Arcana

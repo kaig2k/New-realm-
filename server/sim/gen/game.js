@@ -52,7 +52,7 @@ class Data {
 	static setBonusText(id) {
 			var b = Data.setBonus(id), parts = [];
 			for (var k of __vals( Data.STATS)) if (b[k]) parts.push("+" + b[k] + " " + Data.STAT_SHORT[k]);
-			if (b.frt) parts.push("+" + b.frt + " Bounty");
+			if (b.frt) parts.push("+" + b.frt + " Luck");
 			return parts.join(", ");
 		}
 	static rollForm() {
@@ -3558,9 +3558,9 @@ class Enemy {
 Data.STATS = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt"];
 Data.GEAR_STATS = ["frt"];
 Data.STAT_NAMES = {hp: "Life", mp: "Mana", att: "Attack", def: "Defense", spd: "Speed", dex: "Dexterity", vit: "Vitality",
-			wis: "Wisdom", mgt: "Fury", luc: "Focus", prt: "Warding", frt: "Bounty"};
+			wis: "Wisdom", mgt: "Fury", luc: "Focus", prt: "Warding", frt: "Luck"};
 Data.STAT_SHORT = {hp: "HP", mp: "MP", att: "ATT", def: "DEF", spd: "SPD", dex: "DEX", vit: "VIT", wis: "WIS",
-			mgt: "FUR", luc: "FOC", prt: "WRD", frt: "BNT"};
+			mgt: "FUR", luc: "FOC", prt: "WRD", frt: "LCK"};
 Data.STAT_COLORS = {hp: 0xff70b0, mp: 0x5080ff, att: 0xa040e0, def: 0x303030, spd: 0x40c040, dex: 0xff9020, vit: 0xd02020,
 			wis: 0x40e0e0, mgt: 0xff5a2a, luc: 0x3ae07a, prt: 0xe8e8f0, frt: 0xf0c030};
 Data.CLASSES = {
@@ -4538,11 +4538,11 @@ Data.SKILLS = [
 			{id: "secondwind", b: 1, t: 2, name: "Second Wind", desc: "Health potions heal 25% more", max: 3},
 			{id: "laststand", b: 1, t: 3, name: "Last Stand", desc: "Once a minute, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true, cost: 6},
 			
-			{id: "fortune", b: 2, t: 0, name: "Prosperity", desc: "+5 Bounty (better loot)", max: 5},
+			{id: "fortune", b: 2, t: 0, name: "Prosperity", desc: "+5 Luck (better loot)", max: 5},
 			{id: "luckystar", b: 2, t: 0, name: "Lucky Star", desc: "+4 Luck", max: 5},
 			{id: "scavenger", b: 2, t: 1, name: "Scavenger", desc: "+8% gold from monsters", max: 3},
-			{id: "favor", b: 2, t: 1, name: "Fortune's Favor", desc: "+3 Luck and +3 Bounty", max: 5},
-			{id: "treasure", b: 2, t: 2, name: "Treasure Hunter", desc: "+8 Bounty", max: 3},
+			{id: "favor", b: 2, t: 1, name: "Fortune's Favor", desc: "+3 Focus and +3 Luck", max: 5},
+			{id: "treasure", b: 2, t: 2, name: "Treasure Hunter", desc: "+8 Luck", max: 3},
 			{id: "goldrush", b: 2, t: 2, name: "Gold Rush", desc: "+10% gold from monsters", max: 3},
 			{id: "highstakes", b: 2, t: 3, name: "High Stakes", desc: "Every loot bag: 50% doubled, 50% gone. Toggle it any time.", max: 1, cap: true, cost: 5},
 			

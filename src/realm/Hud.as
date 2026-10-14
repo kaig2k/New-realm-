@@ -46,6 +46,7 @@ package realm {
 		private var skillTf:TextField;
 		private var lastSkills:String = "";
 		private var statTf:TextField;
+		private var luckTip:Sprite, luckTipTf:TextField;
 		private var tabs:Array = [];
 		private var packBtn:Sprite;
 		private var packTf:TextField;
@@ -208,6 +209,20 @@ package realm {
 			statPage.addChild(statTf);
 			statPage.visible = false;
 			addChild(statPage);
+			// hovering the LUCK line: where all your loot luck comes from
+			luckTip = new Sprite();
+			luckTip.mouseEnabled = luckTip.mouseChildren = false;
+			luckTipTf = Ui.text(12, 0xeeeeee, false, "left", 230, true);
+			luckTipTf.x = 10; luckTipTf.y = 8;
+			luckTip.addChild(luckTipTf);
+			luckTip.visible = false;
+			addChild(luckTip);
+			// (the text itself takes no mouse: the panel behind it does)
+			statPage.addEventListener(MouseEvent.MOUSE_MOVE, function(e:MouseEvent):void {
+				var line:int = statTf.getLineIndexAtPoint(statTf.mouseX, statTf.mouseY);
+				if (line == 5) showLuckTip(); else luckTip.visible = false;
+			});
+			statPage.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { luckTip.visible = false; });
 
 			// --- skill tree page (Awakening)
 			skillPage = new Sprite();
@@ -463,7 +478,7 @@ package realm {
 			if (statPage.visible) {
 				var st:String = statLine("hp") + statLine("mp") + "\n" + statLine("att") + statLine("def") + "\n" + statLine("spd") + statLine("dex") + "\n" +
 					statLine("vit") + statLine("wis") + "\n" + statLine("mgt") + statLine("luc") + "\n" +
-					statLine("prt") + "<font color='#9a9a9a'>BNT</font> " + p.frt + "\n" +
+					statLine("prt") + "<font color='#f0c030'>LUCK</font> <font color='#ffe080'>" + g.totalLuck() + "</font>\n" +
 					"<font color='#ffd75e' size='12'>Maxed " + p.maxedCount + "/11</font>   <font color='#aaaaaa' size='12'>Crit " + Math.round(p.critChance * 100) + "%  x" + p.critMult.toFixed(2) +
 					(p.setPieces >= 4 ? "   <font color='#4ee08a'>Set bonus</font>" : "") + "</font>";
 				if (st != lastStats) {
@@ -492,6 +507,25 @@ package realm {
 			if (!it || !Data.isGear(it) || !Data.canUse(it, p.cls.id) || p.climbBlock(it)) return false;
 			var worn:Object = p[it.kind];
 			return !worn || Tooltip.score(it) > Tooltip.score(worn) * 1.02 + 0.5;
+		}
+
+		/** The loot luck breakdown, beside the stats panel. */
+		private function showLuckTip():void {
+			var parts:Array = g.luckParts();
+			var out:String = "<font size='14' color='#f0c030'><b>Loot luck: " + g.totalLuck() + "</b></font><br>";
+			for each (var pt:Array in parts) {
+				var v:int = int(pt[1]);
+				out += (v > 0 ? "<font color='#ffe080'>+" + v + "</font>  " : "<font color='#777777'>+0</font>  ") + "<font color='" + (v > 0 ? "#eeeeee" : "#888888") + "'>" + pt[0] + "</font><br>";
+			}
+			out += "<font size='11' color='#a8a8a8'>More common drops: +" + g.totalLuck() + "%. Rarest drops (uniques, Godly): +" +
+				Math.round(Math.min(160, g.totalLuck()) / 4) + "% (at most +40%). Gear, streak, shrine and pet count up to " + Game.LUCK_REPORTED_MAX + " together.</font>";
+			luckTipTf.htmlText = out;
+			var w:int = 250, h:int = int(luckTipTf.height) + 16;
+			luckTip.graphics.clear();
+			Ui.panel(luckTip.graphics, 0, 0, w, h, 0x1a1a1a, 0xf0c030);
+			luckTip.x = -w - 6;
+			luckTip.y = statPage.y + statTf.y + 70;
+			luckTip.visible = true;
 		}
 
 		private function statLine(key:String):String {

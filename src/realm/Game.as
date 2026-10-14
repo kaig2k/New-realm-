@@ -4461,9 +4461,46 @@ package realm {
 			arcana: ["Shrine of Arcana", "regenerate 10% MP a second", 0xb060ff]
 		};
 
-		/** Loot luck on top of Bounty: your kill streak and the Shrine of Fortune. */
+		/** Loot luck on top of gear Luck: your kill streak, the Shrine of Fortune and your pet. */
 		/** Ironman and Hardcore heroes' extra loot luck (online the server adds it to its own rolls). */
 		private function get modeLuck():int { return Data.findMode(player.mode).luck; }
+
+		/**
+		 * Every source of loot luck, as [what, how much] (the stats panel's breakdown). The
+		 * first four the game reports (the server holds them to LUCK_REPORTED_MAX together);
+		 * the rest the server adds itself.
+		 */
+		public function luckParts():Array {
+			var p:Player = player;
+			var out:Array = [["Luck on gear and skills", p.frt], ["Kill streak", streakBonus()],
+				["Shrine of Fortune", p.buffs.fortune > 0 ? 25 : 0], ["Pet", Data.petLuck(pet)]];
+			var md:Object = p.mode ? Data.findMode(p.mode) : null;
+			if (md && md.luck) out.push([md.name + " hero", int(md.luck)]);
+			if (net && net.online) {
+				if (Online.welcome && Online.welcome.vip) out.push(["VIP", 15]);
+				out.push(["Ascendant Fortune", Data.ascRank(Save.data.asc, "fortune") * 3]);
+				out.push(["Your guild's Spires", spireLuck()]);
+				if (Player.deepBoons) out.push(["Abyss boons", Data.deepBoonLuck(Player.deepBoons)]);
+			}
+			return out;
+		}
+		/** Most loot luck the server takes from what the game reports (gear, streak, shrine and pet together). */
+		public static const LUCK_REPORTED_MAX:int = 160;
+		/** Your total loot luck (what the server rolls your drops with). */
+		public function totalLuck():int {
+			var parts:Array = luckParts(), n:int = 0;
+			for (var i:int = 0; i < parts.length; i++) n += i < 4 ? 0 : int(parts[i][1]);
+			var rep:int = 0;
+			for (i = 0; i < 4; i++) rep += int(parts[i][1]);
+			return n + Math.max(0, Math.min(LUCK_REPORTED_MAX, rep));
+		}
+		/** +5 loot luck for each Godlands Spire your guild holds (as last seen in a realm). */
+		private function spireLuck():int {
+			if (!spires || !net || !net.guild) return 0;
+			var n:int = 0;
+			for each (var sp:Object in spires) if (sp.g && sp.g == net.guild.name) n++;
+			return n * 5;
+		}
 
 		private function lootLuck():int { return streakBonus() + (player.buffs.fortune > 0 ? 25 : 0) + Data.petLuck(pet); }
 

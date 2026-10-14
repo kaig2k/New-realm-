@@ -903,7 +903,7 @@ function cleanProfile(p, sv) {
   if (!p || typeof p !== 'object') return {};
   const out = { cls: str(p.cls, 16), skin: str(p.skin, 24), dye: str(p.dye, 24), title: str(p.title, 32), level: Math.max(1, Math.min(20, num(p.level) | 0)),
     fame: Math.max(0, num(p.fame) | 0), maxed: Math.max(0, Math.min(11, num(p.maxed) | 0)), guild: str(p.guild, 24),
-    // loot luck (Bounty + streak + shrine), capped at what the game can reach
+    // loot luck (gear Luck + streak + shrine), capped at what the game can reach
     lk: Math.max(0, Math.min(160, num(p.lk) | 0)), hs: p.hs ? 1 : 0 };
   // cosmetics: only ones this account owns (earned titles from the server's own list)
   if (sv) {

@@ -177,7 +177,8 @@ package realm {
 		public function get maxHp():int { return stat("hp"); }
 		public function get maxMp():int { return stat("mp"); }
 		public function get att():int { return stat("att"); }
-		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef; }
+		/** (pets: Stone Guard, Bastion and Ash Guardian add Defense) */
+		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef + Data.petDef(Save.data.pet); }
 		public function get spd():int { return stat("spd"); }
 		public function get dex():int { return stat("dex"); }
 		public function get vit():int { return stat("vit"); }

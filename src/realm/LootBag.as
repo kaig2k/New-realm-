@@ -22,5 +22,22 @@ package realm {
 		public function refresh():void {
 			spr = vault ? "chest" : Data.bagColor(items);
 		}
+
+		/** Loot filter levels (Settings): what a bag needs to hold to be shown. */
+		public static const FILTERS:Array = ["Show everything", "Hide gear below T4", "Hide gear below T6", "Rare and better only"];
+
+		/** Does this bag pass loot filter level f? Stat potions, keys, shards, runes and stones always do. */
+		public function shown(f:int):Boolean {
+			if (vault || f <= 0) return true;
+			for each (var it:Object in items) {
+				if (!it) continue;
+				if (it.kind == "stat" || it.rarity || it.uid) return true;
+				if (!Data.isGear(it) && it.kind != "hp" && it.kind != "mp") return true;
+				if (f == 1 && Data.isGear(it) && int(it.tier) >= 4) return true;
+				if (f == 2 && Data.isGear(it) && int(it.tier) >= 6) return true;
+				if (f == 1 && (it.kind == "hp" || it.kind == "mp")) return true;
+			}
+			return false;
+		}
 	}
 }

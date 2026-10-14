@@ -497,6 +497,25 @@ package realm {
 			return {kind: "material", sub: "sor", tier: 0, name: "Star Shard"};
 		}
 
+		/** Evolution Stone: bosses drop them; pets need them to evolve (the Pet Yard). */
+		public static function makeStone():Object {
+			return {kind: "stone", sub: "evo", tier: 0, name: "Evolution Stone"};
+		}
+
+		/** A rune: used at the Starforge, its stat is sure to be among a stat reroll's bonuses. */
+		public static function makeRune(stat:String):Object {
+			return {kind: "rune", sub: stat, tier: 0, name: STAT_NAMES[stat] + " Rune"};
+		}
+
+		/** Evolution Stones and runes from bosses: [stone chance, rune chance] for this boss (none for other monsters). */
+		public static function bossExtras(def:Object):Array {
+			if (!def || def.ai != "boss" || def.prop) return [0, 0];
+			if (def.raid || def.final || def.finale) return [0.3, 0.18];
+			if (def.dungeon && def.dtier >= 5) return [0.2, 0.12];
+			if (def.dungeon) return [0.12, 0.07];
+			return [0.1, 0.06];
+		}
+
 		/** Gear for one of a class's 4 slots. */
 		public static function makeForSlot(cls:Object, slot:int, tier:int, rarity:String):Object {
 			switch (slot) {
@@ -565,6 +584,79 @@ package realm {
 			return n;
 		}
 
+		/**
+		 * A stat reroll with a rune: rolled until the rune's stat is among the bonuses
+		 * (a weapon's Speed is its bullets, so weapons can't take a Speed rune).
+		 */
+		public static function canUseRune(item:Object, stat:String):Boolean {
+			return canRerollStats(item) && ROLLED.indexOf(stat) >= 0 && !(item.kind == "weapon" && stat == "spd");
+		}
+		public static function rerollStatsWith(item:Object, stat:String):Object {
+			var n:Object;
+			for (var i:int = 0; i < 200; i++) { n = rerollStats(item); if (n[stat] > 0) return n; }
+			// (never rolled it: one of the bonuses becomes it)
+			for each (var k:String in ROLLED) {
+				if (k == stat || !n[k] || (n.kind == "weapon" && k == "spd")) continue;
+				var v:Number = n[k];
+				if ((k == "hp" || k == "mp") != (stat == "hp" || stat == "mp")) v = (stat == "hp" || stat == "mp") ? v * 5 : Math.max(1, Math.round(v / 5));
+				delete n[k];
+				n[stat] = v;
+				break;
+			}
+			return n;
+		}
+
+		// ---- Fortune's Anvil (a gamble at the Starforge) -------------------
+		/** The rarities the Anvil climbs (Starforged and better can't go on it). */
+		public static const ANVIL_RARITIES:Array = ["ut", "st", "fb"];
+		/** Odds: up, down; the rest of the time the item shatters. */
+		public static const ANVIL_UP:Number = 0.45, ANVIL_DOWN:Number = 0.4;
+		private static const ANVIL_MAX_TIER:Object = {weapon: 7, ability: 6, armor: 7, ring: 5};
+
+		/** Why this item can't go on the Anvil, or null. */
+		public static function anvilBlock(item:Object):String {
+			if (!item || !isGear(item)) return "Only gear goes on the Anvil.";
+			if (item.uid || item.gid) return "Unique and Godly items are too precious for the Anvil.";
+			if (item.set) return "Set pieces can't go on the Anvil.";
+			if (item.rarity && ANVIL_RARITIES.indexOf(item.rarity) < 0) return "Starforged and better items can't go on the Anvil.";
+			if (item.rarity == "fb") return "Eldritch is as high as the Anvil goes: the Starforge takes it further.";
+			if (item.locked) return "That item is locked (right-click it to unlock it).";
+			if (!item.rarity && int(item.tier) <= 0 && item.kind != "ring") return "Starter gear can't go on the Anvil.";
+			return null;
+		}
+
+		/** Gold it costs to strike an item. */
+		public static function anvilCost(item:Object):int {
+			if (item.rarity) return {ut: 3000, st: 5000, fb: 9000}[item.rarity];
+			return 200 + int(item.tier) * int(item.tier) * 60;
+		}
+
+		/** The item one step up (or down) the Anvil's ladder: tiers, then Runed, Bonded, Eldritch. null: it shatters (going down from the bottom). */
+		public static function anvilStep(item:Object, up:Boolean):Object {
+			var top:int = ANVIL_MAX_TIER[item.kind];
+			var ri:int = item.rarity ? ANVIL_RARITIES.indexOf(item.rarity) : -1;
+			var tier:int = int(item.tier), rar:String = null;
+			if (ri >= 0) {
+				// a rarity: the next one up, or down (Runed falls back to the best plain tier)
+				if (up) rar = ANVIL_RARITIES[ri + 1];
+				else if (ri > 0) rar = ANVIL_RARITIES[ri - 1];
+				else tier = top;
+			} else if (up) {
+				if (tier >= top) rar = "ut"; else tier++;
+			} else {
+				if (tier <= 0) return null;
+				tier--;
+			}
+			var n:Object;
+			switch (item.kind) {
+				case "weapon": n = makeWeapon(item.sub, rar ? 7 : tier, rar, item.form || ""); break;
+				case "ability": n = makeAbility(item.sub, rar ? 6 : tier, rar, item.ab); break;
+				case "armor": n = makeArmor(item.sub, rar ? 7 : tier, rar); break;
+				default: n = makeRing(item.sub, rar ? 5 : tier, rar);
+			}
+			return n;
+		}
+
 		/** Turn an item into a Starforged item of the same kind (Starforge). */
 		public static function forgeLegendary(item:Object, cls:Object):Object {
 			switch (item.kind) {
@@ -600,6 +692,8 @@ package realm {
 			switch (item.kind) {
 				case "stat": return 250;
 				case "material": return 300;
+				case "stone": return 400;
+				case "rune": return 300;
 				case "key": return 2000;
 				case "hp": case "mp": return 20;
 			}
@@ -684,6 +778,8 @@ package realm {
 					else s += "Opens a portal to " + Bosses.RAIDS[Math.max(0, keyRaid(item))].name + ".\nUse it in the Nexus (click it) or at the Raid Table.\nDrops rarely from bosses.\n";
 					break;
 				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
+				case "stone": s += "Pets evolve with these at the Pet Yard.\nBosses drop them (raids and the Dark Elder most often).\n"; break;
+				case "rune": s += "Starforge: carry it when you reroll an item's bonus stats and " + STAT_NAMES[item.sub] + " is sure to be one of them (the rune is used up).\n"; break;
 			}
 			if (isGear(item)) {
 				var on:String = "";
@@ -1435,13 +1531,104 @@ package realm {
 		}
 
 		public static function petXpNeeded(level:int):int { return 8 + level * 2; }
+		/**
+		 * Pet evolution: Hatchling, Juvenile, Adult, Ascended. Each stage needs the
+		 * pet's level plus Evolution Stones (bosses drop them) and gold, paid at the
+		 * Pet Yard (the server evolves it). Commons stop at Adult. At Adult the pet
+		 * takes one of its species' two paths for good. Every stage makes it bigger
+		 * and stronger and its species skill better; Adults carry 2 items, Ascended 4.
+		 */
+		public static const PET_STAGES:Array = [
+			{name: "Hatchling", lv: 1, stones: 0, gold: 0, mult: 1, scale: 1, bag: 0},
+			{name: "Juvenile", lv: 10, stones: 1, gold: 500, mult: 1.25, scale: 1.2, bag: 0},
+			{name: "Adult", lv: 25, stones: 2, gold: 2000, mult: 1.6, scale: 1.4, bag: 2},
+			{name: "Ascended", lv: 45, stones: 4, gold: 6000, mult: 2.1, scale: 1.65, bag: 4}
+		];
+		/** Each species' skill, and its two Adult paths: a = the skill grows, b = it fights harder. */
+		public static const PET_SKILLS:Object = {
+			pup: {skill: "Fetch", desc: "Brings you health and magic potions from loot bags nearby",
+				a: {name: "Treasure Hound", desc: "Fetches from much further away, stat potions too (into your inventory)"},
+				b: {name: "Warhound", desc: "+40% damage and it shoots faster"}},
+			slime: {skill: "Split", desc: "Fires one more blob a volley at every stage",
+				a: {name: "Royal Jelly", desc: "Heals twice as much"},
+				b: {name: "Acid Ooze", desc: "+40% damage and its blobs eat through Defense"}},
+			owl: {skill: "Night Sight", desc: "Lights up the map around you, wider at every stage",
+				a: {name: "Seer", desc: "+5 loot luck a stage and the widest sight"},
+				b: {name: "Hunter Owl", desc: "+40% damage and it shoots from further away"}},
+			drake: {skill: "Fire Breath", desc: "+15% damage at every stage",
+				a: {name: "Inferno Wyrm", desc: "+60% damage"},
+				b: {name: "Ash Guardian", desc: "Shields you: +4 Defense a stage"}},
+			wisp: {skill: "Mana Spring", desc: "Restores half again as much MP at every stage",
+				a: {name: "Arcane Wisp", desc: "Restores twice the MP and heals half again as much"},
+				b: {name: "Storm Wisp", desc: "+40% damage and two bolts at once"}},
+			golem: {skill: "Stone Guard", desc: "+3 Defense for you at every stage",
+				a: {name: "Bastion", desc: "+6 Defense a stage and heals half again as much"},
+				b: {name: "Boulder", desc: "+50% damage"}}
+		};
+		public static function petStage(pet:Object):int { return pet ? Math.max(0, Math.min(3, int(pet.stage || 0))) : 0; }
+		/** Commons stop at Adult; Rare and Legendary pets can ascend. */
+		public static function petMaxStage(pet:Object):int { return pet && pet.rarity == "common" ? 2 : 3; }
+		public static function petPath(pet:Object):String { return pet && petStage(pet) >= 2 && (pet.path == "a" || pet.path == "b") ? pet.path : ""; }
+		/** Items the pet carries (its bag). */
+		public static function petBagSlots(pet:Object):int { return pet ? PET_STAGES[petStage(pet)].bag : 0; }
+		/** Why the pet can't evolve now (null when it can, given stones and gold). */
+		public static function petEvolveBlock(pet:Object):String {
+			if (!pet) return "You have no pet.";
+			var st:int = petStage(pet);
+			if (st >= petMaxStage(pet)) return st >= 3 ? "It has reached its final form." : "Common pets stop at Adult. Rare and Legendary pets can ascend.";
+			var next:Object = PET_STAGES[st + 1];
+			if (int(pet.level) < next.lv) return "It needs to reach level " + next.lv + " first.";
+			return null;
+		}
+		private static function petMult(pet:Object):Number {
+			var m:Number = PET_STAGES[petStage(pet)].mult;
+			// legendaries that ascend shine brightest
+			if (pet.rarity == "legendary" && petStage(pet) >= 3) m *= 1.15;
+			return m;
+		}
 		/** HP and MP the pet heals every 3 seconds. */
-		public static function petHeal(pet:Object):int { return int(4 + pet.level * 1.2); }
-		public static function petMagic(pet:Object):int { return int(1 + pet.level * 0.4); }
+		public static function petHeal(pet:Object):int {
+			var p:String = petPath(pet), sp:String = pet.species;
+			var k:Number = (sp == "slime" && p == "a") ? 2 : ((sp == "wisp" || sp == "golem") && p == "a") ? 1.5 : 1;
+			return int((4 + pet.level * 1.2) * petMult(pet) * k);
+		}
+		public static function petMagic(pet:Object):int {
+			var k:Number = 1;
+			if (pet.species == "wisp") k = 1 + petStage(pet) * 0.5 + (petPath(pet) == "a" ? 1 : 0);
+			return int((1 + pet.level * 0.4) * petMult(pet) * k);
+		}
 		/** Damage of each of the pet's shots (pets shoot the nearest monster about once a second). */
 		public static function petAttack(pet:Object):int {
 			var mul:Number = pet.rarity == "legendary" ? 1.3 : pet.rarity == "rare" ? 1.15 : 1;
-			return int((8 + pet.level * 2.2) * mul);
+			var p:String = petPath(pet), sp:String = pet.species;
+			if (sp == "drake") mul *= 1 + petStage(pet) * 0.15 + (p == "a" ? 0.6 : 0);
+			else if (p == "b") mul *= sp == "golem" ? 1.5 : 1.4;
+			return int((8 + pet.level * 2.2) * mul * petMult(pet));
+		}
+		/** Shots a volley (Split, Storm Wisp). */
+		public static function petShots(pet:Object):int {
+			if (pet.species == "slime") return 1 + petStage(pet);
+			return pet.species == "wisp" && petPath(pet) == "b" ? 2 : 1;
+		}
+		/** Seconds between volleys. */
+		public static function petShotGap(pet:Object):Number { return pet.species == "pup" && petPath(pet) == "b" ? 0.7 : 1; }
+		/** How far it shoots (tiles). */
+		public static function petRange(pet:Object):Number { return pet.species == "owl" && petPath(pet) == "b" ? 9.5 : 7; }
+		/** Defense the pet gives you (Stone Guard, Bastion, Ash Guardian). */
+		public static function petDef(pet:Object):int {
+			if (!pet) return 0;
+			var st:int = petStage(pet), p:String = petPath(pet);
+			if (pet.species == "golem") return st * (p == "a" ? 6 : 3);
+			if (pet.species == "drake" && p == "b") return st * 4;
+			return 0;
+		}
+		/** Extra loot luck (Seer). */
+		public static function petLuck(pet:Object):int { return pet && pet.species == "owl" && petPath(pet) == "a" ? petStage(pet) * 5 : 0; }
+		/** The pet's name for its stage and path ("Adult Warhound"). */
+		public static function petTitle(pet:Object):String {
+			var p:String = petPath(pet);
+			var sk:Object = PET_SKILLS[pet.species];
+			return PET_STAGES[petStage(pet)].name + " " + (p && sk ? sk[p].name : pet.name);
 		}
 		/** How each kind of pet shoots: [projectile shape, colour]. */
 		public static const PET_SHOTS:Object = {pup: ["orb", 0xffd080], slime: ["orb", 0x60ff60], owl: ["dart", 0xc0a0ff],
@@ -1755,6 +1942,9 @@ package realm {
 			rollUniques(def, items, rare);
 			Godly.roll(def, items, rare);
 			rollKey(def, items, boost);
+			var ex:Array = bossExtras(def);
+			if (Math.random() < ex[0] * rare) items.push(makeStone());
+			if (Math.random() < ex[1] * rare) items.push(makeRune(randomStat()));
 			if (def.raid) {
 				// raid bosses: the best loot in the game
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
@@ -1859,7 +2049,7 @@ package realm {
 				else if (it.rarity == "lg") r = 5;
 				else if (it.rarity == "fb") r = 4;
 				else if (it.rarity || it.kind == "key") r = 3;
-				else if (it.tier >= 6 || it.kind == "material") r = 2;
+				else if (it.tier >= 6 || it.kind == "material" || it.kind == "stone" || it.kind == "rune") r = 2;
 				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = 1;
 				if (r > rank) rank = r;
 			}

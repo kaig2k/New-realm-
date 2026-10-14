@@ -203,6 +203,9 @@ package realm {
 		private static const ICON_RING:Array = [["...RR...", "..RHrR..", "..RRrr..", ".G.gg.G.", "G......g", "G......g", ".G....g.", "..GGgg.."], ["..R.R...", ".RRHRR..", "..RrrR..", ".GG..GG.", "G......g", "G......g", ".G....g.", "..GGgg.."]];
 		private static const ICON_POT:Array = [["...WW...", "..GGGG..", "...HG...", "..PHPP..", ".PHPPPp.", ".PPPPPp.", ".PPPPpp.", "..pppp.."]];
 		private static const ICON_STATPOT:Array = [["...WW...", "...GG...", "..GHGG..", ".GPHPPG.", "GPPHPPpG", "GPPPPPpG", ".GPPPpG.", "..GGGG.."]];
+		/** An Evolution Stone (a glowing egg-shaped gem) and a rune (a carved stone tablet). */
+		private static const ICON_STONE:Array = [["...WW...", "..WGGg..", ".WGGGGg.", ".GGHGGg.", ".GGGGgg.", ".gGGGgg.", "..gggg..", "........"]];
+		private static const ICON_RUNE:Array = [["..BBBB..", ".BbbbbB.", ".BbRRbB.", ".BbRbbB.", ".BbRRbB.", ".BbbRbB.", ".BbRRbB.", "..BBBB.."]];
 		private static const ICON_SOR:Array = [["...CC...", "..CWCC..", ".CWCCCc.", "CWCCCCcc", ".CCCCcc.", "..CCcc..", "...cc...", "........"]];
 		private static const ICON_TIERS:Array = [{B: 0x9a9aa2, b: 0x5a5a62, H: 0xd8d8e0, G: 0x8a6a3a, g: 0x5a4422, R: 0xa0a0a8, W: 0x8a5a2a, w: 0x5a3a18, P: 0x6a6a72, S: 0xd8d8d8}, {B: 0xb8c8dc, b: 0x6a7a90, H: 0xf0f8ff, G: 0xa8a8b4, g: 0x6a6a78, R: 0x60c0ff, W: 0x7a4a24, w: 0x4a2a10, P: 0x9a9aa8, S: 0xe8e8e8}, {B: 0xd8d8e8, b: 0x8a8aa0, H: 0xffffff, G: 0xf0c030, g: 0xa07810, R: 0xff4040, W: 0x6a3a1a, w: 0x3a2010, P: 0xf0c030, S: 0xf0f0f0}, {B: 0x9ad8f0, b: 0x4a8aa8, H: 0xf0ffff, G: 0x8040c0, g: 0x502080, R: 0x60ffd0, W: 0x3a2a4a, w: 0x201428, P: 0x8040c0, S: 0xf0ffff}];
 		private static const ICON_ABIL:Object = {spell: [0x6a3a8a, 0xe8e0c8], quiver: [0x8a5a2a, 0xc0c0c0], shield: [0x5a6a9a, 0xd8d8e0], tome: [0x9a2a2a, 0xe8e0c8], cloak: [0x4a2a6a, 0xc8c8c8], helm: [0x9a9aa6, 0xe0e0e8], skull: [0x8a8070, 0xe8e0c8], trap: [0x5a5a62, 0xa0a0a8]};
@@ -884,6 +887,15 @@ package realm {
 					var gem:uint = rar ? rc : Data.STAT_COLORS[item.sub];
 					rows = ICON_RING[rar ? 1 : 0];
 					pal = {R: gem, r: shade(gem, 0.6), H: 0xffffff, G: rar || item.tier >= 4 ? 0xf0c030 : 0xc0c0c8, g: rar || item.tier >= 4 ? 0xa07810 : 0x7a7a82};
+					break;
+				case "stone":
+					rows = ICON_STONE[0];
+					pal = {W: 0xffffff, G: 0x60f0a0, g: 0x208a58, H: 0xfff6a0};
+					break;
+				case "rune":
+					var rcol:uint = Data.STAT_COLORS[item.sub] || 0xffd040;
+					rows = ICON_RUNE[0];
+					pal = {B: 0x5a5a66, b: 0x8a8a96, R: rcol};
 					break;
 				case "material":
 					rows = ICON_SOR[0];

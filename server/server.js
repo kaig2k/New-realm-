@@ -81,6 +81,8 @@ const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;
 const DATA_DIR = process.env.NEWREALM_DATA || path.join(__dirname, 'data');
 const PARTY_MAX = 6;
+/** Pets the Stable holds (besides the one with you). */
+const PET_STABLE = 6;
 const GUILD_MAX = 27;
 const RANKS = ['Initiate', 'Member', 'Officer', 'Leader', 'Founder'];
 const OFFICER = 2, FOUNDER = 4;
@@ -709,6 +711,8 @@ function applySave(c, data, cid) {
   if (prev._market) data._market = prev._market; else delete data._market;
   // and the Oracle's record of boss kills and drops
   if (prev._oracle) data._oracle = prev._oracle; else delete data._oracle;
+  // and the Pet Stable (it only changes through petStable and hatch)
+  if (prev.stable) data.stable = prev.stable; else delete data.stable;
   // and the daily login streak
   if (prev._login) data._login = prev._login; else delete data._login;
   // and the fallen heroes an admin can bring back (see graves.js)
@@ -1419,11 +1423,70 @@ const handlers = {
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so no egg was bought.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
-    if (sv.pet) return c.send({ t: 'shopFail', msg: 'You already have a pet.' });
+    // a pet you already have goes to the Stable to make room
+    const stable = Array.isArray(sv.stable) ? sv.stable : [];
+    if (sv.pet && stable.length >= PET_STABLE) return c.send({ t: 'shopFail', msg: 'Your Stable is full (' + PET_STABLE + ' pets). Release one first.' });
     if ((sv.gold || 0) < Data.PET_EGG_PRICE) return c.send({ t: 'shopFail', msg: 'You need ' + Data.PET_EGG_PRICE.toLocaleString('en') + ' gold to buy a pet egg.' });
     sv.gold -= Data.PET_EGG_PRICE;
+    if (sv.pet) { stable.push(sv.pet); sv.stable = stable; }
     sv.pet = progress.hatch();
-    shopDone(c, sv, ch, { pet: sv.pet });
+    shopDone(c, sv, ch, { pet: sv.pet, stable: sv.stable || [] });
+  },
+
+  /**
+   * Evolving the pet (Pet Yard): its level, Evolution Stones from your inventory and gold;
+   * at Adult it takes path m.path ('a' or 'b') for good.
+   */
+  petEvolve(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so your pet didn\'t evolve.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const p = sv.pet;
+    if (!p || typeof p !== 'object') return c.send({ t: 'shopFail', msg: 'You have no pet.' });
+    const block = Data.petEvolveBlock(p);
+    if (block) return c.send({ t: 'shopFail', msg: block });
+    const next = Data.PET_STAGES[Data.petStage(p) + 1];
+    const stones = [];
+    ch.inv.forEach((it, i) => { if (it && it.kind === 'stone') stones.push(i); });
+    if (stones.length < next.stones) return c.send({ t: 'shopFail', msg: 'Evolving to ' + next.name + ' takes ' + next.stones + ' Evolution Stone' + (next.stones === 1 ? '' : 's') + ' (you have ' + stones.length + '). Bosses drop them.' });
+    if ((sv.gold || 0) < next.gold) return c.send({ t: 'shopFail', msg: 'Evolving to ' + next.name + ' costs ' + next.gold.toLocaleString('en') + ' gold.' });
+    const stage = Data.petStage(p) + 1;
+    if (stage === 2 && m.path !== 'a' && m.path !== 'b') return c.send({ t: 'shopFail', msg: 'Pick a path for your pet first.' });
+    // the stones are used up for good
+    const l = sv._ledger || {};
+    for (const i of stones.slice(0, next.stones)) { if (ch.inv[i].sid) delete l[ch.inv[i].sid]; ch.inv[i] = null; }
+    sv.gold -= next.gold;
+    p.stage = stage;
+    if (stage === 2) p.path = m.path;
+    log(c.name + '\'s pet evolved to ' + Data.petTitle(p));
+    shopDone(c, sv, ch, { pet: p, evolved: Data.petTitle(p) });
+  },
+
+  /** The Pet Stable: m.op 'store' (the active pet goes in) or 'take' (pet m.i comes out; the active one swaps in). */
+  petStable(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved. Try again in a moment.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const stable = Array.isArray(sv.stable) ? sv.stable : (sv.stable = []);
+    if (m.op === 'store') {
+      if (!sv.pet) return c.send({ t: 'shopFail', msg: 'You have no pet with you.' });
+      if (stable.length >= PET_STABLE) return c.send({ t: 'shopFail', msg: 'Your Stable is full (' + PET_STABLE + ' pets).' });
+      stable.push(sv.pet);
+      delete sv.pet;
+    } else if (m.op === 'take') {
+      const i = num(m.i) | 0;
+      if (!stable[i]) return c.send({ t: 'shopFail', msg: 'That pet isn\'t in your Stable.' });
+      const out = stable.splice(i, 1)[0];
+      if (sv.pet) stable.splice(i, 0, sv.pet);
+      sv.pet = out;
+    } else if (m.op === 'release') {
+      // (a pet released from the Stable; anything it carried comes back to the inventory first)
+      const i = num(m.i) | 0;
+      if (!stable[i]) return c.send({ t: 'shopFail', msg: 'That pet isn\'t in your Stable.' });
+      if ((stable[i].bag || []).some(Boolean)) return c.send({ t: 'shopFail', msg: 'Take out what it carries first (bring it out of the Stable).' });
+      stable.splice(i, 1);
+    } else return;
+    shopDone(c, sv, ch, { pet: sv.pet || null, stable, stabled: m.op });
   },
 
   /** Feeding the pet: the server takes the gold and grows it. */
@@ -1496,6 +1559,29 @@ const handlers = {
     items.release(sv, item);
     sv.gold = (sv.gold || 0) + value;
     shopDone(c, sv, ch, { sold: item.name || 'an item', value });
+  },
+
+  /**
+   * Fortune's Anvil (at the Starforge): pay gold and strike an item. It climbs a step
+   * (tiers, then Runed, Bonded, Eldritch), drops one, or shatters. The server rolls.
+   */
+  anvil(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so the Anvil stayed cold.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const slot = num(m.slot) | 0, item = ch.inv[slot];
+    const why = Data.anvilBlock(item);
+    if (why) return c.send({ t: 'shopFail', msg: why });
+    const cost = Data.anvilCost(item);
+    if ((sv.gold || 0) < cost) return c.send({ t: 'shopFail', msg: 'Striking that costs ' + cost.toLocaleString('en') + ' gold.' });
+    sv.gold -= cost;
+    const roll = Math.random();
+    const way = roll < Data.ANVIL_UP ? 'up' : roll < Data.ANVIL_UP + Data.ANVIL_DOWN ? 'down' : 'shatter';
+    const made = way === 'shatter' ? null : Data.anvilStep(item, way === 'up');
+    if (item.sid && sv._ledger) delete sv._ledger[item.sid];
+    ch.inv[slot] = made ? items.issue(sv, made) : null;
+    log(c.name + ' struck ' + (item.name || 'an item') + ' on the Anvil: ' + (made ? way + ' to ' + made.name : 'shattered'));
+    shopDone(c, sv, ch, { anvil: made ? way : 'shatter', was: item.name, now: made ? made.name : '', slot });
   },
 
   /** Starforge: a Runed, Bonded or Eldritch item + a Star Shard + 100 Aether = a Starforged item. */
@@ -1622,7 +1708,17 @@ const handlers = {
     if (!item || !(form ? Data.canRerollForm(item) : Data.canRerollStats(item))) return c.send({ t: 'shopFail', msg: 'That item cannot be rerolled.' });
     if (form && (sv.gold || 0) < Data.REROLL_FORM_GOLD) return c.send({ t: 'shopFail', msg: 'Not enough gold.' });
     if (!form && (sv.onrane || 0) < Data.REROLL_STATS_AETHER) return c.send({ t: 'shopFail', msg: 'Not enough Aether.' });
-    const made = items.issue(sv, form ? Data.rerollForm(item) : Data.rerollStats(item));
+    // a rune (m.rune: its inventory slot) makes sure its stat is among the new bonuses, and is used up
+    let rune = null;
+    if (!form && m.rune !== undefined && m.rune !== null) {
+      const ri = num(m.rune) | 0;
+      rune = ch.inv[ri];
+      if (!rune || rune.kind !== 'rune' || ri === slot) return c.send({ t: 'shopFail', msg: 'That rune isn\'t in your inventory.' });
+      if (!Data.canUseRune(item, rune.sub)) return c.send({ t: 'shopFail', msg: 'That rune can\'t be used on this item.' });
+      if (rune.sid && sv._ledger) delete sv._ledger[rune.sid];
+      ch.inv[ri] = null;
+    }
+    const made = items.issue(sv, form ? Data.rerollForm(item) : rune ? Data.rerollStatsWith(item, rune.sub) : Data.rerollStats(item));
     // the old item is gone for good
     if (item.sid && sv._ledger) delete sv._ledger[item.sid];
     ch.inv[slot] = made;
@@ -1694,6 +1790,25 @@ const handlers = {
       case '/give': {
         // /give name 1000 gold|fame|aether: gold and fame are the server's to hand out now
         const amount = Math.floor(Number(parts[2]));
+        // /give name 3 stone, /give name 2 rune att: items into an online player's inventory (for events and testing)
+        const kind = (parts[3] || '').toLowerCase();
+        if (kind === 'stone' || kind === 'rune' || kind === 'stones' || kind === 'runes') {
+          if (!target) return c.note('They have to be online to get items.');
+          const ch = serverChar(target), sv = onlineSave(who);
+          const stat = (parts[4] || '').toLowerCase();
+          if (kind.startsWith('rune') && !Data.STATS.includes(stat)) return c.note('Usage: /give name 2 rune att (any stat: ' + Data.STATS.join(' ') + ')');
+          if (!ch || !Array.isArray(ch.inv) || !(amount > 0 && amount <= 16)) return c.note('Usage: /give name 3 stone, or /give name 2 rune att');
+          let n = 0;
+          for (let i = 0; i < ch.inv.length && n < amount; i++) {
+            if (ch.inv[i]) continue;
+            ch.inv[i] = items.issue(sv, kind.startsWith('rune') ? Data.makeRune(stat) : Data.makeStone());
+            n++;
+          }
+          if (!n) return c.note(accounts[who].name + '\'s inventory is full.');
+          log(c.name + ' gave ' + accounts[who].name + ' ' + n + ' ' + kind);
+          shopDone(target, sv, ch, { market: c.name + ' gave you ' + n + ' ' + (kind.startsWith('rune') ? Data.STAT_NAMES[stat] + ' Rune' : 'Evolution Stone') + (n === 1 ? '' : 's') + '.' });
+          return c.note('Gave ' + accounts[who].name + ' ' + n + ' of them.', 0x80ff80);
+        }
         const what = { gold: 'gold', fame: 'fame', aether: 'onrane', onrane: 'onrane' }[(parts[3] || 'gold').toLowerCase()];
         if (!who || !accounts[who] || !(Math.abs(amount) > 0 && Math.abs(amount) <= 10000000) || !what) return c.note('Usage: /give name amount gold|fame|aether');
         const sv = onlineSave(who);

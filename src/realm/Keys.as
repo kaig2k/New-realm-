@@ -27,6 +27,7 @@ package realm {
 			{id: "wiki", name: "Boss wiki", key: 75},
 			{id: "skills", name: "Skill tree", key: 84},
 			{id: "oracle", name: "The Oracle (boss record)", key: 79},
+			{id: "pet", name: "Your pet (and its bag)", key: 74},
 			{id: "mute", name: "Mute sound", key: 77},
 			{id: "menu", name: "Open menu (also Esc)", key: 80},
 			{id: "slot1", name: "Inventory slot 1", key: 49},

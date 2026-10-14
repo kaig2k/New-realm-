@@ -79,10 +79,12 @@ function caps(ch, pet) {
   const cd = Math.max(1, num((Data.ABILITIES[id] || {}).cd) || 4) * (1 - Math.min(5, rank('channeling')) * 0.04);
   const abilityDps = abilityHit * (HITS[id] || 2) / cd;
   const petHit = pet && typeof pet === 'object' ? Data.petAttack(pet) : 0;
+  const petVolley = pet && typeof pet === 'object' ? Data.petShots(pet) / Data.petShotGap(pet) : 1;
   const hit = Math.ceil(Math.max(weaponHit, abilityHit, petHit, 10) * boost) + 5;
-  const rate = Math.ceil((weaponDps + abilityDps + petHit * 1.5 + (8 + level) * pow * 2) * boost * 1.25) + 50;
+  const rate = Math.ceil((weaponDps + abilityDps + petHit * 1.5 * petVolley + (8 + level) * pow * 2) * boost * 1.25) + 50;
   // (and what it can take: its Defense with the best Defense aura there is, and its health)
-  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def') + AURA_DEF, maxHp: stat(ch, 'hp') };
+  // (pets: Stone Guard, Bastion and Ash Guardian add Defense)
+  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def') + AURA_DEF + (pet && typeof pet === 'object' ? Data.petDef(pet) : 0), maxHp: stat(ch, 'hp') };
 }
 /** The most Defense a Warrior's banner (Abilities: 10 x its power) gives everyone near it. */
 const AURA_DEF = 30;

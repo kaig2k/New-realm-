@@ -50,6 +50,9 @@ function eachItem(save, fn) {
     for (const it of c.inv || []) if (it) fn(it);
   }
   for (const it of save.vault || []) if (it) fn(it);
+  // what pets carry (the active one and those in the Stable)
+  const pets = [save.pet].concat(Array.isArray(save.stable) ? save.stable : []);
+  for (const p of pets) if (p && typeof p === 'object' && Array.isArray(p.bag)) for (const it of p.bag) if (it && typeof it === 'object') fn(it);
 }
 
 /** The account's ledger (server-only part of its save). */

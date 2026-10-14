@@ -148,7 +148,15 @@ function check(prev, next, meta, now) {
     if (!had) { delete next.pet; fixes.push('a pet the server didn\'t hatch'); }
     else {
       const p = next.pet;
-      for (const k of ['species', 'name', 'rarity']) p[k] = had[k];
+      // (its kind, rarity, stage and path only change on the server: hatch, petEvolve, petStable)
+      for (const k of ['species', 'name', 'rarity', 'stage', 'path']) { if (had[k] === undefined) delete p[k]; else p[k] = had[k]; }
+      // its bag holds as many items as its stage allows (empty slots past that go)
+      if (p.bag !== undefined) {
+        const room = Data.petBagSlots(p);
+        if (!Array.isArray(p.bag)) delete p.bag;
+        else while (p.bag.length > room && p.bag[p.bag.length - 1] == null) p.bag.pop();
+        if (Array.isArray(p.bag) && p.bag.length > room) fixes.push('pet carries more than its bag holds');
+      }
       const max = (Data.PET_RARITIES[p.rarity] || { max: 30 }).max;
       // (feeds go through the server and are already in its copy; kills it saw were credited)
       const room = Math.max(0, num(prev._petb)) + 3;

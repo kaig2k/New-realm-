@@ -199,6 +199,19 @@ class Data {
 	static makeSor() {
 			return {kind: "material", sub: "sor", tier: 0, name: "Star Shard"};
 		}
+	static makeStone() {
+			return {kind: "stone", sub: "evo", tier: 0, name: "Evolution Stone"};
+		}
+	static makeRune(stat) {
+			return {kind: "rune", sub: stat, tier: 0, name: Data.STAT_NAMES[stat] + " Rune"};
+		}
+	static bossExtras(def) {
+			if (!def || def.ai != "boss" || def.prop) return [0, 0];
+			if (def.raid || def.final || def.finale) return [0.3, 0.18];
+			if (def.dungeon && def.dtier >= 5) return [0.2, 0.12];
+			if (def.dungeon) return [0.12, 0.07];
+			return [0.1, 0.06];
+		}
 	static makeForSlot(cls, slot, tier, rarity) { slot = __int(slot); tier = __int(tier);
 			switch (slot) {
 				case 0: return Data.classSet(Data.makeWeapon(cls.weapon, tier, rarity, "?"), cls);
@@ -249,6 +262,61 @@ class Data {
 			if (item.col && item.kind == "weapon") n.col = item.col;
 			return n;
 		}
+	static canUseRune(item, stat) {
+			return Data.canRerollStats(item) && Data.ROLLED.indexOf(stat) >= 0 && !(item.kind == "weapon" && stat == "spd");
+		}
+	static rerollStatsWith(item, stat) {
+			var n = null;
+			for (var i = __int(0); i < 200; i++) { n = Data.rerollStats(item); if (n[stat] > 0) return n; }
+			
+			for (var k of __vals( Data.ROLLED)) {
+				if (k == stat || !n[k] || (n.kind == "weapon" && k == "spd")) continue;
+				var v = n[k];
+				if ((k == "hp" || k == "mp") != (stat == "hp" || stat == "mp")) v = (stat == "hp" || stat == "mp") ? v * 5 : Math.max(1, Math.round(v / 5));
+				delete n[k];
+				n[stat] = v;
+				break;
+			}
+			return n;
+		}
+	static anvilBlock(item) {
+			if (!item || !Data.isGear(item)) return "Only gear goes on the Anvil.";
+			if (item.uid || item.gid) return "Unique and Godly items are too precious for the Anvil.";
+			if (item.set) return "Set pieces can't go on the Anvil.";
+			if (item.rarity && Data.ANVIL_RARITIES.indexOf(item.rarity) < 0) return "Starforged and better items can't go on the Anvil.";
+			if (item.rarity == "fb") return "Eldritch is as high as the Anvil goes: the Starforge takes it further.";
+			if (item.locked) return "That item is locked (right-click it to unlock it).";
+			if (!item.rarity && __int(item.tier) <= 0 && item.kind != "ring") return "Starter gear can't go on the Anvil.";
+			return null;
+		}
+	static anvilCost(item) {
+			if (item.rarity) return __int({ut: 3000, st: 5000, fb: 9000}[item.rarity]);
+			return __int(200 + __int(item.tier) * __int(item.tier) * 60);
+		}
+	static anvilStep(item, up) {
+			var top = __int(Data.ANVIL_MAX_TIER[item.kind]);
+			var ri = __int(item.rarity ? Data.ANVIL_RARITIES.indexOf(item.rarity) : -1);
+			var tier = __int(__int(item.tier)), rar = null;
+			if (ri >= 0) {
+				
+				if (up) rar = Data.ANVIL_RARITIES[ri + 1];
+				else if (ri > 0) rar = Data.ANVIL_RARITIES[ri - 1];
+				else tier = __int(top);
+			} else if (up) {
+				if (tier >= top) rar = "ut"; else tier++;
+			} else {
+				if (tier <= 0) return null;
+				tier--;
+			}
+			var n = null;
+			switch (item.kind) {
+				case "weapon": n = Data.makeWeapon(item.sub, rar ? 7 : tier, rar, item.form || ""); break;
+				case "ability": n = Data.makeAbility(item.sub, rar ? 6 : tier, rar, item.ab); break;
+				case "armor": n = Data.makeArmor(item.sub, rar ? 7 : tier, rar); break;
+				default: n = Data.makeRing(item.sub, rar ? 5 : tier, rar);
+			}
+			return n;
+		}
 	static forgeLegendary(item, cls) {
 			switch (item.kind) {
 				case "weapon": return Data.makeWeapon(item.sub, 7, "lg", item.form || "?");
@@ -277,6 +345,8 @@ class Data {
 			switch (item.kind) {
 				case "stat": return __int(250);
 				case "material": return __int(300);
+				case "stone": return __int(400);
+				case "rune": return __int(300);
 				case "key": return __int(2000);
 				case "hp": case "mp": return __int(20);
 			}
@@ -354,6 +424,8 @@ class Data {
 					else s += "Opens a portal to " + Bosses.RAIDS[Math.max(0, Data.keyRaid(item))].name + ".\nUse it in the Nexus (click it) or at the Raid Table.\nDrops rarely from bosses.\n";
 					break;
 				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
+				case "stone": s += "Pets evolve with these at the Pet Yard.\nBosses drop them (raids and the Dark Elder most often).\n"; break;
+				case "rune": s += "Starforge: carry it when you reroll an item's bonus stats and " + Data.STAT_NAMES[item.sub] + " is sure to be one of them (the rune is used up).\n"; break;
 			}
 			if (Data.isGear(item)) {
 				var on = "";
@@ -485,11 +557,59 @@ class Data {
 			return {species: sp.id, name: sp.name, rarity: r < 0.1 ? "legendary" : r < 0.4 ? "rare" : "common", level: 1, xp: 0};
 		}
 	static petXpNeeded(level) { level = __int(level); return __int(8 + level * 2); }
-	static petHeal(pet) { return __int(__int(4 + pet.level * 1.2)); }
-	static petMagic(pet) { return __int(__int(1 + pet.level * 0.4)); }
+	static petStage(pet) { return __int(pet ? Math.max(0, Math.min(3, __int(pet.stage || 0))) : 0); }
+	static petMaxStage(pet) { return __int(pet && pet.rarity == "common" ? 2 : 3); }
+	static petPath(pet) { return pet && Data.petStage(pet) >= 2 && (pet.path == "a" || pet.path == "b") ? pet.path : ""; }
+	static petBagSlots(pet) { return __int(pet ? Data.PET_STAGES[Data.petStage(pet)].bag : 0); }
+	static petEvolveBlock(pet) {
+			if (!pet) return "You have no pet.";
+			var st = __int(Data.petStage(pet));
+			if (st >= Data.petMaxStage(pet)) return st >= 3 ? "It has reached its final form." : "Common pets stop at Adult. Rare and Legendary pets can ascend.";
+			var next = Data.PET_STAGES[st + 1];
+			if (__int(pet.level) < next.lv) return "It needs to reach level " + next.lv + " first.";
+			return null;
+		}
+	static petMult(pet) {
+			var m = Data.PET_STAGES[Data.petStage(pet)].mult;
+			
+			if (pet.rarity == "legendary" && Data.petStage(pet) >= 3) m *= 1.15;
+			return m;
+		}
+	static petHeal(pet) {
+			var p = Data.petPath(pet), sp = pet.species;
+			var k = (sp == "slime" && p == "a") ? 2 : ((sp == "wisp" || sp == "golem") && p == "a") ? 1.5 : 1;
+			return __int(__int((4 + pet.level * 1.2) * Data.petMult(pet) * k));
+		}
+	static petMagic(pet) {
+			var k = 1;
+			if (pet.species == "wisp") k = 1 + Data.petStage(pet) * 0.5 + (Data.petPath(pet) == "a" ? 1 : 0);
+			return __int(__int((1 + pet.level * 0.4) * Data.petMult(pet) * k));
+		}
 	static petAttack(pet) {
 			var mul = pet.rarity == "legendary" ? 1.3 : pet.rarity == "rare" ? 1.15 : 1;
-			return __int(__int((8 + pet.level * 2.2) * mul));
+			var p = Data.petPath(pet), sp = pet.species;
+			if (sp == "drake") mul *= 1 + Data.petStage(pet) * 0.15 + (p == "a" ? 0.6 : 0);
+			else if (p == "b") mul *= sp == "golem" ? 1.5 : 1.4;
+			return __int(__int((8 + pet.level * 2.2) * mul * Data.petMult(pet)));
+		}
+	static petShots(pet) {
+			if (pet.species == "slime") return __int(1 + Data.petStage(pet));
+			return __int(pet.species == "wisp" && Data.petPath(pet) == "b" ? 2 : 1);
+		}
+	static petShotGap(pet) { return pet.species == "pup" && Data.petPath(pet) == "b" ? 0.7 : 1; }
+	static petRange(pet) { return pet.species == "owl" && Data.petPath(pet) == "b" ? 9.5 : 7; }
+	static petDef(pet) {
+			if (!pet) return __int(0);
+			var st = __int(Data.petStage(pet)), p = Data.petPath(pet);
+			if (pet.species == "golem") return __int(st * (p == "a" ? 6 : 3));
+			if (pet.species == "drake" && p == "b") return __int(st * 4);
+			return __int(0);
+		}
+	static petLuck(pet) { return __int(pet && pet.species == "owl" && Data.petPath(pet) == "a" ? Data.petStage(pet) * 5 : 0); }
+	static petTitle(pet) {
+			var p = Data.petPath(pet);
+			var sk = Data.PET_SKILLS[pet.species];
+			return Data.PET_STAGES[Data.petStage(pet)].name + " " + (p && sk ? sk[p].name : pet.name);
 		}
 	static dungeonIndex(id) {
 			for (var i = __int(0); i < Data.DUNGEONS.length; i++) if (Data.DUNGEONS[i].id == id) return __int(i);
@@ -578,6 +698,9 @@ class Data {
 			Data.rollUniques(def, items, rare);
 			Godly.roll(def, items, rare);
 			Data.rollKey(def, items, boost);
+			var ex = Data.bossExtras(def);
+			if (Math.random() < ex[0] * rare) items.push(Data.makeStone());
+			if (Math.random() < ex[1] * rare) items.push(Data.makeRune(Data.randomStat()));
 			if (def.raid) {
 				
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
@@ -679,7 +802,7 @@ class Data {
 				else if (it.rarity == "lg") r = __int(5);
 				else if (it.rarity == "fb") r = __int(4);
 				else if (it.rarity || it.kind == "key") r = __int(3);
-				else if (it.tier >= 6 || it.kind == "material") r = __int(2);
+				else if (it.tier >= 6 || it.kind == "material" || it.kind == "stone" || it.kind == "rune") r = __int(2);
 				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = __int(1);
 				if (r > rank) rank = __int(r);
 			}
@@ -3423,6 +3546,10 @@ Data.SHOP = [
 Data.REROLL_FORM_GOLD = __int(400);
 Data.REROLL_STATS_AETHER = __int(60);
 Data.ROLLED = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt", "frt"];
+Data.ANVIL_RARITIES = ["ut", "st", "fb"];
+Data.ANVIL_UP = 0.45;
+Data.ANVIL_DOWN = 0.4;
+Data.ANVIL_MAX_TIER = {weapon: 7, ability: 6, armor: 7, ring: 5};
 Data.viewerLevel = __int(1);
 Data.ENEMIES = {
 			pirate: {name: "Pirate", spr: "pirate", hp: 30, def: 0, spd: 1.6, xp: 10, ai: "chase", keep: 3, drop: 0.12, col: 0xc02020,
@@ -3989,6 +4116,32 @@ Data.PET_RARITIES = {
 Data.PET_EGG_PRICE = __int(1000);
 Data.PET_FEED_PRICE = __int(200);
 Data.PET_FEED_XP = __int(20);
+Data.PET_STAGES = [
+			{name: "Hatchling", lv: 1, stones: 0, gold: 0, mult: 1, scale: 1, bag: 0},
+			{name: "Juvenile", lv: 10, stones: 1, gold: 500, mult: 1.25, scale: 1.2, bag: 0},
+			{name: "Adult", lv: 25, stones: 2, gold: 2000, mult: 1.6, scale: 1.4, bag: 2},
+			{name: "Ascended", lv: 45, stones: 4, gold: 6000, mult: 2.1, scale: 1.65, bag: 4}
+		];
+Data.PET_SKILLS = {
+			pup: {skill: "Fetch", desc: "Brings you health and magic potions from loot bags nearby",
+				a: {name: "Treasure Hound", desc: "Fetches from much further away, stat potions too (into your inventory)"},
+				b: {name: "Warhound", desc: "+40% damage and it shoots faster"}},
+			slime: {skill: "Split", desc: "Fires one more blob a volley at every stage",
+				a: {name: "Royal Jelly", desc: "Heals twice as much"},
+				b: {name: "Acid Ooze", desc: "+40% damage and its blobs eat through Defense"}},
+			owl: {skill: "Night Sight", desc: "Lights up the map around you, wider at every stage",
+				a: {name: "Seer", desc: "+5 loot luck a stage and the widest sight"},
+				b: {name: "Hunter Owl", desc: "+40% damage and it shoots from further away"}},
+			drake: {skill: "Fire Breath", desc: "+15% damage at every stage",
+				a: {name: "Inferno Wyrm", desc: "+60% damage"},
+				b: {name: "Ash Guardian", desc: "Shields you: +4 Defense a stage"}},
+			wisp: {skill: "Mana Spring", desc: "Restores half again as much MP at every stage",
+				a: {name: "Arcane Wisp", desc: "Restores twice the MP and heals half again as much"},
+				b: {name: "Storm Wisp", desc: "+40% damage and two bolts at once"}},
+			golem: {skill: "Stone Guard", desc: "+3 Defense for you at every stage",
+				a: {name: "Bastion", desc: "+6 Defense a stage and heals half again as much"},
+				b: {name: "Boulder", desc: "+50% damage"}}
+		};
 Data.PET_SHOTS = {pup: ["orb", 0xffd080], slime: ["orb", 0x60ff60], owl: ["dart", 0xc0a0ff],
 			drake: ["fire", 0xff7020], wisp: ["star", 0x80e0ff], golem: ["orb", 0xb0a090]};
 Data.ZONE_SPAWNS = [

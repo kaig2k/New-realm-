@@ -11,7 +11,7 @@
  * The limits are generous on purpose: honest players should never hit them.
  */
 
-const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key']);
+const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key', 'stone', 'rune']);
 const RARITIES = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
 const PASSIVES = new Set(['lifesteal', 'shards', 'frost', 'critical', 'rampage']);
 const MOTIONS = new Set(['wave', 'return', 'accel', 'home']);
@@ -67,6 +67,9 @@ function eachItem(save, fn) {
     for (const it of [c.weapon, c.ability, c.armor, c.ring].concat(c.inv || [])) fn(it);
   }
   for (const it of save.vault || []) fn(it);
+  // what pets carry
+  const pets = [save.pet].concat(Array.isArray(save.stable) ? save.stable : []);
+  for (const p of pets) if (p && typeof p === 'object' && Array.isArray(p.bag)) for (const it of p.bag.slice(0, 8)) fn(it);
 }
 
 function godlyCount(save) {

@@ -1651,6 +1651,64 @@ async function run() {
     for (const c of [F, bz3]) c.s.destroy();
   }
 
+  console.log('pet evolution, the Stable, runes and the Anvil');
+  {
+    const { Data: PD } = require('./sim/gen/game');
+    // the numbers
+    const juv = { species: 'golem', rarity: 'common', level: 12, stage: 1 };
+    check('pets: a Juvenile Golem guards you (+3 Defense) and a common pet stops at Adult',
+      PD.petDef(juv) === 3 && PD.petMaxStage(juv) === 2 && PD.petEvolveBlock({ species: 'pup', rarity: 'rare', level: 9 }) !== null && PD.petEvolveBlock({ species: 'pup', rarity: 'rare', level: 10 }) === null);
+    const ring = PD.makeRing('att', 3, 'ut');
+    const withRune = PD.rerollStatsWith(ring, 'dex');
+    check('a rune makes sure its stat is among a reroll\'s bonuses', withRune.dex > 0 && withRune.rarity === 'ut' && !PD.canUseRune(PD.makeWeapon('sword', 7, 'ut'), 'spd'));
+    const t3 = PD.makeArmor('heavy', 3, null);
+    const upA = PD.anvilStep(t3, true), downA = PD.anvilStep(t3, false), topUp = PD.anvilStep(PD.makeArmor('heavy', 7, null), true);
+    check('the Anvil climbs tiers, then Runed, Bonded, Eldritch (and refuses locked, unique and Starforged items)',
+      upA.tier === 4 && downA.tier === 2 && topUp.rarity === 'ut' && PD.anvilStep(PD.makeRing('hp', 0, null), false) === null &&
+      PD.anvilBlock(Object.assign(PD.makeArmor('heavy', 3, null), { locked: true })) !== null && PD.anvilBlock(PD.makeArmor('heavy', 7, 'lg')) !== null && PD.anvilBlock(PD.makeArmor('heavy', 7, 'fb')) !== null);
+    // through the server
+    const nm = 'Te' + n;
+    const E = await login(nm, { password: 'pass1234', register: true });
+    const eh = { id: 'eh1', cls: 'wizard', name: 'Evolver', level: 1, stats: clone(PD.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] };
+    E.send({ t: 'save', data: { gold: 0, fame: 0, chars: [eh] } });
+    await wait(400);
+    E.send({ t: 'enter', key: 'nexus', cid: 'eh1', x: 100, y: 100 });
+    const bz6 = await login('TestBoss', { password: 'pass1234' });
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' 30000 gold' });
+    await wait(300);
+    const g6 = E.find((m) => m.t === 'given');
+    let seq = g6 ? g6.seq : 0, gold = g6 ? g6.gold : 0, pet = null, stable = [];
+    const take = (r) => { if (r) { seq = r.seq; gold = r.gold; eh.inv = r.inv; if (r.pet !== undefined) pet = r.pet; if (r.stable) stable = r.stable; } return r; };
+    const data = () => Object.assign({ gold, fame: 0, chars: [clone(eh)], tradeSeq: seq }, pet ? { pet: clone(pet) } : {});
+    const ask = async (msg) => { E.clear(); E.send(Object.assign({ data: data(), cid: 'eh1' }, msg)); await wait(350); return take(E.find((m) => m.t === 'shopDone')) || E.find((m) => m.t === 'shopFail'); };
+    E.clear();
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' 3 stone' });
+    await wait(400);
+    take(E.find((m) => m.t === 'shopDone'));
+    check('/give name 3 stone puts Evolution Stones in an online player\'s inventory', eh.inv.filter((it) => it && it.kind === 'stone').length === 3, JSON.stringify(eh.inv));
+    await ask({ t: 'hatch' });
+    const early = await ask({ t: 'petEvolve' });
+    check('a pet can\'t evolve before its level allows', early && early.t === 'shopFail' && /level 10/.test(early.msg), JSON.stringify(early));
+    for (let k = 0; k < 9 && pet && pet.level < 10; k++) await ask({ t: 'petFeed' });
+    const goldBefore = gold;
+    const evo = await ask({ t: 'petEvolve' });
+    check('at level 10, a Stone and 500 gold evolve it to Juvenile (the server takes both)',
+      evo && evo.evolved && pet.stage === 1 && eh.inv.filter((it) => it && it.kind === 'stone').length === 2 && gold === goldBefore - 500, JSON.stringify(evo));
+    // a game that claims a later stage keeps the server's
+    E.clear();
+    E.send({ t: 'save', data: Object.assign(data(), { pet: Object.assign(clone(pet), { stage: 3, path: 'b' }) }) });
+    await wait(400);
+    const st1 = await ask({ t: 'petStable', op: 'store' });
+    check('the server keeps the pet\'s real stage whatever the game says; the Stable takes it in', st1 && st1.stabled === 'store' && !pet && stable.length === 1 && stable[0].stage === 1 && !stable[0].path, JSON.stringify(st1));
+    await ask({ t: 'hatch' });
+    const second = pet;
+    const sw = await ask({ t: 'petStable', op: 'take', i: 0 });
+    check('...and swaps: the evolved pet comes out, the new one goes in', sw && pet && pet.stage === 1 && stable.length === 1 && stable[0].species === second.species && stable[0].level === second.level, JSON.stringify(sw));
+    const bad = await ask({ t: 'anvil', slot: 7 });
+    check('the Anvil refuses an empty slot', bad && bad.t === 'shopFail');
+    for (const c of [E, bz6]) c.s.destroy();
+  }
+
   console.log('health and damage the game reports');
   {
     const nm = 'Th' + n;

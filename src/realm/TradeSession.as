@@ -1,15 +1,16 @@
 package realm {
 	/**
 	 * One trade between you and another player, RotMG-style: each side ticks the
-	 * items it offers, any change un-ticks both Accepts, and Accept unlocks a
-	 * moment after the last change so nobody can swap an item at the last second.
+	 * items it offers, any change un-ticks both Accepts, and Accept shows a
+	 * confirm screen with exactly what you give and get (an offer that changes
+	 * while it's open closes it), so nobody can swap an item at the last second.
 	 *
 	 * The window drives "my" side; the connection (Net) drives "their" side and
 	 * carries out the swap. You can also tick the other player's items to ask for
 	 * them; that is only a request they see and may answer by offering them.
 	 */
 	public class TradeSession {
-		public static const LOCK_TIME:Number = 1.5;
+		public static const LOCK_TIME:Number = 0;
 
 		public var partner:RemotePlayer;
 		/** Your inventory (the live array) and theirs (a copy sent by the connection). */

@@ -1,5 +1,6 @@
 package realm {
 	import flash.display.Bitmap;
+	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
@@ -115,14 +116,73 @@ package realm {
 			setChildIndex(tip, numChildren - 1);
 		}
 
+		/** The confirm screen (Accept opens it; a change to either offer closes it). */
+		private var confirmBox:Sprite;
+		private var confirmVer:int = -1;
+
 		private function onAccept():void {
-			var err:String = s.accept();
-			if (err) g.msg(err, 0xff8080);
-			else Sfx.play("click");
-			g.net.tradeChanged();
+			if (s.myAccept) return;
+			var e:String = s.spaceError();
+			if (e) { g.msg(e, 0xff8080); return; }
+			if (!s.count(s.mySel) && !s.count(s.theirSel)) { g.msg("Nothing is being traded yet.", 0xff8080); return; }
+			showConfirm();
+		}
+
+		private function itemList(items:Array):String {
+			if (!items.length) return "<font color='#777777'>nothing</font>";
+			var out:Array = [];
+			for each (var it:Object in items) out.push("<font color='" + Ui.hex(Data.RARITY_COLORS[it.rarity] || 0xffffff) + "'>" + String(it.name).replace(/</g, "&lt;") + "</font> <font color='#8a8a9a'>" + Data.tierLabel(it) + "</font>");
+			return out.join("<br>");
+		}
+
+		private function showConfirm():void {
+			closeConfirm();
+			confirmVer = s.version;
+			confirmBox = new Sprite();
+			confirmBox.graphics.beginFill(0x000000, 0.6);
+			confirmBox.graphics.drawRoundRect(0, 0, W, H, 12, 12);
+			confirmBox.graphics.endFill();
+			var bw:int = Math.min(W - 40, 420);
+			var give:Array = s.myOffer(), get:Array = [];
+			for (var i:int = 0; i < s.theirs.length; i++) if (s.theirSel[i] && s.theirs[i]) get.push(s.theirs[i]);
+			var body:TextField = Ui.text(13, 0xdddddd, false, "left", bw - 40, true);
+			body.htmlText = "<font color='#ff9090'><b>You give:</b></font><br>" + itemList(give) + "<br><br><font color='#80e080'><b>You get:</b></font><br>" + itemList(get);
+			var bh:int = body.height + 120;
+			var panel:Shape = new Shape();
+			Ui.panel(panel.graphics, (W - bw) / 2, (H - bh) / 2, bw, bh, 0x23232c, 0xffd75e, 1);
+			confirmBox.addChild(panel);
+			var t:TextField = Ui.text(17, 0xffd75e, true, "center", bw, true);
+			t.text = "Confirm the trade with " + s.partner.name;
+			t.x = (W - bw) / 2; t.y = (H - bh) / 2 + 10;
+			confirmBox.addChild(t);
+			body.x = (W - bw) / 2 + 20; body.y = t.y + 34;
+			confirmBox.addChild(body);
+			var ok:Sprite = Ui.button("Confirm", 150, 34, function():void {
+				// (anything changed since it opened: show the new offer instead)
+				if (s.version != confirmVer) { showConfirm(); return; }
+				closeConfirm();
+				var err:String = s.accept();
+				if (err) g.msg(err, 0xff8080);
+				else Sfx.play("click");
+				g.net.tradeChanged();
+			}, 16);
+			ok.x = W / 2 - 160; ok.y = (H + bh) / 2 - 48;
+			confirmBox.addChild(ok);
+			var back:Sprite = Ui.button("Back", 150, 34, closeConfirm, 16);
+			back.x = W / 2 + 10; back.y = ok.y;
+			confirmBox.addChild(back);
+			addChild(confirmBox);
+			setChildIndex(tip, numChildren - 1);
+		}
+
+		private function closeConfirm():void {
+			if (confirmBox && confirmBox.parent) removeChild(confirmBox);
+			confirmBox = null;
 		}
 
 		public function refresh():void {
+			// an offer changed while confirming: the confirm screen shows the new one
+			if (confirmBox && s.version != confirmVer) { showConfirm(); g.msg("The trade changed. Check it again before confirming.", 0xffd75e); }
 			for (var i:int = 0; i < mySlots.length; i++) {
 				mySlots[i].setItem(s.mine[i]);
 				if (s.mySel[i]) mySlots[i].mark(OFFER);
@@ -142,11 +202,11 @@ package realm {
 
 		/** Per-frame: the Accept button counts down after a change. */
 		public function update():void {
-			var label:String = s.myAccept ? "Waiting..." : s.locked ? "Accept (" + Math.ceil(TradeSession.LOCK_TIME - s.sinceChange) + ")" : "Accept";
+			var label:String = s.myAccept ? "Waiting..." : "Accept";
 			if (label != lastLabel) {
 				lastLabel = label;
 				acceptTf.text = label;
-				acceptBtn.alpha = s.locked || s.myAccept ? 0.55 : 1;
+				acceptBtn.alpha = s.myAccept ? 0.55 : 1;
 			}
 		}
 	}

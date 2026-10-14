@@ -156,6 +156,7 @@ package realm {
 		private var flagsWin:FlagsWindow;
 		private var marketWin:MarketWindow;
 		private var oracleWin:OracleWindow;
+		private var petWin:PetWindow;
 		private var requestPopup:Sprite;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
@@ -357,7 +358,7 @@ package realm {
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
-						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
+						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
 						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  /rename name newname  /heroname name hero newname  (any name can be #number)", 0xffb040);
 						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)   Realms: /realms 1 (how many are open)", 0xffb040);
@@ -399,6 +400,9 @@ package realm {
 				case "/flags": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
+					break;
+				case "/pet":
+					togglePet();
 					break;
 				case "/oracle":
 					toggleOracle();
@@ -563,17 +567,19 @@ package realm {
 				sl.x = x0 + (w - 280) / 2; sl.y = y;
 				pauseButtons.addChild(sl);
 				y += 54;
-				add("Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }, 32, 38);
-				add("Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers"), 32, 38);
-				add("Player names: " + onOff("names"), toggle("names"), 32, 38);
-				add("Chat bubbles: " + onOff("bubbles"), toggle("bubbles"), 32, 38);
-				add("Damage numbers: " + onOff("dmg"), toggle("dmg"), 32, 38);
-				add("Particles: " + onOff("parts"), toggle("parts"), 32, 38);
-				add("Screen shake: " + onOff("shake"), toggle("shake"), 32, 38);
-				add("Game cursor: " + onOff("cursor"), toggle("cursor"), 32, 38);
-				add("Quest tracker: " + onOff("tracker"), function():void { setOpt("tracker", !opt("tracker")); refreshTracker(); refreshPauseMenu(); }, 32, 38);
+				add("Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }, 28, 33);
+				add("Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers"), 28, 33);
+				add("Player names: " + onOff("names"), toggle("names"), 28, 33);
+				add("Chat bubbles: " + onOff("bubbles"), toggle("bubbles"), 28, 33);
+				add("Damage numbers: " + onOff("dmg"), toggle("dmg"), 28, 33);
+				add("Particles: " + onOff("parts"), toggle("parts"), 28, 33);
+				add("Screen shake: " + onOff("shake"), toggle("shake"), 28, 33);
+				add("Game cursor: " + onOff("cursor"), toggle("cursor"), 28, 33);
+				add("Quest tracker: " + onOff("tracker"), function():void { setOpt("tracker", !opt("tracker")); refreshTracker(); refreshPauseMenu(); }, 28, 33);
+				add("Loot filter: " + LootBag.FILTERS[int(Save.data.lootFilter || 0)], function():void { Save.data.lootFilter = (int(Save.data.lootFilter || 0) + 1) % LootBag.FILTERS.length; Save.flush(); refreshPauseMenu(); }, 28, 33);
+				add("Auto-drink stat potions: " + (Save.data.autoPots ? "On" : "Off"), function():void { Save.data.autoPots = !Save.data.autoPots; Save.flush(); refreshPauseMenu(); }, 28, 33);
 				y += 6;
-				add("Back", function():void { menuPage = "main"; refreshPauseMenu(); }, 32, 38);
+				add("Back", function():void { menuPage = "main"; refreshPauseMenu(); }, 28, 33);
 			} else {
 				sub.text = rebinding ? "Press the new key for \"" + Keys.action(rebinding).name + "\" (Esc cancels)."
 					: "Click a key to change it. Esc, Enter and ` can't be changed; the arrow keys always move too.";
@@ -985,7 +991,7 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, petWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1424,7 +1430,7 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || playerMenu || social || wiki || skillWin)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || petWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
 				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
@@ -1433,6 +1439,7 @@ package realm {
 				else if (flagsWin) closeFlags();
 				else if (marketWin) closeMarket();
 				else if (oracleWin) closeOracle();
+				else if (petWin) togglePet();
 				else closeTrade();
 				input.endFrame();
 			}
@@ -1498,6 +1505,7 @@ package realm {
 			if (input.pressed(Keys.k("wiki"))) toggleWiki();
 			if (input.pressed(Keys.k("skills"))) toggleSkills();
 			if (input.pressed(Keys.k("oracle"))) toggleOracle();
+			if (input.pressed(Keys.k("pet"))) togglePet();
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -2216,6 +2224,7 @@ package realm {
 		private function updateBags(dt:Number):void {
 			nearBag = null;
 			var best:Number = 1.6;
+			var lootFilter:int = int(Save.data.lootFilter || 0);
 			for (var i:int = bags.length - 1; i >= 0; i--) {
 				var b:LootBag = bags[i];
 				if (!b.vault) b.life -= dt;
@@ -2225,12 +2234,32 @@ package realm {
 					bags.length--;
 					continue;
 				}
+				// (the loot filter hides bags too poor to bother with)
+				if (!b.shown(lootFilter)) continue;
 				var dx:Number = b.x - player.x, dy:Number = b.y - player.y;
 				var d:Number = Math.sqrt(dx * dx + dy * dy);
 				// loot bags open when you stand on them; vault chests from a step away
 				if (d < best && d < (b.vault ? 1.6 : 1.0)) { best = d; nearBag = b; }
 			}
+			// Settings: drink stat potions you still need straight from the bag you stand on
+			autoPotT -= dt;
+			if (Save.data.autoPots && nearBag && !nearBag.vault && autoPotT <= 0 && !tradeWin) {
+				for (var k:int = 0; k < nearBag.items.length; k++) {
+					var it:Object = nearBag.items[k];
+					if (!it || it.kind != "stat" || player.stats[it.sub] >= player.cls.max[it.sub]) continue;
+					if (player.drinkStat(it.sub, this)) {
+						nearBag.items.splice(k, 1);
+						nearBag.refresh();
+						saveCharacter();
+						hud.refresh();
+						Sfx.play("glug", 0.5);
+					}
+					autoPotT = 0.3;
+					break;
+				}
+			}
 		}
+		private var autoPotT:Number = 0;
 
 		private function updateParticles(dt:Number):void {
 			for (var i:int = parts.length - 1; i >= 0; i--) {
@@ -3033,6 +3062,7 @@ package realm {
 		/** Rebuilds the open station's panel (after buying / forging). */
 		public function refreshStation():void {
 			if (marketWin) marketWin.refresh();
+			if (petWin) petWin.refresh();
 			if (!openStation || !stationPanel) return;
 			var sp:Sprite = stationPanel;
 			sp.removeChildren();
@@ -3049,10 +3079,10 @@ package realm {
 			var i:int;
 			if (openStation.kind == "forge") {
 				// two tabs: forge a Starforged item, or reroll a prefix / bonus stats
-				var tabs:Array = [["forge", "Starforge"], ["reroll", "Reroll"]];
+				var tabs:Array = [["forge", "Starforge"], ["reroll", "Reroll"], ["anvil", "Fortune's Anvil"]];
 				for (var ti:int = 0; ti < tabs.length; ti++) {
-					var tb:Sprite = Ui.button((forgeMode == tabs[ti][0] ? "> " : "") + tabs[ti][1], 150, 26, forgeTabFn(tabs[ti][0]), 13);
-					tb.x = w / 2 - 154 + ti * 158; tb.y = y;
+					var tb:Sprite = Ui.button((forgeMode == tabs[ti][0] ? "> " : "") + tabs[ti][1], 136, 26, forgeTabFn(tabs[ti][0]), 13);
+					tb.x = w / 2 - 210 + ti * 142; tb.y = y;
 					tb.alpha = forgeMode == tabs[ti][0] ? 1 : 0.7;
 					sp.addChild(tb);
 				}
@@ -3084,7 +3114,64 @@ package realm {
 						sp.addChild(rnone);
 						y += 26;
 					} else y += (int((rn - 1) / 8) + 1) * 52 + 4;
+					if (rr == 0) {
+						// runes: pick one and the next stat reroll is sure to include its stat
+						var runes:Array = [];
+						for (i = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "rune") runes.push(i);
+						if (rerollRune >= 0 && runes.indexOf(rerollRune) < 0) rerollRune = -1;
+						if (runes.length) {
+							var rh:TextField = Ui.text(12, 0xdddddd, false, "left", w - 30, true);
+							rh.htmlText = "<b>Runes</b>: click one, then reroll an item's stats and its stat is sure to be among them (the rune is used up)." +
+								(rerollRune >= 0 ? "  <font color='#80ff80'>Using: " + player.inv[rerollRune].name + "</font>" : "");
+							rh.x = 16; rh.y = y;
+							sp.addChild(rh);
+							y += rh.height + 4;
+							for (var ru:int = 0; ru < runes.length; ru++) {
+								var rb2:Sprite = itemButton(player.inv[runes[ru]], 16 + ru * 52, y, runeFn(runes[ru]));
+								if (rerollRune == runes[ru]) { rb2.graphics.lineStyle(3, 0x80ff80); rb2.graphics.drawRoundRect(-2, -2, 52, 52, 12, 12); }
+								sp.addChild(rb2);
+							}
+							y += 58;
+						}
+					}
 				}
+			} else if (openStation.kind == "forge" && forgeMode == "anvil") {
+				info.htmlText = "Strike an item for gold: <font color='#80ff80'>" + int(Data.ANVIL_UP * 100) + "%</font> it climbs a step (a tier, then Runed, Bonded, Eldritch), " +
+					"<font color='#ffb040'>" + int(Data.ANVIL_DOWN * 100) + "%</font> it drops one, <font color='#ff6060'>" + Math.round(100 - (Data.ANVIL_UP + Data.ANVIL_DOWN) * 100) + "%</font> it shatters. " +
+					"Locked items, uniques, Godly and set pieces stay off it. You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.";
+				info.y = y;
+				y += info.height + 8;
+				var an:int = 0;
+				for (i = 0; i < player.inv.length; i++) {
+					var ai:Object = player.inv[i];
+					if (!ai || !Data.isGear(ai) || Data.anvilBlock(ai)) continue;
+					var ab:Sprite = itemButton(ai, 16 + (an % 8) * 52, y + int(an / 8) * 52, anvilPickFn(i));
+					if (anvilSel == i) { ab.graphics.lineStyle(3, 0xffd75e); ab.graphics.drawRoundRect(-2, -2, 52, 52, 12, 12); }
+					sp.addChild(ab);
+					an++;
+				}
+				if (!an) {
+					var anone:TextField = Ui.text(12, 0x888888, false, "center", w - 20);
+					anone.text = "Nothing in your inventory can go on the Anvil.";
+					anone.x = 10; anone.y = y + 6;
+					sp.addChild(anone);
+					y += 30;
+				} else y += (int((an - 1) / 8) + 1) * 52 + 6;
+				var sel:Object = anvilSel >= 0 ? player.inv[anvilSel] : null;
+				if (sel && !Data.anvilBlock(sel)) {
+					var up:Object = Data.anvilStep(sel, true), dn:Object = Data.anvilStep(sel, false);
+					var at:TextField = Ui.text(12, 0xdddddd, false, "left", w - 30, true);
+					at.htmlText = "<b>" + sel.name + "</b> " + Data.tierLabel(sel) + ":  up <font color='#80ff80'>" + (up ? Data.tierLabel(up) + " " + (up.rarity ? Data.RARITY_NAMES[up.rarity] : "") : "-") + "</font>" +
+						"  ·  down <font color='#ffb040'>" + (dn ? Data.tierLabel(dn) + " " + (dn.rarity ? Data.RARITY_NAMES[dn.rarity] : "") : "shatters") + "</font>";
+					at.x = 16; at.y = y;
+					sp.addChild(at);
+					y += at.height + 4;
+					var sb:Sprite = Ui.button("Strike!  -  " + Ui.commas(Data.anvilCost(sel)) + "g", 220, 32, anvilStrike, 15);
+					sb.x = (w - 220) / 2; sb.y = y;
+					if (gold < Data.anvilCost(sel)) sb.alpha = 0.5;
+					sp.addChild(sb);
+					y += 40;
+				} else anvilSel = -1;
 			} else if (openStation.kind == "forge") {
 				var sors:int = 0;
 				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
@@ -4287,7 +4374,7 @@ package realm {
 		/** Ironman and Hardcore heroes' extra loot luck (online the server adds it to its own rolls). */
 		private function get modeLuck():int { return Data.findMode(player.mode).luck; }
 
-		private function lootLuck():int { return streakBonus() + (player.buffs.fortune > 0 ? 25 : 0); }
+		private function lootLuck():int { return streakBonus() + (player.buffs.fortune > 0 ? 25 : 0) + Data.petLuck(pet); }
 
 		/** Touch a shrine for a 60-second blessing; each shrine rests 2 minutes after blessing you. */
 		private function updateShrines(dt:Number):void {
@@ -4767,6 +4854,30 @@ package realm {
 			return function():void { forgeMode = mode; refreshStation(); };
 		}
 
+		/** The rune picked for the next stat reroll (its inventory slot), or -1. */
+		private var rerollRune:int = -1;
+		private function runeFn(slot:int):Function { return function():void { rerollRune = rerollRune == slot ? -1 : slot; refreshStation(); }; }
+
+		/** Fortune's Anvil: the item picked (inventory slot), or -1. */
+		private var anvilSel:int = -1;
+		private function anvilPickFn(slot:int):Function { return function():void { anvilSel = slot; refreshStation(); }; }
+		private function anvilStrike():void {
+			var it:Object = anvilSel >= 0 ? player.inv[anvilSel] : null;
+			if (!it || shopWaiting) return;
+			var why:String = Data.anvilBlock(it);
+			if (why) { msg(why, 0xff8080); return; }
+			if (gold < Data.anvilCost(it)) { msg("Striking that costs " + Ui.commas(Data.anvilCost(it)) + " gold.", 0xff8080); return; }
+			if (!net.online) { msg("The Anvil is on the server: play online.", 0xff8080); return; }
+			if (net.shopRequest({t: "anvil", slot: anvilSel})) shopWaiting = true;
+		}
+
+		/** The server struck the item. */
+		private function anvilDone(m:Object):void {
+			if (m.anvil == "up") { showBanner("The Anvil rings! " + m.now, 0x80ff80, 3); Sfx.play("rare"); burst(player.x, player.y, 0x80ff80, 26); }
+			else if (m.anvil == "down") { msg("The Anvil groans... " + m.was + " became " + m.now + ".", 0xffb040); Sfx.play("hit"); burst(player.x, player.y, 0xffb040, 12); }
+			else { msg("CRACK! " + m.was + " shattered on the Anvil.", 0xff6060); Sfx.play("hurt"); shake(0.3, 6); burst(player.x, player.y, 0xff6060, 20); anvilSel = -1; }
+		}
+
 		private function rerollFn(slot:int, what:String):Function {
 			return function():void { reroll(slot, what); };
 		}
@@ -4778,7 +4889,9 @@ package realm {
 			if (what == "form" ? !Data.canRerollForm(item) : !Data.canRerollStats(item)) return;
 			if (what == "form" && gold < Data.REROLL_FORM_GOLD) { msg("You need " + Data.REROLL_FORM_GOLD + " gold for a new prefix.", 0xff8080); return; }
 			if (what == "stats" && onrane < Data.REROLL_STATS_AETHER) { msg("You need " + Data.REROLL_STATS_AETHER + " Aether to reroll stats.", 0xff8080); return; }
-			if (net.shopRequest({t: "reroll", slot: slot, what: what})) { shopWaiting = true; return; }
+			var useRune:Boolean = what == "stats" && rerollRune >= 0 && player.inv[rerollRune] && player.inv[rerollRune].kind == "rune";
+			if (useRune && !Data.canUseRune(item, player.inv[rerollRune].sub)) { msg("A " + player.inv[rerollRune].name + " can't be used on that item.", 0xff8080); return; }
+			if (net.shopRequest(useRune ? {t: "reroll", slot: slot, what: what, rune: rerollRune} : {t: "reroll", slot: slot, what: what})) { shopWaiting = true; if (useRune) rerollRune = -1; return; }
 			var n:Object = what == "form" ? Data.rerollForm(item) : Data.rerollStats(item);
 			if (what == "form") addGold(-Data.REROLL_FORM_GOLD); else addOnrane(-Data.REROLL_STATS_AETHER);
 			player.inv[slot] = n;
@@ -4816,20 +4929,27 @@ package realm {
 			}
 			// the pet fights too: a shot at the nearest monster about once a second
 			petShootT -= dt;
+			petSkill(pt, dt);
 			if (petShootT <= 0 && !world.isSafe(petX, petY) && player.hp > 0) {
-				var target:Enemy = null, best:Number = 7 * 7;
+				var range:Number = Data.petRange(pt);
+				var target:Enemy = null, best:Number = range * range;
 				for each (var e:Enemy in enemies) {
 					if (e.dead || e.def.crate) continue;
 					var ex:Number = e.x - petX, ey:Number = e.y - petY;
 					if (ex * ex + ey * ey < best) { best = ex * ex + ey * ey; target = e; }
 				}
-				petShootT = target ? 1 : 0.25;
+				petShootT = target ? Data.petShotGap(pt) : 0.25;
 				if (target) {
 					var look:Array = Data.PET_SHOTS[pt.species] || ["orb", 0xffffff];
-					var ps:Projectile = new Projectile(petX, petY - 0.3, Math.atan2(target.y - petY, target.x - petX), 11, 0.75, Data.petAttack(pt), false, 0.25,
-						Sprites.projectile(look[0], look[1], 3), false, player.name, "shard");
-					ps.trailCol = look[1];
-					shots.push(ps);
+					var n:int = Data.petShots(pt), aim:Number = Math.atan2(target.y - petY, target.x - petX);
+					// (Acid Ooze's blobs eat through Defense)
+					var fx:String = pt.species == "slime" && Data.petPath(pt) == "b" ? "venom" : "shard";
+					for (var k:int = 0; k < n; k++) {
+						var ps:Projectile = new Projectile(petX, petY - 0.3, aim + (k - (n - 1) / 2) * 0.18, 11, range / 11 + 0.1, Data.petAttack(pt), false, 0.25 + Data.petStage(pt) * 0.04,
+							Sprites.projectile(look[0], look[1], 3), false, player.name, fx);
+						ps.trailCol = look[1];
+						shots.push(ps);
+					}
 				}
 			}
 			petHealT -= dt;
@@ -4847,6 +4967,41 @@ package realm {
 			}
 		}
 
+		private var petSkillT:Number = 0;
+		/** The species skills: Fetch (pup) and Night Sight (owl); the others work through Data's pet numbers. */
+		private function petSkill(pt:Object, dt:Number):void {
+			var st:int = Data.petStage(pt);
+			if (st <= 0) return;
+			petSkillT -= dt;
+			if (petSkillT > 0) return;
+			petSkillT = 1.5;
+			var path:String = Data.petPath(pt);
+			if (pt.species == "owl") {
+				world.reveal(player.x, player.y, 14 + st * 6 + (path == "a" ? 8 : 0));
+			} else if (pt.species == "pup" && !inNexus) {
+				var reach:Number = 2 + st * 2 + (path == "a" ? 6 : 0);
+				for each (var b:LootBag in bags) {
+					if (b.vault) continue;
+					var dx:Number = b.x - player.x, dy:Number = b.y - player.y;
+					if (dx * dx + dy * dy > reach * reach) continue;
+					for (var i:int = b.items.length - 1; i >= 0; i--) {
+						var it:Object = b.items[i];
+						var got:Boolean = false;
+						if (it.kind == "hp" && player.hpPots < Player.MAX_POTS) { player.hpPots++; got = true; }
+						else if (it.kind == "mp" && player.mpPots < Player.MAX_POTS) { player.mpPots++; got = true; }
+						else if (it.kind == "stat" && path == "a" && player.freeSlot() >= 0) { player.inv[player.freeSlot()] = it; got = true; }
+						if (!got) continue;
+						b.items.splice(i, 1);
+						b.refresh();
+						floatText(petX, petY - 1, "Fetched " + it.name + "!", 0xffd080);
+						burst(b.x, b.y, 0xffd080, 6);
+						hud.refresh();
+						return;
+					}
+				}
+			}
+		}
+
 		private function petGainXp(n:int):void {
 			var pt:Object = pet;
 			if (!pt) return;
@@ -4860,40 +5015,205 @@ package realm {
 			}
 		}
 
+		/** A pet's picture at its stage size. */
+		private function petPic(pt:Object, skin:String, big:Number = 1):Bitmap {
+			var key:String = Sprites.petSprite(pt.species, skin);
+			var sc:Number = Data.PET_STAGES[Data.petStage(pt)].scale * big;
+			return new Bitmap(scaledSprite(Sprites.get(key), key + "|0|false", sc));
+		}
+
+		private function stonesHeld():int {
+			var n:int = 0;
+			for each (var it:Object in player.inv) if (it && it.kind == "stone") n++;
+			return n;
+		}
+
 		private function buildPetPanel(sp:Sprite, info:TextField, y:int, w:int):int {
 			var pt:Object = pet;
 			var b:Sprite;
+			var stable:Array = Save.data.stable || [];
 			if (!pt) {
-				info.htmlText = "Pets follow you into the realm and heal your HP and MP every few seconds.\n" +
-					"They grow stronger with every kill. Rare and Legendary pets reach higher levels.";
+				info.htmlText = "Pets follow you into the realm, heal your HP and MP and shoot monsters. They grow with every kill, " +
+					"and with <font color='#60f0a0'>Evolution Stones</font> from bosses they evolve: bigger, stronger, with their own skill.";
 				info.y = y;
 				y += info.height + 10;
 				b = Ui.button("Hatch an Egg  -  " + Ui.commas(Data.PET_EGG_PRICE) + "g", 240, 34, hatchPet, 15);
 				b.x = (w - 240) / 2; b.y = y;
 				sp.addChild(b);
-				return y + 42;
+				y += 42;
+				return buildStable(sp, stable, y, w);
 			}
 			var r:Object = Data.PET_RARITIES[pt.rarity];
-			var icon:Bitmap = new Bitmap(Sprites.get(Sprites.petSprite(pt.species, Save.data.petSkin)));
-			icon.x = 24; icon.y = y;
+			var st:int = Data.petStage(pt);
+			var sk:Object = Data.PET_SKILLS[pt.species];
+			// the pet on a glow, sized by its stage
+			var glow:Shape = new Shape();
+			glow.graphics.beginFill(r.col, 0.12 + st * 0.05);
+			glow.graphics.drawCircle(42, y + 34, 30 + st * 4);
+			glow.graphics.endFill();
+			sp.addChild(glow);
+			var icon:Bitmap = petPic(pt, Save.data.petSkin, 1.2);
+			icon.x = 42 - icon.width / 2; icon.y = y + 34 - icon.height / 2;
 			sp.addChild(icon);
 			var max:Boolean = pt.level >= r.max;
-			info.htmlText = "<font size='17' color='" + Ui.hex(r.col) + "'><b>" + pt.name + "</b></font>  <font color='" + Ui.hex(r.col) + "'>" + r.name + "</font>\n" +
+			var path:String = Data.petPath(pt);
+			info.htmlText = "<font size='17' color='" + Ui.hex(r.col) + "'><b>" + Data.petTitle(pt) + "</b></font>  <font color='" + Ui.hex(r.col) + "'>" + r.name + "</font>\n" +
 				"Level <b>" + pt.level + "</b> / " + r.max + (max ? "  (max)" : "   XP " + pt.xp + " / " + Data.petXpNeeded(pt.level)) + "\n" +
-				"Heals <font color='#80ff80'>" + Data.petHeal(pt) + " HP</font> and <font color='#80a0ff'>" + Data.petMagic(pt) + " MP</font> every 3 seconds, and shoots monsters for <font color='#ff9a70'>" + Data.petAttack(pt) + "</font>";
-			info.x = 80; info.width = w - 90;
+				"Heals <font color='#80ff80'>" + Data.petHeal(pt) + " HP</font> and <font color='#80a0ff'>" + Data.petMagic(pt) + " MP</font> every 3s, shoots for <font color='#ff9a70'>" + Data.petAttack(pt) + "</font>" + (Data.petShots(pt) > 1 ? " x" + Data.petShots(pt) : "") + "\n" +
+				"<font color='#ffd080'>" + sk.skill + "</font>: " + (st > 0 ? sk.desc : "<font color='#888888'>wakes up at Juvenile</font>") +
+				(path ? "\n<font color='" + (path == "b" ? "#ff8a70" : "#80e0ff") + "'>" + sk[path].name + "</font>: " + sk[path].desc : "") +
+				(Data.petBagSlots(pt) > 0 ? "\n<font color='#c8a8ff'>Carries " + Data.petBagSlots(pt) + " items</font> (press " + Keys.name(Keys.k("pet")) + ")" : "");
+			info.x = 88; info.width = w - 98;
 			info.autoSize = "left";
 			info.y = y;
-			y += Math.max(icon.height, info.height) + 10;
+			y += Math.max(76, info.height) + 8;
+			// ---- evolving
+			var block:String = Data.petEvolveBlock(pt);
+			var evo:Shape = new Shape();
+			var next:Object = st < 3 ? Data.PET_STAGES[st + 1] : null;
+			var canMore:Boolean = st < Data.petMaxStage(pt);
+			Ui.panel(evo.graphics, 10, y, w - 20, canMore ? (st == 1 ? 126 : 70) : 34, 0x1a2a22, 0x60f0a0, 1);
+			sp.addChild(evo);
+			var et:TextField = Ui.text(12, 0xdddddd, false, "left", w - 40, true);
+			if (!canMore) {
+				et.htmlText = "<font color='#60f0a0'><b>" + (st >= 3 ? "Final form reached." : "Common pets stop at Adult.") + "</b></font>" + (st < 3 ? " Rare and Legendary pets can ascend." : "");
+				et.x = 20; et.y = y + 8;
+				sp.addChild(et);
+				y += 42;
+			} else {
+				var have:int = stonesHeld();
+				et.htmlText = "<font color='#60f0a0'><b>Evolve to " + next.name + "</b></font>   " +
+					"<font color='" + (pt.level >= next.lv ? "#80ff80" : "#ff8080") + "'>level " + next.lv + "</font>  ·  " +
+					"<font color='" + (have >= next.stones ? "#80ff80" : "#ff8080") + "'>" + have + "/" + next.stones + " Evolution Stone" + (next.stones == 1 ? "" : "s") + "</font>  ·  " +
+					"<font color='" + (gold >= next.gold ? "#ffd75e" : "#ff8080") + "'>" + Ui.commas(next.gold) + "g</font>" +
+					(block ? "\n<font color='#999999'>" + block + "</font>" : "");
+				et.x = 20; et.y = y + 6;
+				sp.addChild(et);
+				if (st == 1) {
+					// Adult: pick a path, for good
+					for (var pi:int = 0; pi < 2; pi++) {
+						var pk:String = pi == 0 ? "a" : "b";
+						var pb:Sprite = pathButton(sk[pk], pk, (w - 40) / 2 - 4);
+						pb.x = 20 + pi * ((w - 40) / 2 + 4); pb.y = y + 44;
+						if (block || have < next.stones || gold < next.gold) pb.alpha = 0.5;
+						sp.addChild(pb);
+					}
+					y += 134;
+				} else {
+					b = Ui.button("Evolve", 100, 26, evolveFn(""), 14);
+					b.x = w - 124; b.y = y + 38;
+					if (block || have < next.stones || gold < next.gold) b.alpha = 0.5;
+					sp.addChild(b);
+					y += 78;
+				}
+			}
 			if (!max) {
-				b = Ui.button("Feed (+" + Data.PET_FEED_XP + " XP)  -  " + Data.PET_FEED_PRICE + "g", 200, 30, feedPet, 14);
-				b.x = 14; b.y = y;
+				b = Ui.button("Feed (+" + Data.PET_FEED_XP + " XP) - " + Data.PET_FEED_PRICE + "g", 174, 28, feedPet, 12);
+				b.x = 10; b.y = y;
 				sp.addChild(b);
 			}
-			b = Ui.button(releaseArmed ? "Click again to release" : "Release pet", 200, 30, releasePet, 14);
-			b.x = w - 214; b.y = y;
+			b = Ui.button("To the Stable", 110, 28, stableFn("store", 0), 13);
+			b.x = w - 248; b.y = y;
 			sp.addChild(b);
-			return y + 38;
+			b = Ui.button(releaseArmed ? "Sure?" : "Release", 110, 28, releasePet, 13);
+			b.x = w - 124; b.y = y;
+			sp.addChild(b);
+			y += 36;
+			b = Ui.button("Hatch another egg - " + Ui.commas(Data.PET_EGG_PRICE) + "g (this one goes to the Stable)", w - 20, 26, hatchPet, 12);
+			b.x = 10; b.y = y;
+			sp.addChild(b);
+			y += 34;
+			return buildStable(sp, stable, y, w);
+		}
+
+		private function pathButton(p:Object, id:String, bw:int):Sprite {
+			var b:Sprite = new Sprite();
+			var col:uint = id == "b" ? 0xff8a70 : 0x80e0ff;
+			Ui.panel(b.graphics, 0, 0, bw, 76, 0x22262e, col, 1);
+			var t:TextField = Ui.text(13, col, true, "left", bw - 12, true);
+			t.htmlText = p.name + "<br><font size='11' color='#cccccc'>" + p.desc + "</font><br><font size='10' color='#888888'>Click to evolve this way</font>";
+			t.x = 6; t.y = 4;
+			b.addChild(t);
+			b.buttonMode = true; b.mouseChildren = false;
+			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { evolveFn(id)(); });
+			return b;
+		}
+
+		/** The Stable: pets kept at the Pet Yard; bring one out to swap with the one you have. */
+		private function buildStable(sp:Sprite, stable:Array, y:int, w:int):int {
+			var hd:TextField = Ui.text(13, 0xc8a8ff, true, "left", w - 20, true);
+			hd.htmlText = "Stable  <font color='#888888' size='11'>" + stable.length + " / 6</font>";
+			hd.x = 12; hd.y = y;
+			sp.addChild(hd);
+			y += 22;
+			if (!stable.length) {
+				var e:TextField = Ui.text(11, 0x777777, false, "left", w - 20, true);
+				e.text = "Empty. Put a pet here to keep it while another one follows you.";
+				e.x = 12; e.y = y;
+				sp.addChild(e);
+				return y + 22;
+			}
+			for (var i:int = 0; i < stable.length; i++) {
+				var o:Object = stable[i];
+				var row:Shape = new Shape();
+				Ui.panel(row.graphics, 10, y, w - 20, 34, 0x24242c, 0x4a4a5a, 1);
+				sp.addChild(row);
+				var pic:Bitmap = new Bitmap(Sprites.get(Sprites.petSprite(o.species, "")));
+				pic.scaleX = pic.scaleY = 0.55;
+				pic.x = 16; pic.y = y + 2;
+				sp.addChild(pic);
+				var t:TextField = Ui.text(12, Data.PET_RARITIES[o.rarity].col, true, "left", 220, true);
+				t.htmlText = Data.petTitle(o) + "  <font color='#999999'>lv " + o.level + "</font>";
+				t.x = 52; t.y = y + 8;
+				sp.addChild(t);
+				var tb:Sprite = Ui.button(pet ? "Swap" : "Take out", 80, 24, stableFn("take", i), 12);
+				tb.x = w - 132; tb.y = y + 5;
+				sp.addChild(tb);
+				var xb:Sprite = Ui.button("X", 30, 24, stableReleaseFn(i), 12);
+				xb.x = w - 46; xb.y = y + 5;
+				sp.addChild(xb);
+				y += 38;
+			}
+			return y + 4;
+		}
+
+		private var stableArmed:int = -1;
+		private function stableReleaseFn(i:int):Function {
+			return function():void {
+				if (stableArmed != i) { stableArmed = i; msg("Click X again to release that pet for good.", 0xffd75e); return; }
+				stableArmed = -1;
+				stableFn("release", i)();
+			};
+		}
+
+		private function stableFn(op:String, i:int):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (!net.online) { msg("The Stable is on the server: play online to use it.", 0xff8080); return; }
+				if (op == "store" && pet && pet.bag && (pet.bag as Array).some(function(it:*, ...r):Boolean { return it != null; })) { msg("Take out what your pet carries first.", 0xff8080); return; }
+				if (net.shopRequest({t: "petStable", op: op, i: i})) shopWaiting = true;
+			};
+		}
+
+		private function evolveFn(path:String):Function {
+			return function():void {
+				if (shopWaiting || !pet) return;
+				var why:String = Data.petEvolveBlock(pet);
+				if (why) { msg(why, 0xff8080); return; }
+				if (!net.online) { msg("Pets evolve on the server: play online.", 0xff8080); return; }
+				if (net.shopRequest({t: "petEvolve", path: path})) shopWaiting = true;
+			};
+		}
+
+		/** The server evolved the pet. */
+		private function petEvolved(pt:Object, title:String):void {
+			Save.data.pet = pt;
+			var col:uint = Data.PET_RARITIES[pt.rarity].col;
+			showBanner(pt.name + " evolved into " + title + "!", col, 4);
+			msg("Your pet evolved into " + title + "! " + (Data.PET_SKILLS[pt.species] ? Data.PET_SKILLS[pt.species].skill + " grows stronger." : ""), col);
+			Sfx.play("rare");
+			for (var k:int = 0; k < 3; k++) burst(petX, petY, k == 1 ? 0xffffff : col, 24);
+			shake(0.3, 4);
 		}
 
 		// ------------------------------------------------------------- fame store (cosmetics)
@@ -5058,7 +5378,8 @@ package realm {
 		}
 
 		private function hatchPet():void {
-			if (pet) return;
+			if (pet && (!net.online || (Save.data.stable || []).length >= 6)) { msg(net.online ? "Your Stable is full. Release a pet first." : "You already have a pet.", 0xff8080); return; }
+			if (pet && pet.bag && (pet.bag as Array).some(function(it:*, ...r):Boolean { return it != null; })) { msg("Take out what your pet carries first.", 0xff8080); return; }
 			if (gold < Data.PET_EGG_PRICE) { msg("You need " + Ui.commas(Data.PET_EGG_PRICE) + " gold to buy a pet egg.", 0xff8080); return; }
 			// online, the server takes the gold and hatches the egg (see petHatched)
 			if (shopWaiting) return;
@@ -5095,6 +5416,7 @@ package realm {
 
 		private function releasePet():void {
 			if (!pet) return;
+			if (pet.bag && (pet.bag as Array).some(function(it:*, ...r):Boolean { return it != null; })) { msg("Take out what your pet carries first (press " + Keys.name(Keys.k("pet")) + ").", 0xff8080); return; }
 			if (!releaseArmed) { releaseArmed = true; refreshStation(); return; }
 			releaseArmed = false;
 			msg(pet.name + " returns to the wild.", 0xcccccc);
@@ -5257,7 +5579,15 @@ package realm {
 			Save.data.tradeSeq = int(m.seq);
 			saveCharacter();
 			Save.flush();
-			if (m.pet && m.fed) {
+			if (m.stable) Save.data.stable = m.stable;
+			if (m.anvil) {
+				anvilDone(m);
+			} else if (m.evolved) {
+				petEvolved(m.pet, m.evolved);
+			} else if (m.stabled) {
+				if (m.pet) { Save.data.pet = m.pet; petX = player.x - 1; petY = player.y + 0.5; } else delete Save.data.pet;
+				msg(m.stabled == "store" ? "Your pet went to the Stable." : m.stabled == "release" ? "The pet returned to the wild." : (m.pet ? Data.petTitle(m.pet) : "Your pet") + " is with you now.", 0xc8a8ff);
+			} else if (m.pet && m.fed) {
 				Save.data.pet = m.pet;
 				burst(petX, petY, 0x60ff90, 10);
 				msg(m.pet.name + " enjoyed that (level " + m.pet.level + ").", 0x60ff90);
@@ -5642,8 +5972,10 @@ package realm {
 
 			var bd:BitmapData;
 			// loot bags lie on the ground
+			var lf:int = int(Save.data.lootFilter || 0);
 			for each (var b:LootBag in bags) {
 				if (b.life < 8 && int(b.life * 4) % 2 == 0) continue;
+				if (!b.shown(lf)) continue;
 				var bx:Number = scrX(b.x, b.y), by:Number = scrY(b.x, b.y);
 				// rare bags glow; new bags bounce as they land
 				if (!b.vault && b.spr != "bag_brown") drawAura(bx, by + TS * 0.4, BAG_GLOW[b.spr] || 0xffffff, 0.45);
@@ -5749,9 +6081,16 @@ package realm {
 				if (d.o == -2) {
 					drawRemote(d.r);
 				} else if (d.o < 0) {
-					drawEntity(Sprites.get(Sprites.petSprite(pet.species, Save.data.petSkin),
-						petMoving ? Sprites.anim(Sprites.MOVE, int(time * 6) % 2) : Sprites.anim(Sprites.IDLE, int(time * 1.8) % 2),
-						scrX(petX, petY) > scrX(player.x, player.y)), scrX(petX, petY), scrY(petX, petY), petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
+					// evolved pets are bigger and glow (Ascended ones sparkle too)
+					var pst:int = Data.petStage(pet);
+					var pfr:int = petMoving ? Sprites.anim(Sprites.MOVE, int(time * 6) % 2) : Sprites.anim(Sprites.IDLE, int(time * 1.8) % 2);
+					var pflip:Boolean = scrX(petX, petY) > scrX(player.x, player.y);
+					var pkey:String = Sprites.petSprite(pet.species, Save.data.petSkin);
+					var pbd:BitmapData = scaledSprite(Sprites.get(pkey, pfr, pflip), pkey + "|" + pfr + "|" + pflip, Data.PET_STAGES[pst].scale);
+					if (pst > 0) drawAura(scrX(petX, petY), scrY(petX, petY) + TS * 0.4, Data.petPath(pet) == "b" ? 0xff7050 : Data.PET_RARITIES[pet.rarity].col, 0.35 + pst * 0.12);
+					if (pst >= 3 && opt("parts") && Math.random() < 0.15 && parts.length < 400)
+						parts.push(new Particle(petX + (Math.random() - 0.5) * 0.8, petY - 0.4 - Math.random() * 0.6, 0, -0.8, 0.7, Sprites.glow(Data.PET_RARITIES[pet.rarity].col)));
+					drawEntity(pbd, scrX(petX, petY), scrY(petX, petY), petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
 				} else if (d.o) {
 					bd = Sprites.get(World.OBJ_NAMES[d.o]);
 					var ocx:Number = scrX(d.x + 0.5, d.t + 0.5);
@@ -5860,6 +6199,19 @@ package realm {
 			pt.y = int(foot - bd.height + 2 - bob);
 			canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			return pt.y;
+		}
+
+		/** A sprite scaled up (pixels kept sharp), cached by key and scale. */
+		private var scaledCache:Object = {};
+		private function scaledSprite(bd:BitmapData, key:String, scale:Number):BitmapData {
+			if (scale == 1) return bd;
+			var k:String = key + "@" + scale;
+			var out:BitmapData = scaledCache[k];
+			if (out) return out;
+			out = new BitmapData(Math.ceil(bd.width * scale), Math.ceil(bd.height * scale), true, 0);
+			out.draw(bd, new Matrix(scale, 0, 0, scale), null, null, null, false);
+			scaledCache[k] = out;
+			return out;
 		}
 
 		private var auraShape:Shape = new Shape();
@@ -6126,6 +6478,17 @@ package realm {
 				addChild(inspectWin);
 			});
 		}
+
+		/** Your pet and its bag (J). */
+		public function togglePet():void {
+			if (petWin) { if (petWin.parent) removeChild(petWin); petWin = null; refocus(); return; }
+			petWin = new PetWindow(this);
+			petWin.x = int((VIEW_W - PetWindow.W) / 2);
+			petWin.y = 60;
+			addChild(petWin);
+		}
+
+		public function refreshHud():void { hud.refresh(); if (petWin) petWin.refresh(); }
 
 		/** The Oracle: asks the server for your boss record (it opens when the answer comes). */
 		public function toggleOracle():void {

@@ -291,6 +291,9 @@ package realm {
 				case "msg":
 					g.msg(m.text, m.color || 0xff8080);
 					break;
+				case "bugs":
+					g.openBugs(m.list as Array);
+					break;
 				case "oracle":
 					g.openOracle(m.o);
 					break;

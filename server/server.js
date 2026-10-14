@@ -1341,6 +1341,35 @@ const handlers = {
 
   ping(c, m) { c.send({ t: 'pong', at: m.at }); },
 
+  /**
+   * A bug report (/bug what happened): kept in bugs.json with where the player was and
+   * what they had, posted to the Discord feed, and shown to admins (/bugs).
+   */
+  bug(c, m) {
+    const text = str(m.text, 400).trim();
+    if (text.length < 5) return c.note('Usage: /bug what happened (a sentence or two helps a lot).');
+    const now = Date.now();
+    if (c.bugAt && now - c.bugAt < 30000) return c.note('Thanks! Wait a moment before sending another report.');
+    c.bugAt = now;
+    const x = m.ctx && typeof m.ctx === 'object' ? m.ctx : {};
+    const ch = serverChar(c), sv = onlineSave(c.key) || {};
+    const p = sv.pet;
+    const b = {
+      id: (bugs.next = (bugs.next || 0) + 1), at: now, key: c.key, name: c.name, no: (accounts[c.key] && accounts[c.key].no) || 0, text,
+      world: String(c.world || '').split(':').slice(0, 2).join(':').slice(0, 40), x: Math.round(num(c.x)), y: Math.round(num(c.y)),
+      hero: ch ? (Data.CLASSES[ch.cls] ? Data.CLASSES[ch.cls].name : ch.cls) + ' lv ' + (ch.level || 1) + (ch.mode ? ' ' + ch.mode : '') : 'no hero',
+      pet: p && typeof p === 'object' ? Data.petTitle(p) + ' lv ' + (p.level || 1) : '',
+      game: str(x.ver, 20), fps: num(x.fps) | 0, ping: num(x.ping) | 0, done: false
+    };
+    bugs.list.unshift(b);
+    if (bugs.list.length > 300) bugs.list.length = 300;
+    save('bugs.json', bugs);
+    store.appendLog('bugs.log', new Date(now).toISOString() + ' #' + b.id + ' ' + c.name + ' (' + b.hero + ', ' + b.world + '): ' + text);
+    for (const a of byName.values()) if (isAdmin(a)) a.note('[Bug #' + b.id + '] ' + c.name + ': ' + text + '  (/bugs to see them all)', 0xffb040);
+    if (discord.on) discord.post('🐞 **Bug #' + b.id + '** from **' + desc(c.name) + '**: ' + desc(text) + '\n_' + desc(b.hero) + (b.pet ? ', ' + desc(b.pet) : '') + ' · ' + desc(b.world || 'menu') + (b.fps ? ' · ' + b.fps + ' fps' : '') + (b.ping ? ' · ' + b.ping + ' ms' : '') + '_', 0xffa040);
+    c.note('Thanks! Bug #' + b.id + ' was sent to the admins.', 0x80ff80);
+  },
+
   /** The Oracle (O, or /oracle): the bosses you've killed and what they dropped. */
   oracleView(c, m) { c.send({ t: 'oracle', o: oracle.view(onlineSave(c.key)) }); },
 
@@ -1858,6 +1887,22 @@ const handlers = {
         store.appendLog('admin.log', new Date().toISOString() + ' ' + c.name + ' renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn);
         return c.note('Renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn + '.', 0x80ff80);
       }
+      case '/bugs': {
+        // /bugs: the window of bug reports; /bugs done 12 marks one fixed; /bugs clear forgets the fixed ones
+        const sub = (parts[1] || '').toLowerCase();
+        if (sub === 'done' || sub === 'open') {
+          const b = bugs.list.find((e) => e.id === (Number(parts[2]) | 0));
+          if (!b) return c.note('Usage: /bugs done number');
+          b.done = sub === 'done';
+          b.by = c.name;
+          save('bugs.json', bugs);
+        } else if (sub === 'clear') {
+          bugs.list = bugs.list.filter((e) => !e.done);
+          save('bugs.json', bugs);
+          c.note('Cleared the fixed reports.', 0x80ff80);
+        }
+        return c.send({ t: 'bugs', list: bugs.list.slice(0, 150) });
+      }
       case '/flags': {
         // /flags: the window of everyone the anti-cheat flagged; /flags clear name: forget one (checked, honest)
         if ((parts[1] || '').toLowerCase() === 'clear') {
@@ -1971,6 +2016,10 @@ const handlers = {
     c.note('Unknown command.');
   }
 };
+
+// ------------------------------------------------------------------ bug reports (/bug, /bugs)
+const bugs = load('bugs.json', { next: 0, list: [] });
+if (!Array.isArray(bugs.list)) bugs.list = [];
 
 // ------------------------------------------------------------------ godmode checks
 const { godmodeVerdict, damageVerdict } = require('./godmode');

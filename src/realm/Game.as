@@ -157,6 +157,9 @@ package realm {
 		private var marketWin:MarketWindow;
 		private var oracleWin:OracleWindow;
 		private var petWin:PetWindow;
+		private var bugsWin:BugsWindow;
+		/** Frames a second, smoothed (sent with bug reports). */
+		private var fpsAvg:Number = 60;
 		private var requestPopup:Sprite;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
@@ -354,14 +357,14 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /bug what happened", 0x8fd0ff);
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
 						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  /rename name newname  /heroname name hero newname  (any name can be #number)", 0xffb040);
-						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)   Realms: /realms 1 (how many are open)", 0xffb040);
+						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)   Realms: /realms 1 (how many are open)   Bug reports: /bugs", 0xffb040);
 					}
 					break;
 				case "/p":
@@ -397,9 +400,15 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/flags": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
+				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
+					break;
+				case "/bug":
+					var bt:String = t.substr(4).replace(/^\s+|\s+$/g, "");
+					if (!net.online) { msg("Bug reports go to the server: play online, or tell an admin on Discord.", 0xff8080); break; }
+					if (bt.length < 5) { msg("Usage: /bug what happened  (e.g. /bug my pet vanished after I swapped heroes)", 0xff8080); break; }
+					Online.send({t: "bug", text: bt, ctx: {ver: TitleScreen.VERSION, fps: int(fpsAvg), ping: net is ServerNet ? ServerNet(net).latency : 0}});
 					break;
 				case "/pet":
 					togglePet();
@@ -991,7 +1000,7 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, petWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, petWin, bugsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1423,6 +1432,7 @@ package realm {
 			var now:int = getTimer();
 			var dt:Number = (now - lastT) / 1000;
 			lastT = now;
+			if (dt > 0) fpsAvg = fpsAvg * 0.95 + Math.min(120, 1 / dt) * 0.05;
 			if (dt > 0.05) dt = 0.05;
 
 			if (input.pressed(Keys.k("mute"))) {
@@ -1430,7 +1440,7 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || petWin || playerMenu || social || wiki || skillWin)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || petWin || bugsWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
 				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
@@ -1440,6 +1450,7 @@ package realm {
 				else if (marketWin) closeMarket();
 				else if (oracleWin) closeOracle();
 				else if (petWin) togglePet();
+				else if (bugsWin) closeBugs();
 				else closeTrade();
 				input.endFrame();
 			}
@@ -5020,7 +5031,7 @@ package realm {
 
 		/** A pet's picture at its stage size. */
 		private function petPic(pt:Object, skin:String, big:Number = 1):Bitmap {
-			var key:String = Sprites.petSprite(pt.species, skin);
+			var key:String = Sprites.petForm(pt, skin);
 			var sc:Number = Data.PET_STAGES[Data.petStage(pt)].scale * big;
 			return new Bitmap(scaledSprite(Sprites.get(key), key + "|0|false", sc));
 		}
@@ -5160,7 +5171,7 @@ package realm {
 				var row:Shape = new Shape();
 				Ui.panel(row.graphics, 10, y, w - 20, 34, 0x24242c, 0x4a4a5a, 1);
 				sp.addChild(row);
-				var pic:Bitmap = new Bitmap(Sprites.get(Sprites.petSprite(o.species, "")));
+				var pic:Bitmap = new Bitmap(Sprites.get(Sprites.petForm(o, "")));
 				pic.scaleX = pic.scaleY = 0.55;
 				pic.x = 16; pic.y = y + 2;
 				sp.addChild(pic);
@@ -5260,7 +5271,7 @@ package realm {
 				var box:Sprite = new Sprite();
 				var on:Boolean = cosmeticWorn(c.id);
 				Ui.panel(box.graphics, 0, 0, bw, bh, on ? 0x3e3424 : 0x2c2c2c, on ? 0xff9a2e : 0x4a4a4a);
-				var spr:String = fameMode == "skins" ? (c.id || player.cls.id) : fameMode == "dyes" ? Sprites.dyed(player.skin || player.cls.id, c.id) : Sprites.petSprite(pet.species, c.id);
+				var spr:String = fameMode == "skins" ? (c.id || player.cls.id) : fameMode == "dyes" ? Sprites.dyed(player.skin || player.cls.id, c.id) : Sprites.petForm(pet, c.id);
 				var bmp:Bitmap = new Bitmap(Sprites.get(spr));
 				bmp.x = (bw - bmp.width) / 2; bmp.y = 4;
 				if (bmp.height > bh - 60) { bmp.scaleX = bmp.scaleY = (bh - 60) / bmp.height; bmp.x = (bw - bmp.width) / 2; }
@@ -6072,12 +6083,14 @@ package realm {
 					var pst:int = Data.petStage(pet);
 					var pfr:int = petMoving ? Sprites.anim(Sprites.MOVE, int(time * 6) % 2) : Sprites.anim(Sprites.IDLE, int(time * 1.8) % 2);
 					var pflip:Boolean = scrX(petX, petY) > scrX(player.x, player.y);
-					var pkey:String = Sprites.petSprite(pet.species, Save.data.petSkin);
+					var pkey:String = Sprites.petForm(pet, Save.data.petSkin);
 					var pbd:BitmapData = scaledSprite(Sprites.get(pkey, pfr, pflip), pkey + "|" + pfr + "|" + pflip, Data.PET_STAGES[pst].scale);
 					if (pst > 0) drawAura(scrX(petX, petY), scrY(petX, petY) + TS * 0.4, Data.petPath(pet) == "b" ? 0xff7050 : Data.PET_RARITIES[pet.rarity].col, 0.35 + pst * 0.12);
 					if (pst >= 3 && opt("parts") && Math.random() < 0.15 && parts.length < 400)
 						parts.push(new Particle(petX + (Math.random() - 0.5) * 0.8, petY - 0.4 - Math.random() * 0.6, 0, -0.8, 0.7, Sprites.glow(Data.PET_RARITIES[pet.rarity].col)));
-					drawEntity(pbd, scrX(petX, petY), scrY(petX, petY), petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
+					var ptop:Number = drawEntity(pbd, scrX(petX, petY), scrY(petX, petY), petMoving && int(time * 6) % 2 == 0 ? 2 : 0);
+					// an Ascended pet wears a halo
+					if (pst >= 3) drawHalo(scrX(petX, petY), ptop - 4 + Math.sin(time * 3) * 2, Data.PET_RARITIES[pet.rarity].col);
 				} else if (d.o) {
 					bd = Sprites.get(World.OBJ_NAMES[d.o]);
 					var ocx:Number = scrX(d.x + 0.5, d.t + 0.5);
@@ -6186,6 +6199,18 @@ package realm {
 			pt.y = int(foot - bd.height + 2 - bob);
 			canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			return pt.y;
+		}
+
+		private function drawHalo(cx:Number, cy:Number, col:uint):void {
+			var g:* = auraShape.graphics;
+			g.clear();
+			g.lineStyle(4, col, 0.35);
+			g.drawEllipse(-11, -4, 22, 8);
+			g.lineStyle(2, 0xfff0a0, 0.95);
+			g.drawEllipse(-9, -3, 18, 6);
+			auraMtx.identity();
+			auraMtx.translate(cx, cy);
+			canvas.draw(auraShape, auraMtx);
 		}
 
 		/** A sprite scaled up (pixels kept sharp), cached by key and scale. */
@@ -6464,6 +6489,20 @@ package realm {
 				inspectWin.y = 36;
 				addChild(inspectWin);
 			});
+		}
+
+		/** Admins: the bug reports (the server's answer to /bugs). */
+		public function openBugs(list:Array):void {
+			closeBugs();
+			bugsWin = new BugsWindow(this, list);
+			bugsWin.x = int((VIEW_W - BugsWindow.W) / 2);
+			bugsWin.y = 40;
+			addChild(bugsWin);
+		}
+
+		public function closeBugs():void {
+			if (bugsWin && bugsWin.parent) { removeChild(bugsWin); refocus(); }
+			bugsWin = null;
 		}
 
 		/** Your pet and its bag (J). */

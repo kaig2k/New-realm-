@@ -1536,14 +1536,15 @@ package realm {
 		 * Pet evolution: Hatchling, Juvenile, Adult, Ascended. Each stage needs the
 		 * pet's level plus Evolution Stones (bosses drop them) and gold, paid at the
 		 * Pet Yard (the server evolves it). Commons stop at Adult. At Adult the pet
-		 * takes one of its species' two paths for good. Every stage makes it bigger
+		 * takes one of its species' two paths for good, and its own look (Sprites.petForm).
+		 * Every stage makes it bigger
 		 * and stronger and its species skill better; Adults carry 2 items, Ascended 4.
 		 */
 		public static const PET_STAGES:Array = [
 			{name: "Hatchling", lv: 1, stones: 0, gold: 0, mult: 1, scale: 1, bag: 0},
 			{name: "Juvenile", lv: 10, stones: 1, gold: 500, mult: 1.25, scale: 1.2, bag: 0},
-			{name: "Adult", lv: 25, stones: 2, gold: 2000, mult: 1.6, scale: 1.4, bag: 2},
-			{name: "Ascended", lv: 45, stones: 4, gold: 6000, mult: 2.1, scale: 1.65, bag: 4}
+			{name: "Adult", lv: 25, stones: 2, gold: 2000, mult: 1.6, scale: 1.15, bag: 2},
+			{name: "Ascended", lv: 45, stones: 4, gold: 6000, mult: 2.1, scale: 1.3, bag: 4}
 		];
 		/** Each species' skill, and its two Adult paths: a = the skill grows, b = it fights harder. */
 		public static const PET_SKILLS:Object = {

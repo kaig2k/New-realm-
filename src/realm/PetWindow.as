@@ -52,7 +52,7 @@ package realm {
 			glow.graphics.drawCircle(56, 62, 40);
 			glow.graphics.endFill();
 			body.addChild(glow);
-			var key:String = Sprites.petSprite(pt.species, Save.data.petSkin);
+			var key:String = Sprites.petForm(pt, Save.data.petSkin);
 			var pic:Bitmap = new Bitmap(Sprites.get(key));
 			pic.scaleX = pic.scaleY = Data.PET_STAGES[st].scale * 1.3;
 			pic.x = 56 - pic.width / 2; pic.y = 62 - pic.height / 2;

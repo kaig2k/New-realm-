@@ -1655,6 +1655,34 @@ async function run() {
     for (const c of [F, bz3]) c.s.destroy();
   }
 
+  console.log('bug reports');
+  {
+    const B7 = await login('Tbug' + n, { password: 'pass1234', register: true });
+    const bz7 = await login('TestBoss', { password: 'pass1234' });
+    const before = posts.length;
+    B7.send({ t: 'bug', text: 'my pet vanished after swapping heroes', ctx: { ver: 'v1.1', fps: 58, ping: 40 } });
+    await wait(600);
+    const thanks = B7.msgs.find((m) => m.t === 'msg' && /Bug #\d+ was sent/.test(m.text));
+    check('/bug thanks the player and tells online admins', thanks && bz7.msgs.some((m) => m.t === 'msg' && /\[Bug #\d+\].*pet vanished/.test(m.text)), JSON.stringify(B7.msgs.slice(-2)));
+    check('...and posts it to the Discord feed', posts.slice(before).some((p) => JSON.stringify(p).includes('pet vanished')), JSON.stringify(posts.slice(before)));
+    B7.clear();
+    B7.send({ t: 'bug', text: 'second report straight away' });
+    await wait(300);
+    check('...one report every 30 seconds per player', B7.msgs.some((m) => m.t === 'msg' && /Wait a moment/.test(m.text)));
+    bz7.clear();
+    bz7.send({ t: 'cmd', text: '/bugs' });
+    await wait(300);
+    const bl = bz7.find((m) => m.t === 'bugs');
+    const mine = bl && bl.list.find((b) => b.name === 'Tbug' + n);
+    check('/bugs lists reports with who, where and the game\'s fps and ping', mine && /pet vanished/.test(mine.text) && mine.fps === 58 && mine.ping === 40 && !mine.done, JSON.stringify(bl && bl.list.slice(0, 1)));
+    bz7.clear();
+    bz7.send({ t: 'cmd', text: '/bugs done ' + (mine ? mine.id : 0) });
+    await wait(300);
+    const bl2 = bz7.find((m) => m.t === 'bugs');
+    check('/bugs done marks one fixed', bl2 && bl2.list.find((b) => mine && b.id === mine.id && b.done));
+    for (const c of [B7, bz7]) c.s.destroy();
+  }
+
   console.log('pet evolution, the Stable, runes and the Anvil');
   {
     const { Data: PD } = require('./sim/gen/game');

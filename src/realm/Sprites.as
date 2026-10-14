@@ -204,6 +204,19 @@ package realm {
 		private static const ICON_POT:Array = [["...WW...", "..GGGG..", "...HG...", "..PHPP..", ".PHPPPp.", ".PPPPPp.", ".PPPPpp.", "..pppp.."]];
 		private static const ICON_STATPOT:Array = [["...WW...", "...GG...", "..GHGG..", ".GPHPPG.", "GPPHPPpG", "GPPPPPpG", ".GPPPpG.", "..GGGG.."]];
 		/** An Evolution Stone (a glowing egg-shaped gem) and a rune (a carved stone tablet). */
+		// ---- evolved pets (Adult paths; Ascended ones are the same drawings, brighter)
+		private static const PET_PUP_A:Array = [["......W.W.", "......WWWW", "..KK.WWWEW", ".KkkKWWWWW", "WWWWWYYWWn", "WWWWWWWWW.", "wWWWWWWWW.", ".W.W..W.W.", ".W.W..W.W.", ".........."]];
+		private static const PET_PUP_B:Array = [["......S.S.", "......WWWW", ".....WWWEW", "S.S.SWWWWW", "AAAAAAWWWT", "WWWWWWWWW.", "wWWWWWWWW.", ".W.W..W.W.", ".W.W..W.W.", ".........."]];
+		private static const PET_SLIME_A:Array = [["..Y.YY.Y..", "..YYYYYY..", "...bBBb...", "..bBBBBb..", ".bBWWWWBb.", "bBWEWWEWBb", "bBWWWWWWBb", "bBBWWWWBBb", ".bBBBBBBb.", "..bbbbbb.."]];
+		private static const PET_SLIME_B:Array = [["...D..D...", "..bBBBBb..", ".bBBGBBBb.", "bBGEBBEBBb", "bBBBBBBGBb", "bBGBBBBBBb", ".bBBBGBBb.", "..bBBBBb..", "..D.b..D..", "..D....D.."]];
+		private static const PET_OWL_A:Array = [["...B..B...", "..BBBBBB..", ".BBBSSBBB.", "BWEBBBBEWB", "BBBBYYBBBB", ".BcBBBBcB.", ".BccccccB.", "..BccccB..", "...BBBB...", "...Y..Y..."]];
+		private static const PET_OWL_B:Array = [["B..B..B..B", "BB.BBBB.BB", "BBWEBBEWBB", "BBBBYYBBBB", "bBBBBBBBBb", "b.BbBBbB.b", "..BbbbbB..", "...BBBB...", "...Y..Y...", ".........."]];
+		private static const PET_DRAKE_A:Array = [[".....F..R.", "..F.FF.RRR", ".FF.RRRRER", "FRRRRRRRRR", ".RRRRRrRRf", "..RRrrrRR.", "..RrrrrR..", "..RR..RR..", "..RR..RR..", ".........."]];
+		private static const PET_DRAKE_B:Array = [["......S...", "..S..SSS..", ".SSS.SSES.", "SRRSSSSSSS", ".RRRRRRRR.", "..RSSSSR..", "..RSrrSR..", "..RR..RR..", "..SS..SS..", ".........."]];
+		private static const PET_WISP_A:Array = [["s...WW...s", "...WCCW...", "..WCCCCW..", ".WCCEECCW.", "sWCCEECCWs", ".WCCCCCCW.", "..WCCCCW..", "...WCCW...", "....WC....", "s...W....s"]];
+		private static const PET_WISP_B:Array = [["...L..L...", "..LWWW.L..", ".WWCCCW...", "WCCECCECW.", "WCCCCCCCWL", ".WCCCCCW..", "L.WCCCW...", "...WCW.L..", "..L.W.....", "....L....."]];
+		private static const PET_GOLEM_A:Array = [["..hHHHHh..", ".hHHHHHHh.", ".hHEHHEHh.", "..hHHHHh..", "DDBBBBBBB.", "DdDBBAABBB", "DdDBBBBBBB", "DDBBBBBBB.", "..LLL.LLL.", "..LL...LL."]];
+		private static const PET_GOLEM_B:Array = [["...hHHh...", "..hHHHHh..", ".hHEHHEHh.", ".hHHHHHHh.", "BBbBBBBbBB", "BMBBBBBBMB", "BBBBMBBBBB", ".BBBBBBBB.", "..LL..LL..", ".LLL..LLL."]];
 		private static const ICON_STONE:Array = [["...WW...", "..WGGg..", ".WGGGGg.", ".GGHGGg.", ".GGGGgg.", ".gGGGgg.", "..gggg..", "........"]];
 		private static const ICON_RUNE:Array = [["..BBBB..", ".BbbbbB.", ".BbRRbB.", ".BbRbbB.", ".BbRRbB.", ".BbbRbB.", ".BbRRbB.", "..BBBB.."]];
 		private static const ICON_SOR:Array = [["...CC...", "..CWCC..", ".CWCCCc.", "CWCCCCcc", ".CCCCcc.", "..CCcc..", "...cc...", "........"]];
@@ -334,6 +347,18 @@ package realm {
 			pet_drake: [DRAKE, {R: 0xe85a24, r: 0xffb040, E: 0xffff60}, 4],
 			pet_wisp: [WISP, {W: 0xe0fff8, C: 0x60f0d0, E: 0x105048}, 4],
 			pet_golem: [BRUTE, {H: 0x9a9aa0, h: 0x6a6a70, E: 0x60ff90, B: 0x8a8a90, b: 0x5a5a60, A: 0x60ff90, L: 0x4a4a50, W: 0x8a8a90, S: 0x9a9aa0}, 4],
+			pet_pup_a: [PET_PUP_A, {W: 0xc89a5a, w: 0x8a6430, E: 0x101010, K: 0x8a5a2a, k: 0xf0c030, Y: 0xf0c030, n: 0x301810}, 4],
+			pet_pup_b: [PET_PUP_B, {W: 0x5a5a62, w: 0x3a3a40, A: 0x8a2a2a, S: 0xd0d0d8, E: 0xff3030, T: 0xffffff}, 4],
+			pet_slime_a: [PET_SLIME_A, {B: 0xff80c0, b: 0xc04080, W: 0xffd0ea, E: 0x401030, Y: 0xffd040}, 4],
+			pet_slime_b: [PET_SLIME_B, {B: 0x70e030, b: 0x3a8a18, G: 0xc8ff80, E: 0x102008, D: 0x90ff40}, 4],
+			pet_owl_a: [PET_OWL_A, {B: 0xe0e8ff, c: 0x6a80d0, S: 0x60f0ff, W: 0xffffff, E: 0x2040a0, Y: 0xf0c030}, 4],
+			pet_owl_b: [PET_OWL_B, {B: 0x4a3426, b: 0x2a1c14, W: 0xffd040, E: 0xc01010, Y: 0xd0a020}, 4],
+			pet_drake_a: [PET_DRAKE_A, {R: 0xd03010, r: 0xffa030, E: 0xffff60, F: 0xffd040, f: 0xff6020}, 4],
+			pet_drake_b: [PET_DRAKE_B, {R: 0x6a6a72, S: 0xa0a0a8, r: 0xff8030, E: 0xffa040}, 4],
+			pet_wisp_a: [PET_WISP_A, {W: 0xf0e0ff, C: 0xb070ff, E: 0xffffff, s: 0xffd0ff}, 4],
+			pet_wisp_b: [PET_WISP_B, {W: 0xfffff0, C: 0x60c0ff, E: 0x1040a0, L: 0xffff40}, 4],
+			pet_golem_a: [PET_GOLEM_A, {H: 0xa8a8b0, h: 0x6a6a72, E: 0x60c0ff, B: 0x9a9aa2, A: 0x60c0ff, D: 0xd0b060, d: 0x8a7030, L: 0x4a4a50}, 4],
+			pet_golem_b: [PET_GOLEM_B, {H: 0x8a8070, h: 0x5a5040, E: 0xff8040, B: 0x7a7060, b: 0x4a4030, M: 0x5a9a40, L: 0x3a3428}, 4],
 			// ---- realm monsters (biome leaders are drawn bigger)
 			pirate_brawler: [BRUTE, {H: 0x2a2a6a, h: 0x1a1a4a, E: 0x101010, B: 0xe0e0e0, b: 0xc02020, A: 0x8a5a2a, L: 0x3a2a14, W: 0xc0c0c0, S: 0xecd070}],
 			pirate_captain: [HUMANOID, {H: 0x1a1a1a, h: 0x0a0a0a, S: 0xecd070, E: 0x101010, B: 0xb02020, b: 0x701010, A: 0xf0c030, L: 0x2a1a10, W: 0xf0c030}, 6],
@@ -625,6 +650,23 @@ package realm {
 		/** The sprite id for a hero (class or skin) wearing a dye ("" for none). */
 		public static function dyed(base:String, dye:String):String {
 			return dye && Data.findDye(dye) ? base + "~" + dye : base;
+		}
+
+		/**
+		 * The sprite for a pet as it is now: Hatchlings and Juveniles look like their
+		 * species; Adults take their path's form ("pet_drake_a"); Ascended ones the same
+		 * form, brighter ("pet_drake_a_x"). Then the pet skin, if any.
+		 */
+		public static function petForm(pet:Object, skin:String):String {
+			var path:String = Data.petPath(pet);
+			if (!path || !DEFS["pet_" + pet.species + "_" + path]) return petSprite(pet.species, skin);
+			var base:String = "pet_" + pet.species + "_" + path;
+			if (Data.petStage(pet) >= 3) {
+				var x:String = base + "_x";
+				if (!DEFS[x]) { var d:Array = DEFS[base]; DEFS[x] = [d[0], brighter(d[1]), d[2]]; }
+				base = x;
+			}
+			return base + (skin && Data.findPetSkin(skin) ? "~" + skin : "");
 		}
 
 		/** The sprite id for a pet species in a pet skin ("" for none). */

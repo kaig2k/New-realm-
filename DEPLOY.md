@@ -98,14 +98,12 @@ Players then join with `play.yourgame.com:2050`.
 | `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
 | `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
 | `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
-| `godmodeKick` | Off by default: players who take almost none of the monster shots the server sees hit them are only flagged (admins are told, and it's logged to `anticheat.log`). Once you've watched the log for a while and trust it, set it to `true` to kick them too. |
 | `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
 | `backupKeep` | How many days of backups to keep (14). |
 | `discordStatusWebhook` | A second Discord webhook (best in its own read-only #status channel). The server posts one message there and keeps editing it every 5 minutes: players online, today's peak, the season leaders, the top guild, this week's Vault twist and the latest Records time. |
 | `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
 | `chatPerTenSeconds` | Chat messages allowed per player per 10 seconds. |
-| `combatCheck` | What happens to a player whose game ignores damage (the damage it reports is far below what the clean hits the server saw must have done, or its health is more than its hero can have): `"kick"` (the default) disconnects them; `"auto"` disconnects them the first time and kills the hero if it happens again within a day; `"kill"` kills the hero at once; `"flag"` only logs it and tells online admins. A hero killed this way goes to the graves, so `/revive` brings it back if it was a mistake. Everything is written to `server/data/anticheat.log`. |
 | `teleportToAnyone` | `true` (the default, like RotMG): players can teleport to anyone in the same world by clicking them on the minimap or with `/tp name`. `false`: only to party and guild members. |
 
 Restart the service after editing: `sudo systemctl restart newrealm`.
@@ -132,6 +130,11 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/stats` shows the server's health: players online and where, world tick time, memory, how late the server is answering, and anti-cheat counts. On the VPS: `curl http://127.0.0.1:2050/stats` (or `stats` in the server console).
 - **Everyone:** `/report name reason` alerts online admins and is logged to `server/data/reports.log`.
 - **Server console** (when running it by hand): `list`, `worlds` (the worlds the server is running, with player and monster counts), `say`, `kick`, `ban`, `unban`, `whois`, `setpassword name password` (for when you're locked out yourself), `realms`, `stop`.
+- **Anti-cheat flags.** The anti-cheat never disconnects or kills anyone by itself (honest players were caught by it). Everything it notices (ignored damage, too much health, ignored hits, impossible moves, walking into dungeons without a portal, refused saves, gold/fame or progress put back) is flagged instead:
+  - `/flags` opens a window of every flagged player, most recent first: their account number, whether they're online, how many times and for what, and the latest few reasons. Each has Whois, Kick (when online), Ban and Clear buttons.
+  - `/flags clear name` takes someone off the list once you've checked them and they're honest.
+  - Online admins also get one chat line per player and kind of flag every 5 minutes.
+  - The list is kept in `server/data/flags.json` (the 200 most recently flagged accounts); the full history is in `server/data/anticheat.log`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.
 - **Admin powers are the server's.** Only accounts in `admins` are admins, and the server decides that, not the game. A changed copy of the game can still open its admin menu, but nothing it does sticks:
   - items the server didn't hand out are refused (as before);
@@ -140,7 +143,7 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - dungeons and raids can only be entered through a portal the server knows about (dropped by its monsters, or opened with a key it takes from the player), and the Dark Elder's chamber only from its Citadel or closing realm;
   - what other players see of someone's level and gear comes from the server's copy;
   - damage: every hit a player's game reports is capped at the biggest hit that hero's gear, stats and skills (as the server knows them) could land, and each monster takes no more damage a second from one player than their weapon, ability and pet could deal (`server/combat.js`). Editing damage numbers or stats in the game changes nothing on the server;
-  - damage taken: the server follows every monster shot and adds up the least each clean hit could have done to that hero (its Defense, with the best Defense aura, as the server knows it). A game reporting far less (an edited Defense, or ignoring hits), or more health than its hero can have, is dealt with as `combatCheck` says.
+  - damage taken: the server follows every monster shot and adds up the least each clean hit could have done to that hero (its Defense, with the best Defense aura, as the server knows it). A game reporting far less (an edited Defense, or ignoring hits), or more health than its hero can have, is flagged (see `/flags`).
   Admins' own saves are trusted, so the admin menu keeps working for real admins.
 
 ### Seasons
@@ -293,7 +296,7 @@ and offline characters, items and currencies can't be brought in. (Older servers
 - **Dodging:** the server follows every monster shot and counts the ones that land cleanly on
   each player (skipping moments a shield wall, Time Stop, dash or similar protects them). The
   game reports the hits it took. Someone taking almost none of many clean hits (godmode) is
-  flagged to admins and logged in `anticheat.log`, and kicked unless `godmodeKick` is `false`.
+  flagged to admins and logged in `anticheat.log` (never kicked: see `/flags`).
   Honest dodging is never punished: only shots that pass right through a player count.
 - **Not yet covered:** the hits a game reports aren't proof; a determined cheater could fake them.
 

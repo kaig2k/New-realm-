@@ -1623,40 +1623,24 @@ async function run() {
     await wait(300);
     // an honest report is left alone
     H.send({ t: 'hits', n: 0, d: 0, hp: 80, mhp: 80 });
-    // ...a game claiming 99,999 health (its hero has 80) is disconnected at the next check
-    const spam = (c) => setInterval(() => c.send({ t: 'hits', n: 0, d: 0, hp: 99999, mhp: 99999 }), 800);
-    let t1 = spam(H);
-    for (let k = 0; k < 30 && !H.find((m) => m.t === 'kicked'); k++) await wait(500);
-    clearInterval(t1);
-    const k1 = H.find((m) => m.t === 'kicked');
-    check('a game claiming more health than its hero can have is disconnected (and warned)', k1 && /If it happens again your hero dies/.test(k1.msg), JSON.stringify(k1));
-    H.s.destroy();
-    H = await login(nm, { password: 'pass1234' });
-    goIn(H);
-    await wait(300);
-    t1 = spam(H);
-    for (let k = 0; k < 30 && !H.find((m) => m.t === 'kicked'); k++) await wait(500);
-    clearInterval(t1);
-    const k2 = H.find((m) => m.t === 'kicked');
-    check('...and the second time that day its hero dies', k2 && /your hero died/.test(k2.msg), JSON.stringify(k2));
-    H.s.destroy();
-    H = await login(nm, { password: 'pass1234' });
-    const after = H.find((m) => m.t === 'welcome').save;
-    check('the hero is gone from the account', after && !(after.chars || []).some((h) => h && h.id === 'hh1'));
-    H.clear();
-    H.send({ t: 'save', data: { gold: 0, fame: 0, chars: [hero], tradeSeq: after.tradeSeq } });
-    await wait(450);
+    // ...a game claiming 99,999 health (its hero has 80) is flagged for the admins, never disconnected
     const bz2 = await login('TestBoss', { password: 'pass1234' });
-    bz2.send({ t: 'cmd', text: '/graves ' + nm });
-    await wait(250);
-    const gl = bz2.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join('\n');
-    check('a save that still has it can\'t bring it back, and it waits in the graves (killed by the anti-cheat)', /1\) Hpx.*the anti-cheat/.test(gl), gl);
-    bz2.send({ t: 'cmd', text: '/revive ' + nm + ' 1' });
+    const t1 = setInterval(() => H.send({ t: 'hits', n: 0, d: 0, hp: 99999, mhp: 99999 }), 800);
+    const told = () => bz2.msgs.find((m) => m.t === 'msg' && /\[Anti-cheat\] /.test(m.text) && m.text.includes(nm + ' (health)'));
+    for (let k = 0; k < 50 && !told(); k++) await wait(500);
+    clearInterval(t1);
+    check('a game claiming more health than its hero can have is flagged to the admins', !!told(), JSON.stringify(bz2.msgs.filter((m) => m.t === 'msg').slice(-3)));
+    check('...and is not disconnected', !H.find((m) => m.t === 'kicked') && !H.s.destroyed, JSON.stringify(H.find((m) => m.t === 'kicked')));
+    bz2.send({ t: 'cmd', text: '/flags' });
     await wait(300);
-    H.s.destroy();
-    H = await login(nm, { password: 'pass1234' });
-    const back = H.find((m) => m.t === 'welcome').save;
-    check('...so an admin can bring it back if it was a mistake', back && (back.chars || []).some((h) => h && h.id === 'hh1'));
+    const fl = bz2.find((m) => m.t === 'flags');
+    const me = fl && fl.list.find((f) => f.name === nm);
+    check('/flags lists the flagged player, why, and that they\'re online', me && me.kinds.health >= 1 && me.online && me.notes[0] && /health/.test(me.notes[0].note), JSON.stringify(fl));
+    bz2.clear();
+    bz2.send({ t: 'cmd', text: '/flags clear ' + nm });
+    await wait(300);
+    const fl2 = bz2.find((m) => m.t === 'flags');
+    check('/flags clear name takes them off the list', fl2 && !fl2.list.some((f) => f.name === nm), JSON.stringify(fl2));
     for (const c of [H, bz2]) c.s.destroy();
   }
 

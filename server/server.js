@@ -444,6 +444,7 @@ function renameAccount(key, name) {
     store.renameSave(key, nk);
     if (bans[key]) { bans[nk] = bans[key]; delete bans[key]; save('bans.json', bans); }
     if (accountMeta.has(key)) { accountMeta.set(nk, accountMeta.get(key)); accountMeta.delete(key); }
+    if (flags[key]) { flags[nk] = flags[key]; flags[nk].name = name; delete flags[key]; store.saveTable('flags.json', flags); }
     const sc = ladder.t && ladder.t.scores;
     if (sc && sc[key]) { sc[nk] = sc[key]; delete sc[key]; }
   }
@@ -678,7 +679,7 @@ function applySave(c, data, cid) {
   if (why) {
     log('refused save from ' + c.name + ': ' + why);
     counters.savesRefused++;
-    store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why);
+    flag(c, 'save refused', why);
     c.send({ t: 'saveRejected', reason: why, data: publicSave(prev) });
     return false;
   }
@@ -702,7 +703,7 @@ function applySave(c, data, cid) {
     if (cut) {
       log('wallet ' + c.name + ': ' + cut);
       counters.savesCut++;
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + cut);
+      flag(c, 'gold/fame cut', cut);
       c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
     // and hero progress (XP, levels, stats, skill points, potions, backpacks, the pet) only by what was earned
@@ -711,7 +712,7 @@ function applySave(c, data, cid) {
       const why2 = 'put back: ' + fixed.join('; ');
       log('progress ' + c.name + ': ' + why2);
       counters.savesCut++;
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': ' + why2);
+      flag(c, 'progress put back', fixed.join('; '));
       modeFixes.push('The server put back what its records don\'t show you earned (' + fixed.join('; ') + ').');
     }
   } else {
@@ -864,7 +865,7 @@ const handlers = {
     // dungeons and raids only through an open portal (a changed game can't walk into one)
     if (!mayEnter(c, world, c.world)) {
       log(c.name + ' tried to enter ' + world + ' without a portal');
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': entered ' + world + ' without a portal');
+      flag(c, 'no portal', 'entered ' + world + ' without a portal');
       c.send({ t: 'toNexus', msg: 'That portal has closed.' });
       world = 'solo:closed:' + c.id;
     }
@@ -997,7 +998,8 @@ const handlers = {
     }
     // health beyond what the hero can have (its saved stats and gear): an edited game
     if (m.mhp !== undefined && c.caps && c.caps.maxHp > 0) {
-      const top = c.caps.maxHp * 1.02 + 5;
+      // (the server's copy is from the last save: a level-up, potion or armour since then adds health)
+      const top = c.caps.maxHp * 1.1 + 60;
       if (num(m.hp) > top || num(m.mhp) > top) c.hpOver = (c.hpOver || 0) + 1;
       else c.hpOver = 0;
       c.hpSeen = { hp: num(m.hp), mhp: num(m.mhp), top: Math.round(top) };
@@ -1716,6 +1718,17 @@ const handlers = {
         store.appendLog('admin.log', new Date().toISOString() + ' ' + c.name + ' renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn);
         return c.note('Renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn + '.', 0x80ff80);
       }
+      case '/flags': {
+        // /flags: the window of everyone the anti-cheat flagged; /flags clear name: forget one (checked, honest)
+        if ((parts[1] || '').toLowerCase() === 'clear') {
+          const k = accountKey(parts[2] || '');
+          if (!k || !flags[k]) return c.note('Usage: /flags clear name (someone on the list)');
+          delete flags[k];
+          store.saveTable('flags.json', flags);
+          c.note('Cleared ' + (accounts[k] ? accounts[k].name : parts[2]) + ' from the flagged list.', 0x80ff80);
+        }
+        return c.send({ t: 'flags', list: flagList() });
+      }
       case '/whois': {
         // /whois name or #number: the account at a glance (also helps check someone really owns it)
         if (!accounts[who]) return c.note('Usage: /whois name or /whois #number');
@@ -1813,44 +1826,51 @@ const handlers = {
 const { godmodeVerdict, damageVerdict } = require('./godmode');
 
 /**
- * A player whose game ignored damage it took (config "combatCheck"): "flag" only tells the admins,
- * "kick" (the default) disconnects, "kill" kills the hero (it goes to the graves, so /revive can
- * undo a mistake), and "auto" kicks the first time and kills if it happens again within a day.
+ * The anti-cheat never disconnects or kills anyone (honest players were caught by
+ * it): it only flags. Each flag goes to anticheat.log and to the account's line in
+ * flags.json, and online admins are told (once every 5 minutes per player and kind).
+ * Admins see every flagged player with /flags and decide for themselves (/kick, /ban).
  */
-function enforce(c, note) {
-  const mode = ['flag', 'kick', 'kill', 'auto'].includes(config.combatCheck) ? config.combatCheck : 'kick';
-  if (mode === 'flag') return false;
-  const again = c.meta && Date.now() - (c.meta.cheatAt || 0) < 24 * 3600 * 1000;
-  if (c.meta) c.meta.cheatAt = Date.now();
-  if (mode === 'kill' || (mode === 'auto' && again)) {
-    const ch = serverChar(c);
-    if (ch) {
-      const sv = onlineSave(c.key);
-      sv.chars = (sv.chars || []).filter((h) => h !== ch);
-      if (!Array.isArray(sv._graves)) sv._graves = [];
-      sv._graves.unshift({ hero: JSON.parse(JSON.stringify(ch)), at: Date.now(), book: (sv._fame && sv._fame[ch.id]) || 0, fame: 0, killer: 'the anti-cheat', died: true });
-      if (sv._graves.length > graves.KEEP) sv._graves.length = graves.KEEP;
-      // (a save that still has it can't bring it back: see applySave)
-      sv._dead = (Array.isArray(sv._dead) ? sv._dead : []).concat([ch.id]).slice(-50);
-      sv.tradeSeq = (sv.tradeSeq || 0) + 1;
-      store.putSave(c.key, sv);
-      log(c.name + ': hero ' + (ch.name || ch.id) + ' killed by the anti-cheat (' + note + ')');
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': hero killed (' + note + ')');
-      c.send({ t: 'kicked', msg: 'Your game ignored damage it took again, so your hero died. If you think this is a mistake, tell an admin: they can bring it back.' });
-      c.close(true);
-      return true;
-    }
+const flags = store.loadTable('flags.json', {});
+const FLAG_KEEP = 200, FLAG_NOTES = 8;
+function flag(c, kind, note) {
+  const now = Date.now();
+  store.appendLog('anticheat.log', new Date(now).toISOString() + ' ' + c.name + ' [' + kind + ']: ' + note);
+  if (!c.key) return;
+  const f = flags[c.key] || (flags[c.key] = { name: c.name, n: 0, first: now, last: 0, kinds: {}, notes: [] });
+  f.name = c.name;
+  f.n++;
+  f.last = now;
+  f.kinds[kind] = (f.kinds[kind] || 0) + 1;
+  f.notes.unshift({ at: now, kind, note: String(note).slice(0, 200), world: String(c.world || '').split(':')[0] });
+  if (f.notes.length > FLAG_NOTES) f.notes.length = FLAG_NOTES;
+  // only the most recently flagged accounts are kept
+  const keys = Object.keys(flags);
+  if (keys.length > FLAG_KEEP) {
+    keys.sort((a, b) => flags[a].last - flags[b].last);
+    for (const k of keys.slice(0, keys.length - FLAG_KEEP)) delete flags[k];
   }
-  counters.godmodeKicks++;
-  c.send({ t: 'kicked', msg: 'Your game ignored damage it took, so you were disconnected.' + (mode === 'auto' ? ' If it happens again your hero dies.' : '') + ' If you think this is a mistake, tell an admin.' });
-  c.close(true);
-  return true;
+  store.saveTable('flags.json', flags);
+  if (!c.flagTold) c.flagTold = {};
+  if (now - (c.flagTold[kind] || 0) > 300000) {
+    c.flagTold[kind] = now;
+    for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + c.name + ' (' + kind + '): ' + note + '  (/flags to see everyone flagged)', 0xffb040);
+  }
+}
+
+/** The flagged accounts, most recent first (for the /flags window). */
+function flagList() {
+  return Object.keys(flags).sort((a, b) => flags[b].last - flags[a].last).map((k) => {
+    const f = flags[k];
+    return { name: (accounts[k] && accounts[k].name) || f.name, no: (accounts[k] && accounts[k].no) || 0, online: byName.has(k),
+      n: f.n, first: f.first, last: f.last, kinds: f.kinds, notes: f.notes };
+  });
 }
 
 // ------------------------------------------------------------------ server health (/stats)
 /** NEWREALM_SLOW_LOG=1: log any message that takes the server over 30 ms (for load tests). */
 const SLOW_LOG = !!process.env.NEWREALM_SLOW_LOG;
-const counters = { startedAt: Date.now(), godmodeFlags: 0, godmodeKicks: 0, savesCut: 0, savesRefused: 0, peak: 0 };
+const counters = { startedAt: Date.now(), godmodeFlags: 0, savesCut: 0, savesRefused: 0, peak: 0 };
 /** How late the event loop runs (ms): a busy server answers everyone late. */
 let loopLag = 0, loopLagMax = 0;
 {
@@ -1879,7 +1899,7 @@ function statsLines() {
     lines.push(st.worlds + ' worlds, ' + st.monsters + ' monsters; world tick ' + st.avgMs + ' ms avg, ' + st.p99Ms + ' ms worst 1% (budget 50)');
   }
   lines.push('Memory ' + Math.round(mem.rss / 1048576) + ' MB; event loop late by ' + loopLag + ' ms (recent worst ' + Math.round(loopLagMax) + ')');
-  lines.push('Anti-cheat since start: ' + counters.godmodeFlags + ' godmode flags, ' + counters.godmodeKicks + ' kicks (kicking ' + (config.godmodeKick === true ? 'on' : 'off') + '), ' +
+  lines.push('Anti-cheat since start: ' + counters.godmodeFlags + ' godmode flags (flag only: /flags), ' +
     counters.savesCut + ' saves cut back, ' + counters.savesRefused + ' refused');
   return lines;
 }
@@ -1893,7 +1913,7 @@ function godmodeCheck() {
     // the damage those hits did, and the health the game says it has
     const expD = (c.expDmg || 0) - (c.expDmgBase || 0), tookD = (c.dmgRep || 0) - (c.dmgBase || 0);
     const dmgBad = c.sendsDmg && damageVerdict(exp, expD, tookD);
-    const hpBad = (c.hpOver || 0) >= 3;
+    const hpBad = (c.hpOver || 0) >= 6;
     // (a game that never says what damage it took is too old, or changed: it has to be the current one)
     const silent = !c.sendsDmg && exp >= 40;
     if (dmgBad || hpBad || silent) {
@@ -1901,23 +1921,15 @@ function godmodeCheck() {
         : hpBad ? ' has ' + c.hpSeen.hp + '/' + c.hpSeen.mhp + ' health, more than its hero can have (' + c.hpSeen.top + ')' : '\'s game does not report the damage it takes');
       log('anti-cheat ' + note);
       counters.godmodeFlags++;
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + note);
-      for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + note, 0xffb040);
-      if (silent) { c.send({ t: 'kicked', msg: 'Your game is out of date. Open it again to get the latest version.' }); c.close(true); continue; }
-      if (enforce(c, note)) continue;
+      flag(c, dmgBad ? 'damage taken' : hpBad ? 'health' : 'old game', note.slice(c.name.length).replace(/^'s /, '').trim());
+      if (silent && !c.toldOld) { c.toldOld = true; c.note('Your game is out of date. Open it again to get the latest version.', 0xff8080); }
+      if (hpBad) c.hpOver = 0;
     }
     if (v) {
       const note = c.name + ' took ' + took + ' of ' + exp + ' clean monster hits (godmode?)';
       log('godmode ' + note);
       counters.godmodeFlags++;
-      store.appendLog('anticheat.log', new Date().toISOString() + ' ' + note);
-      if (Date.now() - (c.flaggedAt || 0) > 300000) {
-        c.flaggedAt = Date.now();
-        for (const a of byName.values()) if (isAdmin(a)) a.note('[Anti-cheat] ' + note, 0xffb040);
-      }
-      // (kicking is off unless config.json says "godmodeKick": true: until you've seen the log, honest players are only flagged)
-      // (kicking on the hit count alone is off unless config.json says "godmodeKick": true; the damage check above acts by itself)
-      if (v === 'kick' && config.godmodeKick === true) { if (enforce(c, note)) continue; }
+      flag(c, 'hits ignored', 'took ' + took + ' of ' + exp + ' clean monster hits');
     }
     // a settled window starts again (so an old good record can't hide new cheating)
     if (exp >= 60 || v) { c.expBase = c.expHits || 0; c.hitsBase = c.hitsRep || 0; c.expDmgBase = c.expDmg || 0; c.dmgBase = c.dmgRep || 0; }
@@ -1965,7 +1977,7 @@ function moveAllowed(c, nx, ny) {
   if (mv.strikes === 1) mv.strikeT = now;
   if (mv.strikes === 15) {
     log('movement refused for ' + c.name + ': ' + why);
-    store.appendLog('anticheat.log', new Date().toISOString() + ' ' + c.name + ': 15 impossible moves in a minute (' + why + ') in ' + c.world);
+    flag(c, 'movement', '15 impossible moves in a minute (' + why + ') in ' + c.world);
   }
   return false;
 }

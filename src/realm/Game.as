@@ -153,6 +153,7 @@ package realm {
 		private var playerMenu:Sprite;
 		private var tradeWin:TradeWindow;
 		private var inspectWin:InspectWindow;
+		private var flagsWin:FlagsWindow;
 		private var requestPopup:Sprite;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
@@ -350,8 +351,10 @@ package realm {
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
-					if (net.online && Online.welcome && Online.welcome.admin)
+					if (net.online && Online.welcome && Online.welcome.admin) {
 						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  /rename name newname  /heroname name hero newname  (any name can be #number)", 0xffb040);
+						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)", 0xffb040);
+					}
 					break;
 				case "/p":
 					var pt:String = t.substr(3);
@@ -386,7 +389,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
+				case "/flags": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
 					break;
@@ -968,7 +971,7 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1403,12 +1406,13 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || playerMenu || social || wiki || skillWin)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
 				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
 				else if (social) toggleSocial();
 				else if (inspectWin) closeInspect();
+				else if (flagsWin) closeFlags();
 				else closeTrade();
 				input.endFrame();
 			}
@@ -5994,6 +5998,20 @@ package realm {
 				inspectWin.y = 36;
 				addChild(inspectWin);
 			});
+		}
+
+		/** Admins: the anti-cheat's flagged players (the server's answer to /flags). */
+		public function openFlags(list:Array):void {
+			closeFlags();
+			flagsWin = new FlagsWindow(this, list);
+			flagsWin.x = int((VIEW_W - FlagsWindow.W) / 2);
+			flagsWin.y = 30;
+			addChild(flagsWin);
+		}
+
+		public function closeFlags():void {
+			if (flagsWin && flagsWin.parent) { removeChild(flagsWin); refocus(); }
+			flagsWin = null;
 		}
 
 		public function closeInspect():void {

@@ -27,7 +27,8 @@ package realm {
 		private var band:Shape = new Shape();
 		private var holder:Sprite = new Sprite();
 		private var icon:Bitmap;
-		private var title:TextField, nameTf:TextField, sub:TextField;
+		private var title:FancyTitle;
+		private var nameTf:TextField, sub:TextField;
 		private var sparks:Array = [];
 		private var sparkLayer:Sprite = new Sprite();
 		private var w:int, h:int, cy:int;
@@ -89,10 +90,8 @@ package realm {
 			holder.scaleX = holder.scaleY = 0;
 			addChild(holder);
 			// the words
-			title = Ui.text(40, godly ? 0xfff6e0 : col, true, "center", w, true);
-			title.text = godly ? "G O D L Y   D R O P !" : "P R I M O R D I A L   D R O P !";
-			title.y = cy - 150;
-			title.filters = [new GlowFilter(col, 1, 18, 18, 3), new GlowFilter(0x000000, 1, 4, 4, 6)];
+			title = new FancyTitle(godly ? "GODLY DROP!" : "PRIMORDIAL DROP!", godly);
+			title.x = w / 2; title.y = cy - 98;
 			addChild(title);
 			nameTf = Ui.text(24, col, true, "center", w, true);
 			nameTf.text = item.name;
@@ -142,12 +141,8 @@ package realm {
 			var gf:GlowFilter = new GlowFilter(col, 1, 18 + Math.sin(t * 5) * 8, 18 + Math.sin(t * 5) * 8, 3);
 			holder.filters = [gf];
 			// the title slides in and shimmers (Godly: through pale gold, white and a touch of every colour)
-			title.alpha = nameTf.alpha = sub.alpha = Math.min(1, t * 3);
-			title.y = cy - 150 - Math.max(0, 0.3 - t) * 120;
-			if (godly) {
-				var hue:Number = (t * 0.6) % 1;
-				title.textColor = mix(0xfff6e0, hsv(hue), 0.3 + 0.2 * Math.sin(t * 4));
-			} else title.textColor = mix(col, 0xffd0a0, 0.5 + 0.5 * Math.sin(t * 6));
+			nameTf.alpha = sub.alpha = Math.max(0, Math.min(1, (t - 0.5) * 3));
+			title.update(t, dt);
 			for (var i:int = sparks.length - 1; i >= 0; i--) {
 				var sp:Object = sparks[i];
 				sp.life -= dt;

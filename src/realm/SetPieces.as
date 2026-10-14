@@ -35,7 +35,9 @@ package realm {
 			fire: {floor: World.ASH, alt: World.BRICK, trim: World.LAVA, hz: World.LAVA, a: 7, b: 6, c: 7},
 			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
 			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
-			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23}
+			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23},
+			// Vorgath's war camp: ash and roads, a palisade, braziers, tents and war banners, lava trenches
+			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19}
 		};
 
 		public static const LAYOUTS:Object = {
@@ -347,6 +349,28 @@ package realm {
 				"  -,,b,,.....,,b,,-  ",
 				"   --,,,,,,,,,,,--   ",
 				"     -----------     "],
+			siege: [
+				"---------------------",
+				"-,,,,,,,c,,,c,,,,,,,-",
+				"-,#######:::#######,-",
+				"-,#.b..a..:..a..b.#,-",
+				"-,#b~.....:.....~b#,-",
+				"-,#.~P....:....P~.#,-",
+				"-,#...~...:...~...#,-",
+				"-,#a..~~..:..~~..a#,-",
+				"-c#....~~.:.~~....#c-",
+				"-,:.....~.:.~.....:,-",
+				"-,::::::::B::::::::,-",
+				"-,:.....~.:.~.....:,-",
+				"-c#....~~.:.~~....#c-",
+				"-,#a..~~..:..~~..a#,-",
+				"-,#...~...:...~...#,-",
+				"-,#.~P....:....P~.#,-",
+				"-,#b~.....:.....~b#,-",
+				"-,#.b..a..:..a..b.#,-",
+				"-,#######:::#######,-",
+				"-,,,,,,,c,,,c,,,,,,,-",
+				"---------------------"],
 			reef: [
 				"     ~~~~~~~~~~~     ",
 				"   ~~~----~----~~~   ",
@@ -431,7 +455,30 @@ package realm {
 					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false, ch: ch, c: c, r: r});
 				}
 			}
+			if (Bosses.SETPIECES[id].style == "siege") scorch(w, cx, cy, out);
 			return out;
+		}
+
+		/**
+		 * Vorgath's war camp scorches the land around it: ash out to about 14 tiles
+		 * (ragged, the same for everyone), trees burnt to dead husks. Its tiles are
+		 * marked 's', so the camp's last phase can set them all alight.
+		 */
+		private static function scorch(w:World, cx:int, cy:int, out:Array):void {
+			for (var y:int = cy - 16; y <= cy + 16; y++) for (var x:int = cx - 16; x <= cx + 16; x++) {
+				var dx:int = x - cx, dy:int = y - cy;
+				if (Math.max(dx < 0 ? -dx : dx, dy < 0 ? -dy : dy) <= HALF) continue;
+				var d:Number = Math.sqrt(dx * dx + dy * dy);
+				if (d > 13 + ((x * 7 + y * 13) % 5) * 0.6) continue;
+				if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
+				var i:int = y * w.N + x;
+				var t:int = w.tiles[i], z:int = w.zones[i], o:int = w.objs[i];
+				if (t == World.WATER || t == World.VOID || t == World.WALL || t == World.LAVA || z == World.SAFE_ZONE || z == World.NEXUS_ZONE) continue;
+				if (o >= 14 && o <= 18) continue;
+				var nt:int = ((x * 73856093) ^ (y * 19349663)) % 13 == 0 ? World.OBSIDIAN : World.ASH;
+				var no:int = o == 1 || o == 2 || o == 3 ? 6 : o;
+				out.push({i: i, x: x, y: y, t: t, o: o, nt: nt, no: no, d: d, on: false, ch: "s", c: dx + HALF, r: dy + HALF});
+			}
 		}
 
 		/** Lays down the planned tiles within `upto` of the centre (all of them by default). Returns how many changed. */
@@ -575,6 +622,13 @@ package realm {
 			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
 				msg: "The Kraken drags the reef under! The water floods inward!"}],
 			// the Star Throne changes three times as Astraeon weakens
+			// Vorgath's camp: the palisade falls with its ballistas, the trenches overflow, then everything outside burns
+			siege: [{when: "broken", sel: "walls", to: "floor", spawn: "siege_soldier", n: 6, col: 0xffa020,
+				msg: "The ballistas fall and the palisade collapses! Vorgath's guard pours through the breach!"},
+				{when: "hp", at: 0.55, sel: "widen", to: "hz", col: 0xff6010,
+				msg: "The trenches overflow! Rivers of fire split the war camp!"},
+				{when: "hp", at: 0.3, sel: "ring", a: 9.5, b: 99, to: "hz", col: 0xff3010,
+				msg: "THE WAR CAMP BURNS! The flames close in from every side: stay near Vorgath!"}],
 			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
 				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,

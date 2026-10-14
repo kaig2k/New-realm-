@@ -541,7 +541,12 @@ class WorldSim {
    * then the tiles change and any reinforcements come out.
    */
   updateArena(dt) {
-    const b = this.w.boss;
+    this.arenaFor(this.w.boss, dt);
+    // (the Siege's Warlord has a war camp of his own, besides any realm event)
+    if (this.siege && this.siege.e !== this.w.boss) this.arenaFor(this.siege.e, dt);
+  }
+
+  arenaFor(b, dt) {
     if (!b || b.dead || !b.arena) return;
     if (b.spPend) {
       b.spPend.t -= dt;
@@ -633,7 +638,7 @@ class WorldSim {
         if (dx * dx + dy * dy < 24 * 24 || (e.hitters && e.hitters.get(c.id) > 0)) n++;
       }
       n = Math.max(1, Math.min(20, n));
-      const d = e.def, endgame = d.raid || d.finale || d.final || d.dtier >= 5;
+      const d = e.def, endgame = d.raid || d.finale || d.final || d.siege || d.dtier >= 5;
       const mult = 1 + (endgame ? 0.75 : 0.5) * (n - 1);
       if (mult <= e.scaleMult + 0.01) continue;
       const frac = e.hp / e.maxHp;
@@ -990,11 +995,23 @@ class WorldSim {
     const w = this.w;
     // (not while a realm event boss is up or the realm is about to close: its finale would cut the siege short)
     if (this.kind !== 'realm' || this.siege || w.closed || this.closeT > 0 || (w.boss && !w.boss.dead) || w.eventsDone >= Data.EVENTS_PER_REALM - 1) return false;
-    for (let tries = 0; tries < 800; tries++) {
+    for (let tries = 0; tries < 1500; tries++) {
       const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5;
       if (w.zoneAt(x, y) !== World.GOD_ZONE || !w.canStand(x, y, 1.2, true)) continue;
-      const e = this.spawn('siege_warlord', x, y, World.GOD_ZONE, true);
-      if (!e) return false;
+      // (his war camp has to fit: the later tries settle for less)
+      if (tries < 1200 && !SetPieces.fits('siege_warlord', w, Math.floor(x), Math.floor(y))) continue;
+      // the camp rises first, so he and his ballistas stand on it
+      const cells = SetPieces.plan('siege_warlord', w, Math.floor(x), Math.floor(y));
+      SetPieces.apply(w, cells);
+      const e = new Enemy('siege_warlord', x, y, World.GOD_ZONE);
+      e.arena = cells;
+      this.add(e);
+      this.unstick(cells);
+      e.props = [];
+      for (const sp of Bosses.setPieceSpots('siege_warlord', x, y, w)) {
+        const pr = this.spawn(sp.what, sp.x, sp.y, World.GOD_ZONE, true);
+        if (pr) e.props.push(pr);
+      }
       this.siege = { e, left: SIEGE_TIME, waveT: 20, sendT: 0 };
       this.siegeSoldiers(4);
       this.siegeStatus(true);
@@ -1030,7 +1047,9 @@ class WorldSim {
   /** Time's up (or the siege can't go on): he marches away, and his soldiers with him. */
   siegeFail() {
     const e = this.siege.e;
-    for (const o of this.enemies) if (!o.dead && (o === e || o.defId === 'siege_soldier')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+    for (const o of this.enemies) if (!o.dead && (o === e || o.defId === 'siege_soldier' || o.defId === 'siege_ballista')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+    // (his camp comes down with him)
+    if (e.arena) { SetPieces.undo(this.w, e.arena); e.arena = null; }
     this.siege = null;
     for (const c of this.players.values()) c.send({ t: 'siege', on: false, lost: true });
     if (this.onSiege) this.onSiege(this, 'fail', { name: e.def.name });

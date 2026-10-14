@@ -2397,6 +2397,11 @@ package realm {
 			var dx:Number = x - player.x, dy:Number = y - player.y;
 			var d:Number = Math.sqrt(dx * dx + dy * dy);
 			if (d < 14) Sfx.play(name, vol * (1 - d / 14 * 0.85), gap);
+			// a great hammer coming down: the ground shakes (harder the closer you are) and the dust flies
+			if (name == "slam" && d < 22) {
+				shake(0.45, Math.max(2, 9 * (1 - d / 22)));
+				burst(x, y, 0xff7a1a, 18);
+			}
 		}
 
 		/** Spider webs left on the ground: they slow you while you stand in them. */
@@ -4158,6 +4163,8 @@ package realm {
 			if (world.raid) return world.raid.id == "storm" ? [0x001030, 0.18] : [0x500010, 0.16];
 			if (world.kind == "dungeon") return [0x000010, 0.12];
 			if (world.kind == "arena") return [0x300008, 0.12];
+			// a Realm Siege: the sky over the whole realm burns
+			if (world.kind == "realm" && siegePanel && siegePanel.active) return [0x3a0800, 0.22];
 			if (world.kind == "abyss") return [0x1a0030, 0.2];
 			if (world.kind != "realm") return [0x000000, 0];
 			switch (world.zoneAt(player.x, player.y)) {
@@ -4231,6 +4238,7 @@ package realm {
 			if (world.raid) return world.raid.id == "storm" ? ["rain", [0xb0c8ff], 70] : ["ash", [0xa01020, 0x501010], 14];
 			if (world.kind == "nexus") return ["mote", [0xffe080, 0xfff0c0], 4];
 			if (world.kind == "arena") return ["ember", [0xff3040, 0xff8040], 10];
+			if (world.kind == "realm" && siegePanel && siegePanel.active) return ["ember", [0xff7a1a, 0xff3010, 0xffb040], 16];
 			if (world.kind == "abyss") return ["ember", [0xa040ff, 0xd080ff, 0x6020c0], 16];
 			if (world.kind == "dungeon") {
 				var th:Object = world.theme;

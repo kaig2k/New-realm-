@@ -1,4 +1,4 @@
-**📜 ELDMERE UPDATE: Endgame, Pets & More** (part 1/4)
+**📜 ELDMERE UPDATE: Endgame, Pets & More** (part 1/5)
 
 **🕳️ The Endless Abyss**
 A new portal in the Nexus east wing (or `/abyss`) leads level 20 heroes to a **floating arena in the void**, where the waves never stop.
@@ -10,12 +10,18 @@ A new portal in the Nexus east wing (or `/abyss`) leads level 20 heroes to a **f
 • Pick a **boon** after each boss wave. Weekly leaderboard for each class: the #1s earn **Abyss Champion**
 
 **⚔️ Realm Siege**
-Every 2 hours, **Vorgath the Siege Warlord** attacks the Godlands with his army.
-• 15 minutes to bring him down, or he leaves
-• He gets stronger the more players fight him
-• Live panel showing his HP, time left, the top 3 damage dealers and your own share
-• Loot depends on how much damage you did, and the **MVP** gets an extra roll
-• 3 new Starforged uniques. Titles: **Siegebreaker** (MVP) and **Realm Defender**
+Every 2 hours, **Vorgath the Siege Warlord** marches on the Godlands. And he's HUGE now.
+• Brand-new giant boss with his own animations: horned helm, molten armour, a siege hammer that cracks the ground when it lands
+• His **war camp** rises from the Godlands around him (palisade, lava trenches, tents, siege ballistas) and the land burns
+• The sky over the whole realm turns blood red while he's there
+• 5 phases: the March, Siege Engines, the Charge, the Camp Burns, the Last Stand
+• Break the ballistas to bring the palisade down, survive the overflowing trenches, then the whole camp catches fire
+• 15 minutes to bring him down. Loot depends on your damage share, and the **MVP** gets an extra roll
+• 3 Starforged uniques. Titles: **Siegebreaker** (MVP) and **Realm Defender**
+
+---
+
+**📜 ELDMERE UPDATE** (part 2/5)
 
 **🏰 Guild Territory**
 Four **Spires** stand at the edge of the Godlands. Stand by one with your guild to capture it.
@@ -26,7 +32,7 @@ Four **Spires** stand at the edge of the Godlands. Stand by one with your guild 
 
 ---
 
-**📜 ELDMERE UPDATE** (part 2/4)
+**📜 ELDMERE UPDATE** (part 3/5)
 
 **✨ Ascension**
 A level 20 hero with all 11 stats maxed can **Ascend** (`/ascend`, or the button in the Skill Tree).
@@ -46,7 +52,7 @@ A level 20 hero with all 11 stats maxed can **Ascend** (`/ascend`, or the button
 
 ---
 
-**📜 ELDMERE UPDATE** (part 3/4)
+**📜 ELDMERE UPDATE** (part 4/5)
 
 **🐾 Pets Overhaul**
 • Pets now **level up from the XP you earn** in realms. No more paying to feed them
@@ -71,7 +77,7 @@ Big full-screen reveals with animated metal titles: white gold for Godly, molten
 
 ---
 
-**📜 ELDMERE UPDATE** (part 4/4)
+**📜 ELDMERE UPDATE** (part 5/5)
 
 **🛒 Marketplace**
 Brand-new full-size window: search, filters (kind, class, price), sorting, a scrolling item grid, a selling page and My Listings.

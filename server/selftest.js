@@ -539,6 +539,21 @@ async function run() {
     check('a siege starts in the realm\'s Godlands, with soldiers', ws.startSiege() && ws.siege && SW.GOD_ZONE === ws.w.zoneAt(ws.siege.e.x, ws.siege.e.y) &&
       ws.enemies.some((e) => e.defId === 'siege_soldier') && !ws.startSiege());
     const e = ws.siege.e;
+    // his war camp: laid into the realm round him, with four ballistas and scorched earth beyond
+    const camp = e.arena || [];
+    const scorched = camp.filter((k) => k.ch === 's');
+    check('Vorgath\'s war camp rises round him: palisade, lava trenches, four ballistas, scorched ground', camp.length > 300 && e.props.length === 4 &&
+      e.props.every((p) => p.defId === 'siege_ballista') && camp.some((k) => k.ch === '#' && ws.w.tiles[k.i] === SW.WALL) &&
+      camp.some((k) => k.ch === '~' && ws.w.tiles[k.i] === SW.LAVA) && scorched.length > 40, [camp.length, e.props.length, scorched.length].join(' '));
+    // breaking the ballistas brings the palisade down (after the warning)
+    for (const pr of e.props) { pr.hitters.set(70, 1); ws.kill(pr); }
+    ws.updateArena(0.05); ws.updateArena(3);
+    check('...break its ballistas and the palisade comes down (and his guard storms in)', camp.filter((k) => k.ch === '#').every((k) => ws.w.tiles[k.i] !== SW.WALL) && (e.spMask & 1));
+    // at 30% the camp burns: everything outside the palisade turns to fire
+    e.hp = e.maxHp * 0.25;
+    for (let k = 0; k < 4; k++) { ws.updateArena(0.05); ws.updateArena(3); }
+    check('...and at 30% the whole camp outside the palisade burns', scorched.filter((k) => k.d >= 9.5).every((k) => ws.w.tiles[k.i] === SW.LAVA), String(e.spMask));
+    e.hp = e.maxHp;
     check('...and everyone in the realm gets the siege panel', sent.every((l) => l.some((m) => m.t === 'siege' && m.on && m.id === e.id && m.left > 800)));
     for (const p of ps) { p.x = e.x; p.y = e.y + 2; }
     // S0 does most of the damage, S1 some, S2 a scratch (under half a percent: no loot)
@@ -558,9 +573,11 @@ async function run() {
     let r2 = null;
     ws2.onSiege = (sim, kind) => { r2 = kind; };
     ws2.startSiege();
+    const camp2 = ws2.siege.e.arena.slice();
     ws2.siege.left = 0.01;
     ws2.updateSiege(0.05);
-    check('a siege that isn\'t beaten in 15 minutes ends (the Warlord leaves)', r2 === 'fail' && !ws2.siege && !ws2.enemies.some((o) => !o.dead && (o.defId === 'siege_warlord' || o.defId === 'siege_soldier')));
+    check('a siege that isn\'t beaten in 15 minutes ends (the Warlord leaves)', r2 === 'fail' && !ws2.siege && !ws2.enemies.some((o) => !o.dead && (o.defId === 'siege_warlord' || o.defId === 'siege_soldier' || o.defId === 'siege_ballista')));
+    check('...and his camp comes down with him, the land as it was', camp2.every((k) => ws2.w.tiles[k.i] === k.t && ws2.w.objs[k.i] === k.o));
     check('the Warlord has three Starforged uniques and the titles exist', SD.bossUniques('siege_warlord').length === 3 && SD.findTitle('siege') && SD.findTitle('siegeguard'));
   }
 

@@ -1529,17 +1529,42 @@ class Bosses {
 			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"])) Data.EVENTS.push(ev);
 		}
 	static siege() {
-			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 2600, def: 22, spd: 2.4, xp: 140, col: 0xffa020, keep: 2,
-				attacks: [Bosses.aim(3, 18, 7, 70, 1.2, 0xffa020, {shape: "blade"}), Bosses.aim(1, 0, 5, 80, 2.4, 0xff6010, {motion: "home", r: 0.26})]});
-			Bosses.boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 90000, def: 40, spd: 1.0, xp: 6000, col: 0xff8020,
-				gold: 1500, onrane: 15, r: 1.2, siege: true, scales: true, phases: [
-				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(5, 40, 8, 90, 1.0, 0xffa020, {shape: "blade", r: 0.3}), Bosses.ring(16, 11, 5, 80, 1.6, 0xff6010)]}),
-				Bosses.P(0.75, {say: "SOLDIERS! TO ME!", banner: "The Warlord calls his army!", shield: 3, summon: [{what: "siege_soldier", n: 6}], move: "still",
-					attacks: [Bosses.rain(6, 5, 100, 2.2, 0xff6010, {burst: 6}), Bosses.wall(19, 4.5, 90, 2, 0xffa020, {hole: 3})]}),
-				Bosses.P(0.5, {say: "The walls of this realm will fall!", move: "chase", speed: 1.3,
-					attacks: [Bosses.spiral(6, 10, 6.5, 85, 0.12, 0xffa020), Bosses.nova(2.6, 1.2, 130, 2.6, 0xff4010, {burst: 12})]}),
-				Bosses.P(0.25, {say: "*Vorgath raises the war banner*", banner: "VORGATH IS ENRAGED!", shield: 3, summon: [{what: "siege_soldier", n: 8}], move: "orbit",
-					attacks: [Bosses.flower(24, 7.5, 5.5, 90, 0.9, 0xff8020), Bosses.aim(3, 20, 11, 110, 0.8, 0xffffff, {shape: "blade"}), Bosses.rain(5, 4, 110, 2, 0xff4010)]})
+			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
+				attacks: [Bosses.aim(3, 18, 8, 95, 1.1, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.2, 0xff6010, {motion: "home", r: 0.28})]});
+			
+			Bosses.mob("siege_ballista", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 200, keep: 0, prop: true,
+				name: "Siege Ballista", spr: "siege_ballista", hp: 14000, def: 34, col: 0xff7a1a,
+				attacks: [Bosses.aim(1, 0, 15, 165, 1.3, 0xe8dcc0, {shape: "blade", r: 0.34, life: 1.3}),
+					Bosses.rain(3, 5, 120, 3.2, 0xff5010, {burst: 6, radius: 1.6})]});
+			
+			Bosses.boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 600000, def: 48, spd: 0.9, xp: 9000, col: 0xff7a1a,
+				gold: 3000, onrane: 25, r: 1.8, siege: true, scales: true, aggro: 22, range: 20, phases: [
+				
+				Bosses.P(1, {move: "chase", speed: 0.9, attacks: [
+					Bosses.nova(3.4, 1.3, 170, 3.4, 0xff7a1a, {burst: 18, bspd: 5.5, blife: 1.6, land: "slam", radius: 3.4}),
+					Bosses.aim(7, 54, 9, 115, 1.7, 0xd8d0c0, {shape: "blade", r: 0.3, waves: 2, gap: 0.22}),
+					Bosses.ring(24, 7.5, 5, 100, 2.6, 0xff4020, {shape: "ring"})]}),
+				
+				Bosses.P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 6}],
+					attacks: [Bosses.rain(12, 10, 155, 1.8, 0xff5010, {burst: 8, radius: 1.9}),
+						Bosses.wall(27, 5, 125, 2.3, 0xd8a030, {hole: 3}),
+						Bosses.aim(3, 40, 6, 125, 2.4, 0xff7a1a, {motion: "home", r: 0.34})]}),
+				
+				Bosses.P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "charge", speed: 1.7,
+					attacks: [Bosses.spiral(5, 11, 7, 115, 0.1, 0xff7a1a, {shape: "blade"}),
+						Bosses.flower(16, 9, 6, 125, 1.4, 0xd8a030, {motion: "return"}),
+						Bosses.nova(3, 1.1, 180, 3, 0xff3010, {burst: 14, eff: "armorbroken", land: "slam", radius: 3})]}),
+				
+				Bosses.P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS!", shield: 3, move: "orbit", speed: 1.2,
+					summon: [{what: "siege_soldier", n: 8}], every: 2.6, cycle: [
+						[Bosses.spiral(8, 9, 6.5, 125, 0.09, 0xff7a1a), Bosses.aim(1, 0, 11, 140, 0.9, 0xfff0b0, {eff: "paralyzed", r: 0.3})],
+						[Bosses.wall(31, 5.5, 130, 1.3, 0xd8a030, {hole: 3}), Bosses.rain(8, 7, 150, 1.4, 0xff5010, {burst: 10})],
+						[Bosses.flower(24, 7.5, 6.5, 130, 0.8, 0xff4020), Bosses.nova(3.6, 1.0, 190, 2.6, 0xff7a1a, {burst: 20, land: "slam", radius: 3.6})]]}),
+				
+				Bosses.P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "VORGATH IS ENRAGED!", move: "chase", speed: 1.5,
+					attacks: [Bosses.spiral(10, 9, 8, 140, 0.08, 0xff3010, {shape: "blade"}),
+						Bosses.nova(4.2, 0.9, 210, 2.4, 0xfff0b0, {burst: 26, bspd: 6, land: "slam", radius: 4.2}),
+						Bosses.aim(9, 72, 11, 135, 1.0, 0xd8d0c0, {shape: "blade", r: 0.3})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 	static deep() {
@@ -2876,7 +2901,24 @@ class SetPieces {
 					out.push({i: i, x: x, y: y, t: w.tiles[i], o: w.objs[i], nt: nt, no: no, d: Math.sqrt(dx * dx + dy * dy), on: false, ch: ch, c: c, r: r});
 				}
 			}
+			if (Bosses.SETPIECES[id].style == "siege") SetPieces.scorch(w, cx, cy, out);
 			return out;
+		}
+	static scorch(w, cx, cy, out) { cx = __int(cx); cy = __int(cy);
+			for (var y = __int(cy - 16); y <= cy + 16; y++) for (var x = __int(cx - 16); x <= cx + 16; x++) {
+				var dx = __int(x - cx), dy = __int(y - cy);
+				if (Math.max(dx < 0 ? -dx : dx, dy < 0 ? -dy : dy) <= SetPieces.HALF) continue;
+				var d = Math.sqrt(dx * dx + dy * dy);
+				if (d > 13 + ((x * 7 + y * 13) % 5) * 0.6) continue;
+				if (x < 1 || y < 1 || x >= w.N - 1 || y >= w.N - 1) continue;
+				var i = __int(y * w.N + x);
+				var t = __int(w.tiles[i]), z = __int(w.zones[i]), o = __int(w.objs[i]);
+				if (t == World.WATER || t == World.VOID || t == World.WALL || t == World.LAVA || z == World.SAFE_ZONE || z == World.NEXUS_ZONE) continue;
+				if (o >= 14 && o <= 18) continue;
+				var nt = __int(((x * 73856093) ^ (y * 19349663)) % 13 == 0 ? World.OBSIDIAN : World.ASH);
+				var no = __int(o == 1 || o == 2 || o == 3 ? 6 : o);
+				out.push({i: i, x: x, y: y, t: t, o: o, nt: nt, no: no, d: d, on: false, ch: "s", c: dx + SetPieces.HALF, r: dy + SetPieces.HALF});
+			}
 		}
 	static apply(w, cells, upto = 99) {
 			var n = __int(0);
@@ -4760,6 +4802,8 @@ Bosses.SETPIECES = {
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
 			
+			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and the palisade comes down. Stay out of the trenches when the camp burns!"},
+			
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
@@ -4863,7 +4907,9 @@ SetPieces.STYLES = {
 			fire: {floor: World.ASH, alt: World.BRICK, trim: World.LAVA, hz: World.LAVA, a: 7, b: 6, c: 7},
 			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
 			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
-			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23}
+			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23},
+			
+			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19}
 		};
 SetPieces.LAYOUTS = {
 			star: [
@@ -5174,6 +5220,28 @@ SetPieces.LAYOUTS = {
 				"  -,,b,,.....,,b,,-  ",
 				"   --,,,,,,,,,,,--   ",
 				"     -----------     "],
+			siege: [
+				"---------------------",
+				"-,,,,,,,c,,,c,,,,,,,-",
+				"-,#######:::#######,-",
+				"-,#.b..a..:..a..b.#,-",
+				"-,#b~.....:.....~b#,-",
+				"-,#.~P....:....P~.#,-",
+				"-,#...~...:...~...#,-",
+				"-,#a..~~..:..~~..a#,-",
+				"-c#....~~.:.~~....#c-",
+				"-,:.....~.:.~.....:,-",
+				"-,::::::::B::::::::,-",
+				"-,:.....~.:.~.....:,-",
+				"-c#....~~.:.~~....#c-",
+				"-,#a..~~..:..~~..a#,-",
+				"-,#...~...:...~...#,-",
+				"-,#.~P....:....P~.#,-",
+				"-,#b~.....:.....~b#,-",
+				"-,#.b..a..:..a..b.#,-",
+				"-,#######:::#######,-",
+				"-,,,,,,,c,,,c,,,,,,,-",
+				"---------------------"],
 			reef: [
 				"     ~~~~~~~~~~~     ",
 				"   ~~~----~----~~~   ",
@@ -5231,6 +5299,13 @@ SetPieces.PHASES = {
 			reef: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40a0ff,
 				msg: "The Kraken drags the reef under! The water floods inward!"}],
 			
+			
+			siege: [{when: "broken", sel: "walls", to: "floor", spawn: "siege_soldier", n: 6, col: 0xffa020,
+				msg: "The ballistas fall and the palisade collapses! Vorgath's guard pours through the breach!"},
+				{when: "hp", at: 0.55, sel: "widen", to: "hz", col: 0xff6010,
+				msg: "The trenches overflow! Rivers of fire split the war camp!"},
+				{when: "hp", at: 0.3, sel: "ring", a: 9.5, b: 99, to: "hz", col: 0xff3010,
+				msg: "THE WAR CAMP BURNS! The flames close in from every side: stay near Vorgath!"}],
 			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
 				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,

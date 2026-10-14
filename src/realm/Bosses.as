@@ -242,6 +242,8 @@ package realm {
 			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
+			// the Realm Siege: Vorgath's war camp, raised in the Godlands
+			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and the palisade comes down. Stay out of the trenches when the camp burns!"},
 			// the Starfall Vault (a raid): each chamber is a set piece of its own
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
@@ -363,7 +365,7 @@ package realm {
 			// the Godlands Spires (guild territory)
 			Sprites.recolor("godspire", "crystal", {W: 0xffffff, C: 0xd8e8ff, c: 0x8aa0c8, D: 0x4a5a7a, S: 0x7fd8ff}, 9);
 			// the Realm Siege
-			Sprites.recolor("siege_warlord", "elder", {H: 0x8a8a96, h: 0x4a4a56, P: 0x5a1a10, p: 0x2a0a06, Q: 0xffa020, K: 0x0a0806, E: 0xff6010, W: 0xffd080, O: 0xff8030}, 9);
+			// (Vorgath and his ballistas have designs of their own: BossArt)
 			Sprites.recolor("siege_soldier", "bandit", {H: 0x7a7a86, h: 0x4a4a56, S: 0xd8c0a0, E: 0xff6010, B: 0x5a1a10, b: 0x3a0a06, A: 0xffa020, L: 0x2a2a30, W: 0xc0c0d0});
 			// every boss its own design (tools/bossart), drawn over the recoloured stand-ins above
 			BossArt.register();
@@ -627,17 +629,42 @@ package realm {
 		 * follows how much of the fight was yours; the top damage dealer is the MVP.
 		 */
 		private static function siege():void {
-			mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 2600, def: 22, spd: 2.4, xp: 140, col: 0xffa020, keep: 2,
-				attacks: [aim(3, 18, 7, 70, 1.2, 0xffa020, {shape: "blade"}), aim(1, 0, 5, 80, 2.4, 0xff6010, {motion: "home", r: 0.26})]});
-			boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 90000, def: 40, spd: 1.0, xp: 6000, col: 0xff8020,
-				gold: 1500, onrane: 15, r: 1.2, siege: true, scales: true, phases: [
-				P(1, {move: "wander", attacks: [aim(5, 40, 8, 90, 1.0, 0xffa020, {shape: "blade", r: 0.3}), ring(16, 11, 5, 80, 1.6, 0xff6010)]}),
-				P(0.75, {say: "SOLDIERS! TO ME!", banner: "The Warlord calls his army!", shield: 3, summon: [{what: "siege_soldier", n: 6}], move: "still",
-					attacks: [rain(6, 5, 100, 2.2, 0xff6010, {burst: 6}), wall(19, 4.5, 90, 2, 0xffa020, {hole: 3})]}),
-				P(0.5, {say: "The walls of this realm will fall!", move: "chase", speed: 1.3,
-					attacks: [spiral(6, 10, 6.5, 85, 0.12, 0xffa020), nova(2.6, 1.2, 130, 2.6, 0xff4010, {burst: 12})]}),
-				P(0.25, {say: "*Vorgath raises the war banner*", banner: "VORGATH IS ENRAGED!", shield: 3, summon: [{what: "siege_soldier", n: 8}], move: "orbit",
-					attacks: [flower(24, 7.5, 5.5, 90, 0.9, 0xff8020), aim(3, 20, 11, 110, 0.8, 0xffffff, {shape: "blade"}), rain(5, 4, 110, 2, 0xff4010)]})
+			mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
+				attacks: [aim(3, 18, 8, 95, 1.1, 0xd8d0c0, {shape: "blade"}), aim(1, 0, 6, 110, 2.2, 0xff6010, {motion: "home", r: 0.28})]});
+			// his war camp's ballistas: heavy burning bolts at whoever comes near, and fire-pots lobbed into the camp
+			mob("siege_ballista", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 200, keep: 0, prop: true,
+				name: "Siege Ballista", spr: "siege_ballista", hp: 14000, def: 34, col: 0xff7a1a,
+				attacks: [aim(1, 0, 15, 165, 1.3, 0xe8dcc0, {shape: "blade", r: 0.34, life: 1.3}),
+					rain(3, 5, 120, 3.2, 0xff5010, {burst: 6, radius: 1.6})]});
+			// Vorgath: five phases, his camp burning around him as he weakens (SetPieces "siege")
+			boss("siege_warlord", {name: "Vorgath the Siege Warlord", spr: "siege_warlord", hp: 600000, def: 48, spd: 0.9, xp: 9000, col: 0xff7a1a,
+				gold: 3000, onrane: 25, r: 1.8, siege: true, scales: true, aggro: 22, range: 20, phases: [
+				// the March: hammer slams that send out a shockwave of shrapnel, spear volleys, a war-cry ring
+				P(1, {move: "chase", speed: 0.9, attacks: [
+					nova(3.4, 1.3, 170, 3.4, 0xff7a1a, {burst: 18, bspd: 5.5, blife: 1.6, land: "slam", radius: 3.4}),
+					aim(7, 54, 9, 115, 1.7, 0xd8d0c0, {shape: "blade", r: 0.3, waves: 2, gap: 0.22}),
+					ring(24, 7.5, 5, 100, 2.6, 0xff4020, {shape: "ring"})]}),
+				// Siege Engines: he plants the banner and calls the bombardment
+				P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 6}],
+					attacks: [rain(12, 10, 155, 1.8, 0xff5010, {burst: 8, radius: 1.9}),
+						wall(27, 5, 125, 2.3, 0xd8a030, {hole: 3}),
+						aim(3, 40, 6, 125, 2.4, 0xff7a1a, {motion: "home", r: 0.34})]}),
+				// the Warlord's Charge: he barrels through the camp, blades spiralling off the hammer
+				P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "charge", speed: 1.7,
+					attacks: [spiral(5, 11, 7, 115, 0.1, 0xff7a1a, {shape: "blade"}),
+						flower(16, 9, 6, 125, 1.4, 0xd8a030, {motion: "return"}),
+						nova(3, 1.1, 180, 3, 0xff3010, {burst: 14, eff: "armorbroken", land: "slam", radius: 3})]}),
+				// the Camp Burns: the ground ignites, his elite guard storms in, every weapon at once
+				P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS!", shield: 3, move: "orbit", speed: 1.2,
+					summon: [{what: "siege_soldier", n: 8}], every: 2.6, cycle: [
+						[spiral(8, 9, 6.5, 125, 0.09, 0xff7a1a), aim(1, 0, 11, 140, 0.9, 0xfff0b0, {eff: "paralyzed", r: 0.3})],
+						[wall(31, 5.5, 130, 1.3, 0xd8a030, {hole: 3}), rain(8, 7, 150, 1.4, 0xff5010, {burst: 10})],
+						[flower(24, 7.5, 6.5, 130, 0.8, 0xff4020), nova(3.6, 1.0, 190, 2.6, 0xff7a1a, {burst: 20, land: "slam", radius: 3.6})]]}),
+				// the Last Stand: enraged, faster, everything harder
+				P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "VORGATH IS ENRAGED!", move: "chase", speed: 1.5,
+					attacks: [spiral(10, 9, 8, 140, 0.08, 0xff3010, {shape: "blade"}),
+						nova(4.2, 0.9, 210, 2.4, 0xfff0b0, {burst: 26, bspd: 6, land: "slam", radius: 4.2}),
+						aim(9, 72, 11, 135, 1.0, 0xd8d0c0, {shape: "blade", r: 0.3})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 

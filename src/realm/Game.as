@@ -158,6 +158,8 @@ package realm {
 		private var oracleWin:OracleWindow;
 		private var ascWin:AscendWindow;
 		private var siegePanel:SiegePanel;
+		/** The Godlands Spires in this realm (the server's "spires"), and their name plates. */
+		private var spires:Array = null, spiresWorld:World = null, spireTags:Array = [];
 		private var petWin:PetWindow;
 		private var bugsWin:BugsWindow;
 		/** Frames a second, smoothed (sent with bug reports). */
@@ -409,7 +411,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/l20": case "/backpack": case "/maxhero": case "/siege": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
+				case "/l20": case "/backpack": case "/maxhero": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -5803,6 +5805,75 @@ package realm {
 			if (m.won) { Sfx.play("fanfare"); showBanner("THE SIEGE IS BROKEN!", 0xffa020, 4); }
 		}
 
+		/** Guild territory: where this realm's four Spires stand and who holds them (ServerNet). */
+		public function setSpires(l:Array):void {
+			// (a capture just happened: a flourish if it's ours)
+			if (spires && spiresWorld == world && net.guild) {
+				for each (var sp:Object in l) {
+					var was:Object = spires[sp.i];
+					if (was && was.g != sp.g && sp.g == net.guild.name) { Sfx.play("fanfare"); burst(sp.x, sp.y, 0x7fd8ff, 50); }
+				}
+			}
+			spires = l;
+			spiresWorld = world;
+			while (spireTags.length < l.length) {
+				var tf:TextField = Ui.text(12, 0xffffff, true, "center", 220, true);
+				tf.visible = false;
+				tagLayer.addChild(tf);
+				spireTags.push(tf);
+			}
+		}
+
+		/** The Spires' ground: a ring for the capture area, filling while a guild takes it. */
+		private function drawSpireGround():void {
+			if (!spires || spiresWorld != world) return;
+			var g:* = auraShape.graphics;
+			for each (var sp:Object in spires) {
+				var sx:Number = scrX(sp.x, sp.y), sy:Number = scrY(sp.x, sp.y);
+				var r:Number = TS * 5;
+				if (sx < -r || sy < -r || sx > vw + r || sy > vh + r) continue;
+				var col:uint = sp.g ? 0x7fd8ff : 0xb0b0b0;
+				g.clear();
+				g.beginFill(col, 0.06 + (Math.sin(time * 2 + sp.i) + 1) * 0.02);
+				g.drawCircle(0, 0, r);
+				g.endFill();
+				g.lineStyle(2, col, 0.5);
+				g.drawCircle(0, 0, r);
+				if (sp.cp > 0) {
+					// the attackers' bar, as an arc around the ring
+					g.lineStyle(5, 0xffa020, 0.9);
+					var a1:Number = -Math.PI / 2 + Math.PI * 2 * Math.min(1, sp.cp);
+					g.moveTo(0, -r + 4);
+					for (var a:Number = -Math.PI / 2; a <= a1; a += 0.08) g.lineTo(Math.cos(a) * (r - 4), Math.sin(a) * (r - 4));
+				}
+				g.lineStyle();
+				auraMtx.tx = sx; auraMtx.ty = sy;
+				canvas.draw(auraShape, auraMtx);
+			}
+		}
+
+		private function drawSpire(sp:Object):void {
+			var sx:Number = scrX(sp.x, sp.y), sy:Number = scrY(sp.x, sp.y);
+			drawAura(sx, sy + TS * 0.4, sp.g ? 0x7fd8ff : 0x9a9a9a, 1.2);
+			var top:Number = drawEntity(Sprites.get("godspire"), sx, sy, 0);
+			// the holder's banner, flying from the top
+			var fl:BitmapData = sp.b ? Sprites.bannerFlag(sp.b) : null;
+			if (fl) {
+				var big:BitmapData = scaledSprite(fl, "spireflag|" + sp.b, 3);
+				pt.x = int(sx - 2);
+				pt.y = int(top - big.height + 10 + Math.sin(time * 3 + sp.i) * 2);
+				canvas.copyPixels(big, big.rect, pt, null, null, true);
+				top = pt.y;
+			}
+			var tf:TextField = spireTags[sp.i];
+			if (!tf) return;
+			tf.htmlText = "<font color='#7fd8ff'>" + sp.name + "</font><br>" + (sp.g ? "<font color='#ffffff'>" + sp.g + "</font>" : "<font color='#a0a0a0'>unclaimed</font>") +
+				(sp.cp > 0 ? "<br><font size='11' color='#ffa020'>" + sp.cg + " taking it: " + int(sp.cp * 100) + "%</font>" : "");
+			tf.x = int(sx - tf.width / 2);
+			tf.y = int(top - tf.height - 2);
+			tf.visible = true;
+		}
+
 		private function tickSiege():void {
 			if (!siegePanel) return;
 			siegePanel.quiet += 1 / 30;
@@ -6112,6 +6183,8 @@ package realm {
 			drawMarkers();
 			abil.drawGround(canvas);
 			drawShrineGlow();
+			drawSpireGround();
+			for each (var stf:TextField in spireTags) stf.visible = false;
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
 			drawN = 0;
@@ -6142,12 +6215,21 @@ package realm {
 				rdi.r = rp;
 				drawList.push(rdi);
 			}
+			if (spires && spiresWorld == world) for each (var spo:Object in spires) {
+				var spy:Number = scrY(spo.x, spo.y), spx:Number = scrX(spo.x, spo.y);
+				if (spx < -100 || spy < -60 || spx > vw + 100 || spy > vh + 200) continue;
+				var sdi:Object = drawItem(spy, -3, 0, null, false);
+				sdi.r = spo;
+				drawList.push(sdi);
+			}
 			drawList.push(drawItem(scrY(player.x, player.y), 0, 0, null, true));
 			if (pet) drawList.push(drawItem(scrY(petX, petY), -1, 0, null, false));
 			drawList.sortOn("y", Array.NUMERIC);
 
 			for each (var d:Object in drawList) {
-				if (d.o == -2) {
+				if (d.o == -3) {
+					drawSpire(d.r);
+				} else if (d.o == -2) {
 					drawRemote(d.r);
 				} else if (d.o < 0) {
 					// evolved pets are bigger and glow (Ascended ones sparkle too)

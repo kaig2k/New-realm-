@@ -802,7 +802,7 @@ class WorldSim {
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
       // (VIPs find a little more: VIP_LUCK in server.js)
-      const lk = Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0);
+      const lk = Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
       let items = Data.rollLoot(e.def, zone, cls, lk);
       if (e.elite) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 50));
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));
@@ -1006,6 +1006,8 @@ class Sims {
   }
 }
 
+/** Loot luck from each guild's Godlands Spires (server.js, territory.js). */
+WorldSim.guildLuck = {};
 /** Set by the server in the last minutes before a restart. */
 WorldSim.restartSoon = false;
 

@@ -356,6 +356,8 @@ package realm {
 			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
+			// the Godlands Spires (guild territory)
+			Sprites.recolor("godspire", "crystal", {W: 0xffffff, C: 0xd8e8ff, c: 0x8aa0c8, D: 0x4a5a7a, S: 0x7fd8ff}, 9);
 			// the Realm Siege
 			Sprites.recolor("siege_warlord", "elder", {H: 0x8a8a96, h: 0x4a4a56, P: 0x5a1a10, p: 0x2a0a06, Q: 0xffa020, K: 0x0a0806, E: 0xff6010, W: 0xffd080, O: 0xff8030}, 9);
 			Sprites.recolor("siege_soldier", "bandit", {H: 0x7a7a86, h: 0x4a4a56, S: 0xd8c0a0, E: 0xff6010, B: 0x5a1a10, b: 0x3a0a06, A: 0xffa020, L: 0x2a2a30, W: 0xc0c0d0});

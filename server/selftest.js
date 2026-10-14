@@ -557,6 +557,44 @@ async function run() {
     check('the Warlord has three Starforged uniques and the titles exist', SD.bossUniques('siege_warlord').length === 3 && SD.findTitle('siege') && SD.findTitle('siegeguard'));
   }
 
+  console.log('guild territory');
+  {
+    const { Territory, weekOf } = require('./territory');
+    const NOW = Date.now();
+    const T = new Territory({});
+    const at = (g, n) => [new Map(g ? [[g, n]] : []), new Map(), new Map(), new Map()];
+    let ev = [];
+    for (let k = 0; k < 59; k++) ev = ev.concat(T.tick(1, at('alpha', 1), NOW));
+    check('one member alone hasn\'t taken a Spire in 59 seconds...', !ev.length && T.holder(0) === '' && T.cap[0].g === 'alpha');
+    ev = T.tick(1.5, at('alpha', 1), NOW);
+    check('...and has at 60: the guild holds it, +5 loot luck', ev.length === 1 && ev[0].kind === 'capture' && T.holder(0) === 'alpha' && T.luck('alpha') === 5);
+    // three members are three times as fast; more don't help
+    const T3 = new Territory({});
+    for (let k = 0; k < 21; k++) ev = T3.tick(1, at('beta', 6), NOW);
+    check('three or more members take it in 20 seconds', T3.holder(0) === 'beta');
+    // a defender stops them
+    for (let k = 0; k < 120; k++) T.tick(1, [new Map([['alpha', 1], ['beta', 3]]), new Map(), new Map(), new Map()], NOW);
+    check('a single defender on the Spire holds off any number of attackers', T.holder(0) === 'alpha' && T.cap[0].p === 0);
+    // two attacking guilds and nobody defending: contested
+    const T4 = new Territory({});
+    for (let k = 0; k < 120; k++) T4.tick(1, [new Map([['a', 2], ['b', 2]]), new Map(), new Map(), new Map()], NOW);
+    check('two guilds fighting over an empty Spire: neither takes it', T4.holder(0) === '');
+    // the week: minutes held, a winner on Monday, then a fresh week
+    const T5 = new Territory({ week: weekOf(Date.UTC(2026, 9, 14)) });
+    T5.s.spires[0].g = 'gamma'; T5.s.spires[1].g = 'gamma'; T5.s.spires[2].g = 'delta';
+    for (let k = 0; k < 180; k++) T5.tick(1, [], Date.UTC(2026, 9, 14));
+    const wk = T5.tick(1, [], Date.UTC(2026, 9, 19, 1));
+    check('each week the guild that held the Spires longest is crowned, then the count starts over', wk.some((e) => e.kind === 'week' && e.winner === 'gamma' && e.minutes === 6) && !Object.keys(T5.s.held).length, JSON.stringify(wk));
+    T5.forget('gamma');
+    check('a disbanded guild\'s Spires stand empty', T5.holder(0) === '' && T5.holder(1) === '' && T5.holder(2) === 'delta');
+    const { WorldSim: TW } = require('./sim/worldsim');
+    const { World: TWW } = require('./sim/gen/game');
+    const tw = new TW('realm:Spiretest:5151');
+    const sp = Territory.spots(tw.w, TWW);
+    check('the four Spires stand in the Godlands, one each way, apart from each other', sp.length === 4 && sp.every((p) => tw.w.zoneAt(p.x, p.y) === TWW.GOD_ZONE) &&
+      Math.hypot(sp[0].x - sp[2].x, sp[0].y - sp[2].y) > 20, JSON.stringify(sp));
+  }
+
   console.log('godmode checks');
   {
     const { WorldSim } = require('./sim/worldsim');
@@ -1672,6 +1710,13 @@ async function run() {
     if (gp) G2.send({ t: 'move', x: gp.x, y: gp.y, f: 0 });
     await wait(200);
     check('...and the jump there is allowed (not put back)', gp && !G2.find((m) => m.t === 'pos'), JSON.stringify(G2.find((m) => m.t === 'pos')));
+    await wait(1200);
+    const spm = G2.msgs.filter((m) => m.t === 'spires').pop();
+    check('players in a realm are shown its four Godlands Spires', spm && spm.l.length === 4 && spm.l.every((sp) => rw.zoneAt(sp.x, sp.y) === GW.GOD_ZONE && sp.name), JSON.stringify(spm && spm.l));
+    G2.clear();
+    G2.send({ t: 'cmd', text: '/spires' });
+    await wait(300);
+    check('/spires: who holds each Spire', G2.find((m) => m.t === 'msg' && /North Spire: nobody/.test(m.text)), JSON.stringify(G2.msgs));
     G2.s.destroy();
   }
 

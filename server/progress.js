@@ -12,7 +12,7 @@
  *   level       only as many levels as that XP buys.
  *   stats       only the growth those levels give, plus stat potions drunk
  *               (and only as many potions as really left the account).
- *   skills      one point a level, then one per 1,000+ XP at level 20.
+ *   skills      one point a level, then one per 1,000+ XP at level 20 (better skills cost more a rank).
  *   potions     the F/G slots hold at most Player.MAX_POTS.
  *   backpack    bought from the server (handlers.buy), never just claimed.
  *   pet         hatched and fed by the server (handlers.hatch, petFeed); its kind
@@ -31,16 +31,17 @@ const xpFor = (level) => 40 + level * 45 + level * level * 3; // Player.xpFor
 /** XP allowance: [most it holds, per second] (rounding, the odd kill the server credited late). */
 const ALLOW = [400, 1];
 /** The progress fields that go back together when XP, level, stats or skills don't add up. */
-const PROGRESS = ['level', 'xp', 'xpNext', 'totalXp', 'ascXp', 'kills', 'bossKills', 'potsDrunk', 'stats', 'skills', 'skillPoints', 'highStakes', 'tree2'];
+const PROGRESS = ['level', 'xp', 'xpNext', 'totalXp', 'ascXp', 'kills', 'bossKills', 'potsDrunk', 'stats', 'skills', 'skillPoints', 'highStakes', 'tree2', 'tree3'];
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 const clone = (o) => (o === undefined ? undefined : JSON.parse(JSON.stringify(o)));
-const ranks = (h) => { let n = 0; for (const k in (h.skills && typeof h.skills === 'object' ? h.skills : {})) n += Math.max(0, num(h.skills[k])); return n; };
+/** Points spent in the skill tree (each rank costs its tier's price: Data.skillSpent). */
+const ranks = (h) => Data.skillSpent(h.skills && typeof h.skills === 'object' ? h.skills : {});
 
 /** A hero as it starts (what a hero new to the server is compared with). */
 function fresh(h) {
   const cls = Data.CLASSES[h.cls] || Data.CLASSES.wizard;
-  return { level: 1, xp: 0, xpNext: xpFor(1), totalXp: 0, ascXp: 0, kills: 0, bossKills: 0, potsDrunk: 0, stats: clone(cls.base), skills: {}, skillPoints: 0, tree2: true };
+  return { level: 1, xp: 0, xpNext: xpFor(1), totalXp: 0, ascXp: 0, kills: 0, bossKills: 0, potsDrunk: 0, stats: clone(cls.base), skills: {}, skillPoints: 0, tree2: true, tree3: true };
 }
 
 /** The level a hero at (level, xp) reaches with `gain` more XP. */

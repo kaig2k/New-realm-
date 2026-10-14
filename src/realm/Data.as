@@ -631,7 +631,7 @@ package realm {
 				case "smite": t = "A pillar of light strikes the cursor: " + n(120, 14) + " damage in 1.8 tiles, and you and allies in it are healed " + n(30, 3) + " HP."; break;
 				case "ward": t = "Heals you and allies within 5 tiles " + n(60, 6) + " HP, clears bad effects, and wraps everyone in a ward that soaks up the next " + n(40, 5) + " damage for 6s."; break;
 				case "shadowstep": t = "Vanish in smoke and reappear at the cursor (up to 6 tiles, not through walls). You stay invisible for " + (2 * sq).toFixed(1) + "s and your next hit is a Backstab: a guaranteed crit with +50% damage."; break;
-				case "knives": t = "12 knives fly out all around you for " + n(30, 4) + " each and poison what they hit: " + n(8, 1) + " more damage every half second for 3s."; break;
+				case "knives": t = "12 knives fly out all around you for " + n(30, 4) + " each and poison what they hit: " + n(16, 2.5) + " damage every half second for 4s that ignores Defense."; break;
 				case "smoke": t = "Drops a smoke cloud (3 tiles) for " + (5 * sq).toFixed(1) + "s. While you are inside you are invisible; monsters inside are slowed."; break;
 				case "charge": t = "Rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + n(60, 8) + ". Then go berserk for " + (4 * sq).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
 				case "whirlwind": t = "Spin for 2s, hitting everything within 3.2 tiles for " + n(45, 5.5) + " five times a second. You move a little slower while spinning."; break;
@@ -644,7 +644,7 @@ package realm {
 				case "valor": t = "A rousing ballad: you and every ally within 6 tiles deal +30% damage for " + (5 * sq).toFixed(1) + "s."; break;
 				case "lullaby": t = "A soft song at the cursor puts monsters within 3 tiles to sleep for " + (2.5 * sq).toFixed(1) + "s (bosses only nod off briefly)."; break;
 				case "requiem": t = "A wave of sound rolls out 5 tiles around you: " + n(95, 11) + " damage to everything it reaches, and they're slowed."; break;
-				case "acidflask": t = "Throws a flask at the cursor that bursts into an acid pool (2.5 tiles) for " + (4 * sq).toFixed(1) + "s. Monsters in it take " + n(22, 3) + " every half second."; break;
+				case "acidflask": t = "Throws a flask at the cursor that bursts into an acid pool (2.5 tiles) for " + (4 * sq).toFixed(1) + "s. Monsters in it take " + n(28, 4) + " every half second, ignoring Defense."; break;
 				case "elixir": t = "Drink and share: heals you and allies within 5 tiles " + n(50, 5) + " HP at once, clears bad effects, and regenerates health quickly for 4s."; break;
 				case "philbomb": t = "Lobs a bomb at the cursor. After a 1.5 second fuse it levels everything within 3.2 tiles for " + n(260, 28) + " damage."; break;
 				case "rewind": t = "Snap back to where you were 3 seconds ago (up to 10 tiles), and get back the health you had then, up to " + n(80, 9) + " HP."; break;
@@ -1530,48 +1530,90 @@ package realm {
 		public static const DUNGEON_DROP_CHANCE:Number = 0.7;
 
 		/**
-		 * Skill tree: three branches of stat upgrades, each ending in a capstone.
-		 * A skill needs 2 ranks in the one above it; capstones also need level 20.
-		 * You get a point per level, then at level 20 one per skillPointXp(n) XP,
-		 * which grows with every point earned that way.
+		 * Skill tree: five branches (constellations), each four tiers deep. A tier
+		 * opens once enough points are spent in its branch (SKILL_TIER_REQ), and
+		 * the better the skill the more each rank costs (SKILL_COSTS by tier; the
+		 * capstones set their own). Capstones also need level 20. You get a point
+		 * per level, then at level 20 one per skillPointXp(n) XP, which grows with
+		 * every point earned that way. The server counts points the same way
+		 * (skillSpent), so a changed game can't spend more than it has.
 		 */
 		public static const SKILL_BRANCHES:Array = [
 			{name: "Might", col: 0xff6a50, desc: "Damage and critical hits"},
 			{name: "Guard", col: 0x60a8ff, desc: "Health, defense and survival"},
-			{name: "Fortune", col: 0xffd040, desc: "Speed, loot and gambling"}
+			{name: "Fortune", col: 0xffd040, desc: "Loot, luck and gambling"},
+			{name: "Arcana", col: 0xc080ff, desc: "Mana and abilities"},
+			{name: "Hunt", col: 0x6ae08a, desc: "Speed, aim and the big prey"}
 		];
+		/** Points per rank by tier (0-2); capstones (tier 3) use their own cost. */
+		public static const SKILL_COSTS:Array = [1, 2, 3, 6];
+		/** Points spent in the branch before a tier opens. */
+		public static const SKILL_TIER_REQ:Array = [0, 4, 12, 22];
 		public static const SKILLS:Array = [
-			{id: "brutality", b: 0, name: "Brutality", desc: "+5% damage", max: 5},
-			{id: "precision", b: 0, name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", b: 0, name: "Ferocity", desc: "+0.1x crit damage", max: 5},
-			{id: "executioner", b: 0, name: "Executioner", desc: "+10% damage to monsters under 30% HP", max: 3},
-			{id: "bloodlust", b: 0, name: "Bloodlust", desc: "Every kill gives +6% damage for 5s, stacking up to 5 times", max: 1, cap: true},
-			{id: "vigor", b: 1, name: "Vigor", desc: "+40 max HP", max: 5},
-			{id: "bulwark", b: 1, name: "Bulwark", desc: "+4 Defense", max: 5},
-			{id: "aegis", b: 1, name: "Aegis", desc: "+5 Warding", max: 5},
-			{id: "leech", b: 1, name: "Leech", desc: "+1 HP per hit", max: 5},
-			{id: "laststand", b: 1, name: "Last Stand", desc: "Once a minute, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true},
-			{id: "swiftness", b: 2, name: "Swiftness", desc: "+4 Speed", max: 5},
-			{id: "fortune", b: 2, name: "Prosperity", desc: "+5 Bounty (better loot)", max: 5},
-			{id: "arcane", b: 2, name: "Arcane Flow", desc: "-6% ability MP cost", max: 5},
-			{id: "scavenger", b: 2, name: "Scavenger", desc: "+8% gold from monsters", max: 3},
-			{id: "highstakes", b: 2, name: "High Stakes", desc: "Every loot bag: 50% doubled, 50% gone. Toggle it any time.", max: 1, cap: true}
+			// ---- Might
+			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+5% damage", max: 5},
+			{id: "precision", b: 0, t: 0, name: "Precision", desc: "+2% crit chance", max: 5},
+			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.1x crit damage", max: 5},
+			{id: "honed", b: 0, t: 1, name: "Honed Edge", desc: "+2 Attack", max: 5},
+			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+10% damage to monsters under 30% HP", max: 3},
+			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+4 Might", max: 3},
+			{id: "bloodlust", b: 0, t: 3, name: "Bloodlust", desc: "Every kill gives +6% damage for 5s, stacking up to 5 times", max: 1, cap: true, cost: 6},
+			// ---- Guard
+			{id: "vigor", b: 1, t: 0, name: "Vigor", desc: "+40 max HP", max: 5},
+			{id: "bulwark", b: 1, t: 0, name: "Bulwark", desc: "+4 Defense", max: 5},
+			{id: "aegis", b: 1, t: 1, name: "Aegis", desc: "+5 Warding", max: 5},
+			{id: "leech", b: 1, t: 1, name: "Leech", desc: "+1 HP per hit", max: 5},
+			{id: "stoneskin", b: 1, t: 2, name: "Stoneskin", desc: "+3 Defense and +25 max HP", max: 3},
+			{id: "secondwind", b: 1, t: 2, name: "Second Wind", desc: "Health potions heal 25% more", max: 3},
+			{id: "laststand", b: 1, t: 3, name: "Last Stand", desc: "Once a minute, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true, cost: 6},
+			// ---- Fortune
+			{id: "fortune", b: 2, t: 0, name: "Prosperity", desc: "+5 Bounty (better loot)", max: 5},
+			{id: "luckystar", b: 2, t: 0, name: "Lucky Star", desc: "+4 Luck", max: 5},
+			{id: "scavenger", b: 2, t: 1, name: "Scavenger", desc: "+8% gold from monsters", max: 3},
+			{id: "favor", b: 2, t: 1, name: "Fortune's Favor", desc: "+3 Luck and +3 Bounty", max: 5},
+			{id: "treasure", b: 2, t: 2, name: "Treasure Hunter", desc: "+8 Bounty", max: 3},
+			{id: "goldrush", b: 2, t: 2, name: "Gold Rush", desc: "+10% gold from monsters", max: 3},
+			{id: "highstakes", b: 2, t: 3, name: "High Stakes", desc: "Every loot bag: 50% doubled, 50% gone. Toggle it any time.", max: 1, cap: true, cost: 5},
+			// ---- Arcana
+			{id: "manafont", b: 3, t: 0, name: "Mana Font", desc: "+30 max MP", max: 5},
+			{id: "insight", b: 3, t: 0, name: "Insight", desc: "+3 Wisdom", max: 5},
+			{id: "arcane", b: 3, t: 1, name: "Arcane Flow", desc: "-6% ability MP cost", max: 5},
+			{id: "channeling", b: 3, t: 1, name: "Channeling", desc: "Abilities recharge 4% faster", max: 5},
+			{id: "overflow", b: 3, t: 2, name: "Overflow", desc: "+4 Wisdom and +20 max MP", max: 3},
+			{id: "clarity", b: 3, t: 2, name: "Clarity", desc: "+3 MP for every kill", max: 3},
+			{id: "arcanesurge", b: 3, t: 3, name: "Arcane Surge", desc: "Every 4th ability cast costs no MP", max: 1, cap: true, cost: 6},
+			// ---- Hunt
+			{id: "swiftness", b: 4, t: 0, name: "Swiftness", desc: "+4 Speed", max: 5},
+			{id: "keeneye", b: 4, t: 0, name: "Keen Eye", desc: "+3 Dexterity", max: 5},
+			{id: "predator", b: 4, t: 1, name: "Predator", desc: "+4% damage to bosses", max: 5},
+			{id: "relentless", b: 4, t: 1, name: "Relentless", desc: "+2 Dexterity and +2 Speed", max: 5},
+			{id: "ambush", b: 4, t: 2, name: "Ambush", desc: "+10% damage to monsters at full health", max: 3},
+			{id: "tenacity", b: 4, t: 2, name: "Tenacity", desc: "+4 Vitality", max: 3},
+			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +50% more", max: 1, cap: true, cost: 6}
 		];
-		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5}};
+		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5},
+			honed: {att: 2}, overwhelm: {mgt: 4}, stoneskin: {def: 3, hp: 25}, luckystar: {luc: 4}, favor: {luc: 3, frt: 3}, treasure: {frt: 8},
+			manafont: {mp: 30}, insight: {wis: 3}, overflow: {wis: 4, mp: 20}, keeneye: {dex: 3}, relentless: {dex: 2, spd: 2}, tenacity: {vit: 4}};
 
 		public static function skill(id:String):Object {
 			for each (var s:Object in SKILLS) if (s.id == id) return s;
 			return null;
 		}
 
-		/** The skill above this one in its branch (needs 2 ranks), or null. */
-		public static function skillParent(id:String):Object {
-			var prev:Object = null;
-			for each (var s:Object in SKILLS) {
-				if (s.id == id) return prev;
-				prev = s.b == skill(id).b ? s : prev;
+		/** Points one rank of this skill costs. */
+		public static function skillCost(sk:Object):int { return sk.cost ? int(sk.cost) : int(SKILL_COSTS[int(sk.t)]); }
+
+		/** Points spent on these skills ({id: ranks}); in branch b only, if b >= 0. Unknown ids cost 1 a rank. */
+		public static function skillSpent(skills:Object, b:int = -1):int {
+			var n:int = 0;
+			if (!skills) return 0;
+			for (var id:String in skills) {
+				var r:int = Math.max(0, int(skills[id]));
+				var sk:Object = skill(id);
+				if (b >= 0 && (!sk || sk.b != b)) continue;
+				n += r * (sk ? skillCost(sk) : 1);
 			}
-			return null;
+			return n;
 		}
 
 		public static const XP_PER_SKILL_POINT:int = 1000;

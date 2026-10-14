@@ -54,6 +54,8 @@ package realm {
 
 		public function toggleMine(i:int):void {
 			if (closed || !mine[i]) return;
+			// locked gear stays out of trades (unlock it first: right-click it)
+			if (mine[i].locked && !mySel[i]) return;
 			mySel[i] = !mySel[i];
 			changed();
 		}

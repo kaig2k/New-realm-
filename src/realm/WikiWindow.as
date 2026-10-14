@@ -107,7 +107,7 @@ package realm {
 		}
 
 		/** Bosses by category, in the order you'd meet them. */
-		private static function collect():Array {
+		public static function collect():Array {
 			var events:Array = [], dungeons:Array = [], hard:Array = [], finales:Array = [], raids:Array = [];
 			var seen:Object = {};
 			var add:Function = function(list:Array, id:String, where:String):void {

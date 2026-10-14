@@ -154,6 +154,8 @@ package realm {
 		private var tradeWin:TradeWindow;
 		private var inspectWin:InspectWindow;
 		private var flagsWin:FlagsWindow;
+		private var marketWin:MarketWindow;
+		private var oracleWin:OracleWindow;
 		private var requestPopup:Sprite;
 		private var requestT:Number = 0;
 		private var hoverRemote:RemotePlayer;
@@ -333,6 +335,10 @@ package realm {
 				if (t) runCommand(t);
 			} else if (e.keyCode == Keyboard.ESCAPE) {
 				closeChat();
+			} else if (e.keyCode == Keyboard.PAGE_UP) {
+				scrollChat(CHAT_OPEN_LINES - 2);
+			} else if (e.keyCode == Keyboard.PAGE_DOWN) {
+				scrollChat(-(CHAT_OPEN_LINES - 2));
 			}
 			e.stopPropagation();
 		}
@@ -347,13 +353,14 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)", 0x8fd0ff);
+					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
 						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  /rename name newname  /heroname name hero newname  (any name can be #number)", 0xffb040);
-						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)", 0xffb040);
+						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)   Realms: /realms 1 (how many are open)", 0xffb040);
 					}
 					break;
 				case "/p":
@@ -389,9 +396,12 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/flags": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
+				case "/flags": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
+					break;
+				case "/oracle":
+					toggleOracle();
 					break;
 				case "/wiki":
 					toggleWiki();
@@ -417,7 +427,11 @@ package realm {
 					nexus();
 					break;
 				case "/realm":
-					enterPortal(int(Math.random() * 3));
+					// a realm that's open (the server may run just one)
+					var openR:Array = [];
+					for (var ri:int = 0; ri < realmNames.length; ri++) if (realmNames[ri] && (!net.online || realmCounts[ri] < realmCap)) openR.push(ri);
+					if (!openR.length) { msg("Every realm is full right now. Try again soon.", 0xff8080); break; }
+					enterPortal(openR[int(Math.random() * openR.length)]);
 					break;
 				case "/glands":
 					if (world.kind != "realm") { msg("/glands only works inside a realm.", 0xff8080); break; }
@@ -971,7 +985,7 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
-			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
+			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
 
@@ -1375,6 +1389,10 @@ package realm {
 			showBanner("Nexus", 0xffffff, 2.5);
 			showNewsOnce();
 			msg((player.kills > 0 ? "Welcome back, " : "Welcome to the Nexus, ") + player.name + "!", Ui.GOLD);
+			if (player.treeRefund > 0) {
+				msg("The skill tree has grown into five branches! Your " + player.treeRefund + " spent point" + (player.treeRefund == 1 ? " was" : "s were") + " given back: press " + Keys.name(Keys.k("skills")) + " to spend them.", 0x80e0ff);
+				player.treeRefund = 0;
+			}
 			saveCharacter();
 			msg("Walk into a portal to the north and press Enter to travel to a realm.", 0xcccccc);
 			msg("The fountain heals you. The gold portal (west) leads to your vault; the Starforge and Raid Table are east; the Marketplace is by the entrance.", 0xcccccc);
@@ -1406,18 +1424,21 @@ package realm {
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
-			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || playerMenu || social || wiki || skillWin)) {
+			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
 				else if (skillWin) toggleSkills();
 				else if (wiki) toggleWiki();
 				else if (social) toggleSocial();
 				else if (inspectWin) closeInspect();
 				else if (flagsWin) closeFlags();
+				else if (marketWin) closeMarket();
+				else if (oracleWin) closeOracle();
 				else closeTrade();
 				input.endFrame();
 			}
 			if (tradeWin) tradeWin.update();
 			if (!(chatInput && chatInput.visible)) updateZoom();
+			else if (input.wheel != 0) scrollChat(int(input.wheel) * 3);
 			if (admin && admin.visible && input.pressed(Keyboard.ESCAPE)) toggleAdmin();
 			else if (input.pressed(Keyboard.ESCAPE) || input.pressed(Keys.k("menu"))) {
 				if (paused && menuPage != "main") { menuPage = "main"; refreshPauseMenu(); }
@@ -1476,6 +1497,7 @@ package realm {
 			if (input.pressed(Keys.k("social"))) toggleSocial();
 			if (input.pressed(Keys.k("wiki"))) toggleWiki();
 			if (input.pressed(Keys.k("skills"))) toggleSkills();
+			if (input.pressed(Keys.k("oracle"))) toggleOracle();
 			for (i = enemies.length - 1; i >= 0; i--) {
 				if (!enemies[i].dead) enemies[i].update(dt, this);
 			}
@@ -1601,6 +1623,9 @@ package realm {
 				if (nearPortal) { usePortal(nearPortal); return; }
 				openChat();
 			}
+			if (input.pressed(Keys.k("interact")) && nearPortal) { usePortal(nearPortal); return; }
+			if (input.pressed(Keys.k("realm"))) { runCommand("/realm"); return; }
+			if (input.pressed(Keys.k("glands"))) runCommand("/glands");
 
 			if (inNexus) {
 				// healing fountain
@@ -1623,6 +1648,7 @@ package realm {
 					if (nearStation) openStationPanel(nearStation);
 					else closeStation();
 				}
+				if (marketWin && !nearMarket) closeMarket();
 			} else if (world.closeT > 0) {
 				var before:int = Math.ceil(world.closeT);
 				world.closeT -= dt;
@@ -1783,6 +1809,8 @@ package realm {
 		public function hurtEnemy(e:Enemy, raw:int, effect:String, hx:Number, hy:Number):void {
 			if (e.dead) return;
 			var p:Player = player;
+			// poison and acid ticks: like a passive's shard, but they eat through armour
+			var dot:Boolean = effect == "shard" || effect == "venom";
 			e.playerHit = true;
 			if (e.immune) {
 				if (opt("dmg") && Math.random() < 0.15) floatText(e.x, e.y - e.r - 0.6, "Immune", 0xff80c0);
@@ -1791,20 +1819,23 @@ package realm {
 			raw = int(raw * p.damageMult);
 			// War Cry: shaken monsters take a quarter more
 			if (e.vulnT > 0) raw = int(raw * 1.25);
-			if (p.leech > 0 && effect != "shard") p.hp = Math.min(p.maxHp, p.hp + p.leech);
+			if (p.leech > 0 && !dot) p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.1));
+			// Predator (bosses) and Ambush (untouched monsters)
+			if (e.isBoss && p.rank("predator") > 0) raw = int(raw * (1 + p.rank("predator") * 0.04));
+			if (e.hp >= e.maxHp && p.rank("ambush") > 0) raw = int(raw * (1 + p.rank("ambush") * 0.1));
 			var crit:Boolean = Math.random() < p.critChance;
-			if (p.critNext && effect != "shard") {
+			if (p.critNext && !dot) {
 				// Shadowstep: the first hit out of the shadows always crits, and harder
 				p.critNext = false;
 				crit = true;
 				raw = int(raw * 1.5);
 				floatText(e.x, e.y - e.r - 1.1, "Backstab!", 0xc0a0ff);
 			}
-			if (crit) raw = int(raw * p.critMult);
-			if (effect != "shard") p.shotsHit++;
+			if (crit) raw = int(raw * p.critMult * (e.isBoss && p.rank("apex") > 0 ? 1.5 : 1));
+			if (!dot) p.shotsHit++;
 			// Piercing Shot ignores defense
-			var d:int = effect == "true" ? Math.max(1, raw) : Math.max(1, raw - e.defense, int(raw * 0.15));
+			var d:int = effect == "true" || effect == "venom" ? Math.max(1, raw) : Math.max(1, raw - e.defense, int(raw * 0.15));
 			// a remote copy's health is only our guess: the host gets the full hit and caps it itself
 			if (!e.remote && d > e.hp) d = Math.ceil(e.hp);
 			e.hp = Math.max(0, e.hp - d);
@@ -1822,11 +1853,12 @@ package realm {
 			if (effect == "slow") e.slowT = 3;
 			if (effect == "poison" && e.hp > 0) {
 				if (e.poisonT <= 0) floatText(e.x, e.y - e.r - 1.1, "Poisoned", 0x90f070);
-				e.poisonT = 3;
-				e.poisonDmg = p.poisonDmg;
+				// (a fresh dose never weakens one still working)
+				e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, p.poisonDmg);
+				e.poisonT = 4;
 			}
 			// Starforged / Primordial passives (not from passive-spawned shards)
-			if (effect != "shard") {
+			if (!dot) {
 				switch (p.weapon ? p.weapon.passive : null) {
 					case "lifesteal":
 						p.hp = Math.min(p.maxHp, p.hp + 4);
@@ -1872,7 +1904,7 @@ package realm {
 				e.poisonTick -= dt;
 				if (e.poisonTick > 0) continue;
 				e.poisonTick = 0.5;
-				hurtEnemy(e, e.poisonDmg, "shard", e.x, e.y);
+				hurtEnemy(e, e.poisonDmg, "venom", e.x, e.y);
 				if (opt("parts") && parts.length < 400) parts.push(new Particle(e.x + (Math.random() - 0.5) * 0.6, e.y - 0.3, 0, -1, 0.5, Sprites.glow(0x90f070)));
 			}
 		}
@@ -2006,6 +2038,8 @@ package realm {
 				petGainXp(e.isBoss ? 20 : 1);
 			}
 			if (mine && !e.def.treasure && !e.def.crate) addStreak(e);
+			// Clarity: mana back from every kill
+			if (mine && p.rank("clarity") > 0 && !e.def.crate) p.mp = Math.min(p.maxMp, p.mp + 3 * p.rank("clarity"));
 			if (mine && p.rank("bloodlust") > 0 && !e.def.crate) {
 				p.bloodStacks = Math.min(5, p.bloodStacks + 1);
 				p.bloodT = 5;
@@ -2022,7 +2056,7 @@ package realm {
 
 			// currencies (account-wide gold and Aether)
 			var g:int = mine ? e.def.gold || int(e.def.xp / 6) : 0;
-			g = int(g * (1 + p.rank("scavenger") * 0.08));
+			g = int(g * (1 + p.rank("scavenger") * 0.08 + p.rank("goldrush") * 0.1));
 			if (g > 0) addGold(g);
 			if (mine && e.def.onrane) addOnrane(e.def.onrane);
 			if (mine && e.isBoss) floatText(e.x, e.y - 1.6, "+" + g + " gold  +" + (e.def.onrane || 0) + " Aether", Ui.GOLD);
@@ -2831,6 +2865,7 @@ package realm {
 			} else if (kind == "inv") {
 				item = p.inv[idx];
 				if (!item) return;
+				if (shift && item.locked) { msg(item.name + " is locked. Right-click it (or Ctrl+click) to unlock it first.", 0xffd75e); return; }
 				if (shift && nearMarket && (shopWaiting || net.shopRequest({t: "sell", slot: idx}))) {
 					// online the server buys it (and pays the gold); one sale at a time
 					shopWaiting = true;
@@ -2877,10 +2912,22 @@ package realm {
 		}
 
 		/** Drag an item onto the ground (the game view) to drop it, RotMG style. */
+		/** Locks or unlocks gear (right-click or Ctrl+click): locked items can't be sold, listed, traded or dropped. */
+		public function toggleLock(kind:String, idx:int):void {
+			var item:Object = itemAt(kind, idx);
+			if (!item || kind == "bag" || kind == "pot") return;
+			if (item.locked) delete item.locked; else item.locked = true;
+			msg(item.locked ? "Locked " + item.name + ": it can't be sold, listed, traded or dropped." : "Unlocked " + item.name + ".", item.locked ? 0xffd75e : 0xaaaaaa);
+			Sfx.play("click", 0.6);
+			hud.refresh();
+			saveCharacter();
+		}
+
 		public function dragToGround(kind:String, idx:int):void {
 			if (tradeWin) { msg("Finish or cancel the trade first.", 0xff8080); return; }
 			var item:Object = itemAt(kind, idx);
 			if (!item) return;
+			if (item.locked && !(nearBag && nearBag.vault)) { msg(item.name + " is locked, so it can't be dropped. Right-click it (or Ctrl+click) to unlock it.", 0xffd75e); return; }
 			if (kind == "inv") {
 				player.inv[idx] = null;
 				dropAtPlayer(item);
@@ -2926,6 +2973,7 @@ package realm {
 				if (nearBag.vault) saveVault();
 			} else if (sk == "inv" && dk == "bag") {
 				if (!nearBag) { dragToGround(sk, si); return; }
+				if (item.locked && !nearBag.vault) { msg(item.name + " is locked, so it can't be dropped. Right-click it (or Ctrl+click) to unlock it.", 0xffd75e); return; }
 				p.inv[si] = null;
 				dropAtPlayer(item);
 			} else {
@@ -2984,6 +3032,7 @@ package realm {
 
 		/** Rebuilds the open station's panel (after buying / forging). */
 		public function refreshStation():void {
+			if (marketWin) marketWin.refresh();
 			if (!openStation || !stationPanel) return;
 			var sp:Sprite = stationPanel;
 			sp.removeChildren();
@@ -3509,10 +3558,58 @@ package realm {
 		public function marketArrived(v:Object):void {
 			marketView = v;
 			if (openStation && openStation.kind == "market") refreshStation();
+			if (marketWin) marketWin.refresh();
+		}
+
+		public function get marketData():Object { return marketView; }
+
+		/** The full Marketplace window (Browse, Sell or My listings), opened at the Marketplace. */
+		public function openMarket(tab:String):void {
+			if (!net.online || !Online.welcome || !Online.welcome.serverMonsters) { msg("The player market is on the server: play online to buy and sell.", 0xff8080); return; }
+			if (Data.modeRestricted(player.mode)) { msg(Data.findMode(player.mode).name + " heroes can't buy or sell on the player market.", 0xff8080); return; }
+			closeMarket();
+			requestMarket();
+			marketWin = new MarketWindow(this, tab);
+			marketWin.x = int((Ui.W - MarketWindow.W) / 2);
+			marketWin.y = int((Ui.H - MarketWindow.H) / 2);
+			addChild(marketWin);
+		}
+
+		public function closeMarket():void {
+			if (marketWin && marketWin.parent) { removeChild(marketWin); refocus(); }
+			marketWin = null;
+		}
+
+		public function requestMarket():void { if (net.online) Online.send({t: "mkView"}); }
+
+		public function marketBuy(row:Object):void {
+			if (shopWaiting) return;
+			if (gold < row.price) { msg("You need " + Ui.commas(row.price) + " gold.", 0xff8080); return; }
+			if (player.inv.indexOf(null) < 0) { msg("Make room in your inventory first.", 0xff8080); return; }
+			if (net.shopRequest({t: "mkBuy", id: row.id})) shopWaiting = true;
+		}
+
+		public function marketList(slot:int, price:int):Boolean {
+			if (shopWaiting) return false;
+			var it:Object = player.inv[slot];
+			if (!it) return false;
+			if (it.locked) { msg(it.name + " is locked. Right-click it (or Ctrl+click) to unlock it first.", 0xffd75e); return false; }
+			if (net.shopRequest({t: "mkList", slot: slot, price: price})) { shopWaiting = true; return true; }
+			return false;
+		}
+
+		public function marketCancel(row:Object):void {
+			if (shopWaiting) return;
+			if (net.shopRequest({t: "mkCancel", id: row.id})) shopWaiting = true;
+		}
+
+		public function marketCollect():void {
+			if (shopWaiting) return;
+			if (net.shopRequest({t: "mkCollect"})) shopWaiting = true;
 		}
 
 		private function marketTabs(sp:Sprite, y:int, w:int):int {
-			var tabs:Array = [["shop", "Shop"], ["buy", "Buy"], ["sell", "Sell"], ["mine", "My listings"]];
+			var tabs:Array = [["shop", "Shop"], ["buy", "Browse"], ["sell", "Sell"], ["mine", "My listings"]];
 			for (var i:int = 0; i < tabs.length; i++) {
 				var b:Sprite = Ui.button((marketMode == tabs[i][0] ? "> " : "") + tabs[i][1], 100, 26, marketTabFn(tabs[i][0]), 13);
 				b.x = 12 + i * 105; b.y = y;
@@ -3524,6 +3621,7 @@ package realm {
 
 		private function marketTabFn(mode:String):Function {
 			return function():void {
+				if (mode != "shop") { openMarket(mode); return; }
 				marketMode = mode;
 				marketPage = 0;
 				if (mode != "shop" && net.online) Online.send({t: "mkView"});
@@ -3714,6 +3812,7 @@ package realm {
 		private function marketListFn():Function {
 			return function():void {
 				if (shopWaiting || marketSel < 0) return;
+				if (player.inv[marketSel] && player.inv[marketSel].locked) { msg("That item is locked. Right-click it (or Ctrl+click) to unlock it first.", 0xffd75e); return; }
 				var price:int = int(marketPrice ? marketPrice.text : "0");
 				if (price < 1) { msg("Type a price in gold first.", 0xff8080); return; }
 				if (net.shopRequest({t: "mkList", slot: marketSel, price: price})) { shopWaiting = true; marketSel = -1; if (marketPrice) marketPrice.text = ""; }
@@ -5239,10 +5338,24 @@ package realm {
 		private static const CHAT_SECS:Number = 12;
 		private var chatBg:Shape;
 		private var chatFadeAt:Number = 0;
+		/** With chat open: how many lines back from the newest it's scrolled (mouse wheel, Page Up/Down). */
+		private var chatScroll:int = 0;
+		private static const CHAT_KEEP:int = 300, CHAT_OPEN_LINES:int = 14;
+
+		/** Scrolls the open chat by n lines (positive = older). */
+		private function scrollChat(n:int):void {
+			var most:int = Math.max(0, chatLines.length - CHAT_OPEN_LINES);
+			var to:int = Math.max(0, Math.min(most, chatScroll + n));
+			if (to == chatScroll) return;
+			chatScroll = to;
+			refreshChat();
+		}
 
 		private function pushChat(line:String):void {
 			chatLines.push({h: line, at: getTimer() / 1000});
-			while (chatLines.length > 40) chatLines.shift();
+			// (scrolled back: stay on the same lines as new ones come in)
+			if (chatScroll > 0) chatScroll++;
+			while (chatLines.length > CHAT_KEEP) chatLines.shift();
 			refreshChat();
 		}
 
@@ -5251,12 +5364,16 @@ package realm {
 			var open:Boolean = chatInput && chatInput.visible;
 			var show:Array = [];
 			var oldest:Number = 1e9;
-			for (var i:int = chatLines.length - 1; i >= 0 && show.length < (open ? 12 : 7); i--) {
+			if (!open) chatScroll = 0;
+			chatScroll = Math.max(0, Math.min(chatScroll, chatLines.length - CHAT_OPEN_LINES));
+			for (var i:int = chatLines.length - 1 - chatScroll; i >= 0 && show.length < (open ? CHAT_OPEN_LINES : 7); i--) {
 				var l:Object = chatLines[i];
 				if (!open && now - l.at > CHAT_SECS) break;
 				show.unshift(l.h);
 				oldest = Math.min(oldest, l.at);
 			}
+			if (open && chatScroll > 0) show.push("<font color='#ffd75e'>   ... " + chatScroll + " newer line" + (chatScroll == 1 ? "" : "s") + " below (scroll down or Page Down)</font>");
+			else if (open && chatLines.length > CHAT_OPEN_LINES) show.push("<font color='#777777'>   (mouse wheel or Page Up to read older messages)</font>");
 			chat.htmlText = show.join("\n");
 			chat.visible = show.length > 0;
 			chat.alpha = 1;
@@ -5271,6 +5388,16 @@ package realm {
 				chatBg.graphics.beginFill(0x000000, 0.45);
 				chatBg.graphics.drawRoundRect(4, chat.y - 4, 632, chat.height + 8, 10, 10);
 				chatBg.graphics.endFill();
+				// a scrollbar showing where in the history you are
+				if (chatLines.length > CHAT_OPEN_LINES) {
+					var th:Number = chat.height, frac:Number = CHAT_OPEN_LINES / chatLines.length;
+					var bh:Number = Math.max(14, th * frac), pos:Number = 1 - chatScroll / (chatLines.length - CHAT_OPEN_LINES);
+					chatBg.graphics.beginFill(0xffffff, 0.12);
+					chatBg.graphics.drawRoundRect(628, chat.y, 5, th, 4, 4);
+					chatBg.graphics.beginFill(0xffd75e, 0.7);
+					chatBg.graphics.drawRoundRect(628, chat.y + (th - bh) * pos, 5, bh, 4, 4);
+					chatBg.graphics.endFill();
+				}
 			}
 		}
 
@@ -5308,7 +5435,7 @@ package realm {
 			statusTf.htmlText = stx;
 			promptPanel.visible = nearPortal != null;
 			if (nearPortal) {
-				promptTf.htmlText = portalTitle(nearPortal) + "<font size='13' color='#aaaaaa'>  -  press Enter</font>";
+				promptTf.htmlText = portalTitle(nearPortal) + "<font size='13' color='#aaaaaa'>  -  press " + Keys.name(Keys.k("interact")) + " or Enter</font>";
 			}
 			statusTf.x = cx - 160;
 			statusTf.y = cy - 76;
@@ -6000,6 +6127,26 @@ package realm {
 			});
 		}
 
+		/** The Oracle: asks the server for your boss record (it opens when the answer comes). */
+		public function toggleOracle():void {
+			if (oracleWin) { closeOracle(); return; }
+			if (!net.online) { msg("The Oracle keeps its record on the server: play online to see it.", 0xff8080); return; }
+			Online.send({t: "oracleView"});
+		}
+
+		public function openOracle(o:Object):void {
+			if (oracleWin) { oracleWin.setData(o); return; }
+			oracleWin = new OracleWindow(this, o);
+			oracleWin.x = int((Ui.W - OracleWindow.W) / 2);
+			oracleWin.y = int((Ui.H - OracleWindow.H) / 2);
+			addChild(oracleWin);
+		}
+
+		public function closeOracle():void {
+			if (oracleWin && oracleWin.parent) { removeChild(oracleWin); refocus(); }
+			oracleWin = null;
+		}
+
 		/** Admins: the anti-cheat's flagged players (the server's answer to /flags). */
 		public function openFlags(list:Array):void {
 			closeFlags();
@@ -6069,8 +6216,8 @@ package realm {
 		public function toggleSkills():void {
 			if (skillWin) { removeChild(skillWin); skillWin = null; refocus(); return; }
 			skillWin = new SkillWindow(this);
-			skillWin.x = int((VIEW_W - SkillWindow.W) / 2);
-			skillWin.y = 30;
+			skillWin.x = int((Ui.W - SkillWindow.W) / 2);
+			skillWin.y = int((Ui.H - SkillWindow.H) / 2);
 			addChild(skillWin);
 		}
 

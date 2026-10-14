@@ -41,8 +41,8 @@ function fameBook(sv) {
 /** The most gold and fame one kill of enemy e can pay a player who hit it. */
 function killValue(e) {
   const d = e.def || {}, z = Math.max(0, e.zone | 0);
-  // kill gold with the best Scavenger rank, and the streak bonus (5 a kill)
-  let gold = Math.ceil((d.gold || Math.floor((d.xp || 0) / 6)) * 1.5) + 5;
+  // kill gold with the best Scavenger and Gold Rush ranks, and the streak bonus (5 a kill)
+  let gold = Math.ceil((d.gold || Math.floor((d.xp || 0) / 6)) * 1.9) + 5;
   if (e.elite) gold += Math.floor((d.xp || 0) / 2) + 20;
   if (d.goblin) gold += (d.gold || 0) * (z + 1);
   if (d.crate) gold += 26 * (z + 1);

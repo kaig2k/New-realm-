@@ -807,6 +807,8 @@ class WorldSim {
         else { items = []; hs = 'lost'; }
       }
       if (this.issuer) for (const it of items) this.issuer(c, it);
+      // the Oracle counts every boss kill and what it dropped for you
+      if (this.onOracle && e.isBoss) this.onOracle(c, e, items);
       if (this.onFeat) for (const it of items) if (it && it.rarity === 'gd') this.onFeat('godly', { name: c.name, item: it.name, from: e.def.name });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
@@ -861,7 +863,7 @@ class Sims {
     if (!WorldSim.simulates(key)) return null;
     let s = this.map.get(key);
     if (!s) {
-      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; s.onPortal = this.onPortal; } catch (e) { console.error('could not start world', key, e.message); return null; }
+      try { s = new WorldSim(key); s.issuer = this.issuer; s.onEventKill = this.onEventKill; s.onQuest = this.onQuest; s.onEarn = this.onEarn; s.onFeat = this.onFeat; s.onPortal = this.onPortal; s.onOracle = this.onOracle; } catch (e) { console.error('could not start world', key, e.message); return null; }
       this.map.set(key, s);
     }
     s.join(c);

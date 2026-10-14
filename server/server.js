@@ -43,8 +43,9 @@ const DEFAULT_CONFIG = {
   name: 'Eldmere',
   motd: 'Welcome to New Realm!',
   realmCap: 85,
-  minRealms: 3,
-  maxRealms: 6,
+  // how many realms are open: minRealms always, up to maxRealms as they fill (admins: /realms n)
+  minRealms: 1,
+  maxRealms: 1,
   admins: [],
   // a Discord webhook address: records, raid clears, Godly drops, titles and restarts are posted there
   discordWebhook: '',
@@ -56,18 +57,25 @@ const DEFAULT_CONFIG = {
 let config = Object.assign({}, DEFAULT_CONFIG);
 try { Object.assign(config, JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))); }
 catch (e) { try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2)); } catch (e2) {} }
+// one realm for now (an older config.json still says 3 to 6): once, then /realms changes it
+if (!config.realmsSet) {
+  config.minRealms = 1; config.maxRealms = 1; config.realmsSet = true;
+  try { const f = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); Object.assign(f, { minRealms: 1, maxRealms: 1, realmsSet: true }); fs.writeFileSync(CONFIG_FILE, JSON.stringify(f, null, 2)); } catch (e) {}
+}
 const isAdmin = (c) => config.admins.some(a => String(a).toLowerCase() === c.key);
 /** Writes the admin list back to config.json (keeping everything else in the file as it is). */
-function saveAdmins() {
+function saveAdmins() { return saveConfig(['admins']); }
+/** Writes these settings back to config.json (keeping everything else in the file as it is). */
+function saveConfig(keys) {
   let file = {};
   try { file = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch (e) { file = Object.assign({}, DEFAULT_CONFIG); }
-  file.admins = config.admins;
+  for (const k of keys) file[k] = config[k];
   try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(file, null, 2)); return true; } catch (e) { log('could not save config.json: ' + e.message); return false; }
 }
 
 const PORT = parseInt(process.argv[2] || process.env.PORT || config.port || '2050', 10);
 /** Bump when the game and server stop understanding each other. */
-const VERSION = 11;
+const VERSION = 12;
 const IDLE_KICK_MS = 45000;
 const MAX_MSGS_PER_SEC = 250;
 const MAX_LINE = 1536 * 1024;
@@ -88,6 +96,8 @@ const site = require('./site');
 const sims = config.serverMonsters === false ? null : new Sims();
 // loot the server rolls is written into the looter's ledger
 if (sims) sims.issuer = (c, it) => { const sv = onlineSave(c.key); items.issue(sv, it); store.putSave(c.key, sv); };
+const oracle = require('./oracle');
+if (sims) sims.onOracle = (c, e, got) => { if (!c.key) return; const sv = onlineSave(c.key); oracle.record(sv, e.defId, e.def.name, got); store.putSave(c.key, sv); };
 const load = (file, fallback) => store.loadTable(file, fallback);
 const save = (file, obj) => store.saveTable(file, obj);
 
@@ -552,6 +562,11 @@ function updateRealms() {
   if (sims) sims.keepOnly(realms.map(realmKey));
   const full = realms.every(r => r.count >= config.realmCap * 0.75);
   if (full && realms.length < config.maxRealms) { const r = newRealm(); realms.push(r); log('Opened a new realm: ' + r.name); }
+  // fewer realms wanted (/realms): an extra one goes once nobody is in it
+  for (let i = realms.length - 1; i >= 0 && realms.length > Math.max(1, config.maxRealms); i--) {
+    if (realms[i].count === 0) { log('Closed the extra realm ' + realms[i].name); realms.splice(i, 1); }
+  }
+  while (realms.length < Math.max(1, config.minRealms)) realms.push(newRealm());
   const js = JSON.stringify(realmList());
   if (js === lastRealmJson) return;
   lastRealmJson = js;
@@ -646,6 +661,7 @@ function publicSave(s) {
   delete o._ledgerV;
   delete o._quests;
   delete o._market;
+  delete o._oracle;
   delete o._titles;
   delete o._fame;
   delete o._login;
@@ -691,6 +707,8 @@ function applySave(c, data, cid) {
   // so is quest progress, and the Marketplace box (takings, returned items)
   if (prev._quests) data._quests = prev._quests; else delete data._quests;
   if (prev._market) data._market = prev._market; else delete data._market;
+  // and the Oracle's record of boss kills and drops
+  if (prev._oracle) data._oracle = prev._oracle; else delete data._oracle;
   // and the daily login streak
   if (prev._login) data._login = prev._login; else delete data._login;
   // and the fallen heroes an admin can bring back (see graves.js)
@@ -1319,6 +1337,9 @@ const handlers = {
 
   ping(c, m) { c.send({ t: 'pong', at: m.at }); },
 
+  /** The Oracle (O, or /oracle): the bosses you've killed and what they dropped. */
+  oracleView(c, m) { c.send({ t: 'oracle', o: oracle.view(onlineSave(c.key)) }); },
+
   /** Change (or, for old accounts, set) the password. */
   password(c, m) {
     const acc = accounts[c.key];
@@ -1469,6 +1490,7 @@ const handlers = {
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const slot = num(m.slot) | 0, item = ch.inv[slot];
     if (!item || typeof item !== 'object') return c.send({ t: 'shopFail', msg: 'There is nothing to sell there.' });
+    if (item.locked) return c.send({ t: 'shopFail', msg: (item.name || 'That item') + ' is locked. Unlock it first (right-click it).' });
     const value = Math.max(0, Data.sellValue(item) | 0);
     ch.inv[slot] = null;
     items.release(sv, item);
@@ -1728,6 +1750,16 @@ const handlers = {
           c.note('Cleared ' + (accounts[k] ? accounts[k].name : parts[2]) + ' from the flagged list.', 0x80ff80);
         }
         return c.send({ t: 'flags', list: flagList() });
+      }
+      case '/realms': {
+        // /realms n: how many realms are open (extra ones close once empty); /realms min max to let more open as they fill
+        const lo = Math.floor(Number(parts[1])), hi = parts[2] === undefined ? lo : Math.floor(Number(parts[2]));
+        if (!(lo >= 1 && lo <= 6 && hi >= lo && hi <= 6)) return c.note('Usage: /realms n (1 to 6), or /realms min max. Now: ' + config.minRealms + (config.maxRealms !== config.minRealms ? ' to ' + config.maxRealms : '') + ' (' + realms.length + ' open).');
+        config.minRealms = lo; config.maxRealms = hi; config.realmsSet = true;
+        saveConfig(['minRealms', 'maxRealms', 'realmsSet']);
+        updateRealms();
+        log(c.name + ' set realms to ' + lo + (hi !== lo ? '-' + hi : ''));
+        return c.note('Realms: ' + lo + (hi !== lo ? ' (up to ' + hi + ' as they fill)' : '') + '. Extra realms close once they\'re empty.', 0x80ff80);
       }
       case '/whois': {
         // /whois name or #number: the account at a glance (also helps check someone really owns it)

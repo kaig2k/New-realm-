@@ -95,7 +95,7 @@ Players then join with `play.yourgame.com:2050`.
 | `name` | Your server's name. Players see it in the game instead of the IP address, default `"Eldmere"`. |
 | `motd` | Message shown to players when they join. |
 | `realmCap` | Players per realm (85). |
-| `minRealms` / `maxRealms` | Realms open at once. New ones open as the others fill up (3 to 6). |
+| `minRealms` / `maxRealms` | Realms open at once (1 for now). Admins change it in game with `/realms n` (or `/realms min max` to let more open as they fill); extra realms close once they're empty. |
 | `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
 | `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
 | `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
@@ -133,6 +133,7 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
 - **Anti-cheat flags.** The anti-cheat never disconnects or kills anyone by itself (honest players were caught by it). Everything it notices (ignored damage, too much health, ignored hits, impossible moves, walking into dungeons without a portal, refused saves, gold/fame or progress put back) is flagged instead:
   - `/flags` opens a window of every flagged player, most recent first: their account number, whether they're online, how many times and for what, and the latest few reasons. Each has Whois, Kick (when online), Ban and Clear buttons.
   - `/flags clear name` takes someone off the list once you've checked them and they're honest.
+- **Realms:** `/realms 1` keeps one realm open (the default); `/realms 3` opens three; `/realms 2 4` keeps two open and lets up to four open as they fill.
   - Online admins also get one chat line per player and kind of flag every 5 minutes.
   - The list is kept in `server/data/flags.json` (the 200 most recently flagged accounts); the full history is in `server/data/anticheat.log`.
 - **Refused saves** (likely cheating) are logged to `server/data/anticheat.log`.

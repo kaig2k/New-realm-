@@ -70,7 +70,7 @@ function realmSpawn(r) {
 }
 
 async function play(b) {
-  b.send({ t: 'hello', ver: 11, name: 'Bot' + b.i, password: 'botpass1', register: true });
+  b.send({ t: 'hello', ver: 12, name: 'Bot' + b.i, password: 'botpass1', register: true });
   for (let k = 0; k < 40 && !b.realms; k++) await wait(100);
   if (!b.realms) return;
   const cid = 'bot' + b.i;

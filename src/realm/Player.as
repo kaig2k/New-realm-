@@ -200,6 +200,11 @@ package realm {
 		public var highStakes:Boolean = false;
 		/** Characters made before the skill tree rework get their level-up points once. */
 		public var tree2:Boolean = true;
+		/** Heroes from before the five-branch tree get every point back once (treeRefund: how many, to tell them). */
+		public var tree3:Boolean = true;
+		public var treeRefund:int = 0;
+		/** Arcane Surge: casts so far (every 4th is free). */
+		private var castN:int = 0;
 
 		/** Shrine blessings: seconds left of might, haste, fortune, vigor and arcana. */
 		public var buffs:Object = {};
@@ -211,9 +216,7 @@ package realm {
 
 		/** Skill points earned past level 20 (each one costs more XP than the last). */
 		public function get bonusPoints():int {
-			var n:int = skillPoints;
-			for (var k:String in skills) n += int(skills[k]);
-			return Math.max(0, n - (level - 1));
+			return Math.max(0, skillPoints + Data.skillSpent(skills) - (level - 1));
 		}
 
 		/** XP needed for the next skill point at level 20. */
@@ -227,10 +230,11 @@ package realm {
 			var sk:Object = Data.skill(id);
 			if (!sk) return "Unknown skill.";
 			if (rank(id) >= sk.max) return sk.name + " is already at max rank.";
-			var par:Object = Data.skillParent(id);
-			if (par && rank(par.id) < 2) return "Needs 2 ranks in " + par.name + " first.";
+			var need:int = Data.SKILL_TIER_REQ[int(sk.t)], have:int = Data.skillSpent(skills, sk.b);
+			if (have < need) return "Needs " + need + " points spent in " + Data.SKILL_BRANCHES[sk.b].name + " first (you have " + have + ").";
 			if (sk.cap && level < MAX_LEVEL) return "Capstones unlock at level 20.";
-			if (skillPoints <= 0) return "No skill points. You get one per level, then at level 20 one per " + nextPointXp + " XP (more for each one after).";
+			var cost:int = Data.skillCost(sk);
+			if (skillPoints < cost) return (skillPoints <= 0 ? "No skill points." : "Each rank costs " + cost + " points (you have " + skillPoints + ").") + " You get one per level, then at level 20 one per " + nextPointXp + " XP (more for each one after).";
 			return null;
 		}
 
@@ -239,7 +243,7 @@ package realm {
 			if (why) { g.msg(why, 0xaaaaaa); return false; }
 			var sk:Object = Data.skill(id);
 			skills[id] = rank(id) + 1;
-			skillPoints--;
+			skillPoints -= Data.skillCost(sk);
 			if (id == "highstakes") highStakes = true;
 			g.msg(sk.name + (sk.max > 1 ? " rank " + skills[id] + "/" + sk.max : " unlocked") + " (" + sk.desc + ")", 0x80e0ff);
 			Sfx.play("level", 0.6);
@@ -248,8 +252,7 @@ package realm {
 
 		/** Gives back every point spent in the tree. */
 		public function resetSkills():int {
-			var n:int = 0;
-			for (var id:String in skills) n += rank(id);
+			var n:int = Data.skillSpent(skills);
 			skills = {};
 			skillPoints += n;
 			highStakes = false;
@@ -258,7 +261,7 @@ package realm {
 
 		// ------------------------------------------------------------ save / load
 		private static const SAVE_FIELDS:Array = ["id", "name", "level", "xp", "xpNext", "totalXp", "kills", "bossKills", "potsDrunk",
-			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "season", "mode", "climb", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
+			"hpPots", "mpPots", "surge", "backpack", "skin", "dungeons", "elders", "godKills", "shotsFired", "shotsHit", "skillPoints", "ascXp", "highStakes", "tree2", "tree3", "season", "mode", "climb", "weapon", "ability", "armor", "ring", "inv", "stats", "skills"];
 
 		public function serialize():Object {
 			var o:Object = {cls: cls.id, hp: int(hp), mp: int(mp)};
@@ -269,9 +272,20 @@ package realm {
 		public function restore(o:Object):void {
 			o = Save.clone(o);
 			o.tree2 = o.tree2 || false;
+			o.tree3 = o.tree3 || false;
 			if (!o.climb || typeof o.climb != "object") o.climb = {};
 			for each (var f:String in SAVE_FIELDS) if (o[f] != undefined) this[f] = o[f];
 			if (!tree2) { tree2 = true; skillPoints += level - 1; }
+			// the old three-branch tree's points come back to spend on the new one
+			if (!tree3) {
+				var old:int = 0;
+				for (var sk:String in skills) old += Math.max(0, int(skills[sk]));
+				skills = {};
+				skillPoints += old;
+				highStakes = false;
+				tree3 = true;
+				treeRefund = old;
+			}
 			while (inv.length < (backpack ? 16 : 8)) inv.push(null);
 			// items saved before the renames keep their old names; refresh them
 			for each (var it:Object in inv) if (it && it.kind == "material") it.name = "Star Shard";
@@ -472,10 +486,15 @@ package realm {
 			var id:String = Data.abilityId(ability);
 			var ab:Object = Data.ABILITIES[id];
 			var cost:int = Math.ceil(ab.cost * (1 - rank("arcane") * 0.06));
+			// Arcane Surge: every 4th cast is free
+			var free:Boolean = rank("arcanesurge") > 0 && castN % 4 == 3;
+			if (free) cost = 0;
 			if (mp < cost) { g.msg("Not enough MP for " + ab.name, 0x8080ff); return; }
 			if (g.world.isSafe(x, y) && cls.id != "priest") return;
 			mp -= cost;
-			abilityT = abilityCd = ab.cd;
+			castN++;
+			if (free) g.floatText(x, y - 1.4, "Arcane Surge!", 0xc080ff);
+			abilityT = abilityCd = ab.cd * (1 - rank("channeling") * 0.04);
 			Sfx.play("ability", 0.5);
 			attackT = 0.3;
 			var pow:Number = ability.power;
@@ -650,7 +669,7 @@ package realm {
 					break;
 				case "knives":
 					dmg = (30 + level * 4) * pow;
-					poisonDmg = (8 + level) * pow;
+					poisonDmg = (16 + level * 2.5) * pow;
 					var kfr:Vector.<BitmapData> = Sprites.projectile("knife", 0x90f070, 3);
 					for (k = 0; k < 12; k++) {
 						var kn:Projectile = new Projectile(x, y, k * Math.PI / 6 + ang, 11, 0.55, dmg, false, 0.25, kfr, false, name, "poison");
@@ -723,9 +742,9 @@ package realm {
 
 				// ---- Alchemist (Flask)
 				case "acidflask":
-					var adm:int = int((22 + level * 3) * pow), alife:Number = 4 * sq;
+					var adm:int = int((28 + level * 4) * pow), alife:Number = 4 * sq;
 					g.abil.show("acid", x, y, tx2, ty2, alife, true);
-					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.addZone(tx2, ty2, 2.5, alife, adm, 0); }});
+					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.addZone(tx2, ty2, 2.5, alife, adm, 0, true); }});
 					break;
 				case "elixir":
 					var eheal:int = (50 + level * 5) * pow;
@@ -847,7 +866,8 @@ package realm {
 			if (hp >= maxHp) { g.msg("HP is already full.", 0xaaaaaa); return false; }
 			if (!fromInv) hpPots--;
 			var before:int = int(hp);
-			hp = Math.min(maxHp, hp + 100);
+			// (Second Wind: a quarter more a rank)
+			hp = Math.min(maxHp, hp + 100 * (1 + rank("secondwind") * 0.25));
 			g.floatText(x, y - 1.2, "+" + (int(hp) - before), 0x60ff60);
 			return true;
 		}

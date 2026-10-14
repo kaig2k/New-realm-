@@ -440,8 +440,8 @@ package realm {
 			}
 		}
 
-		public function addZone(x:Number, y:Number, r:Number, life:Number, dmg:int, heal:int):void {
-			zones.push({x: x, y: y, r: r, life: life, tick: 0, dmg: dmg, heal: heal});
+		public function addZone(x:Number, y:Number, r:Number, life:Number, dmg:int, heal:int, venom:Boolean = false):void {
+			zones.push({x: x, y: y, r: r, life: life, tick: 0, dmg: dmg, heal: heal, venom: venom});
 		}
 
 		public function addSpirits(n:int, life:Number, dmg:int):void {
@@ -506,7 +506,7 @@ package realm {
 						for each (e in g.enemies.concat()) {
 							dx = e.x - z.x; dy = e.y - z.y;
 							if (!e.dead && dx * dx + dy * dy < z.r * z.r) {
-								g.hurtEnemy(e, z.dmg, "shard", e.x, e.y);
+								g.hurtEnemy(e, z.dmg, z.venom ? "venom" : "shard", e.x, e.y);
 								g.burst(e.x, e.y, 0xfff0a0, 3);
 							}
 						}

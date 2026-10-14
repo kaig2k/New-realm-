@@ -285,14 +285,15 @@ package realm {
 			if (key == lastSkills) return;
 			lastSkills = key;
 			var out:String = "<b>Skill points: " + p.skillPoints + "</b>" + (p.level >= Player.MAX_LEVEL ? "  (next " + p.ascXp + "/" + p.nextPointXp + " XP)" : "") + "\n";
+			// points spent in each branch, two to a line, then the capstones you have
+			var caps:Array = [];
 			for (var b:int = 0; b < Data.SKILL_BRANCHES.length; b++) {
-				var br:Object = Data.SKILL_BRANCHES[b], n:int = 0, caps:String = "";
-				for each (sk in Data.SKILLS) if (sk.b == b) {
-					n += p.rank(sk.id);
-					if (sk.cap && p.rank(sk.id) > 0) caps = sk.name;
-				}
-				out += "<font color='" + Ui.hex(br.col) + "'><b>" + br.name + "</b></font>  " + n + " pts" + (caps ? "  <font color='#ffd75e'>" + caps + "</font>" : "") + "\n";
+				var br:Object = Data.SKILL_BRANCHES[b];
+				out += "<font color='" + Ui.hex(br.col) + "'><b>" + br.name + "</b></font> " + Data.skillSpent(p.skills, b) + (b % 2 ? "\n" : "    ");
+				for each (sk in Data.SKILLS) if (sk.b == b && sk.cap && p.rank(sk.id) > 0) caps.push(sk.name);
 			}
+			if (Data.SKILL_BRANCHES.length % 2) out += "\n";
+			if (caps.length) out += "<font color='#ffd75e'>" + caps.join(", ") + "</font>\n";
 			if (p.rank("highstakes") > 0) out += "<font color='#ffd040'>High Stakes: " + (p.highStakes ? "ON" : "off") + "</font>\n";
 			if (p.bloodStacks > 0) out += "<font color='#ff6a50'>Bloodlust x" + p.bloodStacks + "</font>";
 			skillTf.htmlText = out;
@@ -331,6 +332,7 @@ package realm {
 			var s:Slot = new Slot(kind, idx, numbered);
 			s.x = x; s.y = y;
 			s.addEventListener(MouseEvent.MOUSE_DOWN, onSlotDown);
+			if (kind != "bag") s.addEventListener("rightMouseDown", function(e:MouseEvent):void { g.toggleLock(s.kind, s.idx); s.refreshLock(); showTip(s); });
 			s.addEventListener(MouseEvent.ROLL_OVER, onSlotOver);
 			s.addEventListener(MouseEvent.ROLL_OUT, onSlotOut);
 			return s;
@@ -338,6 +340,8 @@ package realm {
 
 		private function onSlotDown(e:MouseEvent):void {
 			var s:Slot = Slot(e.currentTarget);
+			// ctrl+click locks or unlocks (as does a right-click)
+			if (e.ctrlKey && s.item && s.kind != "bag") { g.toggleLock(s.kind, s.idx); s.refreshLock(); showTip(s); return; }
 			// shift+click keeps its shortcuts (sell at the Marketplace, quick drop); clicks on empty slots do nothing
 			if (e.shiftKey || !s.item) {
 				g.slotClick(s.kind, s.idx, e.shiftKey);
@@ -414,7 +418,7 @@ package realm {
 		private function showTip(s:Slot):void {
 			if (!s || !s.item) { tip.visible = false; return; }
 			var drinkable:Boolean = s.item.kind == "stat" || s.item.kind == "hp" || s.item.kind == "mp";
-			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up, or drag into a slot") + (drinkable ? ". Shift+click to drink it here." : "") : s.kind == "inv" ? (g.nearMarket ? "Shift+click to sell" : "Click to use or equip. Drag onto the ground to drop.") : "Equipped. Drag into your inventory to take it off.";
+			var hint:String = s.kind == "bag" ? (g.nearBag && g.nearBag.vault ? "Click to take out of your vault" : "Click to pick up, or drag into a slot") + (drinkable ? ". Shift+click to drink it here." : "") : s.kind == "inv" ? (s.item.locked ? "Locked (right-click or Ctrl+click to unlock)" : g.nearMarket ? "Shift+click to sell. Right-click to lock." : "Click to use or equip. Drag onto the ground to drop. Right-click to lock.") : "Equipped. Drag into your inventory to take it off." + (s.item.locked ? " Locked." : " Right-click to lock.");
 			var worn:Object = null;
 			if ((s.kind == "inv" || s.kind == "bag") && Data.isGear(s.item) && Data.canUse(s.item, g.player.cls.id)) worn = g.player[s.item.kind];
 			tip.show(s.item, hint, worn);
@@ -835,8 +839,33 @@ class Slot extends Sprite {
 		upArrow.visible = on;
 	}
 
+	private var lockIcon:Shape;
+	/** A small padlock on locked gear. */
+	public function refreshLock():void {
+		var on:Boolean = item && item.locked;
+		if (!on && !lockIcon) return;
+		if (!lockIcon) {
+			lockIcon = new Shape();
+			var g:* = lockIcon.graphics;
+			g.lineStyle(2, 0x1a1408);
+			g.drawRoundRect(-3.5, -9, 7, 9, 6, 6);
+			g.lineStyle(1.5, 0xffd75e);
+			g.drawRoundRect(-3.5, -9, 7, 9, 6, 6);
+			g.lineStyle(1, 0x1a1408);
+			g.beginFill(0xffd75e);
+			g.drawRoundRect(-6, -4, 12, 9, 3, 3);
+			g.endFill();
+			g.beginFill(0x1a1408);
+			g.drawRect(-1, -1.5, 2, 4);
+			g.endFill();
+			lockIcon.x = 39; lockIcon.y = 11;
+			addChild(lockIcon);
+		}
+		lockIcon.visible = on;
+	}
+
 	public function setItem(it:Object):void {
-		if (it == item) return;
+		if (it == item) { refreshLock(); return; }
 		item = it;
 		var bad:Boolean = it && !Data.canUse(it, Data.viewerClass);
 		graphics.clear();
@@ -846,10 +875,12 @@ class Slot extends Sprite {
 		graphics.endFill();
 		if (numTf) numTf.visible = !it;
 		if (!it) {
+			refreshLock();
 			icon.bitmapData = null;
 			tierTf.text = "";
 			return;
 		}
+		refreshLock();
 		icon.bitmapData = Sprites.icon(it);
 		icon.x = int((48 - icon.width) / 2);
 		icon.y = int((48 - icon.height) / 2);

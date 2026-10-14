@@ -105,7 +105,7 @@ package realm {
 
 		private function showTip(sl:ItemSlot, mine:Boolean):void {
 			if (!sl.item) { tip.visible = false; return; }
-			var hint:String = mine ? (s.mySel[sl.idx] ? "Offered. Click to take it back." : s.asked[sl.idx] ? s.partner.name + " asked for this. Click to offer it." : "Click to offer this item.")
+			var hint:String = mine ? (s.mySel[sl.idx] ? "Offered. Click to take it back." : sl.item && sl.item.locked ? "Locked: unlock it (right-click it in your inventory) to trade it." : s.asked[sl.idx] ? s.partner.name + " asked for this. Click to offer it." : "Click to offer this item.")
 				: s.theirSel[sl.idx] ? s.partner.name + " is offering this." : s.wanted[sl.idx] ? "Asked for. Click to un-ask." : "Click to ask for this item.";
 			tip.show(sl.item, hint);
 			var lp:Point = globalToLocal(sl.localToGlobal(new Point(0, 0)));

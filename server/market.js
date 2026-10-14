@@ -42,6 +42,7 @@ class Market {
     const item = inv[slot];
     if (!item) return 'There is nothing in that slot.';
     if (!item.sid) return 'Starter gear can\'t be sold.';
+    if (item.locked) return 'That item is locked. Unlock it first (right-click it).';
     if (!(price >= 1 && price <= MAX_PRICE)) return 'Pick a price from 1 to ' + MAX_PRICE.toLocaleString('en') + ' gold.';
     if (this.countOf(sellerKey) >= MAX_LISTINGS) return 'You can have ' + MAX_LISTINGS + ' items for sale at once.';
     const entry = items.release(sv, item);

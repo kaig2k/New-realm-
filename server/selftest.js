@@ -16,7 +16,7 @@ const { spawn } = require('child_process');
 const { checkItem, checkSave } = require('./validate');
 
 const PORT = 20000 + Math.floor(Math.random() * 20000);
-const VERSION = 11;
+const VERSION = 12;
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'newrealm-test-'));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let passed = 0, failed = 0;
@@ -1351,6 +1351,15 @@ async function run() {
       const cheat = Object.assign(clone(stored), { chars: [Object.assign(clone(h), { skillPoints: h.skillPoints + 5 })] });
       check('...and five skill points more than it earned are put back', progress.check(stored, cheat, pm, Date.now()).length === 1 && cheat.chars[0].skillPoints === h.skillPoints);
       check('a stat potion drunk straight from a loot bag counts (once); one the server never gave is put back', bagOk && twiceOut, bagOk + ' ' + twiceOut + ' ' + fixes.join(' | '));
+      // deeper skills cost more a rank: Ferocity (tier 2) is 2 points, so 3 ranks for 3 points is put back
+      const cheap = Object.assign(clone(stored), { chars: [Object.assign(clone(h), { skills: { brutality: 2, ferocity: 3 }, skillPoints: h.skillPoints - 3 })] });
+      const fair = Object.assign(clone(stored), { chars: [Object.assign(clone(h), { skills: { brutality: 2, ferocity: 3 }, skillPoints: h.skillPoints - 6 })] });
+      check('skills cost their tier\'s price: 3 ranks of a 2-point skill for 3 points is put back, for 6 it\'s fine',
+        progress.check(stored, cheap, pm, Date.now()).length === 1 && progress.check(stored, fair, pm, Date.now()).length === 0);
+      // a hero from the old three-branch tree gets its points back to spend again
+      const oldTree = Object.assign(clone(stored), { chars: [Object.assign(clone(h), { skills: { ferocity: 3, executioner: 1 }, tree3: false })] });
+      const refunded = Object.assign(clone(oldTree), { chars: [Object.assign(clone(h), { skills: {}, skillPoints: h.skillPoints + 4, tree3: true })] });
+      check('...and a hero from the old tree gets every spent point back once (the server accepts it)', progress.check(oldTree, refunded, pm, Date.now()).length === 0);
     }
     {
       const am = {}, asv = { gold: 0, onrane: 5, chars: [], _fame: {} };
@@ -1544,6 +1553,40 @@ async function run() {
     const wb = back.find((m) => m.t === 'welcome');
     check('/heroname renames a hero', /Renamed/.test(notes4()) && wb && wb.save.chars.some((h) => h && h.name === 'Hero' + (n % 100)), notes4());
     for (const c of [R1, oldL, newL, back, bz4]) c.s.destroy();
+  }
+
+  console.log('locked gear, the Oracle and /realms');
+  {
+    const { Market: M3 } = require('./market');
+    const t3 = {};
+    const mk3 = new M3((f, d) => t3[f] || d, (f, o) => { t3[f] = o; });
+    const lsv = { gold: 0, chars: [], _ledger: { s1: { f: 'x', t: 0 } } };
+    const linv = [{ name: 'Precious', kind: 'ring', sid: 's1', locked: true }];
+    check('locked gear can\'t be listed on the Marketplace', /locked/.test(String(mk3.list(lsv, 'lk', 'Lk', linv, 0, 100))) && linv[0]);
+    const oracle = require('./oracle');
+    const osv = {};
+    oracle.record(osv, 'cube', 'Cube Overlord', [{ name: 'Cube Crown', rarity: 'lg', uid: 'cube_crown' }, { name: 'Health Potion', kind: 'hp' }], 1000);
+    oracle.record(osv, 'cube', 'Cube Overlord', [], 2000);
+    const ob = oracle.view(osv).b.cube;
+    check('the Oracle counts boss kills and what they dropped, and logs the rare ones',
+      ob && ob.k === 2 && ob.d['Cube Crown'].c === 1 && ob.d['Health Potion'].c === 1 && oracle.view(osv).log.length === 1 && oracle.view(osv).log[0].name === 'Cube Crown', JSON.stringify(oracle.view(osv)));
+    const bz5 = await login('TestBoss', { password: 'pass1234' });
+    const realmsBefore = bz5.find((m) => m.t === 'welcome').realms.length;
+    check('one realm is open by default', realmsBefore === 1, String(realmsBefore));
+    bz5.clear();
+    bz5.send({ t: 'cmd', text: '/realms 2' });
+    await wait(1500);
+    const rl2 = bz5.msgs.filter((m) => m.t === 'realms').pop();
+    check('/realms 2 opens a second realm', rl2 && rl2.list.length === 2, JSON.stringify(rl2 || bz5.msgs.filter((m) => m.t === 'msg').map((m) => m.text)));
+    bz5.send({ t: 'cmd', text: '/realms 1' });
+    await wait(1500);
+    const rl1 = bz5.msgs.filter((m) => m.t === 'realms').pop();
+    check('...and /realms 1 closes it again once it\'s empty', rl1 && rl1.list.length === 1, JSON.stringify(rl1));
+    bz5.clear();
+    bz5.send({ t: 'oracleView' });
+    await wait(250);
+    check('the game can ask for its Oracle record', !!bz5.find((m) => m.t === 'oracle' && m.o && m.o.b));
+    bz5.s.destroy();
   }
 
   console.log('/glands');

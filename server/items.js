@@ -15,7 +15,7 @@ const { Data } = require('./sim/gen/game');
 
 const STATS = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis', 'mgt', 'luc', 'prt', 'frt'];
 const CORE = ['kind', 'sub', 'ab', 'tier', 'rarity', 'uid', 'set', 'passive', 'form', 'motion', 'shots', 'dmin', 'dmax', 'rate', 'life',
-  'arc', 'parallel', 'power', 'pierce', 'size', 'shape', 'col'].concat(STATS);
+  'arc', 'parallel', 'power', 'pierce', 'size', 'shape', 'col', 'curse'].concat(STATS);
 /** Most entries one ledger keeps (old entries for items no longer held are dropped first). */
 const LEDGER_MAX = 4000;
 

@@ -507,6 +507,42 @@ package realm {
 			return {kind: "rune", sub: stat, tier: 0, name: STAT_NAMES[stat] + " Rune"};
 		}
 
+		/**
+		 * Cursed gear: top-tier gear with a curse, two big boons and a price (a stat
+		 * below zero). Only bosses drop it. The Anvil and stat rerolls can't touch it.
+		 */
+		public static const CURSES:Object = {
+			bloodbound: {name: "Bloodbound", boon: {att: 16, mgt: 14}, bane: {def: -10}, desc: "hits like a storm, guards like paper"},
+			hexed: {name: "Hexed", boon: {wis: 16, mp: 60}, bane: {hp: -50}, desc: "a well of magic that drinks your life"},
+			feral: {name: "Feral", boon: {spd: 14, dex: 14}, bane: {vit: -10}, desc: "fast and wild, slow to mend"},
+			gilded: {name: "Gilded", boon: {luc: 18, frt: 12}, bane: {att: -8}, desc: "fortune smiles, the blade dulls"},
+			reckless: {name: "Reckless", boon: {att: 12, dex: 14}, bane: {prt: -12}, desc: "all offence, no warding"},
+			brittle: {name: "Brittle", boon: {def: 16, vit: 12}, bane: {spd: -10}, desc: "a fortress that barely moves"}
+		};
+		public static const CURSE_IDS:Array = ["bloodbound", "hexed", "feral", "gilded", "reckless", "brittle"];
+		public static const CURSE_COLOR:uint = 0xb050ff;
+
+		/** A cursed piece of gear for one of cls's four slots (curse: a CURSES id, or one at random). */
+		public static function makeCursed(cls:Object, slot:int = -1, curse:String = null):Object {
+			if (slot < 0) slot = int(Math.random() * 4);
+			if (!curse || !CURSES[curse]) curse = pick(CURSE_IDS);
+			var it:Object = makeForSlot(cls, slot, slot == 1 ? 6 : slot == 3 ? 5 : 7, null);
+			var c:Object = CURSES[curse];
+			var k:String;
+			for (k in c.boon) {
+				// (a weapon's "spd" is its bullets: its Speed boon becomes Dexterity)
+				var key:String = it.kind == "weapon" && k == "spd" ? "dex" : k;
+				it[key] = (it[key] || 0) + c.boon[k] + int(Math.random() * 4);
+			}
+			for (k in c.bane) {
+				if (it.kind == "weapon" && k == "spd") continue;
+				it[k] = (it[k] || 0) + c.bane[k];
+			}
+			it.curse = curse;
+			it.name = c.name + " " + it.name;
+			return it;
+		}
+
 		/** Evolution Stones and runes from bosses: [stone chance, rune chance] for this boss (none for other monsters). */
 		public static function bossExtras(def:Object):Array {
 			if (!def || def.ai != "boss" || def.prop) return [0, 0];
@@ -541,7 +577,7 @@ package realm {
 
 		/** Weapons (but not uniques or Godly items) can get a new prefix (form). */
 		public static function canRerollForm(item:Object):Boolean {
-			return item && item.kind == "weapon" && !item.uid && !item.gid && FORM_IDS.length > 1;
+			return item && item.kind == "weapon" && !item.uid && !item.gid && !item.curse && FORM_IDS.length > 1;
 		}
 
 		/** Special-rarity gear (but not uniques or Godly items) can roll its bonus stats again. */
@@ -618,6 +654,7 @@ package realm {
 			if (!item || !isGear(item)) return "Only gear goes on the Anvil.";
 			if (item.uid || item.gid) return "Unique and Godly items are too precious for the Anvil.";
 			if (item.set) return "Set pieces can't go on the Anvil.";
+			if (item.curse) return "The curse won't let the Anvil touch it.";
 			if (item.rarity && ANVIL_RARITIES.indexOf(item.rarity) < 0) return "Starforged and better items can't go on the Anvil.";
 			if (item.rarity == "fb") return "Eldritch is as high as the Anvil goes: the Starforge takes it further.";
 			if (item.locked) return "That item is locked (right-click it to unlock it).";
@@ -682,6 +719,7 @@ package realm {
 
 		public static function tierColor(item:Object):uint {
 			if (item && item.rarity) return RARITY_COLORS[item.rarity];
+			if (item && item.curse) return CURSE_COLOR;
 			return 0xffffff;
 		}
 
@@ -689,6 +727,7 @@ package realm {
 		public static function sellValue(item:Object):int {
 			if (!item) return 0;
 			if (item.rarity) return {ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000, gd: 25000}[item.rarity];
+			if (item.curse) return 1500;
 			switch (item.kind) {
 				case "stat": return 250;
 				case "material": return 300;
@@ -784,10 +823,11 @@ package realm {
 			if (isGear(item)) {
 				var on:String = "";
 				for each (var k:String in STATS.concat(GEAR_STATS)) {
-					if (item[k] && !(k == "spd" && item.kind == "weapon")) on += "  +" + item[k] + " " + STAT_NAMES[k] + "\n";
+					if (item[k] && !(k == "spd" && item.kind == "weapon")) on += (item[k] < 0 ? "  <font color='#ff6060'>" + item[k] + " " + STAT_NAMES[k] + "</font>" : "  +" + item[k] + " " + STAT_NAMES[k]) + "\n";
 				}
 				if (on) s += "On equip:\n" + on;
 			}
+			if (item.curse && CURSES[item.curse]) s += "<font color='" + Ui.hex(CURSE_COLOR) + "'>Cursed (" + CURSES[item.curse].name + "): " + CURSES[item.curse].desc + ".</font>\n<font color='#8a7aa0'>The Anvil and stat rerolls can't touch it.</font>\n";
 			if (item.passive) {
 				var p:Object = PASSIVES[item.passive];
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
@@ -1947,6 +1987,8 @@ package realm {
 			var ex:Array = bossExtras(def);
 			if (Math.random() < ex[0] * rare) items.push(makeStone());
 			if (Math.random() < ex[1] * rare) items.push(makeRune(randomStat()));
+			// cursed gear: a bit rarer than runes
+			if (Math.random() < ex[1] * 0.35 * rare) items.push(makeCursed(lootClass(cls)));
 			if (def.raid) {
 				// raid bosses: the best loot in the game
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
@@ -2049,7 +2091,7 @@ package realm {
 				if (it.rarity == "gd") r = 7;
 				else if (it.rarity == "ar") r = 6;
 				else if (it.rarity == "lg") r = 5;
-				else if (it.rarity == "fb") r = 4;
+				else if (it.rarity == "fb" || it.curse) r = 4;
 				else if (it.rarity || it.kind == "key") r = 3;
 				else if (it.tier >= 6 || it.kind == "material" || it.kind == "stone" || it.kind == "rune") r = 2;
 				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = 1;

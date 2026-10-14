@@ -205,6 +205,25 @@ class Data {
 	static makeRune(stat) {
 			return {kind: "rune", sub: stat, tier: 0, name: Data.STAT_NAMES[stat] + " Rune"};
 		}
+	static makeCursed(cls, slot = -1, curse = null) { slot = __int(slot);
+			if (slot < 0) slot = __int(__int(Math.random() * 4));
+			if (!curse || !Data.CURSES[curse]) curse = Data.pick(Data.CURSE_IDS);
+			var it = Data.makeForSlot(cls, slot, slot == 1 ? 6 : slot == 3 ? 5 : 7, null);
+			var c = Data.CURSES[curse];
+			var k = null;
+			for (k in c.boon) {
+				
+				var key = it.kind == "weapon" && k == "spd" ? "dex" : k;
+				it[key] = (it[key] || 0) + c.boon[k] + __int(Math.random() * 4);
+			}
+			for (k in c.bane) {
+				if (it.kind == "weapon" && k == "spd") continue;
+				it[k] = (it[k] || 0) + c.bane[k];
+			}
+			it.curse = curse;
+			it.name = c.name + " " + it.name;
+			return it;
+		}
 	static bossExtras(def) {
 			if (!def || def.ai != "boss" || def.prop) return [0, 0];
 			if (def.raid || def.final || def.finale) return [0.3, 0.18];
@@ -228,7 +247,7 @@ class Data {
 			return item;
 		}
 	static canRerollForm(item) {
-			return item && item.kind == "weapon" && !item.uid && !item.gid && Data.FORM_IDS.length > 1;
+			return item && item.kind == "weapon" && !item.uid && !item.gid && !item.curse && Data.FORM_IDS.length > 1;
 		}
 	static canRerollStats(item) {
 			return item && Data.isGear(item) && item.rarity && item.rarity != "gd" && !item.uid && !item.gid;
@@ -283,6 +302,7 @@ class Data {
 			if (!item || !Data.isGear(item)) return "Only gear goes on the Anvil.";
 			if (item.uid || item.gid) return "Unique and Godly items are too precious for the Anvil.";
 			if (item.set) return "Set pieces can't go on the Anvil.";
+			if (item.curse) return "The curse won't let the Anvil touch it.";
 			if (item.rarity && Data.ANVIL_RARITIES.indexOf(item.rarity) < 0) return "Starforged and better items can't go on the Anvil.";
 			if (item.rarity == "fb") return "Eldritch is as high as the Anvil goes: the Starforge takes it further.";
 			if (item.locked) return "That item is locked (right-click it to unlock it).";
@@ -337,11 +357,13 @@ class Data {
 		}
 	static tierColor(item) {
 			if (item && item.rarity) return __uint(Data.RARITY_COLORS[item.rarity]);
+			if (item && item.curse) return __uint(Data.CURSE_COLOR);
 			return __uint(0xffffff);
 		}
 	static sellValue(item) {
 			if (!item) return __int(0);
 			if (item.rarity) return __int({ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000, gd: 25000}[item.rarity]);
+			if (item.curse) return __int(1500);
 			switch (item.kind) {
 				case "stat": return __int(250);
 				case "material": return __int(300);
@@ -430,10 +452,11 @@ class Data {
 			if (Data.isGear(item)) {
 				var on = "";
 				for (var k of __vals( Data.STATS.concat(Data.GEAR_STATS))) {
-					if (item[k] && !(k == "spd" && item.kind == "weapon")) on += "  +" + item[k] + " " + Data.STAT_NAMES[k] + "\n";
+					if (item[k] && !(k == "spd" && item.kind == "weapon")) on += (item[k] < 0 ? "  <font color='#ff6060'>" + item[k] + " " + Data.STAT_NAMES[k] + "</font>" : "  +" + item[k] + " " + Data.STAT_NAMES[k]) + "\n";
 				}
 				if (on) s += "On equip:\n" + on;
 			}
+			if (item.curse && Data.CURSES[item.curse]) s += "<font color='" + Ui.hex(Data.CURSE_COLOR) + "'>Cursed (" + Data.CURSES[item.curse].name + "): " + Data.CURSES[item.curse].desc + ".</font>\n<font color='#8a7aa0'>The Anvil and stat rerolls can't touch it.</font>\n";
 			if (item.passive) {
 				var p = Data.PASSIVES[item.passive];
 				s += "<font color='#d8e040'>" + p.name + ":</font> " + p.desc + "\n";
@@ -702,6 +725,8 @@ class Data {
 			var ex = Data.bossExtras(def);
 			if (Math.random() < ex[0] * rare) items.push(Data.makeStone());
 			if (Math.random() < ex[1] * rare) items.push(Data.makeRune(Data.randomStat()));
+			
+			if (Math.random() < ex[1] * 0.35 * rare) items.push(Data.makeCursed(Data.lootClass(cls)));
 			if (def.raid) {
 				
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
@@ -801,7 +826,7 @@ class Data {
 				if (it.rarity == "gd") r = __int(7);
 				else if (it.rarity == "ar") r = __int(6);
 				else if (it.rarity == "lg") r = __int(5);
-				else if (it.rarity == "fb") r = __int(4);
+				else if (it.rarity == "fb" || it.curse) r = __int(4);
 				else if (it.rarity || it.kind == "key") r = __int(3);
 				else if (it.tier >= 6 || it.kind == "material" || it.kind == "stone" || it.kind == "rune") r = __int(2);
 				else if (it.tier >= 4 || it.kind == "stat" || (it.kind == "ring" && it.tier >= 3)) r = __int(1);
@@ -3544,6 +3569,16 @@ Data.SHOP = [
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
+Data.CURSES = {
+			bloodbound: {name: "Bloodbound", boon: {att: 16, mgt: 14}, bane: {def: -10}, desc: "hits like a storm, guards like paper"},
+			hexed: {name: "Hexed", boon: {wis: 16, mp: 60}, bane: {hp: -50}, desc: "a well of magic that drinks your life"},
+			feral: {name: "Feral", boon: {spd: 14, dex: 14}, bane: {vit: -10}, desc: "fast and wild, slow to mend"},
+			gilded: {name: "Gilded", boon: {luc: 18, frt: 12}, bane: {att: -8}, desc: "fortune smiles, the blade dulls"},
+			reckless: {name: "Reckless", boon: {att: 12, dex: 14}, bane: {prt: -12}, desc: "all offence, no warding"},
+			brittle: {name: "Brittle", boon: {def: 16, vit: 12}, bane: {spd: -10}, desc: "a fortress that barely moves"}
+		};
+Data.CURSE_IDS = ["bloodbound", "hexed", "feral", "gilded", "reckless", "brittle"];
+Data.CURSE_COLOR = __uint(0xb050ff);
 Data.REROLL_FORM_GOLD = __int(400);
 Data.REROLL_STATS_AETHER = __int(60);
 Data.ROLLED = ["hp", "mp", "att", "def", "spd", "dex", "vit", "wis", "mgt", "luc", "prt", "frt"];
@@ -4119,8 +4154,8 @@ Data.PET_XP_SHARE = __int(25);
 Data.PET_STAGES = [
 			{name: "Hatchling", lv: 1, stones: 0, gold: 0, mult: 1, scale: 1, bag: 0},
 			{name: "Juvenile", lv: 10, stones: 1, gold: 500, mult: 1.25, scale: 1.2, bag: 0},
-			{name: "Adult", lv: 25, stones: 2, gold: 2000, mult: 1.6, scale: 1.4, bag: 2},
-			{name: "Ascended", lv: 45, stones: 4, gold: 6000, mult: 2.1, scale: 1.65, bag: 4}
+			{name: "Adult", lv: 25, stones: 2, gold: 2000, mult: 1.6, scale: 1.15, bag: 2},
+			{name: "Ascended", lv: 45, stones: 4, gold: 6000, mult: 2.1, scale: 1.3, bag: 4}
 		];
 Data.PET_SKILLS = {
 			pup: {skill: "Fetch", desc: "Brings you health and magic potions from loot bags nearby",

@@ -12,7 +12,7 @@
 const ITEMS_PER_BOSS = 60, LOG_KEEP = 60;
 const RARE = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
 
-function notable(it) { return !!(it && (RARE.has(it.rarity) || it.uid || it.kind === 'material')); }
+function notable(it) { return !!(it && (RARE.has(it.rarity) || it.uid || it.curse || it.kind === 'material')); }
 
 /** A boss died with c's help: count it and its drops (items: what c got, maybe none). */
 function record(sv, bossId, bossName, items, now) {

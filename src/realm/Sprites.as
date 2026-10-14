@@ -887,7 +887,7 @@ package realm {
 
 		/** Inventory icon (36x36). */
 		public static function icon(item:Object):BitmapData {
-			var key:String = "icon_" + ItemArt.identity(item) + "_" + item.kind + "_" + (item.sub || "");
+			var key:String = "icon_" + ItemArt.identity(item) + "_" + item.kind + "_" + (item.sub || "") + (item.curse ? "_cursed" : "");
 			var bd:BitmapData = cache[key];
 			if (bd) return bd;
 			var rar:String = item.rarity;
@@ -898,6 +898,7 @@ package realm {
 				bd = build(art.rows, art.pal, 4, 2);
 				if (rar == "gd") bd = godlyFrame(bd);
 				else if (rar) bd = glowEdge(bd, rc);
+				else if (item.curse) bd = glowEdge(bd, Data.CURSE_COLOR);
 				cache[key] = bd;
 				return bd;
 			}
@@ -955,6 +956,7 @@ package realm {
 			}
 			bd = build(rows, pal, 4, 2);
 			if (rar) bd = glowEdge(bd, rc);
+			else if (item.curse) bd = glowEdge(bd, Data.CURSE_COLOR);
 			cache[key] = bd;
 			return bd;
 		}

@@ -133,7 +133,8 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
 - **Anti-cheat flags.** The anti-cheat never disconnects or kills anyone by itself (honest players were caught by it). Everything it notices (ignored damage, too much health, ignored hits, impossible moves, walking into dungeons without a portal, refused saves, gold/fame or progress put back) is flagged instead:
   - `/flags` opens a window of every flagged player, most recent first: their account number, whether they're online, how many times and for what, and the latest few reasons. Each has Whois, Kick (when online), Ban and Clear buttons.
   - `/flags clear name` takes someone off the list once you've checked them and they're honest.
-- **Items for events:** `/give name 3 stone` (Evolution Stones) or `/give name 2 rune att` (a rune of any stat) puts them straight into an online player's inventory; `/give name 200 petxp` grows their pet.
+- **Items for events:** `/give name 3 stone` (Evolution Stones) , `/give name 2 rune att` (a rune of any stat) or `/give name 1 cursed bloodbound` (cursed gear: bloodbound, hexed, feral, gilded, reckless, brittle) puts them straight into an online player's inventory; `/give name 200 petxp` grows their pet.
+- **Bug reports:** players type `/bug what happened`. Each report is kept with where they were, their hero, pet, frame rate and ping (`server/data/bugs.json` and `bugs.log`), posted to the Discord feed, and shown to online admins. `/bugs` opens the list: Done marks one fixed, Clear fixed forgets them.
 - **Realms:** `/realms 1` keeps one realm open (the default); `/realms 3` opens three; `/realms 2 4` keeps two open and lets up to four open as they fill.
   - Online admins also get one chat line per player and kind of flag every 5 minutes.
   - The list is kept in `server/data/flags.json` (the 200 most recently flagged accounts); the full history is in `server/data/anticheat.log`.

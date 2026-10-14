@@ -31,7 +31,7 @@ package realm {
 			if (vault || f <= 0) return true;
 			for each (var it:Object in items) {
 				if (!it) continue;
-				if (it.kind == "stat" || it.rarity || it.uid) return true;
+				if (it.kind == "stat" || it.rarity || it.uid || it.curse) return true;
 				if (!Data.isGear(it) && it.kind != "hp" && it.kind != "mp") return true;
 				if (f == 1 && Data.isGear(it) && int(it.tier) >= 4) return true;
 				if (f == 2 && Data.isGear(it) && int(it.tier) >= 6) return true;

@@ -32,6 +32,7 @@ function checkItem(it) {
   if (typeof it !== 'object' || Array.isArray(it)) return 'not an item';
   if (!KINDS.has(it.kind)) return 'unknown item kind';
   if (it.rarity !== undefined && it.rarity !== null && !RARITIES.has(it.rarity)) return 'unknown rarity';
+  if (it.curse !== undefined && it.curse !== null && !CURSES[it.curse]) return 'unknown curse';
   if (it.tier !== undefined && (!isNum(it.tier) || it.tier < 0 || it.tier > 8)) return 'bad tier';
   if (typeof it.name === 'string' && it.name.length > 80) return 'bad name';
   for (const s of STATS) {
@@ -53,6 +54,9 @@ function checkItem(it) {
   if (it.kind === 'ability' && it.ab !== undefined && it.ab !== null && !(ABILITY_TYPES[it.ab] && ABILITY_TYPES[it.ab] === it.sub)) return 'unknown ability';
   return null;
 }
+
+/** The curses gear can carry (Data.CURSES). */
+const CURSES = require('./sim/gen/game').Data.CURSES;
 
 /** Each ability's item type (spell, quiver...), from the game's own table. */
 const ABILITY_TYPES = {};

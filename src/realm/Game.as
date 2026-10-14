@@ -361,7 +361,7 @@ package realm {
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
-						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
+						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 1 cursed, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
 						msg("Accounts: /whois name|#12  /graves name  /revive name number  /setpassword name newpassword  /rename name newname  /heroname name hero newname  (any name can be #number)", 0xffb040);
 						msg("Anti-cheat: /flags opens the list of flagged players (nobody is disconnected automatically)   Realms: /realms 1 (how many are open)   Bug reports: /bugs", 0xffb040);

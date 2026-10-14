@@ -1809,21 +1809,22 @@ const handlers = {
         const amount = Math.floor(Number(parts[2]));
         // /give name 3 stone, /give name 2 rune att: items into an online player's inventory (for events and testing)
         const kind = (parts[3] || '').toLowerCase();
-        if (kind === 'stone' || kind === 'rune' || kind === 'stones' || kind === 'runes') {
+        if (kind === 'stone' || kind === 'rune' || kind === 'stones' || kind === 'runes' || kind === 'cursed') {
           if (!target) return c.note('They have to be online to get items.');
           const ch = serverChar(target), sv = onlineSave(who);
           const stat = (parts[4] || '').toLowerCase();
           if (kind.startsWith('rune') && !Data.STATS.includes(stat)) return c.note('Usage: /give name 2 rune att (any stat: ' + Data.STATS.join(' ') + ')');
+          if (kind === 'cursed' && stat && !Data.CURSES[stat]) return c.note('Usage: /give name 1 cursed [' + Data.CURSE_IDS.join('|') + ']');
           if (!ch || !Array.isArray(ch.inv) || !(amount > 0 && amount <= 16)) return c.note('Usage: /give name 3 stone, or /give name 2 rune att');
           let n = 0;
           for (let i = 0; i < ch.inv.length && n < amount; i++) {
             if (ch.inv[i]) continue;
-            ch.inv[i] = items.issue(sv, kind.startsWith('rune') ? Data.makeRune(stat) : Data.makeStone());
+            ch.inv[i] = items.issue(sv, kind === 'cursed' ? Data.makeCursed(Data.CLASSES[ch.cls] || Data.CLASSES.wizard, -1, stat || null) : kind.startsWith('rune') ? Data.makeRune(stat) : Data.makeStone());
             n++;
           }
           if (!n) return c.note(accounts[who].name + '\'s inventory is full.');
           log(c.name + ' gave ' + accounts[who].name + ' ' + n + ' ' + kind);
-          shopDone(target, sv, ch, { market: c.name + ' gave you ' + n + ' ' + (kind.startsWith('rune') ? Data.STAT_NAMES[stat] + ' Rune' : 'Evolution Stone') + (n === 1 ? '' : 's') + '.' });
+          shopDone(target, sv, ch, { market: c.name + ' gave you ' + n + ' ' + (kind === 'cursed' ? 'cursed item' : kind.startsWith('rune') ? Data.STAT_NAMES[stat] + ' Rune' : 'Evolution Stone') + (n === 1 ? '' : 's') + '.' });
           return c.note('Gave ' + accounts[who].name + ' ' + n + ' of them.', 0x80ff80);
         }
         // /give name 200 petxp: grows their active pet (events, testing)

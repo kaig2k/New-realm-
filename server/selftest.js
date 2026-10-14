@@ -1742,6 +1742,23 @@ async function run() {
     check('...and swaps: the evolved pet comes out, the new one goes in', sw && pet && pet.stage === 1 && stable.length === 1 && stable[0].species === second.species && stable[0].level === second.level, JSON.stringify(sw));
     const bad = await ask({ t: 'anvil', slot: 7 });
     check('the Anvil refuses an empty slot', bad && bad.t === 'shopFail');
+    // cursed gear: big boons, a stat below zero; the server's checks accept it and the Anvil won't touch it
+    const { checkItem: CI } = require('./validate');
+    const cur = PD.makeCursed(PD.CLASSES.wizard, 2, 'hexed');
+    check('cursed gear: two boons and a price below zero, accepted by the save checks (an unknown curse isn\'t)',
+      cur.curse === 'hexed' && cur.wis >= 16 && cur.hp < 0 && /^Hexed /.test(cur.name) && CI(cur) === null && CI(Object.assign({}, cur, { curse: 'mystery' })) !== null &&
+      PD.anvilBlock(cur) !== null && !PD.canRerollStats(cur) && !PD.canRerollForm(PD.makeCursed(PD.CLASSES.wizard, 0)));
+    E.clear();
+    bz6.send({ t: 'cmd', text: '/give ' + nm + ' 1 cursed bloodbound' });
+    await wait(400);
+    take(E.find((m) => m.t === 'shopDone'));
+    const ci = eh.inv.findIndex((it) => it && it.curse === 'bloodbound');
+    E.clear();
+    E.send({ t: 'save', data: data() });
+    await wait(400);
+    check('/give name 1 cursed bloodbound hands one out, and a save holding it is kept', ci >= 0 && !E.find((m) => m.t === 'saveRejected'), JSON.stringify(E.find((m) => m.t === 'saveRejected') || eh.inv));
+    const curA = await ask({ t: 'anvil', slot: ci });
+    check('...and the server\'s Anvil refuses it', curA && curA.t === 'shopFail' && /curse/.test(curA.msg), JSON.stringify(curA));
     for (const c of [E, bz6]) c.s.destroy();
   }
 

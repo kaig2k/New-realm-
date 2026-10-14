@@ -1388,7 +1388,17 @@ package realm {
 		}
 
 		private function switchWorld(w:World, x:Number, y:Number):void {
-			if (world && world != w) world.releaseGround();
+			if (world && world != w) {
+				world.releaseGround();
+				// the world we leave hides its portal names; one that's gone for good
+				// (the last Abyss floor or dungeon, replaced before we got here) takes them away
+				var gone:Boolean = world.kind == "dungeon" && world != dungeonWorld;
+				for each (var op:Object in world.portals) {
+					op.label.visible = false;
+					if (gone && op.label.parent) op.label.parent.removeChild(op.label);
+				}
+				if (gone) world.portals.length = 0;
+			}
 			world = w;
 			player.x = x;
 			player.y = y;

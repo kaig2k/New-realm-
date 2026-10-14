@@ -64,6 +64,19 @@ class Store {
     this.later(this.savePath(key), () => JSON.stringify(this.saves.get(key)));
   }
 
+  /**
+   * An account was renamed: its save moves to the new name. The old file is kept beside it
+   * (renamed, never loaded again), in case it's ever needed.
+   */
+  renameSave(from, to) {
+    const data = this.getSave(from);
+    const old = this.savePath(from);
+    if (this.pending[old]) this.flushOne(old);
+    this.saves.delete(from);
+    if (data) this.putSave(to, data);
+    try { fs.renameSync(old, old + '.renamed-' + Date.now()); } catch (e) {}
+  }
+
   /** Drops an account's save from memory once it has been written (player logged off). */
   release(key) {
     const p = this.savePath(key);

@@ -425,6 +425,46 @@ function whoisLines(key) {
   if (g.length) out.push('  ' + g.length + ' fallen hero' + (g.length === 1 ? '' : 'es') + ' can be brought back: /graves ' + a.name);
   return out;
 }
+/**
+ * Gives account `key` the name `name`: its key, save, guild membership, ban, admin rights,
+ * Marketplace listings and season ladder entry all move with it. A player on it is logged out
+ * (they log in again with the new name and the same password).
+ */
+function renameAccount(key, name) {
+  const nk = name.toLowerCase();
+  const on = byName.get(key);
+  if (on) { on.send({ t: 'kicked', msg: 'An admin changed your account name to ' + name + '. Log in with the new name (same password).' }); on.close(true); }
+  const acc = accounts[key];
+  acc.name = name;
+  if (nk !== key) {
+    delete accounts[key];
+    accounts[nk] = acc;
+    // nobody stays logged in under the old name on any PC
+    acc.sessions = [];
+    store.renameSave(key, nk);
+    if (bans[key]) { bans[nk] = bans[key]; delete bans[key]; save('bans.json', bans); }
+    if (accountMeta.has(key)) { accountMeta.set(nk, accountMeta.get(key)); accountMeta.delete(key); }
+    const sc = ladder.t && ladder.t.scores;
+    if (sc && sc[key]) { sc[nk] = sc[key]; delete sc[key]; }
+  }
+  save('accounts.json', accounts);
+  for (const gk in guilds) {
+    const g = guilds[gk];
+    if (!g.members[key]) continue;
+    const m = g.members[key];
+    m.name = name;
+    if (nk !== key) { g.members[nk] = m; delete g.members[key]; }
+    save('guilds.json', guilds);
+  }
+  for (const l of market.data.list) if (l.seller === key) { l.seller = nk; l.sellerName = name; }
+  market.persist();
+  if (ladder.t && ladder.t.scores && ladder.t.scores[nk]) { ladder.t.scores[nk].name = name; ladder.save(); }
+  if (config.admins.some((a) => String(a).toLowerCase() === key)) {
+    config.admins = config.admins.map((a) => (String(a).toLowerCase() === key ? name : a));
+    saveAdmins();
+  }
+}
+
 function c2g(key) { for (const gk in guilds) if (guilds[gk].members[key]) return guilds[gk].name || gk; return ''; }
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
 const guilds = load('guilds.json', {});
@@ -1644,6 +1684,37 @@ const handlers = {
           target.note(c.name + (amount > 0 ? ' gave you ' : ' took ') + Math.abs(amount).toLocaleString('en') + ' ' + label + '.', 0x80ff80);
         }
         return c.note((amount > 0 ? 'Gave ' : 'Took ') + Math.abs(amount).toLocaleString('en') + ' ' + label + (amount > 0 ? ' to ' : ' from ') + accounts[who].name + '.', 0x80ff80);
+      }
+      case '/rename': {
+        // /rename name newname: change an account's name (what everyone sees); its heroes, items and all stay
+        const nn = parts[2] || '';
+        if (!accounts[who] || !nn) return c.note('Usage: /rename name newname (or #number newname). For a hero\'s name: /heroname');
+        if (!/^[A-Za-z0-9]{3,12}$/.test(nn)) return c.note('Names are 3-12 letters or numbers.');
+        const nk = nn.toLowerCase();
+        if (nk !== who && accounts[nk]) return c.note('The name ' + nn + ' is already taken.');
+        const was = accounts[who].name;
+        renameAccount(who, nn);
+        log(c.name + ' renamed ' + was + ' to ' + nn);
+        store.appendLog('admin.log', new Date().toISOString() + ' ' + c.name + ' renamed the account ' + was + ' to ' + nn);
+        return c.note('Renamed ' + was + ' to ' + nn + ' (#' + accounts[nk].no + '). They log in with the new name and the same password.', 0x80ff80);
+      }
+      case '/heroname': {
+        // /heroname name heroname newname: rename one of an account's heroes
+        const hn = (parts[2] || '').toLowerCase(), nn = parts[3] || '';
+        if (!accounts[who] || !hn || !nn) return c.note('Usage: /heroname accountname heroname newname (see /whois for the heroes)');
+        if (!/^[A-Za-z0-9]{2,12}$/.test(nn)) return c.note('Hero names are 2-12 letters or numbers.');
+        const sv = onlineSave(who);
+        const h = (sv.chars || []).find((x) => x && String(x.name || '').toLowerCase() === hn);
+        if (!h) return c.note(accounts[who].name + ' has no hero called ' + parts[2] + '. /whois ' + accounts[who].name + ' lists them.');
+        const was = h.name;
+        h.name = nn;
+        // (newer than any save the game has in flight, so the old name can't come back)
+        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        store.putSave(who, sv);
+        if (target) { target.send({ t: 'kicked', msg: 'An admin renamed your hero ' + was + ' to ' + nn + '. Log in again to carry on.' }); target.close(true); }
+        log(c.name + ' renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn);
+        store.appendLog('admin.log', new Date().toISOString() + ' ' + c.name + ' renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn);
+        return c.note('Renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn + '.', 0x80ff80);
       }
       case '/whois': {
         // /whois name or #number: the account at a glance (also helps check someone really owns it)

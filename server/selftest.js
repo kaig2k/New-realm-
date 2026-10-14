@@ -1520,6 +1520,32 @@ async function run() {
       RB.FINALES.every((f) => { const d = RD.DUNGEONS[RD.dungeonIndex(f)]; return d && (d.toElder || (d.boss && RD.ENEMIES[d.boss] && RD.ENEMIES[d.boss].finale)); }));
   }
 
+  console.log('renaming accounts and heroes');
+  {
+    const on = 'Trn' + n, nn = 'Tnew' + n;
+    const R1 = await login(on, { password: 'pass1234', register: true });
+    const { Data: RN } = require('./sim/gen/game');
+    R1.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'rn1', cls: 'wizard', name: 'Rudeword', level: 1, stats: clone(RN.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] }] } });
+    await wait(400);
+    const bz4 = await login('TestBoss', { password: 'pass1234' });
+    const notes4 = () => bz4.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join('\n');
+    bz4.send({ t: 'cmd', text: '/rename ' + on + ' ' + nn });
+    await wait(400);
+    check('/rename changes an account\'s name (the player on it is logged out)', /Renamed/.test(notes4()) && R1.find((m) => m.t === 'kicked'), notes4());
+    const oldL = await login(on, { password: 'pass1234' });
+    const newL = await login(nn, { password: 'pass1234' });
+    const wn = newL.find((m) => m.t === 'welcome');
+    check('...the old name no longer logs in, the new one does with the same password, and the heroes are still there',
+      oldL.find((m) => m.t === 'error') && wn && wn.name === nn && wn.save.chars.some((h) => h && h.id === 'rn1'), JSON.stringify(wn && wn.name));
+    bz4.clear();
+    bz4.send({ t: 'cmd', text: '/heroname ' + nn + ' Rudeword Hero' + (n % 100) });
+    await wait(400);
+    const back = await login(nn, { password: 'pass1234' });
+    const wb = back.find((m) => m.t === 'welcome');
+    check('/heroname renames a hero', /Renamed/.test(notes4()) && wb && wb.save.chars.some((h) => h && h.name === 'Hero' + (n % 100)), notes4());
+    for (const c of [R1, oldL, newL, back, bz4]) c.s.destroy();
+  }
+
   console.log('/glands');
   {
     const G2 = await login('Tgl' + n, { password: 'pass1234', register: true });

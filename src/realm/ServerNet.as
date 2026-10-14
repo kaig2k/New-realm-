@@ -295,6 +295,9 @@ package realm {
 					// promoted, demoted, or VIP started or ended
 					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; }
 					break;
+				case "deepWave":
+					g.deepWave(m);
+					break;
 				case "abyssRun":
 					g.abyssRun(m);
 					break;

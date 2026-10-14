@@ -10,7 +10,7 @@ package realm {
 	 * this week, and the week's deepest heroes of each class (the server's board).
 	 */
 	public class AbyssWindow extends Sprite {
-		public static const W:int = 600, H:int = 500;
+		public static const W:int = 600, H:int = 550;
 		private var g:Game;
 		private var data:Object;
 		private var cls:String;
@@ -47,8 +47,8 @@ package realm {
 		public function refresh():void {
 			body.removeChildren();
 			var intro:TextField = Ui.text(12, 0xc8b8e0, false, "left", W - 40, true);
-			intro.htmlText = "Floor after floor, each tougher than the last, with better loot the deeper you go. Every " + Data.DEEP_HERALD +
-				"th floor the <font color='#d080ff'>Abyssal Herald</font> waits at the bottom. After each floor, choose a boon for the run. Level 20 heroes only; the board resets every Monday.";
+			intro.htmlText = "Wave after wave in the Abyss's arena, each tougher than the last. Its monsters drop <b>nothing</b>: every " + Data.DEEP_CHEST_EVERY +
+				" waves a chest appears instead, and a boss with it (the <font color='#d080ff'>Abyssal Herald</font> every " + Data.DEEP_HERALD + "th), and you pick a boon for the run. Level 20 heroes only; the board resets every Monday.";
 			intro.x = 20; intro.y = 50;
 			body.addChild(intro);
 			var run:Object = g.abyssRunInfo;
@@ -56,12 +56,12 @@ package realm {
 			if (run) {
 				var bn:Array = [];
 				for each (var id:String in run.boons || []) { var b:Object = Data.findBoon(id); if (b) bn.push("<font color='" + Ui.hex(b.col) + "'>" + b.name + "</font>"); }
-				rt.htmlText = "Your run: floor <font color='#d080ff'>" + run.floor + "</font><br><font size='12'>" + (bn.length ? bn.join(", ") : "no boons yet") + "</font>";
-			} else rt.htmlText = "Not in a run." + (data && data.best ? "  <font color='#c8b8e0'>Your best this week: floor " + data.best + "</font>" : "");
+				rt.htmlText = "Your run: wave <font color='#d080ff'>" + run.wave + "</font> cleared<br><font size='12'>" + (bn.length ? bn.join(", ") : "no boons yet") + "</font>";
+			} else rt.htmlText = "Not in a run." + (data && data.best ? "  <font color='#c8b8e0'>Your best this week: wave " + data.best + "</font>" : "");
 			rt.x = 20; rt.y = 104;
 			body.addChild(rt);
 			if (!run) {
-				var go:Sprite = Ui.button("Descend (Floor 1)", 160, 34, function():void { g.toggleAbyss(); g.enterDeep(1, 0); }, 14);
+				var go:Sprite = Ui.button("Enter the Abyss", 160, 34, function():void { g.toggleAbyss(); g.enterDeep(0); }, 14);
 				go.x = W - 180; go.y = 104;
 				go.alpha = g.player.level >= 20 ? 1 : 0.5;
 				body.addChild(go);
@@ -81,16 +81,23 @@ package realm {
 			}
 			var lt:TextField = Ui.text(13, 0xe8dcf8, false, "left", W - 40, true);
 			var rows:Array = data && data.cls == cls ? data.list || [] : [];
-			var out:String = "<font size='15' color='#d080ff'><b>Deepest " + Data.CLASSES[cls].name + "s this week</b></font><br>";
+			var out:String = "<font size='15' color='#d080ff'><b>Best " + Data.CLASSES[cls].name + "s this week</b></font><br>";
 			if (!rows.length) out += "<font color='#a898c0'>Nobody yet. Be the first!</font>";
 			for (var i:int = 0; i < rows.length; i++) {
 				var r:Object = rows[i];
 				var col:String = i == 0 ? "#ffd75e" : i == 1 ? "#e0e0f0" : i == 2 ? "#e0a060" : "#c8b8e0";
-				out += "<font color='" + col + "'>" + (i + 1) + ".  <b>" + r.name + "</b>  " + r.hero + "  ·  floor " + r.floor + "</font><br>";
+				out += "<font color='" + col + "'>" + (i + 1) + ".  <b>" + r.name + "</b>  " + r.hero + "  ·  wave " + r.wave + "</font><br>";
 			}
 			lt.htmlText = out;
+			lt.width = 300;
 			lt.x = 20; lt.y = ty + 36;
 			body.addChild(lt);
+			var ct:TextField = Ui.text(11, 0xc8b8e0, false, "left", 250, true);
+			var cs:String = "<font size='14' color='#d080ff'><b>The chests</b></font><br>";
+			for (var ci:int = 1; ci < Data.DEEP_CHEST_INFO.length; ci++) cs += "<font color='#e0c0ff'>" + Data.DEEP_CHEST_NAMES[ci] + "</font><br>" + Data.DEEP_CHEST_INFO[ci] + "<br>";
+			ct.htmlText = cs;
+			ct.x = W - 270; ct.y = ty + 36;
+			body.addChild(ct);
 		}
 
 		private function tabFn(c:String):Function {

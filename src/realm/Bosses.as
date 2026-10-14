@@ -358,6 +358,7 @@ package realm {
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
 			// the Endless Abyss
+			Sprites.recolor("abyss_chest", "chest", {K: 0x1a0a2a, C: 0x8040c0, c: 0x4a1a7a, Y: 0xff80ff}, 6);
 			Sprites.recolor("abyss_herald", "elder", {H: 0x3a2a5a, h: 0x1a1030, P: 0x2a0a4a, p: 0x12041e, Q: 0xd080ff, K: 0x000000, E: 0xff60ff, W: 0xe0c0ff, O: 0xa040ff}, 8);
 			// the Godlands Spires (guild territory)
 			Sprites.recolor("godspire", "crystal", {W: 0xffffff, C: 0xd8e8ff, c: 0x8aa0c8, D: 0x4a5a7a, S: 0x7fd8ff}, 9);
@@ -640,7 +641,7 @@ package realm {
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 
-		/** The Endless Abyss's milestone boss (every 5th floor; the server scales it with the floor). */
+		/** The Endless Abyss's boss on every 10th wave (its uniques come from the Abyss's chests). */
 		private static function deep():void {
 			boss("abyss_herald", {name: "The Abyssal Herald", spr: "abyss_herald", hp: 18000, def: 26, spd: 1.4, xp: 2400, col: 0xc060ff,
 				gold: 600, onrane: 6, r: 1.0, scales: true, phases: [

@@ -1278,7 +1278,14 @@ package realm {
 					{p: "aimed", n: 1, spd: 9, life: 1.4, dmg: 55, cd: 1.6, r: 0.22, col: 0xffd0e8, shape: "dart"}]},
 			// dungeon treasure rooms
 			treasure: {name: "Treasure Chest", spr: "chest", hp: 1800, def: 0, spd: 0, xp: 150, ai: "still", r: 0.5, aggro: 0, range: 0, drop: 1, col: 0xf0c030, treasure: true,
-				gold: 150, onrane: 3, attacks: []}
+				gold: 150, onrane: 3, attacks: []},
+			// the Endless Abyss's chests (Data.deepChest), one for each step down
+			abyss_chest_1: {name: "Abyssal Chest", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xa060ff, treasure: true, abyssChest: 1, attacks: []},
+			abyss_chest_2: {name: "Abyssal Chest II", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xb070ff, treasure: true, abyssChest: 2, attacks: []},
+			abyss_chest_3: {name: "Abyssal Chest III", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xc080ff, treasure: true, abyssChest: 3, attacks: []},
+			abyss_chest_4: {name: "Abyssal Chest IV", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xd080ff, treasure: true, abyssChest: 4, attacks: []},
+			abyss_chest_5: {name: "Abyssal Chest V", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xe090ff, treasure: true, abyssChest: 5, attacks: []},
+			abyss_chest_6: {name: "The Abyss's Hoard", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.7, aggro: 0, range: 0, drop: 1, col: 0xff80ff, treasure: true, abyssChest: 6, attacks: []}
 		};
 
 		// ---- fame bonuses on death (RotMG style) -------------------------------
@@ -1521,9 +1528,9 @@ package realm {
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
-			{id: "deep10", name: "the Abyssal", earn: "Clear floor 10 of the Endless Abyss", col: 0xa060ff},
-			{id: "deep25", name: "Voidwalker", earn: "Clear floor 25 of the Endless Abyss", col: 0xd080ff},
-			{id: "deepking", name: "Abyss Champion", earn: "Go deepest of your class in the Endless Abyss in a week", col: 0xff60ff},
+			{id: "deep10", name: "the Abyssal", earn: "Clear wave 10 of the Endless Abyss", col: 0xa060ff},
+			{id: "deep25", name: "Voidwalker", earn: "Clear wave 25 of the Endless Abyss", col: 0xd080ff},
+			{id: "deepking", name: "Abyss Champion", earn: "Reach the highest wave of your class in the Endless Abyss in a week", col: 0xff60ff},
 			{id: "spirelord", name: "Lord of the Godlands", earn: "Be in the guild that held the Godlands Spires longest in a week", col: 0x7fd8ff},
 			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
@@ -1813,31 +1820,68 @@ package realm {
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
 			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
-		// ---- The Endless Abyss (/abyss): floor after floor, each harder, for level 20 heroes (world key "deep:floor:seed")
-		/** The dungeons its floors are built from, in turn. */
-		public static const DEEP_POOL:Array = ["crypt", "depths", "undead_lair", "spire", "spider_den", "abyss", "cellar", "snake_pit", "sprite_world"];
-		/** Every DEEP_HERALD floors the Abyssal Herald waits at the bottom instead (with its own uniques). */
-		public static const DEEP_HERALD:int = 5;
-		/** Floor n's dungeon: one of the pool's, renamed, its last boss swapped for the Herald on milestone floors. */
-		public static function deepTheme(floor:int):Object {
-			var base:Object = DUNGEONS[dungeonIndex(DEEP_POOL[(Math.max(1, floor) - 1) % DEEP_POOL.length])];
-			var th:Object = {};
-			for (var k:String in base) th[k] = base[k];
-			th.id = "deep";
-			th.name = "The Endless Abyss · Floor " + floor;
-			th.dark = floor >= 10 || base.dark;
-			th.small = false;
-			if (floor % DEEP_HERALD == 0) th.boss = "abyss_herald";
-			return th;
+		// ---- The Endless Abyss (/abyss): a wave arena for level 20 heroes (world key "deep:seed").
+		// Its monsters drop nothing; every DEEP_CHEST_EVERY waves cleared an Abyssal Chest appears instead,
+		// better the further you got (deepChest).
+		public static const DEEP_CHEST_EVERY:int = 5;
+		/** Every 10th wave the Abyssal Herald comes (with the other boss waves between). */
+		public static const DEEP_HERALD:int = 10;
+		/** Boss waves (every 5th), in turn: dungeon masters, then the Herald on every 10th. */
+		public static const DEEP_BOSSES:Array = ["warden", "pyrelord", "spider_boss", "seraph", "lich_boss", "serpent_boss", "sorcerer", "demon_boss", "sprite_boss"];
+		/** The monsters of a wave, by how deep it is. */
+		public static const DEEP_MOBS:Array = [
+			["skeleton", "imp", "orc", "goblin", "spider", "great_snake"],
+			["shade", "gazer", "lesser_demon", "ghost", "djinn", "elf"],
+			["lich", "sprite_god", "lesser_demon", "shade", "ghost"],
+			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "lich"]
+		];
+		public static function deepMobs(wave:int):Array { return DEEP_MOBS[Math.min(DEEP_MOBS.length - 1, int((wave - 1) / 6))]; }
+		/** How many monsters come in wave n (a boss wave brings fewer). */
+		public static function deepCount(wave:int):int { return Math.min(26, 3 + int(wave * 1.4)) - (wave % DEEP_CHEST_EVERY == 0 ? 4 : 0); }
+		/** The boss of wave n, or null for an ordinary wave. */
+		public static function deepBoss(wave:int):String {
+			if (wave % DEEP_CHEST_EVERY != 0) return null;
+			if (wave % DEEP_HERALD == 0) return "abyss_herald";
+			return DEEP_BOSSES[int(wave / DEEP_CHEST_EVERY / 2) % DEEP_BOSSES.length];
 		}
-		/** How much tougher floor n's monsters are: [health, damage]. */
-		public static function deepScale(floor:int):Array {
-			var f:int = Math.max(0, floor - 1);
-			return [1 + 0.2 * f, 1 + 0.06 * f];
+		/** How much tougher wave n's monsters are: [health, damage]. */
+		public static function deepScale(wave:int):Array {
+			var f:int = Math.max(0, wave - 1);
+			return [1 + 0.15 * f, 1 + 0.05 * f];
 		}
-		/** Extra loot luck on floor n. */
-		public static function deepLuck(floor:int):int { return Math.min(120, floor * 3); }
-		/** Boons: after each floor everyone picks one of three; they last for the run. */
+		/** The chest after wave n is cleared (1 at wave 5 .. 6 from wave 30). */
+		public static function deepChestTier(wave:int):int { return Math.max(1, Math.min(6, int(wave / DEEP_CHEST_EVERY))); }
+		public static const DEEP_CHEST_NAMES:Array = ["", "Abyssal Chest", "Abyssal Chest II", "Abyssal Chest III", "Abyssal Chest IV", "Abyssal Chest V", "The Abyss's Hoard"];
+		/** What each chest can give (the Abyss window lists it). */
+		public static const DEEP_CHEST_INFO:Array = ["",
+			"Wave 5: stat potions and a tier 6 item",
+			"Wave 10: more potions, a tier 7 item, a chance at runes and Evolution Stones",
+			"Wave 15: a Starforged set piece, runes, stones, a small chance at an Abyss unique",
+			"Wave 20: two set pieces, a better chance at an Abyss unique",
+			"Wave 25: an Eldritch piece, a good chance at an Abyss unique, a rare Shard",
+			"Wave 30+: the Hoard: two Eldritch pieces, a coin flip for an Abyss unique"];
+		/** The Abyss's own uniques: only its chests have them. */
+		public static const DEEP_UNIQUES:Array = ["voidrend", "abyssal_crown", "depthstone"];
+		/** A chest's loot for one player (every player who opens it rolls their own). */
+		public static function deepChest(tier:int, cls:Object, lk:int):Array {
+			var items:Array = [];
+			var rare:Number = 1 + lk / 100;
+			var lc:Object = lootClass(cls);
+			for (var p:int = 0; p < [0, 2, 3, 4, 5, 6, 8][tier]; p++) items.push(makePotion("stat", randomStat()));
+			if (tier == 1) items.push(makeForSlot(lc, int(Math.random() * 4), 6, null));
+			else if (tier == 2) items.push(makeForSlot(lc, int(Math.random() * 4), 7, null));
+			else if (tier <= 4) for (var k:int = 0; k < tier - 2; k++) items.push(makeForSlot(lc, int(Math.random() * 4), 7, "st"));
+			else for (k = 0; k < tier - 4; k++) items.push(makeForSlot(lc, int(Math.random() * 4), 7, "fb"));
+			if (tier >= 2 && Math.random() < 0.15 + 0.1 * tier) items.push(makeRune(randomStat()));
+			if (tier >= 2 && Math.random() < 0.1 + 0.08 * tier) items.push(makeStone());
+			var uc:Number = [0, 0, 0, 0.05, 0.12, 0.25, 0.5][tier] * rare;
+			if (Math.random() < uc) items.push(Uniques.make(DEEP_UNIQUES[int(Math.random() * DEEP_UNIQUES.length)]));
+			if (tier >= 5 && Math.random() < (tier == 6 ? 0.08 : 0.03) * rare) items.push(makeSor());
+			items.push(makePotion("hp"));
+			items.push(makePotion("mp"));
+			return items;
+		}
+		/** Boons: after each boss wave everyone picks one of three; they last for the run. */
 		public static const DEEP_BOONS:Array = [
 			{id: "might", name: "Abyssal Might", desc: "+4 Attack", st: {att: 4}, col: 0xff6a50},
 			{id: "haste", name: "Quickened", desc: "+5 Speed", st: {spd: 5}, col: 0x80ffa0},
@@ -2095,6 +2139,8 @@ package realm {
 		}
 
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {
+			// (the Endless Abyss's chests have their own tables)
+			if (def.abyssChest) return deepChest(def.abyssChest, cls, fortune);
 			var items:Array = [];
 			var boost:Number = 1 + fortune / 100;
 			// luck helps a lot with ordinary drops but only a little with the rarest ones (at most +40%)

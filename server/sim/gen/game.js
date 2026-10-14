@@ -670,22 +670,36 @@ class Data {
 			var sk = Data.PET_SKILLS[pet.species];
 			return Data.PET_STAGES[Data.petStage(pet)].name + " " + (p && sk ? sk[p].name : pet.name);
 		}
-	static deepTheme(floor) { floor = __int(floor);
-			var base = Data.DUNGEONS[Data.dungeonIndex(Data.DEEP_POOL[(Math.max(1, floor) - 1) % Data.DEEP_POOL.length])];
-			var th = {};
-			for (var k in base) th[k] = base[k];
-			th.id = "deep";
-			th.name = "The Endless Abyss · Floor " + floor;
-			th.dark = floor >= 10 || base.dark;
-			th.small = false;
-			if (floor % Data.DEEP_HERALD == 0) th.boss = "abyss_herald";
-			return th;
+	static deepMobs(wave) { wave = __int(wave); return Data.DEEP_MOBS[Math.min(Data.DEEP_MOBS.length - 1, __int((wave - 1) / 6))]; }
+	static deepCount(wave) { wave = __int(wave); return __int(Math.min(26, 3 + __int(wave * 1.4)) - (wave % Data.DEEP_CHEST_EVERY == 0 ? 4 : 0)); }
+	static deepBoss(wave) { wave = __int(wave);
+			if (wave % Data.DEEP_CHEST_EVERY != 0) return null;
+			if (wave % Data.DEEP_HERALD == 0) return "abyss_herald";
+			return Data.DEEP_BOSSES[__int(wave / Data.DEEP_CHEST_EVERY / 2) % Data.DEEP_BOSSES.length];
 		}
-	static deepScale(floor) { floor = __int(floor);
-			var f = __int(Math.max(0, floor - 1));
-			return [1 + 0.2 * f, 1 + 0.06 * f];
+	static deepScale(wave) { wave = __int(wave);
+			var f = __int(Math.max(0, wave - 1));
+			return [1 + 0.15 * f, 1 + 0.05 * f];
 		}
-	static deepLuck(floor) { floor = __int(floor); return __int(Math.min(120, floor * 3)); }
+	static deepChestTier(wave) { wave = __int(wave); return __int(Math.max(1, Math.min(6, __int(wave / Data.DEEP_CHEST_EVERY)))); }
+	static deepChest(tier, cls, lk) { tier = __int(tier); lk = __int(lk);
+			var items = [];
+			var rare = 1 + lk / 100;
+			var lc = Data.lootClass(cls);
+			for (var p = __int(0); p < [0, 2, 3, 4, 5, 6, 8][tier]; p++) items.push(Data.makePotion("stat", Data.randomStat()));
+			if (tier == 1) items.push(Data.makeForSlot(lc, __int(Math.random() * 4), 6, null));
+			else if (tier == 2) items.push(Data.makeForSlot(lc, __int(Math.random() * 4), 7, null));
+			else if (tier <= 4) for (var k = __int(0); k < tier - 2; k++) items.push(Data.makeForSlot(lc, __int(Math.random() * 4), 7, "st"));
+			else for (k = __int(0); k < tier - 4; k++) items.push(Data.makeForSlot(lc, __int(Math.random() * 4), 7, "fb"));
+			if (tier >= 2 && Math.random() < 0.15 + 0.1 * tier) items.push(Data.makeRune(Data.randomStat()));
+			if (tier >= 2 && Math.random() < 0.1 + 0.08 * tier) items.push(Data.makeStone());
+			var uc = [0, 0, 0, 0.05, 0.12, 0.25, 0.5][tier] * rare;
+			if (Math.random() < uc) items.push(Uniques.make(Data.DEEP_UNIQUES[__int(Math.random() * Data.DEEP_UNIQUES.length)]));
+			if (tier >= 5 && Math.random() < (tier == 6 ? 0.08 : 0.03) * rare) items.push(Data.makeSor());
+			items.push(Data.makePotion("hp"));
+			items.push(Data.makePotion("mp"));
+			return items;
+		}
 	static findBoon(id) {
 			for (var b of __vals( Data.DEEP_BOONS)) if (b.id == id) return b;
 			return null;
@@ -782,6 +796,8 @@ class Data {
 			for (var id of __vals( def.uniques)) if (Math.random() < c * boost) items.push(Uniques.make(id));
 		}
 	static rollLoot(def, zone, cls, fortune) { zone = __int(zone); fortune = __int(fortune);
+			
+			if (def.abyssChest) return Data.deepChest(def.abyssChest, cls, fortune);
 			var items = [];
 			var boost = 1 + fortune / 100;
 			
@@ -4113,7 +4129,14 @@ Data.ENEMIES = {
 					{p: "aimed", n: 1, spd: 9, life: 1.4, dmg: 55, cd: 1.6, r: 0.22, col: 0xffd0e8, shape: "dart"}]},
 			
 			treasure: {name: "Treasure Chest", spr: "chest", hp: 1800, def: 0, spd: 0, xp: 150, ai: "still", r: 0.5, aggro: 0, range: 0, drop: 1, col: 0xf0c030, treasure: true,
-				gold: 150, onrane: 3, attacks: []}
+				gold: 150, onrane: 3, attacks: []},
+			
+			abyss_chest_1: {name: "Abyssal Chest", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xa060ff, treasure: true, abyssChest: 1, attacks: []},
+			abyss_chest_2: {name: "Abyssal Chest II", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xb070ff, treasure: true, abyssChest: 2, attacks: []},
+			abyss_chest_3: {name: "Abyssal Chest III", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xc080ff, treasure: true, abyssChest: 3, attacks: []},
+			abyss_chest_4: {name: "Abyssal Chest IV", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xd080ff, treasure: true, abyssChest: 4, attacks: []},
+			abyss_chest_5: {name: "Abyssal Chest V", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xe090ff, treasure: true, abyssChest: 5, attacks: []},
+			abyss_chest_6: {name: "The Abyss's Hoard", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.7, aggro: 0, range: 0, drop: 1, col: 0xff80ff, treasure: true, abyssChest: 6, attacks: []}
 		};
 Data.SKINS = {
 			wizard: [{id: "wizard_frost", name: "Frost Mage", cost: 400, pal: {R: 0x3a7ad4, r: 0x1a4a8a, G: 0xffffff}},
@@ -4223,9 +4246,9 @@ Data.TITLES = [
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
-			{id: "deep10", name: "the Abyssal", earn: "Clear floor 10 of the Endless Abyss", col: 0xa060ff},
-			{id: "deep25", name: "Voidwalker", earn: "Clear floor 25 of the Endless Abyss", col: 0xd080ff},
-			{id: "deepking", name: "Abyss Champion", earn: "Go deepest of your class in the Endless Abyss in a week", col: 0xff60ff},
+			{id: "deep10", name: "the Abyssal", earn: "Clear wave 10 of the Endless Abyss", col: 0xa060ff},
+			{id: "deep25", name: "Voidwalker", earn: "Clear wave 25 of the Endless Abyss", col: 0xd080ff},
+			{id: "deepking", name: "Abyss Champion", earn: "Reach the highest wave of your class in the Endless Abyss in a week", col: 0xff60ff},
 			{id: "spirelord", name: "Lord of the Godlands", earn: "Be in the guild that held the Godlands Spires longest in a week", col: 0x7fd8ff},
 			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
@@ -4346,8 +4369,24 @@ Data.DUNGEONS = [
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
 			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
-Data.DEEP_POOL = ["crypt", "depths", "undead_lair", "spire", "spider_den", "abyss", "cellar", "snake_pit", "sprite_world"];
-Data.DEEP_HERALD = __int(5);
+Data.DEEP_CHEST_EVERY = __int(5);
+Data.DEEP_HERALD = __int(10);
+Data.DEEP_BOSSES = ["warden", "pyrelord", "spider_boss", "seraph", "lich_boss", "serpent_boss", "sorcerer", "demon_boss", "sprite_boss"];
+Data.DEEP_MOBS = [
+			["skeleton", "imp", "orc", "goblin", "spider", "great_snake"],
+			["shade", "gazer", "lesser_demon", "ghost", "djinn", "elf"],
+			["lich", "sprite_god", "lesser_demon", "shade", "ghost"],
+			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "lich"]
+		];
+Data.DEEP_CHEST_NAMES = ["", "Abyssal Chest", "Abyssal Chest II", "Abyssal Chest III", "Abyssal Chest IV", "Abyssal Chest V", "The Abyss's Hoard"];
+Data.DEEP_CHEST_INFO = ["",
+			"Wave 5: stat potions and a tier 6 item",
+			"Wave 10: more potions, a tier 7 item, a chance at runes and Evolution Stones",
+			"Wave 15: a Starforged set piece, runes, stones, a small chance at an Abyss unique",
+			"Wave 20: two set pieces, a better chance at an Abyss unique",
+			"Wave 25: an Eldritch piece, a good chance at an Abyss unique, a rare Shard",
+			"Wave 30+: the Hoard: two Eldritch pieces, a coin flip for an Abyss unique"];
+Data.DEEP_UNIQUES = ["voidrend", "abyssal_crown", "depthstone"];
 Data.DEEP_BOONS = [
 			{id: "might", name: "Abyssal Might", desc: "+4 Attack", st: {att: 4}, col: 0xff6a50},
 			{id: "haste", name: "Quickened", desc: "+5 Speed", st: {spd: 5}, col: 0x80ffa0},

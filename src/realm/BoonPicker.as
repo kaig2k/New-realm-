@@ -6,13 +6,13 @@ package realm {
 	import flash.text.TextField;
 
 	/**
-	 * The Endless Abyss: a floor is cleared, pick one of three boons for the rest
+	 * The Endless Abyss: a boss wave is cleared, pick one of three boons for the rest
 	 * of the run (the server offered them and checks the pick).
 	 */
 	public class BoonPicker extends Sprite {
 		public static const W:int = 540, H:int = 210;
 
-		public function BoonPicker(g:Game, floor:int, choices:Array) {
+		public function BoonPicker(g:Game, wave:int, choices:Array) {
 			var m:Matrix = new Matrix();
 			m.createGradientBox(W, H, Math.PI / 2);
 			graphics.lineStyle(2, 0xa060ff);
@@ -20,12 +20,12 @@ package realm {
 			graphics.drawRoundRect(0, 0, W, H, 16, 16);
 			graphics.endFill();
 			var t:TextField = Ui.text(20, 0xd080ff, true, "center", W, true);
-			t.text = "Floor " + floor + " cleared!";
+			t.text = "Wave " + wave + " cleared!";
 			t.y = 10;
 			t.filters = [new GlowFilter(0x8030ff, 0.8, 10, 10, 2)];
 			addChild(t);
 			var s:TextField = Ui.text(12, 0xc8b8e0, false, "center", W, true);
-			s.text = "Choose a boon for the rest of this run, then take the portal down.";
+			s.text = "Choose a boon for the rest of this run. The next wave is coming...";
 			s.y = 40;
 			addChild(s);
 			for (var i:int = 0; i < choices.length; i++) addChild(card(g, Data.findBoon(choices[i]), 18 + i * 172, 70));

@@ -380,9 +380,9 @@ function openWorld(key) {
 function mayEnter(c, world, from) {
   if (!sims || isAdmin(c)) return true;
   const kind = world.split(':')[0];
-  // the Endless Abyss: floor 1 for any level 20 hero, deeper floors through the portal the last boss left
-  if (kind === 'deep' && (Number(world.split(':')[1]) | 0) <= 1) { const ch = serverChar(c); return !!(ch && Number(ch.level) >= 20); }
-  if (kind !== 'dg' && kind !== 'raid' && kind !== 'arena' && kind !== 'deep') return true;
+  // the Endless Abyss: level 20 heroes only
+  if (kind === 'deep') { const ch = serverChar(c); return !!(ch && Number(ch.level) >= 20); }
+  if (kind !== 'dg' && kind !== 'raid' && kind !== 'arena') return true;
   // someone is in there now (a party member followed with /join, a reconnect)
   const sm = sims.get(world);
   if (sm && sm.players && sm.players.size > 0) return true;
@@ -659,7 +659,7 @@ function feat(kind, d) {
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
   else if (kind === 'siege') discord.post(d.won ? '⚔️ **The Realm Siege is broken!** ' + dnames(d.names) + ' brought down Vorgath the Siege Warlord in ' + desc(d.realm) + (d.mvp ? '. MVP: **' + desc(d.mvp) + '** (' + d.pct + '%)' : '') + '.' : '⚔️ Vorgath withdrew from ' + desc(d.realm) + ' undefeated.', 0xffa020);
-  else if (kind === 'deep') discord.post('🕳️ **' + desc(d.name) + '** leads the ' + desc(d.cls) + 's in the Endless Abyss: floor **' + d.floor + '**!', 0xa060ff);
+  else if (kind === 'deep') discord.post('🕳️ **' + desc(d.name) + '** leads the ' + desc(d.cls) + 's in the Endless Abyss: wave **' + d.wave + '**!', 0xa060ff);
   else if (kind === 'deepweek') discord.post('🕳️ **The Endless Abyss\'s champions this week:** ' + d.champs.map(desc).join(', ') + '.', 0xa060ff);
   else if (kind === 'spire') discord.post('🏰 **' + desc(d.guild) + '** has taken the **' + desc(d.spire) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0x7fd8ff);
   else if (kind === 'spireweek') discord.post('👑 **' + desc(d.guild) + '** are this week\'s **Lords of the Godlands**, holding the Spires for ' + d.hours + ' hours!', 0xffd75e);
@@ -1502,23 +1502,23 @@ const handlers = {
     c.send({ t: 'asc', asc: a, seq: sv.tradeSeq });
   },
 
-  /** The Endless Abyss: the boon picked after a floor (one of the three offered). */
+  /** The Endless Abyss: the boon picked after a boss wave (one of the three offered). */
   abyssBoon(c, m) {
     const off = c.abyssOffer;
     if (!c.abyss || !off || !off.ids.includes(m.id)) return;
     c.abyssOffer = null;
     c.abyss.boons.push(m.id);
     setCaps(c);
-    c.send({ t: 'abyssRun', on: true, floor: c.abyss.floor, boons: c.abyss.boons });
+    c.send({ t: 'abyssRun', on: true, wave: c.abyss.wave, boons: c.abyss.boons });
   },
 
   /** The Endless Abyss's board for one class (the window). */
   deepBoard(c, m) {
     deepWeek();
     const cls = Data.CLASSES[m.cls] ? m.cls : 'wizard';
-    const list = (deep.cls[cls] || []).map((r) => ({ name: r.name, hero: r.hero, floor: r.floor }));
+    const list = (deep.cls[cls] || []).map((r) => ({ name: r.name, hero: r.hero, wave: r.wave || 0 }));
     let best = 0;
-    for (const k in deep.cls) for (const r of deep.cls[k]) if (r.key === c.key) best = Math.max(best, r.floor);
+    for (const k in deep.cls) for (const r of deep.cls[k]) if (r.key === c.key) best = Math.max(best, r.wave || 0);
     c.send({ t: 'deepBoard', cls, list, best, week: deep.week });
   },
 
@@ -2988,10 +2988,10 @@ function territoryTick() {
 setInterval(territoryTick, 1000).unref();
 
 // ------------------------------------------------------------------ the Endless Abyss
-/** The week's deepest floors cleared, per class: deep.cls[cls] = [{key, name, hero, floor, at}] (top DEEP_KEEP). */
+/** The week's highest waves cleared, per class: deep.cls[cls] = [{key, name, hero, wave, at}] (top DEEP_KEEP). */
 const DEEP_KEEP = 10;
 const deep = load('deep.json', {});
-if (!deep.cls) deep.cls = {};
+if (!deep.cls || !deep.waves) { deep.cls = {}; deep.waves = true; }
 const deepWeekOf = (t) => Math.floor((Math.floor(t / 86400000) + 3) / 7);
 if (!deep.week) deep.week = deepWeekOf(Date.now());
 /** A new week: the deepest of each class are crowned (Abyss Champion), then the board starts over. */
@@ -2999,7 +2999,7 @@ function deepWeek() {
   const wk = deepWeekOf(Date.now());
   if (wk === deep.week) return;
   const champs = [];
-  for (const cls in deep.cls) { const top = deep.cls[cls][0]; if (top) { grantTitle(top.key, 'deepking'); champs.push(top.name + ' (' + (Data.CLASSES[cls] ? Data.CLASSES[cls].name : cls) + ', floor ' + top.floor + ')'); } }
+  for (const cls in deep.cls) { const top = deep.cls[cls][0]; if (top) { grantTitle(top.key, 'deepking'); champs.push(top.name + ' (' + (Data.CLASSES[cls] ? Data.CLASSES[cls].name : cls) + ', wave ' + (top.wave || 0) + ')'); } }
   if (champs.length) { broadcast('The Endless Abyss\'s champions this week: ' + champs.join(', ') + '!', 0xd080ff); feat('deepweek', { champs }); }
   deep.week = wk;
   deep.cls = {};
@@ -3007,53 +3007,49 @@ function deepWeek() {
 }
 setInterval(deepWeek, 60000).unref();
 
-/** c steps into a world: an Abyss floor carries its run on (or starts one); anywhere else ends it. */
+/** c steps into a world: the Abyss starts a run (its boons start empty); anywhere else ends it. */
 function deepEnter(c, world) {
-  const p = world.split(':');
-  if (p[0] !== 'deep') {
+  if (!world.startsWith('deep:')) {
     if (c.abyss) { c.abyss = null; c.abyssOffer = null; c.send({ t: 'abyssRun', on: false }); }
     return;
   }
-  const floor = Math.max(1, Number(p[1]) | 0);
-  if (floor === 1 || !c.abyss) c.abyss = { floor, boons: [], start: Date.now() };
-  else if (c.abyss.floor !== floor) {
-    // (an offer not taken is lost going down)
-    c.abyss.floor = floor;
-  }
+  if (!c.abyss || c.abyss.key !== world) c.abyss = { key: world, wave: 0, boons: [], start: Date.now() };
   c.abyssOffer = null;
-  c.send({ t: 'abyssRun', on: true, floor, boons: c.abyss.boons });
+  c.send({ t: 'abyssRun', on: true, wave: c.abyss.wave, boons: c.abyss.boons });
 }
 
-/** A floor's last boss is down: everyone on it counts the floor, and picks a boon. */
-if (sims) sims.onDeep = (sim, players) => {
+/** A wave is cleared: it counts for everyone in the arena; after every 5th, a boon to pick. */
+if (sims) sims.onDeep = (sim, players, wave, chest) => {
   deepWeek();
-  const floor = sim.floor;
   let changed = false;
   for (const c of players) {
     if (!c.key || !c.abyss) continue;
+    c.abyss.wave = wave;
     const ch = serverChar(c);
     // the week's board (each account once per class, its best)
     if (ch) {
       const list = deep.cls[ch.cls] || (deep.cls[ch.cls] = []);
       let row = list.find((r) => r.key === c.key);
-      if (!row) { row = { key: c.key, name: c.name, hero: ch.name || '', floor: 0, at: 0 }; list.push(row); }
-      if (floor > row.floor) {
-        row.floor = floor; row.at = Date.now(); row.hero = ch.name || ''; row.name = c.name;
-        list.sort((a, b) => b.floor - a.floor || a.at - b.at);
+      if (!row) { row = { key: c.key, name: c.name, hero: ch.name || '', wave: 0, at: 0 }; list.push(row); }
+      if (wave > (row.wave || 0)) {
+        row.wave = wave; row.at = Date.now(); row.hero = ch.name || ''; row.name = c.name;
+        list.sort((a, b) => (b.wave || 0) - (a.wave || 0) || a.at - b.at);
         if (list.length > DEEP_KEEP) list.length = DEEP_KEEP;
         changed = true;
-        if (list[0] === row && floor >= 10) feat('deep', { name: c.name, cls: Data.CLASSES[ch.cls] ? Data.CLASSES[ch.cls].name : ch.cls, floor });
+        if (list[0] === row && wave >= 10 && wave % 5 === 0) feat('deep', { name: c.name, cls: Data.CLASSES[ch.cls] ? Data.CLASSES[ch.cls].name : ch.cls, wave });
       }
     }
-    if (floor >= 10) grantTitle(c.key, 'deep10');
-    if (floor >= 25) grantTitle(c.key, 'deep25');
-    // three boons to pick from
-    const ids = Data.DEEP_BOONS.map((b) => b.id).sort(() => Math.random() - 0.5).slice(0, 3);
-    c.abyssOffer = { floor, ids };
-    c.send({ t: 'abyssBoons', floor, choices: ids });
+    if (wave >= 10) grantTitle(c.key, 'deep10');
+    if (wave >= 25) grantTitle(c.key, 'deep25');
+    if (chest) {
+      const ids = Data.DEEP_BOONS.map((b) => b.id).sort(() => Math.random() - 0.5).slice(0, 3);
+      c.abyssOffer = { wave, ids };
+      c.send({ t: 'abyssBoons', wave, choices: ids });
+    }
+    c.send({ t: 'abyssRun', on: true, wave, boons: c.abyss.boons });
   }
   if (changed) save('deep.json', deep);
-  if (floor % 10 === 0 && players.length) broadcast(players.map((c) => c.name).join(', ') + ' cleared floor ' + floor + ' of the Endless Abyss!', 0xd080ff);
+  if (wave % 10 === 0 && players.length) broadcast(players.map((c) => c.name).join(', ') + ' cleared wave ' + wave + ' of the Endless Abyss!', 0xd080ff);
 };
 
 // ------------------------------------------------------------------ the Realm Siege

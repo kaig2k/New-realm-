@@ -159,7 +159,7 @@ package realm {
 		private var ascWin:AscendWindow;
 		private var siegePanel:SiegePanel;
 		private var abyssWin:AbyssWindow, boonPicker:BoonPicker;
-		/** The Endless Abyss run this hero is on ({floor, boons}, the server's), or null. */
+		/** The Endless Abyss run this hero is on ({wave, boons}, the server's), or null. */
 		public var abyssRunInfo:Object = null;
 		/** The Godlands Spires in this realm (the server's "spires"), and their name plates. */
 		private var spires:Array = null, spiresWorld:World = null, spireTags:Array = [];
@@ -743,7 +743,7 @@ package realm {
 			// the vault: a portal in the west wing to your own treasury
 			addPortal(nexusWorld, 70.5, 98.5, "vault", 0, 0xf0c030, 0, 0, false);
 			// and across from it in the east wing, the way down into the Endless Abyss
-			if (Online.connected) addPortal(nexusWorld, 130.5, 98.5, "deep", 1, 0xa060ff, 0, 0, false);
+			if (Online.connected) addPortal(nexusWorld, 130.5, 98.5, "deep", 0, 0xa060ff, 0, 0, false);
 
 			// east wing: the Starforge and Raid Table; west wing: Fame Store and Pet Yard; south: Marketplace and Quest Board
 			stations.push({x: 127.5, y: 92.5, kind: "forge", spr: "anvil", label: makeLabel("Starforge", 0xc080ff), w: "nexus"});
@@ -825,11 +825,6 @@ package realm {
 				addPortal(world, x, y, kind, idx, color, life, seed, false);
 				showBanner(Bosses.RAIDS[idx].name + " is open!", color, 3);
 				msg("A portal to " + Bosses.RAIDS[idx].name + " has opened by the Raid Table!", color);
-				return;
-			}
-			if (kind == "deep") {
-				addPortal(world, x, y, kind, idx, color, life, seed, false);
-				msg("The way down to Floor " + idx + " has opened" + (idx % Data.DEEP_HERALD == 0 ? ". The Abyssal Herald waits below..." : "!"), color);
 				return;
 			}
 			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
@@ -973,7 +968,7 @@ package realm {
 				msg(Data.findMode(player.mode).name + " heroes can't use the vault: everything they use, they find themselves.", 0xff8080);
 				return;
 			}
-			if (p.kind == "deep" && !deepAllowed(p.idx)) return;
+			if (p.kind == "deep" && !deepAllowed()) return;
 			if (p.kind == "ghall" && !(net && net.online && net.guild)) {
 				msg("Only guild members can enter a Guild Hall (online). Make or join a guild in the Social window.", 0xff8080);
 				return;
@@ -986,7 +981,7 @@ package realm {
 			else if (p.kind == "dungeon") enterDungeon(p.idx, p.seed);
 			else if (p.kind == "elder") enterArena();
 			else if (p.kind == "raid") enterRaid(p.idx, p.seed);
-			else if (p.kind == "deep") enterDeep(p.idx, p.seed);
+			else if (p.kind == "deep") enterDeep(0);
 			else if (p.kind == "vault") enterVault();
 			else if (p.kind == "ghall") enterGuildHall();
 			else nexusNow();
@@ -1391,7 +1386,7 @@ package realm {
 			if (world && world != w) {
 				world.releaseGround();
 				// the world we leave hides its portal names; one that's gone for good
-				// (the last Abyss floor or dungeon, replaced before we got here) takes them away
+				// (the last dungeon, replaced before we got here) takes them away
 				var gone:Boolean = world.kind == "dungeon" && world != dungeonWorld;
 				for each (var op:Object in world.portals) {
 					op.label.visible = false;
@@ -5915,6 +5910,7 @@ package realm {
 
 		private function updateOverlays():void {
 			tickSiege();
+			tickWaves();
 			if (pendingBanner && !revealing) { var pb:Array = pendingBanner; pendingBanner = null; showBanner(pb[0], pb[1], pb[2]); }
 			if (revealing) banner.visible = false;
 			fameTf.text = Ui.commas(player.fame);
@@ -6176,7 +6172,7 @@ package realm {
 				lab.htmlText = p.kind == "realm" ? realmNames[p.idx] + "\n<font size='11' color='#cccccc'>" + realmStatus(p.idx) + "</font>"
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
 					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
-					: p.kind == "deep" ? "<font color='#d080ff'>" + (p.idx > 1 || p.seed ? "Floor " + p.idx : "The Endless Abyss") + "</font>" + (p.life > 0 ? "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>" : "\n<font size='11' color='#cccccc'>level 20 · /abyss</font>")
+					: p.kind == "deep" ? "<font color='#d080ff'>The Endless Abyss</font>\n<font size='11' color='#cccccc'>level 20 · /abyss</font>"
 					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>"
 					: p.kind == "ghall" ? "<font color='#80ff80'>Guild Hall</font>" + (net && net.guild ? "\n<font size='11' color='#cccccc'>" + net.guild.name + "</font>" : "") : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
@@ -6728,29 +6724,53 @@ package realm {
 		}
 
 		// ------------------------------------------------------------ the Endless Abyss
-		/** Whether this hero may go down to floor n now (says why not). */
-		private function deepAllowed(floor:int):Boolean {
-			if (!net.online) { msg("The Endless Abyss is on the server: play online to go down.", 0xff8080); return false; }
-			if (floor <= 1 && player.level < Player.MAX_LEVEL) { msg("Only level 20 heroes can go down into the Endless Abyss.", 0xff8080); return false; }
+		/** Whether this hero may go into the Endless Abyss now (says why not). */
+		private function deepAllowed():Boolean {
+			if (!net.online) { msg("The Endless Abyss is on the server: play online to go in.", 0xff8080); return false; }
+			if (player.level < Player.MAX_LEVEL) { msg("Only level 20 heroes can enter the Endless Abyss.", 0xff8080); return false; }
 			return true;
 		}
 
-		/** Down to floor n (a new run from floor 1; the next floor through the portal the last boss left). */
-		public function enterDeep(floor:int, seed:uint):void {
-			if (!deepAllowed(floor)) return;
+		private var wavePanel:WavePanel;
+
+		/** Into the Endless Abyss: a new arena (a new run) unless a seed is given (following someone in). */
+		public function enterDeep(seed:uint):void {
+			if (!deepAllowed()) return;
 			if (!seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
-			var th:Object = Data.deepTheme(floor);
-			dungeonWorld = new World("dungeon", th.name, th, seed);
-			dungeonWorld.key = "deep:" + floor + ":" + seed;
+			dungeonWorld = new World("arena", "The Endless Abyss");
+			dungeonWorld.key = "deep:" + seed;
 			if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
 			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
 			player.invulnT = 3;
 			player.bossDmg = 0;
 			Sfx.play("portal");
-			showBanner("Floor " + floor, 0xd080ff, 3);
-			var sc:Array = Data.deepScale(floor);
-			msg("The Endless Abyss, floor " + floor + (floor > 1 ? ": monsters have " + Math.round(sc[0] * 100) + "% health and hit " + Math.round(sc[1] * 100) + "% as hard" : ". Clear it to the last boss to go deeper") +
-				(floor % Data.DEEP_HERALD == 0 ? ". The Abyssal Herald waits at the bottom." : "."), 0xd080ff);
+			showBanner("The Endless Abyss", 0xd080ff, 3);
+			msg("The Endless Abyss: survive wave after wave. Its monsters drop nothing, but every 5 waves a chest appears, better the further you get. Return to the Nexus (R) to stop.", 0xd080ff);
+		}
+
+		/** The server's word on the waves (WavePanel). */
+		public function deepWave(m:Object):void {
+			if (!world || world.key.indexOf("deep:") != 0) return;
+			if (!wavePanel) {
+				wavePanel = new WavePanel();
+				wavePanel.x = int((VIEW_W - WavePanel.W) / 2);
+				wavePanel.y = 8;
+				addChild(wavePanel);
+			}
+			wavePanel.update(m);
+			if (m.state == "fight") {
+				showBanner("Wave " + m.wave + (m.boss ? ": " + m.boss + "!" : ""), m.boss ? 0xff60ff : 0xd080ff, 2.5);
+				Sfx.play(m.boss ? "boss" : "portal");
+			} else if (m.state == "cleared" && m.chest) {
+				msg("Wave " + m.wave + " cleared! " + m.chest + " has appeared in the middle of the arena.", 0xd080ff);
+				Sfx.play("fanfare");
+			}
+		}
+
+		private function tickWaves():void {
+			if (!wavePanel) return;
+			if (!world || world.key.indexOf("deep:") != 0) { if (wavePanel.parent) removeChild(wavePanel); wavePanel = null; return; }
+			wavePanel.tick(1 / 30);
 		}
 
 		public function toggleAbyss():void {
@@ -6767,7 +6787,7 @@ package realm {
 
 		/** The run: on (floor, boons) or over. */
 		public function abyssRun(m:Object):void {
-			if (m.on) abyssRunInfo = {floor: int(m.floor), boons: (m.boons as Array) || []};
+			if (m.on) abyssRunInfo = {wave: int(m.wave), boons: (m.boons as Array) || []};
 			else {
 				abyssRunInfo = null;
 				if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
@@ -6777,15 +6797,13 @@ package realm {
 			if (abyssWin) abyssWin.refresh();
 		}
 
-		/** The floor is cleared: pick a boon. */
+		/** A boss wave is cleared: pick a boon. */
 		public function abyssBoons(m:Object):void {
 			if (boonPicker && boonPicker.parent) removeChild(boonPicker);
-			boonPicker = new BoonPicker(this, int(m.floor), m.choices as Array);
+			boonPicker = new BoonPicker(this, int(m.wave), m.choices as Array);
 			boonPicker.x = int((VIEW_W - BoonPicker.W) / 2);
 			boonPicker.y = int(VIEW_H * 0.52);
 			addChild(boonPicker);
-			Sfx.play("fanfare");
-			showBanner("Floor " + m.floor + " cleared!", 0xd080ff, 3);
 		}
 
 		public function pickBoon(id:String):void {

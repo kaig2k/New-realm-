@@ -61,11 +61,9 @@ class WorldSim {
       // the Starfall Vault's rule for this week (fixed for the run, even past midnight on Sunday)
       if (rd.twists) { this.week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7); this.twist = Bosses.vaultTwist(this.week); }
     } else if (this.kind === 'deep') {
-      // the Endless Abyss: floor p[1], each tougher than the last
-      this.floor = Math.max(1, Math.min(999, Number(p[1]) | 0));
-      this.theme = Data.deepTheme(this.floor);
-      this.deepMult = Data.deepScale(this.floor);
-      this.w = new World('dungeon', this.theme.name, this.theme, Number(p[2]) >>> 0);
+      // the Endless Abyss: an arena where the waves keep coming (updateWaves)
+      this.w = new World('arena', 'The Endless Abyss');
+      this.deep = { wave: 0, state: 'break', t: 10, left: 0 };
     } else if (this.kind === 'arena') {
       this.w = new World('arena', "Dark Elder's Chamber");
     } else throw new Error('not a simulated world: ' + key);
@@ -114,12 +112,13 @@ class WorldSim {
   }
 
   add(e) {
-    // (the Endless Abyss: everything on a floor is as tough as the floor)
-    if (this.deepMult && !e.def.treasure && !e.deepScaled) {
+    // (the Endless Abyss: everything in a wave is as tough as the wave)
+    if (this.deep && this.deep.wave && !e.def.treasure && !e.deepScaled) {
+      const m = Data.deepScale(this.deep.wave);
       e.deepScaled = true;
-      e.maxHp *= this.deepMult[0];
+      e.maxHp *= m[0];
       e.hp = e.maxHp;
-      e.dmgMult = (e.dmgMult || 1) * this.deepMult[1];
+      e.dmgMult = (e.dmgMult || 1) * m[1];
     }
     e.id = nextId++;
     e.hitters = new Map(); // client id -> damage dealt (who gets loot)
@@ -166,13 +165,15 @@ class WorldSim {
     const seed = 1 + Math.floor(Math.random() * 0x7ffffffe);
     this.all({ t: 'portal', x: r2(x), y: r2(y), k: kind, i: idx, c: color, l: PORTAL_TIME, s: seed });
     // (the server lets people into the world behind it: see server.js openWorlds)
-    if (this.onPortal) this.onPortal((kind === 'raid' ? 'raid:' : kind === 'deep' ? 'deep:' : 'dg:') + idx + ':' + seed);
+    if (this.onPortal) this.onPortal((kind === 'raid' ? 'raid:' : 'dg:') + idx + ':' + seed);
   }
 
   // ------------------------------------------------------------ players
   join(c) {
     this.players.set(c.id, c);
     this.emptyFor = 0;
+    // (the Abyss: where the waves are at)
+    if (this.deep) { const d = this.deep; c.send({ t: 'deepWave', wave: d.wave, state: d.state, left: d.left, secs: Math.ceil(d.t) }); }
   }
 
   leave(c) { this.players.delete(c.id); }
@@ -241,7 +242,7 @@ class WorldSim {
   // ------------------------------------------------------------ the world's monsters
   populate() {
     const w = this.w;
-    if (this.kind === 'dg' || this.kind === 'deep') this.populateDungeon(this.theme);
+    if (this.kind === 'dg') this.populateDungeon(this.theme);
     else if (this.kind === 'raid') this.populateRaid();
     else if (this.kind === 'arena') {
       w.boss = new Enemy('elder', 100.5, 91.5, World.ARENA_ZONE);
@@ -388,6 +389,7 @@ class WorldSim {
       if (this.closeT > 0) { this.closeT -= dt; if (this.closeT <= 0) this.w.closed = true; }
     }
     if (this.w.raid) this.updateRaid(dt);
+    if (this.deep) this.updateWaves(dt);
     if (this.siege) this.updateSiege(dt);
     this.updateArena(dt);
     for (const e of this.enemies) {
@@ -723,9 +725,7 @@ class WorldSim {
     if (e.def.crystal && w.boss && w.boss.invuln && !this.enemies.some((o) => !o.dead && o.def.crystal)) w.boss.invuln = false;
     if (e.site) { e.site.cleared = true; e.site.active = false; if (this.kind === 'realm') w.eventT -= 8; }
     if (e.isBoss) {
-      const deepDone = this.kind === 'deep' && w.boss === e;
       if (w.boss === e) w.boss = null;
-      if (deepDone) this.deepCleared(e);
       // the boss's arena goes with it
       if (e.props) for (const pr of e.props) if (!pr.dead) { pr.dead = true; this.all({ t: 'edel', id: pr.id }); }
       if (e.arena) { SetPieces.undo(w, e.arena); e.arena = null; }
@@ -817,7 +817,7 @@ class WorldSim {
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
       // (VIPs find a little more: VIP_LUCK in server.js)
-      const lk = (this.floor ? Data.deepLuck(this.floor) + Data.deepBoonLuck(c.abyss ? c.abyss.boons : null) : 0) + Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
+      const lk = (this.deep ? Data.deepBoonLuck(c.abyss ? c.abyss.boons : null) : 0) + Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
       let items = Data.rollLoot(e.def, zone, cls, lk);
       if (e.elite) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 50));
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));
@@ -834,19 +834,69 @@ class WorldSim {
         if (Math.random() < 0.5) { items = items.concat(items.map((it) => JSON.parse(JSON.stringify(it)))); hs = 'won'; }
         else { items = []; hs = 'lost'; }
       }
+      // the Endless Abyss: its monsters drop nothing, only its chests do
+      if (this.deep && !e.def.abyssChest) { items = []; hs = ''; }
       if (this.issuer) for (const it of items) this.issuer(c, it);
-      // the Oracle counts every boss kill and what it dropped for you
-      if (this.onOracle && e.isBoss) this.onOracle(c, e, items);
+      // the Oracle counts every boss kill and what it dropped for you (and the Abyss's chests)
+      if (this.onOracle && (e.isBoss || e.def.abyssChest)) this.onOracle(c, e, items);
       if (this.onFeat) for (const it of items) if (it && (it.rarity === 'gd' || it.rarity === 'ar')) this.onFeat(it.rarity === 'gd' ? 'godly' : 'primordial', { name: c.name, item: it.name, from: e.def.name });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
   }
 
   // ------------------------------------------------------------ the Endless Abyss
-  /** A floor's last boss is down: the way to the next floor opens, and everyone here picks a boon (server.js). */
-  deepCleared(e) {
-    this.portal(e.x + 1.5, e.y, 'deep', this.floor + 1, this.floor % Data.DEEP_HERALD === Data.DEEP_HERALD - 1 ? 0xff60ff : 0xa060ff);
-    if (this.onDeep) this.onDeep(this, [...this.players.values()]);
+  /** Waves: a short break, then a wave (a boss every 5th); once it's all down the next break, and a chest every 5. */
+  updateWaves(dt) {
+    const d = this.deep;
+    if (!this.players.size) return;
+    if (d.state === 'break') {
+      d.t -= dt;
+      if (d.t <= 0) this.startWave(d.wave + 1);
+      return;
+    }
+    const left = this.enemies.filter((e) => !e.dead && !e.def.abyssChest).length;
+    if (left !== d.left) { d.left = left; this.waveStatus(); }
+    if (!left) this.waveCleared();
+  }
+
+  startWave(n) {
+    const d = this.deep, w = this.w;
+    d.wave = n;
+    d.state = 'fight';
+    const pool = Data.deepMobs(n), boss = Data.deepBoss(n);
+    const spot = () => {
+      for (let k = 0; k < 60; k++) {
+        const x = 86.5 + Math.floor(Math.random() * 29), y = 84.5 + Math.floor(Math.random() * 33);
+        if (!w.canStand(x, y, 0.5, true)) continue;
+        let near = false;
+        for (const c of this.players.values()) if ((c.x - x) * (c.x - x) + (c.y - y) * (c.y - y) < 36) near = true;
+        if (!near) return [x, y];
+      }
+      return [100.5, 88.5];
+    };
+    for (let k = 0; k < Data.deepCount(n); k++) { const p = spot(); this.spawn(pool[Math.floor(Math.random() * pool.length)], p[0], p[1], World.ARENA_ZONE, true); }
+    if (boss) {
+      w.boss = new Enemy(boss, 100.5, 90.5, World.ARENA_ZONE);
+      this.add(w.boss);
+    }
+    d.left = this.enemies.filter((e) => !e.dead && !e.def.abyssChest).length;
+    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'fight', left: d.left, boss: boss ? Data.ENEMIES[boss].name : '' });
+  }
+
+  waveStatus() {
+    const d = this.deep;
+    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: d.wave, state: d.state, left: d.left, secs: Math.ceil(d.t) });
+  }
+
+  /** Wave cleared: a breather; every 5th a chest (better the further you got) and a boon for everyone. */
+  waveCleared() {
+    const d = this.deep, n = d.wave;
+    const chest = n % Data.DEEP_CHEST_EVERY === 0;
+    d.state = 'break';
+    d.t = chest ? 20 : 8;
+    if (chest) this.spawn('abyss_chest_' + Data.deepChestTier(n), 100.5, 98.5, World.ARENA_ZONE, true);
+    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'cleared', secs: d.t, chest: chest ? Data.DEEP_CHEST_NAMES[Data.deepChestTier(n)] : '' });
+    if (this.onDeep) this.onDeep(this, [...this.players.values()], n, chest);
   }
 
   // ------------------------------------------------------------ the Realm Siege

@@ -535,6 +535,28 @@ async function run() {
     }
     check('every raid boss fights with the new kit (lines of blasts, pulls, blinks, charges, rune circles, columns)', !bad.length, bad.join(','));
   }
+  {
+    // Tempestus, after his design sheet: an animation for every attack, and chain lightning that jumps between players who crowd together
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: TD } = require('./sim/gen/game');
+    const TP = TD.ENEMIES.tempestus;
+    const tAll = [].concat(...TP.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
+    check('every one of Tempestus\'s attacks but his spirals and flowers has an animation he has frames for, and he guards behind his shields',
+      tAll.filter((a) => a.p !== 'spiral' && a.p !== 'flower').every((a) => a.anim && TP.seq[a.anim]) && TP.seq.guard && TP.phases.some((p) => p.shield) &&
+      ['slash', 'spread', 'strike', 'dash', 'radius', 'rain'].every((k) => tAll.some((a) => a.anim === k)), tAll.map((a) => a.anim).join(','));
+    const ws = new WorldSim('raid:1:1357');
+    const t = ws.spawn('tempestus', 100, 90, 5, true);
+    const P = (id, x, y) => { const c = { id, x, y, maxDps: 1e9, send: () => {} }; ws.join(c); c.x = x; c.y = y; return c; };
+    P(41, 100, 100); P(42, 103, 100); P(43, 106.5, 100); P(44, 130, 100);
+    const marks = [];
+    ws.g.addMarker = (x, y) => marks.push([Math.round(x), Math.round(y)]);
+    const ci = TP.phases[0].attacks.findIndex((a) => a.p === 'chain');
+    t.setAttacks(TP.phases[0].attacks);
+    t.fire(ci, Math.PI / 2, 10, ws.g);
+    check('...his chain lightning strikes where you stand, then jumps to each player close to the last one struck (and never to one standing apart)',
+      marks.length === 3 && marks.some(([x]) => x === 100) && marks.some(([x]) => x === 103) && marks.some(([x]) => x === 107 || x === 106) && !marks.some(([x]) => x === 130),
+      JSON.stringify(marks));
+  }
 
   console.log('pacing and boss scaling');
   {

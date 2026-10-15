@@ -42,7 +42,7 @@ package realm {
 			blood: {floor: World.BLOODSTONE, alt: World.CARPET, trim: World.BONE, hz: World.LAVA, a: 7, b: 29, c: 8},
 			sanctum: {floor: World.ARENA, alt: World.BLOODSTONE, trim: World.GOLD, hz: World.LAVA, a: 7, b: 29, c: 8},
 			gale: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8},
-			storm: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8}
+			storm: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8}
 		};
 
 		public static const LAYOUTS:Object = {

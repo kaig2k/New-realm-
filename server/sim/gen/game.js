@@ -1837,6 +1837,38 @@ class Bosses {
 			if (master && tw.masterSpd) e.spdMult *= tw.masterSpd;
 			if (!master && tw.guardDmg) e.dmgMult *= tw.guardDmg;
 		}
+	static tSlash(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(9, 120, 8.5, dmg, cd, Bosses.T_VIOLET, {shape: "crescent", r: 0.42, life: 1.1, anim: "slash", animMs: 85, name: "void slash"});
+		}
+	static tSpread(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 76, 7.5, dmg, cd, Bosses.T_VIOLET, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "storm orbs"});
+		}
+	static tStrike(dmg, cd) { dmg = __int(dmg);
+			return Bosses.nova(2.6, 1.1, dmg, cd, Bosses.T_PALE, {burst: 10, bspd: 5, blife: 1.0, shape: "bolt", fx: "pillar", eff: "paralyzed",
+				anim: "strike", animMs: 110, animHit: 3, animHold: 1.1, name: "heavy lightning strike"});
+		}
+	static tChain(jumps, dmg, cd) { jumps = __int(jumps); dmg = __int(dmg);
+			return {p: "chain", n: jumps, jump: 4.5, radius: 1.3, delay: 0.9, stagger: 0.22, dmg: dmg, cd: cd, r: 0.22, col: Bosses.T_PALE, fx: "pillar",
+				burst: 0, eff: "paralyzed", anim: "strike", animMs: 110, animHit: 3, animHold: 0.9, name: "chain lightning"};
+		}
+	static tDash(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(5, 50, 10, dmg, cd, Bosses.T_VIOLET, {shape: "crescent", r: 0.38, life: 1.0, dash: 0.5, dashSpd: 11, anim: "dash", animMs: 100, name: "storm dash"});
+		}
+	static tBlink(cd) {
+			return Bosses.ring(10, 18, 4, 60, cd, Bosses.T_PALE, {shape: "star", life: 2.0, blink: 6, anim: "dash", animMs: 100, name: "storm step"});
+		}
+	static tRadius(dmg, cd, radius) { dmg = __int(dmg);
+			return Bosses.nova(radius, 1.3, dmg, cd, Bosses.T_VIOLET, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 6, blife: 1.4, shape: "bolt", fx: "pillar", eff: "paralyzed",
+				anim: "radius", animMs: 120, animHit: 3, animHold: 1.3, name: "the storm's radius"});
+		}
+	static tRain(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 5.5, dmg, cd, Bosses.T_PALE, {radius: 1.3, delay: 1.0, stagger: 0.08, fx: "pillar", burst: 0,
+				anim: "rain", animMs: 110, animHit: 3, animHold: 1.0, name: "divine storm rain"});
+		}
+	static tPull(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: Bosses.T_PALE, shape: "voidorb", eff: "slowed"},
+				{anim: "radius", animMs: 140, name: "the eye's pull"});
+		}
 	static lineRain(n, dmg, cd, col, fx, x = null) { n = __int(n); dmg = __int(dmg); col = __uint(col);
 			return Bosses.rain(n, 0, dmg, cd, col, Bosses.o({line: true, step: 1.7, radius: 1.3, delay: 0.7, stagger: 0.13, fx: fx, burst: 3, bspd: 4, blife: 0.8}, x));
 		}
@@ -1940,19 +1972,21 @@ class Bosses {
 					attacks: [Bosses.spiral(8, 7, 6, 80, 0.1, 0xd0f0ff, {motion: "accel", accel: 0.4}), Bosses.pull(20, 90, 3.0, 0x80ffff, {radius: 6.5, eff: "slowed", name: "the hurricane"}),
 						Bosses.rain(8, 6, 110, 1.8, 0x80ffff, {burst: 6, fx: "pillar"})]})
 			]}, raid), ["galecaller_bow"]);
-			Bosses.boss("tempestus", Bosses.o({name: "Tempestus, Heart of the Storm", spr: "tempestus", hp: 62000, def: 30, spd: 2.0, xp: 6000, col: 0xffff60, gold: 2000, onrane: 25, r: 1.1, phases: [
+			
+			
+			
+			Bosses.boss("tempestus", Bosses.o({name: "Tempestus, Heart of the Storm", spr: "tempestus", hp: 62000, def: 30, spd: 2.0, xp: 6000, col: Bosses.T_VIOLET, gold: 2000, onrane: 25, r: 1.1,
+				seq: {idle: 4, move: 6, slash: 6, spread: 5, strike: 6, dash: 6, radius: 6, rain: 6, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				Bosses.P(1, {say: "SO. YOU CLIMBED MY STORM.", move: "orbit",
-					attacks: [Bosses.spiral(3, 23, 7, 75, 0.1, 0xffff60), Bosses.aim(1, 0, 12, 110, 0.7, 0xffffff, {shape: "bolt", eff: "paralyzed", r: 0.3}),
-						Bosses.pillars(6, 110, 3.0, 0xffff80, {name: "lightning strike"})]}),
+					attacks: [Bosses.tSlash(90, 2.4), Bosses.tSpread(7, 70, 1.6), Bosses.tStrike(130, 3.8), Bosses.tChain(3, 110, 5.0)]}),
 				Bosses.P(0.8, {say: "THUNDER!", shield: 3, move: "center", every: 3.5,
-					cycle: [[Bosses.pillars(10, 120, 1.3, 0xffff80, {delay: 0.9, name: "lightning storm"})], [Bosses.flower(30, 6, 6, 85, 0.6, 0x80b0ff)],
-						[Bosses.wall(21, 6, 90, 1.1, 0xffff60, {hole: 2, shape: "bolt"}), Bosses.lineRain(7, 110, 1.6, 0xffff60, "pillar", {name: "forked lightning"})]]}),
+					cycle: [[Bosses.tRain(10, 115, 1.4), Bosses.tSpread(9, 70, 1.4)],
+						[Bosses.tRadius(150, 3.0, 5.5), Bosses.tChain(4, 115, 2.4)],
+						[Bosses.tStrike(140, 1.4), Bosses.flower(30, 6, 6, 85, 0.6, Bosses.T_BLUE)]]}),
 				Bosses.P(0.5, {say: "LIGHTNING!", banner: "The storm's eye opens!", summon: [{what: "storm_wisp", n: 6}], move: "orbit",
-					attacks: [Bosses.spiral(6, 15, 7, 85, 0.09, 0xffff80, {motion: "wave"}), Bosses.selfNova(5, 1.2, 160, 3.4, 0xffff60, {burst: 18, eff: "paralyzed", shape: "bolt", fx: "pillar", name: "thunderclap"}),
-						Bosses.blinkRing(6, 0xffffff)]}),
-				Bosses.P(0.2, {say: "I AM THE STORM ETERNAL!", shield: 3, move: "orbit", speed: 1.6,
-					attacks: [Bosses.spiral(10, 9, 7, 90, 0.09, 0xffffff), Bosses.aim(7, 60, 10, 100, 0.9, 0x80ffff, {shape: "bolt", waves: 3, gap: 0.15}),
-						Bosses.pull(20, 100, 3.6, 0xffff60, {eff: "paralyzed", name: "the eye of the storm"}), Bosses.lineRain(8, 130, 2.2, 0xffff60, "pillar", {name: "forked lightning"})]})
+					attacks: [Bosses.tDash(100, 3.6), Bosses.tBlink(6), Bosses.tPull(18, 90, 4.2), Bosses.tChain(5, 120, 4.4), Bosses.spiral(6, 15, 7, 85, 0.09, Bosses.T_PALE, {motion: "wave", shape: "voidorb"})]}),
+				Bosses.P(0.2, {say: "I AM THE STORM ETERNAL!", banner: "THE STORM IS MY HEART!", shield: 3, move: "orbit", speed: 1.6,
+					attacks: [Bosses.tRain(12, 125, 2.0), Bosses.tChain(6, 130, 3.2), Bosses.tSlash(110, 1.6), Bosses.tRadius(170, 3.4, 6.5), Bosses.spiral(10, 9, 7, 90, 0.09, Bosses.T_PALE, {shape: "voidorb"})]})
 			]}, raid), ["heart_of_storm", "stormbreaker"]);
 
 			
@@ -3489,6 +3523,9 @@ class Enemy {
 				this.dmgMult *= 1.2;
 			}
 		}
+	guardAnim(ph) {
+			if (ph && ph.shield && this.def.seq && this.def.seq.guard) this.startAnim({anim: "guard", animMs: 120, animHit: 2, animHold: ph.shield});
+		}
 	startAnim(a) {
 			if (!a.anim || !this.def.seq || !this.def.seq[a.anim]) return;
 			
@@ -3684,6 +3721,7 @@ class Enemy {
 			var ph = this.phases[i];
 			this.setAttacks(this.listFor(i, 0));
 			if (ph.shield) this.shieldT = ph.shield;
+			this.guardAnim(ph);
 			if (ph.summon) for (var s of __vals( ph.summon)) {
 				for (var k = __int(0); k < (s.n || 1); k++) {
 					var a = k * Math.PI * 2 / (s.n || 1);
@@ -3725,6 +3763,7 @@ class Enemy {
 				this.phase = __int(ph);
 				this.cycleK = __int(k);
 				this.setAttacks(this.listFor(ph, k));
+				this.guardAnim(this.phases[ph]);
 				if (g) g.bossPhase(ph, this);
 			} else if (k != this.cycleK) {
 				this.cycleK = __int(k);
@@ -3850,6 +3889,32 @@ class Enemy {
 					var nd = Math.min(dist, a.reach || 9);
 					var nx = this.x + Math.cos(ang) * nd, ny = this.y + Math.sin(ang) * nd;
 					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, this.novaFn(a, nx, ny, dmg, bd, spinning, g, spin0), a.marker || null);
+					break;
+				case "chain":
+					
+					
+					var cdd = Math.min(dist, a.reach || 10);
+					var lx0 = this.x + Math.cos(ang) * cdd, ly0 = this.y + Math.sin(ang) * cdd;
+					var near = g.playersNear(lx0, ly0, (a.jump || 4.5) * (n + 1));
+					var used = [];
+					var px0 = this.x, py0 = this.y;
+					for (k = __int(0); k <= n; k++) {
+						var dl = (a.delay || 0.9) + k * (a.stagger || 0.22);
+						g.chainArc(px0, py0, lx0, ly0, col, dl);
+						g.addMarker(lx0, ly0, a.radius || 1.3, dl, col, this.novaFn(a, lx0, ly0, dmg, bd, spinning, g, ang + k), null);
+						
+						var best = null, bd2 = (a.jump || 4.5) * (a.jump || 4.5);
+						for (var pl of __vals( near)) {
+							if (used.indexOf(pl) >= 0) continue;
+							var qx = pl.x - lx0, qy = pl.y - ly0, qd = qx * qx + qy * qy;
+							if (qd > 0.36 && qd < bd2) { bd2 = qd; best = pl; }
+							else if (qd <= 0.36 && used.indexOf(pl) < 0) used.push(pl);
+						}
+						if (!best) break;
+						used.push(best);
+						px0 = lx0; py0 = ly0;
+						lx0 = best.x; ly0 = best.y;
+					}
 					break;
 				case "implode":
 					
@@ -5226,6 +5291,9 @@ Bosses.VAULT_TWISTS = [
 			{id: "glass", name: "Glass Vault", desc: "Everything has 30% less health but hits 40% harder.", hp: 0.7, dmg: 1.4},
 			{id: "escort", name: "Honour Guard", desc: "Each master wakes with four guards at its side.", escort: 4}
 		];
+Bosses.T_VIOLET = __uint(0xa060ff);
+Bosses.T_PALE = __uint(0xe2ccff);
+Bosses.T_BLUE = __uint(0x4048e0);
 Bosses.HEROIC = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
@@ -5333,7 +5401,7 @@ SetPieces.STYLES = {
 			blood: {floor: World.BLOODSTONE, alt: World.CARPET, trim: World.BONE, hz: World.LAVA, a: 7, b: 29, c: 8},
 			sanctum: {floor: World.ARENA, alt: World.BLOODSTONE, trim: World.GOLD, hz: World.LAVA, a: 7, b: 29, c: 8},
 			gale: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8},
-			storm: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8}
+			storm: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8}
 		};
 SetPieces.LAYOUTS = {
 			blood: [

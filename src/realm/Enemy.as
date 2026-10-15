@@ -183,6 +183,11 @@ package realm {
 		/** A lunge at a target (an attack's dash): seconds left, angle and speed. */
 		private var dashT:Number = 0, dashA:Number = 0, dashSpd:Number = 0;
 
+		/** A boss with a guard animation (def.seq.guard) plays it while a new phase's shield holds. */
+		private function guardAnim(ph:Object):void {
+			if (ph && ph.shield && def.seq && def.seq.guard) startAnim({anim: "guard", animMs: 120, animHit: 2, animHold: ph.shield});
+		}
+
 		private function startAnim(a:Object):void {
 			if (!a.anim || !def.seq || !def.seq[a.anim]) return;
 			// a blow that's still coming down isn't cut short by a smaller attack
@@ -403,6 +408,7 @@ package realm {
 			var ph:Object = phases[i];
 			setAttacks(listFor(i, 0));
 			if (ph.shield) shieldT = ph.shield;
+			guardAnim(ph);
 			if (ph.summon) for each (var s:Object in ph.summon) {
 				for (var k:int = 0; k < (s.n || 1); k++) {
 					var a:Number = k * Math.PI * 2 / (s.n || 1);
@@ -450,6 +456,7 @@ package realm {
 				phase = ph;
 				cycleK = k;
 				setAttacks(listFor(ph, k));
+				guardAnim(phases[ph]);
 				if (g) g.bossPhase(ph, this);
 			} else if (k != cycleK) {
 				cycleK = k;
@@ -586,6 +593,32 @@ package realm {
 					var nd:Number = Math.min(dist, a.reach || 9);
 					var nx:Number = x + Math.cos(ang) * nd, ny:Number = y + Math.sin(ang) * nd;
 					g.addMarker(nx, ny, a.radius || 1.6, a.delay || 1, col, novaFn(a, nx, ny, dmg, bd, spinning, g, spin0), a.marker || null);
+					break;
+				case "chain":
+					// chain lightning: a strike where you stand, then it jumps to whoever is close to
+					// the last one struck (it only grows when players crowd together)
+					var cdd:Number = Math.min(dist, a.reach || 10);
+					var lx0:Number = x + Math.cos(ang) * cdd, ly0:Number = y + Math.sin(ang) * cdd;
+					var near:Array = g.playersNear(lx0, ly0, (a.jump || 4.5) * (n + 1));
+					var used:Array = [];
+					var px0:Number = x, py0:Number = y;
+					for (k = 0; k <= n; k++) {
+						var dl:Number = (a.delay || 0.9) + k * (a.stagger || 0.22);
+						g.chainArc(px0, py0, lx0, ly0, col, dl);
+						g.addMarker(lx0, ly0, a.radius || 1.3, dl, col, novaFn(a, lx0, ly0, dmg, bd, spinning, g, ang + k), null);
+						// the next: the nearest player not yet struck, within reach of this strike
+						var best:Object = null, bd2:Number = (a.jump || 4.5) * (a.jump || 4.5);
+						for each (var pl:Object in near) {
+							if (used.indexOf(pl) >= 0) continue;
+							var qx:Number = pl.x - lx0, qy:Number = pl.y - ly0, qd:Number = qx * qx + qy * qy;
+							if (qd > 0.36 && qd < bd2) { bd2 = qd; best = pl; }
+							else if (qd <= 0.36 && used.indexOf(pl) < 0) used.push(pl);
+						}
+						if (!best) break;
+						used.push(best);
+						px0 = lx0; py0 = ly0;
+						lx0 = best.x; ly0 = best.y;
+					}
 					break;
 				case "implode":
 					// a gravity well: a ring of shots appears round you and falls inward

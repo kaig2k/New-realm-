@@ -1481,8 +1481,8 @@ package realm {
 						case SHOCK:
 							// pale storm-stone with arcs of lightning crawling over it
 							var sk:int = (gx * 7 + gy * 3 + (gx >> 1)) % 9;
-							c = sk == 0 ? 0xffffff : sk < 3 ? 0x80ffff : (gx + gy * 2) % 5 == 0 ? 0x3a90c0 : 0x1c2a3a;
-							if (r < 0.06) c = 0xe0ffff;
+							c = sk == 0 ? 0xffffff : sk < 3 ? 0xa8b0ff : (gx + gy * 2) % 5 == 0 ? 0x5050e0 : 0x1a1a3a;
+							if (r < 0.06) c = 0xe2ccff;
 							break;
 						case VOIDFIRE:
 							// violet flame licking over black glass

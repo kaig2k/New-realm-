@@ -2400,6 +2400,48 @@ package realm {
 			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world, style: style});
 		}
 
+		/** Players within r of (x, y): you and, online, the others in your world (chain lightning picks its jumps from these). */
+		public function playersNear(x:Number, y:Number, r:Number):Array {
+			var out:Array = [];
+			if (player.hp > 0 && (player.x - x) * (player.x - x) + (player.y - y) * (player.y - y) < r * r) out.push(player);
+			if (net.online) for each (var rp:RemotePlayer in net.players)
+				if ((rp.x - x) * (rp.x - x) + (rp.y - y) * (rp.y - y) < r * r) out.push(rp);
+			return out;
+		}
+
+		/** Arcs of chain lightning: a jagged bolt from one strike to the next, when its strike lands. */
+		private var arcs:Array = [];
+
+		public function chainArc(x0:Number, y0:Number, x1:Number, y1:Number, col:uint, delay:Number):void {
+			if (arcs.length > 30) arcs.shift();
+			arcs.push({x0: x0, y0: y0, x1: x1, y1: y1, col: col, t: -delay, w: world, seed: int(Math.random() * 100000)});
+		}
+
+		private function drawArcs():void {
+			for (var i:int = arcs.length - 1; i >= 0; i--) {
+				var a:Object = arcs[i];
+				a.t += 1 / 60;
+				if (a.w != world || a.t > 0.35) { arcs.splice(i, 1); continue; }
+				if (a.t < 0) continue;
+				var gr:* = markShape.graphics;
+				gr.clear();
+				var sx0:Number = scrX(a.x0, a.y0), sy0:Number = scrY(a.x0, a.y0) - TS * 0.6;
+				var sx1:Number = scrX(a.x1, a.y1), sy1:Number = scrY(a.x1, a.y1);
+				var steps:int = 8, fade:Number = 1 - a.t / 0.35;
+				for (var pass:int = 0; pass < 2; pass++) {
+					gr.lineStyle(pass ? 2 : 5, pass ? 0xffffff : a.col, pass ? fade : fade * 0.7);
+					gr.moveTo(sx0, sy0);
+					for (var k:int = 1; k <= steps; k++) {
+						var f:Number = k / steps;
+						var j:Number = k == steps ? 0 : (((a.seed * (k + 3) * 2654435761) >>> 8) % 1000 / 1000 - 0.5) * TS * 0.9;
+						gr.lineTo(sx0 + (sx1 - sx0) * f + j, sy0 + (sy1 - sy0) * f + j * 0.5);
+					}
+				}
+				markMtx.tx = 0; markMtx.ty = 0;
+				canvas.draw(markShape, markMtx);
+			}
+		}
+
 		/** Effects left on the ground by a blow landing: "spikes" (crystal spikes bursting up), "pillar" (a column of light), "tentacles". */
 		private var gfx:Array = [];
 
@@ -6554,6 +6596,7 @@ package realm {
 			}
 			drawCorpses();
 			drawGroundFx();
+			drawArcs();
 			drawCloudShadows();
 			if (inNexus && decor) decor.drawTop(canvas);
 			if (arenas) arenas.drawTop(canvas);

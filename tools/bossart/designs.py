@@ -697,7 +697,7 @@ KRAKEN_PAL = {'T': 0x9a2a6a, 't': 0xd04a8a, 'd': 0x4a0a30, 'P': 0xffb0d0, 'H': 0
 DESIGNS += [
     ('sentinel', sentinel, SENTINEL_PAL, 4),
     ('void_dragon', void_dragon, VOID_PAL, 4),
-    ('tempestus', tempestus, TEMPEST_PAL, 4),
+    # (Tempestus has tempestus.py now)
     ('zealot', zealot, ZEALOT_PAL, 4),
     ('phoenix', phoenix, PHOENIX_PAL, 4),
     ('galecaller', galecaller, GALE_PAL, 4),

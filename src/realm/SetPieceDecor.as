@@ -42,7 +42,7 @@ package realm {
 			blood: {part: 0xff2030, move: "rise", beam: 0xd8102a, dust: 0x3a1018},
 			sanctum: {part: 0xffd060, move: "rise", beam: 0xff3050, dust: 0x4a2028},
 			gale: {part: 0xc0ffff, move: "drift", beam: 0x80ffff, dust: 0x9ab0c0},
-			storm: {part: 0xffffff, move: "rise", beam: 0x80ffff, dust: 0x6a8090}
+			storm: {part: 0xe2ccff, move: "rise", beam: 0xa060ff, dust: 0x34325a}
 		};
 
 		public function SetPieceDecor(g:Game) { this.g = g; }

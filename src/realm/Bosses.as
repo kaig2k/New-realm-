@@ -360,7 +360,6 @@ package realm {
 			Sprites.recolor("archon", "elder_classic", {H: 0xffe0e0, h: 0xa08080, P: 0x8a0a2a, p: 0x4a0414, Q: 0xffd040, K: 0x100004, E: 0xff2040, W: 0xffd0e0, O: 0xff6080}, 7);
 			Sprites.recolor("zealot", "sorcerer", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
 			Sprites.recolor("galecaller", "seraph", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
-			Sprites.recolor("tempestus", "wyrm", {C: 0x80b0ff, c: 0x4060c0, W: 0xffff80, w: 0xc0c060, E: 0xffffff, K: 0xffff00}, 7);
 			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
 			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
@@ -957,6 +956,50 @@ package realm {
 			if (!master && tw.guardDmg) e.dmgMult *= tw.guardDmg;
 		}
 
+		// ---- Tempestus's attacks, after his design sheet (each with its own animation)
+		private static const T_VIOLET:uint = 0xa060ff, T_PALE:uint = 0xe2ccff, T_BLUE:uint = 0x4048e0;
+		// Void Slash: a great crescent of storm-light swept in front of him
+		private static function tSlash(dmg:int, cd:Number):Object {
+			return aim(9, 120, 8.5, dmg, cd, T_VIOLET, {shape: "crescent", r: 0.42, life: 1.1, anim: "slash", animMs: 85, name: "void slash"});
+		}
+		// Spread: a fan of storm orbs
+		private static function tSpread(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 76, 7.5, dmg, cd, T_VIOLET, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "storm orbs"});
+		}
+		// Heavy Lightning Strike: he raises his hand and a great bolt falls where you stood
+		private static function tStrike(dmg:int, cd:Number):Object {
+			return nova(2.6, 1.1, dmg, cd, T_PALE, {burst: 10, bspd: 5, blife: 1.0, shape: "bolt", fx: "pillar", eff: "paralyzed",
+				anim: "strike", animMs: 110, animHit: 3, animHold: 1.1, name: "heavy lightning strike"});
+		}
+		// Chain Lightning (his own): strikes you, then jumps to whoever stands near you, and on
+		private static function tChain(jumps:int, dmg:int, cd:Number):Object {
+			return {p: "chain", n: jumps, jump: 4.5, radius: 1.3, delay: 0.9, stagger: 0.22, dmg: dmg, cd: cd, r: 0.22, col: T_PALE, fx: "pillar",
+				burst: 0, eff: "paralyzed", anim: "strike", animMs: 110, animHit: 3, animHold: 0.9, name: "chain lightning"};
+		}
+		// Dash: storm-light loosed ahead and he streaks after it
+		private static function tDash(dmg:int, cd:Number):Object {
+			return aim(5, 50, 10, dmg, cd, T_VIOLET, {shape: "crescent", r: 0.38, life: 1.0, dash: 0.5, dashSpd: 11, anim: "dash", animMs: 100, name: "storm dash"});
+		}
+		// Teleport: through a ring of light, and out somewhere else
+		private static function tBlink(cd:Number):Object {
+			return ring(10, 18, 4, 60, cd, T_PALE, {shape: "star", life: 2.0, blink: 6, anim: "dash", animMs: 100, name: "storm step"});
+		}
+		// The storm's radius: a rune circle round him, then lightning bursts up out of it
+		private static function tRadius(dmg:int, cd:Number, radius:Number):Object {
+			return nova(radius, 1.3, dmg, cd, T_VIOLET, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 6, blife: 1.4, shape: "bolt", fx: "pillar", eff: "paralyzed",
+				anim: "radius", animMs: 120, animHit: 3, animHold: 1.3, name: "the storm's radius"});
+		}
+		// Divine Storm Rain: columns of lightning falling all round you
+		private static function tRain(n:int, dmg:int, cd:Number):Object {
+			return rain(n, 5.5, dmg, cd, T_PALE, {radius: 1.3, delay: 1.0, stagger: 0.08, fx: "pillar", burst: 0,
+				anim: "rain", animMs: 110, animHit: 3, animHold: 1.0, name: "divine storm rain"});
+		}
+		// The eye's pull: a ring of storm orbs closing in on you
+		private static function tPull(n:int, dmg:int, cd:Number):Object {
+			return o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: T_PALE, shape: "voidorb", eff: "slowed"},
+				{anim: "radius", animMs: 140, name: "the eye's pull"});
+		}
+
 		// ---- the raids' attack kit (shared by every raid boss)
 		/** Blasts marching out in a line from the boss toward you (fx: what bursts up: spikes, a pillar, tentacles). */
 		private static function lineRain(n:int, dmg:int, cd:Number, col:uint, fx:String, x:Object = null):Object {
@@ -1102,19 +1145,21 @@ package realm {
 					attacks: [spiral(8, 7, 6, 80, 0.1, 0xd0f0ff, {motion: "accel", accel: 0.4}), pull(20, 90, 3.0, 0x80ffff, {radius: 6.5, eff: "slowed", name: "the hurricane"}),
 						rain(8, 6, 110, 1.8, 0x80ffff, {burst: 6, fx: "pillar"})]})
 			]}, raid), ["galecaller_bow"]);
-			boss("tempestus", o({name: "Tempestus, Heart of the Storm", spr: "tempestus", hp: 62000, def: 30, spd: 2.0, xp: 6000, col: 0xffff60, gold: 2000, onrane: 25, r: 1.1, phases: [
+			// Tempestus, after his design sheet: every attack has its own animation (tools/bossart/tempestus.py),
+			// he guards behind a shell of storm-light while a phase's shield holds, and his chain lightning
+			// jumps from one player to the next if they stand close together
+			boss("tempestus", o({name: "Tempestus, Heart of the Storm", spr: "tempestus", hp: 62000, def: 30, spd: 2.0, xp: 6000, col: T_VIOLET, gold: 2000, onrane: 25, r: 1.1,
+				seq: {idle: 4, move: 6, slash: 6, spread: 5, strike: 6, dash: 6, radius: 6, rain: 6, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				P(1, {say: "SO. YOU CLIMBED MY STORM.", move: "orbit",
-					attacks: [spiral(3, 23, 7, 75, 0.1, 0xffff60), aim(1, 0, 12, 110, 0.7, 0xffffff, {shape: "bolt", eff: "paralyzed", r: 0.3}),
-						pillars(6, 110, 3.0, 0xffff80, {name: "lightning strike"})]}),
+					attacks: [tSlash(90, 2.4), tSpread(7, 70, 1.6), tStrike(130, 3.8), tChain(3, 110, 5.0)]}),
 				P(0.8, {say: "THUNDER!", shield: 3, move: "center", every: 3.5,
-					cycle: [[pillars(10, 120, 1.3, 0xffff80, {delay: 0.9, name: "lightning storm"})], [flower(30, 6, 6, 85, 0.6, 0x80b0ff)],
-						[wall(21, 6, 90, 1.1, 0xffff60, {hole: 2, shape: "bolt"}), lineRain(7, 110, 1.6, 0xffff60, "pillar", {name: "forked lightning"})]]}),
+					cycle: [[tRain(10, 115, 1.4), tSpread(9, 70, 1.4)],
+						[tRadius(150, 3.0, 5.5), tChain(4, 115, 2.4)],
+						[tStrike(140, 1.4), flower(30, 6, 6, 85, 0.6, T_BLUE)]]}),
 				P(0.5, {say: "LIGHTNING!", banner: "The storm's eye opens!", summon: [{what: "storm_wisp", n: 6}], move: "orbit",
-					attacks: [spiral(6, 15, 7, 85, 0.09, 0xffff80, {motion: "wave"}), selfNova(5, 1.2, 160, 3.4, 0xffff60, {burst: 18, eff: "paralyzed", shape: "bolt", fx: "pillar", name: "thunderclap"}),
-						blinkRing(6, 0xffffff)]}),
-				P(0.2, {say: "I AM THE STORM ETERNAL!", shield: 3, move: "orbit", speed: 1.6,
-					attacks: [spiral(10, 9, 7, 90, 0.09, 0xffffff), aim(7, 60, 10, 100, 0.9, 0x80ffff, {shape: "bolt", waves: 3, gap: 0.15}),
-						pull(20, 100, 3.6, 0xffff60, {eff: "paralyzed", name: "the eye of the storm"}), lineRain(8, 130, 2.2, 0xffff60, "pillar", {name: "forked lightning"})]})
+					attacks: [tDash(100, 3.6), tBlink(6), tPull(18, 90, 4.2), tChain(5, 120, 4.4), spiral(6, 15, 7, 85, 0.09, T_PALE, {motion: "wave", shape: "voidorb"})]}),
+				P(0.2, {say: "I AM THE STORM ETERNAL!", banner: "THE STORM IS MY HEART!", shield: 3, move: "orbit", speed: 1.6,
+					attacks: [tRain(12, 125, 2.0), tChain(6, 130, 3.2), tSlash(110, 1.6), tRadius(170, 3.4, 6.5), spiral(10, 9, 7, 90, 0.09, T_PALE, {shape: "voidorb"})]})
 			]}, raid), ["heart_of_storm", "stormbreaker"]);
 
 			// ---- the Starfall Vault: four chambers, each a set piece that changes as you fight

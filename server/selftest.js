@@ -449,6 +449,8 @@ async function run() {
       } catch (e) { err = e.message; }
       const nst = ws.w.raid.stages.length;
       check('raid ' + r + ' (' + ws.w.raid.name + '): every stage starts and every wall opens', !err && got.filter((m) => m.t === 'rstage').length === nst && ws.w.gates.every((g) => !g.length), err || '');
+      if (r !== 2) check(ws.w.raid.name + ': its last two bosses raise arenas that change as they weaken (' + (r === 0 ? 'blood sanctum and altar' : 'terrace and the eye') + ')',
+        arenas.length === 2 && got.filter((m) => m.t === 'sphase' && m.go).length >= (r === 0 ? 4 : 5), arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
       if (r === 2) check('the Starfall Vault: every chamber raises its set piece, and the Star Throne changes three times',
         arenas.length === 4 && got.filter((m) => m.t === 'sphase' && m.go).length >= 3 + 2 + 1 + 1, arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
       if (r === 2) check('each Vault master remakes the whole dungeon in its style (even the entrance hall)',

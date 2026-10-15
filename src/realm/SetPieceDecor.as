@@ -38,7 +38,11 @@ package realm {
 			hex: {part: 0x90ff70, move: "drift", beam: 0x70e050, dust: 0x4a3256},
 			reef: {part: 0xc0f0ff, move: "rise", beam: 0xff80a0, dust: 0x3c968c},
 			star: {part: 0xffe080, move: "rise", beam: 0xffd060, dust: 0x34325a},
-			siege: {part: 0xff7a1a, move: "rise", beam: 0xff6010, dust: 0x3a3030}
+			siege: {part: 0xff7a1a, move: "rise", beam: 0xff6010, dust: 0x3a3030},
+			blood: {part: 0xff2030, move: "rise", beam: 0xd8102a, dust: 0x3a1018},
+			sanctum: {part: 0xffd060, move: "rise", beam: 0xff3050, dust: 0x4a2028},
+			gale: {part: 0xc0ffff, move: "drift", beam: 0x80ffff, dust: 0x9ab0c0},
+			storm: {part: 0xffffff, move: "rise", beam: 0x80ffff, dust: 0x6a8090}
 		};
 
 		public function SetPieceDecor(g:Game) { this.g = g; }

@@ -37,10 +37,103 @@ package realm {
 			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
 			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23},
 			// Vorgath's war camp: ash and roads round a brick dais, braziers, tents and war banners, lava trenches
-			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19}
+			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19},
+			// the raids' arenas: the Matron's blood sanctum, Archon Vesper's altar, the Galecaller's terrace, the eye of the storm
+			blood: {floor: World.BLOODSTONE, alt: World.CARPET, trim: World.BONE, hz: World.LAVA, a: 7, b: 29, c: 8},
+			sanctum: {floor: World.ARENA, alt: World.BLOODSTONE, trim: World.GOLD, hz: World.LAVA, a: 7, b: 29, c: 8},
+			gale: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8},
+			storm: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8}
 		};
 
 		public static const LAYOUTS:Object = {
+			blood: [
+				"                     ",
+				"                     ",
+				"                     ",
+				"                     ",
+				"....~~...,,,...~~....",
+				"..a.~~~..,,,..~~~.a..",
+				".....~~~.,,,.~~~.....",
+				"......~..:::..~......",
+				"......b.:::::.b......",
+				".......:::::::.......",
+				".,,,,,,:::B:::,,,,,,.",
+				".......:::::::.......",
+				"........:::::........",
+				"......~..:::..~......",
+				".....~~~.,,,.~~~.....",
+				"....~~~..,,,..~~~....",
+				"....~~...,,,...~~....",
+				".........,,,.........",
+				".........,,,.........",
+				"..a......,,,......a..",
+				".........,,,........."],
+			sanctum: [
+				"                     ",
+				"                     ",
+				"                     ",
+				"..........:..........",
+				".a.....:::::::.....a.",
+				"......:.......:......",
+				".....:.........:.....",
+				"....:.,....,....:....",
+				"....:..,..:.....:....",
+				"....:....:::....:....",
+				".~.:c...::B::,,,c:.~.",
+				"....:....:::....:....",
+				"....:..,..:.....:....",
+				"....:.,....,....:....",
+				".....:.........:.....",
+				"......:.......:......",
+				".......:::::::.......",
+				"..........:..........",
+				".....................",
+				".a........~........a.",
+				"....................."],
+			gale: [
+				"                     ",
+				"         ---         ",
+				"      --..:..--      ",
+				"     -....:....-     ",
+				"    c.....:.....c    ",
+				"   -....,,,,,....-   ",
+				"  -....,,.:.,,....-  ",
+				"  -...,...:...,...-  ",
+				"  ...,,.......,,...  ",
+				" -...,.........,...- ",
+				" -:::,::..B..::,:::- ",
+				" -...,.........,...- ",
+				"  ...,,.......,,...  ",
+				"  -...,...:...,...-  ",
+				"  -....,,.:.,,....-  ",
+				"   -....,,,,,....-   ",
+				"    c.....:.....c    ",
+				"     -....:....-     ",
+				"      --..:..--      ",
+				"         ---         ",
+				"                     "],
+			storm: [
+				"                     ",
+				"                     ",
+				"        -----        ",
+				"     --.......--     ",
+				"    -.....,,...,-    ",
+				"   -,....,.......-   ",
+				"  -......:::......-  ",
+				" -.c...::...::...c.- ",
+				" -.....:,...,:.....- ",
+				" ...,.:.......:,.... ",
+				"-...,.:...B...:.,...-",
+				"-....,:.......:.,...-",
+				"-......:,...,:......-",
+				"-......::...::......-",
+				"-,.......:::........-",
+				" .,........,....,... ",
+				" -..,,...,,.....,..- ",
+				" -.c.............c.- ",
+				"  -............,..-  ",
+				"   -..........,..-   ",
+				"    -.......,,..-    "],
 			star: [
 				"                     ",
 				"  -----------------  ",
@@ -532,7 +625,7 @@ package realm {
 		// ------------------------------------------------------------ takeovers
 		/** Tiles a set piece may lay across a whole dungeon (nothing that burns, drowns or blocks). */
 		private static function safeFloor(t:int):Boolean {
-			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
+			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.SHOCK && t != World.VOIDFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
 		}
 
 		/**
@@ -651,6 +744,25 @@ package realm {
 				msg: "The trenches overflow! Rivers of fire split the war camp!"},
 				{when: "hp", at: 0.3, sel: "ring", a: 12.5, b: 99, to: "hz", col: 0xff3010,
 				msg: "THE WAR CAMP BURNS! The flames close in from every side: stay near Vorgath!"}],
+			// the raids' arenas
+			blood: [{when: "hp", at: 0.6, sel: "widen", to: "hz", col: 0xff2030,
+				msg: "The blood channels overflow! The sanctum floods with blood!"},
+				{when: "hp", at: 0.3, sel: "ring", a: 8.5, b: 99, to: "hz", col: 0xff1020,
+				msg: "The Matron opens every vein in the sanctum! Its edges drown in blood!"}],
+			sanctum: [{when: "hp", at: 0.55, sel: "char", ch: ",", to: "hz", col: 0xff3050,
+				msg: "Archon Vesper calls the blood up through the altar's runes!"},
+				{when: "hp", at: 0.25, sel: "ring", a: 7.5, b: 99, to: "hz", col: 0xff1020,
+				msg: "The altar floods with blood! Stay inside the golden circle!"}],
+			gale: [{when: "hp", at: 0.6, sel: "char", ch: ",", to: "shock", col: 0x80ffff,
+				msg: "The Galecaller charges the terrace's runes! Don't stand on them!"},
+				{when: "hp", at: 0.3, sel: "ring", a: 7.5, b: 99, to: "shock", col: 0xc0ffff,
+				msg: "Lightning crawls in from the terrace's edge!"}],
+			storm: [{when: "hp", at: 0.75, sel: "char", ch: ",", to: "shock", col: 0x80ffff,
+				msg: "The storm's spiral arms crackle with lightning!"},
+				{when: "hp", at: 0.5, sel: "ring", a: 9, b: 99, to: "shock", col: 0xa0f0ff,
+				msg: "The eye of the storm narrows!"},
+				{when: "hp", at: 0.2, sel: "ring", a: 6.5, b: 99, to: "shock", col: 0xffffff,
+				msg: "THE EYE CLOSES! Only its heart is safe!"}],
 			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
 				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
@@ -712,7 +824,7 @@ package realm {
 			var sel:Array = phaseCells(id, cells, k);
 			if (!ph) return sel;
 			var st:Object = STYLES[Bosses.SETPIECES[id].style];
-			var nt:int = ph.to == "hz" ? st.hz : ph.to == "water" ? World.WATER : ph.to == "hexfire" ? World.HEXFIRE : st.floor;
+			var nt:int = ph.to == "hz" ? st.hz : ph.to == "water" ? World.WATER : ph.to == "hexfire" ? World.HEXFIRE : ph.to == "shock" ? World.SHOCK : st.floor;
 			for each (var q:Object in sel) {
 				q.nt = nt;
 				q.no = 0;

@@ -244,6 +244,11 @@ package realm {
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
 			// the Realm Siege: Vorgath's war camp, raised in the Godlands
 			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
+			// the Crimson Conclave and Heart of the Storm: their bosses' arenas change as they weaken
+			matron: {style: "blood", prop: "blood_altar", n: 0, r: 6, hint: "The Matron's sanctum runs with blood: its channels will overflow, then its edges drown. Keep to the bone dais!"},
+			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground."},
+			galecaller: {style: "gale", prop: "storm_rod", n: 0, r: 6, hint: "The Galecaller's terrace will charge with lightning: off the runes when they crackle, and away from the edge!"},
+			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."},
 			// the Starfall Vault (a raid): each chamber is a set piece of its own
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},

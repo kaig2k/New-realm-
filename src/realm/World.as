@@ -31,6 +31,8 @@ package realm {
 		public static const HEXFIRE:int = 29;
 		/** Void fire: the Dark Elder's chamber burning violet (burns like lava). */
 		public static const VOIDFIRE:int = 30;
+		/** Charged ground: Heart of the Storm's arenas crackling with lightning (burns like lava). */
+		public static const SHOCK:int = 31;
 		/** Realm biomes, from the coast inwards (RotMG order). */
 		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
 		public static const SAFE_ZONE:int = 9;
@@ -47,7 +49,7 @@ package realm {
 
 		public static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
 			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96,
-			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040, 0xa040ff];
+			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040, 0xa040ff, 0x80ffff];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -1476,6 +1478,12 @@ package realm {
 							c = spc == "S" ? 0x34325a : spc == "H" ? 0x403e6a : spc == "h" ? 0x3a3862 : 0x1c1a34;
 							if (mark(gx, gy, 15, hs)) c = 0xa0c0ff;
 							break;
+						case SHOCK:
+							// pale storm-stone with arcs of lightning crawling over it
+							var sk:int = (gx * 7 + gy * 3 + (gx >> 1)) % 9;
+							c = sk == 0 ? 0xffffff : sk < 3 ? 0x80ffff : (gx + gy * 2) % 5 == 0 ? 0x3a90c0 : 0x1c2a3a;
+							if (r < 0.06) c = 0xe0ffff;
+							break;
 						case VOIDFIRE:
 							// violet flame licking over black glass
 							var vf:int = (gx * 5 + gy * 3 + (gy >> 1)) % 7;
@@ -1496,7 +1504,7 @@ package realm {
 					}
 					// variety, so no two stretches of ground look stamped from the same tile:
 					// a slow wash of light and shade, each flagstone its own shade, and the odd detail
-					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != VOIDFIRE && t != CARPET) {
+					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != VOIDFIRE && t != SHOCK && t != CARPET) {
 						var f:Number = wash(gx, gy);
 						if (t == STONE || t == ROAD || t == PLAZA || t == RUIN || t == BRICK || t == SANDSTONE || t == ICE || t == BONE || t == SPECTRAL || t == HEXSTONE || t == OBSIDIAN)
 							f *= 0.965 + ((hs >> 3) & 7) * 0.01;

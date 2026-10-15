@@ -3175,7 +3175,7 @@ class SetPieces {
 			return __int(n);
 		}
 	static safeFloor(t) { t = __int(t);
-			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
+			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.SHOCK && t != World.VOIDFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
 		}
 	static takeover(id, w, cx, cy) {
 			var out = [];
@@ -3274,7 +3274,7 @@ class SetPieces {
 			var sel = SetPieces.phaseCells(id, cells, k);
 			if (!ph) return sel;
 			var st = SetPieces.STYLES[Bosses.SETPIECES[id].style];
-			var nt = __int(ph.to == "hz" ? st.hz : ph.to == "water" ? World.WATER : ph.to == "hexfire" ? World.HEXFIRE : st.floor);
+			var nt = __int(ph.to == "hz" ? st.hz : ph.to == "water" ? World.WATER : ph.to == "hexfire" ? World.HEXFIRE : ph.to == "shock" ? World.SHOCK : st.floor);
 			for (var q of __vals( sel)) {
 				q.nt = nt;
 				q.no = 0;
@@ -5147,6 +5147,11 @@ Bosses.SETPIECES = {
 			
 			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
 			
+			matron: {style: "blood", prop: "blood_altar", n: 0, r: 6, hint: "The Matron's sanctum runs with blood: its channels will overflow, then its edges drown. Keep to the bone dais!"},
+			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground."},
+			galecaller: {style: "gale", prop: "storm_rod", n: 0, r: 6, hint: "The Galecaller's terrace will charge with lightning: off the runes when they crackle, and away from the edge!"},
+			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."},
+			
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
@@ -5226,6 +5231,7 @@ World.ASH = __int(27);
 World.SPECTRAL = __int(28);
 World.HEXFIRE = __int(29);
 World.VOIDFIRE = __int(30);
+World.SHOCK = __int(31);
 World.SHORE_ZONE = __int(0);
 World.LOW_ZONE = __int(1);
 World.MID_ZONE = __int(2);
@@ -5269,9 +5275,102 @@ SetPieces.STYLES = {
 			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
 			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23},
 			
-			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19}
+			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19},
+			
+			blood: {floor: World.BLOODSTONE, alt: World.CARPET, trim: World.BONE, hz: World.LAVA, a: 7, b: 29, c: 8},
+			sanctum: {floor: World.ARENA, alt: World.BLOODSTONE, trim: World.GOLD, hz: World.LAVA, a: 7, b: 29, c: 8},
+			gale: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8},
+			storm: {floor: World.PLAZA, alt: World.SPECTRAL, trim: World.GOLD, hz: World.SHOCK, a: 25, b: 25, c: 8}
 		};
 SetPieces.LAYOUTS = {
+			blood: [
+				"                     ",
+				"                     ",
+				"                     ",
+				"                     ",
+				"....~~...,,,...~~....",
+				"..a.~~~..,,,..~~~.a..",
+				".....~~~.,,,.~~~.....",
+				"......~..:::..~......",
+				"......b.:::::.b......",
+				".......:::::::.......",
+				".,,,,,,:::B:::,,,,,,.",
+				".......:::::::.......",
+				"........:::::........",
+				"......~..:::..~......",
+				".....~~~.,,,.~~~.....",
+				"....~~~..,,,..~~~....",
+				"....~~...,,,...~~....",
+				".........,,,.........",
+				".........,,,.........",
+				"..a......,,,......a..",
+				".........,,,........."],
+			sanctum: [
+				"                     ",
+				"                     ",
+				"                     ",
+				"..........:..........",
+				".a.....:::::::.....a.",
+				"......:.......:......",
+				".....:.........:.....",
+				"....:.,....,....:....",
+				"....:..,..:.....:....",
+				"....:....:::....:....",
+				".~.:c...::B::,,,c:.~.",
+				"....:....:::....:....",
+				"....:..,..:.....:....",
+				"....:.,....,....:....",
+				".....:.........:.....",
+				"......:.......:......",
+				".......:::::::.......",
+				"..........:..........",
+				".....................",
+				".a........~........a.",
+				"....................."],
+			gale: [
+				"                     ",
+				"         ---         ",
+				"      --..:..--      ",
+				"     -....:....-     ",
+				"    c.....:.....c    ",
+				"   -....,,,,,....-   ",
+				"  -....,,.:.,,....-  ",
+				"  -...,...:...,...-  ",
+				"  ...,,.......,,...  ",
+				" -...,.........,...- ",
+				" -:::,::..B..::,:::- ",
+				" -...,.........,...- ",
+				"  ...,,.......,,...  ",
+				"  -...,...:...,...-  ",
+				"  -....,,.:.,,....-  ",
+				"   -....,,,,,....-   ",
+				"    c.....:.....c    ",
+				"     -....:....-     ",
+				"      --..:..--      ",
+				"         ---         ",
+				"                     "],
+			storm: [
+				"                     ",
+				"                     ",
+				"        -----        ",
+				"     --.......--     ",
+				"    -.....,,...,-    ",
+				"   -,....,.......-   ",
+				"  -......:::......-  ",
+				" -.c...::...::...c.- ",
+				" -.....:,...,:.....- ",
+				" ...,.:.......:,.... ",
+				"-...,.:...B...:.,...-",
+				"-....,:.......:.,...-",
+				"-......:,...,:......-",
+				"-......::...::......-",
+				"-,.......:::........-",
+				" .,........,....,... ",
+				" -..,,...,,.....,..- ",
+				" -.c.............c.- ",
+				"  -............,..-  ",
+				"   -..........,..-   ",
+				"    -.......,,..-    "],
 			star: [
 				"                     ",
 				"  -----------------  ",
@@ -5680,6 +5779,25 @@ SetPieces.PHASES = {
 				msg: "The trenches overflow! Rivers of fire split the war camp!"},
 				{when: "hp", at: 0.3, sel: "ring", a: 12.5, b: 99, to: "hz", col: 0xff3010,
 				msg: "THE WAR CAMP BURNS! The flames close in from every side: stay near Vorgath!"}],
+			
+			blood: [{when: "hp", at: 0.6, sel: "widen", to: "hz", col: 0xff2030,
+				msg: "The blood channels overflow! The sanctum floods with blood!"},
+				{when: "hp", at: 0.3, sel: "ring", a: 8.5, b: 99, to: "hz", col: 0xff1020,
+				msg: "The Matron opens every vein in the sanctum! Its edges drown in blood!"}],
+			sanctum: [{when: "hp", at: 0.55, sel: "char", ch: ",", to: "hz", col: 0xff3050,
+				msg: "Archon Vesper calls the blood up through the altar's runes!"},
+				{when: "hp", at: 0.25, sel: "ring", a: 7.5, b: 99, to: "hz", col: 0xff1020,
+				msg: "The altar floods with blood! Stay inside the golden circle!"}],
+			gale: [{when: "hp", at: 0.6, sel: "char", ch: ",", to: "shock", col: 0x80ffff,
+				msg: "The Galecaller charges the terrace's runes! Don't stand on them!"},
+				{when: "hp", at: 0.3, sel: "ring", a: 7.5, b: 99, to: "shock", col: 0xc0ffff,
+				msg: "Lightning crawls in from the terrace's edge!"}],
+			storm: [{when: "hp", at: 0.75, sel: "char", ch: ",", to: "shock", col: 0x80ffff,
+				msg: "The storm's spiral arms crackle with lightning!"},
+				{when: "hp", at: 0.5, sel: "ring", a: 9, b: 99, to: "shock", col: 0xa0f0ff,
+				msg: "The eye of the storm narrows!"},
+				{when: "hp", at: 0.2, sel: "ring", a: 6.5, b: 99, to: "shock", col: 0xffffff,
+				msg: "THE EYE CLOSES! Only its heart is safe!"}],
 			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
 				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,

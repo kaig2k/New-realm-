@@ -26,7 +26,8 @@ class Data {
 			item.rarity = rarity;
 			item.name = Data.rarityName(item.sub, rarity, item.name);
 			var pool = ["att", "dex", "spd", "vit", "wis", "mgt", "luc", "prt"];
-			var n = __int(rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : rarity == "gd" ? 4 : 3);
+			
+			var n = __int(rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : rarity == "gd" ? 0 : 3);
 			var amt = __int(rarity == "ut" ? 5 : rarity == "st" ? 6 : rarity == "fb" ? 8 : rarity == "lg" ? 10 : rarity == "gd" ? 18 : 15);
 			
 			if (item.kind == "weapon") pool = ["att", "dex", "vit", "wis", "mgt", "luc", "prt"];
@@ -37,9 +38,8 @@ class Data {
 			if (rarity == "fb") item.frt = 5;
 			if (rarity == "ar") item.frt = 8;
 			if (rarity == "st") item.set = Data.SET_NAME;
-			if ((rarity == "lg" || rarity == "ar" || rarity == "gd") && item.kind == "weapon") item.passive = Data.pick(Data.PASSIVE_IDS);
+			if ((rarity == "lg" || rarity == "ar") && item.kind == "weapon") item.passive = Data.pick(Data.PASSIVE_IDS);
 			if (rarity == "ar") item.hp = (item.hp || 0) + 60;
-			if (rarity == "gd") { item.hp = (item.hp || 0) + 100; item.frt = 12; }
 			return item;
 		}
 	static setName(id) {
@@ -89,7 +89,15 @@ class Data {
 			if (w && w.split) f += (w.split.n || 0) * (w.split.mul || 0) * (most ? 1 : 0.35);
 			
 			if (w && w.boom) f += (w.boom.mul || 0) * (most ? 3 : 1.5);
+			
+			if (w && w.gid) f += Godly.wrathExtra(w) * (most ? 1 : 0.3);
 			return f;
+		}
+	static weaponHitMul(w) {
+			var m = 1;
+			if (w && w.boom) m = Math.max(m, w.boom.mul || 0);
+			if (w && w.gid) m = Math.max(m, Godly.wrathHit(w));
+			return m;
 		}
 	static signature(w, sub, tier) { tier = __int(tier);
 			var sig = Data.SIGS[sub][Math.max(0, Math.min(7, tier))];
@@ -128,6 +136,8 @@ class Data {
 			return it && it.kind == "weapon" && !it.rarity && !it.uid && !it.curse && Data.SIGS[it.sub] && it.tier >= 0 && it.tier <= 7;
 		}
 	static upgradeWeapon(it) {
+			
+			if (it && it.gid) return Godly.upgrade(it);
 			if (!Data.isTieredWeapon(it) || it.sig === it.tier) return false;
 			var fresh = Data.makeWeapon(it.sub, it.tier, null, it.form || "");
 			for (var k of __vals( ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"])) {
@@ -1135,10 +1145,23 @@ class Godly {
 	static make(cls, slot) { slot = __int(slot);
 			var st = Godly.SETS[cls];
 			var c = Data.CLASSES[cls];
-			var it = slot == 0 ? Data.makeWeapon(c.weapon, 7, "gd", "") : Data.makeForSlot(c, slot, 7, "gd");
+			var it = null;
+			if (slot == 0) it = Data.makeWeapon(c.weapon, 7, "gd", "");
+			else if (slot == 1) it = Data.makeAbility(c.abilityType, 7, "gd", st.ab);
+			else if (slot == 2) it = Data.makeArmor(c.armor, 7, "gd");
+			else it = Data.makeRing(st.ring, 5, "gd");
 			it.name = st.items[slot];
 			it.set = "g_" + cls;
 			it.gid = cls + slot;
+			it.gv = Godly.GV;
+			
+			for (var i = __int(0); i < 4; i++) {
+				var k = st.focus[(i + slot) % 4];
+				if (k == "spd" && slot == 0) k = "vit";
+				it[k] = (it[k] || 0) + Godly.AMOUNTS[i];
+			}
+			it.hp = (it.hp || 0) + Godly.HP;
+			it.frt = Godly.LUCK;
 			if (slot == 0) {
 				var x = st.weapon;
 				if (x.shots) { it.shots = x.shots; it.parallel = x.parallel == true; }
@@ -1148,13 +1171,49 @@ class Godly {
 				if (x.pierce) it.pierce = true;
 				if (x.size) it.size = x.size;
 				if (x.col) it.col = x.col;
-				if (x.passive) it.passive = x.passive;
-				var mult = x.mult || (x.shots ? Math.max(0.6, 1.6 / Math.sqrt(x.shots)) : 1);
-				it.dmin = __int(it.dmin * mult);
-				it.dmax = __int(it.dmax * mult);
+				it.passive = x.passive;
+				
+				var ar = Data.makeWeapon(c.weapon, 7, "ar", "");
+				var dps = (ar.dmin + ar.dmax) / 2 * ar.shots * ar.rate * Godly.POWER;
+				var avg = dps / (it.shots * it.rate);
+				it.dmin = __int(avg * 0.88);
+				it.dmax = __int(avg * 1.12);
 				delete it.form;
 			}
 			return it;
+		}
+	static outdated(it) {
+			return it && it.gid && it.rarity == "gd" && __int(it.gv) != Godly.GV && Godly.SETS[String(it.set).substr(2)] != null;
+		}
+	static upgrade(it) {
+			if (!Godly.outdated(it)) return false;
+			var cls = String(it.set).substr(2);
+			var slot = __int(__int(String(it.gid).substr(cls.length)));
+			if (slot < 0 || slot > 3) return false;
+			var fresh = Godly.make(cls, slot);
+			
+			for (var k of __vals( ["kind", "sub", "ab", "tier", "rarity", "set", "passive", "form", "motion", "shots", "dmin", "dmax", "rate", "life",
+					"arc", "parallel", "power", "pierce", "size", "shape", "col", "spd", "accel", "walls", "effect", "split", "boom", "name", "gv"].concat(Data.STATS).concat(Data.GEAR_STATS)))
+				delete it[k];
+			for (k in fresh) it[k] = fresh[k];
+			return true;
+		}
+	static classOf(it) {
+			return it && it.rarity == "gd" && it.set && String(it.set).indexOf("g_") == 0 ? String(it.set).substr(2) : "";
+		}
+	static wrathOf(w) {
+			return w && w.kind == "weapon" ? Godly.WRATH[Godly.classOf(w)] : null;
+		}
+	static wrathExtra(w) {
+			var x = Godly.wrathOf(w);
+			if (!x) return 0;
+			var hits = x.n * x.mul * (x.mo == "return" ? 2 : 1) + (x.boom ? x.boom.mul * 3 * x.n : 0) + (x.slam ? x.slam.mul : 0);
+			return hits / (Godly.WRATH_SET * Math.max(1, w.shots || 1));
+		}
+	static wrathHit(w) {
+			var x = Godly.wrathOf(w);
+			if (!x) return 0;
+			return Math.max(x.mul, x.boom ? x.boom.mul : 0, x.slam ? x.slam.mul : 0);
 		}
 	static roll(def, items, boost) {
 			if (!def.godly) return;
@@ -1166,7 +1225,11 @@ class Godly {
 		}
 	static describe(it) {
 			var src = Godly.source[it.gid];
-			return "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ".</font>\n";
+			var s = "";
+			var x = Godly.wrathOf(it);
+			if (x) s += "<font color='#ffd860'><b>Divine Wrath — " + x.name + ":</b></font> every " + Godly.EVERY + "th volley " + x.desc + " (every " + Godly.WRATH_SET + "th with the full set).\n";
+			if (Godly.classOf(it)) s += "<font color='#ffd860'>Wearing it: a golden aura; the full set crowns you with a halo.</font>\n";
+			return s + "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ". Every drop is the same: no bad rolls.</font>\n";
 		}
 }
 
@@ -5449,27 +5512,58 @@ Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 Godly.CHANCE = 1 / 1000;
 Godly.SETS = {
 			wizard: {name: "Astral Archmage", items: ["Staff of the Endless Cosmos", "Grimoire of Creation", "Robes of the Astral Archmage", "Ring of Infinite Stars"],
-				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 18, wis: 15, dex: 10, frt: 15}},
+				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 18, wis: 15, dex: 10, frt: 15},
+				focus: ["att", "wis", "dex", "mgt"], ring: "att", ab: "lightning"},
 			archer: {name: "Skypiercer", items: ["Skypiercer, Bow of Dawn", "Quiver of the Last Light", "Skypiercer Mantle", "Ring of the Falcon King"],
-				weapon: {shots: 5, arc: 24, pierce: true, passive: "critical", col: 0xffe080}, bonus: {hp: 120, att: 15, dex: 18, spd: 10, frt: 15}},
+				weapon: {shots: 5, arc: 24, pierce: true, passive: "critical", col: 0xffe080}, bonus: {hp: 120, att: 15, dex: 18, spd: 10, frt: 15},
+				focus: ["dex", "att", "luc", "spd"], ring: "dex", ab: "pierce"},
 			knight: {name: "Aegis Eternal", items: ["Blade of the Eternal Oath", "The Unbroken Aegis", "Bastion Plate", "Ring of the Unyielding"],
-				weapon: {shots: 3, arc: 30, pierce: true, passive: "lifesteal", col: 0xc0e0ff}, bonus: {hp: 250, def: 25, vit: 15, prt: 20, frt: 15}},
+				weapon: {shots: 3, arc: 30, pierce: true, passive: "lifesteal", col: 0xc0e0ff}, bonus: {hp: 250, def: 25, vit: 15, prt: 20, frt: 15},
+				focus: ["vit", "prt", "att", "dex"], ring: "hp", ab: "bash"},
 			priest: {name: "Seraphic", items: ["Wand of Seraphic Light", "Codex of Miracles", "Vestments of the Seraphim", "Halo Ring"],
-				weapon: {shots: 3, arc: 16, motion: "wave", passive: "frost", col: 0xfff6c0}, bonus: {hp: 150, mp: 150, wis: 20, vit: 12, frt: 15}},
+				weapon: {shots: 3, arc: 16, motion: "wave", passive: "frost", col: 0xfff6c0}, bonus: {hp: 150, mp: 150, wis: 20, vit: 12, frt: 15},
+				focus: ["wis", "vit", "att", "luc"], ring: "wis", ab: "smite"},
 			rogue: {name: "Nightfall", items: ["Kris of the Eclipse", "Shroud of Nightfall", "Eclipse Hide", "Ring of Whispers"],
-				weapon: {shots: 3, arc: 14, rate: 1.2, passive: "critical", col: 0x9a60ff}, bonus: {hp: 120, dex: 18, spd: 18, mgt: 15, frt: 15}},
+				weapon: {shots: 3, arc: 14, rate: 1.2, passive: "critical", col: 0x9a60ff}, bonus: {hp: 120, dex: 18, spd: 18, mgt: 15, frt: 15},
+				focus: ["dex", "mgt", "spd", "att"], ring: "dex", ab: "knives"},
 			warrior: {name: "Titanslayer", items: ["Titanslayer Greatsword", "Crown of the Warlord", "Titanforged Plate", "Ring of Rage"],
-				weapon: {mult: 2, size: 6, pierce: true, passive: "rampage", col: 0xff6040}, bonus: {hp: 200, att: 20, vit: 15, mgt: 15, frt: 15}},
+				weapon: {size: 6, pierce: true, passive: "rampage", col: 0xff6040}, bonus: {hp: 200, att: 20, vit: 15, mgt: 15, frt: 15},
+				focus: ["att", "mgt", "vit", "prt"], ring: "att", ab: "whirlwind"},
 			necromancer: {name: "Soulforge", items: ["Staff of a Thousand Souls", "Skull of the Lich Emperor", "Shroud of the Soulforge", "Ring of the Grave"],
-				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 15, wis: 18, mgt: 12, frt: 15}},
+				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 15, wis: 18, mgt: 12, frt: 15},
+				focus: ["att", "wis", "mgt", "vit"], ring: "wis", ab: "raise"},
 			huntress: {name: "Wildheart Eternal", items: ["Bow of the Wild Hunt", "Snare of the World Tree", "Hide of the Primal Beast", "Ring of the Pack"],
-				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15}},
+				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15},
+				focus: ["att", "dex", "spd", "luc"], ring: "att", ab: "wolf"},
 			bard: {name: "Choir Eternal", items: ["Harpstring of the Choir", "Lyre of the Last Verse", "Mantle of the Grand Chorus", "Ring of Perfect Pitch"],
-				weapon: {shots: 3, arc: 14, motion: "wave", pierce: true, passive: "frost", col: 0xffe090}, bonus: {hp: 120, mp: 120, wis: 15, luc: 20, frt: 15}},
+				weapon: {shots: 3, arc: 14, motion: "wave", pierce: true, passive: "frost", col: 0xffe090}, bonus: {hp: 120, mp: 120, wis: 15, luc: 20, frt: 15},
+				focus: ["wis", "luc", "att", "vit"], ring: "luc", ab: "requiem"},
 			alchemist: {name: "Magnum Opus", items: ["Kris of Quicksilver", "Flask of the Great Work", "Apron of the Red Stone", "Ring of Transmutation"],
-				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 15, vit: 18, mgt: 15, frt: 15}},
+				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 15, vit: 18, mgt: 15, frt: 15},
+				focus: ["vit", "dex", "mgt", "att"], ring: "vit", ab: "philbomb"},
 			chronomancer: {name: "Endless Hour", items: ["Wand of the Endless Hour", "Hourglass of Eternity", "Robes of Stopped Time", "Ring of the Last Second"],
-				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 15, dex: 15, wis: 18, frt: 15}}
+				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 15, dex: 15, wis: 18, frt: 15},
+				focus: ["wis", "dex", "att", "luc"], ring: "wis", ab: "timestop"}
+		};
+Godly.AMOUNTS = [24, 20, 16, 14];
+Godly.HP = __int(120);
+Godly.LUCK = __int(15);
+Godly.POWER = 1.35;
+Godly.GV = __int(2);
+Godly.EVERY = __int(6);
+Godly.WRATH_SET = __int(4);
+Godly.WRATH = {
+			wizard: {name: "Meteor", pat: "aim", n: 1, mul: 2, spd: 11, life: 0.9, boom: {r: 3, mul: 3}, desc: "a meteor falls where you aim and bursts in a huge blast"},
+			archer: {name: "Sunbeam", pat: "fan", n: 5, arc: 5, mul: 1.5, spd: 24, life: 0.55, pc: true, desc: "five beams of dawn pierce everything in a line"},
+			knight: {name: "Aegis Nova", pat: "ring", n: 12, mul: 1, spd: 11, life: 0.45, pc: true, desc: "a ring of twelve holy blades bursts from you"},
+			priest: {name: "Seraph Stars", pat: "ring", n: 8, mul: 1.1, spd: 11, life: 1.1, mo: "seek", desc: "eight seraph lights hunt down the nearest foes"},
+			rogue: {name: "Eclipse", pat: "fan", n: 7, arc: 14, mul: 1, spd: 17, life: 0.7, mo: "seek", desc: "seven eclipse knives fan out and seek their marks"},
+			warrior: {name: "Titan Slam", pat: "ring", n: 10, mul: 1, spd: 10, life: 0.45, pc: true, slam: {r: 3, mul: 2}, desc: "you slam the ground: a shockwave and a ring of ten cleaves"},
+			necromancer: {name: "Soulstorm", pat: "ring", n: 8, mul: 1.1, spd: 10, life: 1.2, mo: "seek", desc: "eight hungry souls tear loose and hunt your foes"},
+			huntress: {name: "Wild Hunt", pat: "fan", n: 5, arc: 16, mul: 0.9, spd: 15, life: 0.8, pc: true, mo: "return", desc: "five thorns fly out and come back through everything"},
+			bard: {name: "Crescendo", pat: "ring", n: 12, mul: 0.8, spd: 10, life: 0.7, pc: true, mo: "wave", desc: "a ring of twelve singing notes rolls outward"},
+			alchemist: {name: "Transmute", pat: "fan", n: 3, arc: 22, mul: 1, spd: 12, life: 0.55, boom: {r: 1.8, mul: 1.4}, desc: "three red stones that burst into fire"},
+			chronomancer: {name: "Stopped Time", pat: "ring", n: 10, mul: 1, spd: 5, life: 0.8, pc: true, mo: "accel", ac: 2.2, desc: "ten clock hands that race faster and faster"}
 		};
 Godly.DROPS = {
 			elder: [["wizard", 0], ["necromancer", 1]],

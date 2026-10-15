@@ -199,7 +199,8 @@ package realm {
 			item.rarity = rarity;
 			item.name = rarityName(item.sub, rarity, item.name);
 			var pool:Array = ["att", "dex", "spd", "vit", "wis", "mgt", "luc", "prt"];
-			var n:int = rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : rarity == "gd" ? 4 : 3;
+			// (Godly pieces roll nothing: Godly.make gives every drop the same stats)
+			var n:int = rarity == "ut" ? 1 : rarity == "st" ? 1 : rarity == "fb" ? 2 : rarity == "lg" ? 2 : rarity == "gd" ? 0 : 3;
 			var amt:int = rarity == "ut" ? 5 : rarity == "st" ? 6 : rarity == "fb" ? 8 : rarity == "lg" ? 10 : rarity == "gd" ? 18 : 15;
 			// weapons keep their bullet speed in "spd", so they roll Dexterity instead of Speed
 			if (item.kind == "weapon") pool = ["att", "dex", "vit", "wis", "mgt", "luc", "prt"];
@@ -210,9 +211,8 @@ package realm {
 			if (rarity == "fb") item.frt = 5;
 			if (rarity == "ar") item.frt = 8;
 			if (rarity == "st") item.set = SET_NAME;
-			if ((rarity == "lg" || rarity == "ar" || rarity == "gd") && item.kind == "weapon") item.passive = pick(PASSIVE_IDS);
+			if ((rarity == "lg" || rarity == "ar") && item.kind == "weapon") item.passive = pick(PASSIVE_IDS);
 			if (rarity == "ar") item.hp = (item.hp || 0) + 60;
-			if (rarity == "gd") { item.hp = (item.hp || 0) + 100; item.frt = 12; }
 			return item;
 		}
 
@@ -368,7 +368,17 @@ package realm {
 			if (w && w.split) f += (w.split.n || 0) * (w.split.mul || 0) * (most ? 1 : 0.35);
 			// (an explosion also flings embers: Abilities.explode)
 			if (w && w.boom) f += (w.boom.mul || 0) * (most ? 3 : 1.5);
+			// (a Godly weapon's Divine Wrath: at most every wrath shot on one monster; honestly about a third)
+			if (w && w.gid) f += Godly.wrathExtra(w) * (most ? 1 : 0.3);
 			return f;
+		}
+
+		/** The biggest single hit a weapon's shots can land, in its top roll (a Godly weapon's Divine Wrath, an explosion). */
+		public static function weaponHitMul(w:Object):Number {
+			var m:Number = 1;
+			if (w && w.boom) m = Math.max(m, w.boom.mul || 0);
+			if (w && w.gid) m = Math.max(m, Godly.wrathHit(w));
+			return m;
 		}
 
 		/** A tiered weapon's signature shot laid onto it (its damage set so the tier deals its share of the curve). */
@@ -415,6 +425,8 @@ package realm {
 
 		/** An older tiered weapon brought up to its tier's signature (same weapon, same form; true if it changed). */
 		public static function upgradeWeapon(it:Object):Boolean {
+			// (and Godly pieces from before every drop was the same: remade as they drop now)
+			if (it && it.gid) return Godly.upgrade(it);
 			if (!isTieredWeapon(it) || it.sig === it.tier) return false;
 			var fresh:Object = makeWeapon(it.sub, it.tier, null, it.form || "");
 			for each (var k:String in ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"]) {

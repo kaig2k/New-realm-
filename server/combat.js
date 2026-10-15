@@ -84,7 +84,8 @@ function caps(ch, pet, extra) {
   const abilityDps = abilityHit * (HITS[id] || 2) / cd;
   const petHit = pet && typeof pet === 'object' ? Data.petAttack(pet) : 0;
   const petVolley = pet && typeof pet === 'object' ? Data.petShots(pet) / Data.petShotGap(pet) : 1;
-  const hit = Math.ceil(Math.max(weaponHit, abilityHit, petHit, 10) * boost) + 5;
+  // (a Godly weapon's Divine Wrath can hit harder than its shots: Data.weaponHitMul)
+  const hit = Math.ceil(Math.max(weaponHit * (w ? Data.weaponHitMul(w) : 1), abilityHit, petHit, 10) * boost) + 5;
   const rate = Math.ceil((weaponDps + abilityDps + petHit * 1.5 * petVolley + (8 + level) * pow * 2) * boost * 1.25) + 50;
   // (and what it can take: its Defense with the best Defense aura there is, and its health)
   // (pets: Stone Guard, Bastion and Ash Guardian add Defense)

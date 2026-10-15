@@ -83,13 +83,14 @@ package realm {
 			if (!(data.chars is Array)) data.chars = [];
 			// (this PC's save: tiered weapons from before signature shots get their tier's shot, once;
 			// the server does the same to online saves)
-			if (!remote && !box && !data._wsig) {
+			// (2: and Godly pieces from before every drop was the same are remade)
+			if (!remote && !box && int(data._wsig) < 2) {
 				for each (var c:Object in data.chars) if (c) {
-					Data.upgradeWeapon(c.weapon);
+					for each (var sl:String in ["weapon", "ability", "armor", "ring"]) Data.upgradeWeapon(c[sl]);
 					for each (var it:Object in c.inv || []) Data.upgradeWeapon(it);
 				}
 				for each (var v:Object in data.vault || []) Data.upgradeWeapon(v);
-				data._wsig = 1;
+				data._wsig = 2;
 			}
 			return data.chars;
 		}

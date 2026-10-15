@@ -873,11 +873,21 @@ package realm {
 		public static function weaponShot(sub:String, idx:int, color:uint, scale:int = 2):Vector.<BitmapData> {
 			var set:Array = WeaponShots.SHOTS[sub];
 			if (!set || !set[idx]) return null;
-			var key:String = "ws_" + sub + idx + "_" + color + "_" + scale;
+			return shotFrames(set[idx], "ws_" + sub + idx + "_" + color + "_" + scale, color, scale);
+		}
+
+		/** A Godly weapon's own shot (WeaponShots.GODLY), turned every way it can fly. */
+		public static function godlyShot(cls:String, color:uint, scale:int = 2):Vector.<BitmapData> {
+			var rows:Array = WeaponShots.GODLY[cls];
+			if (!rows) return projectile("star", color, 4);
+			return shotFrames(rows, "gs_" + cls + "_" + color + "_" + scale, color, scale);
+		}
+
+		private static function shotFrames(rows:Array, key:String, color:uint, scale:int):Vector.<BitmapData> {
 			var frames:Vector.<BitmapData> = cache[key];
 			if (frames) return frames;
 			var pal:Object = {C: color, a: shade(color, 0.55), W: tint(color, 0.7), H: 0xffffff, K: 0x10061c, G: 0xffd860, I: 0xa0a8b8, i: 0xe0e8f0, S: 0x8a5a2a};
-			var base:BitmapData = build(set[idx], pal, scale, 1);
+			var base:BitmapData = build(rows, pal, scale, 1);
 			var D:int = Math.ceil(Math.sqrt(base.width * base.width + base.height * base.height));
 			frames = new Vector.<BitmapData>(ROT_FRAMES, true);
 			var m:Matrix = new Matrix();

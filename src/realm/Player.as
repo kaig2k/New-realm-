@@ -100,6 +100,9 @@ package realm {
 		public var moving:Boolean = false;
 		public var burning:Boolean = false;
 		public var shotCount:int = 0;
+		/** Volleys toward a Godly weapon's next Divine Wrath; time to the Godly aura's next mote. */
+		public var wrathN:int = 0;
+		private var auraT:Number = 0;
 		/** Status effect timers (RotMG-style conditions). */
 		public var status:Object = {slowed: 0, paralyzed: 0, confused: 0, armorbroken: 0, bleeding: 0};
 		public static const STATUS_TIME:Object = {slowed: 3, paralyzed: 1.2, confused: 2.5, armorbroken: 4, bleeding: 3};
@@ -375,6 +378,7 @@ package realm {
 			}
 			if (buffs.vigor > 0 && hp > 0) hp = Math.min(maxHp, hp + maxHp * 0.04 * dt);
 			if (buffs.arcana > 0) mp = Math.min(maxMp, mp + maxMp * 0.1 * dt);
+			godlyAura(dt, g);
 
 			// --- movement
 			var mx:Number = 0, my:Number = 0;
@@ -474,8 +478,10 @@ package realm {
 			var mult:Number = 0.5 + att / 50;
 			// its own shot (a tiered weapon's for its tier, a rarity weapon's its type's best in its rarity's colour)
 			// (uniques and Godly weapons keep the shots they were made with)
-			var tierFx:int = w.sig !== undefined ? int(w.sig) : w.rarity && !w.uid && w.rarity != "gd" ? 8 + Math.max(0, ["ut", "st", "fb", "lg", "ar"].indexOf(w.rarity)) : -1;
-			var frames:Vector.<BitmapData> = tierFx >= 0 ? Sprites.weaponShot(w.sub, Math.min(7, tierFx), w.col, w.form == "heavy" ? 3 : 2) : null;
+			// (a Godly weapon fires its set's own shot: Sprites.godlyShot)
+			var gcls:String = Godly.classOf(w);
+			var tierFx:int = gcls ? 13 : w.sig !== undefined ? int(w.sig) : w.rarity && !w.uid && w.rarity != "gd" ? 8 + Math.max(0, ["ut", "st", "fb", "lg", "ar"].indexOf(w.rarity)) : -1;
+			var frames:Vector.<BitmapData> = gcls ? Sprites.godlyShot(gcls, w.col, 2) : tierFx >= 0 ? Sprites.weaponShot(w.sub, Math.min(7, tierFx), w.col, w.form == "heavy" ? 3 : 2) : null;
 			if (!frames) frames = Sprites.projectile(w.shape, w.col, w.size || (w.sub == "sword" ? 4 : 3));
 			var trail:String = Data.trailOf(w);
 			for (var k:int = 0; k < w.shots; k++) {
@@ -510,12 +516,75 @@ package realm {
 				var flash:int = 2 + Math.max(0, tierFx) / 2;
 				for (k = 0; k < flash; k++) g.parts.push(new Particle(x + Math.cos(ang) * 0.45, y + Math.sin(ang) * 0.45, Math.cos(ang + (Math.random() - 0.5)) * (3 + k), Math.sin(ang + (Math.random() - 0.5)) * (3 + k), 0.1 + k * 0.015, mf));
 			}
+			// Divine Wrath: every 6th volley of a Godly weapon (every 4th with the full set)
+			if (gcls && ++wrathN >= (activeSet == w.set ? Godly.WRATH_SET : Godly.EVERY)) {
+				wrathN = 0;
+				divineWrath(g, w, gcls, ang, mult);
+			}
 			// Rampage passive: every 12th shot also fires a ring
 			if (w.passive == "rampage" && ++shotCount % 12 == 0) {
 				var ring:Vector.<BitmapData> = Sprites.projectile("star", w.col, 3);
 				for (k = 0; k < 10; k++) {
 					var dmg2:int = int((w.dmin + w.dmax) / 2 * mult);
 					g.addShot(new Projectile(x, y, k * Math.PI / 5, w.spd * 0.8, w.life, dmg2, false, 0.25, ring, true, name, null, true));
+				}
+			}
+		}
+
+		/** A Godly weapon's Divine Wrath (Godly.WRATH): its class's own attack, in gold and white. */
+		private function divineWrath(g:Game, w:Object, gcls:String, ang:Number, mult:Number):void {
+			var wr:Object = Godly.WRATH[gcls];
+			if (!wr) return;
+			var hit:Number = (w.dmin + w.dmax) / 2 * mult;
+			var fr:Vector.<BitmapData> = Sprites.godlyShot(gcls, w.col, wr.pat == "aim" ? 3 : 2);
+			for (var k:int = 0; k < wr.n; k++) {
+				var a:Number = wr.pat == "ring" ? ang + k * Math.PI * 2 / wr.n : ang + (k - (wr.n - 1) / 2) * (wr.arc || 0) * Math.PI / 180;
+				var life:Number = wr.life;
+				// (a meteor flies to the cursor and bursts there)
+				if (wr.pat == "aim") life = Math.max(0.15, Math.min(wr.life, Math.sqrt((aimX - x) * (aimX - x) + (aimY - y) * (aimY - y)) / wr.spd));
+				var s:Projectile = new Projectile(x, y, a, wr.spd, life, int(hit * wr.mul), false, 0.35, fr, wr.pc == true, name, w.effect || null);
+				if (wr.mo) s.motion = wr.mo;
+				if (wr.ac) s.accel = wr.ac;
+				if (wr.boom) s.boom = {r: wr.boom.r, dmg: int(hit * wr.boom.mul)};
+				if (wr.pat == "aim") s.ghost = true;
+				s.trail = "spark"; s.fxTier = 13; s.fxCol = w.col;
+				if (k % 2 == 1) s.phase = Math.PI;
+				g.addShot(s);
+			}
+			if (wr.slam) {
+				g.blastAt(x, y, wr.slam.r, int(hit * wr.slam.mul));
+				g.abil.show("boom", x, y, 0, 0, wr.slam.r, false);
+			}
+			Sfx.play("ability", 0.35);
+			if (wr.pat == "aim" || wr.slam) g.shake(0.12, 3);
+			// a ring of gold and the set's colour bursts from you
+			if (Game.opt("parts") && g.parts.length < 380) {
+				var gold:BitmapData = Sprites.glow(0xffd860), own:BitmapData = Sprites.glow(Sprites.tint(w.col, 0.4));
+				for (k = 0; k < 18; k++) {
+					var b:Number = k * Math.PI * 2 / 18;
+					g.parts.push(new Particle(x, y, Math.cos(b) * 7, Math.sin(b) * 7, 0.28, k % 2 ? gold : own));
+				}
+				for (k = 0; k < 6; k++) g.parts.push(new Particle(x + (Math.random() - 0.5) * 0.8, y + (Math.random() - 0.5) * 0.8, 0, -2 - Math.random() * 2, 0.5, Sprites.spark(0xffffff)));
+			}
+		}
+
+		/** Godly gear glows: motes of gold drift up round you (a crown of light with the full set). */
+		private function godlyAura(dt:Number, g:Game):void {
+			var gcls:String = Godly.classOf(weapon) || Godly.classOf(armor) || Godly.classOf(ability) || Godly.classOf(ring);
+			if (!gcls || !Game.opt("parts") || g.parts.length > 300) return;
+			auraT -= dt;
+			if (auraT > 0) return;
+			var full:Boolean = activeSet != null && activeSet.indexOf("g_") == 0;
+			auraT = full ? 0.05 : 0.12;
+			var col:uint = Godly.SETS[gcls].weapon.col;
+			var a:Number = Math.random() * Math.PI * 2, r:Number = 0.35 + Math.random() * 0.3;
+			g.parts.push(new Particle(x + Math.cos(a) * r, y + 0.2 + Math.sin(a) * r * 0.5, 0, -1.2 - Math.random(), 0.6, Sprites.glow(Math.random() < 0.6 ? 0xffd860 : Sprites.tint(col, 0.4))));
+			if (full) {
+				// the halo: a ring of light turning above your head
+				var h:Number = clock * 3;
+				for (var k:int = 0; k < 2; k++) {
+					var b:Number = h + k * Math.PI;
+					g.parts.push(new Particle(x + Math.cos(b) * 0.38, y - 0.95 + Math.sin(b) * 0.12, 0, 0, 0.12, Sprites.glow(k ? 0xffffff : 0xffd860)));
 				}
 			}
 		}

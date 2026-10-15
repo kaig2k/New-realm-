@@ -458,6 +458,57 @@ async function run() {
       c7.rate >= (t7.dmax * (0.5 + 75 / 50)) * t7.shots * Data.weaponExtra(t7, true), String(c7.rate));
   }
 
+  console.log('godly');
+  {
+    const { Data, Godly } = require('./sim/gen/game');
+    const items = require('./items');
+    const combat = require('./combat');
+    const dps = (w) => (w.dmin + w.dmax) / 2 * w.shots * w.rate;
+    const diff = [], weak = [], plain = [];
+    for (const cls of Object.keys(Godly.SETS)) {
+      for (let slot = 0; slot < 4; slot++) {
+        const runs = new Set();
+        for (let n = 0; n < 6; n++) runs.add(items.fingerprint(Godly.make(cls, slot)));
+        if (runs.size !== 1) diff.push(cls + slot);
+        const g = Godly.make(cls, slot);
+        const tot = (it) => ['att', 'dex', 'spd', 'vit', 'wis', 'mgt', 'luc', 'prt'].reduce((a, k) => a + (k === 'spd' && it.kind === 'weapon' ? 0 : it[k] || 0), 0) + (it.hp || 0) / 10;
+        // (better than the best of many Primordial rolls)
+        for (let n = 0; n < 30; n++) {
+          const ar = Data.makeForSlot(Data.CLASSES[cls], slot, 7, 'ar');
+          if (tot(g) <= tot(ar) || (slot !== 3 && (g.hp || 0) <= (ar.hp || 0)) || g.frt <= ar.frt) { weak.push(cls + slot + ' stats'); break; }
+        }
+      }
+      const w = Godly.make(cls, 0);
+      if (dps(w) < dps(Data.makeWeapon(w.sub, 7, 'ar', '')) * 1.3) weak.push(cls + ' weapon');
+      if (!Godly.wrathOf(w) || !w.passive) plain.push(cls);
+    }
+    check('every Godly piece is the same every time it drops (no random stats, passive, ring stat or ability)', !diff.length, diff.join(','));
+    check('...and clearly beats Primordial: more stats, Health and Luck, 30%+ more weapon damage', !weak.length, weak.join(','));
+    check('...and every Godly weapon has its passive and its own Divine Wrath', !plain.length, plain.join(','));
+    // an older Godly piece (random stats) is remade as it drops now, keeps its id and lock, and checks out
+    const oldG = { kind: 'ring', sub: 'luc', tier: 8, rarity: 'gd', name: 'Ring of Infinite Stars', set: 'g_wizard', gid: 'wizard3', luc: 31, att: 19, mgt: 20, hp: 100, frt: 12, locked: true };
+    const oldW = Object.assign({}, Godly.make('warrior', 0), { dmin: 370, dmax: 520, passive: 'frost', att: 21, wis: 18 });
+    delete oldW.gv;
+    const sv = { chars: [{ cls: 'wizard', ring: oldG, inv: [oldW] }], _ledgerV: 1 };
+    items.issue(sv, oldG); items.issue(sv, oldW);
+    const sid = oldG.sid;
+    items.migrate(sv);
+    const fresh = Godly.make('wizard', 3);
+    check('an older Godly piece is remade as it drops now (same id, lock kept) and still checks out',
+      sv.chars[0].ring.sid === sid && sv.chars[0].ring.locked && items.fingerprint(sv.chars[0].ring) === items.fingerprint(fresh) &&
+      sv.chars[0].inv[0].passive === 'rampage' && items.check(sv, sv) === null, items.check(sv, sv));
+    check('...once (a second load changes nothing)', items.migrate(Object.assign(sv, { _ledgerV: 1 })) === false);
+    const st = Data.makeForSlot(Data.CLASSES.wizard, 0, 7, 'ar');
+    const held = { kind: 'armor', sub: 'robe', tier: 8, rarity: 'gd', name: 'Robes', set: 'g_wizard', gid: 'wizard2', def: 30, wis: 40, hp: 100, frt: 12 }, entry = { f: items.fingerprint(held) };
+    check('...and the same in a market listing or guild bank (its entry rewritten)', items.upgradeHeld(held, entry) && entry.f === items.fingerprint(held) && !items.upgradeHeld(st, { f: '' }));
+    // the server's caps let a Godly weapon's Divine Wrath through
+    const gw = Godly.make('wizard', 0);
+    const cg = combat.caps({ level: 20, stats: { att: 75, dex: 75 }, weapon: gw }, null);
+    const mult = 0.5 + (75 + (gw.att || 0)) / 50;
+    check('the server lets Divine Wrath through (a meteor\'s blast fits the one-hit cap, the volleys the damage-a-second one)',
+      cg.hit >= gw.dmax * mult * Godly.WRATH.wizard.boom.mul && cg.rate >= gw.dmax * mult * gw.shots * Data.weaponExtra(gw, true), cg.hit + ' ' + cg.rate);
+  }
+
   console.log('classes');
   {
     const { Data, Godly } = require('./sim/gen/game');

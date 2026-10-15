@@ -940,8 +940,8 @@ package realm {
 			if (bd) return bd;
 			var rar:String = item.rarity;
 			var rc:uint = rar ? Data.RARITY_COLORS[rar] : 0;
-			// a Godly weapon: the art drawn for it (GodlyArt), outlined, in its Godly frame
-			var gart:BitmapData = GodlyArt.weapon(item);
+			// a Godly piece with art drawn for it (GodlyArt): outlined, in its Godly frame
+			var gart:BitmapData = GodlyArt.icon(item);
 			if (gart) {
 				bd = new BitmapData(gart.width + 2, gart.height + 2, true, 0);
 				bd.copyPixels(gart, gart.rect, new Point(1, 1));
@@ -1033,6 +1033,21 @@ package realm {
 			var bd:BitmapData = new BitmapData(w, h, true, 0);
 			bd.copyPixels(src, src.rect, new Point(4, 4));
 			var px:Vector.<uint> = bd.getVector(bd.rect);
+			// the frame goes round the outside only: a hole the shape closes in (a ring's) stays open
+			var outside:Vector.<Boolean> = new Vector.<Boolean>(w * h, true);
+			var todo:Vector.<int> = new Vector.<int>();
+			for (var e:int = 0; e < w; e++) { todo.push(e); todo.push((h - 1) * w + e); }
+			for (e = 0; e < h; e++) { todo.push(e * w); todo.push(e * w + w - 1); }
+			while (todo.length) {
+				var j:int = todo.pop();
+				if (outside[j] || px[j] != 0) continue;
+				outside[j] = true;
+				var jx:int = j % w;
+				if (jx > 0) todo.push(j - 1);
+				if (jx < w - 1) todo.push(j + 1);
+				if (j >= w) todo.push(j - w);
+				if (j < w * (h - 1)) todo.push(j + w);
+			}
 			// solid border, then three glow passes getting fainter
 			var cols:Array = [0xfffff6e0, 0xfffff6e0, 0xb0fff0d0, 0x60ffe8c0, 0x28ffe0b0];
 			for (var pass:int = 0; pass < cols.length; pass++) {
@@ -1040,7 +1055,7 @@ package realm {
 				for (var y:int = 1; y < h - 1; y++) {
 					for (var x:int = 1; x < w - 1; x++) {
 						var i:int = y * w + x;
-						if (copy[i] != 0) continue;
+						if (copy[i] != 0 || !outside[i]) continue;
 						// the first passes hug the shape tightly (incl. diagonals) so the border is crisp
 						var hit:Boolean = copy[i - 1] != 0 || copy[i + 1] != 0 || copy[i - w] != 0 || copy[i + w] != 0;
 						if (!hit && pass < 2) hit = copy[i - w - 1] != 0 || copy[i - w + 1] != 0 || copy[i + w - 1] != 0 || copy[i + w + 1] != 0;

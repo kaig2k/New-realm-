@@ -3,8 +3,9 @@ package realm {
 	import flash.display.BitmapData;
 
 	/**
-	 * The Godly weapons' own inventory icons: the art drawn for each one, cut from its sheet
+	 * The Godly pieces' own inventory icons: the art drawn for each one, cut from its sheet
 	 * (tools/godlyart) and kept exactly as drawn, at the size of an icon (34x34).
+	 * So far the weapons and the rings; the rest keep their generated look until theirs is drawn.
 	 */
 	public class GodlyArt {
 		[Embed(source="../../assets/godly/wizard.png")]
@@ -29,13 +30,39 @@ package realm {
 		private static const ALCHEMIST:Class;
 		[Embed(source="../../assets/godly/chronomancer.png")]
 		private static const CHRONOMANCER:Class;
-		private static const ART:Object = {wizard: WIZARD, archer: ARCHER, knight: KNIGHT, priest: PRIEST, rogue: ROGUE, warrior: WARRIOR,
-			necromancer: NECROMANCER, huntress: HUNTRESS, bard: BARD, alchemist: ALCHEMIST, chronomancer: CHRONOMANCER};
+		[Embed(source="../../assets/godly/ring_wizard.png")]
+		private static const RING_WIZARD:Class;
+		[Embed(source="../../assets/godly/ring_archer.png")]
+		private static const RING_ARCHER:Class;
+		[Embed(source="../../assets/godly/ring_knight.png")]
+		private static const RING_KNIGHT:Class;
+		[Embed(source="../../assets/godly/ring_priest.png")]
+		private static const RING_PRIEST:Class;
+		[Embed(source="../../assets/godly/ring_rogue.png")]
+		private static const RING_ROGUE:Class;
+		[Embed(source="../../assets/godly/ring_warrior.png")]
+		private static const RING_WARRIOR:Class;
+		[Embed(source="../../assets/godly/ring_necromancer.png")]
+		private static const RING_NECROMANCER:Class;
+		[Embed(source="../../assets/godly/ring_huntress.png")]
+		private static const RING_HUNTRESS:Class;
+		[Embed(source="../../assets/godly/ring_bard.png")]
+		private static const RING_BARD:Class;
+		[Embed(source="../../assets/godly/ring_alchemist.png")]
+		private static const RING_ALCHEMIST:Class;
+		[Embed(source="../../assets/godly/ring_chronomancer.png")]
+		private static const RING_CHRONOMANCER:Class;
+		private static const ART:Object = {
+			weapon: {wizard: WIZARD, archer: ARCHER, knight: KNIGHT, priest: PRIEST, rogue: ROGUE, warrior: WARRIOR,
+				necromancer: NECROMANCER, huntress: HUNTRESS, bard: BARD, alchemist: ALCHEMIST, chronomancer: CHRONOMANCER},
+			ring: {wizard: RING_WIZARD, archer: RING_ARCHER, knight: RING_KNIGHT, priest: RING_PRIEST, rogue: RING_ROGUE, warrior: RING_WARRIOR,
+				necromancer: RING_NECROMANCER, huntress: RING_HUNTRESS, bard: RING_BARD, alchemist: RING_ALCHEMIST, chronomancer: RING_CHRONOMANCER}
+		};
 
-		/** A Godly weapon's drawing (34x34), or null for any other item. */
-		public static function weapon(item:Object):BitmapData {
-			if (!item || item.kind != "weapon" || item.rarity != "gd") return null;
-			var c:Class = ART[Godly.classOf(item)];
+		/** A Godly piece's drawing (34x34), or null for any other item (or a piece not drawn yet). */
+		public static function icon(item:Object):BitmapData {
+			if (!item || item.rarity != "gd" || !ART[item.kind]) return null;
+			var c:Class = ART[item.kind][Godly.classOf(item)];
 			return c ? Bitmap(new c()).bitmapData : null;
 		}
 	}

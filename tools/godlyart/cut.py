@@ -4,19 +4,36 @@ The Godly weapons' inventory icons, cut from the sheet the art was drawn on
 fitted, as drawn, into a 34x34 icon (the game adds the outline and Godly frame).
 
     python3 tools/godlyart/cut.py tools/godlyart/weapons_sheet.webp assets/godly
+    python3 tools/godlyart/cut.py tools/godlyart/armor_sheet.webp assets/godly armor_ precise
+        (the Grand Chorus lyre from the same sheet without "precise": the gaps between its strings)
 """
 import sys
 from PIL import Image
 from collections import deque
 src = Image.open(sys.argv[1]).convert('RGB')
 out = sys.argv[2]
+# (a sheet of armour or abilities: their icons are named armor_<class>.png, ability_<class>.png)
+PREFIX = sys.argv[3] if len(sys.argv) > 3 else ''
 R1 = (92, 326); R2 = (432, 668); R3 = (773, 1002)
 C4 = [(13, 242), (269, 498), (525, 754), (781, 1010)]
 C3 = [(14, 275), (377, 636), (739, 981)]
 cells = [('wizard', C4[0], R1), ('archer', C4[1], R1), ('knight', C4[2], R1), ('priest', C4[3], R1),
          ('rogue', C4[0], R2), ('warrior', C4[1], R2), ('necromancer', C4[2], R2), ('huntress', C4[3], R2),
          ('bard', C3[0], R3), ('alchemist', C3[1], R3), ('chronomancer', C3[2], R3)]
+# "precise" (4th argument): only the sheet's own navy and its grid lines count as background, for
+# art that is itself dark (a black silhouette, a night-sky robe): near-black stays, and nothing
+# the shape encloses is cleared
+PRECISE = len(sys.argv) > 4 and sys.argv[4] == 'precise'
+
+
 def bglike(p):
+    if PRECISE:
+        r, g, b = p
+        return 55 <= r + g + b <= 175 and 24 <= b - r <= 42 and 0 <= g - r <= 13 and b - g >= 18
+    return bglike_loose(p)
+
+
+def bglike_loose(p):
     r, g, b = p
     return (b >= r + 10 and r < 75 and g < 85 and b < 120) or (r + g + b < 40)
 for name, (x0, x1), (y0, y1) in cells:
@@ -47,7 +64,7 @@ for name, (x0, x1), (y0, y1) in cells:
                 for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
                     if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx] and not bg[ny][nx] and bglike(px[nx, ny]):
                         seen[ny][nx] = True; q2.append((nx, ny))
-            if len(comp) > 250:
+            if len(comp) > 250 and not PRECISE:
                 for x, y in comp: bg[y][x] = True
     rgba = Image.new('RGBA', (w, h))
     o = rgba.load()
@@ -56,7 +73,7 @@ for name, (x0, x1), (y0, y1) in cells:
             o[x, y] = (0, 0, 0, 0) if bg[y][x] else px[x, y] + (255,)
     bb = rgba.getbbox()
     rgba = rgba.crop(bb)
-    rgba.save(f'{out}/{name}_full.png')
+    rgba.save(f'{out}/{PREFIX}{name}_full.png')
     # fit into 34x34 (the icon is 36 with its outline)
     S = 34
     cw, ch = rgba.size
@@ -70,5 +87,5 @@ for name, (x0, x1), (y0, y1) in cells:
             sp[x, y] = (r, g, b, 255) if a >= 110 else (0, 0, 0, 0)
     icon = Image.new('RGBA', (S, S))
     icon.paste(small, ((S - nw) // 2, (S - nh) // 2))
-    icon.save(f'{out}/{name}.png')
+    icon.save(f'{out}/{PREFIX}{name}.png')
     print(name, bb, rgba.size)

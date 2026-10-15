@@ -14,7 +14,8 @@
 const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key', 'stone', 'rune']);
 const RARITIES = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
 const PASSIVES = new Set(['lifesteal', 'shards', 'frost', 'critical', 'rampage']);
-const MOTIONS = new Set(['wave', 'return', 'accel', 'home']);
+// (seek: a tiered weapon's signature shot that turns toward the nearest monster, Data.SIGS)
+const MOTIONS = new Set(['wave', 'return', 'accel', 'home', 'seek']);
 const STAT_CAP = { hp: 400, mp: 400, def: 130, frt: 40 };
 const STATS = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis', 'mgt', 'luc', 'prt', 'frt'];
 const LIMITS = {

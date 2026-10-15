@@ -106,6 +106,9 @@ package realm {
 			btn("Give backpack", col[0], y, w, function():void { p.backpack = true; while (p.inv.length < 16) p.inv.push(null); });
 			btn("Clear inventory", col[1], y, w, function():void { for (var i:int = 0; i < p.inv.length; i++) p.inv[i] = null; });
 			btn("Hatch a pet", col[2], y, w, function():void { Save.data.pet = Data.hatchPet(); Save.data.pet.level = 30; Save.flush(); g.msg("You got a level 30 " + Save.data.pet.name + ".", 0x60c0ff); });
+			y += 36;
+			btn("Max skill tree", col[0], y, w, function():void { g.adminMaxTree(); });
+			btn("Max Ascension tree", col[1], y, w, function():void { g.adminMaxAscension(); });
 			y += 48;
 			label("World", 14, y, 0xffd75e);
 			y += 22;

@@ -23,9 +23,9 @@ package realm {
 		private static const LOOT:Array = [
 			"Event uniques are Eldritch; the biggest events (1,800+ XP) drop Starforged ones. Also: tier 6-7 gear, stat potions, dungeon portals.",
 			"Uniques: Runed from the early dungeons, Eldritch from the rest. Also: tiered or Bonded set gear, stat potions.",
-			"Uniques here are Starforged. Also: Bonded and Eldritch gear, stat potions, a chance of Starforged. GD items: 1 in 3,000.",
-			"Finale uniques are Starforged. Also: Eldritch gear, stat potions, Starforged / Primordial chance. GD items: 1 in 3,000.",
-			"Raid uniques: Starforged, and Primordial from each raid's final boss. Also the best SF / PR odds. GD items: 1 in 3,000.",
+			"Uniques here are Starforged. Also: Bonded and Eldritch gear, stat potions, a chance of Starforged. GD items: 1 in 1,000.",
+			"Finale uniques are Starforged. Also: Eldritch gear, stat potions, Starforged / Primordial chance. GD items: 1 in 1,000.",
+			"Raid uniques: Starforged, and Primordial from each raid's final boss. Also the best SF / PR odds. GD items: 1 in 1,000.",
 			"Ability items drop holding one of their class's three abilities. Hover an icon for its full description.",
 			"",
 			"Fastest kills of each realm event, from the first hit on the boss or its set piece to its death. Everyone who fought is listed.",

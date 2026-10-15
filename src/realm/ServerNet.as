@@ -288,6 +288,10 @@ package realm {
 					if (m.ch) g.channelSay(m.name, m.text, m.ch);
 					else if ((rp = byId(m.id))) g.netSay(rp, m.text, m.role || "");
 					break;
+				case "announce":
+					// (the chat line comes as its own "msg", for older games too)
+					g.announce(String(m.text || ""), String(m.from || ""));
+					break;
 				case "msg":
 					// (the server's notes are plain text, often with players' names in: never markup)
 					g.msg(Ui.esc(m.text), m.color || 0xff8080);

@@ -2089,9 +2089,15 @@ const handlers = {
       case '/unmute':
         if (target) target.mutedUntil = 0;
         return c.note('Unmuted ' + parts[1] + '.', 0x80ff80);
-      case '/announce':
-        broadcast('[Server] ' + parts.slice(1).join(' '));
+      case '/announce': {
+        // (to everyone online: a line in chat, and a panel across the top of their screen)
+        const text = parts.slice(1).join(' ').trim().slice(0, 300);
+        if (!text) return c.note('Usage: /announce your message');
+        broadcast('[Announcement] ' + text);
+        for (const o of online()) o.send({ t: 'announce', text, from: c.name });
+        log(c.name + ' announced: ' + text);
         return;
+      }
       case '/siege': {
         // (admins: a Realm Siege now, in the realm you're in or the busiest one)
         const why = startSiege(realms.some((r) => realmKey(r) === c.world) ? c.world : '');
@@ -2115,6 +2121,39 @@ const handlers = {
         log(c.name + ' used /maxhero on ' + tc.name + '\'s ' + (ch.name || ch.id));
         if (tc !== c) c.note('Maxed ' + tc.name + '\'s ' + (ch.name || 'hero') + '.', 0x80ff80);
         return tc.send({ t: 'saveRejected', reason: 'OK: ' + (ch.name || 'Your hero') + ' is level 20 with every stat maxed.', data: publicSave(sv) });
+      }
+      case '/maxtree': {
+        // (admins, for testing: every skill in the hero's tree at its top rank; yours or /maxtree name's)
+        const tc = parts[1] ? target : c;
+        if (!tc) return c.note('Nobody called ' + parts[1] + ' is online.');
+        const sv = onlineSave(tc.key), ch = serverChar(tc);
+        if (!sv || !ch) return c.note((tc === c ? 'Pick a hero' : tc.name + ' has to pick a hero') + ' and enter the game first.');
+        ch.skills = {};
+        for (const sk of Data.SKILLS) ch.skills[sk.id] = sk.max;
+        ch.tree2 = true;
+        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        store.putSave(tc.key, sv);
+        setCaps(tc);
+        log(c.name + ' used /maxtree on ' + tc.name + '\'s ' + (ch.name || ch.id));
+        if (tc !== c) c.note('Maxed ' + tc.name + '\'s skill tree.', 0x80ff80);
+        return tc.send({ t: 'saveRejected', reason: 'OK: every skill in ' + (ch.name || 'your hero') + '\'s tree is at its top rank.', data: publicSave(sv) });
+      }
+      case '/maxasc': {
+        // (admins, for testing: every Ascension perk at its top rank, for the account; yours or /maxasc name's)
+        const tc = parts[1] ? target : c;
+        if (!tc) return c.note('Nobody called ' + parts[1] + ' is online.');
+        const sv = onlineSave(tc.key);
+        if (!sv) return c.note('No save for ' + (tc === c ? 'you' : tc.name) + ' yet.');
+        const a = sv.asc && typeof sv.asc === 'object' ? sv.asc : (sv.asc = { pts: 0, r: {}, n: 0 });
+        if (!a.r || typeof a.r !== 'object') a.r = {};
+        for (const pk of Data.ASC_PERKS) a.r[pk.id] = pk.max;
+        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        store.putSave(tc.key, sv);
+        setCaps(tc);
+        log(c.name + ' used /maxasc on ' + tc.name);
+        if (tc !== c) c.note('Maxed ' + tc.name + '\'s Ascension tree.', 0x80ff80);
+        tc.send({ t: 'asc', asc: a, seq: sv.tradeSeq });
+        return tc.note('Every Ascension perk is at its top rank.', 0x80ff80);
       }
       case '/give': {
         // /give name 1000 gold|fame|aether: gold and fame are the server's to hand out now
@@ -3307,7 +3346,7 @@ process.stdin.on('data', (data) => {
         for (const [key, sm] of sims.map) console.log('  ' + key + ': ' + sm.players.size + ' players, ' + sm.enemies.length + ' monsters');
         break;
       }
-      case 'say': if (arg) { broadcast('[Server] ' + arg); log('said: ' + arg); } break;
+      case 'say': if (arg) { broadcast('[Server] ' + arg); for (const o of online()) o.send({ t: 'announce', text: arg.slice(0, 300), from: 'Server' }); log('said: ' + arg); } break;
       case 'kick': {
         const c = byName.get(arg.toLowerCase());
         if (!c) { console.log('Nobody called ' + arg + ' is online.'); break; }

@@ -424,7 +424,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/l20": case "/backpack": case "/maxhero": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
+				case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -1075,6 +1075,30 @@ package realm {
 			player.hp = player.maxHp; player.mp = player.maxMp;
 		}
 
+		/** Every skill in this hero's tree at its top rank (online, the server's copy: /maxtree). */
+		public function adminMaxTree():void {
+			if (net.online) { net.serverCommand("/maxtree"); return; }
+			player.skills = {};
+			for each (var sk:Object in Data.SKILLS) player.skills[sk.id] = sk.max;
+			player.tree2 = true;
+			player.hp = player.maxHp; player.mp = player.maxMp;
+			saveCharacter();
+			hud.refresh();
+			msg("Every skill in the tree is at its top rank.", 0x80e0ff);
+		}
+
+		/** Every Ascension perk at its top rank, for the account (online, the server's: /maxasc). */
+		public function adminMaxAscension():void {
+			if (net.online) { net.serverCommand("/maxasc"); return; }
+			var a:Object = Save.data.asc && typeof Save.data.asc == "object" ? Save.data.asc : (Save.data.asc = {pts: 0, r: {}, n: 0});
+			if (!a.r) a.r = {};
+			for each (var pk:Object in Data.ASC_PERKS) a.r[pk.id] = pk.max;
+			Save.flush();
+			hud.refresh();
+			if (ascWin) ascWin.refresh();
+			msg("Every Ascension perk is at its top rank.", 0xffd75e);
+		}
+
 		public function adminMaxStats():void {
 			for each (var s:String in Data.STATS) player.stats[s] = player.cls.max[s];
 			player.hp = player.maxHp; player.mp = player.maxMp; player.pt = player.maxPt;
@@ -1656,6 +1680,11 @@ package realm {
 			if (tauntT <= 0) {
 				tauntT = 50 + Math.random() * 40;
 				taunt(TAUNTS[int(Math.random() * TAUNTS.length)]);
+			}
+			if (announceBox) {
+				announceT -= dt;
+				announceBox.alpha = Math.min(1, announceT);
+				if (announceT <= 0) { if (announceBox.parent) removeChild(announceBox); announceBox = null; }
 			}
 			if (bannerT > 0) {
 				bannerT -= dt;
@@ -6376,6 +6405,34 @@ package realm {
 		private var activeReveal:DropReveal;
 		private var pendingBanner:Array;
 		private function get revealing():Boolean { return activeReveal != null && !activeReveal.done; }
+
+		private var announceBox:Sprite;
+		private var announceT:Number = 0;
+
+		/** An announcement from the server's admins (/announce): a gold panel across the top of the screen for a while. */
+		public function announce(text:String, from:String = ""):void {
+			if (announceBox && announceBox.parent) removeChild(announceBox);
+			announceBox = new Sprite();
+			var w:int = 620;
+			var head:TextField = Ui.text(13, 0xffd75e, true, "center", w, true);
+			head.text = "ANNOUNCEMENT" + (from ? "  ·  " + from : "");
+			head.y = 8;
+			announceBox.addChild(head);
+			var tf:TextField = Ui.text(19, 0xffffff, true, "center", w - 30, true);
+			tf.wordWrap = true; tf.multiline = true;
+			tf.text = text;
+			tf.x = 15; tf.y = 28;
+			announceBox.addChild(tf);
+			var h:int = int(tf.textHeight) + 44;
+			Ui.panel(announceBox.graphics, 0, 0, w, h, 0x221a08, 0xffd75e, 0.92);
+			announceBox.x = int((VIEW_W - w) / 2);
+			announceBox.y = 60;
+			announceBox.mouseEnabled = announceBox.mouseChildren = false;
+			addChild(announceBox);
+			// (longer messages stay up longer)
+			announceT = Math.min(16, 6 + text.length / 18);
+			Sfx.play("fanfare", 0.6);
+		}
 
 		public function showBanner(text:String, color:uint, secs:Number):void {
 			if (revealing) { pendingBanner = [text, color, secs]; return; }

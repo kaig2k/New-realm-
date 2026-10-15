@@ -458,6 +458,21 @@ async function run() {
       c7.rate >= (t7.dmax * (0.5 + 75 / 50)) * t7.shots * Data.weaponExtra(t7, true), String(c7.rate));
   }
 
+  console.log('every item the game makes is a valid item');
+  {
+    const { Data, Godly, Uniques } = require('./sim/gen/game');
+    const { checkItem } = require('./validate');
+    const bad = new Set();
+    const t = (it, n) => { const r = checkItem(it); if (r) bad.add(n + ': ' + r); };
+    for (const sub of Object.keys(Data.SIGS)) for (let tr = 0; tr < 8; tr++) for (const f of [''].concat(Data.FORM_IDS)) t(Data.makeWeapon(sub, tr, null, f), sub + ' T' + tr + ' ' + f);
+    for (const c in Data.CLASSES) for (let s = 0; s < 4; s++) {
+      for (const r of ['ut', 'st', 'fb', 'lg', 'ar']) for (let k = 0; k < 10; k++) t(Data.makeForSlot(Data.CLASSES[c], s, 7, r), c + ' ' + s + ' ' + r);
+      t(Godly.make(c, s), 'Godly ' + c + ' ' + s);
+    }
+    for (const u in Uniques.ALL) t(Uniques.make(u), 'unique ' + u);
+    check('the save check accepts every weapon, form, rarity, Godly piece and unique the game makes (no "unknown shot motion")', !bad.size, [...bad].slice(0, 5).join(' | '));
+  }
+
   console.log('godly');
   {
     const { Data, Godly } = require('./sim/gen/game');
@@ -1912,6 +1927,8 @@ async function run() {
     pal.send({ t: 'cmd', text: '/announce hello from a new admin' });
     await wait(250);
     check('the new admin can use admin commands straight away', !pal.find((m) => m.t === 'msg' && /Only server admins/.test(m.msg || m.text || '')));
+    check('/announce reaches everyone online: a chat line and the announcement panel', pal.find((m) => m.t === 'announce' && m.text === 'hello from a new admin') &&
+      boss.find((m) => m.t === 'announce') && boss.find((m) => m.t === 'msg' && /hello from a new admin/.test(m.text || '')));
     boss.clear(); pal.clear();
     boss.send({ t: 'cmd', text: '/unadmin Tp' + n });
     await wait(300);
@@ -2278,6 +2295,7 @@ async function run() {
     const mx = A1.find((m) => m.t === 'saveRejected');
     const hm = mx && mx.data.chars.find((h) => h.id === 'as1');
     check('/maxhero: level 20, every stat maxed', hm && hm.level === 20 && AD.canAscend(hm), JSON.stringify(mx && mx.reason));
+
     A1.clear();
     A1.send({ t: 'ascend' });
     await wait(400);
@@ -2314,6 +2332,17 @@ async function run() {
     const capsA = combat2.caps({ cls: 'wizard', level: 20, stats: clone(AD.CLASSES.wizard.max), skills: { brutality: 5 } }, null);
     const capsB = combat2.caps({ cls: 'wizard', level: 20, stats: clone(AD.CLASSES.wizard.max), skills: { brutality: 5000 } }, null);
     check('...and the damage limits ignore ranks past the top', capsA.hit === capsB.hit, capsA.hit + ' vs ' + capsB.hit);
+    A1.clear();
+    AB.send({ t: 'cmd', text: '/maxtree Tasc' + n });
+    await wait(300);
+    const mt = A1.find((m) => m.t === 'saveRejected');
+    const ht = mt && mt.data.chars.find((h) => h.id === 'as1');
+    check('/maxtree: every skill in the hero\'s tree at its top rank', ht && AD.SKILLS.every((sk) => ht.skills[sk.id] === sk.max), JSON.stringify(mt && mt.reason));
+    A1.clear();
+    AB.send({ t: 'cmd', text: '/maxasc Tasc' + n });
+    await wait(300);
+    const ma = A1.find((m) => m.t === 'asc');
+    check('/maxasc: every Ascension perk at its top rank', ma && AD.ASC_PERKS.every((pk) => ma.asc.r[pk.id] === pk.max), JSON.stringify(ma));
     A1.s.destroy();
     AB.s.destroy();
   }

@@ -558,6 +558,16 @@ async function run() {
       JSON.stringify(marks));
   }
   {
+    // Archon Vesper, after his design sheet: an animation for every attack
+    const { Data: AD } = require('./sim/gen/game');
+    const AV = AD.ENEMIES.archon;
+    const aAll = [].concat(...AV.phases.map((p) => (p.attacks || []).concat(...(p.cycle || []))));
+    check('every one of Archon Vesper\'s attacks but his spirals has an animation he has frames for, and he guards behind his shield',
+      aAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && AV.seq[a.anim]) && AV.seq.guard && AV.phases.some((p) => p.shield) &&
+      ['lance', 'ranged', 'gravity', 'dash', 'cascade', 'brand', 'summon'].every((k) => aAll.some((a) => a.anim === k)) && aAll.some((a) => a.marker === 'clock'),
+      aAll.map((a) => a.anim).join(','));
+  }
+  {
     // Archon Vesper's blood brand and Astraeon's eclipse
     const { WorldSim } = require('./sim/worldsim');
     const { Data: VD } = require('./sim/gen/game');

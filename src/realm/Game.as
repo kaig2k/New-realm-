@@ -2733,6 +2733,33 @@ package realm {
 					canvas.draw(markShape, markMtx);
 					continue;
 				}
+				if (m.style == "clock") {
+					// the temporal cascade: a clock face of red light, its hand sweeping round to the hour it falls
+					gr.lineStyle(2, m.col, 0.75 + f * 0.25);
+					gr.beginFill(m.col, 0.06 + f * 0.2);
+					gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+					gr.endFill();
+					gr.lineStyle(1, 0xffd0d4, 0.6);
+					gr.drawEllipse(-rx * 0.78, -ry * 0.78, rx * 1.56, ry * 1.56);
+					for (var ck:int = 0; ck < 12; ck++) {
+						var ca:Number = ck * Math.PI / 6;
+						gr.lineStyle(ck % 3 == 0 ? 2 : 1, ck % 3 == 0 ? 0xffffff : m.col, 0.9);
+						gr.moveTo(Math.cos(ca) * rx * 0.84, Math.sin(ca) * ry * 0.84);
+						gr.lineTo(Math.cos(ca) * rx, Math.sin(ca) * ry);
+					}
+					var hand:Number = -Math.PI / 2 + f * Math.PI * 2;
+					gr.lineStyle(2, 0xffffff, 0.95);
+					gr.moveTo(0, 0); gr.lineTo(Math.cos(hand) * rx * 0.72, Math.sin(hand) * ry * 0.72);
+					gr.lineStyle(1, 0xffffff, 0.7);
+					gr.moveTo(0, 0); gr.lineTo(0, -ry * 0.45);
+					gr.lineStyle();
+					gr.beginFill(m.col, 0.18 + f * 0.3);
+					gr.drawEllipse(-rx * f, -ry * f, rx * 2 * f, ry * 2 * f);
+					gr.endFill();
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
 				if (m.style == "star") {
 					// a falling star: a ring on the ground and the star streaking down onto it
 					gr.lineStyle(2, m.col, 0.9);

@@ -357,7 +357,6 @@ package realm {
 			Sprites.recolor("gearmind", "boss", {Y: 0xc0a060, y: 0x806030, Q: 0x60e0ff, P: 0x6a6a72, p: 0x3a3a42, W: 0xffffff, E: 0x40ff80, K: 0x101010}, 6);
 			Sprites.recolor("void_dragon", "wyrm", {C: 0x4a2a7a, c: 0x1a0a2a, W: 0xc080ff, w: 0x8040c0, E: 0xff40ff, K: 0xffffff}, 7);
 			Sprites.recolor("matron", "regent", {Y: 0xff4040, y: 0xa01010, C: 0x6a0a1a, c: 0x3a0008, Q: 0xffd0d0, E: 0xff2020, W: 0xffa0a0, M: 0x8a2030, m: 0x5a1020}, 6);
-			Sprites.recolor("archon", "elder_classic", {H: 0xffe0e0, h: 0xa08080, P: 0x8a0a2a, p: 0x4a0414, Q: 0xffd040, K: 0x100004, E: 0xff2040, W: 0xffd0e0, O: 0xff6080}, 7);
 			Sprites.recolor("zealot", "sorcerer", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
 			Sprites.recolor("galecaller", "seraph", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
 			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
@@ -1039,6 +1038,43 @@ package realm {
 		private static function selfNova(radius:Number, delay:Number, dmg:int, cd:Number, col:uint, x:Object = null):Object {
 			return nova(radius, delay, dmg, cd, col, o({reach: 0.01, marker: "rune", radius: radius, burst: 16, bspd: 5.5, blife: 1.5, name: "rite"}, x));
 		}
+		// ---- Archon Vesper's attacks, after his design sheet (each with its own animation)
+		private static const A_RED:uint = 0xff2a3a, A_PALE:uint = 0xffa8b0;
+		// Void-Lance Strike: he drives the lance forward and crescents of void-light tear off its point
+		private static function aLance(dmg:int, cd:Number):Object {
+			return aim(3, 26, 9.5, dmg, cd, A_RED, {shape: "crescent", r: 0.42, life: 1.2, anim: "lance", animMs: 85, animHit: 3, animHold: 0.3, name: "void-lance strike"});
+		}
+		// ...and the lance hurled ahead of him as he charges after it
+		private static function aLanceDash(dmg:int, cd:Number):Object {
+			return aim(1, 0, 13, dmg, cd, A_PALE, {shape: "spear", r: 0.4, life: 1.0, dash: 0.45, dashSpd: 12, anim: "lance", animMs: 80, animHit: 3, name: "void-lance charge"});
+		}
+		// Ranged Attack: orbs of void-light loosed from the lance's head, bursting into stars
+		private static function aRanged(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 64, 7.5, dmg, cd, A_RED, {shape: "voidorb", r: 0.3, life: 1.3, split: {n: 6, spd: 4.5, life: 0.8, dmg: int(dmg / 2)},
+				anim: "ranged", animMs: 100, animHit: 3, name: "void orbs"});
+		}
+		// Gravity Well: a ring of orbs round you that falls inward (it slows you)
+		private static function aGravity(n:int, dmg:int, cd:Number):Object {
+			return o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: A_PALE, shape: "voidorb", eff: "slowed"},
+				{anim: "gravity", animMs: 130, name: "gravity well"});
+		}
+		// Void Dash: crescents loosed ahead and he streaks after them
+		private static function aDash(dmg:int, cd:Number):Object {
+			return aim(5, 50, 10, dmg, cd, A_RED, {shape: "crescent", r: 0.38, life: 1.0, dash: 0.5, dashSpd: 11, anim: "dash", animMs: 100, name: "void dash"});
+		}
+		// Teleport: through a rift, and out somewhere else
+		private static function aBlink(cd:Number):Object {
+			return ring(10, 18, 4, 60, cd, A_PALE, {shape: "star", life: 2.0, blink: 6, anim: "dash", animMs: 100, name: "void step"});
+		}
+		// Temporal Cascade: clock faces open on the ground round you, then columns of red light fall on them
+		private static function aCascade(n:int, dmg:int, cd:Number):Object {
+			return rain(n, 6, dmg, cd, A_RED, {radius: 1.4, delay: 1.4, stagger: 0.12, marker: "clock", fx: "pillar", burst: 4, bspd: 4, blife: 0.8, shape: "star",
+				anim: "cascade", animMs: 110, animHit: 3, animHold: 1.4, name: "temporal cascade"});
+		}
+		// Summon the Conclave: acolytes step out of rifts at his sides
+		private static function aSummon(n:int, cd:Number):Object {
+			return o(summon("blood_acolyte", n, cd, 8), {anim: "summon", animMs: 130});
+		}
 		/** Archon Vesper's blood brand: n players marked; it bursts on whoever stands with them (Enemy "brand"). */
 		private static function bloodBrand(n:int, dmg:int, cd:Number, x:Object = null):Object {
 			return o({p: "brand", n: n, dmg: dmg, cd: cd, radius: 3.6, delay: 4.5, col: 0xff1838, eff: "bleeding", name: "the blood brand"}, x);
@@ -1139,22 +1175,23 @@ package realm {
 					attacks: [spiral(6, 13, 6.5, 80, 0.1, 0xff4040), selfNova(5, 1.3, 150, 4.4, 0xd02030, {burst: 18, eff: "bleeding", fx: "spikes", shape: "spike", name: "the blood rite"}),
 						dashAt(100, 4.2, 0xff4040)]})
 			]}, raid), ["blood_chalice"]);
-			boss("archon", o({name: "Archon Vesper", spr: "archon", hp: 60000, def: 32, spd: 1.6, xp: 6000, col: 0xff3060, gold: 2000, onrane: 25, phases: [
-				P(1, {say: "So you are the ones who silenced my Matron.", move: "orbit",
-					attacks: [spiral(4, 12, 6, 75, 0.12, 0xff3060), aim(5, 50, 9, 90, 1.2, 0xffd040, {shape: "crescent", r: 0.32}),
-						pillars(6, 105, 3.4, 0xff3060)]}),
-				P(0.8, {say: "Witness the crimson rite!", shield: 3, move: "center", every: 4,
-					cycle: [[flower(32, 5.6, 5, 80, 0.7, 0xff3060)],
-						[selfNova(5.5, 1.4, 150, 3.4, 0xff2040, {burst: 22, shape: "crescent", fx: "pillar", name: "the crimson rite"}), aim(7, 70, 8, 80, 1.4, 0xffd0e0)],
-						[bloodBrand(1, 160, 4), aim(5, 50, 9, 80, 1.2, 0xffd040, {shape: "crescent", r: 0.32})],
-						[lineRain(7, 115, 1.6, 0xff2040, "spikes", {name: "blood geyser"}), rain(10, 7, 120, 1.6, 0xff2040, {burst: 6})]]}),
-				P(0.55, {say: "Blood for the blood god!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
-					attacks: [spiral(6, -11, 6.5, 80, 0.1, 0xff6080), blinkRing(6, 0xff3060), pull(16, 90, 4.0, 0xff3060, {name: "Vesper's call"}),
-						summon("blood_acolyte", 2, 9, 8), bloodBrand(1, 180, 9)]}),
-				P(0.25, {say: "I AM THE CRIMSON DAWN!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [spiral(8, 9, 7, 90, 0.09, 0xff3060, {motion: "wave"}), selfNova(6, 1.5, 190, 3.2, 0xff2040, {burst: 26, shape: "crescent", fx: "pillar", name: "the crimson dawn"}),
-						aim(9, 100, 9, 100, 1.2, 0xffffff, {shape: "crescent", waves: 3, gap: 0.2}), pillars(8, 120, 2.6, 0xff3060),
-						bloodBrand(2, 200, 8.5, {name: "the crimson brand"})]})
+			// Archon Vesper, Architect of Void-Time, after his design sheet: every attack has its own animation
+			// (tools/bossart/vesper.py); he guards behind his kite shield while a phase's shield holds, and brands
+			// one of you in blood (two at the end) who has to leave the group before it bursts
+			boss("archon", o({name: "Archon Vesper", spr: "archon", hp: 60000, def: 32, spd: 1.6, xp: 6000, col: A_RED, gold: 2000, onrane: 25, r: 1.1,
+				seq: {idle: 4, move: 6, lance: 6, ranged: 5, gravity: 6, dash: 6, cascade: 6, brand: 5, summon: 5, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
+				P(1, {say: "My designs encompass eternity; your fate is a mere footnote.", move: "orbit",
+					attacks: [aLance(90, 2.4), aRanged(5, 70, 1.9), aCascade(6, 105, 3.8)]}),
+				P(0.8, {say: "Every second you breathe, I have already written.", shield: 3, move: "center", every: 4,
+					cycle: [[aGravity(16, 80, 3.0), aRanged(7, 70, 1.4)],
+						[aCascade(10, 115, 1.6), aLance(95, 1.8)],
+						[bloodBrand(1, 160, 4, {anim: "brand", animMs: 110, animHit: 3}), aDash(95, 2.2)]]}),
+				P(0.55, {say: "The Conclave answers its Architect!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
+					attacks: [spiral(6, -11, 6.5, 80, 0.1, A_PALE, {shape: "voidorb"}), aBlink(6), aGravity(18, 90, 4.0), aSummon(2, 9),
+						bloodBrand(1, 180, 9, {anim: "brand", animMs: 110, animHit: 3}), aLanceDash(110, 4.6)]}),
+				P(0.25, {say: "TIME ITSELF ENDS AT MY WORD!", banner: "The Architect unmakes the hour!", shield: 3, move: "orbit", speed: 1.5,
+					attacks: [spiral(8, 9, 7, 90, 0.09, A_RED, {motion: "wave", shape: "voidorb"}), aCascade(14, 130, 2.2), aLance(110, 1.6),
+						aRanged(9, 90, 1.7), aDash(110, 3.0), bloodBrand(2, 200, 8.5, {name: "the crimson brand", anim: "brand", animMs: 110, animHit: 3})]})
 			]}, raid), ["vesper_staff", "crimson_crown"]);
 
 			// ---- Heart of the Storm: lightning out of the sky, winds that drag you, bolts that stun

@@ -1897,6 +1897,33 @@ class Bosses {
 	static selfNova(radius, delay, dmg, cd, col, x = null) { dmg = __int(dmg); col = __uint(col);
 			return Bosses.nova(radius, delay, dmg, cd, col, Bosses.o({reach: 0.01, marker: "rune", radius: radius, burst: 16, bspd: 5.5, blife: 1.5, name: "rite"}, x));
 		}
+	static aLance(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(3, 26, 9.5, dmg, cd, Bosses.A_RED, {shape: "crescent", r: 0.42, life: 1.2, anim: "lance", animMs: 85, animHit: 3, animHold: 0.3, name: "void-lance strike"});
+		}
+	static aLanceDash(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(1, 0, 13, dmg, cd, Bosses.A_PALE, {shape: "spear", r: 0.4, life: 1.0, dash: 0.45, dashSpd: 12, anim: "lance", animMs: 80, animHit: 3, name: "void-lance charge"});
+		}
+	static aRanged(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 64, 7.5, dmg, cd, Bosses.A_RED, {shape: "voidorb", r: 0.3, life: 1.3, split: {n: 6, spd: 4.5, life: 0.8, dmg: __int(dmg / 2)},
+				anim: "ranged", animMs: 100, animHit: 3, name: "void orbs"});
+		}
+	static aGravity(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: Bosses.A_PALE, shape: "voidorb", eff: "slowed"},
+				{anim: "gravity", animMs: 130, name: "gravity well"});
+		}
+	static aDash(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(5, 50, 10, dmg, cd, Bosses.A_RED, {shape: "crescent", r: 0.38, life: 1.0, dash: 0.5, dashSpd: 11, anim: "dash", animMs: 100, name: "void dash"});
+		}
+	static aBlink(cd) {
+			return Bosses.ring(10, 18, 4, 60, cd, Bosses.A_PALE, {shape: "star", life: 2.0, blink: 6, anim: "dash", animMs: 100, name: "void step"});
+		}
+	static aCascade(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 6, dmg, cd, Bosses.A_RED, {radius: 1.4, delay: 1.4, stagger: 0.12, marker: "clock", fx: "pillar", burst: 4, bspd: 4, blife: 0.8, shape: "star",
+				anim: "cascade", animMs: 110, animHit: 3, animHold: 1.4, name: "temporal cascade"});
+		}
+	static aSummon(n, cd) { n = __int(n);
+			return Bosses.o(Bosses.summon("blood_acolyte", n, cd, 8), {anim: "summon", animMs: 130});
+		}
 	static bloodBrand(n, dmg, cd, x = null) { n = __int(n); dmg = __int(dmg);
 			return Bosses.o({p: "brand", n: n, dmg: dmg, cd: cd, radius: 3.6, delay: 4.5, col: 0xff1838, eff: "bleeding", name: "the blood brand"}, x);
 		}
@@ -1958,22 +1985,23 @@ class Bosses {
 					attacks: [Bosses.spiral(6, 13, 6.5, 80, 0.1, 0xff4040), Bosses.selfNova(5, 1.3, 150, 4.4, 0xd02030, {burst: 18, eff: "bleeding", fx: "spikes", shape: "spike", name: "the blood rite"}),
 						Bosses.dashAt(100, 4.2, 0xff4040)]})
 			]}, raid), ["blood_chalice"]);
-			Bosses.boss("archon", Bosses.o({name: "Archon Vesper", spr: "archon", hp: 60000, def: 32, spd: 1.6, xp: 6000, col: 0xff3060, gold: 2000, onrane: 25, phases: [
-				Bosses.P(1, {say: "So you are the ones who silenced my Matron.", move: "orbit",
-					attacks: [Bosses.spiral(4, 12, 6, 75, 0.12, 0xff3060), Bosses.aim(5, 50, 9, 90, 1.2, 0xffd040, {shape: "crescent", r: 0.32}),
-						Bosses.pillars(6, 105, 3.4, 0xff3060)]}),
-				Bosses.P(0.8, {say: "Witness the crimson rite!", shield: 3, move: "center", every: 4,
-					cycle: [[Bosses.flower(32, 5.6, 5, 80, 0.7, 0xff3060)],
-						[Bosses.selfNova(5.5, 1.4, 150, 3.4, 0xff2040, {burst: 22, shape: "crescent", fx: "pillar", name: "the crimson rite"}), Bosses.aim(7, 70, 8, 80, 1.4, 0xffd0e0)],
-						[Bosses.bloodBrand(1, 160, 4), Bosses.aim(5, 50, 9, 80, 1.2, 0xffd040, {shape: "crescent", r: 0.32})],
-						[Bosses.lineRain(7, 115, 1.6, 0xff2040, "spikes", {name: "blood geyser"}), Bosses.rain(10, 7, 120, 1.6, 0xff2040, {burst: 6})]]}),
-				Bosses.P(0.55, {say: "Blood for the blood god!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
-					attacks: [Bosses.spiral(6, -11, 6.5, 80, 0.1, 0xff6080), Bosses.blinkRing(6, 0xff3060), Bosses.pull(16, 90, 4.0, 0xff3060, {name: "Vesper's call"}),
-						Bosses.summon("blood_acolyte", 2, 9, 8), Bosses.bloodBrand(1, 180, 9)]}),
-				Bosses.P(0.25, {say: "I AM THE CRIMSON DAWN!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [Bosses.spiral(8, 9, 7, 90, 0.09, 0xff3060, {motion: "wave"}), Bosses.selfNova(6, 1.5, 190, 3.2, 0xff2040, {burst: 26, shape: "crescent", fx: "pillar", name: "the crimson dawn"}),
-						Bosses.aim(9, 100, 9, 100, 1.2, 0xffffff, {shape: "crescent", waves: 3, gap: 0.2}), Bosses.pillars(8, 120, 2.6, 0xff3060),
-						Bosses.bloodBrand(2, 200, 8.5, {name: "the crimson brand"})]})
+			
+			
+			
+			Bosses.boss("archon", Bosses.o({name: "Archon Vesper", spr: "archon", hp: 60000, def: 32, spd: 1.6, xp: 6000, col: Bosses.A_RED, gold: 2000, onrane: 25, r: 1.1,
+				seq: {idle: 4, move: 6, lance: 6, ranged: 5, gravity: 6, dash: 6, cascade: 6, brand: 5, summon: 5, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
+				Bosses.P(1, {say: "My designs encompass eternity; your fate is a mere footnote.", move: "orbit",
+					attacks: [Bosses.aLance(90, 2.4), Bosses.aRanged(5, 70, 1.9), Bosses.aCascade(6, 105, 3.8)]}),
+				Bosses.P(0.8, {say: "Every second you breathe, I have already written.", shield: 3, move: "center", every: 4,
+					cycle: [[Bosses.aGravity(16, 80, 3.0), Bosses.aRanged(7, 70, 1.4)],
+						[Bosses.aCascade(10, 115, 1.6), Bosses.aLance(95, 1.8)],
+						[Bosses.bloodBrand(1, 160, 4, {anim: "brand", animMs: 110, animHit: 3}), Bosses.aDash(95, 2.2)]]}),
+				Bosses.P(0.55, {say: "The Conclave answers its Architect!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
+					attacks: [Bosses.spiral(6, -11, 6.5, 80, 0.1, Bosses.A_PALE, {shape: "voidorb"}), Bosses.aBlink(6), Bosses.aGravity(18, 90, 4.0), Bosses.aSummon(2, 9),
+						Bosses.bloodBrand(1, 180, 9, {anim: "brand", animMs: 110, animHit: 3}), Bosses.aLanceDash(110, 4.6)]}),
+				Bosses.P(0.25, {say: "TIME ITSELF ENDS AT MY WORD!", banner: "The Architect unmakes the hour!", shield: 3, move: "orbit", speed: 1.5,
+					attacks: [Bosses.spiral(8, 9, 7, 90, 0.09, Bosses.A_RED, {motion: "wave", shape: "voidorb"}), Bosses.aCascade(14, 130, 2.2), Bosses.aLance(110, 1.6),
+						Bosses.aRanged(9, 90, 1.7), Bosses.aDash(110, 3.0), Bosses.bloodBrand(2, 200, 8.5, {name: "the crimson brand", anim: "brand", animMs: 110, animHit: 3})]})
 			]}, raid), ["vesper_staff", "crimson_crown"]);
 
 			
@@ -5375,6 +5403,8 @@ Bosses.VAULT_TWISTS = [
 Bosses.T_VIOLET = __uint(0xa060ff);
 Bosses.T_PALE = __uint(0xe2ccff);
 Bosses.T_BLUE = __uint(0x4048e0);
+Bosses.A_RED = __uint(0xff2a3a);
+Bosses.A_PALE = __uint(0xffa8b0);
 Bosses.HEROIC = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,

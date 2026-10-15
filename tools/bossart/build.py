@@ -27,6 +27,9 @@ out += herald.sequences()
 # Tempestus, Heart of the Storm (see tempestus.py)
 import tempestus
 out += tempestus.sequences()
+# Archon Vesper, Architect of Void-Time (see vesper.py)
+import vesper
+out += vesper.sequences()
 
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])

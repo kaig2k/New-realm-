@@ -1,16 +1,17 @@
 """
-Archon Vesper, the Crimson Dawn (a draft sheet, waiting on the user's word):
-a gaunt blood-priest of the Crimson Conclave in a black and crimson robe hemmed
-with gold, a great tattered bat-wing cape spread behind him, long white hair,
-burning red eyes under a golden crown of thorns, and his staff, a golden rod
-crowned with a crescent of blood cradling a red orb. Drops of blood drift round him.
+Archon Vesper, Architect of Void-Time, after the design sheet ("My designs
+encompass eternity; your fate is a mere footnote."): a knight in crimson plate
+edged with gold, a tall horned helm with a burning visor, great crimson wings
+of feathers swept up behind him, a long cape, a red gem burning in his chest,
+and his void-lance: a golden spear whose head is a twisted spiral of red light.
+He guards behind a tall crimson kite shield.
 
 Like Tempestus (tempestus.py) he borrows the Dark Elder's drawing tools and has
-an animation for each of his attacks: the crescent volley, the crimson rite, the
-blood geyser, the blood brand, his blood-mist blink, the summoning of the
-Conclave, his guard when he shields himself, and his death.
+an animation for each of his attacks: the void-lance strike, his ranged orbs,
+the gravity well, the void dash, the temporal cascade, the blood brand, his
+summoning of the Conclave, his guard and his death.
 
-python3 tools/bossart/vesper.py out.png draws the presentation sheet.
+python3 tools/bossart/vesper.py out.png draws a contact sheet of every animation.
 """
 import math
 import sys
@@ -18,199 +19,238 @@ import elder as E
 from elder import VCanvas, W, H, CX, FOOT, h32
 
 PAL = {
-    # the robe: black with a crimson cast (base, light, dark)
-    'K': 0x2a0c16, 'k': 0x52182c, 'n': 0x10040a,
-    # the cape / wings: crimson
-    'C': 0x8a1028, 'c': 0xd02848, 'd': 0x4a0614,
-    # gold trim, crown and staff
-    'G': 0xd4a030, 'g': 0xffe080, 'o': 0x7a5410,
-    # pale skin and white hair
-    'H': 0xe8d8d8, 'h': 0xfff4f4, 'e': 0xa08890, 'L': 0xf0ecf4, 'l': 0xb8b0c8,
-    # blood light (the Elder's tools draw with these letters)
-    'P': 0xff2040, 'p': 0xffa0b0, 'V': 0x9a0820, 'W': 0xfff0f0,
-    'X': 0x1a0004,
-    # enraged blood-fire
-    'F': 0xff3050, 'f': 0xffd0d8,
+    # crimson plate (base, light, dark)
+    'K': 0x8c1424, 'k': 0xd03448, 'n': 0x3a0610,
+    # the cape: a deep crimson (its own, so the plate stands out against it)
+    'R': 0x4e0814, 'r': 0x80142a, 'y': 0x22030a,
+    # cloth: the tabard and the wings' feathers
+    'C': 0x9a1428, 'c': 0xe04058, 'd': 0x4a0812,
+    # gold
+    'G': 0xd8a838, 'g': 0xffe490, 'o': 0x6e4c12,
+    # dark steel under the plate
+    'M': 0x3e2a32, 'm': 0x6e5260, 'q': 0x1a0e14,
+    # the void's red light (the Elder's tools draw with these letters)
+    'P': 0xff2a3a, 'p': 0xffa8b0, 'V': 0x8a0818, 'W': 0xfff2ea,
+    'X': 0x140004,
+    # enraged fire
+    'F': 0xff3a48, 'f': 0xffd8d0,
 }
 
 
 def pose(**k):
-    p = dict(t=0, bx=0, by=0, lean=0, stride=0, staff='rest', hand='rest', eye='P', glow=False,
-             wings=1.0, wing_up=0, crouch=0, blow=0, drops=True)
+    p = dict(t=0, bx=0, by=0, lean=0, stride=0, lance='rest', hand='rest', eye='P', glow=False,
+             wings=1.0, flap=0.0, crouch=0, blow=0, shield=False, gem='P')
     p.update(k)
     return p
 
 
 # ------------------------------------------------------------------ the parts
+def feather(c, x0, y0, ang, ln, wd, col, tip=None):
+    ex, ey = x0 + math.cos(ang) * ln, y0 + math.sin(ang) * ln
+    px, py = -math.sin(ang) * wd, math.cos(ang) * wd
+    c.poly([(x0 - px * 0.5, y0 - py * 0.5), (x0 + px * 0.5, y0 + py * 0.5), (ex + px * 0.35 + math.cos(ang) * -2, ey + py * 0.35 + math.sin(ang) * -2),
+            (ex, ey), (ex - px * 0.35 + math.cos(ang) * -2, ey - py * 0.35 + math.sin(ang) * -2)], col)
+    if tip:
+        c.put(ex, ey, tip)
+
+
 def wings(c, p):
-    """The bat-wing cape: two great tattered sails behind him, ribbed with gold-tipped bones."""
+    """Great feathered wings swept up behind him: long primaries fanning up and out, coverts layered over them."""
     s = p['wings']
     if s <= 0:
         return
-    bx, by, up = CX + p['bx'] + p['lean'], p['by'] + p['crouch'], p['wing_up']
+    bx, by, fl = CX + p['bx'] + p['lean'], p['by'] + p['crouch'], p['flap']
     for sgn in (-1, 1):
-        root = (bx + sgn * 5, 26 + by)
-        tip = (bx + sgn * 44 * s, 6 + by - up)
-        elbow = (bx + sgn * 26 * s, 12 + by - up * 0.6)
-        # the scalloped trailing edge: points between the bones
-        edge = [(bx + sgn * 42 * s, 30 + by - up * 0.4), (bx + sgn * 34 * s, 26 + by), (bx + sgn * 30 * s, 44 + by),
-                (bx + sgn * 22 * s, 38 + by), (bx + sgn * 17 * s, 58 + by), (bx + sgn * 9, 50 + by)]
-        c.poly([root, elbow, tip] + edge, 'C')
-        c.shade('C', 'c', 'd')
-        # the bones
-        c.line(root[0], root[1], elbow[0], elbow[1], 'd', 2)
-        c.line(elbow[0], elbow[1], tip[0], tip[1], 'd', 1.6)
-        for (ex, ey) in edge[::2]:
-            c.line(elbow[0], elbow[1], ex, ey, 'd')
-        c.put(tip[0], tip[1] - 1, 'G')
-        c.put(elbow[0], elbow[1] - 1, 'g')
+        sx, sy = bx + sgn * 7, 27 + by
+        # primaries: from nearly straight up to out and down
+        for k in range(8):
+            f = k / 7
+            a = -math.pi / 2 + sgn * (0.22 + f * 1.15 - fl * 0.25 * (1 - f))
+            ln = (46 - f * 16) * s
+            feather(c, sx + sgn * f * 3, sy - 2 + f * 5, a, ln, 5.5, 'C', 'G' if k < 5 else None)
+        # coverts: shorter, brighter, over the bases
+        for k in range(6):
+            f = k / 5
+            a = -math.pi / 2 + sgn * (0.4 + f * 1.05 - fl * 0.2)
+            feather(c, sx, sy, a, (22 - f * 6) * s, 5, 'c')
+    c.shade('C', 'c', 'd')
+    # the spines of the feathers
+    for sgn in (-1, 1):
+        sx, sy = bx + sgn * 7, 27 + by
+        for k in range(0, 8, 2):
+            f = k / 7
+            a = -math.pi / 2 + sgn * (0.22 + f * 1.15 - fl * 0.25 * (1 - f))
+            ln = (42 - f * 16) * s
+            c.line(sx + sgn * f * 3, sy - 2 + f * 5, sx + sgn * f * 3 + math.cos(a) * ln, sy - 2 + f * 5 + math.sin(a) * ln, 'd')
 
 
-def robe(c, p):
-    bx, by, ln, s, bl = CX + p['bx'], p['by'] + p['crouch'], p['lean'], p['stride'], p['blow']
-    hem = FOOT - 1
-    c.poly([(bx - 11 + ln, 25 + by), (bx + 11 + ln, 25 + by), (bx + 19 - bl, hem - 2), (bx + 12 + s - bl, hem + 1),
-            (bx + 3 - bl, hem - 1), (bx - 7 - s - bl * 2, hem + 1), (bx - 18 - bl * 2, hem - 1)], 'K')
-    for dx in (-12, -6, 6, 12):
-        c.line(bx + dx * 0.4 + ln, 40 + by, bx + dx - bl, hem - 3, 'n')
-    # crimson panels either side of the gold
-    c.poly([(bx - 3 + ln, 30 + by), (bx + 3 + ln, 30 + by), (bx + 6 - bl, hem - 2), (bx - 5 - bl, hem - 2)], 'C')
+def cape(c, p):
+    bx, by, bl, t = CX + p['bx'], p['by'] + p['crouch'], p['blow'], p['t']
+    hem = FOOT
+    c.poly([(bx - 10 + p['lean'], 26 + by), (bx + 10 + p['lean'], 26 + by), (bx + 15 - bl, hem - 6), (bx + 12 + math.sin(t) * 2 - bl * 2, hem),
+            (bx + 4 - bl * 2, hem - 3), (bx - 5 - bl * 3, hem + 1), (bx - 13 + math.sin(t + 1) * 2 - bl * 4, hem - 2), (bx - 16 - bl * 3, hem - 8)], 'R')
+    for dx in (-10, -4, 5, 11):
+        c.line(bx + dx * 0.5, 34 + by, bx + dx - bl * 2, hem - 4, 'y')
+    c.shade('R', 'r', 'y')
+
+
+def legs(c, p):
+    bx, by, s = CX + p['bx'], p['by'] + p['crouch'], p['stride']
+    for side, dx in ((-1, -s), (1, s)):
+        lx = bx + side * 5 + dx
+        c.poly([(lx - 3, 54 + by), (lx + 3, 54 + by), (lx + 2.5 + side * 0.5, FOOT - 3), (lx - 2.5 + side * 0.5, FOOT - 3)], 'M')
+        # crimson greaves, a gold knee and a pointed sabaton
+        c.poly([(lx - 3.5, 63 + by), (lx + 3.5, 63 + by), (lx + 3 + side * 0.5, FOOT - 4), (lx - 3 + side * 0.5, FOOT - 4)], 'K')
+        c.line(lx - 3, 70 + by, lx + 3, 70 + by, 'G')
+        c.ellipse(lx, 62 + by, 2.6, 2, 'G')
+        c.poly([(lx - 3 + side, FOOT - 4), (lx + 3 + side, FOOT - 4), (lx + 3 + side * 4, FOOT - 1), (lx - 3 + side, FOOT - 1)], 'G')
+    c.shade('M', 'm', 'q')
     c.shade('K', 'k', 'n')
-    # gold down the front and along the hem
-    c.line(bx + ln, 28 + by, bx + 1 - bl, hem, 'G')
-    c.line(bx - 18 - bl * 2, hem - 1, bx + 19 - bl, hem - 2, 'G')
-    c.line(bx - 17 - bl * 2, hem - 3, bx + 18 - bl, hem - 4, 'o')
-    for y in range(34, 80, 9):
-        c.put(bx + ln * (1 - (y - 28) / 60), y + by, 'g')
-    # a crimson sash at the waist, its ends hanging
-    c.rect(bx - 10, 44 + by, bx + 10, 46 + by, 'G')
-    c.rect(bx - 10, 45 + by, bx + 10, 45 + by, 'o')
-    c.line(bx + 3, 46 + by, bx + 5 - bl, 58 + by, 'C', 2)
-    c.put(bx, 45 + by, 'P')
 
 
-def collar(c, p):
-    """A high golden collar, flaring up behind his head like a sunburst."""
+def body(c, p):
+    bx, by, ln = CX + p['bx'], p['by'] + p['crouch'], p['lean']
+    # the tabard: a crimson panel hanging between the legs, gold-edged
+    c.poly([(bx - 4 + ln, 48 + by), (bx + 4 + ln, 48 + by), (bx + 4 - p['blow'], 72 + by), (bx, 76 + by), (bx - 4 - p['blow'], 72 + by)], 'C')
+    c.shade('C', 'c', 'd')
+    c.line(bx - 4 + ln, 48 + by, bx - 4 - p['blow'], 72 + by, 'G')
+    c.line(bx + 4 + ln, 48 + by, bx + 4 - p['blow'], 72 + by, 'G')
+    c.poly([(bx - 2, 58 + by), (bx + 2, 58 + by), (bx, 63 + by)], 'G')
+    # faulds: plates over the hips
+    c.poly([(bx - 11 + ln, 46 + by), (bx + 11 + ln, 46 + by), (bx + 13, 55 + by), (bx - 13, 55 + by)], 'K')
+    c.line(bx - 13, 55 + by, bx + 13, 55 + by, 'G')
+    c.line(bx - 12, 51 + by, bx + 12, 51 + by, 'n')
+    # the breastplate, waisted, a burning gem set in it
+    c.poly([(bx - 11 + ln, 27 + by), (bx + 11 + ln, 27 + by), (bx + 10 + ln, 38 + by), (bx + 7 + ln, 46 + by), (bx - 7 + ln, 46 + by), (bx - 10 + ln, 38 + by)], 'K')
+    c.shade('K', 'k', 'n')
+    c.line(bx - 10 + ln, 38 + by, bx + ln, 44 + by, 'G')
+    c.line(bx + 10 + ln, 38 + by, bx + ln, 44 + by, 'G')
+    c.line(bx + ln, 28 + by, bx + ln, 33 + by, 'G')
+    gx, gy = bx + ln, 36 + by
+    c.ellipse(gx, gy, 3.6, 3.6, 'G')
+    c.ellipse(gx, gy, 2.4, 2.4, p['gem'])
+    c.put(gx - 1, gy - 1, 'W')
+    c.rect(bx - 9 + ln, 45 + by, bx + 9 + ln, 46 + by, 'G')
+
+
+def pauldrons(c, p):
     bx, by = CX + p['bx'] + p['lean'], p['by'] + p['crouch']
-    for k in range(7):
-        a = math.pi + (k + 0.5) * math.pi / 7
-        c.poly([(bx + math.cos(a) * 5, 24 + by + math.sin(a) * 3), (bx + math.cos(a) * 13, 22 + by + math.sin(a) * 10),
-                (bx + math.cos(a + 0.18) * 6, 24 + by + math.sin(a + 0.18) * 3)], 'G')
+    for sgn in (-1, 1):
+        # three layered plates, each gold-rimmed, the top one sweeping up into a point
+        for k, (w, y) in enumerate(((10, 31), (11, 28), (12, 25))):
+            c.poly([(bx + sgn * 7, y - 2 + by), (bx + sgn * (7 + w), y - 1 + by), (bx + sgn * (8 + w), y + 3 + by), (bx + sgn * 8, y + 4 + by)], 'K')
+        c.poly([(bx + sgn * 14, 23 + by), (bx + sgn * 22, 14 + by), (bx + sgn * 19, 25 + by)], 'K')
+        c.shade('K', 'k', 'n')
+        for y in (27, 30, 34):
+            c.line(bx + sgn * 8, y + by, bx + sgn * 19, y + 1 + by, 'G')
+        c.put(bx + sgn * 22, 14 + by, 'g')
+
+
+def helm(c, p):
+    bx, by = CX + p['bx'] + p['lean'], p['by'] + p['crouch']
+    # horns sweeping up and out, and a blade of a crest between them
+    for sgn in (-1, 1):
+        c.poly([(bx + sgn * 4, 12 + by), (bx + sgn * 8, 7 + by), (bx + sgn * 15, -5 + by), (bx + sgn * 11, 9 + by), (bx + sgn * 6, 15 + by)], 'G')
+        c.poly([(bx + sgn * 6, 16 + by), (bx + sgn * 10, 14 + by), (bx + sgn * 14, 8 + by), (bx + sgn * 11, 17 + by)], 'G')
+    c.poly([(bx - 2, 9 + by), (bx, -6 + by), (bx + 2, 9 + by)], 'G')
     c.shade('G', 'g', 'o')
-    # the shoulders: dark plate with gold rims
-    for sgn in (-1, 1):
-        c.ellipse(bx + sgn * 11, 27 + by, 6, 3.5, 'K')
-        c.line(bx + sgn * 6, 24 + by, bx + sgn * 16, 27 + by, 'G')
-        c.put(bx + sgn * 16, 28 + by, 'g')
-
-
-def hair(c, p):
-    """Long white hair, falling behind his shoulders (drawn before the robe and collar)."""
-    bx, by, bl = CX + p['bx'] + p['lean'], p['by'] + p['crouch'], p['blow']
-    c.poly([(bx - 6, 8 + by), (bx + 6, 8 + by), (bx + 8, 16 + by), (bx + 9 - bl, 30 + by), (bx + 6 - bl * 2, 38 + by),
-            (bx - 6 - bl * 2, 38 + by), (bx - 9 - bl * 2, 30 + by), (bx - 8, 16 + by)], 'L')
-    c.shade('L', 'l', 'l')
-    for dx in (-5, -2, 2, 5):
-        c.line(bx + dx, 18 + by, bx + dx * 1.3 - bl * 2, 37 + by, 'l')
-
-
-def head(c, p):
-    bx, by = CX + p['bx'] + p['lean'], p['by'] + p['crouch']
-    # the gaunt face, sharp cheekbones and chin, hair parted over the brow
-    c.poly([(bx - 5, 10 + by), (bx + 5, 10 + by), (bx + 5, 17 + by), (bx + 2, 23 + by), (bx - 2, 23 + by), (bx - 5, 17 + by)], 'H')
-    c.shade('H', 'h', 'e')
-    c.line(bx - 4, 18 + by, bx - 2, 21 + by, 'e')
-    c.line(bx + 4, 18 + by, bx + 2, 21 + by, 'e')
-    c.poly([(bx - 6, 9 + by), (bx, 10 + by), (bx - 5, 14 + by)], 'L')
-    c.poly([(bx + 6, 9 + by), (bx, 10 + by), (bx + 5, 14 + by)], 'L')
-    # burning eyes under a heavy brow, a thin dark mouth
+    # the helm itself
+    c.poly([(bx - 6, 8 + by), (bx + 6, 8 + by), (bx + 8, 14 + by), (bx + 7, 23 + by), (bx + 3, 26 + by), (bx - 3, 26 + by), (bx - 7, 23 + by), (bx - 8, 14 + by)], 'K')
+    c.shade('K', 'k', 'n')
+    c.poly([(bx - 7, 18 + by), (bx - 3, 19 + by), (bx - 3, 25 + by), (bx - 6, 23 + by)], 'M')
+    c.poly([(bx + 7, 18 + by), (bx + 3, 19 + by), (bx + 3, 25 + by), (bx + 6, 23 + by)], 'M')
+    c.line(bx - 6, 8 + by, bx - 8, 14 + by, 'G')
+    c.line(bx + 6, 8 + by, bx + 8, 14 + by, 'G')
+    c.line(bx, 9 + by, bx, 14 + by, 'G')
+    # the visor: a T of burning light
     eye = p['eye']
-    for sgn in (-1, 1):
-        c.line(bx + sgn * 1, 14 + by, bx + sgn * 4, 13 + by, 'e')
-        c.put(bx + sgn * 2, 15 + by, eye)
-        c.put(bx + sgn * 3, 15 + by, eye)
-    c.line(bx - 1, 21 + by, bx + 1, 21 + by, 'V')
-    # the golden crown of thorns, a blood-red gem in its middle
-    c.rect(bx - 6, 8 + by, bx + 6, 9 + by, 'G')
-    for dx, ht in ((-6, 4), (-3, 6), (0, 9), (3, 6), (6, 4)):
-        c.line(bx + dx, 8 + by, bx + dx * 1.3, 8 + by - ht, 'G')
-    c.put(bx, -1 + by, 'g')
-    c.put(bx, 8 + by, 'P')
+    c.rect(bx - 5, 16 + by, bx + 5, 17 + by, 'X')
+    c.rect(bx - 1, 17 + by, bx + 1, 23 + by, 'X')
+    c.line(bx - 4, 16 + by, bx + 4, 16 + by, eye)
+    c.put(bx, 18 + by, eye)
+    # a gold gorget
+    c.poly([(bx - 7, 24 + by), (bx + 7, 24 + by), (bx + 6, 28 + by), (bx - 6, 28 + by)], 'G')
+    c.shade('G', 'g', 'o')
 
 
-def staff_at(c, x0, y0, x1, y1, glow, open_=1.0):
-    """His staff from the hand (x0, y0) to its head (x1, y1): a golden rod, a crescent of blood and its orb."""
-    c.line(x0 - (x1 - x0) * 0.35, y0 - (y1 - y0) * 0.35, x1, y1, 'G', 2)
-    c.line(x0 - (x1 - x0) * 0.35, y0 - (y1 - y0) * 0.35, x1, y1, 'o')
-    a = math.atan2(y1 - y0, x1 - x0)
-    cx, cy = x1 + math.cos(a) * 5, y1 + math.sin(a) * 5
-    # the crescent, opening away from the hand
-    for i in range(40):
-        f = i / 39
-        th = a + math.pi + (f - 0.5) * 2 * 2.3 * open_
-        wd = 2.2 * math.sin(f * math.pi) + 0.6
-        for k in range(int(wd * 2) + 1):
-            r = 6 - k * 0.5
-            c.put(cx + math.cos(th + math.pi) * r, cy + math.sin(th + math.pi) * r, 'P' if k else 'c')
-    c.ellipse(cx, cy, 2.2, 2.2, 'V')
-    c.put(cx - 0.6, cy - 0.6, 'W' if glow else 'p')
+def lance_at(c, x0, y0, ang, ln, glow=False):
+    """The void-lance held at (x0, y0) pointing at ang: a gold shaft with a ring near its head and a twisted spiral point."""
+    ca, sa = math.cos(ang), math.sin(ang)
+    bxx, byy = x0 - ca * ln * 0.3, y0 - sa * ln * 0.3
+    hx, hy = x0 + ca * ln * 0.7, y0 + sa * ln * 0.7
+    c.line(bxx, byy, hx, hy, 'G', 2)
+    c.line(bxx, byy, hx, hy, 'o')
+    c.put(bxx - ca, byy - sa, 'g')
+    # the ring and its prongs
+    rx, ry = hx - ca * 2, hy - sa * 2
+    c.ring(rx, ry, 3.2, 3.2, 'G', 1)
+    for k in (-1, 1):
+        c.line(rx, ry, rx + ca * 4 - sa * 4 * k, ry + sa * 4 + ca * 4 * k, 'G')
+    # the spiral head: crimson twisted with light, coming to a point
+    L = 13
+    for i in range(L * 3):
+        f = i / (L * 3)
+        w = 2.6 * (1 - f)
+        tw = math.sin(f * 18)
+        x, y = hx + ca * f * L, hy + sa * f * L
+        c.put(x - sa * w * tw, y + ca * w * tw, 'P')
+        c.put(x + sa * w * tw, y - ca * w * tw, 'V')
+    c.line(hx, hy, hx + ca * L, hy + sa * L, 'p' if not glow else 'W')
+    tip = (hx + ca * (L + 2), hy + sa * (L + 2))
+    c.put(tip[0], tip[1], 'W')
     if glow:
-        c.ring(cx, cy, 8.5, 8.5, 'p', 1)
-    return cx, cy
+        c.ring(hx + ca * L * 0.5, hy + sa * L * 0.5, 9, 9, 'p', 1)
+    return tip
 
 
 def arms(c, p):
     bx, by = CX + p['bx'] + p['lean'], p['by'] + p['crouch']
-    # his staff hand (on the right)
-    ends = {'rest': (bx + 13, 46), 'forward': (bx + 22, 32), 'up': (bx + 14, 20), 'swing': (bx + 20, 22),
-            'down': (bx + 14, 52), 'plant': (bx + 15, 44), 'high': (bx + 20, 16), 'back': (bx + 15, 42)}
-    hx, hy = ends[p['staff']]
-    hy += by
-    c.line(bx + 10, 28 + by, hx, hy, 'K', 4)
+    # the lance arm (right): hand position and lance angle for each pose
+    poses = {'rest': ((bx + 16, 44), -math.pi / 2 - 0.08, 64), 'back': ((bx + 7, 38), -0.1, 50),
+             'thrust': ((bx + 26, 36), 0.0, 60), 'up': ((bx + 16, 14), -math.pi / 2 + 0.25, 56), 'plant': ((bx + 16, 46), -math.pi / 2, 66),
+             'high': ((bx + 18, 16), -0.6, 56), 'down': ((bx + 14, 54), 0.9, 52), 'level': ((bx + 22, 38), -0.15, 58)}
+    (hx, hy), ang, ln = poses[p['lance']]
+    hy += 0
+    c.line(bx + 11, 30 + by, hx, hy + by, 'K', 4.5)
     c.shade('K', 'k', 'n')
-    c.ellipse(hx, hy, 1.8, 1.8, 'H')
-    heads = {'rest': (hx + 2, hy - 30), 'forward': (hx + 16, hy - 16), 'up': (hx + 9, hy - 17), 'swing': (hx + 18, hy + 2),
-             'down': (hx + 8, hy + 22), 'plant': (hx + 1, hy - 32), 'high': (hx + 9, hy - 14), 'back': (hx + 17, hy - 22)}
-    sx, sy = heads[p['staff']]
-    head_pos = staff_at(c, hx, hy, sx, sy, p['glow'])
-    # his other hand: long pale claws
-    lends = {'rest': (bx - 12, 44), 'out': (bx - 26, 30), 'up': (bx - 14, 8), 'down': (bx - 16, 56), 'chest': (bx - 3, 34),
-             'point': (bx - 30, 22)}
+    c.ellipse(hx, hy + by, 2.4, 2.4, 'G')
+    tip = lance_at(c, hx, hy + by, ang, ln, p['glow'])
+    # the other hand: open, a ball of red light in it when casting
+    lends = {'rest': (bx - 15, 46), 'out': (bx - 26, 32), 'up': (bx - 15, 10), 'chest': (bx - 4, 38), 'point': (bx - 30, 24),
+             'down': (bx - 17, 56), 'shield': (bx - 14, 40)}
     lx, ly = lends[p['hand']]
-    ly += by
-    c.line(bx - 10, 28 + by, lx, ly, 'K', 4)
+    c.line(bx - 11, 30 + by, lx, ly + by, 'K', 4.5)
     c.shade('K', 'k', 'n')
-    c.ellipse(lx, ly, 2, 2, 'H')
-    a = math.atan2(ly - (28 + by), lx - (bx - 10))
-    for k in (-0.5, 0, 0.5):
-        c.line(lx, ly, lx + math.cos(a + k) * 4, ly + math.sin(a + k) * 4, 'e')
-    c.hands = ((hx, hy), (lx, ly), head_pos)
+    c.ellipse(lx, ly + by, 2.4, 2.4, 'G')
+    c.hands = ((hx, hy + by), (lx, ly + by), tip)
 
 
-def drops(c, p):
-    """Drops of blood drifting round him."""
-    if not p['drops']:
-        return
-    t = p['t']
-    bx, by = CX + p['bx'], p['by']
-    for k in range(5):
-        a = k * math.pi * 2 / 5 + t * 0.3
-        x = bx + math.cos(a) * 30
-        y = 50 + by + math.sin(a) * 20
-        c.ellipse(x, y, 1.6, 1.6, 'P')
-        c.put(x, y - 2, 'P')
-        c.put(x - 0.5, y - 0.5, 'p')
+def shield(c, p):
+    """The tall kite shield, held before him: crimson, gold-rimmed, a burning sigil in its middle."""
+    bx, by = CX + p['bx'] + p['lean'] - 10, p['by'] + p['crouch']
+    pts = [(bx - 11, 26 + by), (bx + 11, 26 + by), (bx + 11, 52 + by), (bx, 76 + by), (bx - 11, 52 + by)]
+    c.poly(pts, 'K')
+    c.shade('K', 'k', 'n')
+    for a, b in zip(pts, pts[1:] + pts[:1]):
+        c.line(a[0], a[1], b[0], b[1], 'G', 1.5)
+    c.line(bx, 28 + by, bx, 72 + by, 'G')
+    c.line(bx - 9, 40 + by, bx + 9, 40 + by, 'G')
+    c.ellipse(bx, 40 + by, 4, 4, 'G')
+    c.ellipse(bx, 40 + by, 2.6, 2.6, 'P')
+    c.put(bx - 1, 39 + by, 'W')
 
 
-def vesper(p):
+def archon(p):
     c = VCanvas()
     wings(c, p)
-    hair(c, p)
-    robe(c, p)
-    collar(c, p)
-    head(c, p)
+    cape(c, p)
+    legs(c, p)
+    body(c, p)
+    pauldrons(c, p)
+    helm(c, p)
     arms(c, p)
-    drops(c, p)
+    if p['shield']:
+        shield(c, p)
     return c
 
 
@@ -222,10 +262,28 @@ def merge(base, top):
     return base
 
 
+# ------------------------------------------------------------------ effects
+def orb(c, x, y, r, bright=False):
+    c.ellipse(x, y, r + 1.2, r + 1.2, 'P')
+    c.ellipse(x, y, r, r, 'V')
+    c.ellipse(x, y, r * 0.5, r * 0.5, 'p')
+    c.put(x, y, 'W')
+    if bright:
+        c.ring(x, y, r + 3.2, r + 3.2, 'p', 1)
+
+
+def burst_star(c, x, y, r):
+    for k in range(8):
+        a = k * math.pi / 4
+        ln = r if k % 2 == 0 else r * 0.55
+        c.line(x, y, x + math.cos(a) * ln, y + math.sin(a) * ln, 'P' if k % 2 else 'p')
+    c.ellipse(x, y, 2, 2, 'W')
+    c.ring(x, y, r * 0.6, r * 0.6, 'P', 1)
+
+
 def crescent(c, x, y, r, w, ang, col='P', edge='W'):
-    """A thrown blood crescent, its open side trailing."""
-    for i in range(60):
-        f = i / 59
+    for i in range(70):
+        f = i / 69
         th = ang + (f - 0.5) * 2.6
         wd = w * math.sin(f * math.pi)
         for k in range(int(wd * 2) + 1):
@@ -233,11 +291,28 @@ def crescent(c, x, y, r, w, ang, col='P', edge='W'):
             c.put(x + math.cos(th) * rr, y + math.sin(th) * rr, edge if k == 0 and wd > 1.5 else col)
 
 
-def spike(c, x, base, ht, lean=0.0):
-    """A spike of blood bursting up out of the ground."""
-    c.poly([(x - 2.5, base), (x + 2.5, base), (x + lean, base - ht)], 'P')
-    c.line(x - 1, base - 1, x + lean * 0.8, base - ht + 2, 'p')
-    c.ellipse(x, base, 5, 1.4, 'V')
+def vortex(c, x, base, ht, wd, t):
+    """The gravity well: a funnel of red light spinning up out of a ring on the ground."""
+    E.ground_ring(c, x, base, wd + 4, (wd + 4) * 0.25, 'P', 'V', rot=t * 0.5)
+    n = 7
+    for k in range(n):
+        f = k / (n - 1)
+        y = base - f * ht
+        rx = wd * (0.25 + f * 0.85)
+        c.ring(x, y, rx, rx * 0.25, 'P' if k % 2 else 'V', 1.2)
+        a = t * 1.3 + k * 0.9
+        c.put(x + math.cos(a) * rx, y + math.sin(a) * rx * 0.25, 'W')
+    c.ellipse(x, base, 2, 1, 'W')
+
+
+def clock(c, x, y, r, hand):
+    """A clock face of red light (the temporal cascade marks where it will fall)."""
+    c.ring(x, y, r, r * 0.45, 'P', 1.2)
+    c.ring(x, y, r * 0.75, r * 0.34, 'V', 1)
+    for k in range(12):
+        a = k * math.pi / 6
+        c.put(x + math.cos(a) * r * 0.88, y + math.sin(a) * r * 0.4, 'p' if k % 3 else 'W')
+    c.line(x, y, x + math.cos(hand) * r * 0.7, y + math.sin(hand) * r * 0.32, 'W')
 
 
 def sigil(c, x, y, s, glow=False):
@@ -250,74 +325,109 @@ def sigil(c, x, y, s, glow=False):
         c.ring(x, y, 9 * s, 9 * s, 'p', 1)
 
 
-def bat(c, x, y, t):
-    up = (t % 2) * 2
-    c.ellipse(x, y, 1.6, 1.4, 'X')
-    for sgn in (-1, 1):
-        c.poly([(x + sgn, y), (x + sgn * 6, y - 2 - up), (x + sgn * 5, y + 1), (x + sgn * 3, y + 2 - up * 0.5)], 'd')
-    c.put(x, y, 'P')
-
-
 # ------------------------------------------------------------------ the animations
 def idle(t):
     b = [0, 1, 1, 0][t]
-    return vesper(pose(t=t, by=b, wing_up=[0, 1, 2, 1][t], hand='chest' if t in (1, 2) else 'rest'))
+    return archon(pose(t=t, by=b, flap=[0, 0.3, 0.5, 0.2][t], gem='P' if t % 2 == 0 else 'p'))
 
 
 def move(t):
     b = [0, 1, 0, 0, 1, 0][t]
     s = [-2, -1, 1, 2, 1, -1][t]
-    return vesper(pose(t=t + 0.5, by=b, lean=2, stride=s, blow=1, wings=0.9, wing_up=[2, 0, -1, 0, 2, 3][t]))
+    return archon(pose(t=t + 0.5, by=b, lean=2, stride=s, blow=1, wings=0.92, flap=[0.6, 0.2, -0.1, 0.1, 0.5, 0.8][t], lance='level'))
 
 
-def crescent_anim(t):
-    """Crescent volley: the staff drawn back, swept forward, and crescents of blood flung out."""
-    modes = ['back', 'back', 'up', 'swing', 'forward', 'rest']
-    c = vesper(pose(t=t, lean=[-1, -2, 0, 3, 2, 0][t], staff=modes[t], glow=t in (2, 3), wing_up=[0, 2, 4, 0, -1, 0][t]))
-    if t in (3, 4):
-        d = 0 if t == 3 else 6
-        for k in (-1, 0, 1):
-            crescent(c, CX + 34 + d - abs(k) * 4, 36 + k * 14, 6, 2.4, k * 0.2, 'P', 'W')
-    if t == 2:
-        c.ring(c.hands[2][0], c.hands[2][1], 10, 10, 'P', 1)
+def lance_strike(t):
+    """Void-lance strike: he draws the lance back, drives it forward, and a crescent of void-light tears off its point."""
+    modes = ['back', 'back', 'level', 'thrust', 'thrust', 'rest']
+    c = archon(pose(t=t, lean=[-1, -3, 0, 4, 3, 0][t], lance=modes[t], glow=t in (2, 3), stride=[0, -1, 1, 2, 2, 0][t], flap=[0, 0.5, 0.2, -0.3, -0.2, 0][t]))
+    tx, ty = c.hands[2]
+    if t == 3:
+        crescent(c, min(tx + 4, W - 10), ty, 8, 3.2, 0, 'P', 'W')
+    if t == 4:
+        crescent(c, W - 9, ty, 7, 2.6, 0, 'P', 'W')
+        for i in range(5):
+            c.put(tx - 6 - i * 3, ty + (i % 2) * 2 - 1, 'p')
     return c
 
 
-def rite(t):
-    """The crimson rite: he plants his staff, a rune circle opens and columns of blood burst up all round."""
-    c = VCanvas()
-    if t >= 1:
-        rr = [0, 18, 28, 36, 40, 26][t]
-        E.ground_ring(c, CX, FOOT, rr, rr * 0.2 + 2, 'P', 'V', rot=t * 0.35)
-    merge(c, vesper(pose(t=t, crouch=2 if t in (1, 2) else 0, staff='plant' if t >= 1 else 'rest', hand='out' if t in (3, 4) else 'chest',
-                         glow=t >= 2, eye='W' if t in (3, 4) else 'P', wing_up=4 if t in (3, 4) else 0)))
-    if t in (3, 4):
-        for k in range(8):
-            a = k * math.pi / 4 + 0.4
-            x = CX + math.cos(a) * 36
-            y = FOOT + math.sin(a) * 6
-            E.pillar(c, x, y - (16 if t == 3 else 26), y, 2)
-    return c
-
-
-def geyser(t):
-    """Blood geyser: he drives his claws toward the ground and spikes of blood erupt in a line."""
-    c = vesper(pose(t=t, lean=[0, 1, 2, 2, 1, 0][t], hand='down' if t in (1, 2, 3, 4) else 'rest', crouch=[0, 2, 3, 2, 1, 0][t],
-                    staff='back' if t in (1, 2, 3) else 'rest', glow=t in (2, 3)))
-    n = [0, 0, 2, 4, 5, 2][t]
-    for k in range(n):
-        x = CX - 22 - k * 9 + (0 if t < 5 else 4)
-        if x < 2:
-            break
-        spike(c, x, FOOT, [10, 14, 18, 16, 12][k % 5] * (0.6 if t == 5 else 1), lean=-1)
+def ranged(t):
+    """Ranged attack: an orb of void-light gathers at the lance's head, he looses it, and it bursts into a star."""
+    c = archon(pose(t=t, lance='level' if t in (1, 2, 3) else 'rest', hand='out' if t in (2, 3, 4) else 'rest', glow=t in (1, 2)))
+    tx, ty = c.hands[2]
+    lx, ly = c.hands[1]
     if t == 1:
-        c.ellipse(CX - 16, 64, 3, 3, 'P')
+        orb(c, tx, ty, 2)
+    if t == 2:
+        orb(c, tx, ty, 3.2, bright=True)
+        orb(c, lx - 3, ly, 1.8)
+    if t == 3:
+        orb(c, min(tx + 8, W - 6), ty, 2.4)
+        orb(c, lx - 10, ly - 2, 2.2)
+    if t == 4:
+        burst_star(c, 10, 20, 8)
+        burst_star(c, W - 10, 26, 7)
+    return c
+
+
+def gravity(t):
+    """Gravity well: he plants the lance, a ring of light opens on the ground before him and a funnel spins up out of it."""
+    c = VCanvas()
+    if t >= 2:
+        vortex(c, 16, FOOT - 1, [0, 0, 14, 30, 44, 36][t], [0, 0, 5, 8, 10, 9][t], t)
+    if t == 1:
+        E.ground_ring(c, CX, FOOT, 26, 4, 'P', 'V', rot=0.2)
+    merge(c, archon(pose(t=t, lance='plant' if t >= 1 else 'rest', hand='out' if t >= 2 else 'rest', glow=t >= 1, crouch=2 if t == 1 else 0,
+                         eye='W' if t in (3, 4) else 'P')))
+    if t >= 3:
+        vortex(c, 16, FOOT - 1, [0, 0, 14, 30, 44, 36][t], [0, 0, 5, 8, 10, 9][t], t)
+    return c
+
+
+def dash(t):
+    """Void dash and teleport: he streaks forward in a trail of light, comes apart, steps through a rift and out."""
+    if t == 3:
+        c = VCanvas()
+        # the rift: an upright oval of red light
+        c.ring(CX, 48, 9, 24, 'P', 1.8)
+        c.ring(CX, 48, 6, 19, 'V', 1)
+        c.ellipse(CX, 48, 3, 14, 'p')
+        E.sparkles(c, t, 14)
+        return c
+    if t == 2:
+        return E.dissolve(archon(pose(t=t, lean=5, bx=4, lance='level', blow=3, wings=0.8, flap=-0.4)), 0.45)
+    c = archon(pose(t=t, lean=5 if t < 5 else 2, bx=4 if t < 5 else 0, stride=[-2, 2, 0, 0, -2, 0][t], blow=3 if t < 5 else 1,
+                    lance='level', wings=0.85, flap=-0.4, glow=t in (1, 4)))
+    for i in range(10 if t in (0, 1, 4) else 0):
+        hv = h32(t, i, 13)
+        y = 10 + hv % 66
+        x = (hv >> 8) % 16
+        c.line(x, y, x + 9 + (hv >> 4) % 10, y, 'P' if i % 3 else 'W')
+    return c
+
+
+def cascade(t):
+    """Temporal cascade: he raises the lance, clock faces of light open on the ground all round, and columns fall on them."""
+    c = VCanvas()
+    spots = [(12, FOOT - 3), (80, FOOT - 3), (26, FOOT + 2), (66, FOOT + 2), (4, FOOT + 4), (88, FOOT + 4)]
+    n = [0, 0, 2, 4, 6, 6][t]
+    for k in range(n):
+        x, y = spots[k]
+        clock(c, x, y, 7, t * 0.9 + k)
+    merge(c, archon(pose(t=t, lance='up' if t >= 1 else 'rest', hand='up' if t >= 2 else 'rest', glow=t >= 1, eye='W' if t >= 3 else 'P', flap=0.6 if t >= 2 else 0)))
+    if t in (1, 2):
+        # the hours turning over his head
+        clock(c, CX + 18, 6, 9, t * 1.4)
+    if t >= 4:
+        for k in range(6 if t == 4 else 4):
+            x, y = spots[k]
+            E.pillar(c, x, 4 + (k % 3) * 8, y, 2 if t == 4 else 3)
     return c
 
 
 def brand(t):
-    """The blood brand: his hand points, the sigil forms in his palm and flies to its mark."""
-    c = vesper(pose(t=t, hand='point' if t in (2, 3, 4) else 'chest' if t == 1 else 'rest', eye='W' if t in (2, 3) else 'P',
+    """The blood brand: he points, the sigil forms in his hand and flies to its mark."""
+    c = archon(pose(t=t, hand='point' if t in (2, 3, 4) else 'chest' if t == 1 else 'rest', eye='W' if t in (2, 3) else 'P',
                     glow=t in (1, 2, 3), lean=[0, 0, -2, -2, -1, 0][t]))
     lx, ly = c.hands[1]
     if t == 1:
@@ -328,193 +438,88 @@ def brand(t):
         sigil(c, 10, 12, 1.0, glow=True)
         c.line(lx - 2, ly - 2, 14, 16, 'P')
     if t == 4:
-        # the mark lands: a beating ring on the ground where its carrier stands
         c.ring(12, FOOT - 2, 11, 3.2, 'P', 1.4)
         c.ring(12, FOOT - 2, 7, 2, 'V', 1)
         sigil(c, 12, 40, 0.8)
     return c
 
 
-def blink(t):
-    """Blood-mist blink: he folds his wings round himself, bursts into a swarm of bats, and pours back out."""
-    if t in (2, 3):
-        c = VCanvas()
-        for i in range(10 if t == 2 else 7):
-            hv = h32(i, t, 5)
-            spread = 30 if t == 2 else 40
-            bat(c, CX + (hv % (spread * 2)) - spread, 20 + (hv >> 8) % 50, t + i)
-        c.ellipse(CX, FOOT, 14 if t == 2 else 8, 2.4, 'V')
-        return c
-    if t == 1:
-        c = vesper(pose(t=t, wings=0.45, wing_up=-6, hand='chest', staff='back', crouch=2))
-        E.sparkles(c, t, 10)
-        return c
-    if t == 4:
-        c = E.dissolve(vesper(pose(t=t, wings=0.6, hand='chest', staff='back')), 0.55)
-        for i in range(4):
-            hv = h32(i, t, 9)
-            bat(c, CX - 30 + hv % 60, 14 + (hv >> 7) % 30, i)
-        return c
-    return vesper(pose(t=t, wing_up=[0, 0, 0, 0, 0, 5][t], wings=1.05 if t == 5 else 1.0))
-
-
 def summon(t):
-    """Summoning the Conclave: the staff raised high, pools of blood open and his acolytes rise from them."""
-    c = vesper(pose(t=t, staff='high' if t >= 1 else 'rest', hand='out' if t >= 2 else 'rest', glow=t >= 1, wing_up=[0, 3, 5, 5, 2][t]))
+    """He calls the Conclave: the lance raised, rifts open at his sides and his acolytes step out of them."""
+    c = archon(pose(t=t, lance='up' if t >= 1 else 'rest', hand='out' if t >= 2 else 'rest', glow=t >= 1, flap=[0, 0.4, 0.7, 0.7, 0.3][t]))
     if t >= 2:
-        for x in (10, 82):
-            c.ellipse(x, FOOT, 8, 2.2, 'V')
-            c.ellipse(x, FOOT, 5, 1.2, 'P')
+        for x in (8, 84):
+            c.ring(x, 66, 5, 16, 'P', 1.4)
+            c.ellipse(x, 66, 2.5, 12, 'V')
             if t >= 3:
-                ht = 14 if t == 3 else 24
-                # a hooded acolyte rising out of the pool
-                c.poly([(x - 6, FOOT), (x + 6, FOOT), (x + 4, FOOT - ht + 6), (x, FOOT - ht), (x - 4, FOOT - ht + 6)], 'K')
-                c.shade('K', 'k', 'n')
-                c.line(x - 5, FOOT - 2, x + 5, FOOT - 2, 'C')
+                ht = 14 if t == 3 else 22
+                c.poly([(x - 5, FOOT), (x + 5, FOOT), (x + 4, FOOT - ht + 6), (x, FOOT - ht), (x - 4, FOOT - ht + 6)], 'M')
+                c.shade('M', 'm', 'q')
                 c.put(x - 1, FOOT - ht + 5, 'P')
                 c.put(x + 2, FOOT - ht + 5, 'P')
-    if t == 1:
-        E.sparkles(c, t, 8)
     return c
 
 
 def guard(t):
-    """Guard: his wings close round him like a shell and a skin of blood hardens over them."""
-    c = vesper(pose(t=t, wings=0.55, wing_up=-4, hand='chest', staff='plant', glow=True, drops=False))
-    r = [24, 28, 28, 25][t]
-    c.ring(CX, 46, r, r * 1.2, 'P', 1.4)
-    c.ring(CX, 46, r - 2, r * 1.2 - 2, 'V', 1)
-    for k in range(8):
-        a = k * math.pi / 4 + t * 0.4
-        c.put(CX + math.cos(a) * r, 46 + math.sin(a) * r * 1.2, 'W')
+    """Guard and hit reaction: he braces behind his kite shield, wings drawn in, and the void flares off it."""
+    c = archon(pose(t=t, shield=True, hand='shield', lance='rest', wings=0.8, flap=-0.5, crouch=[1, 2, 2, 1][t], lean=[0, -1, -1, 0][t]))
+    if t in (1, 2):
+        for k in range(6):
+            a = -math.pi / 2 + (k - 2.5) * 0.45
+            x, y = CX - 22 + math.cos(a + math.pi) * (3 + t * 3), 46 + math.sin(a) * 14
+            c.put(x, y, 'p' if k % 2 else 'W')
+        c.ring(CX - 10, 48, 15 + t * 2, 26 + t * 2, 'P', 1)
     return c
 
 
 def death(t):
-    """He staggers, his crown falls, he sinks to his knees and comes apart into blood and bats."""
+    """He falls to a knee on his lance, the void bursts out of his chest, and he comes apart into a crack of red light."""
     if t <= 2:
-        c = vesper(pose(t=t, by=t * 3, crouch=t * 4, wings=1 - t * 0.2, wing_up=-t * 3, eye=['W', 'P', 'V'][t],
-                        staff='down', hand='down', drops=t == 0))
-        for i in range(3 + t * 3):
-            hv = h32(i, t, 3)
-            c.ellipse(28 + hv % 36, 30 + (hv >> 6) % 50, 1.2, 1.6, 'P')
+        c = archon(pose(t=t, by=t * 3, crouch=t * 4, wings=1 - t * 0.18, flap=-t * 0.4, eye=['W', 'P', 'V'][t], lance='plant', hand='down',
+                        gem=['W', 'P', 'V'][t]))
+        if t >= 1:
+            burst_star(c, CX, 36 + t * 7, 6 + t * 3)
         return c
     if t <= 4:
-        c = E.dissolve(vesper(pose(t=t, by=10, crouch=10, wings=0.5, wing_up=-8, eye='V', staff='down', hand='down', drops=False)),
-                       [0, 0, 0, 0.5, 0.22][t])
-        for i in range(3 if t == 3 else 6):
-            hv = h32(i, t, 9)
-            bat(c, 10 + hv % 72, 10 + (hv >> 7) % 40, i)
-        return c
+        return E.dissolve(archon(pose(t=t, by=10, crouch=10, wings=0.6, flap=-1, eye='V', lance='plant', hand='down', gem='V')), [0, 0, 0, 0.5, 0.22][t])
     c = VCanvas()
-    c.ellipse(CX, FOOT, 22 if t == 5 else 26, 3.2, 'V')
-    c.ellipse(CX, FOOT, 14 if t == 5 else 18, 1.8, 'P')
-    # his crown, left lying in the blood
-    c.rect(CX - 5, FOOT - 3, CX + 5, FOOT - 2, 'G')
-    for dx in (-4, 0, 4):
-        c.line(CX + dx, FOOT - 3, CX + dx * 1.2, FOOT - 6, 'G')
+    # a crack of red light left in the floor
+    pts = [(CX - 26, FOOT), (CX - 14, FOOT - 2), (CX - 8, FOOT + 1), (CX, FOOT - 3), (CX + 9, FOOT), (CX + 16, FOOT - 2), (CX + 26, FOOT)]
+    for a, b in zip(pts, pts[1:]):
+        c.line(a[0], a[1], b[0], b[1], 'P', 2 if t == 5 else 1.4)
+        c.line(a[0], a[1], b[0], b[1], 'W')
     if t == 5:
-        E.sparkles(c, t, 14)
+        E.sparkles(c, t, 22)
+    else:
+        E.sparkles(c, t, 8)
     return c
 
 
 SEQ = [
-    ('idle', idle, 4), ('move', move, 6), ('crescent', crescent_anim, 6), ('rite', rite, 6), ('geyser', geyser, 6),
-    ('brand', brand, 6), ('blink', blink, 6), ('summon', summon, 5), ('guard', guard, 4), ('death', death, 7),
+    ('idle', idle, 4), ('move', move, 6), ('lance', lance_strike, 6), ('ranged', ranged, 5), ('gravity', gravity, 6), ('dash', dash, 6),
+    ('cascade', cascade, 6), ('brand', brand, 5), ('summon', summon, 5), ('guard', guard, 4), ('death', death, 7),
 ]
-
-TITLES = {
-    'idle': 'Idle', 'move': 'Move', 'crescent': 'Crescent Volley', 'rite': 'The Crimson Rite', 'geyser': 'Blood Geyser',
-    'brand': 'Blood Brand', 'blink': 'Blood-Mist Blink', 'summon': 'Summon the Conclave', 'guard': 'Guard (phase shield)',
-    'death': 'Death', 'ridle': 'Enraged Idle', 'rmove': 'Enraged Move',
-}
 
 
 def ridle(t):
-    return E.flames(vesper(pose(t=t, by=[0, 1, 1, 0][t], eye='W', glow=True, wing_up=[2, 4, 5, 3][t])), t)
+    return E.flames(archon(pose(t=t, by=[0, 1, 1, 0][t], eye='W', glow=True, gem='W', flap=[0.3, 0.6, 0.8, 0.5][t])), t)
 
 
 def rmove(t):
-    return E.flames(vesper(pose(t=t + 0.5, by=[0, 1, 0, 0, 1, 0][t], lean=2, stride=[-2, -1, 1, 2, 1, -1][t], blow=1, eye='W', glow=True)), t + 9)
+    return E.flames(archon(pose(t=t + 0.5, by=[0, 1, 0, 0, 1, 0][t], lean=2, stride=[-2, -1, 1, 2, 1, -1][t], blow=1, eye='W', glow=True,
+                                gem='W', lance='level', wings=0.92)), t + 9)
 
 
 def sequences():
     out = []
     for name, fn, n in SEQ:
-        out.append(('vesper_' + name, [fn(t).rows() for t in range(n)], PAL, 4))
-    out.append(('vesper_ridle', [ridle(t).rows() for t in range(4)], PAL, 4))
-    out.append(('vesper_rmove', [rmove(t).rows() for t in range(6)], PAL, 4))
-    out.append(('vesper', [idle(0).rows(), idle(2).rows(), move(0).rows(), move(3).rows(), rite(3).rows(), crescent_anim(3).rows()], PAL, 4))
+        out.append(('archon_' + name, [fn(t).rows() for t in range(n)], PAL, 4))
+    out.append(('archon_ridle', [ridle(t).rows() for t in range(4)], PAL, 4))
+    out.append(('archon_rmove', [rmove(t).rows() for t in range(6)], PAL, 4))
+    out.append(('archon', [idle(0).rows(), idle(2).rows(), move(0).rows(), move(3).rows(), lance_strike(3).rows(), cascade(4).rows()], PAL, 4))
     return out
-
-
-# ------------------------------------------------------------------ the presentation sheet
-def render(rows, scale):
-    """One frame as the game draws it: palette colours, scaled up, a 2px black outline."""
-    from PIL import Image
-    h, w = len(rows), len(rows[0])
-    img = Image.new('RGBA', (w * scale + 4, h * scale + 4), (0, 0, 0, 0))
-    px = img.load()
-    for y, row in enumerate(rows):
-        for x, ch in enumerate(row):
-            if ch == '.' or ch not in PAL:
-                continue
-            col = PAL[ch]
-            for yy in range(scale):
-                for xx in range(scale):
-                    px[2 + x * scale + xx, 2 + y * scale + yy] = ((col >> 16) & 255, (col >> 8) & 255, col & 255, 255)
-    out = img.copy()
-    op = out.load()
-    for y in range(img.height):
-        for x in range(img.width):
-            if px[x, y][3]:
-                continue
-            if any(0 <= x + dx < img.width and 0 <= y + dy < img.height and px[x + dx, y + dy][3]
-                   for dx in (-2, -1, 0, 1, 2) for dy in (-2, -1, 0, 1, 2) if abs(dx) + abs(dy) <= 2):
-                op[x, y] = (0, 0, 0, 255)
-    return out
-
-
-def sheet(path, scale=2):
-    from PIL import Image, ImageDraw, ImageFont
-    seqs = [(n, fn, k) for n, fn, k in SEQ] + [('ridle', ridle, 4), ('rmove', rmove, 6)]
-    def font(sz):
-        for f in ('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf'):
-            try:
-                return ImageFont.truetype(f, sz)
-            except OSError:
-                pass
-        return ImageFont.load_default()
-    fw, fh = W * scale + 4, H * scale + 4
-    label_w, pad, top = 210, 8, 190
-    cols = max(k for _, _, k in seqs)
-    width = label_w + cols * (fw + pad) + pad
-    height = top + len(seqs) * (fh + pad) + pad + 40
-    img = Image.new('RGBA', (width, height), (24, 10, 16, 255))
-    d = ImageDraw.Draw(img)
-    # the title, his portrait and his palette
-    port = render(idle(0).rows(), 2)
-    img.alpha_composite(port, (12, 0))
-    d.text((label_w + 10, 18), 'ARCHON VESPER', fill=(255, 64, 90), font=font(40))
-    d.text((label_w + 12, 66), 'The Crimson Dawn  -  last boss of the Crimson Conclave', fill=(230, 210, 215), font=font(18))
-    d.text((label_w + 12, 92), '"So you are the ones who silenced my Matron."', fill=(212, 160, 48), font=font(16))
-    sw = [('robe', 'K'), ('wings', 'C'), ('gold', 'G'), ('skin', 'H'), ('hair', 'L'), ('blood', 'P'), ('blood light', 'p')]
-    for i, (nm, ch) in enumerate(sw):
-        x = label_w + 12 + i * 92
-        col = PAL[ch]
-        d.rectangle((x, 126, x + 22, 148), fill=((col >> 16) & 255, (col >> 8) & 255, col & 255), outline=(0, 0, 0))
-        d.text((x + 28, 130), nm, fill=(200, 190, 195), font=font(12))
-    for r, (name, fn, n) in enumerate(seqs):
-        y = top + r * (fh + pad)
-        d.rectangle((0, y - 2, width, y + fh + 2), fill=(36, 14, 22) if r % 2 else (28, 10, 18))
-        d.text((12, y + fh // 2 - 18), TITLES[name], fill=(255, 200, 210), font=font(17))
-        d.text((12, y + fh // 2 + 6), str(n) + ' frames', fill=(150, 120, 130), font=font(12))
-        for t in range(n):
-            fr = render(fn(t).rows(), scale)
-            img.alpha_composite(fr, (label_w + pad + t * (fw + pad), y))
-    d.text((12, height - 30), 'Eldmere  -  draft for approval: tools/bossart/vesper.py', fill=(140, 110, 120), font=font(12))
-    img.save(path)
 
 
 if __name__ == '__main__':
-    sheet(sys.argv[1] if len(sys.argv) > 1 else 'vesper_sheet.png')
+    from canvas import preview
+    preview([(n, f, p) for n, f, p, s in sequences()], sys.argv[1] if len(sys.argv) > 1 else 'archon.png', scale=2)

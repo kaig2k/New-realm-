@@ -21,6 +21,8 @@ package realm {
 	/** Shared look & feel: fonts, text fields, panels and buttons. */
 	public class Ui {
 		public static const W:int = 1100;
+		/** Seconds a frame takes at the frame rate the game runs at (60, or more with V-Sync off: Game.applyVsync). */
+		public static var FRAME:Number = 1 / 60;
 		public static const H:int = 640;
 
 		public static const PANEL:uint = 0x363636;

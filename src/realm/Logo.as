@@ -93,7 +93,7 @@ package realm {
 		public function get logoWidth():Number { return face.width; }
 
 		private function tick(e:Event):void {
-			t += 1 / 60;
+			t += Ui.FRAME;
 			// one sweep every five seconds
 			var cyc:Number = t % 5;
 			var sb:BitmapData = shine.bitmapData;

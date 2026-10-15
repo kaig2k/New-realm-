@@ -45,8 +45,8 @@ package realm {
 		}
 
 		private function animate(e:Event):void {
-			camY -= 0.02;
-			camX += 0.008;
+			camY -= 0.02 * Ui.FRAME * 60;
+			camX += 0.008 * Ui.FRAME * 60;
 			if (camY < 30) camY = world.spawnY - 10;
 			draw();
 		}

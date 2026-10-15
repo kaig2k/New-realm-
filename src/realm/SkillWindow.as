@@ -94,7 +94,7 @@ package realm {
 		}
 
 		private function animate(e:Event):void {
-			t += 1 / 30;
+			t += Ui.FRAME * 2;
 			for each (var tw:Shape in twinkle) { var a:Number = 0.5 + 0.5 * Math.sin(t * 1.7 + Number(tw.name)); tw.alpha = a; tw.scaleX = tw.scaleY = 0.5 + a * 0.6; }
 			// skills you can learn right now breathe
 			for each (var p:Object in pulses) p.glow.alpha = 0.45 + 0.4 * Math.sin(t * 4 + p.k);

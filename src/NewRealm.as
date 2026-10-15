@@ -50,6 +50,8 @@ package {
 			stage.scaleMode = StageScaleMode.SHOW_ALL;
 			stage.align = "";
 			stage.frameRate = 60;
+			// (or unlocked, with V-Sync off in Settings)
+			realm.Game.applyVsync(stage);
 			stage.quality = StageQuality.HIGH;
 			realm.Bosses.init();
 			realm.Cursor.install(stage);
@@ -79,7 +81,7 @@ package {
 		/** Home screen: PLAY (after logging in) leads to character select. */
 		private function fadeStep(e:Event):void {
 			if (!fade.visible) return;
-			fade.alpha -= 1 / 60 / 0.35;
+			fade.alpha -= realm.Ui.FRAME / 0.35;
 			if (fade.alpha <= 0) fade.visible = false;
 		}
 

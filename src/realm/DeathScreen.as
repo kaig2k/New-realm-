@@ -168,7 +168,7 @@ package realm {
 		}
 
 		private function animate(e:Event):void {
-			t += 1 / 60;
+			t += Ui.FRAME;
 			alpha = Math.min(1, t / 0.9);
 			for (var i:int = 0; i < reveal.length; i++) {
 				var k:Number = Math.max(0, Math.min(1, (t - 0.7 - i * 0.07) / 0.4));

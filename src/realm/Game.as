@@ -4,6 +4,7 @@ package realm {
 	import flash.filters.GlowFilter;
 	import flash.display.Shape;
 	import flash.display.Sprite;
+	import flash.display.Stage;
 	import flash.events.Event;
 	import flash.filters.ColorMatrixFilter;
 	import flash.events.MouseEvent;
@@ -547,6 +548,26 @@ package realm {
 			return o[name] !== false;
 		}
 
+		/**
+		 * V-Sync (Settings): on, frames wait for the screen and the game runs at 60; off, it draws
+		 * as soon as a frame is ready, up to 240 a second (less input lag, maybe some tearing).
+		 * The AIR runtime only lets it change once it says it can (vsyncStateChangeAvailability).
+		 */
+		public static function applyVsync(st:Stage):void {
+			if (!st) return;
+			var on:Boolean = opt("vsync");
+			st.frameRate = on ? 60 : 240;
+			Ui.FRAME = 1 / st.frameRate;
+			try { st["vsyncEnabled"] = on; } catch (e:Error) {}
+			if (!vsyncHooked) {
+				vsyncHooked = true;
+				st.addEventListener("vsyncStateChangeAvailability", function(ev:Event):void {
+					if (ev["available"]) try { st["vsyncEnabled"] = opt("vsync"); } catch (e2:Error) {}
+				});
+			}
+		}
+		private static var vsyncHooked:Boolean = false;
+
 		private static function setOpt(name:String, v:Boolean):void {
 			if (!Save.data.opt) Save.data.opt = {};
 			Save.data.opt[name] = v;
@@ -616,6 +637,7 @@ package realm {
 				add("Particles: " + onOff("parts"), toggle("parts"), 28, 33);
 				add("Screen shake: " + onOff("shake"), toggle("shake"), 28, 33);
 				add("Game cursor: " + onOff("cursor"), toggle("cursor"), 28, 33);
+				add("V-Sync: " + (opt("vsync") ? "On (60 FPS)" : "Off (up to 240 FPS)"), function():void { setOpt("vsync", !opt("vsync")); applyVsync(stage); refreshPauseMenu(); }, 28, 33);
 				add("Quest tracker: " + onOff("tracker"), function():void { setOpt("tracker", !opt("tracker")); refreshTracker(); refreshPauseMenu(); }, 28, 33);
 				add("Loot filter: " + LootBag.FILTERS[int(Save.data.lootFilter || 0)], function():void { Save.data.lootFilter = (int(Save.data.lootFilter || 0) + 1) % LootBag.FILTERS.length; Save.flush(); refreshPauseMenu(); }, 28, 33);
 				add("Auto-drink stat potions: " + (Save.data.autoPots ? "On" : "Off"), function():void { Save.data.autoPots = !Save.data.autoPots; Save.flush(); refreshPauseMenu(); }, 28, 33);
@@ -1494,7 +1516,7 @@ package realm {
 			var now:int = getTimer();
 			var dt:Number = (now - lastT) / 1000;
 			lastT = now;
-			if (dt > 0) fpsAvg = fpsAvg * 0.95 + Math.min(120, 1 / dt) * 0.05;
+			if (dt > 0) fpsAvg = fpsAvg * 0.95 + Math.min(300, 1 / dt) * 0.05;
 			if (dt > 0.05) dt = 0.05;
 			frameDt = dt;
 
@@ -2586,7 +2608,7 @@ package realm {
 		private function drawArcs():void {
 			for (var i:int = arcs.length - 1; i >= 0; i--) {
 				var a:Object = arcs[i];
-				a.t += 1 / 60;
+				a.t += frameDt;
 				if (a.w != world || a.t > 0.35) { arcs.splice(i, 1); continue; }
 				if (a.t < 0) continue;
 				var gr:* = markShape.graphics;
@@ -2628,7 +2650,7 @@ package realm {
 		private function drawGroundFx():void {
 			for (var i:int = gfx.length - 1; i >= 0; i--) {
 				var f:Object = gfx[i];
-				f.t += 1 / 60;
+				f.t += frameDt;
 				if (f.w != world || f.t > 0.9) { gfx.splice(i, 1); continue; }
 				var gr:* = markShape.graphics;
 				gr.clear();
@@ -6629,7 +6651,7 @@ package realm {
 		}
 
 		private function updateQuestArrow():void {
-			questT -= 1 / 30;
+			questT -= frameDt * 2;
 			if (questT <= 0 || !questTarget || questTarget.dead) {
 				questT = 0.5;
 				questTarget = pickQuest();
@@ -6667,7 +6689,7 @@ package realm {
 			rs = Math.sin(camAngle);
 			shx = shy = 0;
 			if (shakeT > 0) {
-				shakeT -= 1 / 30;
+				shakeT -= frameDt * 2;
 				var sa:Number = shakeAmp * Math.min(1, shakeT * 4);
 				shx = Math.round((Math.random() * 2 - 1) * sa);
 				shy = Math.round((Math.random() * 2 - 1) * sa);
@@ -7031,7 +7053,7 @@ package realm {
 				var c:Object = corpses[i];
 				if (c.seq) {
 					// a boss with a death of its own: staggers, kneels, falls, and crumbles to smoke
-					c.t += 1 / 60;
+					c.t += frameDt;
 					var dk:int = int(c.t / 0.26);
 					if (dk >= c.n) { corpses.splice(i, 1); continue; }
 					var dbd:BitmapData = Sprites.get(c.seq, dk, c.flip);
@@ -7041,7 +7063,7 @@ package realm {
 					continue;
 				}
 				var life:Number = c.big ? 0.9 : 0.35;
-				c.t += 1 / 60;
+				c.t += frameDt;
 				var f:Number = c.t / life;
 				if (f >= 1) { corpses.splice(i, 1); continue; }
 				var bd:BitmapData = c.bd;

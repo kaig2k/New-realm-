@@ -678,7 +678,7 @@ package realm {
 			addChild(bmp);
 			var t:Number = 0;
 			bmp.addEventListener(Event.ENTER_FRAME, function(e:Event):void {
-				t += 1 / 60 / 0.28;
+				t += Ui.FRAME / 0.28;
 				if (t >= 1) {
 					bmp.removeEventListener(Event.ENTER_FRAME, arguments.callee);
 					if (bmp.parent) removeChild(bmp);
@@ -853,7 +853,7 @@ class Slot extends Sprite {
 			g.beginFill(0xffffff, readyGlow * 0.25);
 			g.drawRoundRect(1, 1, 46, 46, 10, 10);
 			g.endFill();
-			readyGlow = Math.max(0, readyGlow - 1 / 30);
+			readyGlow = Math.max(0, readyGlow - Ui.FRAME * 2);
 		}
 	}
 

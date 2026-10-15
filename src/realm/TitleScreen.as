@@ -252,10 +252,10 @@ package realm {
 		private var updating:Boolean = false;
 
 		private function animate(e:Event):void {
-			t += 1 / 60;
+			t += Ui.FRAME;
 			// out of date, under a launcher that can fetch the new version: let it (after a moment to read why)
 			if (Online.outdated && Online.reloader != null) {
-				updateT += 1 / 60;
+				updateT += Ui.FRAME;
 				if (updateT > 2 && !updating) {
 					updating = true;
 					var reload:Function = Online.reloader;
@@ -266,7 +266,7 @@ package realm {
 			}
 			// dropped out of a game: keep knocking until the server is back, then log in again
 			if (Online.dropped && !Online.connected && !connecting && !dialog && server && Accounts.remembered(server)) {
-				retryT -= 1 / 60;
+				retryT -= Ui.FRAME;
 				if (retryT <= 0) { retryT = 5; resume(null); }
 			}
 			if (playBtn) {
@@ -280,12 +280,12 @@ package realm {
 				art.filters = [artGlow, artShadow];
 			}
 			if (rune) {
-				rune.rotation += 0.04;
+				rune.rotation += 0.04 * Ui.FRAME * 60;
 				var eg:* = embers.graphics;
 				eg.clear();
 				for (var n:int = 0; n < ember.length; n++) {
 					var m:Object = ember[n];
-					m.life += 1 / 60;
+					m.life += Ui.FRAME;
 					m.y -= m.vy / 60;
 					m.x += Math.sin(t * 1.3 + m.ph) * 0.35;
 					if (m.y < -10) { ember[n] = newEmber(false); continue; }

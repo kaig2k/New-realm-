@@ -138,7 +138,7 @@ package realm {
 			else if (t < life - 1 && Math.random() < 0.6) spark(false);
 			// flash: bright, then gone
 			flash.alpha = Math.max(0, 0.75 - t * 2.2);
-			rays.rotation += godly ? 1.2 : 0.9;
+			rays.rotation += (godly ? 1.2 : 0.9) * Ui.FRAME * 60;
 			rays.scaleX = rays.scaleY = Math.min(1, t * 2.5) * (1 + Math.sin(t * 3) * 0.05);
 			// the item bursts in, overshoots, settles and bobs
 			var p:Number = Math.min(1, t / 0.5);
@@ -155,7 +155,7 @@ package realm {
 				sp.life -= dt;
 				sp.vx *= 0.94; sp.vy = sp.vy * 0.94 + 20 * dt;
 				sp.s.x += sp.vx * dt; sp.s.y += sp.vy * dt;
-				sp.s.rotation += 8;
+				sp.s.rotation += 8 * Ui.FRAME * 60;
 				sp.s.alpha = Math.max(0, sp.life / sp.max * 1.6);
 				if (sp.life <= 0) { sparkLayer.removeChild(sp.s); sparks.splice(i, 1); }
 			}

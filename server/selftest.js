@@ -558,6 +558,16 @@ async function run() {
       JSON.stringify(marks));
   }
   {
+    // Nerezza, from the user's own art: an animation for every attack on her sheet
+    const { Data: ND } = require('./sim/gen/game');
+    const NZ = ND.ENEMIES.tide_empress;
+    const nAll = [].concat(...NZ.phases.map((p) => (p.attacks || []).concat(...(p.cycle || []))));
+    check('every one of Nerezza\'s attacks but her spiral and flower has an animation she has frames for, and she rages in violet at the end',
+      nAll.filter((a) => a.p !== 'spiral' && a.p !== 'flower').every((a) => a.anim && NZ.seq[a.anim]) && NZ.seq.guard && NZ.seq.ridle && NZ.rageAt === 3 &&
+      ['trident', 'geyser', 'slam', 'summon', 'teleport', 'explode', 'whirlpool', 'spout'].every((k) => nAll.some((a) => a.anim === k)),
+      nAll.map((a) => a.anim).join(','));
+  }
+  {
     // Archon Vesper, after his design sheet: an animation for every attack
     const { Data: AD } = require('./sim/gen/game');
     const AV = AD.ENEMIES.archon;

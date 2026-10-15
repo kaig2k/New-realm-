@@ -1797,16 +1797,20 @@ class Bosses {
 						Bosses.spiral(6, -10, 6, 70, 0.1, Bosses.E_LIGHT, {shape: "voidorb"})]})
 			]}, ["elder_scepter", "crown_of_azrakor"]);
 
-			Bosses.boss("tide_empress", {name: "Nerezza, the Tide Empress", spr: "tide_empress", hp: 40000, def: 30, spd: 1.6, xp: 5000, col: 0x40d0ff,
-				gold: 1500, onrane: 15, dungeon: true, dtier: 5, finale: true, aggro: 18, range: 16, phases: [
+			
+			
+			Bosses.boss("tide_empress", {name: "Nerezza, the Tide Empress", spr: "tide_empress", hp: 40000, def: 30, spd: 1.6, xp: 5000, col: Bosses.N_BLUE,
+				gold: 1500, onrane: 15, dungeon: true, dtier: 5, finale: true, aggro: 18, range: 16, r: 1.2,
+				seq: {idle: 6, move: 6, trident: 5, geyser: 6, slam: 6, summon: 5, teleport: 6, explode: 6, whirlpool: 6, spout: 6, guard: 4, death: 7, ridle: 4, rmove: 6},
+				rageAt: 3, rageAll: true, phases: [
 				Bosses.P(1, {say: "You dare enter my throne room?", move: "orbit",
-					attacks: [Bosses.aim(5, 50, 7, 70, 1.0, 0x40d0ff, {motion: "wave"}), Bosses.ring(18, 10, 4, 65, 1.6, 0x2ac0c0)]}),
-				Bosses.P(0.75, {say: "Rise, children of the deep!", shield: 2.5, summon: [{what: "tide_spawn", n: 4}], move: "center",
-					attacks: [Bosses.wall(19, 4, 85, 1.8, 0x60c0ff, {hole: 3, motion: "wave"}), Bosses.summon("tide_spawn", 1, 9, 5)]}),
-				Bosses.P(0.5, {say: "The tide turns!", banner: "The throne room floods!", move: "teleport", every: 5,
-					cycle: [[Bosses.flower(24, 7.5, 5, 75, 0.9, 0x80f0ff, {motion: "return"})], [Bosses.rain(9, 7, 110, 1.8, 0x40a0ff, {burst: 6})]]}),
-				Bosses.P(0.2, {say: "DROWN!", shield: 2, move: "orbit", speed: 1.4,
-					attacks: [Bosses.spiral(8, 9, 6, 80, 0.1, 0xa0e0ff, {motion: "wave"}), Bosses.nova(3, 1.3, 140, 2.8, 0x2ac0c0, {burst: 16}), Bosses.aim(3, 16, 11, 100, 0.8, 0xffffff, {shape: "blade"})]})
+					attacks: [Bosses.nTrident(5, 70, 1.4), Bosses.nGeyser(5, 100, 3.6), Bosses.nTeleport(9)]}),
+				Bosses.P(0.75, {say: "Rise, children of the deep!", shield: 2.5, summon: [{what: "tide_spawn", n: 4}], move: "center", every: 4.5,
+					cycle: [[Bosses.nSlam(85, 1.8), Bosses.nTrident(3, 70, 1.2)], [Bosses.nWhirl(16, 80, 3.0), Bosses.nGeyser(7, 105, 2.0)], [Bosses.nSummon(1, 9), Bosses.nExplode(140, 3.6, 5.5)]]}),
+				Bosses.P(0.5, {say: "The tide turns!", banner: "The throne room floods!", move: "teleport",
+					attacks: [Bosses.nGeyser(9, 110, 1.8), Bosses.nSlam(90, 2.4), Bosses.nTeleport(6), Bosses.flower(24, 7.5, 5, 75, 0.9, Bosses.N_LIGHT, {motion: "return", shape: "orb"})]}),
+				Bosses.P(0.2, {say: "The sea is my voice. And you are but a ripple.", banner: "Nerezza's fury turns the sea violet!", shield: 2, move: "orbit", speed: 1.4,
+					attacks: [Bosses.spiral(8, 9, 6, 80, 0.1, Bosses.N_VIOLET, {motion: "wave", shape: "orb"}), Bosses.nSpout(110, 2.6), Bosses.nExplode(150, 3.0, 6), Bosses.nWhirl(18, 90, 3.6), Bosses.nTrident(7, 90, 1.0)]})
 			]}, ["tidebreaker", "empress_coral"]);
 
 			Bosses.boss("gearmind", {name: "Gearmind Omega", spr: "gearmind", hp: 42000, def: 38, spd: 1.0, xp: 5000, col: 0xffd060,
@@ -1896,6 +1900,34 @@ class Bosses {
 		}
 	static selfNova(radius, delay, dmg, cd, col, x = null) { dmg = __int(dmg); col = __uint(col);
 			return Bosses.nova(radius, delay, dmg, cd, col, Bosses.o({reach: 0.01, marker: "rune", radius: radius, burst: 16, bspd: 5.5, blife: 1.5, name: "rite"}, x));
+		}
+	static nTrident(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 40, 8.5, dmg, cd, Bosses.N_BLUE, {shape: "orb", r: 0.3, life: 1.3, split: {n: 6, spd: 4.5, life: 0.7, dmg: __int(dmg / 2)},
+				anim: "trident", animMs: 100, animHit: 3, name: "trident blast"});
+		}
+	static nGeyser(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 6, dmg, cd, Bosses.N_LIGHT, {radius: 1.4, delay: 1.0, stagger: 0.1, fx: "pillar", burst: 4, bspd: 4, blife: 0.7,
+				anim: "geyser", animMs: 110, animHit: 3, animHold: 1.0, name: "geyser"});
+		}
+	static nSlam(dmg, cd) { dmg = __int(dmg);
+			return Bosses.wall(17, 5, dmg, cd, Bosses.N_BLUE, {hole: 3, motion: "wave", shape: "crescent", r: 0.3, anim: "slam", animMs: 100, animHit: 3, name: "tide slam"});
+		}
+	static nSummon(n, cd) { n = __int(n);
+			return Bosses.o(Bosses.summon("tide_spawn", n, cd, 6), {anim: "summon", animMs: 130});
+		}
+	static nTeleport(cd) {
+			return Bosses.ring(12, 15, 4, 60, cd, Bosses.N_LIGHT, {shape: "orb", life: 2.0, blink: 6, anim: "teleport", animMs: 100, name: "tidal step"});
+		}
+	static nExplode(dmg, cd, radius) { dmg = __int(dmg);
+			return Bosses.nova(radius, 1.3, dmg, cd, Bosses.N_BLUE, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 5.5, blife: 1.5, shape: "orb", fx: "pillar",
+				anim: "explode", animMs: 120, animHit: 3, animHold: 1.3, name: "ocean explosion"});
+		}
+	static nWhirl(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: Bosses.N_LIGHT, shape: "orb", eff: "slowed"},
+				{anim: "whirlpool", animMs: 130, name: "whirlpool"});
+		}
+	static nSpout(dmg, cd) { dmg = __int(dmg);
+			return Bosses.aim(4, 100, 3.4, dmg, cd, Bosses.N_VIOLET, {shape: "orb", r: 0.55, life: 3.4, motion: "wave", anim: "spout", animMs: 110, animHit: 3, name: "waterspout"});
 		}
 	static aLance(dmg, cd) { dmg = __int(dmg);
 			return Bosses.aim(3, 26, 9.5, dmg, cd, Bosses.A_RED, {shape: "crescent", r: 0.42, life: 1.2, anim: "lance", animMs: 85, animHit: 3, animHold: 0.3, name: "void-lance strike"});
@@ -3604,7 +3636,8 @@ class Enemy {
 			var name = null, frame = 0;
 			if (this.anim) {
 				frame = __int(this.animFrame(now));
-				if (frame >= 0) name = this.def.spr + "_" + this.anim;
+				
+				if (frame >= 0) name = this.def.spr + "_" + this.anim + (this.def.rageAll && this.def.rageAt != undefined && this.phase >= this.def.rageAt ? "_r" : "");
 				else this.anim = "";
 			}
 			if (!name) {
@@ -5403,6 +5436,9 @@ Bosses.VAULT_TWISTS = [
 Bosses.T_VIOLET = __uint(0xa060ff);
 Bosses.T_PALE = __uint(0xe2ccff);
 Bosses.T_BLUE = __uint(0x4048e0);
+Bosses.N_BLUE = __uint(0x40a8ff);
+Bosses.N_LIGHT = __uint(0xa8e4ff);
+Bosses.N_VIOLET = __uint(0xb070ff);
 Bosses.A_RED = __uint(0xff2a3a);
 Bosses.A_PALE = __uint(0xffa8b0);
 Bosses.HEROIC = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};

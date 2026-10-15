@@ -353,7 +353,6 @@ package realm {
 			Sprites.recolor("phoenix", "seraph", {Y: 0xffd040, W: 0xff8030, S: 0xffe0a0, E: 0x601000, G: 0xff4010, g: 0xa02008}, 6);
 			Sprites.recolor("witch", "lich_king", {Y: 0x80ff60, B: 0x3a2a4a, E: 0xc0ff40, R: 0xff60ff, T: 0x2a2a2a, P: 0x2a6a2a, p: 0x143a14, G: 0xff80ff}, 5);
 			Sprites.recolor("kraken", "hermit", {S: 0x6a3a8a, s: 0x3a1a5a, C: 0xff6080, c: 0xa02040, E: 0xffe040, W: 0xffffff}, 6);
-			Sprites.recolor("tide_empress", "serpent_queen", {Y: 0x80f0ff, G: 0x1a6aa0, g: 0x0a3a60, S: 0xa0e0ff, E: 0x101010, P: 0x2ac0c0, p: 0x1a7070}, 6);
 			Sprites.recolor("gearmind", "boss", {Y: 0xc0a060, y: 0x806030, Q: 0x60e0ff, P: 0x6a6a72, p: 0x3a3a42, W: 0xffffff, E: 0x40ff80, K: 0x101010}, 6);
 			Sprites.recolor("void_dragon", "wyrm", {C: 0x4a2a7a, c: 0x1a0a2a, W: 0xc080ff, w: 0x8040c0, E: 0xff40ff, K: 0xffffff}, 7);
 			Sprites.recolor("matron", "regent", {Y: 0xff4040, y: 0xa01010, C: 0x6a0a1a, c: 0x3a0008, Q: 0xffd0d0, E: 0xff2020, W: 0xffa0a0, M: 0x8a2030, m: 0x5a1020}, 6);
@@ -903,16 +902,20 @@ package realm {
 						spiral(6, -10, 6, 70, 0.1, E_LIGHT, {shape: "voidorb"})]})
 			]}, ["elder_scepter", "crown_of_azrakor"]);
 
-			boss("tide_empress", {name: "Nerezza, the Tide Empress", spr: "tide_empress", hp: 40000, def: 30, spd: 1.6, xp: 5000, col: 0x40d0ff,
-				gold: 1500, onrane: 15, dungeon: true, dtier: 5, finale: true, aggro: 18, range: 16, phases: [
+			// Nerezza, the Tide Empress, from the user's own art (tools/bossart/nerezza.py keeps it as drawn):
+			// an animation for every attack on her sheet, and her robes turn violet when she rages
+			boss("tide_empress", {name: "Nerezza, the Tide Empress", spr: "tide_empress", hp: 40000, def: 30, spd: 1.6, xp: 5000, col: N_BLUE,
+				gold: 1500, onrane: 15, dungeon: true, dtier: 5, finale: true, aggro: 18, range: 16, r: 1.2,
+				seq: {idle: 6, move: 6, trident: 5, geyser: 6, slam: 6, summon: 5, teleport: 6, explode: 6, whirlpool: 6, spout: 6, guard: 4, death: 7, ridle: 4, rmove: 6},
+				rageAt: 3, rageAll: true, phases: [
 				P(1, {say: "You dare enter my throne room?", move: "orbit",
-					attacks: [aim(5, 50, 7, 70, 1.0, 0x40d0ff, {motion: "wave"}), ring(18, 10, 4, 65, 1.6, 0x2ac0c0)]}),
-				P(0.75, {say: "Rise, children of the deep!", shield: 2.5, summon: [{what: "tide_spawn", n: 4}], move: "center",
-					attacks: [wall(19, 4, 85, 1.8, 0x60c0ff, {hole: 3, motion: "wave"}), summon("tide_spawn", 1, 9, 5)]}),
-				P(0.5, {say: "The tide turns!", banner: "The throne room floods!", move: "teleport", every: 5,
-					cycle: [[flower(24, 7.5, 5, 75, 0.9, 0x80f0ff, {motion: "return"})], [rain(9, 7, 110, 1.8, 0x40a0ff, {burst: 6})]]}),
-				P(0.2, {say: "DROWN!", shield: 2, move: "orbit", speed: 1.4,
-					attacks: [spiral(8, 9, 6, 80, 0.1, 0xa0e0ff, {motion: "wave"}), nova(3, 1.3, 140, 2.8, 0x2ac0c0, {burst: 16}), aim(3, 16, 11, 100, 0.8, 0xffffff, {shape: "blade"})]})
+					attacks: [nTrident(5, 70, 1.4), nGeyser(5, 100, 3.6), nTeleport(9)]}),
+				P(0.75, {say: "Rise, children of the deep!", shield: 2.5, summon: [{what: "tide_spawn", n: 4}], move: "center", every: 4.5,
+					cycle: [[nSlam(85, 1.8), nTrident(3, 70, 1.2)], [nWhirl(16, 80, 3.0), nGeyser(7, 105, 2.0)], [nSummon(1, 9), nExplode(140, 3.6, 5.5)]]}),
+				P(0.5, {say: "The tide turns!", banner: "The throne room floods!", move: "teleport",
+					attacks: [nGeyser(9, 110, 1.8), nSlam(90, 2.4), nTeleport(6), flower(24, 7.5, 5, 75, 0.9, N_LIGHT, {motion: "return", shape: "orb"})]}),
+				P(0.2, {say: "The sea is my voice. And you are but a ripple.", banner: "Nerezza's fury turns the sea violet!", shield: 2, move: "orbit", speed: 1.4,
+					attacks: [spiral(8, 9, 6, 80, 0.1, N_VIOLET, {motion: "wave", shape: "orb"}), nSpout(110, 2.6), nExplode(150, 3.0, 6), nWhirl(18, 90, 3.6), nTrident(7, 90, 1.0)]})
 			]}, ["tidebreaker", "empress_coral"]);
 
 			boss("gearmind", {name: "Gearmind Omega", spr: "gearmind", hp: 42000, def: 38, spd: 1.0, xp: 5000, col: 0xffd060,
@@ -1038,6 +1041,45 @@ package realm {
 		private static function selfNova(radius:Number, delay:Number, dmg:int, cd:Number, col:uint, x:Object = null):Object {
 			return nova(radius, delay, dmg, cd, col, o({reach: 0.01, marker: "rune", radius: radius, burst: 16, bspd: 5.5, blife: 1.5, name: "rite"}, x));
 		}
+		// ---- Nerezza's attacks, after her design sheet (each with its own animation)
+		private static const N_BLUE:uint = 0x40a8ff, N_LIGHT:uint = 0xa8e4ff, N_VIOLET:uint = 0xb070ff;
+		// Trident Blast: orbs of water hurled from her staff, bursting into spray
+		private static function nTrident(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 40, 8.5, dmg, cd, N_BLUE, {shape: "orb", r: 0.3, life: 1.3, split: {n: 6, spd: 4.5, life: 0.7, dmg: int(dmg / 2)},
+				anim: "trident", animMs: 100, animHit: 3, name: "trident blast"});
+		}
+		// Trident Blast (vertical): geysers burst up through the floor where you stand
+		private static function nGeyser(n:int, dmg:int, cd:Number):Object {
+			return rain(n, 6, dmg, cd, N_LIGHT, {radius: 1.4, delay: 1.0, stagger: 0.1, fx: "pillar", burst: 4, bspd: 4, blife: 0.7,
+				anim: "geyser", animMs: 110, animHit: 3, animHold: 1.0, name: "geyser"});
+		}
+		// Tide Slam: a wave rolls at you, a gap in it to slip through
+		private static function nSlam(dmg:int, cd:Number):Object {
+			return wall(17, 5, dmg, cd, N_BLUE, {hole: 3, motion: "wave", shape: "crescent", r: 0.3, anim: "slam", animMs: 100, animHit: 3, name: "tide slam"});
+		}
+		// Summon Seawardens: they climb out of arches of water at her sides
+		private static function nSummon(n:int, cd:Number):Object {
+			return o(summon("tide_spawn", n, cd, 6), {anim: "summon", animMs: 130});
+		}
+		// Teleport: she runs to water and pours back out elsewhere, a ring of spray left behind
+		private static function nTeleport(cd:Number):Object {
+			return ring(12, 15, 4, 60, cd, N_LIGHT, {shape: "orb", life: 2.0, blink: 6, anim: "teleport", animMs: 100, name: "tidal step"});
+		}
+		// Ocean Explosion: the sea gathers round her, then bursts up in a crown of water
+		private static function nExplode(dmg:int, cd:Number, radius:Number):Object {
+			return nova(radius, 1.3, dmg, cd, N_BLUE, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 5.5, blife: 1.5, shape: "orb", fx: "pillar",
+				anim: "explode", animMs: 120, animHit: 3, animHold: 1.3, name: "ocean explosion"});
+		}
+		// Gravity Pull: a whirlpool's ring of water closing in on you (it slows you)
+		private static function nWhirl(n:int, dmg:int, cd:Number):Object {
+			return o({p: "implode", n: n, rot: 15, spd: 3.2, radius: 5.5, life: 5.5 / 3.2, dmg: dmg, cd: cd, r: 0.26, col: N_LIGHT, shape: "orb", eff: "slowed"},
+				{anim: "whirlpool", animMs: 130, name: "whirlpool"});
+		}
+		// Her second phase: slow waterspouts wandering out across the room
+		private static function nSpout(dmg:int, cd:Number):Object {
+			return aim(4, 100, 3.4, dmg, cd, N_VIOLET, {shape: "orb", r: 0.55, life: 3.4, motion: "wave", anim: "spout", animMs: 110, animHit: 3, name: "waterspout"});
+		}
+
 		// ---- Archon Vesper's attacks, after his design sheet (each with its own animation)
 		private static const A_RED:uint = 0xff2a3a, A_PALE:uint = 0xffa8b0;
 		// Void-Lance Strike: he drives the lance forward and crescents of void-light tear off its point

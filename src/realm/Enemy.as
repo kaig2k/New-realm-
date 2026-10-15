@@ -223,7 +223,8 @@ package realm {
 			var name:String, frame:int;
 			if (anim) {
 				frame = animFrame(now);
-				if (frame >= 0) name = def.spr + "_" + anim;
+				// (a boss with rageAll keeps its rage colours through its attacks too: "<anim>_r")
+				if (frame >= 0) name = def.spr + "_" + anim + (def.rageAll && def.rageAt != undefined && phase >= def.rageAt ? "_r" : "");
 				else anim = "";
 			}
 			if (!name) {

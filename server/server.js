@@ -492,6 +492,12 @@ if (sims) sims.onEarn = (c, e, near) => { if (c.authed && c.key && c.meta) walle
 
 // ------------------------------------------------------------------ player marketplace
 const market = new Market(load, save);
+// (tiered weapons listed before signature shots: brought up to their tier's shot, once)
+{
+  let up = false;
+  for (const l of market.data.list) if (l && items.upgradeHeld(l.item, l.entry)) up = true;
+  if (up) market.persist();
+}
 /** The Marketplace as c sees it (all listings, theirs marked, their takings). */
 function sendMarket(c) { c.send({ t: 'market', m: market.view(c.key, onlineSave(c.key)) }); }
 // week-old listings go back to their sellers (to collect at the Marketplace)
@@ -617,6 +623,12 @@ function renameAccount(key, name) {
 function c2g(key) { for (const gk in guilds) if (guilds[gk].members[key]) return guilds[gk].name || gk; return ''; }
 /** guilds[lowername] = {name, members: {lowername: {name, rank, cls, level, fame}}} */
 const guilds = load('guilds.json', {});
+// (and those in guild banks)
+{
+  let up = false;
+  for (const gk in guilds) for (const b of (guilds[gk] && guilds[gk].bank) || []) if (b && items.upgradeHeld(b.item, b.entry)) up = true;
+  if (up) save('guilds.json', guilds);
+}
 /** bans[lowername] = {until (ms, 0 = forever), reason, by} */
 const bans = load('bans.json', {});
 

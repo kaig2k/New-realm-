@@ -402,6 +402,43 @@ async function run() {
     check('starter abilities still need no id', items.STARTERS.has(items.fingerprint(Data.makeAbility('spell', 0))));
   }
 
+  console.log('weapon signatures');
+  {
+    const { Data } = require('./sim/gen/game');
+    const items = require('./items');
+    const combat = require('./combat');
+    const dps = (w) => (w.dmin + w.dmax) / 2 * w.shots * w.rate * Data.weaponExtra(w);
+    const same = [], flat = [];
+    for (const sub of Object.keys(Data.SIGS)) {
+      const seen = new Set();
+      for (let t = 0; t < 8; t++) {
+        const w = Data.makeWeapon(sub, t);
+        const look = [w.shape, w.col, w.shots, w.motion || '', !!w.split, !!w.boom, !!w.pierce, w.effect || '', !!w.walls].join('|');
+        if (seen.has(look)) same.push(sub + ' T' + t);
+        seen.add(look);
+        if (t && dps(w) < dps(Data.makeWeapon(sub, t - 1)) * 1.15) flat.push(sub + ' T' + t);
+      }
+      if (dps(Data.makeWeapon(sub, 7)) >= (Data.makeWeapon(sub, 7, 'ut').dmin + Data.makeWeapon(sub, 7, 'ut').dmax) / 2 * Data.makeWeapon(sub, 7, 'ut').shots * Data.makeWeapon(sub, 7, 'ut').rate) flat.push(sub + ' T7 beats Runed');
+    }
+    check('every tier of every weapon fires its own signature shot (look, pattern and what it does)', !same.length, same.join(','));
+    check('...and each tier is clearly stronger than the last (15%+ more damage a second), T7 still under a Runed weapon', !flat.length, flat.join(','));
+    // an older weapon (before signatures) in a save is brought up to its tier's shot, and still checks out
+    const sv = { chars: [{ cls: 'wizard', weapon: Object.assign(Data.makeWeapon('staff', 0), { sig: undefined, dmin: 14, dmax: 22, shape: 'bolt' }),
+      inv: [Object.assign(Data.makeWeapon('staff', 5, null, 'scatter'), { sig: undefined, dmin: 30, dmax: 40, split: undefined, shape: 'bolt' })] }] };
+    delete sv.chars[0].weapon.sig; delete sv.chars[0].inv[0].sig; delete sv.chars[0].inv[0].split;
+    sv._ledgerV = 1;
+    items.issue(sv, sv.chars[0].inv[0]);
+    const before = JSON.parse(JSON.stringify(sv));
+    items.migrate(sv);
+    const up = sv.chars[0].inv[0];
+    check('an older tiered weapon is brought up to its tier\'s signature shot (same weapon, same form)', up.sig === 5 && up.split && up.form === 'scatter' && up.tier === 5 && up.sid === before.chars[0].inv[0].sid);
+    check('...and still checks out against the ledger (and a starter one as starter gear)', items.check(sv, sv) === null && items.STARTERS.has(items.fingerprint(sv.chars[0].weapon)), items.check(sv, sv));
+    const t7 = Data.makeWeapon('staff', 7);
+    const c7 = combat.caps({ level: 20, stats: { att: 75, dex: 75 }, weapon: t7 }, null);
+    check('the server lets a signature\'s explosions and shards through (its damage-a-second cap counts them)',
+      c7.rate >= (t7.dmax * (0.5 + 75 / 50)) * t7.shots * Data.weaponExtra(t7, true), String(c7.rate));
+  }
+
   console.log('classes');
   {
     const { Data, Godly } = require('./sim/gen/game');

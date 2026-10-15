@@ -485,8 +485,13 @@ package realm {
 					}
 				}
 				var dmg:int = int((w.dmin + Math.random() * (w.dmax - w.dmin)) * mult);
-				var shot:Projectile = new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25 + (w.form == "heavy" ? 0.12 : 0), frames, w.pierce, name, null);
+				var shot:Projectile = new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25 + (w.form == "heavy" ? 0.12 : 0), frames, w.pierce, name, w.effect || null);
 				shot.motion = w.motion;
+				// (the weapon's signature: speeding up, shards, an explosion, through walls)
+				if (w.accel) shot.accel = w.accel;
+				if (w.split) shot.split = {n: w.split.n, spd: w.split.spd, life: w.split.life, shape: w.split.sh, col: w.col, dmg: int(dmg * w.split.mul)};
+				if (w.boom) shot.boom = {r: w.boom.r, dmg: int(dmg * w.boom.mul)};
+				if (w.walls) shot.passWalls = true;
 				if (k % 2 == 1) shot.phase = Math.PI;
 				g.addShot(shot);
 				shotsFired++;

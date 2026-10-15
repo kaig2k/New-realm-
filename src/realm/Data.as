@@ -299,6 +299,114 @@ package realm {
 		}
 
 		/** form: "" = plain, "?" = roll a random form, or a FORMS id. */
+		/**
+		 * Every tier of every weapon fires its own signature shot: its look (shape, colour, size), its pattern
+		 * (shots, spread, side by side) and what it does (weaves, comes back, speeds up, seeks, pierces, passes
+		 * walls, poisons, explodes where it hits, shatters into shards). Fields:
+		 *   sh shape, col colour, n shots, arc spread (degrees), par side by side, pc pierce, rate, spd, life, sz size,
+		 *   mo motion (wave, return, accel, seek), ac acceleration, walls (through walls), fx effect ("venom"),
+		 *   split {n, mul (each shard's share of a shot), spd, life, sh}, boom {r, mul}, tx what it does (the tooltip).
+		 */
+		public static const SIGS:Object = {
+			staff: [
+				{sh: "bolt", col: 0xc070ff, n: 2, par: true, spd: 13, life: 0.6, tx: "Twin arcane bolts."},
+				{sh: "fire", col: 0xff8030, n: 2, par: true, spd: 13, life: 0.62, mo: "accel", ac: 0.9, tx: "Twin embers that gather speed."},
+				{sh: "star", col: 0x80c8ff, n: 2, par: true, spd: 12, life: 0.7, sz: 4, tx: "Twin comets, longer reach."},
+				{sh: "wisp", col: 0x60e080, n: 2, par: true, spd: 13, life: 0.68, mo: "wave", tx: "Twin serpents that weave as they fly."},
+				{sh: "star", col: 0xffe070, n: 3, par: true, spd: 13, life: 0.66, pc: true, tx: "Three falling stars that pierce."},
+				{sh: "voidorb", col: 0xb050ff, n: 2, par: true, spd: 12, life: 0.62, sz: 4, split: {n: 4, mul: 0.4, spd: 7, life: 0.35, sh: "dart"}, tx: "Ruin orbs that shatter into four shards."},
+				{sh: "orb", col: 0xff70d0, n: 3, par: true, spd: 13, life: 0.7, mo: "wave", pc: true, tx: "Three weaving nebula orbs that pierce."},
+				{sh: "rift", col: 0xd060ff, n: 2, par: true, spd: 12, life: 0.7, sz: 5, boom: {r: 1.3, mul: 0.6}, tx: "Rifts of the void that explode where they strike."}
+			],
+			bow: [
+				{sh: "arrow", col: 0xe0c080, n: 1, spd: 15, life: 0.52, pc: true, tx: "A piercing arrow."},
+				{sh: "arrow", col: 0xf0d090, n: 2, arc: 6, spd: 15, life: 0.52, pc: true, tx: "Two arrows at once."},
+				{sh: "spear", col: 0xd0d8e0, n: 1, spd: 19, life: 0.55, pc: true, sz: 4, tx: "One fast, heavy hunting arrow."},
+				{sh: "arrow", col: 0xffd040, n: 3, arc: 8, spd: 15, life: 0.54, pc: true, tx: "Three gilded arrows in a fan."},
+				{sh: "spike", col: 0x70d050, n: 2, arc: 7, spd: 15, life: 0.52, pc: true, split: {n: 3, mul: 0.35, spd: 9, life: 0.3, sh: "spike"}, tx: "Thorn arrows that burst into three thorns."},
+				{sh: "wisp", col: 0x90ffd0, n: 3, arc: 12, spd: 14, life: 0.62, mo: "seek", pc: true, tx: "Three fey arrows that seek out enemies."},
+				{sh: "arrow", col: 0xff3040, n: 3, arc: 7, spd: 12, life: 0.55, mo: "accel", ac: 1.6, pc: true, fx: "venom", tx: "Three blood arrows that speed up and make enemies bleed."},
+				{sh: "star", col: 0xfff4c0, n: 5, arc: 6, spd: 16, life: 0.58, pc: true, tx: "A volley of five starlit arrows."}
+			],
+			sword: [
+				{sh: "blade", col: 0xc8d0d8, n: 1, spd: 11, life: 0.34, sz: 4, tx: "A short slash."},
+				{sh: "blade", col: 0xe0e8f0, n: 1, spd: 11, life: 0.36, sz: 5, tx: "A broad, wide slash."},
+				{sh: "blade", col: 0xd8e8ff, n: 2, arc: 14, spd: 11, life: 0.34, sz: 4, tx: "Two quick slashes in a V."},
+				{sh: "spear", col: 0xd0e0ff, n: 1, spd: 12, life: 0.44, sz: 5, pc: true, tx: "A long thrust that pierces."},
+				{sh: "crescent", col: 0xfff0d0, n: 1, spd: 11, life: 0.38, sz: 5, pc: true, tx: "A crescent cut that cleaves through every enemy."},
+				{sh: "crescent", col: 0xff7020, n: 1, spd: 11, life: 0.38, sz: 5, boom: {r: 1.2, mul: 0.55}, tx: "A flaming cut that explodes where it strikes."},
+				{sh: "spike", col: 0x80f0ff, n: 1, spd: 11, life: 0.4, sz: 5, pc: true, split: {n: 5, mul: 0.3, spd: 8, life: 0.3, sh: "spike"}, tx: "A crystal cut that shatters into five shards."},
+				{sh: "crescent", col: 0xffd040, n: 3, arc: 16, spd: 12, life: 0.4, sz: 5, pc: true, tx: "Three sunlit crescents that cleave through everything."}
+			],
+			wand: [
+				{sh: "orb", col: 0xe8e0c8, n: 1, spd: 16, life: 0.56, tx: "A bone-white bolt."},
+				{sh: "fire", col: 0xffa040, n: 1, spd: 16, life: 0.56, mo: "accel", ac: 0.8, tx: "An ember that gathers speed."},
+				{sh: "soul", col: 0x90ffb0, n: 1, spd: 15, life: 0.6, mo: "wave", tx: "A weaving grave-light."},
+				{sh: "orb", col: 0x40c0ff, n: 1, spd: 15, life: 0.7, mo: "return", pc: true, tx: "A tide orb that flies out and comes back."},
+				{sh: "voidorb", col: 0x8050d0, n: 1, spd: 14, life: 0.66, mo: "seek", tx: "A shadow that seeks out enemies."},
+				{sh: "star", col: 0xfff0a0, n: 2, par: true, spd: 16, life: 0.58, pc: true, tx: "Twin warding stars that pierce."},
+				{sh: "orb", col: 0xffe8a0, n: 1, spd: 15, life: 0.6, sz: 4, boom: {r: 1.2, mul: 0.6}, tx: "A holy orb that bursts where it strikes."},
+				{sh: "star", col: 0xffffff, n: 1, spd: 15, life: 0.66, sz: 4, mo: "seek", split: {n: 6, mul: 0.35, spd: 6, life: 0.35, sh: "star"}, tx: "A radiant seeker that bursts into a ring of light."}
+			],
+			dagger: [
+				{sh: "knife", col: 0xb0a8a0, n: 1, spd: 15, life: 0.36, tx: "A thrown dirk."},
+				{sh: "knife", col: 0xc8d0d8, n: 1, spd: 16, life: 0.36, rate: 1.25, tx: "Faster throws."},
+				{sh: "knife", col: 0xe0e8f0, n: 2, arc: 8, spd: 15, life: 0.36, tx: "Two knives at once."},
+				{sh: "knife", col: 0xe8f0ff, n: 1, spd: 15, life: 0.5, mo: "return", pc: true, tx: "A silver dirk that flies out and comes back."},
+				{sh: "dart", col: 0x60e040, n: 1, spd: 15, life: 0.42, mo: "wave", fx: "venom", tx: "A weaving viper fang that poisons."},
+				{sh: "knife", col: 0xff9070, n: 3, arc: 10, spd: 15, life: 0.38, tx: "A fan of three agate knives."},
+				{sh: "soul", col: 0xa0e8ff, n: 2, arc: 8, spd: 15, life: 0.42, pc: true, walls: true, tx: "Ghost knives that pierce and pass through walls."},
+				{sh: "voidorb", col: 0x9040c0, n: 2, arc: 10, spd: 15, life: 0.48, mo: "seek", split: {n: 3, mul: 0.35, spd: 8, life: 0.3, sh: "dart"}, tx: "Dusk blades that seek out enemies and split in three."}
+			]
+		};
+		/** What a weapon type's tier-0 and tier-7 deal in a second of steady fire (each tier between is a fixed step up). */
+		public static const TIER_DPS:Object = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [29, 110], dagger: [30, 188]};
+
+		/** How much more a weapon deals than its shots alone: its shards and explosions (honest play, then the most it could). */
+		public static function weaponExtra(w:Object, most:Boolean = false):Number {
+			var f:Number = 1;
+			if (w && w.split) f += (w.split.n || 0) * (w.split.mul || 0) * (most ? 1 : 0.35);
+			// (an explosion also flings embers: Abilities.explode)
+			if (w && w.boom) f += (w.boom.mul || 0) * (most ? 3 : 1.5);
+			return f;
+		}
+
+		/** A tiered weapon's signature shot laid onto it (its damage set so the tier deals its share of the curve). */
+		private static function signature(w:Object, sub:String, tier:int):void {
+			var sig:Object = SIGS[sub][Math.max(0, Math.min(7, tier))];
+			var ends:Array = TIER_DPS[sub];
+			w.shape = sig.sh; w.col = sig.col; w.shots = sig.n; w.arc = sig.arc || 0; w.parallel = !!sig.par; w.pierce = !!sig.pc;
+			w.rate = sig.rate || 1; w.spd = sig.spd; w.life = sig.life;
+			if (sig.sz) w.size = sig.sz;
+			if (sig.mo) w.motion = sig.mo;
+			if (sig.ac) w.accel = sig.ac;
+			if (sig.walls) w.walls = true;
+			if (sig.fx) w.effect = sig.fx;
+			if (sig.split) w.split = {n: sig.split.n, mul: sig.split.mul, spd: sig.split.spd, life: sig.split.life, sh: sig.split.sh};
+			if (sig.boom) w.boom = {r: sig.boom.r, mul: sig.boom.mul};
+			var dps:Number = ends[0] * Math.pow(ends[1] / ends[0], tier / 7);
+			var avg:Number = dps / (w.shots * w.rate * weaponExtra(w));
+			w.dmin = int(avg * 0.82);
+			w.dmax = int(avg * 1.18);
+			w.sig = tier;
+		}
+
+		/** Whether an item is a plain tiered weapon (they all fire their tier's signature shot). */
+		public static function isTieredWeapon(it:Object):Boolean {
+			return it && it.kind == "weapon" && !it.rarity && !it.uid && !it.curse && SIGS[it.sub] && it.tier >= 0 && it.tier <= 7;
+		}
+
+		/** An older tiered weapon brought up to its tier's signature (same weapon, same form; true if it changed). */
+		public static function upgradeWeapon(it:Object):Boolean {
+			if (!isTieredWeapon(it) || it.sig === it.tier) return false;
+			var fresh:Object = makeWeapon(it.sub, it.tier, null, it.form || "");
+			for each (var k:String in ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"]) {
+				if (fresh[k] === undefined) delete it[k];
+				else it[k] = fresh[k];
+			}
+			return true;
+		}
+
 		public static function makeWeapon(sub:String, tier:int, rarity:String = null, form:String = ""):Object {
 			var t:Number = rarity ? RARITY_POWER[rarity] : tier;
 			var w:Object = {kind: "weapon", sub: sub, tier: rarity ? 8 : tier, name: WEAPON_NAMES[sub][Math.min(tier, 7)], shots: 1, arc: 0, parallel: false, pierce: false, rate: 1};
@@ -332,6 +440,8 @@ package realm {
 				else { w.pierce = true; w.rate = 1.2; }
 			}
 			if (sub == "sword") w.size = 4;
+			// (a plain tiered weapon fires its tier's signature shot instead)
+			if (!rarity && SIGS[sub]) signature(w, sub, tier);
 			w = enchant(w, rarity);
 			applyForm(w, form == "?" ? rollForm() : form);
 			return w;
@@ -858,6 +968,8 @@ package realm {
 			if (item.rarity) s += "<font color='" + Ui.hex(RARITY_COLORS[item.rarity]) + "'>" + RARITY_NAMES[item.rarity] + "</font>\n";
 			switch (item.kind) {
 				case "weapon":
+					// (a tiered weapon's signature shot)
+					if (item.sig !== undefined && SIGS[item.sub] && SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + SIGS[item.sub][item.sig].tx + "</font>\n";
 					if (item.form && FORMS[item.form]) s += "<font color='#9ad0ff'>" + FORMS[item.form].name + ":</font> " + FORMS[item.form].desc + "\n";
 					s += "Damage: " + item.dmin + "-" + item.dmax + (item.shots > 1 ? " per shot" : "") + "\n";
 					if (item.shots > 1) s += "Shots: " + item.shots + "\n";

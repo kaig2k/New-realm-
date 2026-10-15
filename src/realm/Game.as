@@ -15,6 +15,7 @@ package realm {
 	import flash.text.TextField;
 	import flash.ui.Keyboard;
 	import flash.utils.getTimer;
+	import flash.utils.Dictionary;
 
 	public class Game extends Sprite {
 		public static const VIEW_W:int = Ui.W - Hud.W;
@@ -1820,6 +1821,8 @@ package realm {
 				var s:Projectile = shots[i];
 				// held by a Time Stop: it neither moves, ages nor hits until time flows again
 				if (s.frozenT > 0) { s.frozenT -= dt; continue; }
+				// a seeking shot of yours picks the nearest enemy ahead of it
+				if (!s.enemy && s.motion == "seek") seekFor(s);
 				s.move(dt);
 				s.life -= dt;
 				// glowing trail behind your own shots
@@ -1857,7 +1860,17 @@ package realm {
 								}
 								if (s.bot) botHit(e, s);
 								else damageEnemy(e, s);
-								if (!s.pierce) { remove = true; break; }
+								if (!s.pierce) {
+									remove = true;
+									// (your shot's shards burst where it strikes)
+									if (s.split) {
+										if (!s.hits) s.hits = new Dictionary(true);
+										s.hits[e] = true;
+										splitShot(s);
+										s.split = null;
+									}
+									break;
+								}
 							}
 						}
 					} else if (s.boom) {
@@ -1875,14 +1888,30 @@ package realm {
 			}
 		}
 
-		/** A splitting boss shot bursts into a ring where it ends. */
+		/** A splitting shot bursts into a ring where it ends (a boss's, or your weapon's shards). */
 		private function splitShot(s:Projectile):void {
 			var sp:Object = s.split;
 			var n:int = sp.n || 8;
-			var fr:Vector.<BitmapData> = Sprites.projectile(sp.shape || "orb", sp.col || s.trailCol, 3);
+			var fr:Vector.<BitmapData> = Sprites.projectile(sp.shape || "orb", sp.col || s.trailCol, s.enemy ? 3 : 2);
 			for (var k:int = 0; k < n; k++) {
-				shots.push(new Projectile(s.x, s.y, s.angle + k * Math.PI * 2 / n, sp.spd || 5, sp.life || 1, sp.dmg || int(s.dmg * 0.6), true, 0.18, fr, false, s.owner, s.effect));
+				var sh:Projectile = new Projectile(s.x, s.y, s.angle + k * Math.PI * 2 / n, sp.spd || 5, sp.life || 1, sp.dmg || int(s.dmg * 0.6), s.enemy, s.enemy ? 0.18 : 0.2, fr, false, s.owner, s.effect);
+				// (your shards don't hit what the shot itself just hit)
+				if (!s.enemy && s.hits) { sh.pierce = true; sh.hits = s.hits; }
+				shots.push(sh);
 			}
+		}
+
+		/** A seeking shot's target: the nearest living enemy within reach, checked a few times a second. */
+		private function seekFor(s:Projectile):void {
+			if (s.age < s.seekNext) return;
+			s.seekNext = s.age + 0.08;
+			var best:Enemy = null, bd:Number = 7 * 7;
+			for each (var e:Enemy in enemies) {
+				if (e.dead || e.def.prop || e.immune) continue;
+				var dx:Number = e.x - s.x, dy:Number = e.y - s.y, d:Number = dx * dx + dy * dy;
+				if (d < bd) { bd = d; best = e; }
+			}
+			if (best) { s.seekX = best.x; s.seekY = best.y; }
 		}
 
 		private function damageEnemy(e:Enemy, s:Projectile):void {

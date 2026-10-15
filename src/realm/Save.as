@@ -81,6 +81,16 @@ package realm {
 		/** Saved characters (alive ones only; RotMG-style permadeath removes them). */
 		public static function get chars():Array {
 			if (!(data.chars is Array)) data.chars = [];
+			// (this PC's save: tiered weapons from before signature shots get their tier's shot, once;
+			// the server does the same to online saves)
+			if (!remote && !box && !data._wsig) {
+				for each (var c:Object in data.chars) if (c) {
+					Data.upgradeWeapon(c.weapon);
+					for each (var it:Object in c.inv || []) Data.upgradeWeapon(it);
+				}
+				for each (var v:Object in data.vault || []) Data.upgradeWeapon(v);
+				data._wsig = 1;
+			}
 			return data.chars;
 		}
 

@@ -15,7 +15,9 @@ const { Data } = require('./sim/gen/game');
 
 const STATS = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis', 'mgt', 'luc', 'prt', 'frt'];
 const CORE = ['kind', 'sub', 'ab', 'tier', 'rarity', 'uid', 'set', 'passive', 'form', 'motion', 'shots', 'dmin', 'dmax', 'rate', 'life',
-  'arc', 'parallel', 'power', 'pierce', 'size', 'shape', 'col', 'curse'].concat(STATS);
+  'arc', 'parallel', 'power', 'pierce', 'size', 'shape', 'col', 'curse',
+  // (a tiered weapon's signature shot: Data.SIGS)
+  'accel', 'walls', 'effect', 'split', 'boom'].concat(STATS);
 /** Most entries one ledger keeps (old entries for items no longer held are dropped first). */
 const LEDGER_MAX = 4000;
 
@@ -72,9 +74,41 @@ function issue(save, item) {
 
 /** First load under the ledger: every item already in the save gets an id. */
 function migrate(save) {
-  if (!save || save._ledgerV) return false;
-  eachItem(save, (it) => { if (!it.sid && !STARTERS.has(fingerprint(it))) issue(save, it); });
-  save._ledgerV = 1;
+  if (!save) return false;
+  let changed = false;
+  if (!save._ledgerV) {
+    eachItem(save, (it) => { if (!it.sid && !STARTERS.has(fingerprint(it))) issue(save, it); });
+    save._ledgerV = 1;
+    changed = true;
+  }
+  if (upgradeWeapons(save)) changed = true;
+  return changed;
+}
+
+/**
+ * Tiered weapons from before signature shots (Data.SIGS) are brought up to their tier's shot,
+ * once: the same weapon and form, its ledger entry rewritten to match. Also the ones waiting in
+ * the seller's market box. Returns whether anything changed.
+ */
+function upgradeWeapons(save) {
+  let changed = false;
+  const l = ledger(save);
+  const up = (it, entry) => {
+    if (!Data.upgradeWeapon(it)) return;
+    changed = true;
+    if (entry) entry.f = fingerprint(it);
+    else if (it.sid && l[it.sid]) l[it.sid].f = fingerprint(it);
+  };
+  eachItem(save, (it) => up(it, null));
+  const box = save._market;
+  if (box && Array.isArray(box.returns)) for (const r of box.returns) if (r && r.item) up(r.item, r.entry);
+  return changed;
+}
+
+/** The same for an item held somewhere else with its ledger entry beside it (a market listing, the guild bank). */
+function upgradeHeld(item, entry) {
+  if (!item || !Data.upgradeWeapon(item)) return false;
+  if (entry) entry.f = fingerprint(item);
   return true;
 }
 
@@ -162,4 +196,4 @@ function unheldStat(ledger, save) {
   return out;
 }
 
-module.exports = { fingerprint, issue, migrate, transfer, check, checkStats, eachItem, release, adopt, unheldStat, STARTERS };
+module.exports = { fingerprint, issue, migrate, upgradeHeld, transfer, check, checkStats, eachItem, release, adopt, unheldStat, STARTERS };

@@ -44,6 +44,8 @@ package realm {
 		public var frozenT:Number = 0;
 		/** Where "home" shots steer (your character; set every frame). */
 		public static var homeX:Number = 0, homeY:Number = 0;
+		/** A seeking shot's target (Game.updateShots finds the nearest enemy for it). */
+		public var seekX:Number = NaN, seekY:Number = NaN, seekNext:Number = 0;
 
 		public function Projectile(x:Number, y:Number, angle:Number, speed:Number, life:Number, dmg:int, enemy:Boolean,
 				r:Number, frames:Vector.<BitmapData>, pierce:Boolean, owner:String, effect:String, spin:Boolean = false) {
@@ -84,13 +86,14 @@ package realm {
 			if (motion == "accel") {
 				var f:Number = 1 + accel * dt;
 				if (f > 0) { vx *= f; vy *= f; }
-			} else if (motion == "home" && age > 0.15) {
-				// turn gently toward you
-				var want:Number = Math.atan2(homeY - y, homeX - x);
+			} else if ((motion == "home" && age > 0.15) || (motion == "seek" && age > 0.08 && !isNaN(seekX))) {
+				// turn gently toward you (a player's seeking shot: hard toward its target)
+				var want:Number = motion == "seek" ? Math.atan2(seekY - y, seekX - x) : Math.atan2(homeY - y, homeX - x);
 				var diff:Number = want - angle;
 				while (diff > Math.PI) diff -= Math.PI * 2;
 				while (diff < -Math.PI) diff += Math.PI * 2;
-				var turn:Number = Math.max(-1.6 * dt, Math.min(1.6 * dt, diff));
+				var rate:Number = motion == "seek" ? 6 : 1.6;
+				var turn:Number = Math.max(-rate * dt, Math.min(rate * dt, diff));
 				angle += turn;
 				var sp:Number = Math.sqrt(vx * vx + vy * vy);
 				vx = Math.cos(angle) * sp; vy = Math.sin(angle) * sp;

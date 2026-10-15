@@ -73,7 +73,8 @@ function caps(ch, pet, extra) {
   const shots = w ? Math.max(1, Math.min(9, num(w.shots) || 1)) : 0;
   const fireRate = (1.5 + 6.5 * stat(ch, 'dex', extra) / 75) * (w ? Math.min(2.5, num(w.rate) || 1) : 1) * 1.5 * 1.4;
   // (Rampage: a ring of ten every twelfth shot)
-  const weaponDps = weaponHit * shots * fireRate * (w && w.passive === 'rampage' ? 1.9 : 1);
+  // (a signature shot's shards and explosions on top: the most they could add, Data.weaponExtra)
+  const weaponDps = weaponHit * shots * fireRate * (w && w.passive === 'rampage' ? 1.9 : 1) * (w ? Data.weaponExtra(w, true) : 1);
   const a = ch.ability && typeof ch.ability === 'object' ? ch.ability : null;
   const id = a ? Data.abilityId(a) : '';
   const f = ABILITY[id] || [40, 5];

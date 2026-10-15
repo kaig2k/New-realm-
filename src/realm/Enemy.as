@@ -11,6 +11,8 @@ package realm {
 	 *    say: "...",         the boss speaks when the phase starts
 	 *    banner: "...",      big on-screen text
 	 *    shield: 2.5,        seconds of invulnerability while it powers up
+ *    survive: 12,        seconds it can't be hurt at the start of the phase, while it fires
+ *    dodge: [[...], ...] the attacks it fires meanwhile (a cycle, every dodgeEvery seconds)
 	 *    move: "wander" | "still" | "chase" | "orbit" | "charge" | "teleport" | "center",
 	 *    speed: 1.5,         movement speed multiplier
 	 *    summon: [{what, n}] minions on entering the phase
@@ -95,6 +97,9 @@ package realm {
 		private var phase:int = 0;
 		private var phaseT:Number = 0;
 		private var cycleK:int = 0;
+		/** A phase's survival (its survive seconds): immune, firing its dodge patterns. Cycle numbers SURVIVE_K+ mark it. */
+		public static const SURVIVE_K:int = 8;
+		public var surviveT:Number = 0;
 		private var dirX:Number = 0, dirY:Number = 0;
 		private var moveT:Number = 0;
 		private var chargeT:Number = 0;
@@ -138,6 +143,8 @@ package realm {
 		private function listFor(ph:int, k:int):Array {
 			var p:Object = phases[ph];
 			if (!p) return [];
+			// (cycle numbers from SURVIVE_K on are the phase's survival patterns)
+			if (k >= SURVIVE_K && p.dodge) return p.dodge[(k - SURVIVE_K) % p.dodge.length];
 			if (p.cycle) return p.cycle[k % p.cycle.length];
 			return p.attacks || [];
 		}
@@ -247,7 +254,10 @@ package realm {
 		}
 
 		/** Can't be damaged right now. */
-		public function get immune():Boolean { return invuln || shieldT > 0; }
+		public function get immune():Boolean { return invuln || shieldT > 0 || surviveT > 0; }
+
+		/** In a survival window (also true for a remote copy, from the phase code the host sends). */
+		public function get surviving():Boolean { return isBoss && cycleK >= SURVIVE_K; }
 
 		public function get phaseIndex():int { return phase; }
 		public function get phaseCount():int { return phases ? phases.length : 1; }
@@ -291,7 +301,13 @@ package realm {
 				if (want > phase) enterPhase(want, g);
 				ph = phases[phase];
 				phaseT += dt;
-				if (ph.cycle) {
+				if (surviveT > 0) {
+					// surviving: its dodge patterns until the time is up, then the phase proper from the start
+					surviveT -= dt;
+					var sk:int = surviveT > 0 ? SURVIVE_K + int(phaseT / (ph.dodgeEvery || 4)) % ph.dodge.length : 0;
+					if (sk != cycleK) { cycleK = sk; setAttacks(listFor(phase, sk)); }
+					if (surviveT <= 0) { surviveT = 0; phaseT = 0; }
+				} else if (ph.cycle) {
 					var k:int = int(phaseT / (ph.every || 6)) % ph.cycle.length;
 					if (k != cycleK) { cycleK = k; setAttacks(ph.cycle[k]); }
 				}
@@ -406,7 +422,8 @@ package realm {
 			phaseT = 0;
 			cycleK = 0;
 			var ph:Object = phases[i];
-			setAttacks(listFor(i, 0));
+			if (ph.survive && ph.dodge) { surviveT = ph.survive; cycleK = SURVIVE_K; }
+			setAttacks(listFor(i, cycleK));
 			if (ph.shield) shieldT = ph.shield;
 			guardAnim(ph);
 			if (ph.summon) for each (var s:Object in ph.summon) {
@@ -444,6 +461,8 @@ package realm {
 		/** A remote copy takes over (its host left): start thinking for itself. */
 		public function takeOver():void {
 			remote = false;
+			// (mid-survival: a few more seconds of it, then the phase goes on as usual)
+			if (isBoss && cycleK >= SURVIVE_K) surviveT = 4;
 			if (isBoss) setAttacks(listFor(phase, cycleK));
 		}
 

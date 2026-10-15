@@ -1767,18 +1767,32 @@ class Bosses {
 			return Bosses.aim(1, 0, 3.5, dmg, cd, 0xd080ff, {shape: "rift", r: 0.6, life: 2.6, split: {n: 16, spd: 5.5, life: 1.4, dmg: __int(dmg / 2)},
 				anim: "rift", animMs: 130, name: "void rift"});
 		}
+	static eLattice(spd, cd) {
+			return [Bosses.spiral(5, 9, spd, 80, cd, Bosses.E_VOID, {shape: "voidorb", r: 0.24, name: "void lattice"}),
+				Bosses.spiral(5, -11, spd * 0.85, 80, cd * 1.15, Bosses.E_LIGHT, {shape: "orb", name: "void lattice"})];
+		}
+	static eCurtain(n, cd) { n = __int(n);
+			return [Bosses.wall(n, 4.4, 95, cd, Bosses.E_VOID, {hole: 2, spacing: 0.62, shape: "voidorb", r: 0.26, name: "void curtain", anim: "spread", animMs: 90}),
+				Bosses.ring(22, 8, 2.8, 70, cd * 1.35, Bosses.E_LIGHT, {shape: "orb", life: 4.5, name: "void ripple"})];
+		}
+	static eCollapse(n, cd) { n = __int(n);
+			return [Bosses.flower(n, 7, 4.0, 80, cd, Bosses.E_VOID, {shape: "voidorb", life: 3.2, name: "void bloom"}), Bosses.eGravity(18, 80, cd * 2.4)];
+		}
 	static finales() {
 			
 			
 			Bosses.boss("elder", {seq: {idle: 4, move: 6, blast: 6, pillars: 5, slam: 5, summon: 5, teleport: 6, spread: 5, explode: 5, gravity: 5, rift: 5, death: 7, ridle: 4, rmove: 6},
 				rageAt: 3, col: Bosses.E_VOID, phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.eBlast(110, 2.4), Bosses.eSpread(7, 70, 1.6), Bosses.eSlam(120, 4.5), Bosses.eTeleport(9)]}),
-				Bosses.P(0.75, {say: "You amuse me. Let us see you dance.", shield: 2, move: "center", every: 5,
+				Bosses.P(0.75, {say: "You amuse me. Let us see you dance.", banner: "SURVIVE! The Elder can't be hurt: dodge!", shield: 1.5, move: "center", every: 5,
+					survive: 14, dodgeEvery: 4.7, dodge: [Bosses.eLattice(3.9, 0.14), Bosses.eCurtain(25, 0.95), Bosses.eCollapse(26, 0.8)],
 					cycle: [[Bosses.ePillars(8, 100, 1.6), Bosses.eSpread(9, 70, 1.4)],
 						[Bosses.eGravity(14, 75, 3.2), Bosses.eBlast(110, 2.0)],
 						[Bosses.eSlam(120, 1.6), Bosses.eSummon(2, 8)]]}),
 				Bosses.P(0.45, {move: "still", attacks: [Bosses.eExplode(150, 4.5, 6), Bosses.ePillars(6, 100, 2.2), Bosses.eSpread(7, 70, 1.8)]}),
-				Bosses.P(0.2, {say: "ENOUGH! THE VOID WILL HAVE YOU!", banner: "The Dark Elder awakens! It hungers!", shield: 2, move: "orbit", speed: 1.3,
+				Bosses.P(0.2, {say: "ENOUGH! THE VOID WILL HAVE YOU!", banner: "The Dark Elder awakens! SURVIVE the void!", shield: 1.5, move: "orbit", speed: 1.3,
+					survive: 18, dodgeEvery: 4.5, dodge: [Bosses.eLattice(4.4, 0.12), Bosses.eCurtain(27, 0.8).concat([Bosses.ePillars(5, 110, 2.2)]),
+						Bosses.eCollapse(30, 0.7), Bosses.eLattice(4.0, 0.12).concat(Bosses.eCurtain(25, 1.3).slice(0, 1))],
 					attacks: [Bosses.eRift(130, 3.5), Bosses.eGravity(18, 85, 4), Bosses.eSlam(130, 2.4), Bosses.ePillars(10, 110, 2.0), Bosses.eTeleport(5),
 						Bosses.spiral(6, -10, 6, 70, 0.1, Bosses.E_LIGHT, {shape: "voidorb"})]})
 			]}, ["elder_scepter", "crown_of_azrakor"]);
@@ -3458,6 +3472,7 @@ class Enemy {
 		this.phase = __int(0);
 		this.phaseT = 0;
 		this.cycleK = __int(0);
+		this.surviveT = 0;
 		this.dirX = 0;
 		this.dirY = 0;
 		this.moveT = 0;
@@ -3510,6 +3525,8 @@ class Enemy {
 	listFor(ph, k) { ph = __int(ph); k = __int(k);
 			var p = this.phases[ph];
 			if (!p) return [];
+			
+			if (k >= Enemy.SURVIVE_K && p.dodge) return p.dodge[(k - Enemy.SURVIVE_K) % p.dodge.length];
 			if (p.cycle) return p.cycle[k % p.cycle.length];
 			return p.attacks || [];
 		}
@@ -3574,7 +3591,8 @@ class Enemy {
 	get enraged() {
 			return this.isBoss && this.phases && this.phase == this.phases.length - 1 && this.phases.length > 1;
 		}
-	get immune() { return this.invuln || this.shieldT > 0; }
+	get immune() { return this.invuln || this.shieldT > 0 || this.surviveT > 0; }
+	get surviving() { return this.isBoss && this.cycleK >= Enemy.SURVIVE_K; }
 	get phaseIndex() { return __int(this.phase); }
 	get phaseCount() { return __int(this.phases ? this.phases.length : 1); }
 	get phaseCode() { return __int(this.phase + this.cycleK * 16); }
@@ -3615,7 +3633,13 @@ class Enemy {
 				if (want > this.phase) this.enterPhase(want, g);
 				ph = this.phases[this.phase];
 				this.phaseT += dt;
-				if (ph.cycle) {
+				if (this.surviveT > 0) {
+					
+					this.surviveT -= dt;
+					var sk = __int(this.surviveT > 0 ? Enemy.SURVIVE_K + __int(this.phaseT / (ph.dodgeEvery || 4)) % ph.dodge.length : 0);
+					if (sk != this.cycleK) { this.cycleK = __int(sk); this.setAttacks(this.listFor(this.phase, sk)); }
+					if (this.surviveT <= 0) { this.surviveT = 0; this.phaseT = 0; }
+				} else if (ph.cycle) {
 					var k = __int(__int(this.phaseT / (ph.every || 6)) % ph.cycle.length);
 					if (k != this.cycleK) { this.cycleK = __int(k); this.setAttacks(ph.cycle[k]); }
 				}
@@ -3728,7 +3752,8 @@ class Enemy {
 			this.phaseT = 0;
 			this.cycleK = __int(0);
 			var ph = this.phases[i];
-			this.setAttacks(this.listFor(i, 0));
+			if (ph.survive && ph.dodge) { this.surviveT = ph.survive; this.cycleK = __int(Enemy.SURVIVE_K); }
+			this.setAttacks(this.listFor(i, this.cycleK));
 			if (ph.shield) this.shieldT = ph.shield;
 			this.guardAnim(ph);
 			if (ph.summon) for (var s of __vals( ph.summon)) {
@@ -3762,6 +3787,8 @@ class Enemy {
 		}
 	takeOver() {
 			this.remote = false;
+			
+			if (this.isBoss && this.cycleK >= Enemy.SURVIVE_K) this.surviveT = 4;
 			if (this.isBoss) this.setAttacks(this.listFor(this.phase, this.cycleK));
 		}
 	setPhase(code, g = null) { code = __int(code);
@@ -4386,7 +4413,7 @@ Data.ENEMIES = {
 						{p: "summon", n: 3, cd: 8, what: "skeleton"}]
 				]},
 			
-			elder: {name: "Azrakor the Dark Elder", spr: "elder", hp: 32000, def: 30, spd: 1.4, xp: 5000, ai: "boss", r: 0.9, aggro: 20, range: 18, drop: 1, col: 0xa040ff,
+			elder: {name: "Azrakor the Dark Elder", spr: "elder", hp: 55000, def: 34, spd: 1.4, xp: 5000, ai: "boss", r: 0.9, aggro: 20, range: 18, drop: 1, col: 0xa040ff,
 				gold: 1500, onrane: 15, final: true,
 				phases: [
 					[{p: "spiral", n: 4, rot: 12, spd: 5.5, life: 3.0, dmg: 60, cd: 0.12, r: 0.22, col: 0xc060ff, shape: "star"},
@@ -5984,5 +6011,6 @@ Enemy.DEG = Math.PI / 180;
 Enemy.LEGACY_HP = [1, 0.66, 0.33];
 Enemy.FLYERS = ["ghost", "ghost_god", "sprite", "sprite_god", "harpy", "djinn", "gazer", "beholder",
 			"lich", "shade", "mothling", "cubelet", "crystal"];
+Enemy.SURVIVE_K = __int(8);
 
 module.exports = { Data, Uniques, Godly, Bosses, World, SetPieces, Enemy };

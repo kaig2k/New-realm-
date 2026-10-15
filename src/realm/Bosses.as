@@ -864,6 +864,23 @@ package realm {
 				anim: "rift", animMs: 130, name: "void rift"});
 		}
 
+		// The Elder's survival patterns (he can't be hurt while they run): curtains with narrow gaps
+		// and lattices that need small, exact steps rather than running away
+		// two spirals turning against each other: a moving lattice to thread
+		private static function eLattice(spd:Number, cd:Number):Array {
+			return [spiral(5, 9, spd, 80, cd, E_VOID, {shape: "voidorb", r: 0.24, name: "void lattice"}),
+				spiral(5, -11, spd * 0.85, 80, cd * 1.15, E_LIGHT, {shape: "orb", name: "void lattice"})];
+		}
+		// a wall of orbs marching at you with a single gap, and slow rings to weave between
+		private static function eCurtain(n:int, cd:Number):Array {
+			return [wall(n, 4.4, 95, cd, E_VOID, {hole: 2, spacing: 0.62, shape: "voidorb", r: 0.26, name: "void curtain", anim: "spread", animMs: 90}),
+				ring(22, 8, 2.8, 70, cd * 1.35, E_LIGHT, {shape: "orb", life: 4.5, name: "void ripple"})];
+		}
+		// a flower of slow orbs while gravity wells close round you
+		private static function eCollapse(n:int, cd:Number):Array {
+			return [flower(n, 7, 4.0, 80, cd, E_VOID, {shape: "voidorb", life: 3.2, name: "void bloom"}), eGravity(18, 80, cd * 2.4)];
+		}
+
 		// ------------------------------------------------------------ realm finales
 		/** Where a closing realm sends everyone: one of these, picked per realm. */
 		public static const FINALES:Array = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"];
@@ -874,12 +891,15 @@ package realm {
 			boss("elder", {seq: {idle: 4, move: 6, blast: 6, pillars: 5, slam: 5, summon: 5, teleport: 6, spread: 5, explode: 5, gravity: 5, rift: 5, death: 7, ridle: 4, rmove: 6},
 				rageAt: 3, col: E_VOID, phases: [
 				P(1, {move: "orbit", attacks: [eBlast(110, 2.4), eSpread(7, 70, 1.6), eSlam(120, 4.5), eTeleport(9)]}),
-				P(0.75, {say: "You amuse me. Let us see you dance.", shield: 2, move: "center", every: 5,
+				P(0.75, {say: "You amuse me. Let us see you dance.", banner: "SURVIVE! The Elder can't be hurt: dodge!", shield: 1.5, move: "center", every: 5,
+					survive: 14, dodgeEvery: 4.7, dodge: [eLattice(3.9, 0.14), eCurtain(25, 0.95), eCollapse(26, 0.8)],
 					cycle: [[ePillars(8, 100, 1.6), eSpread(9, 70, 1.4)],
 						[eGravity(14, 75, 3.2), eBlast(110, 2.0)],
 						[eSlam(120, 1.6), eSummon(2, 8)]]}),
 				P(0.45, {move: "still", attacks: [eExplode(150, 4.5, 6), ePillars(6, 100, 2.2), eSpread(7, 70, 1.8)]}),
-				P(0.2, {say: "ENOUGH! THE VOID WILL HAVE YOU!", banner: "The Dark Elder awakens! It hungers!", shield: 2, move: "orbit", speed: 1.3,
+				P(0.2, {say: "ENOUGH! THE VOID WILL HAVE YOU!", banner: "The Dark Elder awakens! SURVIVE the void!", shield: 1.5, move: "orbit", speed: 1.3,
+					survive: 18, dodgeEvery: 4.5, dodge: [eLattice(4.4, 0.12), eCurtain(27, 0.8).concat([ePillars(5, 110, 2.2)]),
+						eCollapse(30, 0.7), eLattice(4.0, 0.12).concat(eCurtain(25, 1.3).slice(0, 1))],
 					attacks: [eRift(130, 3.5), eGravity(18, 85, 4), eSlam(130, 2.4), ePillars(10, 110, 2.0), eTeleport(5),
 						spiral(6, -10, 6, 70, 0.1, E_LIGHT, {shape: "voidorb"})]})
 			]}, ["elder_scepter", "crown_of_azrakor"]);

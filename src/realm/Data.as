@@ -989,7 +989,7 @@ package realm {
 						{p: "summon", n: 3, cd: 8, what: "skeleton"}]
 				]},
 			// ---- the realm's overlord, fought in his chamber when the realm closes
-			elder: {name: "Azrakor the Dark Elder", spr: "elder", hp: 32000, def: 30, spd: 1.4, xp: 5000, ai: "boss", r: 0.9, aggro: 20, range: 18, drop: 1, col: 0xa040ff,
+			elder: {name: "Azrakor the Dark Elder", spr: "elder", hp: 55000, def: 34, spd: 1.4, xp: 5000, ai: "boss", r: 0.9, aggro: 20, range: 18, drop: 1, col: 0xa040ff,
 				gold: 1500, onrane: 15, final: true,
 				phases: [
 					[{p: "spiral", n: 4, rot: 12, spd: 5.5, life: 3.0, dmg: 60, cd: 0.12, r: 0.22, col: 0xc060ff, shape: "star"},

@@ -6404,7 +6404,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;

@@ -791,6 +791,18 @@ async function run() {
     for (let i = 0; i < N * N; i++) if (el2.w.tiles[i] === SW.VOIDFIRE) rim++;
     check('...and in his last phase the rim of the platform burns too (the middle and the way in stay clear)', rim > veins + 60 &&
       el2.w.tiles[Math.floor(el2.w.spawnY) * N + Math.floor(el2.w.spawnX)] !== SW.VOIDFIRE && el2.w.tiles[91 * N + 100] !== SW.VOIDFIRE, [veins, rim].join(' '));
+    // survival windows: he can't be hurt while the void floods the chamber, and you have to dodge it
+    check('the Dark Elder is tougher (55,000 HP) and has two survival windows, each with its own dodge patterns',
+      ED.hp >= 55000 && ED.phases.filter((p) => p.survive >= 12 && p.dodge && p.dodge.length >= 3).length === 2);
+    el2.join({ id: 77, x: E2.x, y: E2.y + 5, send: () => {} });
+    const hp0 = E2.hp;
+    el2.hit({ id: 77, x: E2.x, y: E2.y + 5 }, { id: E2.id, d: 500 });
+    check('...in his last phase he survives first: immune, firing his dodge patterns', E2.surviving && E2.immune && E2.hp === hp0 && E2.surviveT > 15, [E2.surviving, E2.immune, E2.surviveT].join(' '));
+    let fired = 0;
+    const ff = el2.g.sync.fired;
+    el2.g.sync.fired = (...a) => { fired++; ff(...a); };
+    for (let k = 0; k < 200; k++) E2.update(0.1, el2.g);
+    check('...then the window closes: he can be hurt again and fights as usual', !E2.surviving && !E2.immune && fired > 40, [E2.surviving, E2.immune, fired].join(' '));
   }
 
   console.log('guild territory');

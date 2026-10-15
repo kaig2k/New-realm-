@@ -145,8 +145,8 @@ package realm {
 			if (key != g.world.key) return;
 			if (amHost) {
 				hostKey = key;
+				// (quietly: the server runs the monsters almost everywhere, so this only matters behind the scenes)
 				for each (var e:Enemy in g.world.enemies) if (e.remote) e.takeOver();
-				g.msg("You're now running the monsters in this area.", 0x9a9aaa);
 			} else if (hostKey == key) {
 				hostKey = null;
 			}

@@ -6,6 +6,8 @@ fitted, as drawn, into a 34x34 icon (the game adds the outline and Godly frame).
     python3 tools/godlyart/cut.py tools/godlyart/weapons_sheet.webp assets/godly
     python3 tools/godlyart/cut.py tools/godlyart/armor_sheet.webp assets/godly armor_ precise
         (the Grand Chorus lyre from the same sheet without "precise": the gaps between its strings)
+    python3 tools/godlyart/cut.py tools/godlyart/abilities_sheet.webp assets/godly ability_ [precise]
+        (precise for the Grimoire, Shroud, Crown, Snare and Hourglass; the rest without it)
 """
 import sys
 from PIL import Image

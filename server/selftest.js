@@ -557,6 +557,45 @@ async function run() {
       marks.length === 3 && marks.some(([x]) => x === 100) && marks.some(([x]) => x === 103) && marks.some(([x]) => x === 107 || x === 106) && !marks.some(([x]) => x === 130),
       JSON.stringify(marks));
   }
+  {
+    // Archon Vesper's blood brand and Astraeon's eclipse
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: VD } = require('./sim/gen/game');
+    const atk = (d) => [].concat(...d.phases.map((p) => (p.attacks || []).concat(...(p.cycle || []))));
+    const vb = atk(VD.ENEMIES.archon).filter((a) => a.p === 'brand'), ae = atk(VD.ENEMIES.astraeon).filter((a) => a.p === 'eclipse');
+    check('Archon Vesper brands players in blood from his second phase on (two at once at the end)', vb.length >= 3 && vb.some((a) => a.n === 2) && !(VD.ENEMIES.archon.phases[0].attacks || []).some((a) => a.p === 'brand'));
+    check('Astraeon eclipses the sky in his last two phases', ae.length === 2 && VD.ENEMIES.astraeon.phases.slice(2).every((p) => (p.attacks || []).some((a) => a.p === 'eclipse')));
+    const ws = new WorldSim('raid:0:2468');
+    const P = (id, x, y) => { const c = { id, x, y, maxDps: 1e9, send: () => {} }; ws.join(c); c.x = x; c.y = y; return c; };
+    const a1 = P(51, 100, 100), a2 = P(52, 104, 100); P(53, 120, 100);
+    const v = ws.spawn('archon', 100, 90, 5, true);
+    const branded = [];
+    ws.g.brand = (who, r, delay) => branded.push([who.id, r, delay]);
+    const ph = VD.ENEMIES.archon.phases[3];
+    v.setAttacks(ph.attacks);
+    v.fire(ph.attacks.findIndex((a) => a.p === 'brand'), Math.PI / 2, 10, ws.g);
+    check('...the brand marks the player he aims at and the next nearest (two different players), and gives them seconds to get clear',
+      branded.length === 2 && branded[0][0] === a1.id && branded[1][0] === a2.id && branded.every((b) => b[2] >= 3 && b[1] >= 3), JSON.stringify(branded));
+    const runs = [];
+    for (let rep = 0; rep < 2; rep++) {
+      const s2 = new WorldSim('raid:2:1357');
+      s2.join({ id: 61, x: 100, y: 100, send: () => {} });
+      const st = s2.spawn('astraeon', 100, 90, 5, true);
+      const later = [], spots = [];
+      let dark = 0;
+      s2.g.later = (d, fn) => later.push(fn);
+      s2.g.eclipse = (secs) => { dark = secs; };
+      s2.g.addMarker = (x, y, r, d, c, fn, style) => spots.push([Math.round(x * 10), Math.round(y * 10), style]);
+      const p3 = VD.ENEMIES.astraeon.phases[3];
+      st.setAttacks(p3.attacks);
+      st.shootAttack(p3.attacks.find((a) => a.p === 'eclipse'), 1.234, 567.8, 10, s2.g);
+      later.forEach((fn) => fn());
+      runs.push({ dark, waves: later.length, spots });
+    }
+    check('...the eclipse darkens the arena and stars fall through it in waves, in the same places in every player\'s game',
+      runs[0].dark >= 10 && runs[0].waves >= 6 && runs[0].spots.length >= 15 && runs[0].spots.every((m) => m[2] === 'star') && JSON.stringify(runs[0].spots) === JSON.stringify(runs[1].spots),
+      JSON.stringify(runs.map((r) => [r.dark, r.waves, r.spots.length])));
+  }
 
   console.log('pacing and boss scaling');
   {

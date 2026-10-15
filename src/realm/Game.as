@@ -2407,6 +2407,89 @@ package realm {
 			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world, style: style});
 		}
 
+		/**
+		 * A blood brand (Archon Vesper): a mark that follows who for delay seconds, then bursts. Everyone else
+		 * within r of them takes dmg; the branded one only a third of it. Carrying it means leaving the group.
+		 */
+		public function brand(who:Object, r:Number, delay:Number, col:uint, dmg:int, src:String, eff:String, attack:String):void {
+			var self:Game = this;
+			var mk:Object = {x: who.x, y: who.y, r: r, t: 0, d: delay, col: col, w: world, style: "brand", follow: who};
+			mk.fn = function():void {
+				burst(mk.x, mk.y, col, 30);
+				ring(mk.x, mk.y, col, 26);
+				groundFx("spikes", mk.x, mk.y, r, col);
+				soundAt(mk.x, mk.y, "boom", 1, 0.1);
+				var dx:Number = player.x - mk.x, dy:Number = player.y - mk.y;
+				if (player.hp > 0 && player.invulnT <= 0 && (who == player || dx * dx + dy * dy < r * r)) {
+					player.takeHit(who == player ? int(dmg / 3) : dmg, src, self, who == player ? null : eff, attack);
+					if (who != player) floatText(player.x, player.y - 1.2, "Caught in the brand!", 0xff4060);
+				}
+				if (dx * dx + dy * dy < 64) shake(0.25, 5);
+			};
+			markers.push(mk);
+			if (who == player) {
+				showBanner("BLOOD BRAND: get away from your allies!", col, delay);
+				Sfx.play("boss");
+			} else if (who.name) msg(who.name + " carries the blood brand: stay away from them!", col);
+		}
+
+		/** Astraeon's eclipse: the arena goes dark for secs, lit only by his falling stars (drawEclipse). */
+		private var eclipseT:Number = 0, eclipseLen:Number = 0, eclipseW:World = null, eclipseBoss:Enemy = null;
+		private var eclipseBmp:BitmapData = null;
+
+		public function eclipse(secs:Number, by:Enemy):void {
+			if (eclipseT <= 0 || eclipseW != world) { eclipseLen = secs; showBanner("ECLIPSE: only the falling stars light the dark!", 0xffd060, 3); Sfx.play("boss"); }
+			else eclipseLen = Math.max(eclipseLen, (eclipseLen - eclipseT) + secs);
+			eclipseT = Math.max(eclipseT, secs);
+			eclipseW = world;
+			eclipseBoss = by;
+		}
+
+		/** How dark the eclipse is right now (0 to 1): it falls over a second and lifts over a second. */
+		public function eclipseDark():Number {
+			if (eclipseT <= 0 || eclipseW != world) return 0;
+			return Math.min(1, (eclipseLen - eclipseT) / 1.0, eclipseT / 1.0);
+		}
+
+		private var eclShape:Shape = new Shape();
+		private var eclMtx:Matrix = new Matrix();
+
+		private function eclipseLight(x:Number, y:Number, R:Number, strength:Number):void {
+			var sx:Number = scrX(x, y), sy:Number = scrY(x, y);
+			if (sx < -R || sy < -R || sx > vw + R || sy > vh + R) return;
+			eclMtx.createGradientBox(R * 2, R * 2, 0, sx - R, sy - R);
+			var g:* = eclShape.graphics;
+			g.clear();
+			g.beginGradientFill("radial", [0, 0, 0], [strength, strength * 0.6, 0], [0, 120, 255], eclMtx);
+			g.drawCircle(sx, sy, R);
+			g.endFill();
+			eclipseBmp.draw(eclShape, null, null, "erase");
+		}
+
+		/** The eclipse: a dark sheet over the world with holes burnt in it by the falling stars. */
+		private function drawEclipse():void {
+			var dk:Number = eclipseDark();
+			if (dk <= 0) return;
+			if (!eclipseBmp || eclipseBmp.width != vw || eclipseBmp.height != vh) {
+				if (eclipseBmp) eclipseBmp.dispose();
+				eclipseBmp = new BitmapData(vw, vh, true, 0);
+			}
+			eclipseBmp.fillRect(eclipseBmp.rect, (uint(0xf0 * dk) << 24) | 0x040210);
+			// a faint glow round yourself (enough to see your feet), and the fallen star's own light
+			eclipseLight(player.x, player.y, TS * 2.4, 0.55);
+			if (eclipseBoss && !eclipseBoss.dead) eclipseLight(eclipseBoss.x, eclipseBoss.y - 0.5, TS * 2.2, 0.5);
+			// every telegraph shows through; a falling star lights up the ground round it as it comes down
+			for each (var m:Object in markers) {
+				if (m.w != world) continue;
+				var f:Number = Math.min(1, m.t / m.d);
+				if (m.style == "star") eclipseLight(m.x, m.y, TS * (m.r * 2.2 + 2.5 * f), 0.5 + 0.5 * f);
+				else eclipseLight(m.x, m.y, TS * (m.r + 0.8), 0.8);
+			}
+			// and where they landed, the ground burns bright for a moment
+			for each (var gf:Object in gfx) if (gf.w == world) eclipseLight(gf.x, gf.y, TS * (gf.r + 2.5), 0.9 * Math.max(0, 1 - gf.t / 0.9));
+			canvas.copyPixels(eclipseBmp, eclipseBmp.rect, new Point(0, 0), null, null, true);
+		}
+
 		/** Players within r of (x, y): you and, online, the others in your world (chain lightning picks its jumps from these). */
 		public function playersNear(x:Number, y:Number, r:Number):Array {
 			var out:Array = [];
@@ -2575,8 +2658,10 @@ package realm {
 				var m:Object = markers[i];
 				if (m.w != world) { markers.splice(i, 1); continue; }
 				m.t += dt;
+				if (m.follow) { m.x = m.follow.x; m.y = m.follow.y; }
 				if (m.t >= m.d) { markers.splice(i, 1); if (m.fn != null) m.fn(); }
 			}
+			if (eclipseT > 0) { eclipseT -= dt; if (eclipseW != world) eclipseT = 0; }
 			for (i = webs.length - 1; i >= 0; i--) {
 				var wb:Object = webs[i];
 				wb.t -= dt;
@@ -2643,6 +2728,63 @@ package realm {
 					gr.lineStyle();
 					gr.beginFill(0x06000c, 0.35 + f * 0.4);
 					gr.drawEllipse(-rx * 0.18, -ry * 0.18, rx * 0.36, ry * 0.36);
+					gr.endFill();
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
+				if (m.style == "star") {
+					// a falling star: a ring on the ground and the star streaking down onto it
+					gr.lineStyle(2, m.col, 0.9);
+					gr.beginFill(m.col, 0.1 + f * 0.15);
+					gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+					gr.endFill();
+					gr.lineStyle();
+					gr.beginFill(0xfff4d0, 0.2 + f * 0.3);
+					gr.drawEllipse(-rx * f, -ry * f, rx * 2 * f, ry * 2 * f);
+					gr.endFill();
+					var fall:Number = (1 - f) * TS * 9;
+					var hx:Number = fall * 0.45, hy2:Number = -fall;
+					gr.lineStyle(4, m.col, 0.35);
+					gr.moveTo(hx + TS * 1.4, hy2 - TS * 3.2); gr.lineTo(hx, hy2);
+					gr.lineStyle(2, 0xffffff, 0.8);
+					gr.moveTo(hx + TS * 0.9, hy2 - TS * 2.1); gr.lineTo(hx, hy2);
+					gr.lineStyle();
+					gr.beginFill(0xffffff, 0.95);
+					gr.drawCircle(hx, hy2, 3 + f * 2);
+					gr.endFill();
+					gr.beginFill(m.col, 0.5);
+					gr.drawCircle(hx, hy2, 6 + f * 3);
+					gr.endFill();
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
+				if (m.style == "brand") {
+					// a blood brand: a ring of blood round its carrier, beating faster as it nears bursting,
+					// and the sigil over their head
+					var beat:Number = 0.5 + 0.5 * Math.sin(time * (6 + f * 14));
+					gr.lineStyle(3, m.col, 0.55 + beat * 0.45);
+					gr.beginFill(m.col, 0.06 + f * 0.16);
+					gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+					gr.endFill();
+					gr.lineStyle(1, 0xffd0d8, 0.5);
+					gr.drawEllipse(-rx * (1 - f), -ry * (1 - f), rx * 2 * (1 - f), ry * 2 * (1 - f));
+					for (var bk:int = 0; bk < 8; bk++) {
+						var ba:Number = bk * Math.PI / 4 + time * 0.8;
+						gr.lineStyle(2, m.col, 0.8);
+						gr.moveTo(Math.cos(ba) * rx * 0.88, Math.sin(ba) * ry * 0.88);
+						gr.lineTo(Math.cos(ba) * rx * 1.06, Math.sin(ba) * ry * 1.06);
+					}
+					// the sigil: a diamond with a drop in it, above their head
+					var hy:Number = -TS * 1.9 - ry * 0;
+					gr.lineStyle(2, 0xffe0e0, 0.9);
+					gr.beginFill(m.col, 0.7 + beat * 0.3);
+					gr.moveTo(0, hy - 9); gr.lineTo(7, hy); gr.lineTo(0, hy + 9); gr.lineTo(-7, hy); gr.lineTo(0, hy - 9);
+					gr.endFill();
+					gr.lineStyle();
+					gr.beginFill(0x3a0008, 0.9);
+					gr.drawCircle(0, hy + 1.5, 2.5);
 					gr.endFill();
 					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
 					canvas.draw(markShape, markMtx);
@@ -6594,6 +6736,8 @@ package realm {
 				}
 			}
 
+			// (the eclipse falls over the world and its people, but shots and telegraphs still show)
+			if (eclipseT > 0) { drawEclipse(); if (eclipseDark() > 0) drawMarkers(); }
 			for each (var s:Projectile in shots) {
 				if (s.bot && !s.shown) continue;
 				bd = s.frame(time, camAngle);

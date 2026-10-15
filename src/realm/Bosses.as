@@ -246,14 +246,14 @@ package realm {
 			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
 			// the Crimson Conclave and Heart of the Storm: their bosses' arenas change as they weaken
 			matron: {style: "blood", prop: "blood_altar", n: 0, r: 6, hint: "The Matron's sanctum runs with blood: its channels will overflow, then its edges drown. Keep to the bone dais!"},
-			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground."},
+			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground. Whoever he brands in blood must leave the group before it bursts."},
 			galecaller: {style: "gale", prop: "storm_rod", n: 0, r: 6, hint: "The Galecaller's terrace will charge with lightning: off the runes when they crackle, and away from the edge!"},
 			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."},
 			// the Starfall Vault (a raid): each chamber is a set piece of its own
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
-			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne!"}
+			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne! When he eclipses the sky, watch the light of his falling stars."}
 		};
 
 		/** Where a boss's set-piece pieces stand: the P tiles of its layout (x, y is the boss's tile centre). */
@@ -1019,6 +1019,15 @@ package realm {
 		private static function selfNova(radius:Number, delay:Number, dmg:int, cd:Number, col:uint, x:Object = null):Object {
 			return nova(radius, delay, dmg, cd, col, o({reach: 0.01, marker: "rune", radius: radius, burst: 16, bspd: 5.5, blife: 1.5, name: "rite"}, x));
 		}
+		/** Archon Vesper's blood brand: n players marked; it bursts on whoever stands with them (Enemy "brand"). */
+		private static function bloodBrand(n:int, dmg:int, cd:Number, x:Object = null):Object {
+			return o({p: "brand", n: n, dmg: dmg, cd: cd, radius: 3.6, delay: 4.5, col: 0xff1838, eff: "bleeding", name: "the blood brand"}, x);
+		}
+		/** Astraeon's eclipse: dur seconds of darkness, lit only by waves of falling stars (Enemy "eclipse"). */
+		private static function eclipse(dur:Number, stars:int, dmg:int, cd:Number, x:Object = null):Object {
+			return o({p: "eclipse", dur: dur, stars: stars, gap: 1.3, spread: 9, radius: 1.6, delay: 1.2, dmg: dmg, cd: cd, col: 0xffe080,
+				burst: 6, bspd: 4.5, blife: 0.9, fx: "pillar", shape: "star", name: "a falling star"}, x);
+		}
 		/** The boss vanishes and reappears nearby, leaving a ring of shots behind. */
 		private static function blinkRing(cd:Number, col:uint):Object {
 			return ring(10, 18, 4, 60, cd, col, {shape: "star", life: 2.0, blink: 6, name: "blink"});
@@ -1117,13 +1126,15 @@ package realm {
 				P(0.8, {say: "Witness the crimson rite!", shield: 3, move: "center", every: 4,
 					cycle: [[flower(32, 5.6, 5, 80, 0.7, 0xff3060)],
 						[selfNova(5.5, 1.4, 150, 3.4, 0xff2040, {burst: 22, shape: "crescent", fx: "pillar", name: "the crimson rite"}), aim(7, 70, 8, 80, 1.4, 0xffd0e0)],
+						[bloodBrand(1, 160, 4), aim(5, 50, 9, 80, 1.2, 0xffd040, {shape: "crescent", r: 0.32})],
 						[lineRain(7, 115, 1.6, 0xff2040, "spikes", {name: "blood geyser"}), rain(10, 7, 120, 1.6, 0xff2040, {burst: 6})]]}),
 				P(0.55, {say: "Blood for the blood god!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
 					attacks: [spiral(6, -11, 6.5, 80, 0.1, 0xff6080), blinkRing(6, 0xff3060), pull(16, 90, 4.0, 0xff3060, {name: "Vesper's call"}),
-						summon("blood_acolyte", 2, 9, 8)]}),
+						summon("blood_acolyte", 2, 9, 8), bloodBrand(1, 180, 9)]}),
 				P(0.25, {say: "I AM THE CRIMSON DAWN!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [spiral(8, 9, 7, 90, 0.09, 0xff3060, {motion: "wave"}), selfNova(6, 1.5, 190, 3.2, 0xff2040, {burst: 26, shape: "crescent", fx: "pillar", name: "the crimson dawn"}),
-						aim(9, 100, 9, 100, 1.2, 0xffffff, {shape: "crescent", waves: 3, gap: 0.2}), pillars(8, 120, 2.6, 0xff3060)]})
+						aim(9, 100, 9, 100, 1.2, 0xffffff, {shape: "crescent", waves: 3, gap: 0.2}), pillars(8, 120, 2.6, 0xff3060),
+						bloodBrand(2, 200, 8.5, {name: "the crimson brand"})]})
 			]}, raid), ["vesper_staff", "crimson_crown"]);
 
 			// ---- Heart of the Storm: lightning out of the sky, winds that drag you, bolts that stun
@@ -1204,10 +1215,10 @@ package realm {
 						[rain(10, 7, 130, 1.6, 0xffb040, {burst: 6, fx: "pillar"}), lineRain(7, 120, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
 				P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "orbit",
 					attacks: [spiral(6, -11, 7, 90, 0.1, 0xffe080, {motion: "wave"}), selfNova(5.5, 1.3, 180, 3.0, 0xffb040, {burst: 20, shape: "star", fx: "pillar", name: "supernova"}),
-						blinkRing(6, 0xfff0a0), pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"})]}),
+						blinkRing(6, 0xfff0a0), pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), eclipse(10, 4, 140, 24)]}),
 				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "crescent", waves: 3, gap: 0.2}),
-						selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"})]})
+						selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), eclipse(12, 5, 160, 20)]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star"]);
 		}
 	}

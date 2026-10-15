@@ -1883,6 +1883,13 @@ class Bosses {
 	static selfNova(radius, delay, dmg, cd, col, x = null) { dmg = __int(dmg); col = __uint(col);
 			return Bosses.nova(radius, delay, dmg, cd, col, Bosses.o({reach: 0.01, marker: "rune", radius: radius, burst: 16, bspd: 5.5, blife: 1.5, name: "rite"}, x));
 		}
+	static bloodBrand(n, dmg, cd, x = null) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "brand", n: n, dmg: dmg, cd: cd, radius: 3.6, delay: 4.5, col: 0xff1838, eff: "bleeding", name: "the blood brand"}, x);
+		}
+	static eclipse(dur, stars, dmg, cd, x = null) { stars = __int(stars); dmg = __int(dmg);
+			return Bosses.o({p: "eclipse", dur: dur, stars: stars, gap: 1.3, spread: 9, radius: 1.6, delay: 1.2, dmg: dmg, cd: cd, col: 0xffe080,
+				burst: 6, bspd: 4.5, blife: 0.9, fx: "pillar", shape: "star", name: "a falling star"}, x);
+		}
 	static blinkRing(cd, col) { col = __uint(col);
 			return Bosses.ring(10, 18, 4, 60, cd, col, {shape: "star", life: 2.0, blink: 6, name: "blink"});
 		}
@@ -1944,13 +1951,15 @@ class Bosses {
 				Bosses.P(0.8, {say: "Witness the crimson rite!", shield: 3, move: "center", every: 4,
 					cycle: [[Bosses.flower(32, 5.6, 5, 80, 0.7, 0xff3060)],
 						[Bosses.selfNova(5.5, 1.4, 150, 3.4, 0xff2040, {burst: 22, shape: "crescent", fx: "pillar", name: "the crimson rite"}), Bosses.aim(7, 70, 8, 80, 1.4, 0xffd0e0)],
+						[Bosses.bloodBrand(1, 160, 4), Bosses.aim(5, 50, 9, 80, 1.2, 0xffd040, {shape: "crescent", r: 0.32})],
 						[Bosses.lineRain(7, 115, 1.6, 0xff2040, "spikes", {name: "blood geyser"}), Bosses.rain(10, 7, 120, 1.6, 0xff2040, {burst: 6})]]}),
 				Bosses.P(0.55, {say: "Blood for the blood god!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
 					attacks: [Bosses.spiral(6, -11, 6.5, 80, 0.1, 0xff6080), Bosses.blinkRing(6, 0xff3060), Bosses.pull(16, 90, 4.0, 0xff3060, {name: "Vesper's call"}),
-						Bosses.summon("blood_acolyte", 2, 9, 8)]}),
+						Bosses.summon("blood_acolyte", 2, 9, 8), Bosses.bloodBrand(1, 180, 9)]}),
 				Bosses.P(0.25, {say: "I AM THE CRIMSON DAWN!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [Bosses.spiral(8, 9, 7, 90, 0.09, 0xff3060, {motion: "wave"}), Bosses.selfNova(6, 1.5, 190, 3.2, 0xff2040, {burst: 26, shape: "crescent", fx: "pillar", name: "the crimson dawn"}),
-						Bosses.aim(9, 100, 9, 100, 1.2, 0xffffff, {shape: "crescent", waves: 3, gap: 0.2}), Bosses.pillars(8, 120, 2.6, 0xff3060)]})
+						Bosses.aim(9, 100, 9, 100, 1.2, 0xffffff, {shape: "crescent", waves: 3, gap: 0.2}), Bosses.pillars(8, 120, 2.6, 0xff3060),
+						Bosses.bloodBrand(2, 200, 8.5, {name: "the crimson brand"})]})
 			]}, raid), ["vesper_staff", "crimson_crown"]);
 
 			
@@ -2031,10 +2040,10 @@ class Bosses {
 						[Bosses.rain(10, 7, 130, 1.6, 0xffb040, {burst: 6, fx: "pillar"}), Bosses.lineRain(7, 120, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
 				Bosses.P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "orbit",
 					attacks: [Bosses.spiral(6, -11, 7, 90, 0.1, 0xffe080, {motion: "wave"}), Bosses.selfNova(5.5, 1.3, 180, 3.0, 0xffb040, {burst: 20, shape: "star", fx: "pillar", name: "supernova"}),
-						Bosses.blinkRing(6, 0xfff0a0), Bosses.pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"})]}),
+						Bosses.blinkRing(6, 0xfff0a0), Bosses.pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), Bosses.eclipse(10, 4, 140, 24)]}),
 				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [Bosses.spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), Bosses.aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "crescent", waves: 3, gap: 0.2}),
-						Bosses.selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"})]})
+						Bosses.selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), Bosses.eclipse(12, 5, 160, 20)]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star"]);
 		}
 }
@@ -3830,7 +3839,7 @@ class Enemy {
 				return;
 			}
 			
-			var spin0 = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : this.spins[i];
+			var spin0 = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : this.spins[i];
 			this.shootAttack(a, ang, spin0, dist, g);
 			if (a.dash) { this.dashT = a.dash; this.dashA = ang; this.dashSpd = a.dashSpd || 9; }
 			if (a.blink) this.blinkAway(a.blink, g);
@@ -3916,6 +3925,43 @@ class Enemy {
 						lx0 = best.x; ly0 = best.y;
 					}
 					break;
+				case "brand":
+					
+					
+					
+					var brd = Math.min(dist, a.reach || 16);
+					var brx = this.x + Math.cos(ang) * brd, bry = this.y + Math.sin(ang) * brd;
+					var brands = [];
+					var brPool = g.playersNear(brx, bry, 30);
+					for (k = __int(0); k < Math.max(1, n) && brPool.length; k++) {
+						var brBest = __int(0), brBd = 1e9;
+						for (var bi = __int(0); bi < brPool.length; bi++) {
+							var bqx = brPool[bi].x - brx, bqy = brPool[bi].y - bry;
+							if (bqx * bqx + bqy * bqy < brBd) { brBd = bqx * bqx + bqy * bqy; brBest = __int(bi); }
+						}
+						brands.push(brPool.splice(brBest, 1)[0]);
+					}
+					for (var who of __vals( brands)) g.brand(who, a.radius || 3.6, a.delay || 4.5, col, dmg, this.def.name, a.eff || null, Enemy.attackName(a));
+					break;
+				case "eclipse":
+					
+					
+					
+					var eDur = a.dur || 10;
+					g.eclipse(eDur, this);
+					var eSeed = __uint(__uint(Math.abs(ang) * 100003 + Math.abs(spin0) * 7919 + 1));
+					var eRand = () => { eSeed = __uint(__uint((eSeed * 1103515245 + 12345) % 2147483648)); return eSeed / 2147483648; };
+					var eWaves = __int(__int(eDur / (a.gap || 1.4)) - 1);
+					var eFrom = this.x, eFromY = this.y;
+					for (k = __int(0); k < eWaves; k++) {
+						var eSpots = [];
+						for (var es = __int(0); es < (a.stars || 4); es++) {
+							var ea = eRand() * Math.PI * 2, er = 1.5 + Math.sqrt(eRand()) * (a.spread || 9);
+							eSpots.push([eFrom + Math.cos(ea) * er, eFromY + Math.sin(ea) * er]);
+						}
+						g.later(0.8 + k * (a.gap || 1.4), this.starWave(a, eSpots, dmg, bd, spinning, g, ang + k));
+					}
+					break;
 				case "implode":
 					
 					var id2 = Math.min(dist, a.reach || 9);
@@ -3968,6 +4014,14 @@ class Enemy {
 					return;
 				}
 			}
+		}
+	starWave(a, spots, dmg, bd, spinning, g, base) { dmg = __int(dmg);
+			return () => {
+				for (var sp of __vals( spots)) {
+					if (!g.world.canStand(sp[0], sp[1], 0.3, true)) continue;
+					g.addMarker(sp[0], sp[1], a.radius || 1.5, a.delay || 1.2, a.col, this.novaFn(a, sp[0], sp[1], dmg, bd, spinning, g, base), "star");
+				}
+			};
 		}
 	novaFn(a, nx, ny, dmg, bd, spinning, g, base) { dmg = __int(dmg);
 			return () => {
@@ -5266,14 +5320,14 @@ Bosses.SETPIECES = {
 			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
 			
 			matron: {style: "blood", prop: "blood_altar", n: 0, r: 6, hint: "The Matron's sanctum runs with blood: its channels will overflow, then its edges drown. Keep to the bone dais!"},
-			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground."},
+			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground. Whoever he brands in blood must leave the group before it bursts."},
 			galecaller: {style: "gale", prop: "storm_rod", n: 0, r: 6, hint: "The Galecaller's terrace will charge with lightning: off the runes when they crackle, and away from the edge!"},
 			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."},
 			
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
-			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne!"}
+			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne! When he eclipses the sky, watch the light of his falling stars."}
 		};
 Bosses.V_RED = __uint(0xff2a3a);
 Bosses.V_GOLD = __uint(0xd8a030);

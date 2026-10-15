@@ -530,7 +530,7 @@ package realm {
 				return;
 			}
 			// patterns that rotate or scatter carry their own seed so every player sees the same bullets
-			var spin0:Number = a.p == "rain" || a.p == "wall" ? Math.random() * 1000 : spins[i];
+			var spin0:Number = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : spins[i];
 			shootAttack(a, ang, spin0, dist, g);
 			if (a.dash) { dashT = a.dash; dashA = ang; dashSpd = a.dashSpd || 9; }
 			if (a.blink) blinkAway(a.blink, g);
@@ -620,6 +620,43 @@ package realm {
 						lx0 = best.x; ly0 = best.y;
 					}
 					break;
+				case "brand":
+					// a blood brand: the player nearest where the boss aims is marked, and the mark follows
+					// them; when it bursts it tears into everyone standing with them (the branded one only
+					// takes a little), so whoever carries it has to leave the group
+					var brd:Number = Math.min(dist, a.reach || 16);
+					var brx:Number = x + Math.cos(ang) * brd, bry:Number = y + Math.sin(ang) * brd;
+					var brands:Array = [];
+					var brPool:Array = g.playersNear(brx, bry, 30);
+					for (k = 0; k < Math.max(1, n) && brPool.length; k++) {
+						var brBest:int = 0, brBd:Number = 1e9;
+						for (var bi:int = 0; bi < brPool.length; bi++) {
+							var bqx:Number = brPool[bi].x - brx, bqy:Number = brPool[bi].y - bry;
+							if (bqx * bqx + bqy * bqy < brBd) { brBd = bqx * bqx + bqy * bqy; brBest = bi; }
+						}
+						brands.push(brPool.splice(brBest, 1)[0]);
+					}
+					for each (var who:Object in brands) g.brand(who, a.radius || 3.6, a.delay || 4.5, col, dmg, def.name, a.eff || null, attackName(a));
+					break;
+				case "eclipse":
+					// Astraeon's eclipse: the arena goes dark, and stars fall through it in waves; the only
+					// light there is, besides a glow round yourself, is theirs (Game.eclipse). Where they fall
+					// comes from the shot's angle, so every player's game drops them in the same places
+					var eDur:Number = a.dur || 10;
+					g.eclipse(eDur, this);
+					var eSeed:uint = uint(Math.abs(ang) * 100003 + Math.abs(spin0) * 7919 + 1);
+					var eRand:Function = function():Number { eSeed = uint((eSeed * 1103515245 + 12345) % 2147483648); return eSeed / 2147483648; };
+					var eWaves:int = int(eDur / (a.gap || 1.4)) - 1;
+					var eFrom:Number = x, eFromY:Number = y;
+					for (k = 0; k < eWaves; k++) {
+						var eSpots:Array = [];
+						for (var es:int = 0; es < (a.stars || 4); es++) {
+							var ea:Number = eRand() * Math.PI * 2, er:Number = 1.5 + Math.sqrt(eRand()) * (a.spread || 9);
+							eSpots.push([eFrom + Math.cos(ea) * er, eFromY + Math.sin(ea) * er]);
+						}
+						g.later(0.8 + k * (a.gap || 1.4), starWave(a, eSpots, dmg, bd, spinning, g, ang + k));
+					}
+					break;
 				case "implode":
 					// a gravity well: a ring of shots appears round you and falls inward
 					var id2:Number = Math.min(dist, a.reach || 9);
@@ -674,6 +711,16 @@ package realm {
 					return;
 				}
 			}
+		}
+
+		/** One wave of the eclipse's falling stars: each a marked circle that bursts where it lands. */
+		private function starWave(a:Object, spots:Array, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, base:Number):Function {
+			return function():void {
+				for each (var sp:Array in spots) {
+					if (!g.world.canStand(sp[0], sp[1], 0.3, true)) continue;
+					g.addMarker(sp[0], sp[1], a.radius || 1.5, a.delay || 1.2, a.col, novaFn(a, sp[0], sp[1], dmg, bd, spinning, g, base), "star");
+				}
+			};
 		}
 
 		private function novaFn(a:Object, nx:Number, ny:Number, dmg:int, bd:Vector.<BitmapData>, spinning:Boolean, g:Game, base:Number):Function {

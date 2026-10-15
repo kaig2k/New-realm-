@@ -305,7 +305,7 @@ function statusTick() {
   let rec = null;
   for (const id of Object.keys(records)) {
     const r = records[id] && records[id][0];
-    if (r && !id.startsWith('vault:') && (!rec || r.at > rec.r.at)) rec = { id, r };
+    if (r && !id.startsWith('vault:') && !id.startsWith('rb:') && (!rec || r.at > rec.r.at)) rec = { id, r };
   }
   const tw = Bosses.vaultTwist(Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7));
   const lines = [
@@ -366,6 +366,19 @@ function questProgress(c, evs) {
   guildProgress(c, evs);
   if (evs.includes('darkelder')) grantTitle(c.key, 'elder');
   if (evs.includes('raid:starfall')) grantTitle(c.key, 'vault');
+  if (evs.includes('raid:conclave')) grantTitle(c.key, 'conclave');
+  if (evs.includes('raid:storm')) grantTitle(c.key, 'storm');
+  // Heroic: any raid, then all three (kept in the save: sv.heroics = {raid id: true})
+  const hid = evs.find((v) => v.startsWith('raidh:'));
+  if (hid) {
+    grantTitle(c.key, 'heroic');
+    const hs = onlineSave(c.key);
+    if (hs) {
+      hs.heroics = Object.assign({}, hs.heroics, { [hid.slice(6)]: true });
+      if (Bosses.RAIDS.map((r) => r.id).every((id) => hs.heroics[id])) grantTitle(c.key, 'heroic_all');
+      store.putSave(c.key, hs);
+    }
+  }
   const sv = onlineSave(c.key);
   const done = quests.progress(sv, evs);
   if (done === null) return;
@@ -404,7 +417,54 @@ function mayEnter(c, world, from) {
   return (openWorlds.get(world) || 0) > Date.now();
 }
 if (sims) sims.onPortal = openWorld;
-if (sims) sims.onFeat = (k, d) => { if (k === 'raid' && d.week !== undefined && d.ms > 0) vaultCleared(d); feat(k, d); };
+if (sims) sims.onFeat = (k, d) => {
+  if (k === 'raid' && d.week !== undefined && d.ms > 0) {
+    if (d.twist && !d.heroic) vaultCleared(d);
+    raidCleared(d);
+  }
+  feat(k, d);
+};
+/**
+ * The first clear of each raid each week, on each difficulty (raid id, plus ':h' for
+ * Heroic), for each account: sv.raidWeek = {week, done: {id: true}}. True (and marked)
+ * the first time; the raid's final boss then rolls its loot again (worldsim dropLoot).
+ */
+if (sims) sims.firstClear = (c, id, week) => {
+  if (!c || !c.key || !c.authed) return false;
+  const sv = onlineSave(c.key);
+  if (!sv) return false;
+  if (!sv.raidWeek || sv.raidWeek.week !== week) sv.raidWeek = { week, done: {} };
+  if (sv.raidWeek.done[id]) return false;
+  sv.raidWeek.done[id] = true;
+  store.putSave(c.key, sv);
+  return true;
+};
+
+/**
+ * Every raid's weekly boards, one per difficulty: records['rb:<raid id>[h]:<week>'], fastest
+ * clears first (from the first stage's start to the last boss's fall). The week's fastest
+ * team earns Raid Record Holder.
+ */
+function raidCleared(d) {
+  const team = (d.team || []).filter((c) => c && c.key);
+  const names = team.map((c) => c.name).filter(Boolean).slice(0, 8);
+  if (!names.length || d.ms < 1000 || !d.id) return;
+  const key = 'rb:' + d.id + (d.heroic ? 'h' : '') + ':' + d.week;
+  const list = records[key] || (records[key] = []);
+  const entry = { ms: d.ms, names, at: Date.now() };
+  list.push(entry);
+  list.sort((a, b) => a.ms - b.ms);
+  list.length = Math.min(list.length, RECORDS_KEPT);
+  const at = list.indexOf(entry);
+  for (const k of Object.keys(records)) if (k.startsWith('rb:') && Number(k.split(':').pop()) < d.week - 8) delete records[k];
+  save('records.json', records);
+  const nm = (d.heroic ? 'Heroic ' : '') + d.raid;
+  for (const c of team) {
+    c.send({ t: 'msg', color: 0xffd75e, text: nm + ' cleared in ' + clock(d.ms) + (at >= 0 ? ': #' + (at + 1) + " on this week's board!" : '. The best this week is ' + clock(list[0].ms) + '.') });
+    if (at === 0) grantTitle(c.key, 'raidrecord');
+  }
+  if (at === 0) feat('raidrecord', { names, time: clock(d.ms), raid: nm });
+}
 
 /** The Starfall Vault's weekly board: records['vault:<week>'], fastest clears on that week's twist (top 5 earn Twistbreaker). */
 function vaultCleared(d) {
@@ -686,6 +746,7 @@ function feat(kind, d) {
   else if (kind === 'oracle') discord.post('👁️ **' + desc(d.name) + '** completed the Oracle\'s collection for **' + desc(d.boss) + '**!', 0xb9a9ff);
   else if (kind === 'primordial') discord.post('🔥 **' + desc(d.name) + '** found a Primordial item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff5533);
   else if (kind === 'godly') discord.post('✨ **' + desc(d.name) + '** found a Godly item: **' + desc(d.item) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0xff60ff);
+  else if (kind === 'raidrecord') discord.post('⏱️ **Fastest ' + desc(d.raid) + ' clear this week:** ' + dnames(d.names) + ' in **' + d.time + '**!', 0xffd75e);
   else if (kind === 'vaultrecord') discord.post('⏱️ **Fastest Starfall Vault clear this week** (' + desc(d.twist) + '): ' + dnames(d.names) + ' in **' + d.time + '**!', 0x80e0ff);
   else if (kind === 'twist') discord.post('🌀 **This week in the Starfall Vault: ' + desc(d.name) + '.** ' + desc(d.desc) + ' Fastest clears earn the Twistbreaker title.', 0x80e0ff);
   else if (kind === 'title') discord.post('🎖️ **' + desc(d.name) + '** earned the title **' + desc(d.title) + '**.', d.color === undefined ? 0xff9a2e : d.color);
@@ -812,6 +873,9 @@ function applySave(c, data, cid) {
   if (prev.stable) data.stable = prev.stable; else delete data.stable;
   // and the daily login streak
   if (prev._login) data._login = prev._login; else delete data._login;
+  // and the week's raid first clears, and the raids cleared on Heroic
+  if (prev.raidWeek) data.raidWeek = prev.raidWeek; else delete data.raidWeek;
+  if (prev.heroics) data.heroics = prev.heroics; else delete data.heroics;
   // and the fallen heroes an admin can bring back (see graves.js)
   if (prev._graves) data._graves = prev._graves; else delete data._graves;
   if (prev._dead) data._dead = prev._dead; else delete data._dead;
@@ -1617,17 +1681,25 @@ const handlers = {
     const sv = onlineSave(c.key), ch = serverChar(c);
     const sid = str(m.sid, 40), i = num(m.i) | 0, seed = num(m.s) >>> 0;
     // (admins open raids for everyone from the admin menu, without a key)
-    if (isAdmin(c) && !sid && seed) return openWorld((m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed);
+    // (a Heroic raid takes two of its keys; its world key ends in ':h')
+    const heroic = m.k === 'raid' && !!m.h;
+    const wkey = (m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed + (heroic ? ':h' : '');
+    // (admins open raids for everyone from the admin menu, without a key)
+    if (isAdmin(c) && !sid && seed) return openWorld(wkey);
     if (!ch || !Array.isArray(ch.inv)) return;
     const at = sid ? ch.inv.findIndex((it) => it && it.sid === sid) : -1;
     const key = at >= 0 ? ch.inv[at] : null;
     const ok = key && (m.k === 'raid' ? Data.keyRaid(key) === i : Data.keyDungeon(key) === i);
-    if (!ok || !seed) { log(c.name + ' opened a portal without a key it has'); return; }
+    const sid2 = heroic ? str(m.sid2, 40) : '';
+    const at2 = sid2 && sid2 !== sid ? ch.inv.findIndex((it) => it && it.sid === sid2) : -1;
+    const key2 = at2 >= 0 ? ch.inv[at2] : null;
+    if (!ok || !seed || (heroic && !(key2 && Data.keyRaid(key2) === i))) { log(c.name + ' opened a portal without a key it has'); return; }
     ch.inv[at] = null;
     // (used up: a save that still holds it is refused, see items.check)
     items.release(sv, key);
+    if (key2) { ch.inv[at2] = null; items.release(sv, key2); }
     store.putSave(c.key, sv);
-    openWorld((m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed);
+    openWorld(wkey);
   },
 
   /** A pet egg: the server takes the gold and rolls the pet (the game can't pick its own). */

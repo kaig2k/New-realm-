@@ -148,7 +148,11 @@ package realm {
 			var recs:Array = [];
 			for (var rid2:String in Bosses.SETPIECES) if (Data.ENEMIES[rid2] && Data.EVENTS.indexOf(rid2) >= 0) recs.push({rec: rid2});
 			recs.sortOn("rec");
-			// this week's Starfall Vault board comes first
+			// this week's raid boards come first (each raid, Normal and Heroic), the Starfall Vault's twist board before them
+			for (var ri:int = Bosses.RAIDS.length - 1; ri >= 0; ri--) {
+				recs.unshift({rec: "rb:" + Bosses.RAIDS[ri].id + "h:" + week()});
+				recs.unshift({rec: "rb:" + Bosses.RAIDS[ri].id + ":" + week()});
+			}
 			recs.unshift({rec: "vault:" + week()});
 			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs, [1]];
 		}
@@ -258,6 +262,16 @@ package realm {
 			if (id.indexOf("vault:") == 0) {
 				var tw:Object = Bosses.vaultTwist(int(id.substr(6)));
 				d = {spr: "astraeon", col: 0x80e0ff, name: "Starfall Vault: " + tw.name};
+			}
+			if (id.indexOf("rb:") == 0) {
+				// a raid's weekly board: rb:<raid id>[h]:<week>
+				var rk:String = id.split(":")[1];
+				var hero:Boolean = rk.charAt(rk.length - 1) == "h";
+				if (hero) rk = rk.substr(0, rk.length - 1);
+				for each (var rr:Object in Bosses.RAIDS) if (rr.id == rk) {
+					var last:Array = rr.stages[rr.stages.length - 1];
+					d = {spr: Data.ENEMIES[last[0]].spr, col: hero ? 0xffb040 : rr.color, name: (hero ? "Heroic " : "") + rr.name + " (this week)"};
+				}
 			}
 			body.graphics.lineStyle(1, 0x3a3a44);
 			body.graphics.moveTo(12, y + ROW - 2);

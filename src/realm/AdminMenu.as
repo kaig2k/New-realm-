@@ -166,16 +166,17 @@ package realm {
 			}
 			var yy:int = y0 + Math.ceil(Data.DUNGEONS.length / 2) * 26 + 8;
 			for (var r:int = 0; r < Bosses.RAIDS.length; r++) {
-				btn("Raid: " + Bosses.RAIDS[r].name, 14 + r * 262, yy, 254, raidFn(r), 12, 26);
+				btn("Raid: " + Bosses.RAIDS[r].name, 14 + r * 172, yy, 166, raidFn(r), 11, 26);
+				btn("Heroic", 14 + r * 172, yy + 30, 166, raidFn(r, true), 11, 22);
 			}
-			yy += 32;
+			yy += 58;
 			btn("Dark Elder's Chamber", 14, yy, 200, function():void { g.adminEnterArena(); });
 			btn("Realm portal", 220, yy, 140, function():void { g.adminRealmPortal(); });
 			btn("Raid keys", 366, yy, 120, function():void { g.adminGiveKeys(); });
 		}
 
-		private function raidFn(i:int):Function {
-			return function():void { g.adminEnterRaid(i); g.toggleAdmin(); };
+		private function raidFn(i:int, heroic:Boolean = false):Function {
+			return function():void { g.adminEnterRaid(i, heroic); g.toggleAdmin(); };
 		}
 
 		private function bossNames(d:Object):String {

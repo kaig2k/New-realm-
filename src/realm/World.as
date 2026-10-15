@@ -130,6 +130,8 @@ package realm {
 		/** Raid arenas: the raid, its current stage and the countdown to the next. */
 		public var raid:Object;
 		public var raidStage:int = -1;
+		/** A heroic raid (Bosses.HEROIC): its world key ends in ":h". */
+		public var heroic:Boolean = false;
 		/** A raid whose bosses take over the whole dungeon (SetPieces.takeover): its ground as first built, and the colour the current master casts over it (-1 none). */
 		public var baseTiles:Array;
 		public var baseObjs:Array;

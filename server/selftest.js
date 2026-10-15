@@ -456,6 +456,44 @@ async function run() {
     }
   }
 
+  console.log('heroic raids and weekly first clears');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: HDt } = require('./sim/gen/game');
+    // Heroic: ':h' on the world key, its bosses and guards tougher
+    const norm = new WorldSim('raid:0:4321'), hero = new WorldSim('raid:0:4321:h');
+    norm.w.raidT = 0; hero.w.raidT = 0;
+    norm.updateRaid(0.05); hero.updateRaid(0.05);
+    // (the guards are picked at random: compare the same kind in both)
+    const gid = norm.enemies.find((e) => !e.isBoss && hero.enemies.some((h) => !h.isBoss && h.defId === e.defId)).defId;
+    const gmax = (ws) => Math.max(...ws.enemies.filter((e) => !e.isBoss && e.defId === gid).map((e) => e.maxHp));
+    check('a Heroic raid knows it is (its world key ends in :h), and its bosses and guards are tougher and fiercer',
+      hero.heroic && !norm.heroic && hero.w.boss.maxHp > norm.w.boss.maxHp * 1.5 && hero.w.boss.dmgMult > norm.w.boss.dmgMult * 1.2 &&
+      gmax(hero) > gmax(norm) * 1.4 && norm.week === hero.week && norm.week > 0, [hero.w.boss.maxHp, norm.w.boss.maxHp, gmax(hero), gmax(norm)].join(' '));
+    // the final boss: the first clear of the week rolls its loot again; not the second
+    const fc = new WorldSim('raid:1:555:h');
+    const asked = [], got = [];
+    const done = new Set();
+    fc.firstClear = (c, id, week) => { asked.push(id + '@' + week); if (done.has(id)) return false; done.add(id); return true; };
+    fc.issuer = (c, it) => got.push(it);
+    const pl = { id: 7, name: 'Raider', x: 100, y: 100, maxDps: 1e9, send: () => {}, profile: { cls: 'wizard' } };
+    fc.join(pl);
+    fc.w.raidStage = fc.w.raid.stages.length - 1;
+    const runs = [];
+    for (let k = 0; k < 2; k++) {
+      const msgs = [];
+      pl.send = (m) => msgs.push(m.d || m);
+      got.length = 0;
+      const fin = fc.spawn('tempestus', 100, 100, 5, true);
+      fin.hitters.set(7, 1000);
+      fc.kill(fin);
+      runs.push({ n: got.length, bonus: msgs.some((m) => m.t === 'msg' && /first .*clear this week/.test(m.text)) });
+    }
+    check('...and the first Heroic clear of the week gives a bonus roll from the final boss, the second doesn\'t',
+      asked[0] === 'storm:h@' + fc.week && runs[0].bonus && !runs[1].bonus && runs[0].n > 0, JSON.stringify(runs) + ' ' + asked.join(','));
+    check('every raid has a title for its final boss, and Heroic ones exist', ['vault', 'conclave', 'storm', 'heroic', 'heroic_all', 'raidrecord'].every((t) => HDt.findTitle(t)));
+  }
+
   console.log('pacing and boss scaling');
   {
     const { WorldSim } = require('./sim/worldsim');

@@ -58,8 +58,13 @@ class WorldSim {
       this.w.raid = rd;
       this.w.raidStage = -1;
       this.w.raidT = 1;
-      // the Starfall Vault's rule for this week (fixed for the run, even past midnight on Sunday)
-      if (rd.twists) { this.week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7); this.twist = Bosses.vaultTwist(this.week); }
+      // Heroic: its world key ends in ':h' (two keys at the Raid Table: see server.js portalKey)
+      this.heroic = p[3] === 'h';
+      this.w.heroic = this.heroic;
+      // the week the run counts for (its first clear, its board), fixed for the run even past midnight on Sunday
+      this.week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7);
+      // and the Starfall Vault's rule for this week
+      if (rd.twists) this.twist = Bosses.vaultTwist(this.week);
     } else if (this.kind === 'deep') {
       // the Endless Abyss: an arena where the waves keep coming (updateWaves)
       this.w = new World('abyss', 'The Endless Abyss');
@@ -308,6 +313,7 @@ class WorldSim {
         e.hp = e.maxHp;
         e.dmgMult = 1 + (th.hard - 1) * 0.6;
         Bosses.twistEnemy(e, tw, false);
+        if (this.heroic) Bosses.heroicEnemy(e, false);
       }
     }
   }
@@ -680,6 +686,7 @@ class WorldSim {
       const at = spots[k] || spots[0] || [100.5, 100.5];
       const b = this.spawn(st[k], at[0], at[1], World.DUNGEON_ZONE, true);
       if (b && k === 0) w.boss = b;
+      if (b && this.heroic) Bosses.heroicEnemy(b, true);
       if (b && this.twist) {
         Bosses.twistEnemy(b, this.twist, true);
         // Honour Guard: guards at the master's side
@@ -690,6 +697,7 @@ class WorldSim {
           if (!ge) continue;
           ge.maxHp *= th.hard; ge.hp = ge.maxHp; ge.dmgMult = 1 + (th.hard - 1) * 0.6;
           Bosses.twistEnemy(ge, this.twist, false);
+          if (this.heroic) Bosses.heroicEnemy(ge, false);
         }
       }
       if (n === 0 && k === 0) w.raidStart = Date.now();
@@ -809,6 +817,7 @@ class WorldSim {
       // a raid's last boss (titles)
       if (this.kind === 'raid' && this.w.raidStage === this.w.raid.stages.length - 1 &&
         !this.enemies.some((o) => o !== e && !o.dead && o.isBoss)) evs.push('raid:' + this.w.raid.id);
+      if (this.heroic && evs.includes('raid:' + this.w.raid.id)) evs.push('raidh:' + this.w.raid.id);
       if (e.def.final || e.def.finale) evs.push('elder');
       else if (this.kind === 'dg' && e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
       else if (this.kind === 'realm' && e.def.setpiece) {
@@ -824,7 +833,8 @@ class WorldSim {
       if (evs.includes('darkelder')) this.onFeat('elder', { names });
       const rd = evs.find((v) => v.startsWith('raid:'));
       if (rd) this.onFeat('raid', { names, raid: this.w.raid.name, boss: e.def.name, color: this.w.raid.color,
-        ms: this.w.raidStart ? Date.now() - this.w.raidStart : 0, week: this.week, twist: this.twist ? this.twist.name : '', team });
+        ms: this.w.raidStart ? Date.now() - this.w.raidStart : 0, week: this.week, twist: this.twist ? this.twist.name : '', team,
+        id: this.w.raid.id, heroic: !!this.heroic });
     }
   }
 
@@ -836,6 +846,9 @@ class WorldSim {
     let total = 0, mvp = null;
     // (the MVP is the top damage dealer still here: the same one siegeDown names)
     if (e.def.siege) for (const [cid, dmg] of e.hitters || []) { total += Math.max(0, dmg); if (this.players.has(cid) && (!mvp || dmg > e.hitters.get(mvp))) mvp = cid; }
+    // a raid's final boss (its last stage, nothing else of it left standing)
+    const raidEnd = this.kind === 'raid' && e.isBoss && this.w.raidStage === this.w.raid.stages.length - 1 &&
+      !this.enemies.some((o) => o !== e && !o.dead && o.isBoss);
     for (const [cid, dmg] of e.hitters || []) {
       const c = this.players.get(cid);
       if (!c || dmg <= 0) continue;
@@ -846,8 +859,16 @@ class WorldSim {
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
       // (VIPs find a little more: VIP_LUCK in server.js)
       const lk = (this.deep ? Data.deepBoonLuck(c.abyss ? c.abyss.boons : null) : 0) + Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
-      let items = Data.rollLoot(e.def, zone, cls, lk);
+      // a heroic raid's bosses drop better
+      const hl = this.heroic && e.def.raid ? Bosses.HEROIC.luck : 0;
+      let items = Data.rollLoot(e.def, zone, cls, lk + hl);
       if (e.elite) items = items.concat(Data.rollLoot(e.def, zone, cls, lk + 50));
+      // a raid's final boss: the first clear of the week (on this difficulty) rolls again, luckier
+      let first = false;
+      if (raidEnd && this.firstClear && this.firstClear(c, this.w.raid.id + (this.heroic ? ':h' : ''), this.week)) {
+        first = true;
+        items = items.concat(Data.rollLoot(e.def, zone, cls, lk + hl + 120));
+      }
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));
       if (e.def.crate && Math.random() < 0.45) items.push(Math.random() < 0.67 ? Data.makePotion(Math.random() < 0.5 ? 'hp' : 'mp') : Data.makePotion('stat', Data.randomStat()));
       if (e.def.mimic) items = items.concat(mimicLoot(cls));
@@ -868,6 +889,7 @@ class WorldSim {
       // the Oracle counts every boss kill and what it dropped for you (and the Abyss's chests)
       if (this.onOracle && (e.isBoss || e.def.abyssChest)) this.onOracle(c, e, items);
       if (this.onFeat) for (const it of items) if (it && (it.rarity === 'gd' || it.rarity === 'ar')) this.onFeat(it.rarity === 'gd' ? 'godly' : 'primordial', { name: c.name, item: it.name, from: e.def.name });
+      if (first) this.send(c, { t: 'msg', color: 0xffd75e, text: 'Your first ' + Bosses.raidName(Bosses.RAIDS.indexOf(this.w.raid), this.heroic) + ' clear this week: a bonus roll of its loot!' });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
   }
@@ -1148,7 +1170,7 @@ class Sims {
 
   /** Hands a new world the server's hooks. */
   wire(s) {
-    for (const k of ['issuer', 'onEventKill', 'onQuest', 'onEarn', 'onFeat', 'onPortal', 'onOracle', 'onSiege', 'onDeep']) s[k] = this[k];
+    for (const k of ['issuer', 'onEventKill', 'onQuest', 'onEarn', 'onFeat', 'onPortal', 'onOracle', 'onSiege', 'onDeep', 'firstClear']) s[k] = this[k];
   }
 
   join(key, c) {

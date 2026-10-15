@@ -1837,6 +1837,17 @@ class Bosses {
 			if (master && tw.masterSpd) e.spdMult *= tw.masterSpd;
 			if (!master && tw.guardDmg) e.dmgMult *= tw.guardDmg;
 		}
+	static heroicEnemy(e, boss) {
+			if (!e) return;
+			e.maxHp *= boss ? Bosses.HEROIC.hp : Bosses.HEROIC.guardHp;
+			e.hp = e.maxHp;
+			e.dmgMult *= boss ? Bosses.HEROIC.dmg : Bosses.HEROIC.guardDmg;
+			if (boss) e.rateMult *= Bosses.HEROIC.rate;
+		}
+	static raidName(i, heroic) { i = __int(i);
+			var rd = Bosses.RAIDS[i];
+			return rd ? (heroic ? "Heroic " : "") + rd.name : "";
+		}
 	static raids() {
 			var raid = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			Bosses.boss("zealot_a", Bosses.o({name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
@@ -1972,6 +1983,7 @@ class World {
 		this.pendingPopulate = null;
 		this.raid = null;
 		this.raidStage = __int(-1);
+		this.heroic = false;
 		this.baseTiles = null;
 		this.baseObjs = null;
 		this.raidTint = __int(-1);
@@ -4643,6 +4655,11 @@ Data.TITLES = [
 			{id: "t_unbroken", name: "the Unbroken", cost: 5000}, {id: "t_eternal", name: "the Eternal", cost: 12000},
 			{id: "record", name: "Record Holder", earn: "Hold the #1 time for any realm event on the Records board", col: 0xffd75e},
 			{id: "vault", name: "Vault Breaker", earn: "Defeat Astraeon at the end of the Starfall Vault", col: 0xfff0a0},
+			{id: "conclave", name: "Bloodbreaker", earn: "Defeat Archon Vesper at the end of the Crimson Conclave", col: 0xff3050},
+			{id: "storm", name: "Stormrider", earn: "Defeat Tempestus at the heart of the storm", col: 0x80ffff},
+			{id: "heroic", name: "the Heroic", earn: "Clear any raid on Heroic", col: 0xffb040},
+			{id: "heroic_all", name: "Raid Conqueror", earn: "Clear all three raids on Heroic", col: 0xff7040},
+			{id: "raidrecord", name: "Raid Record Holder", earn: "The fastest clear of a raid in a week (on its weekly board)", col: 0xffe27a},
 			{id: "elder", name: "Elderbane", earn: "Defeat the Dark Elder", col: 0xff5060},
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
 			{id: "deep10", name: "the Abyssal", earn: "Clear wave 10 of the Endless Abyss", col: 0xa060ff},
@@ -5126,6 +5143,7 @@ Bosses.VAULT_TWISTS = [
 			{id: "glass", name: "Glass Vault", desc: "Everything has 30% less health but hits 40% harder.", hp: 0.7, dmg: 1.4},
 			{id: "escort", name: "Honour Guard", desc: "Each master wakes with four guards at its side.", escort: 4}
 		];
+Bosses.HEROIC = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
 				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],

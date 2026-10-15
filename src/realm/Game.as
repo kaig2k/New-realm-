@@ -825,10 +825,11 @@ package realm {
 
 		/** The world host dropped a dungeon portal. */
 		public function netPortal(x:Number, y:Number, kind:String, idx:int, color:uint, life:Number, seed:uint):void {
-			if (kind == "raid" && Bosses.RAIDS[idx]) {
+			if (kind == "raid" && Bosses.RAIDS[idx % RAID_HEROIC]) {
 				addPortal(world, x, y, kind, idx, color, life, seed, false);
-				showBanner(Bosses.RAIDS[idx].name + " is open!", color, 3);
-				msg("A portal to " + Bosses.RAIDS[idx].name + " has opened by the Raid Table!", color);
+				var rn:String = Bosses.raidName(idx % RAID_HEROIC, idx >= RAID_HEROIC);
+				showBanner(rn + " is open!", color, 3);
+				msg("A portal to " + rn + " has opened by the Raid Table!", color);
 				return;
 			}
 			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
@@ -960,7 +961,7 @@ package realm {
 			if (p.kind == "realm") return realmNames[p.idx] + " Realm";
 			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
 			if (p.kind == "elder") return "Dark Elder's Chamber";
-			if (p.kind == "raid") return Bosses.RAIDS[p.idx].name;
+			if (p.kind == "raid") return Bosses.raidName(p.idx % RAID_HEROIC, p.idx >= RAID_HEROIC);
 			if (p.kind == "deep") return "The Endless Abyss";
 			if (p.kind == "vault") return "Your Vault";
 			if (p.kind == "ghall") return "Guild Hall";
@@ -984,7 +985,7 @@ package realm {
 			if (p.kind == "realm") enterPortal(p.idx);
 			else if (p.kind == "dungeon") enterDungeon(p.idx, p.seed);
 			else if (p.kind == "elder") enterArena();
-			else if (p.kind == "raid") enterRaid(p.idx, p.seed);
+			else if (p.kind == "raid") enterRaid(p.idx % RAID_HEROIC, p.seed, p.idx >= RAID_HEROIC);
 			else if (p.kind == "deep") enterDeep(0);
 			else if (p.kind == "vault") enterVault();
 			else if (p.kind == "ghall") enterGuildHall();
@@ -1120,8 +1121,8 @@ package realm {
 			saveCharacter();
 		}
 
-		public function adminEnterRaid(i:int):void {
-			travel(function():void { enterRaid(i, 1 + uint(Math.random() * 0x7ffffffe)); });
+		public function adminEnterRaid(i:int, heroic:Boolean = false):void {
+			travel(function():void { enterRaid(i, 1 + uint(Math.random() * 0x7ffffffe), heroic); });
 		}
 
 		public function adminEnterArena():void {
@@ -3427,7 +3428,9 @@ package realm {
 				y += 56;
 			} else if (openStation.kind == "raids") {
 				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are boss fights one after another (the Starfall Vault has four chambers, each a structure that fights back), best with friends, " +
-					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder.";
+					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder. " +
+					"<font color='#ffb040'><b>Heroic</b></font> (two keys): tougher bosses and better loot. The first clear of each raid each week, on each difficulty, " +
+					"gives a bonus roll from its final boss, and the fastest clears go on the raid's weekly board.";
 				info.y = y;
 				y += info.height + 10;
 				for (i = 0; i < Bosses.RAIDS.length; i++) {
@@ -3441,13 +3444,18 @@ package realm {
 						var rb:Sprite = Ui.button("Use Key (" + keys + ")", 170, 32, raidFn(i), 13);
 						rb.x = w - 186; rb.y = y + 2;
 						sp.addChild(rb);
+						// Heroic: two keys, tougher bosses, better loot
+						var hb:Sprite = Ui.button("Heroic (2 keys)", 170, 26, raidFn(i, true), 12);
+						hb.x = w - 186; hb.y = y + 38;
+						hb.alpha = keys >= 2 ? 1 : 0.45;
+						sp.addChild(hb);
 					} else {
 						var nk:TextField = Ui.text(12, 0x888888, false, "center", 170);
 						nk.text = "Needs a key";
 						nk.x = w - 186; nk.y = y + 9;
 						sp.addChild(nk);
 					}
-					y += Math.max(46, rt.height + 8);
+					y += Math.max(keys > 0 ? 70 : 46, rt.height + 8);
 				}
 			} else if (openStation.kind == "keys") {
 				info.htmlText = "Dungeon keys open a portal to that dungeon right where you stand (30 seconds; friends can follow). " +
@@ -4139,6 +4147,9 @@ package realm {
 		}
 
 		// ------------------------------------------------------------ raids
+		/** A heroic raid's portal index: this plus the raid's. */
+		public static const RAID_HEROIC:int = 100;
+
 		private function raidBossNames(rd:Object):String {
 			var parts:Array = [];
 			for each (var st:Array in rd.stages) {
@@ -4153,8 +4164,20 @@ package realm {
 			return out;
 		}
 
-		private function raidFn(i:int):Function {
+		private function raidFn(i:int, heroic:Boolean = false):Function {
 			return function():void {
+				if (heroic) {
+					// two keys of this raid
+					var ks:Array = [];
+					for (var hk:int = 0; hk < player.inv.length && ks.length < 2; hk++) if (Data.keyRaid(player.inv[hk]) == i) ks.push(hk);
+					if (ks.length < 2) { msg("A Heroic raid takes two of its keys.", 0xffb040); return; }
+					if (!inNexus) return;
+					openRaid(i, player.inv[ks[0]], player.inv[ks[1]]);
+					player.inv[ks[0]] = null;
+					player.inv[ks[1]] = null;
+					saveCharacter();
+					return;
+				}
 				for (var k:int = 0; k < player.inv.length; k++) {
 					if (Data.keyRaid(player.inv[k]) != i) continue;
 					if (useRaidKey(player.inv[k])) { player.inv[k] = null; saveCharacter(); }
@@ -4180,19 +4203,23 @@ package realm {
 		}
 
 		/** Opens a raid portal next to the table (everyone in the Nexus sees it). */
-		public function openRaid(i:int, key:Object = null):void {
+		public function openRaid(i:int, key:Object = null, key2:Object = null, heroic:Boolean = false):void {
 			var rd:Object = Bosses.RAIDS[i];
+			heroic = heroic || key2 != null;
+			var nm:String = Bosses.raidName(i, heroic);
 			Save.flush();
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
-			// the server takes the key and lets people through the portal (admins open raids without one)
-			if (serverLoot) Online.send({t: "portalKey", sid: key ? key.sid : "", k: "raid", i: i, s: seed});
+			// the server takes the key (two for Heroic) and lets people through the portal (admins open raids without one)
+			if (serverLoot) Online.send({t: "portalKey", sid: key ? key.sid : "", sid2: key2 ? key2.sid : "", h: heroic ? 1 : 0, k: "raid", i: i, s: seed});
 			var px:Number = 113.5, py:Number = 107.5;
-			addPortal(nexusWorld, px, py, "raid", i, rd.color, PORTAL_TIME, seed, false);
-			if (net.online) net.sendWorld("all", {t: "portal", x: px, y: py, k: "raid", i: i, c: rd.color, l: PORTAL_TIME, s: seed});
-			showBanner(rd.name + " is open!", rd.color, 3);
-			msg(player.name + " opened a portal to " + rd.name + "! (30 seconds)", rd.color);
+			// (a heroic raid's portal carries it in its index: RAID_HEROIC + the raid)
+			var pi:int = heroic ? RAID_HEROIC + i : i;
+			addPortal(nexusWorld, px, py, "raid", pi, rd.color, PORTAL_TIME, seed, false);
+			if (net.online) net.sendWorld("all", {t: "portal", x: px, y: py, k: "raid", i: pi, c: rd.color, l: PORTAL_TIME, s: seed});
+			showBanner(nm + " is open!", heroic ? 0xffb040 : rd.color, 3);
+			msg(player.name + " opened a portal to " + nm + "! (30 seconds)", rd.color);
 			// everyone on the server hears about it, wherever they are
-			if (net.online) Online.send({t: "raidOpen", name: rd.name, color: rd.color});
+			if (net.online) Online.send({t: "raidOpen", name: nm, color: rd.color});
 			Sfx.play("portal");
 			closeStation();
 			hud.refresh();
@@ -4202,12 +4229,13 @@ package realm {
 		 * Raids are dungeons of their own: guarded halls, then three boss stages
 		 * behind seals that open as each stage falls.
 		 */
-		private function enterRaid(i:int, seed:uint):void {
+		private function enterRaid(i:int, seed:uint, heroic:Boolean = false):void {
 			var rd:Object = Bosses.RAIDS[i];
 			if (!rd) return;
 			dropWorldLabels(dungeonWorld);
-			dungeonWorld = new World("dungeon", rd.name, rd.theme, seed);
-			dungeonWorld.key = "raid:" + i + ":" + seed;
+			dungeonWorld = new World("dungeon", Bosses.raidName(i, heroic), rd.theme, seed);
+			dungeonWorld.key = "raid:" + i + ":" + seed + (heroic ? ":h" : "");
+			dungeonWorld.heroic = heroic;
 			dungeonWorld.raid = rd;
 			dungeonWorld.raidStage = -1;
 			dungeonWorld.raidT = 1;
@@ -4217,8 +4245,9 @@ package realm {
 			player.invulnT = 3;
 			player.bossDmg = 0;
 			lightningT = 6;
-			showBanner(rd.name, rd.color, 4);
+			showBanner(Bosses.raidName(i, heroic), heroic ? 0xffb040 : rd.color, 4);
 			msg(rd.intro, rd.color);
+			if (heroic) msg("HEROIC: its bosses are far tougher and fiercer, and its loot is better.", 0xffb040);
 			Sfx.play("portal");
 		}
 
@@ -4233,6 +4262,7 @@ package realm {
 					e.maxHp *= th.hard;
 					e.hp = e.maxHp;
 					e.dmgMult = 1 + (th.hard - 1) * 0.6;
+					if (w.heroic) Bosses.heroicEnemy(e, false);
 				}
 			}
 			msg("Raid: everything here is far tougher than anywhere else. Bring friends.", 0xff8080);
@@ -4259,6 +4289,7 @@ package realm {
 				if (b && k == 0) w.boss = b;
 				// (the server does the same, with guards at their side on Honour Guard weeks)
 				if (b && rd.twists) Bosses.twistEnemy(b, Bosses.vaultTwist(WikiWindow.week()), true);
+				if (b && w.heroic) Bosses.heroicEnemy(b, true);
 				// a chamber master's set-piece pieces (the structure itself rises in SetPieceDecor)
 				if (b && b.def.setpiece) {
 					b.props = [];
@@ -6385,7 +6416,7 @@ package realm {
 					: p.kind == "dungeon" ? Data.DUNGEONS[p.idx].name + "\n<font size='11' color='#cccccc'>" + Math.ceil(p.life) + "s</font>"
 					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
 					: p.kind == "deep" ? "<font color='#d080ff'>The Endless Abyss</font>\n<font size='11' color='#cccccc'>level 20 · /abyss</font>"
-					: p.kind == "raid" ? "<font color='" + Ui.hex(p.color) + "'>" + Bosses.RAIDS[p.idx].name + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>"
+					: p.kind == "raid" ? "<font color='" + Ui.hex(p.idx >= RAID_HEROIC ? 0xffb040 : p.color) + "'>" + Bosses.raidName(p.idx % RAID_HEROIC, p.idx >= RAID_HEROIC) + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>"
 					: p.kind == "ghall" ? "<font color='#80ff80'>Guild Hall</font>" + (net && net.guild ? "\n<font size='11' color='#cccccc'>" + net.guild.name + "</font>" : "") : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);

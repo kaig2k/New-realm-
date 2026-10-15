@@ -952,6 +952,28 @@ package realm {
 			if (!master && tw.guardDmg) e.dmgMult *= tw.guardDmg;
 		}
 
+		/**
+		 * Heroic raids (two keys of the raid at the Raid Table): its bosses tougher and
+		 * fiercer, its guards too, and better loot (luck on every boss, see worldsim
+		 * dropLoot). Every raid has a weekly first clear of its own on each difficulty.
+		 */
+		public static const HEROIC:Object = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
+
+		/** Makes a raid monster heroic (its boss or one of its guards). */
+		public static function heroicEnemy(e:Enemy, boss:Boolean):void {
+			if (!e) return;
+			e.maxHp *= boss ? HEROIC.hp : HEROIC.guardHp;
+			e.hp = e.maxHp;
+			e.dmgMult *= boss ? HEROIC.dmg : HEROIC.guardDmg;
+			if (boss) e.rateMult *= HEROIC.rate;
+		}
+
+		/** A raid's name as its portal and banners show it. */
+		public static function raidName(i:int, heroic:Boolean):String {
+			var rd:Object = RAIDS[i];
+			return rd ? (heroic ? "Heroic " : "") + rd.name : "";
+		}
+
 		public static const RAIDS:Array = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
 				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],

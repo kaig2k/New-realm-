@@ -391,6 +391,23 @@ package realm {
 			w.sig = tier;
 		}
 
+		/** The trail a weapon's shots leave: from its signature (or its rarity: always sparkling). */
+		public static function trailOf(w:Object):String {
+			if (!w) return "";
+			if (w.rarity) return "spark";
+			if (w.sig === undefined) return "glow";
+			if (w.effect == "venom") return "drip";
+			if (w.boom) return "ember";
+			switch (w.shape) {
+				case "fire": return "ember";
+				case "voidorb": case "rift": return "smoke";
+				case "star": return "spark";
+				case "wisp": case "soul": return "wisp";
+				case "spike": return "frost";
+			}
+			return int(w.sig) >= 4 ? "spark" : "glow";
+		}
+
 		/** Whether an item is a plain tiered weapon (they all fire their tier's signature shot). */
 		public static function isTieredWeapon(it:Object):Boolean {
 			return it && it.kind == "weapon" && !it.rarity && !it.uid && !it.curse && SIGS[it.sub] && it.tier >= 0 && it.tier <= 7;

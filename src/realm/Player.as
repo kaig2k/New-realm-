@@ -472,7 +472,12 @@ package realm {
 			shootT = 1 / fireRate;
 			var ang:Number = Math.atan2(aimY - y, aimX - x);
 			var mult:Number = 0.5 + att / 50;
-			var frames:Vector.<BitmapData> = Sprites.projectile(w.shape, w.col, w.size || (w.sub == "sword" ? 4 : 3));
+			// its own shot (a tiered weapon's for its tier, a rarity weapon's its type's best in its rarity's colour)
+			// (uniques and Godly weapons keep the shots they were made with)
+			var tierFx:int = w.sig !== undefined ? int(w.sig) : w.rarity && !w.uid && w.rarity != "gd" ? 8 + Math.max(0, ["ut", "st", "fb", "lg", "ar"].indexOf(w.rarity)) : -1;
+			var frames:Vector.<BitmapData> = tierFx >= 0 ? Sprites.weaponShot(w.sub, Math.min(7, tierFx), w.col, w.form == "heavy" ? 3 : 2) : null;
+			if (!frames) frames = Sprites.projectile(w.shape, w.col, w.size || (w.sub == "sword" ? 4 : 3));
+			var trail:String = Data.trailOf(w);
 			for (var k:int = 0; k < w.shots; k++) {
 				var a:Number = ang, ox:Number = 0, oy:Number = 0;
 				var off:Number = k - (w.shots - 1) / 2;
@@ -492,6 +497,7 @@ package realm {
 				if (w.split) shot.split = {n: w.split.n, spd: w.split.spd, life: w.split.life, shape: w.split.sh, col: w.col, dmg: int(dmg * w.split.mul)};
 				if (w.boom) shot.boom = {r: w.boom.r, dmg: int(dmg * w.boom.mul)};
 				if (w.walls) shot.passWalls = true;
+				shot.trail = trail; shot.fxTier = tierFx; shot.fxCol = w.col;
 				if (k % 2 == 1) shot.phase = Math.PI;
 				g.addShot(shot);
 				shotsFired++;
@@ -500,7 +506,9 @@ package realm {
 			// muzzle flash at the tip of the weapon
 			if (Game.opt("parts") && g.parts.length < 400) {
 				var mf:BitmapData = Sprites.glow(Sprites.tint(w.col, 0.5));
-				for (k = 0; k < 2; k++) g.parts.push(new Particle(x + Math.cos(ang) * 0.45, y + Math.sin(ang) * 0.45, Math.cos(ang + (Math.random() - 0.5)) * 3, Math.sin(ang + (Math.random() - 0.5)) * 3, 0.1, mf));
+				// (the better the weapon, the bigger its flash)
+				var flash:int = 2 + Math.max(0, tierFx) / 2;
+				for (k = 0; k < flash; k++) g.parts.push(new Particle(x + Math.cos(ang) * 0.45, y + Math.sin(ang) * 0.45, Math.cos(ang + (Math.random() - 0.5)) * (3 + k), Math.sin(ang + (Math.random() - 0.5)) * (3 + k), 0.1 + k * 0.015, mf));
 			}
 			// Rampage passive: every 12th shot also fires a ring
 			if (w.passive == "rampage" && ++shotCount % 12 == 0) {

@@ -109,6 +109,21 @@ class Data {
 			w.dmax = __int(avg * 1.18);
 			w.sig = tier;
 		}
+	static trailOf(w) {
+			if (!w) return "";
+			if (w.rarity) return "spark";
+			if (w.sig === undefined) return "glow";
+			if (w.effect == "venom") return "drip";
+			if (w.boom) return "ember";
+			switch (w.shape) {
+				case "fire": return "ember";
+				case "voidorb": case "rift": return "smoke";
+				case "star": return "spark";
+				case "wisp": case "soul": return "wisp";
+				case "spike": return "frost";
+			}
+			return __int(w.sig) >= 4 ? "spark" : "glow";
+		}
 	static isTieredWeapon(it) {
 			return it && it.kind == "weapon" && !it.rarity && !it.uid && !it.curse && Data.SIGS[it.sub] && it.tier >= 0 && it.tier <= 7;
 		}

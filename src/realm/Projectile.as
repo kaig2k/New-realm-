@@ -46,6 +46,8 @@ package realm {
 		public static var homeX:Number = 0, homeY:Number = 0;
 		/** A seeking shot's target (Game.updateShots finds the nearest enemy for it). */
 		public var seekX:Number = NaN, seekY:Number = NaN, seekNext:Number = 0;
+		/** A weapon shot's flourish: its trail ("ember", "smoke", "spark", "wisp", "drip", "frost", "glow"), how grand it is (tier; rarity 8+), its colour. */
+		public var trail:String = "", fxTier:int = 0, fxCol:uint = 0xffffff;
 
 		public function Projectile(x:Number, y:Number, angle:Number, speed:Number, life:Number, dmg:int, enemy:Boolean,
 				r:Number, frames:Vector.<BitmapData>, pierce:Boolean, owner:String, effect:String, spin:Boolean = false) {

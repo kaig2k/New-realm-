@@ -866,6 +866,34 @@ package realm {
 			return frames;
 		}
 
+		/**
+		 * A weapon's own shot (WeaponShots: one for every tier of every weapon; rarity weapons fire
+		 * their type's tier-7 one), in the weapon's colour, turned every way it can fly.
+		 */
+		public static function weaponShot(sub:String, idx:int, color:uint, scale:int = 2):Vector.<BitmapData> {
+			var set:Array = WeaponShots.SHOTS[sub];
+			if (!set || !set[idx]) return null;
+			var key:String = "ws_" + sub + idx + "_" + color + "_" + scale;
+			var frames:Vector.<BitmapData> = cache[key];
+			if (frames) return frames;
+			var pal:Object = {C: color, a: shade(color, 0.55), W: tint(color, 0.7), H: 0xffffff, K: 0x10061c, G: 0xffd860, I: 0xa0a8b8, i: 0xe0e8f0, S: 0x8a5a2a};
+			var base:BitmapData = build(set[idx], pal, scale, 1);
+			var D:int = Math.ceil(Math.sqrt(base.width * base.width + base.height * base.height));
+			frames = new Vector.<BitmapData>(ROT_FRAMES, true);
+			var m:Matrix = new Matrix();
+			for (var i:int = 0; i < ROT_FRAMES; i++) {
+				var bd:BitmapData = new BitmapData(D, D, true, 0);
+				m.identity();
+				m.translate(-base.width / 2, -base.height / 2);
+				m.rotate(i * Math.PI * 2 / ROT_FRAMES);
+				m.translate(D / 2, D / 2);
+				bd.draw(base, m, null, null, null, false);
+				frames[i] = bd;
+			}
+			cache[key] = frames;
+			return frames;
+		}
+
 		public static function frameFor(angle:Number):int {
 			var f:int = Math.round(angle / (Math.PI * 2) * ROT_FRAMES) % ROT_FRAMES;
 			return f < 0 ? f + ROT_FRAMES : f;

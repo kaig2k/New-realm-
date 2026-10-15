@@ -433,6 +433,25 @@ async function run() {
     const up = sv.chars[0].inv[0];
     check('an older tiered weapon is brought up to its tier\'s signature shot (same weapon, same form)', up.sig === 5 && up.split && up.form === 'scatter' && up.tier === 5 && up.sid === before.chars[0].inv[0].sid);
     check('...and still checks out against the ledger (and a starter one as starter gear)', items.check(sv, sv) === null && items.STARTERS.has(items.fingerprint(sv.chars[0].weapon)), items.check(sv, sv));
+    // the game client sends objects back with their keys in another order: still the same item
+    const ruin = Data.makeWeapon('staff', 5);
+    const sv2 = { chars: [{ cls: 'wizard', inv: [ruin] }], _ledgerV: 1 };
+    items.issue(sv2, ruin);
+    const back = JSON.parse(JSON.stringify(sv2));
+    const sp = back.chars[0].inv[0].split;
+    back.chars[0].inv[0].split = { sh: sp.sh, life: sp.life, spd: sp.spd, mul: sp.mul, n: sp.n };
+    check('an item whose shards come back from the game in another order still checks out (not "was changed")', items.check(sv2, back) === null, items.check(sv2, back));
+    // and ledger entries written by the last version (object keys in the order given, or before shards counted) are accepted and rewritten
+    const old1 = { chars: [{ cls: 'wizard', inv: [Data.makeWeapon('staff', 7)] }], _ledgerV: 1 };
+    items.issue(old1, old1.chars[0].inv[0]);
+    const e1 = old1._ledger[old1.chars[0].inv[0].sid];
+    e1.f = e1.f.replace(/boom=\{[^}]*\}/, 'boom=' + JSON.stringify({ r: 1.3, mul: 0.6 }));
+    const fine1 = items.check(old1, old1);
+    const old2 = { chars: [{ cls: 'wizard', inv: [Data.makeWeapon('staff', 5)] }], _ledgerV: 1 };
+    items.issue(old2, old2.chars[0].inv[0]);
+    const e2 = old2._ledger[old2.chars[0].inv[0].sid];
+    e2.f = e2.f.split(';').filter((p) => p.indexOf('split=') !== 0).join(';');
+    check('...and so do ledger entries written by the last version (rewritten the new way)', fine1 === null && items.check(old2, old2) === null && e2.f.indexOf('split=') >= 0, [fine1, items.check(old2, old2)].join(' / '));
     const t7 = Data.makeWeapon('staff', 7);
     const c7 = combat.caps({ level: 20, stats: { att: 75, dex: 75 }, weapon: t7 }, null);
     check('the server lets a signature\'s explosions and shards through (its damage-a-second cap counts them)',

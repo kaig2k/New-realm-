@@ -21,17 +21,50 @@ const CORE = ['kind', 'sub', 'ab', 'tier', 'rarity', 'uid', 'set', 'passive', 'f
 /** Most entries one ledger keeps (old entries for items no longer held are dropped first). */
 const LEDGER_MAX = 4000;
 
+/** An object's JSON with its keys in a fixed order (the game client doesn't keep the order they came in). */
+function stable(v) {
+  if (Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
+  if (typeof v === 'number') return String(Math.round(v * 1e4) / 1e4);
+  return JSON.stringify(v);
+}
+
 /** What makes an item that item (its name and other cosmetics aside). */
-function fingerprint(it) {
+function fingerprint(it, keys) {
   const o = [];
-  for (const k of CORE) {
+  for (const k of keys || CORE) {
     let v = it[k];
     if (v === undefined || v === null || v === '' || v === false) continue;
     if (typeof v === 'number') v = Math.round(v * 1e4) / 1e4;
-    else if (typeof v === 'object') v = JSON.stringify(v);
+    else if (typeof v === 'object') v = stable(v);
     o.push(k + '=' + v);
   }
   return o.join(';');
+}
+
+/** The fields items were told apart by before weapons had signature shots (ledger entries written then). */
+const CORE_V1 = CORE.filter((k) => ['accel', 'walls', 'effect', 'split', 'boom'].indexOf(k) < 0);
+
+/** A ledger fingerprint with any object in it rewritten with its keys in order (entries written before stable()). */
+function canon(f) {
+  return String(f).split(';').map((part) => {
+    const i = part.indexOf('=');
+    const v = part.slice(i + 1);
+    if (v[0] !== '{' && v[0] !== '[') return part;
+    try { return part.slice(0, i + 1) + stable(JSON.parse(v)); } catch (e) { return part; }
+  }).join(';');
+}
+
+/**
+ * Whether ledger entry e records item it: exactly, or as written by an earlier version of the
+ * server (objects in another order, or before signature shots' fields counted). An entry that
+ * matches the old way is rewritten the new way.
+ */
+function matches(e, it) {
+  const f = fingerprint(it);
+  if (e.f === f) return true;
+  if (canon(e.f) === f || e.f === fingerprint(it, CORE_V1) || canon(e.f) === fingerprint(it, CORE_V1)) { e.f = f; return true; }
+  return false;
 }
 
 /** The tier-0 starter items of every class (no id needed). */
@@ -150,7 +183,7 @@ function check(prev, next) {
     seen.add(it.sid);
     const e = l[it.sid];
     if (!e) bad = (it.name || 'an item') + ' does not belong to this account';
-    else if (e.f !== f) bad = (it.name || 'an item') + ' was changed';
+    else if (!matches(e, it)) bad = (it.name || 'an item') + ' was changed';
   });
   return bad;
 }

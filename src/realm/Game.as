@@ -1825,9 +1825,8 @@ package realm {
 				if (!s.enemy && s.motion == "seek") seekFor(s);
 				s.move(dt);
 				s.life -= dt;
-				// glowing trail behind your own shots
-				if (!s.enemy && !s.bot && parts.length < 420 && Math.random() < 0.55 && opt("parts"))
-					parts.push(new Particle(s.x, s.y, 0, 0, 0.14, Sprites.glow(s.trailCol)));
+				// your own shots leave their weapon's trail
+				if (!s.enemy && !s.bot && parts.length < 420 && opt("parts")) shotTrail(s);
 				var remove:Boolean = s.life <= 0;
 				if (remove && s.split) splitShot(s);
 				if (remove && s.boom) abil.explode(s);
@@ -1859,7 +1858,7 @@ package realm {
 									s.hits[e] = true;
 								}
 								if (s.bot) botHit(e, s);
-								else damageEnemy(e, s);
+								else { damageEnemy(e, s); if (s.fxTier >= 0 && s.trail) impactFx(s); }
 								if (!s.pierce) {
 									remove = true;
 									// (your shot's shards burst where it strikes)
@@ -1898,6 +1897,54 @@ package realm {
 				// (your shards don't hit what the shot itself just hit)
 				if (!s.enemy && s.hits) { sh.pierce = true; sh.hits = s.hits; }
 				shots.push(sh);
+			}
+		}
+
+		/** A weapon shot's trail, by its kind: embers falling away, smoke, sparkles, wisps, venom drips, frost. */
+		private function shotTrail(s:Projectile):void {
+			var c:uint = s.fxCol || s.trailCol;
+			switch (s.trail) {
+				case "ember":
+					if (Math.random() < 0.8) parts.push(new Particle(s.x, s.y, (Math.random() - 0.5) * 2, 1 + Math.random() * 2, 0.28, Sprites.glow(Math.random() < 0.5 ? 0xffb040 : c)));
+					break;
+				case "smoke":
+					if (Math.random() < 0.7) parts.push(new Particle(s.x, s.y, (Math.random() - 0.5) * 1.2, -0.6, 0.35, Sprites.glow(Sprites.shade(c, 0.45))));
+					if (Math.random() < 0.3) parts.push(new Particle(s.x, s.y, 0, 0, 0.18, Sprites.glow(c)));
+					break;
+				case "spark":
+					parts.push(new Particle(s.x, s.y, 0, 0, 0.16, Sprites.glow(c)));
+					if (Math.random() < 0.35) parts.push(new Particle(s.x + (Math.random() - 0.5) * 0.5, s.y + (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 0.3, Sprites.spark(0xffffff)));
+					break;
+				case "wisp":
+					if (Math.random() < 0.8) parts.push(new Particle(s.x, s.y, Math.sin(s.age * 20) * 1.5, Math.cos(s.age * 20) * 1.5, 0.3, Sprites.glow(Sprites.tint(c, 0.4))));
+					break;
+				case "drip":
+					if (Math.random() < 0.6) parts.push(new Particle(s.x, s.y, 0, 2.5, 0.3, Sprites.spark(c)));
+					break;
+				case "frost":
+					if (Math.random() < 0.6) parts.push(new Particle(s.x, s.y, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, 0.3, Sprites.glow(Sprites.tint(c, 0.6))));
+					break;
+				default:
+					if (Math.random() < 0.55) parts.push(new Particle(s.x, s.y, 0, 0, 0.14, Sprites.glow(s.trailCol)));
+			}
+		}
+
+		/** Where a weapon shot strikes: a burst in its colour, bigger the better the weapon, a ring for the best. */
+		private function impactFx(s:Projectile):void {
+			if (!opt("parts") || parts.length > 380) return;
+			var n:int = 3 + s.fxTier;
+			var bd:BitmapData = Sprites.spark(s.fxCol);
+			for (var i:int = 0; i < n; i++) {
+				var a:Number = Math.random() * Math.PI * 2, sp:Number = 2 + Math.random() * (3 + s.fxTier * 0.4);
+				parts.push(new Particle(s.x, s.y, Math.cos(a) * sp, Math.sin(a) * sp, 0.2 + Math.random() * 0.2, bd));
+			}
+			if (s.fxTier >= 4) {
+				var gl:BitmapData = Sprites.glow(Sprites.tint(s.fxCol, 0.5));
+				var m:int = 6 + s.fxTier;
+				for (i = 0; i < m; i++) {
+					var b:Number = i * Math.PI * 2 / m;
+					parts.push(new Particle(s.x, s.y, Math.cos(b) * 5, Math.sin(b) * 5, 0.18, gl));
+				}
 			}
 		}
 

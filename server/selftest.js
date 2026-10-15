@@ -523,6 +523,19 @@ async function run() {
     check('...break them all and she wakes in her sanctum', ws.w.raidStage === 2 && ws.enemies.some((e) => !e.dead && e.defId === 'matron'));
   }
 
+  {
+    const { Data: RD, Bosses: RBs } = require('./sim/gen/game');
+    const novel = (a) => a.line || a.p === 'implode' || a.blink || a.dash || a.fx || a.marker;
+    const bad = [];
+    for (const r of RBs.RAIDS) for (const st of r.stages) for (const id of st) {
+      const d = RD.ENEMIES[id];
+      if (d.stageFoe) continue;
+      const all = [].concat(...d.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
+      if (all.filter(novel).length < 2) bad.push(id);
+    }
+    check('every raid boss fights with the new kit (lines of blasts, pulls, blinks, charges, rune circles, columns)', !bad.length, bad.join(','));
+  }
+
   console.log('pacing and boss scaling');
   {
     const { WorldSim } = require('./sim/worldsim');

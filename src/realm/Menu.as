@@ -136,6 +136,8 @@ package realm {
 		/** "Your Characters": continue a living character, or make a new one. */
 		private function buildCharLayer(save:Object):void {
 			var chars:Array = Save.chars;
+			// (no heroes left: the class screen has no list to go back to)
+			if (backBtn) backBtn.visible = chars.length > 0;
 			if (chars.length == 0) return;
 			charLayer = new Sprite();
 			addChild(charLayer);
@@ -149,6 +151,10 @@ package realm {
 				card.x = (Ui.W - 4 * 240 - 3 * 14) / 2 + (i % 4) * 254;
 				card.y = 180 + int(i / 4) * 120;
 				charLayer.addChild(card);
+				// a small "Delete" under the card's corner (asks first)
+				var del:Sprite = Ui.button("Delete", 58, 20, deleteFn(chars[i]), 11);
+				del.x = card.x + 240 - 64; del.y = card.y + 108 - 26;
+				charLayer.addChild(del);
 			}
 			var nb:Sprite = Ui.button("New Character", 220, 40, function():void {
 				charLayer.visible = false;
@@ -157,12 +163,14 @@ package realm {
 			nb.x = (Ui.W - 220) / 2;
 			nb.y = 432;
 			charLayer.addChild(nb);
-			var back:Sprite = Ui.button("Back", 100, 30, function():void {
+			if (backBtn) return;
+			backBtn = Ui.button("Back", 100, 30, function():void {
+				if (!charLayer) return;
 				classLayer.visible = false;
 				charLayer.visible = true;
 			}, 14);
-			back.x = 20; back.y = 140;
-			classLayer.addChild(back);
+			backBtn.x = 20; backBtn.y = 140;
+			classLayer.addChild(backBtn);
 		}
 
 		/** The "Seasonal hero" box on the class screen (online only). */
@@ -328,6 +336,62 @@ package realm {
 
 		/** The graveyard: your most recent fallen heroes. */
 		private var graveLayer:Sprite;
+		private var confirmLayer:Sprite;
+		/** The class screen's "Back" to the character list (made once). */
+		private var backBtn:Sprite;
+
+		private function deleteFn(c:Object):Function {
+			return function():void { confirmDelete(c); };
+		}
+
+		/** Deleting a hero: it and everything it carries are gone for good, so it asks first. */
+		private function confirmDelete(c:Object):void {
+			if (confirmLayer) { removeChild(confirmLayer); confirmLayer = null; }
+			var cls:Object = Data.CLASSES[c.cls];
+			var locked:int = 0, held:int = 0;
+			for each (var it:Object in [c.weapon, c.ability, c.armor, c.ring].concat(c.inv || [])) if (it) { held++; if (it.locked) locked++; }
+			confirmLayer = new Sprite();
+			var w:int = 460, h:int = 220;
+			var px:int = (Ui.W - w) / 2, py:int = 190;
+			confirmLayer.graphics.beginFill(0x000000, 0.65);
+			confirmLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
+			confirmLayer.graphics.endFill();
+			Ui.panel(confirmLayer.graphics, px, py, w, h, 0x24181a, 0xc04040, 0.98);
+			var t:TextField = Ui.text(22, 0xff8080, true, "center", w, true);
+			t.text = "Delete " + c.name + "?";
+			t.x = px; t.y = py + 14;
+			confirmLayer.addChild(t);
+			var body:TextField = Ui.text(14, 0xdddddd, false, "center", w - 40);
+			body.wordWrap = true; body.multiline = true;
+			body.htmlText = "Lvl " + c.level + " " + (cls ? cls.name : c.cls) + "   " + c.kills + " kills<br><br>" +
+				"The hero and <b>everything they carry</b> (" + held + " item" + (held == 1 ? "" : "s") + ") will be gone for good. " +
+				"Your vault, gold and fame are kept.<br><font color='#ff9090'>This can't be undone.</font>";
+			body.x = px + 20; body.y = py + 52;
+			confirmLayer.addChild(body);
+			var close:Function = function():void { if (confirmLayer) { removeChild(confirmLayer); confirmLayer = null; } };
+			if (locked > 0) {
+				// locked gear is the player saying "never lose this": move it to the vault first
+				var lk:TextField = Ui.text(13, 0xffd75e, true, "center", w - 40);
+				lk.text = c.name + " carries " + locked + " locked item" + (locked == 1 ? "" : "s") + ". Unlock or vault them first.";
+				lk.x = px + 20; lk.y = py + h - 82;
+				confirmLayer.addChild(lk);
+			} else {
+				var yes:Sprite = Ui.button("Delete forever", 170, 36, function():void {
+					Save.removeChar(c.id);
+					close();
+					// show the list again without it (or the class picker if none are left)
+					if (charLayer) { removeChild(charLayer); charLayer = null; }
+					classLayer.visible = true;
+					buildCharLayer(Save.data);
+				}, 15);
+				yes.x = px + w / 2 - 180; yes.y = py + h - 50;
+				confirmLayer.addChild(yes);
+			}
+			var no:Sprite = Ui.button("Cancel", 170, 36, close, 15);
+			no.x = locked > 0 ? px + (w - 170) / 2 : px + w / 2 + 10; no.y = py + h - 50;
+			confirmLayer.addChild(no);
+			addChild(confirmLayer);
+		}
 
 		private function showGraveyard():void {
 			if (graveLayer) { removeChild(graveLayer); graveLayer = null; return; }

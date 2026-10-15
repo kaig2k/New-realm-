@@ -838,9 +838,9 @@ package realm {
 			var sanct:Object = hall(100, 112, 25, 17, BLOODSTONE);
 			pool(93, 107, 1.5); pool(107, 107, 1.5); pool(93, 117, 1.5); pool(107, 117, 1.5);
 			for each (var b:Array in [[91, 105], [109, 105], [91, 119], [109, 119]]) objs[b[1] * N + b[0]] = 7;
-			// Archon Vesper's altar, behind the second seal
+			// Archon Vesper's altar, behind the second seal (the Blood Rite and the Matron share the sanctum, so it's gate 2)
 			corridor(100, 105, 100, 83, STONE);
-			gateRows(1, 100, 94, 95, WALL);
+			gateRows(2, 100, 94, 95, WALL);
 			var altar:Object = hall(100, 72, 25, 23, BLOODSTONE);
 			carve(90, 63, 21, 19, ARENA);
 			carve(99, 72, 3, 12, CARPET);
@@ -848,7 +848,8 @@ package realm {
 			for each (var p:Array in [[91, 64], [109, 64], [91, 80], [109, 80], [95, 61], [105, 61]]) objs[p[1] * N + p[0]] = 8;
 			for each (b in [[89, 62], [111, 62], [89, 82], [111, 82]]) objs[b[1] * N + b[0]] = 7;
 			rooms.push(nave, wc, ec, wch, ech, sanct, altar);
-			stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
+			// the Zealots in their chapels, the four Blood Altars round the sanctum, the Matron at its heart, the Archon on his altar
+			stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[96.5, 108.5], [104.5, 108.5], [96.5, 116.5], [104.5, 116.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
 			mobRooms = [{x: 100, y: 157, w: 13, h: 26, n: 11}, {x: 80, y: 160, w: 7, h: 7, n: 5}, {x: 120, y: 160, w: 7, h: 7, n: 5},
 				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
 		}
@@ -927,10 +928,12 @@ package realm {
 			blob(100, 66, 4, PLAZA);
 			for each (var e:Array in [[90, 58], [110, 58], [90, 74], [110, 74]]) objs[e[1] * N + e[0]] = 8;
 			gateBridge(0, 100, 132, 100, 108);
-			gateBridge(1, 100, 99, 100, 72);
+			// (the Lightning Rods and the Galecaller share the terrace, so the bridge to the eye is gate 2)
+			gateBridge(2, 100, 99, 100, 72);
 			for each (d in isl) rooms.push({x: d[0], y: d[1], w: int(d[2] * 1.5), h: int(d[2] * 1.5)});
 			rooms.push({x: 100, y: 104, w: 12, h: 12}, {x: 100, y: 66, w: 18, h: 18});
-			stageSpots = [[[60.5, 127.5], [140.5, 127.5], [100.5, 135.5]], [[100.5, 104.5]], [[100.5, 64.5]]];
+			// the Sentinels on their pylons, the three Lightning Rods round the terrace, the Galecaller on it, Tempestus in the eye
+			stageSpots = [[[60.5, 127.5], [140.5, 127.5], [100.5, 135.5]], [[93.5, 99.5], [107.5, 99.5], [100.5, 111.5]], [[100.5, 104.5]], [[100.5, 64.5]]];
 			mobRooms = [{x: 100, y: 163, w: 9, h: 9, n: 8}, {x: 79, y: 150, w: 7, h: 7, n: 5}, {x: 121, y: 150, w: 7, h: 7, n: 5},
 				{x: 60, y: 128, w: 8, h: 8, n: 3}, {x: 140, y: 128, w: 8, h: 8, n: 3}, {x: 100, y: 136, w: 8, h: 8, n: 3}, {x: 100, y: 104, w: 11, h: 11, n: 6}];
 		}

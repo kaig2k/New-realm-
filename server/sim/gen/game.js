@@ -1850,11 +1850,20 @@ class Bosses {
 		}
 	static raids() {
 			var raid = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
-			Bosses.boss("zealot_a", Bosses.o({name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
+			
+			Bosses.mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
+				name: "Blood Altar", spr: "blood_altar", hp: 16000, def: 30, col: 0xd8102a,
+				attacks: [Bosses.ring(10, 18, 4.2, 80, 2.2, 0xd8102a, {shape: "orb", eff: "bleeding"}),
+					Bosses.rain(3, 3, 95, 3.4, 0xff3040, {radius: 1.4, delay: 1.0, fx: "spikes", name: "blood geyser"})]});
+			Bosses.mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
+				name: "Lightning Rod", spr: "storm_rod", hp: 18000, def: 32, col: 0x80ffff,
+				attacks: [Bosses.aim(1, 0, 13, 90, 0.9, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
+					Bosses.rain(4, 5, 100, 3.0, 0x80ffff, {radius: 1.3, delay: 0.9, fx: "pillar", name: "lightning strike"})]});
+			Bosses.boss("zealot_a", Bosses.o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(3, 24, 8, 70, 0.9, 0xff3040, {eff: "bleeding"}), Bosses.ring(12, 15, 4, 60, 1.6, 0xd02030)]}),
 				Bosses.P(0.5, {say: "For the Archon!", shield: 1.5, move: "chase", attacks: [Bosses.spiral(3, 23, 6, 70, 0.12, 0xff3040)]})
 			]}, raid));
-			Bosses.boss("zealot_b", Bosses.o({name: "Zealot of Bone", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xe8e0c8, phases: [
+			Bosses.boss("zealot_b", Bosses.o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Bone", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xe8e0c8, phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.wall(9, 5, 70, 2, 0xe8e0c8), Bosses.aim(1, 0, 6, 80, 1.4, 0xffffff, {motion: "home"})]}),
 				Bosses.P(0.5, {say: "Bones to dust!", shield: 1.5, move: "teleport", attacks: [Bosses.rain(5, 4, 90, 2.2, 0xe8e0c8)]})
 			]}, raid));
@@ -1879,7 +1888,7 @@ class Bosses {
 			]}, raid), ["vesper_staff", "crimson_crown"]);
 
 			for (var sid of __vals( ["sentinel_a", "sentinel_b", "sentinel_c"])) {
-				Bosses.boss(sid, Bosses.o({name: "Thunder Sentinel", spr: "sentinel", hp: 14000, def: 24, spd: 1.8, xp: 1200, col: 0xffff60, phases: [
+				Bosses.boss(sid, Bosses.o({bond: "A Sentinel falls! Its charge surges into the others!", name: "Thunder Sentinel", spr: "sentinel", hp: 14000, def: 24, spd: 1.8, xp: 1200, col: 0xffff60, phases: [
 					Bosses.P(1, {move: sid == "sentinel_b" ? "orbit" : "wander", attacks: [Bosses.aim(1, 0, 14, 90, 0.8, 0xffffff, {shape: "blade", eff: "paralyzed"}), Bosses.ring(10, 18, 5, 60, 1.6, 0xffff60)]}),
 					Bosses.P(0.4, {say: "*crackles*", shield: 1, move: "chase", attacks: [Bosses.spiral(2, 37, 7, 70, 0.1, 0xffff80)]})
 				]}, raid));
@@ -2620,7 +2629,7 @@ class World {
 			for (var b of __vals( [[91, 105], [109, 105], [91, 119], [109, 119]])) this.objs[b[1] * this.N + b[0]] = 7;
 			
 			this.corridor(100, 105, 100, 83, World.STONE);
-			this.gateRows(1, 100, 94, 95, World.WALL);
+			this.gateRows(2, 100, 94, 95, World.WALL);
 			var altar = this.hall(100, 72, 25, 23, World.BLOODSTONE);
 			this.carve(90, 63, 21, 19, World.ARENA);
 			this.carve(99, 72, 3, 12, World.CARPET);
@@ -2628,7 +2637,8 @@ class World {
 			for (var p of __vals( [[91, 64], [109, 64], [91, 80], [109, 80], [95, 61], [105, 61]])) this.objs[p[1] * this.N + p[0]] = 8;
 			for (b of __vals( [[89, 62], [111, 62], [89, 82], [111, 82]])) this.objs[b[1] * this.N + b[0]] = 7;
 			this.rooms.push(nave, wc, ec, wch, ech, sanct, altar);
-			this.stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
+			
+			this.stageSpots = [[[72.5, 139.5], [128.5, 139.5]], [[96.5, 108.5], [104.5, 108.5], [96.5, 116.5], [104.5, 116.5]], [[100.5, 110.5]], [[100.5, 68.5]]];
 			this.mobRooms = [{x: 100, y: 157, w: 13, h: 26, n: 11}, {x: 80, y: 160, w: 7, h: 7, n: 5}, {x: 120, y: 160, w: 7, h: 7, n: 5},
 				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
 		}
@@ -2692,10 +2702,12 @@ class World {
 			this.blob(100, 66, 4, World.PLAZA);
 			for (var e of __vals( [[90, 58], [110, 58], [90, 74], [110, 74]])) this.objs[e[1] * this.N + e[0]] = 8;
 			this.gateBridge(0, 100, 132, 100, 108);
-			this.gateBridge(1, 100, 99, 100, 72);
+			
+			this.gateBridge(2, 100, 99, 100, 72);
 			for (d of __vals( isl)) this.rooms.push({x: d[0], y: d[1], w: __int(d[2] * 1.5), h: __int(d[2] * 1.5)});
 			this.rooms.push({x: 100, y: 104, w: 12, h: 12}, {x: 100, y: 66, w: 18, h: 18});
-			this.stageSpots = [[[60.5, 127.5], [140.5, 127.5], [100.5, 135.5]], [[100.5, 104.5]], [[100.5, 64.5]]];
+			
+			this.stageSpots = [[[60.5, 127.5], [140.5, 127.5], [100.5, 135.5]], [[93.5, 99.5], [107.5, 99.5], [100.5, 111.5]], [[100.5, 104.5]], [[100.5, 64.5]]];
 			this.mobRooms = [{x: 100, y: 163, w: 9, h: 9, n: 8}, {x: 79, y: 150, w: 7, h: 7, n: 5}, {x: 121, y: 150, w: 7, h: 7, n: 5},
 				{x: 60, y: 128, w: 8, h: 8, n: 3}, {x: 140, y: 128, w: 8, h: 8, n: 3}, {x: 100, y: 136, w: 8, h: 8, n: 3}, {x: 100, y: 104, w: 11, h: 11, n: 6}];
 		}
@@ -3363,6 +3375,8 @@ class Enemy {
 		this.animMs = __int(90);
 		this.animHit = __int(0);
 		this.animHold = __int(0);
+		this.bonded = null;
+		this.bondDead = __int(0);
 		this.dashT = 0;
 		this.dashA = 0;
 		this.dashSpd = 0;
@@ -3410,6 +3424,16 @@ class Enemy {
 			for (var i = __int(0); i < list.length; i++) {
 				this.timers.push(0.5 + Math.random() * list[i].cd);
 				this.spins.push(Math.random() * Math.PI * 2);
+			}
+		}
+	checkBond() {
+			var dead = __int(0);
+			for (var o of __vals( this.bonded)) if (o.dead) dead++;
+			while (this.bondDead < dead) {
+				this.bondDead++;
+				this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.25);
+				this.rateMult *= 1.3;
+				this.dmgMult *= 1.2;
 			}
 		}
 	startAnim(a) {
@@ -3481,6 +3505,7 @@ class Enemy {
 			if (side < -0.3) this.facingLeft = true;
 			else if (side > 0.3) this.facingLeft = false;
 
+			if (this.bonded && !this.dead) this.checkBond();
 			if (this.stunT > 0) { this.stunT -= dt; return; }
 
 			var ph = null;
@@ -5146,15 +5171,17 @@ Bosses.VAULT_TWISTS = [
 Bosses.HEROIC = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
-				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],
-				places: ["the Zealots' chapels", "the Matron's sanctum", "the Archon's altar"],
-				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels to break the first seal. Beware the blood pools.",
+				stages: [["zealot_a", "zealot_b"], ["blood_altar", "blood_altar", "blood_altar", "blood_altar"], ["matron"], ["archon"]],
+				places: ["the Zealots' chapels", "the Blood Rite", "the Matron's sanctum", "the Archon's altar"],
+				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels (together: kill one and the other drinks its blood) to break the first seal. " +
+					"Then break the four Blood Altars that keep the Matron's rite. Beware the blood pools.",
 				theme: {id: "conclave", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
 					mobs: ["crimson_cultist", "crimson_cultist", "bone_thrall", "blood_hound", "blood_acolyte"]}},
 			{id: "storm", name: "Heart of the Storm", color: 0x80ffff,
-				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["galecaller"], ["tempestus"]],
-				places: ["the three pylons", "the Galecaller's terrace", "the eye of the storm"],
-				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
+				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["storm_rod", "storm_rod", "storm_rod"], ["galecaller"], ["tempestus"]],
+				places: ["the three pylons", "the Lightning Rods", "the Galecaller's terrace", "the eye of the storm"],
+				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons (each one that falls charges the others) to raise the first bridge. " +
+					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
 			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,

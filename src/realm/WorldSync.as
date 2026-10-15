@@ -158,6 +158,12 @@ package realm {
 			var e:Enemy;
 			var i:int;
 			switch (d.t) {
+				case "wmsg":
+					// a line from the world's server (from 0: never another player's game)
+					if (from != 0) return;
+					if (d.banner) g.showBanner(String(d.banner), d.color || 0xffd75e, 3.5);
+					if (d.text) g.msg(Ui.esc(String(d.text)), d.color || 0xffd75e);
+					break;
 				case "espawn":
 					if (isHost) return;
 					for each (var en:Array in d.l) {

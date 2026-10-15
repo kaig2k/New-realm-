@@ -161,6 +161,25 @@ package realm {
 		 */
 		public var anim:String = "";
 		private var animAt:int = 0, animMs:int = 90, animHit:int = 0, animHold:int = 0;
+		/**
+		 * Raid bosses fought together (def.bond: the zealot pair, the sentinel trio):
+		 * the others of its stage. Each time one of them falls, the rest heal a
+		 * quarter of their health and fight harder (see checkBond).
+		 */
+		public var bonded:Array;
+		private var bondDead:int = 0;
+
+		private function checkBond():void {
+			var dead:int = 0;
+			for each (var o:Enemy in bonded) if (o.dead) dead++;
+			while (bondDead < dead) {
+				bondDead++;
+				hp = Math.min(maxHp, hp + maxHp * 0.25);
+				rateMult *= 1.3;
+				dmgMult *= 1.2;
+			}
+		}
+
 		/** A lunge at a target (an attack's dash): seconds left, angle and speed. */
 		private var dashT:Number = 0, dashA:Number = 0, dashSpd:Number = 0;
 
@@ -256,6 +275,7 @@ package realm {
 			if (side < -0.3) facingLeft = true;
 			else if (side > 0.3) facingLeft = false;
 
+			if (bonded && !dead) checkBond();
 			if (stunT > 0) { stunT -= dt; return; }
 
 			var ph:Object = null;

@@ -5,8 +5,9 @@ from designs import DESIGNS
 from monsters_a import MONSTERS as MA
 from monsters_b import MONSTERS as MB
 from monsters_c import MONSTERS as MC
-# bosses first, then every monster that used to share another's drawing
-DESIGNS = DESIGNS + MA + MB + MC
+from raidprops import PROPS
+# bosses first, then every monster that used to share another's drawing, then the raids' objectives
+DESIGNS = DESIGNS + MA + MB + MC + PROPS
 from canvas import preview
 from animate import frames as animate
 

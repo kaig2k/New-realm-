@@ -487,11 +487,38 @@ async function run() {
       const fin = fc.spawn('tempestus', 100, 100, 5, true);
       fin.hitters.set(7, 1000);
       fc.kill(fin);
-      runs.push({ n: got.length, bonus: msgs.some((m) => m.t === 'msg' && /first .*clear this week/.test(m.text)) });
+      runs.push({ n: got.length, bonus: msgs.some((m) => m.t === 'wmsg' && /first .*clear this week/.test(m.text)) });
     }
     check('...and the first Heroic clear of the week gives a bonus roll from the final boss, the second doesn\'t',
       asked[0] === 'storm:h@' + fc.week && runs[0].bonus && !runs[1].bonus && runs[0].n > 0, JSON.stringify(runs) + ' ' + asked.join(','));
     check('every raid has a title for its final boss, and Heroic ones exist', ['vault', 'conclave', 'storm', 'heroic', 'heroic_all', 'raidrecord'].every((t) => HDt.findTitle(t)));
+  }
+
+  console.log('raid structure: bonded bosses and objectives');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const ws = new WorldSim('raid:0:2468');
+    const said = [];
+    const c = { id: 3, x: 100, y: 184, maxDps: 1e9, send: (m) => said.push(m.d) };
+    ws.join(c);
+    ws.w.raidT = 0;
+    ws.updateRaid(0.05);
+    const [za, zb] = ['zealot_a', 'zealot_b'].map((id) => ws.enemies.find((e) => e.defId === id && !e.dead));
+    zb.hp = zb.maxHp * 0.4;
+    const rate0 = zb.rateMult, hp0 = zb.hp;
+    ws.kill(za);
+    zb.update(0.05, ws.g);
+    check('the Zealots are bonded: kill one and the other heals and rages (and everyone is told)', za.bonded && zb.bonded[0] === za &&
+      zb.hp > hp0 + zb.maxHp * 0.2 && zb.rateMult > rate0 * 1.25 && said.some((m) => m.t === 'wmsg' && /drinks its twin/.test(m.banner)), [zb.hp, hp0, zb.rateMult].join(' '));
+    ws.kill(zb);
+    for (let k = 0; k < 60; k++) ws.updateRaid(0.05);
+    const altars = ws.enemies.filter((e) => !e.dead && e.defId === 'blood_altar');
+    for (let k = 0; k < 120; k++) ws.updateRaid(0.05);
+    check('...then the Blood Rite: four Blood Altars, and the Matron doesn\'t wake while any stands', ws.w.raidStage === 1 && altars.length === 4 &&
+      !ws.enemies.some((e) => !e.dead && e.defId === 'matron'), String(ws.w.raidStage) + ' ' + altars.length);
+    for (const al of altars) ws.kill(al);
+    for (let k = 0; k < 60; k++) ws.updateRaid(0.05);
+    check('...break them all and she wakes in her sanctum', ws.w.raidStage === 2 && ws.enemies.some((e) => !e.dead && e.defId === 'matron'));
   }
 
   console.log('pacing and boss scaling');

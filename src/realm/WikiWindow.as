@@ -136,6 +136,7 @@ package realm {
 			for each (var r:Object in Bosses.RAIDS) {
 				for (var s:int = 0; s < r.stages.length; s++) {
 					for each (var rid:String in r.stages[s]) {
+						if (Data.ENEMIES[rid].stageFoe) continue;
 						if (rid.indexOf("sentinel_") == 0 && rid != "sentinel_a") continue;
 						if (rid == "zealot_b") continue;
 						add(raids, rid, r.name + ", " + (s == r.stages.length - 1 ? "final stage" : "stage " + (s + 1)));

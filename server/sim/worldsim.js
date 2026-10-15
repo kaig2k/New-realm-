@@ -674,7 +674,8 @@ class WorldSim {
   updateRaid(dt) {
     const w = this.w, rd = w.raid;
     if (w.raidStage >= rd.stages.length) return;
-    if (w.raidStage >= 0 && this.enemies.some((e) => !e.dead && e.isBoss)) return;
+    // (a stage ends when its bosses, and any objectives it has, are all down)
+    if (w.raidStage >= 0 && this.enemies.some((e) => !e.dead && (e.isBoss || e.def.stageFoe))) return;
     w.raidT -= dt;
     if (w.raidT > 0) return;
     if (w.raidStage === rd.stages.length - 1) { w.raidStage++; return; }
@@ -682,10 +683,12 @@ class WorldSim {
     w.raidT = 2;
     const n = w.raidStage;
     const st = rd.stages[n], spots = w.stageSpots[n] || [];
+    const made = [];
     for (let k = 0; k < st.length; k++) {
       const at = spots[k] || spots[0] || [100.5, 100.5];
       const b = this.spawn(st[k], at[0], at[1], World.DUNGEON_ZONE, true);
-      if (b && k === 0) w.boss = b;
+      if (b) made.push(b);
+      if (b && k === 0 && b.isBoss) w.boss = b;
       if (b && this.heroic) Bosses.heroicEnemy(b, true);
       if (b && this.twist) {
         Bosses.twistEnemy(b, this.twist, true);
@@ -716,6 +719,8 @@ class WorldSim {
         }
       }
     }
+    // bosses fought together: each knows the others
+    for (const b of made) if (b.def.bond) b.bonded = made.filter((o) => o !== b && o.def.bond);
     for (let k = 0; k < n; k++) w.openGate(k);
     this.all({ t: 'rstage', n });
   }
@@ -726,6 +731,8 @@ class WorldSim {
     e.dead = true;
     const w = this.w;
     this.all({ t: 'ekill', id: e.id });
+    // one of a bonded pair or trio of raid bosses: the rest take its strength (Enemy.checkBond)
+    if (e.bonded && e.bonded.some((o) => !o.dead)) this.all({ t: 'wmsg', banner: e.def.bond, text: e.def.bond, color: this.w.raid ? this.w.raid.color : 0xffd75e });
     // what each player who hit it could earn from it (gold and fame checks)
     // (players close by who didn't hit it share its XP, so its fame, but not its gold)
     if (this.onEarn) {
@@ -889,7 +896,7 @@ class WorldSim {
       // the Oracle counts every boss kill and what it dropped for you (and the Abyss's chests)
       if (this.onOracle && (e.isBoss || e.def.abyssChest)) this.onOracle(c, e, items);
       if (this.onFeat) for (const it of items) if (it && (it.rarity === 'gd' || it.rarity === 'ar')) this.onFeat(it.rarity === 'gd' ? 'godly' : 'primordial', { name: c.name, item: it.name, from: e.def.name });
-      if (first) this.send(c, { t: 'msg', color: 0xffd75e, text: 'Your first ' + Bosses.raidName(Bosses.RAIDS.indexOf(this.w.raid), this.heroic) + ' clear this week: a bonus roll of its loot!' });
+      if (first) this.send(c, { t: 'wmsg', color: 0xffd75e, text: 'Your first ' + Bosses.raidName(Bosses.RAIDS.indexOf(this.w.raid), this.heroic) + ' clear this week: a bonus roll of its loot!' });
       if (items.length || hs) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: items, n: e.def.name, hs });
     }
   }

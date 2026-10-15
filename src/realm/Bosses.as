@@ -976,15 +976,17 @@ package realm {
 
 		public static const RAIDS:Array = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
-				stages: [["zealot_a", "zealot_b"], ["matron"], ["archon"]],
-				places: ["the Zealots' chapels", "the Matron's sanctum", "the Archon's altar"],
-				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels to break the first seal. Beware the blood pools.",
+				stages: [["zealot_a", "zealot_b"], ["blood_altar", "blood_altar", "blood_altar", "blood_altar"], ["matron"], ["archon"]],
+				places: ["the Zealots' chapels", "the Blood Rite", "the Matron's sanctum", "the Archon's altar"],
+				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels (together: kill one and the other drinks its blood) to break the first seal. " +
+					"Then break the four Blood Altars that keep the Matron's rite. Beware the blood pools.",
 				theme: {id: "conclave", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
 					mobs: ["crimson_cultist", "crimson_cultist", "bone_thrall", "blood_hound", "blood_acolyte"]}},
 			{id: "storm", name: "Heart of the Storm", color: 0x80ffff,
-				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["galecaller"], ["tempestus"]],
-				places: ["the three pylons", "the Galecaller's terrace", "the eye of the storm"],
-				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons to raise the first bridge. Keep moving: lightning strikes where you stand.",
+				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["storm_rod", "storm_rod", "storm_rod"], ["galecaller"], ["tempestus"]],
+				places: ["the three pylons", "the Lightning Rods", "the Galecaller's terrace", "the eye of the storm"],
+				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons (each one that falls charges the others) to raise the first bridge. " +
+					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand.",
 				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
 			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
@@ -997,11 +999,20 @@ package realm {
 
 		private static function raids():void {
 			var raid:Object = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
-			boss("zealot_a", o({name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
+			// the raids' objectives (a stage of their own: it ends when they're all broken, see stageFoe)
+			mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
+				name: "Blood Altar", spr: "blood_altar", hp: 16000, def: 30, col: 0xd8102a,
+				attacks: [ring(10, 18, 4.2, 80, 2.2, 0xd8102a, {shape: "orb", eff: "bleeding"}),
+					rain(3, 3, 95, 3.4, 0xff3040, {radius: 1.4, delay: 1.0, fx: "spikes", name: "blood geyser"})]});
+			mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
+				name: "Lightning Rod", spr: "storm_rod", hp: 18000, def: 32, col: 0x80ffff,
+				attacks: [aim(1, 0, 13, 90, 0.9, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
+					rain(4, 5, 100, 3.0, 0x80ffff, {radius: 1.3, delay: 0.9, fx: "pillar", name: "lightning strike"})]});
+			boss("zealot_a", o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
 				P(1, {move: "orbit", attacks: [aim(3, 24, 8, 70, 0.9, 0xff3040, {eff: "bleeding"}), ring(12, 15, 4, 60, 1.6, 0xd02030)]}),
 				P(0.5, {say: "For the Archon!", shield: 1.5, move: "chase", attacks: [spiral(3, 23, 6, 70, 0.12, 0xff3040)]})
 			]}, raid));
-			boss("zealot_b", o({name: "Zealot of Bone", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xe8e0c8, phases: [
+			boss("zealot_b", o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Bone", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xe8e0c8, phases: [
 				P(1, {move: "orbit", attacks: [wall(9, 5, 70, 2, 0xe8e0c8), aim(1, 0, 6, 80, 1.4, 0xffffff, {motion: "home"})]}),
 				P(0.5, {say: "Bones to dust!", shield: 1.5, move: "teleport", attacks: [rain(5, 4, 90, 2.2, 0xe8e0c8)]})
 			]}, raid));
@@ -1026,7 +1037,7 @@ package realm {
 			]}, raid), ["vesper_staff", "crimson_crown"]);
 
 			for each (var sid:String in ["sentinel_a", "sentinel_b", "sentinel_c"]) {
-				boss(sid, o({name: "Thunder Sentinel", spr: "sentinel", hp: 14000, def: 24, spd: 1.8, xp: 1200, col: 0xffff60, phases: [
+				boss(sid, o({bond: "A Sentinel falls! Its charge surges into the others!", name: "Thunder Sentinel", spr: "sentinel", hp: 14000, def: 24, spd: 1.8, xp: 1200, col: 0xffff60, phases: [
 					P(1, {move: sid == "sentinel_b" ? "orbit" : "wander", attacks: [aim(1, 0, 14, 90, 0.8, 0xffffff, {shape: "blade", eff: "paralyzed"}), ring(10, 18, 5, 60, 1.6, 0xffff60)]}),
 					P(0.4, {say: "*crackles*", shield: 1, move: "chase", attacks: [spiral(2, 37, 7, 70, 0.1, 0xffff80)]})
 				]}, raid));

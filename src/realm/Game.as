@@ -2181,11 +2181,17 @@ package realm {
 					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
 				} else if (e.def.raid) {
 					var rdw:Object = world.raid;
+					// one of a bonded pair or trio: the rest take its strength (online the server says so)
+					var bondLine:String = null;
+					if (e.bonded && !remote) for each (var bp:Enemy in e.bonded) if (!bp.dead) bondLine = e.def.bond;
 					if (rdw && world.raidStage >= rdw.stages.length - 1 && aliveBosses() == 0) {
 						showBanner(rdw.name + " conquered!", rdw.color, 5);
 						msg("Raid complete! A portal back to the Nexus has opened.", Ui.GOLD);
 						addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
 						questEvent("dungeon");
+					} else if (bondLine) {
+						showBanner(bondLine, rdw ? rdw.color : Ui.GOLD, 3.5);
+						msg(bondLine, rdw ? rdw.color : Ui.GOLD);
 					} else showBanner(e.def.name + " has fallen!", rdw ? rdw.color : Ui.GOLD, 3);
 				} else if (e.def.final) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 5);
@@ -4274,7 +4280,8 @@ package realm {
 			var w:World = world;
 			var rd:Object = w.raid;
 			if (!rd || w.raidStage >= rd.stages.length) return;
-			if (w.raidStage >= 0) for each (var e:Enemy in enemies) if (!e.dead && e.isBoss) return;
+			// (a stage ends when its bosses, and any objectives it has, are all down)
+			if (w.raidStage >= 0) for each (var e:Enemy in enemies) if (!e.dead && (e.isBoss || e.def.stageFoe)) return;
 			w.raidT -= dt;
 			if (w.raidT > 0) return;
 			if (w.raidStage == rd.stages.length - 1) { w.raidStage++; return; }
@@ -4283,10 +4290,12 @@ package realm {
 			var n:int = w.raidStage;
 			var st:Array = rd.stages[n];
 			var spots:Array = w.stageSpots[n] || [];
+			var made:Array = [];
 			for (var k:int = 0; k < st.length; k++) {
 				var at:Array = spots[k] || spots[0] || [100.5, 100.5];
 				var b:Enemy = spawnEnemy(st[k], at[0], at[1], World.DUNGEON_ZONE);
-				if (b && k == 0) w.boss = b;
+				if (b) made.push(b);
+				if (b && k == 0 && b.isBoss) w.boss = b;
 				// (the server does the same, with guards at their side on Honour Guard weeks)
 				if (b && rd.twists) Bosses.twistEnemy(b, Bosses.vaultTwist(WikiWindow.week()), true);
 				if (b && w.heroic) Bosses.heroicEnemy(b, true);
@@ -4298,6 +4307,11 @@ package realm {
 						if (pr) b.props.push(pr);
 					}
 				}
+			}
+			// bosses fought together: each knows the others
+			for each (var bb:Enemy in made) if (bb.def.bond) {
+				bb.bonded = [];
+				for each (var bo:Enemy in made) if (bo != bb && bo.def.bond) bb.bonded.push(bo);
 			}
 			raidStageReached(n);
 			if (net.online) net.sendWorld("all", {t: "rstage", n: n});

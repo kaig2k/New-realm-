@@ -235,6 +235,8 @@ class WorldSim {
     }
     // an event's clock (for the fastest-kill records) starts at the first hit on the boss or its set piece
     if (dmg > 0 && this.kind === 'realm' && this.w.boss && !this.w.boss.firstHit && (e === this.w.boss || e.def.prop)) this.w.boss.firstHit = Date.now();
+    // (the Godlands Spires are taken in battle: server.js territoryTick reads where you last fought)
+    if (dmg > 0 && !e.def.prop) { c.fightAt = Date.now(); c.fightX = e.x; c.fightY = e.y; }
     if (dmg > 0 && !e.immune) {
       if (dmg > e.hp) dmg = Math.ceil(e.hp);
       e.hp -= dmg;

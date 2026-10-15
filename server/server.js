@@ -3067,7 +3067,7 @@ setInterval(() => {
 const HELP = 'Commands: list | stats | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | whois <name|#n> | setpassword <name|#n> <password> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
 // ------------------------------------------------------------------ guild territory
-const { Territory, NAMES: SPIRE_NAMES, REACH: SPIRE_REACH, WEEK_FAME } = require('./territory');
+const { Territory, NAMES: SPIRE_NAMES, REACH: SPIRE_REACH, WEEK_FAME, FIGHT_REACH: SPIRE_FIGHT, fighting: spireFighting } = require('./territory');
 const terr = new Territory(load('territory.json', {}));
 const guildInfo = (gk) => guilds[gk] ? { name: guilds[gk].name || gk, banner: guilds[gk].banner || '' } : null;
 /** Each guild's loot luck from its Spires (WorldSim.dropLoot reads it). */
@@ -3081,17 +3081,31 @@ function territoryTick() {
   if (!sims) return;
   const present = SPIRE_NAMES.map(() => new Map());
   const worlds = [];
+  const now = Date.now();
   for (const sm of sims.map.values()) {
     if (sm.kind !== 'realm' || !sm.players.size) continue;
     const spots = Territory.spots(sm.w, World);
-    worlds.push([sm, spots]);
+    const idle = spots.map(() => false), sieged = spots.map(() => false);
+    worlds.push([sm, spots, idle]);
     for (const c of sm.players.values()) {
       if (!c.guild || c.hidden || !guilds[c.guild]) continue;
       for (let i = 0; i < spots.length; i++) {
         const dx = c.x - spots[i].x, dy = c.y - spots[i].y;
-        if (dx * dx + dy * dy <= SPIRE_REACH * SPIRE_REACH) present[i].set(c.guild, (present[i].get(c.guild) || 0) + 1);
+        if (dx * dx + dy * dy > SPIRE_REACH * SPIRE_REACH) continue;
+        const holder = terr.holder(i) === c.guild;
+        // (holders defend by being there; attackers only count while fighting nearby)
+        if (holder || spireFighting(c, spots[i], now)) present[i].set(c.guild, (present[i].get(c.guild) || 0) + 1);
+        else {
+          idle[i] = true;
+          if (!c.spireHintAt || now - c.spireHintAt > 45000) {
+            c.spireHintAt = now;
+            c.send({ t: 'msg', text: 'The ' + SPIRE_NAMES[i] + ' is taken in battle: fight the monsters around it to fill the bar.', color: 0xffa020 });
+          }
+        }
+        if (!holder) sieged[i] = true;
       }
     }
+    spireWardens(sm, spots, sieged, now);
   }
   const evs = terr.tick(1, present);
   for (const ev of evs) {
@@ -3113,9 +3127,26 @@ function territoryTick() {
   if (evs.length) { spireLuck(); save('territory.json', terr.s); }
   else if (terr.minuteT > 59) save('territory.json', terr.s);
   // each realm's players see its Spires (sent again only when something changes)
-  for (const [sm, spots] of worlds) {
-    const json = JSON.stringify(terr.view(spots, guildInfo));
+  for (const [sm, spots, idle] of worlds) {
+    const json = JSON.stringify(terr.view(spots, guildInfo, idle));
     for (const c of sm.players.values()) if (c.spireJson !== json) { c.spireJson = json; c.send({ t: 'spires', l: JSON.parse(json) }); }
+  }
+}
+/** A Spire under siege calls its wardens: Godlands monsters to fight, when none are near it (every few seconds at most). */
+function spireWardens(sm, spots, sieged, now) {
+  const wt = sm.spireWardAt || (sm.spireWardAt = spots.map(() => 0));
+  for (let i = 0; i < spots.length; i++) {
+    if (!sieged[i] || now < wt[i] || sm.closeT > 0 || sm.w.closed) continue;
+    const sp = spots[i];
+    let near = 0;
+    for (const e of sm.enemies) if (!e.dead && !e.def.prop && (e.x - sp.x) * (e.x - sp.x) + (e.y - sp.y) * (e.y - sp.y) < SPIRE_FIGHT * SPIRE_FIGHT) near++;
+    if (near >= 2) continue;
+    wt[i] = now + 6000;
+    const list = Data.ZONE_SPAWNS[World.GOD_ZONE];
+    for (let k = 0, n = 2 + Math.floor(Math.random() * 2); k < n; k++) {
+      const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 3;
+      sm.spawn(list[Math.floor(Math.random() * list.length)], sp.x + Math.cos(a) * r, sp.y + Math.sin(a) * r, World.GOD_ZONE);
+    }
   }
 }
 setInterval(territoryTick, 1000).unref();

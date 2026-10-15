@@ -178,6 +178,8 @@ package realm {
 		private var wiki:WikiWindow;
 		private var skillWin:SkillWindow;
 		private var tpT:Number = 0;
+		/** Controls that had to move off a key another action used (told once the game is up). */
+		private var keyNotes:Array;
 
 		public function Game(clsId:String, name:String, onDeath:Function, saved:Object = null) {
 			// (no Abyss boons carried in from an earlier game or connection)
@@ -188,6 +190,8 @@ package realm {
 			player = new Player(clsId, name, world.spawnX, world.spawnY);
 			abil = new Abilities(this);
 			Keys.reload();
+			// two actions on one key (a new action's default a player had already used): one moves, and they're told
+			keyNotes = Keys.fixClashes();
 			// (a hero saved without an id, from a bug in the seasons update, gets one now, in its saved copy too)
 			if (saved && !saved.id) saved.id = String(new Date().time) + "_" + int(Math.random() * 100000);
 			if (saved) player.restore(saved);
@@ -630,6 +634,8 @@ package realm {
 					lab.text = act.name;
 					lab.x = x0 + 20 + col * 310; lab.y = cy + 3;
 					pauseButtons.addChild(lab);
+					// (two actions on one key: shown in red, so the clash can be fixed)
+					if (Keys.clash(act.id)) { lab.textColor = 0xff6060; lab.text = act.name + " (clash!)"; }
 					var kb:Sprite = Ui.button(rebinding == act.id ? "..." : Keys.name(Keys.k(act.id)), 100, 24, rebindFn(act.id), 13);
 					kb.x = x0 + 200 + col * 310; kb.y = cy;
 					pauseButtons.addChild(kb);
@@ -1495,6 +1501,7 @@ package realm {
 				Sfx.muted = !Sfx.muted;
 				msg("Sound " + (Sfx.muted ? "muted" : "on") + " (" + Keys.name(Keys.k("mute")) + ")", 0xaaaaaa);
 			}
+			if (keyNotes) { for each (var kn:String in keyNotes) msg(kn, 0xffd75e); keyNotes = null; }
 			if (input.pressed(192) || input.pressed(223)) toggleAdmin();
 			if (input.pressed(Keyboard.ESCAPE) && (tradeWin || inspectWin || flagsWin || marketWin || oracleWin || ascWin || abyssWin || petWin || bugsWin || playerMenu || social || wiki || skillWin)) {
 				if (playerMenu) closePlayerMenu();
@@ -6189,7 +6196,8 @@ package realm {
 			if (!tf) return;
 			// (only when it changes: setting htmlText lays the text out again)
 			var html:String = "<font color='#7fd8ff'>" + sp.name + "</font><br>" + (sp.g ? "<font color='#ffffff'>" + Ui.esc(sp.g) + "</font>" : "<font color='#a0a0a0'>unclaimed</font>") +
-				(sp.cp > 0 ? "<br><font size='11' color='#ffa020'>" + Ui.esc(sp.cg) + " taking it: " + int(sp.cp * 100) + "%</font>" : "");
+				(sp.cp > 0 ? "<br><font size='11' color='#ffa020'>" + Ui.esc(sp.cg) + " taking it: " + int(sp.cp * 100) + "%</font>" : "") +
+				(sp.idle ? "<br><font size='11' color='#ff8060'>fight here to capture</font>" : "");
 			if (tf.name != html) { tf.name = html; tf.htmlText = html; }
 			tf.x = int(sx - tf.width / 2);
 			tf.y = int(top - tf.height - 2);

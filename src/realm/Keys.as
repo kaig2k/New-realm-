@@ -82,6 +82,43 @@ package realm {
 			load();
 		}
 
+		/** Keys offered when an action has to move off a key another uses (letters, then digits, then F keys). */
+		private static const SPARE:Array = [66, 67, 78, 85, 89, 71, 72, 74, 75, 76, 79, 80, 81, 69, 90, 77, 84, 86, 88, 73,
+			48, 57, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123];
+
+		/** The other action on the same key as this one, or null (two on one key: one of them stops working). */
+		public static function clash(id:String):String {
+			if (!map) load();
+			for (var o:String in map) if (o != id && map[o] == map[id]) return o;
+			return null;
+		}
+
+		/**
+		 * Two actions on one key happen when a new action arrives with a default key a player
+		 * had already given to something else. The player's own choice keeps the key; the other
+		 * moves to a free one (and is saved there). Returns a line for each, to tell the player.
+		 */
+		public static function fixClashes():Array {
+			if (!map) load();
+			var saved:Object = Save.data.keys || {};
+			var notes:Array = [];
+			for each (var a:Object in ACTIONS) {
+				var other:String = clash(a.id);
+				if (!other) continue;
+				// which moves: the one the player didn't choose (or, if both were chosen, the later one)
+				var mover:String = saved[a.id] != undefined && saved[other] == undefined ? other : a.id;
+				var keep:String = mover == a.id ? other : a.id;
+				var taken:uint = map[mover];
+				var free:int = -1;
+				for each (var code:int in SPARE) if (!actionFor(code)) { free = code; break; }
+				if (free < 0) continue;
+				map[mover] = free;
+				notes.push(action(mover).name + " shared " + name(taken) + " with " + action(keep).name + ", so it's on " + name(free) + " now (change it in Menu > Controls).");
+			}
+			if (notes.length) save();
+			return notes;
+		}
+
 		/** Forget the cached map (another account logged in). */
 		public static function reload():void { map = null; }
 

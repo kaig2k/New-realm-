@@ -790,6 +790,17 @@ async function run() {
     const sp = Territory.spots(tw.w, TWW);
     check('the four Spires stand in the Godlands, one each way, apart from each other', sp.length === 4 && sp.every((p) => tw.w.zoneAt(p.x, p.y) === TWW.GOD_ZONE) &&
       Math.hypot(sp[0].x - sp[2].x, sp[0].y - sp[2].y) > 20, JSON.stringify(sp));
+    // Spires are taken in battle: only a recent blow near the Spire counts
+    const { fighting } = require('./territory');
+    const spot = { x: 50, y: 50 };
+    check('standing at a Spire without fighting doesn\'t count toward taking it', !fighting({}, spot, NOW) && !fighting({ fightAt: NOW - 20000, fightX: 50, fightY: 50 }, spot, NOW));
+    check('a blow on a monster near the Spire in the last few seconds does', fighting({ fightAt: NOW - 2000, fightX: 56, fightY: 48 }, spot, NOW));
+    check('...but not one far from it', !fighting({ fightAt: NOW - 2000, fightX: 80, fightY: 50 }, spot, NOW));
+    const fc = { id: 'f1', x: sp[0].x, y: sp[0].y, send() {} };
+    tw.players.set(fc.id, fc);
+    const fe = tw.spawn(require('./sim/gen/game').Data.ZONE_SPAWNS[TWW.GOD_ZONE][0], sp[0].x + 3, sp[0].y, TWW.GOD_ZONE, true);
+    tw.hit(fc, { id: fe.id, d: 1 });
+    check('a landed hit marks where (and when) a player last fought', fc.fightAt && Math.abs(fc.fightX - fe.x) < 0.01 && fighting(fc, sp[0]), JSON.stringify([fc.fightAt, fc.fightX, fe.x]));
   }
 
   console.log('the endless abyss (world)');

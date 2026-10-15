@@ -1,9 +1,11 @@
 'use strict';
 /*
  * Guild territory: four Spires stand at the edge of every realm's Godlands.
- * A guild takes one by holding its ground: members standing within reach of it
- * fill its capture bar (faster with more of them, up to three), while any of
- * the holders being there too stops them. A guild's Spires give its members
+ * A guild takes one in battle: members standing within reach of it who have
+ * struck a monster near it in the last few seconds (fighting(), checked by
+ * server.js) fill its capture bar (faster with more of them, up to three),
+ * while any of the holders being there too stops them. Standing still does
+ * nothing: a Spire under siege calls its wardens (Godlands monsters) to be fought. A guild's Spires give its members
  * loot luck (SPIRE_LUCK each, wherever they are). Every minute a Spire is held
  * counts toward the week; on Monday the guild that held the most is crowned
  * Lords of the Godlands (a title for every member, and guild fame).
@@ -18,6 +20,15 @@ const REACH = 5;           // tiles from the Spire that count
 const CAPTURE = 60;        // seconds for one member alone (three: a third of that)
 const SPIRE_LUCK = 5;      // loot luck per Spire the guild holds
 const WEEK_FAME = 500;     // guild fame for the week's winner
+const FIGHT_REACH = 12;    // tiles from the Spire a blow must land within to count
+const FIGHT_RECENT = 8000; // ms a blow counts for
+
+/** Has player c (with fightAt/fightX/fightY from WorldSim.hit) been fighting near spot lately? */
+function fighting(c, spot, now) {
+  if (!c.fightAt || (now || Date.now()) - c.fightAt > FIGHT_RECENT) return false;
+  const dx = c.fightX - spot.x, dy = c.fightY - spot.y;
+  return dx * dx + dy * dy <= FIGHT_REACH * FIGHT_REACH;
+}
 
 const weekOf = (t) => Math.floor((Math.floor(t / 86400000) + 3) / 7);
 
@@ -110,11 +121,11 @@ class Territory {
   }
 
   /** What a realm's players are sent: each Spire, where it stands there, who holds it and who's taking it. */
-  view(spots, guildInfo) {
+  view(spots, guildInfo, idle) {
     return NAMES.map((name, i) => {
       const h = this.holder(i), c = this.cap[i], hi = h ? guildInfo(h) : null, ci = c.g ? guildInfo(c.g) : null;
       return { i, name, x: spots[i].x, y: spots[i].y, g: hi ? hi.name : '', b: hi ? hi.banner : '', since: this.s.spires[i].since || 0,
-        cg: ci ? ci.name : '', cp: Math.round(c.p * 100) / 100 };
+        cg: ci ? ci.name : '', cp: Math.round(c.p * 100) / 100, idle: idle && idle[i] ? 1 : 0 };
     });
   }
 
@@ -122,4 +133,4 @@ class Territory {
   standings() { return Object.entries(this.s.held).sort((a, b) => b[1] - a[1]); }
 }
 
-module.exports = { Territory, NAMES, REACH, SPIRE_LUCK, WEEK_FAME, weekOf };
+module.exports = { Territory, NAMES, REACH, SPIRE_LUCK, WEEK_FAME, FIGHT_REACH, FIGHT_RECENT, fighting, weekOf };

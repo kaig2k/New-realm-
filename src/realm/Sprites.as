@@ -940,6 +940,16 @@ package realm {
 			if (bd) return bd;
 			var rar:String = item.rarity;
 			var rc:uint = rar ? Data.RARITY_COLORS[rar] : 0;
+			// a Godly weapon: the art drawn for it (GodlyArt), outlined, in its Godly frame
+			var gart:BitmapData = GodlyArt.weapon(item);
+			if (gart) {
+				bd = new BitmapData(gart.width + 2, gart.height + 2, true, 0);
+				bd.copyPixels(gart, gart.rect, new Point(1, 1));
+				addOutline(bd, 1);
+				bd = godlyFrame(bd);
+				cache[key] = bd;
+				return bd;
+			}
 			// gear and stat potions: every item has its own drawing (ItemArt)
 			var art:Object = ItemArt.art(item);
 			if (art) {

@@ -278,9 +278,6 @@ async function run() {
   B.send({ t: 'fx', k: '<script>', x: 1, y: 1 });
   await wait(150);
   check('unknown ability effects are dropped', !A2.find((m) => m.t === 'fx'));
-  B.send({ t: 'raidOpen', name: 'The Conclave', color: 0xff3050 });
-  await wait(150);
-  check('raid openings are announced to everyone', A2.find((m) => m.t === 'banner' && /Conclave/.test(m.text)));
   A2.clear();
   A2.send({ t: 'tpreq', id: B.id });
   await wait(150);
@@ -2355,6 +2352,36 @@ async function run() {
     await wait(300);
     check('players without VIP can\'t use /l20', /VIP perk/.test(note(P9)), note(P9));
     for (const c of [bz8, M8, V8, P9]) c.s.destroy();
+  }
+
+  console.log('raids: one at a time, announced by the server');
+  {
+    const boss = await login('TestBoss', { password: 'pass1234' });
+    const N1 = await login('Tnx' + n, { password: 'pass1234', register: true });
+    const F1 = await login('Tfar' + n, { password: 'pass1234', register: true });
+    boss.send({ t: 'enter', key: 'nexus', x: 110, y: 107 });
+    N1.send({ t: 'enter', key: 'nexus', x: 111, y: 107 });
+    F1.send({ t: 'enter', key: 'realm:Bench:3', x: 100, y: 100 });
+    await wait(300);
+    // a fake portal from a player's game is ignored: only the server opens raids
+    N1.clear();
+    F1.send({ t: 'w', to: 'all', d: { t: 'portal', x: 1, y: 1, k: 'raid', i: 0, c: 1, l: 30, s: 5 } });
+    boss.send({ t: 'raidOpen', name: 'Fake Raid', color: 1 });
+    await wait(200);
+    check('games can\'t open or announce raids themselves', !N1.find((m) => m.t === 'raidOpened' || (m.t === 'w' && m.d && m.d.k === 'raid')));
+    boss.send({ t: 'portalKey', k: 'raid', i: 0, s: 4242 });
+    await wait(300);
+    const pw = N1.find((m) => m.t === 'w' && m.d && m.d.t === 'portal' && m.d.k === 'raid' && m.d.s === 4242);
+    check('opening a raid puts its portal in front of everyone in the Nexus', pw && pw.d.by === 'TestBoss', JSON.stringify(pw));
+    const fa = F1.find((m) => m.t === 'raidOpened');
+    check('...and the whole server hears about it, wherever they are', fa && /Conclave/.test(fa.name) && fa.by === 'TestBoss' && !fa.here, JSON.stringify(fa));
+    boss.clear();
+    boss.send({ t: 'portalKey', k: 'raid', i: 1, s: 4343 });
+    await wait(300);
+    const busy = boss.find((m) => m.t === 'raidBusy');
+    check('only one raid at a time: a second one can\'t open while the first is open', busy && /one at a time/.test(busy.msg) && !N1.find((m) => m.t === 'w' && m.d && m.d.s === 4343), JSON.stringify(busy));
+    check('...and every game is told the Raid Table is busy', N1.find((m) => m.t === 'raidState' && m.busy), JSON.stringify(N1.msgs.filter((m) => m.t === 'raidState')));
+    for (const c of [boss, N1, F1]) c.s.destroy();
   }
 
   console.log('testers');

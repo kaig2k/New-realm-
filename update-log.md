@@ -1,3 +1,22 @@
+**📜 ELDMERE UPDATE: Raid Gates**
+
+**🌀 Raid portals reborn**
+• Raid portals are now **great obsidian gates**: rune-carved pillars, a spiked crown, and a **swirling vortex** in the raid's colour
+• A **rune circle** turns on the ground beneath, and a **beam of light** climbs into the sky
+• They rise out of a **shockwave** when they open, and shrink and flicker out as they close
+• **Heroic** raids open a **gold** gate with a taller crown
+• The gate shows who opened it and how long until it closes
+
+**📣 Server-wide announcements**
+• When anyone opens a raid, **the whole server hears it**: a banner, a fanfare and a chat message, wherever you are
+• Raid openings are posted to Discord too
+
+**⚖️ One raid at a time**
+• While a raid's portal is open, or anyone is still fighting in a raid, **no other raid can open**
+• Your key stays in your bag until it can, and the Raid Table shows what's under way
+
+---
+
 **🧪 New role: Tester**
 • Testers get the **Tester Menu** (` or /admin): max their own level, stats, skill tree and Ascension tree, give themselves any item, and jump into any dungeon or raid
 • No kicking, muting or banning, and what they make stays with them: **testers can't trade, sell, use the Marketplace, bank items or drop items**

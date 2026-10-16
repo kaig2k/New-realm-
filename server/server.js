@@ -275,6 +275,7 @@ function finishLogin(c, acc, key, session) {
   save('accounts.json', accounts);
   c.send({ t: 'welcome', id: c.id, name: c.name, no: acc.no || 0, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
     save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), tester: isTester(c), role: roleOf(c), vip: isVip(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
+  sendRaidState(c);
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
@@ -406,6 +407,55 @@ const PORTAL_MS = 90 * 1000;
 function openWorld(key) {
   openWorlds.set(key, Date.now() + PORTAL_MS);
   if (openWorlds.size > 2000) { const now = Date.now(); for (const [k, t] of openWorlds) if (t < now) openWorlds.delete(k); }
+}
+/**
+ * One raid at a time, server-wide: while a raid's portal is open in the Nexus (30 seconds),
+ * and then while anyone is still fighting in a raid that isn't finished, no other raid opens.
+ */
+const RAID_PORTAL_MS = 30 * 1000;
+let raidLock = null; // {key, name, color, until, by}
+function raidNameOf(key) { const p = String(key).split(':'); return Bosses.raidName(Number(p[1]) | 0, p[3] === 'h'); }
+/** Why no raid can be opened right now, or ''. */
+function raidBusy() {
+  const now = Date.now();
+  if (raidLock && raidLock.until > now) return raidLock.name + '\'s portal is open in the Nexus (' + Math.ceil((raidLock.until - now) / 1000) + 's left to get in). Raids open one at a time.';
+  const inside = new Map();
+  for (const o of clients.values()) {
+    if (!o.authed || !String(o.world || '').startsWith('raid:')) continue;
+    // (a cleared raid doesn't hold the next one back)
+    const sm = sims && sims.get(o.world), rd = Bosses.RAIDS[Number(String(o.world).split(':')[1]) | 0];
+    if (sm && sm.w && rd && sm.w.raidStage >= rd.stages.length) continue;
+    inside.set(o.world, (inside.get(o.world) || 0) + 1);
+  }
+  for (const [k, n] of inside) return raidNameOf(k) + ' is under way (' + n + ' player' + (n === 1 ? '' : 's') + ' inside). Raids open one at a time: wait for it to end.';
+  return '';
+}
+/** Tells every game whether a raid can be opened (the Raid Table shows it). */
+function sendRaidState(to) {
+  const busy = raidBusy();
+  const msg = { t: 'raidState', busy: busy || '', name: raidLock && raidLock.until > Date.now() ? raidLock.name : '', left: raidLock ? Math.max(0, Math.ceil((raidLock.until - Date.now()) / 1000)) : 0 };
+  if (to) return to.send(msg);
+  for (const o of clients.values()) if (o.authed) o.send(msg);
+}
+// (whenever that changes, every game hears: a raid ending frees the Raid Table)
+let raidStateWas = '';
+setInterval(() => { const b = raidBusy(); if (b.replace(/\(\d+s left/, '(') !== raidStateWas) { raidStateWas = b.replace(/\(\d+s left/, '('); sendRaidState(); } }, 5000).unref();
+/** A raid is open: its portal by the Raid Table for everyone in the Nexus, and the news for the whole server. */
+function announceRaid(c, wkey, i, seed, heroic) {
+  const rd = Bosses.RAIDS[i];
+  const name = raidNameOf(wkey), color = heroic ? 0xffb040 : (rd ? rd.color : 0xff3050);
+  raidLock = { key: wkey, name, color, until: Date.now() + RAID_PORTAL_MS, by: c.name };
+  const pi = heroic ? 100 + i : i; // (Game.RAID_HEROIC + the raid)
+  const portal = { t: 'w', from: 0, d: { t: 'portal', x: 113.5, y: 107.5, k: 'raid', i: pi, c: color, l: RAID_PORTAL_MS / 1000, s: seed, by: c.name } };
+  for (const o of clients.values()) {
+    if (!o.authed) continue;
+    if (o.world === 'nexus') o.send(portal);
+    o.send({ t: 'raidOpened', name, color, by: c.name, heroic: !!heroic, secs: RAID_PORTAL_MS / 1000, here: o.world === 'nexus' });
+  }
+  log(c.name + ' opened ' + name);
+  feat('raidopen', { name: c.name, raid: name, heroic: !!heroic });
+  sendRaidState();
+  setTimeout(sendRaidState, RAID_PORTAL_MS + 500).unref();
 }
 /** May c go into world (from the world it was in)? Admins go anywhere. */
 function mayEnter(c, world, from) {
@@ -797,6 +847,7 @@ function feat(kind, d) {
   if (!discord.on) return;
   if (kind === 'record') discord.post('🏆 **New record!** ' + dnames(d.names) + ' killed **' + desc(d.boss) + '** in **' + d.time + '**' + (d.old ? ' (beating ' + d.old + ')' : '') + '.', 0xffd75e);
   else if (kind === 'raid') discord.post('⭐ **' + desc(d.raid) + ' cleared!** ' + dnames(d.names) + ' defeated ' + desc(d.boss) + '.', d.color === undefined ? 0xffd060 : d.color);
+  else if (kind === 'raidopen') discord.post('🌀 **' + desc(d.name) + '** opened **' + desc(d.raid) + '** in the Nexus! The portal closes in 30 seconds.', d.heroic ? 0xffb040 : 0xff3050);
   else if (kind === 'elder') discord.post('💀 **The Dark Elder has fallen** to ' + dnames(d.names) + '!', 0xff4060);
   else if (kind === 'siege') discord.post(d.won ? '⚔️ **The Realm Siege is broken!** ' + dnames(d.names) + ' brought down Vorgath the Siege Warlord in ' + desc(d.realm) + (d.mvp ? '. MVP: **' + desc(d.mvp) + '** (' + d.pct + '%)' : '') + '.' : '⚔️ Vorgath withdrew from ' + desc(d.realm) + ' undefeated.', 0xffa020);
   else if (kind === 'deep') discord.post('🕳️ **' + desc(d.name) + '** leads the ' + desc(d.cls) + 's in the Endless Abyss: wave **' + d.wave + '**!', 0xa060ff);
@@ -1201,19 +1252,8 @@ const handlers = {
   },
 
   /** Someone opened a raid: tell everyone on the server. */
-  raidOpen(c, m) {
-    if (c.world !== 'nexus') return;
-    const now = Date.now();
-    if (now - (c.raidT || 0) < 20000) return;
-    c.raidT = now;
-    const name = str(m.name, 40);
-    const color = Number(m.color) & 0xffffff;
-    for (const o of clients.values()) {
-      if (!o.authed || o === c) continue;
-      o.send({ t: 'banner', text: name + ' is open!', color,
-        msg: c.name + ' opened a portal to ' + name + ' in the Nexus! It closes in 30 seconds.' });
-    }
-  },
+  // (raid openings are announced by the server itself now: announceRaid)
+  raidOpen() {},
 
   /** Teleport: the exact spot of a party or guild member in your world, straight from the server. */
   tpreq(c, m) {
@@ -1630,6 +1670,8 @@ const handlers = {
       if (m.to !== 'all' || m.d.t !== 'portal') return;
     }
     if (m.to === 'all' && hosts.get(c.world) !== c && m.d.t !== 'portal' && m.d.t !== 'rstage') return;
+    // (raid portals come from the server only: see announceRaid)
+    if (m.d.t === 'portal' && m.d.k === 'raid') return;
     const out = { t: 'w', from: c.id, d: m.d };
     if (m.to === 'all') { for (const o of inWorld(c.world, c)) o.send(out); return; }
     const target = m.to === 'host' ? hosts.get(c.world) : clients.get(m.to);
@@ -1798,8 +1840,18 @@ const handlers = {
     // (a Heroic raid takes two of its keys; its world key ends in ':h')
     const heroic = m.k === 'raid' && !!m.h;
     const wkey = (m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed + (heroic ? ':h' : '');
+    // one raid at a time: the key stays in your bag
+    if (m.k === 'raid') {
+      const busy = raidBusy();
+      if (busy) {
+        c.send({ t: 'raidBusy', msg: busy });
+        if (sv) c.send({ t: 'saveRejected', reason: 'OK: ' + busy, data: publicSave(sv) });
+        return;
+      }
+      if (c.world !== 'nexus') return c.send({ t: 'raidBusy', msg: 'Raids open in the Nexus, at the Raid Table.' });
+    }
     // (admins open raids for everyone from the admin menu, without a key)
-    if (canTest(c) && !sid && seed) return openWorld(wkey);
+    if (canTest(c) && !sid && seed) { openWorld(wkey); if (m.k === 'raid') announceRaid(c, wkey, i, seed, heroic); return; }
     if (!ch || !Array.isArray(ch.inv)) return;
     const at = sid ? ch.inv.findIndex((it) => it && it.sid === sid) : -1;
     const key = at >= 0 ? ch.inv[at] : null;
@@ -1814,6 +1866,7 @@ const handlers = {
     if (key2) { ch.inv[at2] = null; items.release(sv, key2); }
     store.putSave(c.key, sv);
     openWorld(wkey);
+    if (m.k === 'raid') announceRaid(c, wkey, i, seed, heroic);
   },
 
   /** A pet egg: the server takes the gold and rolls the pet (the game can't pick its own). */

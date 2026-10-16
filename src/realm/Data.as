@@ -1572,6 +1572,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-raidgates", title: "What's new in Eldmere",
+				lines: ["<b>Raid gates</b>: raid portals are now great obsidian gates with a swirling vortex, a rune circle turning on the ground and a beam of light into the sky. They rise out of a shockwave when they open (gold for Heroic).",
+					"<b>The whole server hears it</b>: when anyone opens a raid, everyone gets the news, wherever they are.",
+					"<b>One raid at a time</b>: while a raid's portal is open, or anyone is still fighting in one, no other raid can open. Your key stays in your bag until it can."]},
 			{id: "2026-10-bossbalance", title: "What's new in Eldmere",
 				lines: ["<b>Boss balance pass</b>: every boss was fought by bots that dodge, and by bots that don't. Now nearly every boss can be beaten without a scratch if you dodge well, and will kill you if you don't.",
 					"<b>Easier to read</b>: Astraeon, the Siege Warlord, Archon Vesper, Tempestus, Nerezza, the Void Dragon, Malgoroth, the Skull Shrine and the Shattered Sanctum's wardens fire spirals and fans with real gaps in them, and their blasts give you time to get out.",

@@ -260,7 +260,7 @@ package realm {
 					break;
 				case "portal":
 					if (isHost && d.k != "raid") return;
-					g.netPortal(d.x, d.y, d.k, d.i, d.c, d.l, uint(d.s));
+					g.netPortal(d.x, d.y, d.k, d.i, d.c, d.l, uint(d.s), d.by ? String(d.by) : "");
 					break;
 			}
 		}

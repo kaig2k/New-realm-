@@ -9,6 +9,7 @@ package realm {
 	import flash.filters.ColorMatrixFilter;
 	import flash.events.MouseEvent;
 	import flash.events.KeyboardEvent;
+	import flash.display.BlendMode;
 	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
@@ -854,19 +855,19 @@ package realm {
 			// a portal the world already has (shared again by another player) is not added twice
 			if (seed) for each (var dup:Object in w.portals) if (dup.kind == kind && dup.seed == seed) { lab.parent.removeChild(lab); return; }
 			// timed portals close at a fixed moment, whether or not anyone is watching
-			var p:Object = {x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life, seed: seed, until: life > 0 ? getTimer() + life * 1000 : 0};
+			var p:Object = {x: x, y: y, kind: kind, idx: idx, color: color, label: lab, life: life, seed: seed, until: life > 0 ? getTimer() + life * 1000 : 0, born: getTimer()};
 			w.portals.push(p);
 			// dropped dungeon portals are shared: everyone here can enter the same dungeon
 			if (share && kind == "dungeon" && w == world && w.key != "nexus") sync.portal(p);
 		}
 
 		/** The world host dropped a dungeon portal. */
-		public function netPortal(x:Number, y:Number, kind:String, idx:int, color:uint, life:Number, seed:uint):void {
+		public function netPortal(x:Number, y:Number, kind:String, idx:int, color:uint, life:Number, seed:uint, by:String = ""):void {
 			if (kind == "raid" && Bosses.RAIDS[idx % RAID_HEROIC]) {
+				// (online, the server announces it: raidOpened)
 				addPortal(world, x, y, kind, idx, color, life, seed, false);
-				var rn:String = Bosses.raidName(idx % RAID_HEROIC, idx >= RAID_HEROIC);
-				showBanner(rn + " is open!", color, 3);
-				msg("A portal to " + rn + " has opened by the Raid Table!", color);
+				if (by) for each (var rp:Object in world.portals) if (rp.kind == "raid" && rp.seed == seed) rp.by = by;
+				if (!(net && net.online)) { var rn:String = Bosses.raidName(idx % RAID_HEROIC, idx >= RAID_HEROIC); showBanner(rn + " is open!", color, 3); }
 				return;
 			}
 			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
@@ -3815,7 +3816,9 @@ package realm {
 				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are boss fights one after another (the Starfall Vault has four chambers, each a structure that fights back), best with friends, " +
 					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder. " +
 					"<font color='#ffb040'><b>Heroic</b></font> (two keys): tougher bosses and better loot. The first clear of each raid each week, on each difficulty, " +
-					"gives a bonus roll from its final boss, and the fastest clears go on the raid's weekly board.";
+					"gives a bonus roll from its final boss, and the fastest clears go on the raid's weekly board." +
+					"\n<font color='#ff9a9a'><b>One raid at a time:</b></font> while a raid's portal is open, or anyone is still fighting in one, no other raid can open." +
+					(raidBusyText ? "\n<font color='#ff6060'><b>Right now:</b> " + Ui.esc(raidBusyText) + "</font>" : "");
 				info.y = y;
 				y += info.height + 10;
 				for (i = 0; i < Bosses.RAIDS.length; i++) {
@@ -4663,6 +4666,23 @@ package realm {
 			return true;
 		}
 
+		/** Why no raid can open right now (the server's word: raidState), or "". */
+		public var raidBusyText:String = "";
+
+		/** The server says whether a raid can be opened (the Raid Table shows it). */
+		public function raidState(busy:String):void {
+			raidBusyText = busy;
+			if (openStation && openStation.kind == "raids") refreshStation();
+		}
+
+		/** The server opened a raid (anyone's, anywhere): the news, a sound, and the way there. */
+		public function raidOpened(name:String, col:uint, by:String, heroic:Boolean, secs:int, here:Boolean):void {
+			showBanner((heroic ? "HEROIC RAID: " : "RAID: ") + name.toUpperCase() + " IS OPEN!", col, 4);
+			msg("✦ " + by + " opened " + name + " in the Nexus! The portal by the Raid Table closes in " + secs + " seconds." + (here ? "" : " (Press " + Keys.name(Keys.k("nexus")) + " to go to the Nexus.)"), col);
+			Sfx.play("fanfare");
+			if (here && inNexus) { Sfx.play("portal"); shake(0.35, 6); }
+		}
+
 		/** Opens a raid portal next to the table (everyone in the Nexus sees it). */
 		public function openRaid(i:int, key:Object = null, key2:Object = null, heroic:Boolean = false):void {
 			var rd:Object = Bosses.RAIDS[i];
@@ -4670,8 +4690,15 @@ package realm {
 			var nm:String = Bosses.raidName(i, heroic);
 			Save.flush();
 			var seed:uint = 1 + uint(Math.random() * 0x7ffffffe);
-			// the server takes the key (two for Heroic) and lets people through the portal (admins open raids without one)
-			if (serverLoot) Online.send({t: "portalKey", sid: key ? key.sid : "", sid2: key2 ? key2.sid : "", h: heroic ? 1 : 0, k: "raid", i: i, s: seed});
+			// the server takes the key (two for Heroic), checks no other raid is under way (one at a time),
+			// then opens the portal by the Raid Table for everyone and tells the whole server (raidOpened)
+			if (serverLoot) {
+				Online.send({t: "portalKey", sid: key ? key.sid : "", sid2: key2 ? key2.sid : "", h: heroic ? 1 : 0, k: "raid", i: i, s: seed});
+				msg("Opening " + nm + "...", rd.color);
+				closeStation();
+				hud.refresh();
+				return;
+			}
 			var px:Number = 113.5, py:Number = 107.5;
 			// (a heroic raid's portal carries it in its index: RAID_HEROIC + the raid)
 			var pi:int = heroic ? RAID_HEROIC + i : i;
@@ -6900,6 +6927,16 @@ package realm {
 			for each (var p:Object in world.portals) {
 				if (p.kind == "realm" && !realmNames[p.idx]) { p.label.visible = false; continue; }
 				var pcx:Number = scrX(p.x, p.y), pcy:Number = scrY(p.x, p.y);
+				// raids have a gate of their own
+				if (p.kind == "raid") {
+					var rtop:Number = drawRaidPortal(p, pcx, pcy);
+					var rlab:TextField = p.label;
+					rlab.htmlText = "<font size='15' color='" + Ui.hex(p.idx >= RAID_HEROIC ? 0xffb040 : p.color) + "'><b>" + Bosses.raidName(p.idx % RAID_HEROIC, p.idx >= RAID_HEROIC) + "</b></font>\n<font size='11' color='#cccccc'>" +
+						(p.by ? "opened by " + Ui.esc(p.by) + "  ·  " : "") + "closes in " + Math.ceil(p.life) + "s</font>";
+					rlab.x = int(pcx - rlab.width / 2);
+					rlab.y = int(rtop - rlab.height - 4);
+					continue;
+				}
 				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
 				// a glow on the ground and motes drifting in; it flickers in its last seconds
 				var closing:Boolean = p.life > 0 && p.life < 5;
@@ -7154,6 +7191,70 @@ package realm {
 
 		private static const BAG_GLOW:Object = {bag_purple: 0xb050e0, bag_cyan: 0x40d0f0, bag_white: 0x9ad0ff,
 			bag_fabled: 0xc85cff, bag_legendary: 0xffc23a, bag_relic: 0xff5533, bag_godly: 0xfff6e0};
+
+		private var raidMtx:Matrix = new Matrix();
+		private var raidCt:ColorTransform = new ColorTransform();
+
+		/**
+		 * A raid's portal (RaidPortalArt): the gate rises out of a shockwave when it opens, its vortex
+		 * turns, a rune circle wheels on the ground under it and a beam climbs into the sky; it shrinks
+		 * and flickers out in its last seconds. Returns the top of the gate (for its label).
+		 */
+		private function drawRaidPortal(p:Object, cx:Number, cy:Number):Number {
+			var heroic:Boolean = p.idx >= RAID_HEROIC;
+			var col:uint = heroic ? 0xffb040 : p.color;
+			var age:Number = (getTimer() - (p.born || 0)) / 1000;
+			var fr:int = int(time * 10);
+			// growing in (with a little overshoot), shrinking out
+			var t:Number = Math.min(1, age / 0.9);
+			var grow:Number = t < 1 ? 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2) : 1;
+			if (p.life > 0 && p.life < 1.5) grow *= Math.max(0.05, p.life / 1.5);
+			var closing:Boolean = p.life > 0 && p.life < 5;
+			if (closing && int(time * 12) % 4 == 0) grow *= 0.94;
+			var foot:Number = cy + TS * 0.4;
+			var pulse:Number = (Math.sin(time * 3) + 1) / 2;
+			// the rune circle on the ground
+			var rc:BitmapData = RaidPortalArt.circle(col, fr);
+			var cs:Number = Math.min(1.15, grow * 1.05);
+			raidMtx.identity(); raidMtx.scale(cs, cs); raidMtx.translate(cx - rc.width * cs / 2, foot - rc.height * cs / 2);
+			raidCt.alphaMultiplier = 0.55 + pulse * 0.35;
+			canvas.draw(rc, raidMtx, raidCt, BlendMode.ADD);
+			// the shockwave it opened with
+			if (age < 1.4) {
+				var g:* = auraShape.graphics;
+				g.clear();
+				var sr:Number = TS * (0.5 + age * 5), fa:Number = Math.max(0, 1 - age / 1.4);
+				g.lineStyle(6, col, fa * 0.8);
+				g.drawEllipse(-sr, -sr * 0.42, sr * 2, sr * 0.84);
+				g.lineStyle(2, 0xffffff, fa);
+				g.drawEllipse(-sr * 0.8, -sr * 0.34, sr * 1.6, sr * 0.67);
+				auraMtx.tx = cx; auraMtx.ty = foot;
+				canvas.draw(auraShape, auraMtx, null, BlendMode.ADD);
+			}
+			var gate:BitmapData = RaidPortalArt.gate(col, heroic, fr);
+			var gw:Number = gate.width * grow, gh:Number = gate.height * grow;
+			// the beam, out of the heart of the vortex
+			var bm:BitmapData = RaidPortalArt.beam(col);
+			var bw:Number = 0.8 + pulse * 0.4;
+			raidMtx.identity(); raidMtx.scale(bw * grow, grow); raidMtx.translate(cx - bm.width * bw * grow / 2, foot - gh * 0.55 - bm.height * grow);
+			raidCt.alphaMultiplier = (closing ? 0.25 : 0.45) + pulse * 0.25;
+			canvas.draw(bm, raidMtx, raidCt, BlendMode.ADD);
+			// a wide glow at its feet
+			drawAura(cx, foot - 4, col, 1.6 * grow);
+			// the gate itself
+			if (grow == 1) { pt.x = int(cx - gate.width / 2); pt.y = int(foot - gate.height + 4); canvas.copyPixels(gate, gate.rect, pt, null, null, true); }
+			else { raidMtx.identity(); raidMtx.scale(grow, grow); raidMtx.translate(cx - gw / 2, foot - gh + 4); canvas.draw(gate, raidMtx); }
+			// light pouring out of the vortex, and motes drawn in from all around
+			if (opt("parts") && parts.length < 380 && cx > -80 && cx < vw + 80 && cy > -120 && cy < vh + 80) {
+				var mid:Number = p.y - 1.6;
+				for (var k:int = 0; k < 2; k++) {
+					var pa:Number = Math.random() * Math.PI * 2, pr:Number = 2.2 + Math.random() * 1.8;
+					parts.push(new Particle(p.x + Math.cos(pa) * pr, mid + Math.sin(pa) * pr * 0.6, -Math.cos(pa) * pr * 1.4, -Math.sin(pa) * pr * 0.9, 0.7, Sprites.glow(Sprites.tint(col, 0.35))));
+				}
+				if (Math.random() < 0.5) parts.push(new Particle(p.x + (Math.random() - 0.5) * 0.8, mid, (Math.random() - 0.5) * 0.6, -2.5 - Math.random() * 2, 0.9, Sprites.spark(Sprites.tint(col, 0.6))));
+			}
+			return foot - gh + 4;
+		}
 
 		private function drawAura(cx:Number, cy:Number, col:uint, size:Number = 1):void {
 			var pulse:Number = (Math.sin(time * 4) + 1) / 2;

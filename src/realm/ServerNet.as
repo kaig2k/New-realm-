@@ -299,6 +299,19 @@ package realm {
 					// (the server's notes are plain text, often with players' names in: never markup)
 					g.msg(Ui.esc(m.text), m.color || 0xff8080);
 					break;
+				case "raidBusy":
+					// one raid at a time (the server keeps your key)
+					g.showBanner("A raid is already under way", 0xff8080, 2.5);
+					g.msg(Ui.esc(m.msg), 0xff8080);
+					Sfx.play("click");
+					break;
+				case "raidState":
+					g.raidState(String(m.busy || ""));
+					break;
+				case "raidOpened":
+					// a raid opened somewhere on the server: everyone hears it
+					g.raidOpened(String(m.name || ""), uint(m.color), String(m.by || ""), !!m.heroic, int(m.secs || 30), !!m.here);
+					break;
 				case "role":
 					// promoted, demoted, or VIP started or ended
 					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; Online.welcome.tester = !!m.tester; }

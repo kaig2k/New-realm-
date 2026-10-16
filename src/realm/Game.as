@@ -3339,6 +3339,8 @@ package realm {
 				killer: p.lastHitBy || "the Realm", date: now.fullYear + "-" + (now.month + 1) + "-" + now.date});
 			if (save.graves.length > 30) save.graves.length = 30;
 			Save.flush();
+			// (the server hears at once that this hero fell)
+			if (net.online) Online.sendSave();
 			deathInfo = {
 				name: p.name, cls: p.cls.name, clsId: p.cls.id, level: p.level, fame: fame, best: best, baseFame: base, bonuses: bonuses,
 				kills: p.kills, bosses: p.bossKills, killer: p.lastHitBy || "the Realm", time: time,

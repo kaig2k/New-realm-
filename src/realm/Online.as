@@ -133,8 +133,12 @@ package realm {
 				saveTimer = new Timer(2000, 1);
 				saveTimer.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { sendSave(); });
 			}
-			saveTimer.reset();
-			saveTimer.start();
+			// (at most 2s after the first change: restarting the wait on every change could hold a save back
+			// for minutes while things keep changing, in a long fight or on the death screen)
+			if (!saveTimer.running) {
+				saveTimer.reset();
+				saveTimer.start();
+			}
 		}
 
 		/** Uploads the save right away (before trades, when quitting). */

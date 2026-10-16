@@ -49,6 +49,10 @@ const DEFAULT_CONFIG = {
   admins: [],
   // a Discord webhook address: records, raid clears, Godly drops, titles and restarts are posted there
   discordWebhook: '',
+  // a Discord bot for /restart and /status from Discord (DEPLOY.md): its token, your Discord server's ID, and who may use it
+  discordBotToken: '',
+  discordGuild: '',
+  discordBotAdmins: [],
   viewRange: 32,
   chatPerTenSeconds: 8,
   // true: click anyone on the minimap (or /tp name) to teleport to them, like RotMG; false: party and guild only
@@ -3697,6 +3701,21 @@ function shutdown() {
     setTimeout(() => process.exit(0), 300);
   }, 1500);
 }
+// ------------------------------------------------------------------ Discord bot: /restart and /status from Discord
+const { DiscordBot } = require('./discordbot');
+const discordBot = new DiscordBot({ token: config.discordBotToken, guild: config.discordGuild, admins: Array.isArray(config.discordBotAdmins) ? config.discordBotAdmins : [] }, {
+  restart: (seconds, by) => scheduleRestart(seconds, by),
+  cancel: () => cancelRestart(),
+  status: () => {
+    let n = 0;
+    for (const c of clients.values()) if (c.authed) n++;
+    const left = restartLeft();
+    return '🟢 **' + (config.name || 'Eldmere') + '** is up: **' + n + '** player' + (n === 1 ? '' : 's') + ' online, up for ' + Math.round(process.uptime() / 60) + ' min.' +
+      (left >= 0 ? '\n🔄 Restarting in ' + (left >= 60 ? Math.ceil(left / 60) + ' min' : left + 's') + '.' : '');
+  }
+}, log);
+if (!process.env.NEWREALM_NO_BOT) discordBot.start();
+
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 setInterval(updateRealms, 5000);

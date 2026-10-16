@@ -100,6 +100,7 @@ Players then join with `play.yourgame.com:2050`.
 | `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
 | `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
 | `backupKeep` | How many days of backups to keep (14). |
+| `discordBotToken` / `discordGuild` / `discordBotAdmins` | A Discord bot so you can restart the server from Discord with `/restart` and check it with `/status`. See **Restart from Discord** below. |
 | `discordStatusWebhook` | A second Discord webhook (best in its own read-only #status channel). The server posts one message there and keeps editing it every 5 minutes: players online, today's peak, the season leaders, the top guild, this week's Vault twist and the latest Records time. |
 | `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |
@@ -188,6 +189,35 @@ earns that week's banner, which members then show by their names; leaders can al
 banner in the Banner Maker from a cloth colour, a pattern, an emblem and their colours), and a ranking by guild fame (from goals
 and a tenth of the fame of members' fallen heroes). A founder can't disband a guild while its bank holds
 items. It's all kept in `guilds.json`.
+
+### Restart from Discord
+
+A webhook can only post to Discord, so restarting from Discord takes a bot. The server runs the bot itself:
+there's nothing to install and no port to open.
+
+1. Go to https://discord.com/developers/applications > **New Application** (call it Eldmere).
+2. **Bot** > **Reset Token** > copy the token. (Keep it secret: anyone with it can act as your bot.)
+3. **OAuth2** > **URL Generator**: tick `bot` and `applications.commands`, open the link it makes and add
+   the bot to your Discord server. It needs no permissions.
+4. In Discord, turn on **Settings > Advanced > Developer Mode**. Then right-click your server's icon >
+   **Copy Server ID**, and right-click your own name > **Copy User ID**.
+5. Put them in `server/config.json`:
+   ```json
+   "discordBotToken": "the token from step 2",
+   "discordGuild": "your server ID",
+   "discordBotAdmins": ["your user ID"]
+   ```
+6. Restart once from the VPS (`sh restart.sh now`). The log says `discord bot: online as ...`.
+
+Then in any channel of your Discord:
+- `/restart` restarts in 5 minutes, `/restart minutes:2` in 2, `/restart minutes:now` straight away and
+  `/restart minutes:cancel` calls it off. It works just like `restart.sh`: players get the countdown, and
+  the server pulls the latest update before it comes back.
+- `/status` shows how many players are online and whether a restart is coming.
+
+Only the user IDs in `discordBotAdmins` can use the commands (with an empty list, members with Discord's
+Administrator permission can). Discord only shows the commands to Administrators. The bot's answers are
+only visible to you.
 
 ## 8. Backups
 

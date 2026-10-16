@@ -548,6 +548,21 @@ async function run() {
     const missing = [...types].filter((x) => !have.has(x));
     check('every item type (' + types.size + ') has a Primordial unique', !missing.length, missing.join(', '));
   }
+  {
+    // the Discord bot: only its admins may restart, and the minutes are checked
+    const { answer } = require('./discordbot');
+    const got = [];
+    const hooks = { restart: (sec, by) => got.push([sec, by]), cancel: () => true, status: () => 'up' };
+    const cmd = (uid, name, val, extra) => Object.assign({ type: 2, guild_id: 'G', member: { user: { id: uid, username: 'u' + uid }, permissions: '0' }, data: { name, options: val === undefined ? [] : [{ name: 'minutes', value: val }] } }, extra || {});
+    const opts = { guild: 'G', admins: ['42'] };
+    check('Discord bot: a stranger can\'t restart', /not allowed/.test(answer(cmd('7', 'restart', '5'), opts, hooks)) && !got.length);
+    check('Discord bot: commands from another Discord server are refused', /own Discord/.test(answer(cmd('42', 'restart', '5', { guild_id: 'X' }), opts, hooks)) && !got.length);
+    check('Discord bot: an admin restarts in 5 minutes', /5 minutes/.test(answer(cmd('42', 'restart', '5'), opts, hooks)) && got.length === 1 && got[0][0] === 300 && /Discord/.test(got[0][1]));
+    check('Discord bot: /restart now and cancel', /now/.test(answer(cmd('42', 'restart', 'now'), opts, hooks)) && got[1][0] === 0 && /cancelled/.test(answer(cmd('42', 'restart', 'cancel'), opts, hooks)));
+    check('Discord bot: bad minutes are refused', /0-120/.test(answer(cmd('42', 'restart', '999'), opts, hooks)) && /0-120/.test(answer(cmd('42', 'restart', 'soon'), opts, hooks)) && got.length === 2);
+    check('Discord bot: with no admin list, only Discord Administrators may use it',
+      /not allowed/.test(answer(cmd('7', 'status'), { guild: 'G', admins: [] }, hooks)) && answer(cmd('7', 'status', undefined, { member: { user: { id: '7' }, permissions: '8' } }), { guild: 'G', admins: [] }, hooks) === 'up');
+  }
 
   console.log('godly');
   {

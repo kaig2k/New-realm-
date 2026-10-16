@@ -5,6 +5,8 @@
 • Press it again to centre the camera. It eases smoothly between the two and remembers your choice
 • Works with camera rotation and zoom. Rebind it in **Menu > Controls** (for example to X, the Realm default; X swaps with Interact)
 
+• (Server) The owner can now restart the server from Discord with **/restart**, and check it with **/status**
+
 ---
 
 **📜 ELDMERE UPDATE: Raid Gates**

@@ -2149,7 +2149,7 @@ class Bosses {
 			
 			
 			
-			Bosses.boss("archon", Bosses.o({name: "Archon Vesper", spr: "archon", hp: 60000, def: 32, spd: 1.6, xp: 6000, col: Bosses.A_RED, gold: 2000, onrane: 25, r: 1.1,
+			Bosses.boss("archon", Bosses.o({name: "Archon Vesper", spr: "archon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 60000, def: 32, spd: 1.6, xp: 6000, col: Bosses.A_RED, gold: 2000, onrane: 25, r: 1.1,
 				seq: {idle: 4, move: 6, lance: 6, ranged: 5, gravity: 6, dash: 6, cascade: 6, brand: 5, summon: 5, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				Bosses.P(1, {say: "My designs encompass eternity; your fate is a mere footnote.", move: "orbit",
 					attacks: [Bosses.aLance(90, 2.4), Bosses.aRanged(5, 70, 1.9), Bosses.aCascade(6, 105, 3.8)]}),
@@ -2163,7 +2163,7 @@ class Bosses {
 				Bosses.P(0.25, {say: "TIME ITSELF ENDS AT MY WORD!", banner: "The Architect unmakes the hour!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [Bosses.spiral(8, 9, 7, 90, 0.09, Bosses.A_RED, {motion: "wave", shape: "voidorb"}), Bosses.aCascade(14, 130, 2.2), Bosses.aLance(110, 1.6),
 						Bosses.aRanged(9, 90, 1.7), Bosses.aDash(110, 3.0), Bosses.bloodBrand(2, 200, 8.5, {name: "the crimson brand", anim: "brand", animMs: 110, animHit: 3})]})
-			]}, raid), ["vesper_staff", "crimson_crown"]);
+			]}, raid), ["vesper_staff", "crimson_crown", "vesper_kiss", "bloodsworn_bulwark", "red_mass_codex", "first_zealot_skull", "vesper_shroud", "heartblood_signet", "unbleeding_ring", "archon_brand"]);
 
 			
 			for (var sid of __vals( ["sentinel_a", "sentinel_b", "sentinel_c"])) {
@@ -2187,7 +2187,7 @@ class Bosses {
 			
 			
 			
-			Bosses.boss("tempestus", Bosses.o({name: "Tempestus, Heart of the Storm", spr: "tempestus", hp: 62000, def: 30, spd: 2.0, xp: 6000, col: Bosses.T_VIOLET, gold: 2000, onrane: 25, r: 1.1,
+			Bosses.boss("tempestus", Bosses.o({name: "Tempestus, Heart of the Storm", spr: "tempestus", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 62000, def: 30, spd: 2.0, xp: 6000, col: Bosses.T_VIOLET, gold: 2000, onrane: 25, r: 1.1,
 				seq: {idle: 4, move: 6, slash: 6, spread: 5, strike: 6, dash: 6, radius: 6, rain: 6, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				Bosses.P(1, {say: "SO. YOU CLIMBED MY STORM.", move: "orbit",
 					attacks: [Bosses.tSlash(90, 2.4), Bosses.tSpread(7, 70, 1.6), Bosses.tStrike(130, 3.8), Bosses.tChain(3, 110, 5.0)]}),
@@ -2199,7 +2199,7 @@ class Bosses {
 					attacks: [Bosses.tDash(100, 3.6), Bosses.tBlink(6), Bosses.tPull(18, 90, 4.2), Bosses.tChain(5, 120, 4.4), Bosses.spiral(6, 15, 7, 85, 0.09, Bosses.T_PALE, {motion: "wave", shape: "voidorb"})]}),
 				Bosses.P(0.2, {say: "I AM THE STORM ETERNAL!", banner: "THE STORM IS MY HEART!", shield: 3, move: "orbit", speed: 1.6,
 					attacks: [Bosses.tRain(12, 125, 2.0), Bosses.tChain(6, 130, 3.2), Bosses.tSlash(110, 1.6), Bosses.tRadius(170, 3.4, 6.5), Bosses.spiral(10, 9, 7, 90, 0.09, Bosses.T_PALE, {shape: "voidorb"})]})
-			]}, raid), ["heart_of_storm", "stormbreaker"]);
+			]}, raid), ["heart_of_storm", "stormbreaker", "tempest_eye", "stormweave_jerkin", "rolling_thunder", "squall_crown", "cyclone_snare", "galeband", "stormwall_ring", "lightning_rod"]);
 
 			
 			Bosses.boss("ignis", Bosses.o({name: "Ignis, Warden of Embers", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
@@ -2234,7 +2234,7 @@ class Bosses {
 					attacks: [Bosses.flower(28, 6, 6, 90, 0.7, 0xe8e0c8), Bosses.rain(8, 6, 120, 1.8, 0xc060ff, {burst: 8, fx: "spikes"}),
 						Bosses.pull(16, 95, 3.4, 0xc060ff, {shape: "soul", name: "soul drain"})]})
 			]}, raid), ["sovereign_signet"]);
-			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
+			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
 				Bosses.P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
 					attacks: [Bosses.spiral(4, 12, 6.5, 80, 0.11, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 95, 1.1, 0xffffff, {shape: "crescent", r: 0.3}),
 						Bosses.pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
@@ -2247,7 +2247,7 @@ class Bosses {
 				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [Bosses.spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), Bosses.aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "crescent", waves: 3, gap: 0.2}),
 						Bosses.selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), Bosses.eclipse(12, 5, 160, 20)]})
-			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star"]);
+			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
 }
 
@@ -5057,6 +5057,9 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-primordial", title: "What's new in Eldmere",
+				lines: ["<b>24 new Primordial uniques</b>: now every weapon, armor, ability and ring type has its own Primordial unique. Archon Vesper, Tempestus and Astraeon each carry a set of them.",
+					"<b>New wiki page</b>: the Primordial tab shows all of them by item type. Hover one to see its stats and who drops it."]},
 			{id: "2026-10-heroes", title: "What's new in Eldmere",
 				lines: ["<b>New hero screens</b>: every hero is a card showing its level, stats maxed and the gear it wears, with a tab for each mode.",
 					"<b>New Hero</b>: pick a class to see its ability and max stats side by side, then name your hero and press Create (or double-click the class)."]},
@@ -5529,7 +5532,35 @@ Uniques.ALL = {
 			crimson_crown: ["Crimson Crown", "ring", "att", {att: 12, dex: 8, hp: 60}, null, "Worn by the Conclave's master."],
 			galecaller_bow: ["Galecaller's Bow", "weapon", "bow", {dex: 8}, {shots: 4, arc: 16, rate: 1.3, mult: 0.7, col: 0x80ffff}, "Arrows ride the gale."],
 			heart_of_storm: ["Heart of the Storm", "ring", "spd", {spd: 12, dex: 12}, null, "It beats like thunder."],
-			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."]
+			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."],
+			
+			
+			vesper_kiss: ["Vesper's Kiss", "weapon", "dagger", {dex: 6, att: 4}, {shots: 2, arc: 10, motion: "wave", passive: "lifesteal", mult: 0.9, col: 0xff3060}, "Two red lips of steel. Every cut is a little drink."],
+			bloodsworn_bulwark: ["Bloodsworn Bulwark", "armor", "heavy", {hp: 120, def: 8, vit: 4}, null, "Quenched in the Conclave's altar. It closes its own wounds."],
+			red_mass_codex: ["Codex of the Red Mass", "ability", "tome", {hp: 60, wis: 8}, {power: 2.5}, "The Conclave's hymnal. Its pages are warm."],
+			first_zealot_skull: ["Skull of the First Zealot", "ability", "skull", {wis: 8, att: 4}, {power: 2.5}, "He was the first to kneel. He never stood up again."],
+			vesper_shroud: ["Vesper's Shroud", "ability", "cloak", {dex: 8, spd: 6}, {power: 2.4}, "Night falls wherever he stands."],
+			heartblood_signet: ["Heartblood Signet", "ring", "hp", {hp: 80, vit: 8}, null, "It beats a moment before you do."],
+			unbleeding_ring: ["Ring of the Unbleeding", "ring", "vit", {vit: 10, hp: 60}, null, "Wounds close before they open."],
+			archon_brand: ["Brand of the Archon", "ring", "mgt", {mgt: 10, att: 6}, null, "His mark, burned into gold."],
+			
+			tempest_eye: ["Eye of the Tempest", "weapon", "bow", {dex: 8}, {shots: 3, arc: 14, pierce: true, passive: "critical", rate: 1.2, mult: 0.85, col: 0x9ae8ff}, "Draw it and the air goes still. Loose it and the sky breaks."],
+			stormweave_jerkin: ["Stormweave Jerkin", "armor", "leather", {dex: 8, spd: 8, def: 4}, null, "Woven from cloud. It never quite dries."],
+			rolling_thunder: ["Quiver of Rolling Thunder", "ability", "quiver", {dex: 8, spd: 4}, {power: 2.4}, "Each arrow arrives a heartbeat before its own thunder."],
+			squall_crown: ["Crown of the Squall", "ability", "helm", {att: 6, spd: 6}, {power: 2.4}, "Put it on and charge like the wind."],
+			cyclone_snare: ["Cyclone Snare", "ability", "trap", {wis: 6, dex: 6}, {power: 2.4}, "Step in, and the storm keeps you."],
+			galeband: ["Galeband", "ring", "dex", {dex: 10, spd: 6}, null, "Your hands move with the wind."],
+			stormwall_ring: ["Stormwall Ring", "ring", "def", {def: 10, hp: 60}, null, "The eye of the storm is always calm."],
+			lightning_rod: ["The Lightning Rod", "ring", "prt", {prt: 10, def: 4}, null, "It takes the strike so you don't."],
+			
+			seventh_star_wand: ["Wand of the Seventh Star", "weapon", "wand", {wis: 8, att: 4}, {shots: 3, arc: 16, motion: "seek", mult: 0.75, col: 0xfff0a0}, "Its sparks find their mark the way stars find the dark."],
+			falling_sky_spell: ["Spell of the Falling Sky", "ability", "spell", {att: 6, wis: 6}, {power: 2.5}, "Read it aloud and the heavens answer."],
+			star_throne_aegis: ["Aegis of the Star Throne", "ability", "shield", {def: 8, hp: 80}, {power: 2.5}, "Astraeon's own shield. Starlight pours off its rim."],
+			liquid_starlight: ["Flask of Liquid Starlight", "ability", "flask", {att: 5, dex: 6}, {power: 2.4}, "Too bright to look at. Throw it anyway."],
+			lyre_of_spheres: ["Lyre of the Spheres", "ability", "lyre", {wis: 8, mp: 60}, {power: 2.4}, "It plays the music the planets hum."],
+			starwell_ring: ["Starwell Ring", "ring", "mp", {mp: 80, wis: 6}, null, "A well with no bottom, full of light."],
+			eye_of_astraeon: ["Eye of Astraeon", "ring", "wis", {wis: 10, mp: 40}, null, "It saw the world before it fell."],
+			comets_tail: ["Comet's Tail", "ring", "luc", {luc: 10, dex: 6}, null, "Bright, fast, and always on target."]
 		};
 Uniques.source = {};
 Uniques.bossOf = {};
@@ -5619,6 +5650,7 @@ Godly.DROPS = {
 		};
 Godly.source = {};
 Bosses.done = false;
+Bosses.PRIMORDIAL_CHANCE = 0.025;
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
 			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},

@@ -1572,6 +1572,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-primordial", title: "What's new in Eldmere",
+				lines: ["<b>24 new Primordial uniques</b>: now every weapon, armor, ability and ring type has its own Primordial unique. Archon Vesper, Tempestus and Astraeon each carry a set of them.",
+					"<b>New wiki page</b>: the Primordial tab shows all of them by item type. Hover one to see its stats and who drops it."]},
 			{id: "2026-10-heroes", title: "What's new in Eldmere",
 				lines: ["<b>New hero screens</b>: every hero is a card showing its level, stats maxed and the gear it wears, with a tab for each mode.",
 					"<b>New Hero</b>: pick a class to see its ability and max stats side by side, then name your hero and press Create (or double-click the class)."]},

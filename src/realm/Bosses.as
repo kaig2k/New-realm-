@@ -41,6 +41,12 @@ package realm {
 		private static function P(hp:Number, x:Object):Object { return o({hp: hp}, x); }
 
 		/** Adds or replaces fields of a boss (new bosses get sensible defaults). */
+		/**
+		 * Each raid's final boss carries a Primordial unique for many item types (between them, one for
+		 * every weapon, armor, ability and ring there is), so each one rolls rarer than other uniques.
+		 */
+		public static const PRIMORDIAL_CHANCE:Number = 0.025;
+
 		private static function boss(id:String, fields:Object, uniques:Array = null):void {
 			var d:Object = Data.ENEMIES[id];
 			if (!d) d = Data.ENEMIES[id] = {ai: "boss", r: 0.9, drop: 1, aggro: 14, range: 14, def: 20, spd: 1.4, xp: 1500};
@@ -1220,7 +1226,7 @@ package realm {
 			// Archon Vesper, Architect of Void-Time, after his design sheet: every attack has its own animation
 			// (tools/bossart/vesper.py); he guards behind his kite shield while a phase's shield holds, and brands
 			// one of you in blood (two at the end) who has to leave the group before it bursts
-			boss("archon", o({name: "Archon Vesper", spr: "archon", hp: 60000, def: 32, spd: 1.6, xp: 6000, col: A_RED, gold: 2000, onrane: 25, r: 1.1,
+			boss("archon", o({name: "Archon Vesper", spr: "archon", uchance: PRIMORDIAL_CHANCE, hp: 60000, def: 32, spd: 1.6, xp: 6000, col: A_RED, gold: 2000, onrane: 25, r: 1.1,
 				seq: {idle: 4, move: 6, lance: 6, ranged: 5, gravity: 6, dash: 6, cascade: 6, brand: 5, summon: 5, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				P(1, {say: "My designs encompass eternity; your fate is a mere footnote.", move: "orbit",
 					attacks: [aLance(90, 2.4), aRanged(5, 70, 1.9), aCascade(6, 105, 3.8)]}),
@@ -1234,7 +1240,7 @@ package realm {
 				P(0.25, {say: "TIME ITSELF ENDS AT MY WORD!", banner: "The Architect unmakes the hour!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [spiral(8, 9, 7, 90, 0.09, A_RED, {motion: "wave", shape: "voidorb"}), aCascade(14, 130, 2.2), aLance(110, 1.6),
 						aRanged(9, 90, 1.7), aDash(110, 3.0), bloodBrand(2, 200, 8.5, {name: "the crimson brand", anim: "brand", animMs: 110, animHit: 3})]})
-			]}, raid), ["vesper_staff", "crimson_crown"]);
+			]}, raid), ["vesper_staff", "crimson_crown", "vesper_kiss", "bloodsworn_bulwark", "red_mass_codex", "first_zealot_skull", "vesper_shroud", "heartblood_signet", "unbleeding_ring", "archon_brand"]);
 
 			// ---- Heart of the Storm: lightning out of the sky, winds that drag you, bolts that stun
 			for each (var sid:String in ["sentinel_a", "sentinel_b", "sentinel_c"]) {
@@ -1258,7 +1264,7 @@ package realm {
 			// Tempestus, after his design sheet: every attack has its own animation (tools/bossart/tempestus.py),
 			// he guards behind a shell of storm-light while a phase's shield holds, and his chain lightning
 			// jumps from one player to the next if they stand close together
-			boss("tempestus", o({name: "Tempestus, Heart of the Storm", spr: "tempestus", hp: 62000, def: 30, spd: 2.0, xp: 6000, col: T_VIOLET, gold: 2000, onrane: 25, r: 1.1,
+			boss("tempestus", o({name: "Tempestus, Heart of the Storm", spr: "tempestus", uchance: PRIMORDIAL_CHANCE, hp: 62000, def: 30, spd: 2.0, xp: 6000, col: T_VIOLET, gold: 2000, onrane: 25, r: 1.1,
 				seq: {idle: 4, move: 6, slash: 6, spread: 5, strike: 6, dash: 6, radius: 6, rain: 6, guard: 4, death: 7, ridle: 4, rmove: 6}, rageAt: 3, phases: [
 				P(1, {say: "SO. YOU CLIMBED MY STORM.", move: "orbit",
 					attacks: [tSlash(90, 2.4), tSpread(7, 70, 1.6), tStrike(130, 3.8), tChain(3, 110, 5.0)]}),
@@ -1270,7 +1276,7 @@ package realm {
 					attacks: [tDash(100, 3.6), tBlink(6), tPull(18, 90, 4.2), tChain(5, 120, 4.4), spiral(6, 15, 7, 85, 0.09, T_PALE, {motion: "wave", shape: "voidorb"})]}),
 				P(0.2, {say: "I AM THE STORM ETERNAL!", banner: "THE STORM IS MY HEART!", shield: 3, move: "orbit", speed: 1.6,
 					attacks: [tRain(12, 125, 2.0), tChain(6, 130, 3.2), tSlash(110, 1.6), tRadius(170, 3.4, 6.5), spiral(10, 9, 7, 90, 0.09, T_PALE, {shape: "voidorb"})]})
-			]}, raid), ["heart_of_storm", "stormbreaker"]);
+			]}, raid), ["heart_of_storm", "stormbreaker", "tempest_eye", "stormweave_jerkin", "rolling_thunder", "squall_crown", "cyclone_snare", "galeband", "stormwall_ring", "lightning_rod"]);
 
 			// ---- the Starfall Vault: four chambers, each a set piece that changes as you fight
 			boss("ignis", o({name: "Ignis, Warden of Embers", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
@@ -1305,7 +1311,7 @@ package realm {
 					attacks: [flower(28, 6, 6, 90, 0.7, 0xe8e0c8), rain(8, 6, 120, 1.8, 0xc060ff, {burst: 8, fx: "spikes"}),
 						pull(16, 95, 3.4, 0xc060ff, {shape: "soul", name: "soul drain"})]})
 			]}, raid), ["sovereign_signet"]);
-			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
+			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
 				P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
 					attacks: [spiral(4, 12, 6.5, 80, 0.11, 0xffd060, {shape: "star"}), aim(5, 40, 10, 95, 1.1, 0xffffff, {shape: "crescent", r: 0.3}),
 						pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
@@ -1318,7 +1324,7 @@ package realm {
 				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
 					attacks: [spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "crescent", waves: 3, gap: 0.2}),
 						selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), eclipse(12, 5, 160, 20)]})
-			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star"]);
+			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
 	}
 }

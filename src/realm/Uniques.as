@@ -133,7 +133,35 @@ package realm {
 			crimson_crown: ["Crimson Crown", "ring", "att", {att: 12, dex: 8, hp: 60}, null, "Worn by the Conclave's master."],
 			galecaller_bow: ["Galecaller's Bow", "weapon", "bow", {dex: 8}, {shots: 4, arc: 16, rate: 1.3, mult: 0.7, col: 0x80ffff}, "Arrows ride the gale."],
 			heart_of_storm: ["Heart of the Storm", "ring", "spd", {spd: 12, dex: 12}, null, "It beats like thunder."],
-			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."]
+			stormbreaker: ["Stormbreaker", "weapon", "sword", {att: 6}, {shots: 3, arc: 18, pierce: true, passive: "rampage", mult: 1.0, col: 0xffff60}, "Splits the sky in three."],
+			// ---- Primordial: with the ones above, a raid master's unique for every item there is
+			// Archon Vesper (the Conclave)
+			vesper_kiss: ["Vesper's Kiss", "weapon", "dagger", {dex: 6, att: 4}, {shots: 2, arc: 10, motion: "wave", passive: "lifesteal", mult: 0.9, col: 0xff3060}, "Two red lips of steel. Every cut is a little drink."],
+			bloodsworn_bulwark: ["Bloodsworn Bulwark", "armor", "heavy", {hp: 120, def: 8, vit: 4}, null, "Quenched in the Conclave's altar. It closes its own wounds."],
+			red_mass_codex: ["Codex of the Red Mass", "ability", "tome", {hp: 60, wis: 8}, {power: 2.5}, "The Conclave's hymnal. Its pages are warm."],
+			first_zealot_skull: ["Skull of the First Zealot", "ability", "skull", {wis: 8, att: 4}, {power: 2.5}, "He was the first to kneel. He never stood up again."],
+			vesper_shroud: ["Vesper's Shroud", "ability", "cloak", {dex: 8, spd: 6}, {power: 2.4}, "Night falls wherever he stands."],
+			heartblood_signet: ["Heartblood Signet", "ring", "hp", {hp: 80, vit: 8}, null, "It beats a moment before you do."],
+			unbleeding_ring: ["Ring of the Unbleeding", "ring", "vit", {vit: 10, hp: 60}, null, "Wounds close before they open."],
+			archon_brand: ["Brand of the Archon", "ring", "mgt", {mgt: 10, att: 6}, null, "His mark, burned into gold."],
+			// Tempestus (the Storm Spire raid)
+			tempest_eye: ["Eye of the Tempest", "weapon", "bow", {dex: 8}, {shots: 3, arc: 14, pierce: true, passive: "critical", rate: 1.2, mult: 0.85, col: 0x9ae8ff}, "Draw it and the air goes still. Loose it and the sky breaks."],
+			stormweave_jerkin: ["Stormweave Jerkin", "armor", "leather", {dex: 8, spd: 8, def: 4}, null, "Woven from cloud. It never quite dries."],
+			rolling_thunder: ["Quiver of Rolling Thunder", "ability", "quiver", {dex: 8, spd: 4}, {power: 2.4}, "Each arrow arrives a heartbeat before its own thunder."],
+			squall_crown: ["Crown of the Squall", "ability", "helm", {att: 6, spd: 6}, {power: 2.4}, "Put it on and charge like the wind."],
+			cyclone_snare: ["Cyclone Snare", "ability", "trap", {wis: 6, dex: 6}, {power: 2.4}, "Step in, and the storm keeps you."],
+			galeband: ["Galeband", "ring", "dex", {dex: 10, spd: 6}, null, "Your hands move with the wind."],
+			stormwall_ring: ["Stormwall Ring", "ring", "def", {def: 10, hp: 60}, null, "The eye of the storm is always calm."],
+			lightning_rod: ["The Lightning Rod", "ring", "prt", {prt: 10, def: 4}, null, "It takes the strike so you don't."],
+			// Astraeon (the Starfall Vault)
+			seventh_star_wand: ["Wand of the Seventh Star", "weapon", "wand", {wis: 8, att: 4}, {shots: 3, arc: 16, motion: "seek", mult: 0.75, col: 0xfff0a0}, "Its sparks find their mark the way stars find the dark."],
+			falling_sky_spell: ["Spell of the Falling Sky", "ability", "spell", {att: 6, wis: 6}, {power: 2.5}, "Read it aloud and the heavens answer."],
+			star_throne_aegis: ["Aegis of the Star Throne", "ability", "shield", {def: 8, hp: 80}, {power: 2.5}, "Astraeon's own shield. Starlight pours off its rim."],
+			liquid_starlight: ["Flask of Liquid Starlight", "ability", "flask", {att: 5, dex: 6}, {power: 2.4}, "Too bright to look at. Throw it anyway."],
+			lyre_of_spheres: ["Lyre of the Spheres", "ability", "lyre", {wis: 8, mp: 60}, {power: 2.4}, "It plays the music the planets hum."],
+			starwell_ring: ["Starwell Ring", "ring", "mp", {mp: 80, wis: 6}, null, "A well with no bottom, full of light."],
+			eye_of_astraeon: ["Eye of Astraeon", "ring", "wis", {wis: 10, mp: 40}, null, "It saw the world before it fell."],
+			comets_tail: ["Comet's Tail", "ring", "luc", {luc: 10, dex: 6}, null, "Bright, fast, and always on target."]
 		};
 
 		/** Boss name and id for each unique (filled in by Bosses.init). */

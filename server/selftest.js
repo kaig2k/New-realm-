@@ -541,6 +541,15 @@ async function run() {
     }
     for (const u in Uniques.ALL) t(Uniques.make(u), 'unique ' + u);
     check('the save check accepts every weapon, form, rarity, Godly piece and unique the game makes (no "unknown shot motion")', !bad.size, [...bad].slice(0, 5).join(' | '));
+    // a Primordial unique for every item there is (each class's weapon, armor and ability, and a ring of every stat)
+    require('./sim/gen/game').Bosses.init();
+    const types = new Set();
+    for (const c of Data.CLASS_ORDER) { const C = Data.CLASSES[c]; types.add('weapon:' + C.weapon); types.add('armor:' + C.armor); types.add('ability:' + C.abilityType); }
+    for (const st of Data.STATS) types.add('ring:' + st);
+    const have = new Set();
+    for (const u in Uniques.ALL) if (Uniques.rarityOf(u) === 'ar') have.add(Uniques.ALL[u][1] + ':' + Uniques.ALL[u][2]);
+    const missing = [...types].filter((x) => !have.has(x));
+    check('every item type (' + types.size + ') has a Primordial unique', !missing.length, missing.join(', '));
   }
 
   console.log('godly');

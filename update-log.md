@@ -1,3 +1,17 @@
+**📜 ELDMERE UPDATE: A Primordial for Everything**
+
+**🔥 24 new Primordial uniques**
+• Every weapon, armor, ability and ring type now has its own **Primordial unique** (30 types in all)
+• **Archon Vesper**: Vesper's Kiss, Bloodsworn Bulwark, Codex of the Red Mass, Skull of the First Zealot, Vesper's Shroud, Heartblood Signet, Ring of the Unbleeding, Brand of the Archon
+• **Tempestus**: Eye of the Tempest, Stormweave Jerkin, Quiver of Rolling Thunder, Crown of the Squall, Cyclone Snare, Galeband, Stormwall Ring, The Lightning Rod
+• **Astraeon**: Wand of the Seventh Star, Spell of the Falling Sky, Aegis of the Star Throne, Flask of Liquid Starlight, Lyre of the Spheres, Starwell Ring, Eye of Astraeon, Comet's Tail
+• With so many to find, each raid master's unique is now a rarer roll
+
+**📖 Wiki**
+• New **Primordial** tab: every Primordial unique by item type, with stats and where it drops
+
+---
+
 **📜 ELDMERE UPDATE: New Hero Screens**
 
 **🗂️ Your Heroes**

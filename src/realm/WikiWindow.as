@@ -14,8 +14,8 @@ package realm {
 		public static const W:int = 640, H:int = 560;
 		private static const PER_PAGE:int = 6;
 		private static const ROW:int = 66;
-		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Abilities", "Guide", "Records", "Season"];
-		private static const ABILITY_TAB:int = 5, GUIDE_TAB:int = 6, RECORDS_TAB:int = 7, SEASON_TAB:int = 8;
+		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Primordial", "Abilities", "Guide", "Records", "Season"];
+		private static const PRIM_TAB:int = 5, ABILITY_TAB:int = 6, GUIDE_TAB:int = 7, RECORDS_TAB:int = 8, SEASON_TAB:int = 9;
 		/** The season ladder from the server: {name, ends, top: [{name, pts, deaths, best}], you, players, mult, last} (null until asked). */
 		public static var season:Object = null;
 		/** The server's fastest event kills: records[eventId] = [{ms, names}] (null until it has answered). */
@@ -26,6 +26,7 @@ package realm {
 			"Uniques here are Starforged. Also: Bonded and Eldritch gear, stat potions, a chance of Starforged. GD items: 1 in 1,000.",
 			"Finale uniques are Starforged. Also: Eldritch gear, stat potions, Starforged / Primordial chance. GD items: 1 in 1,000.",
 			"Raid uniques: Starforged, and Primordial from each raid's final boss. Also the best SF / PR odds. GD items: 1 in 1,000.",
+			"A Primordial unique for every item there is, all from the raids' final bosses. Hover one for its stats and where it drops.",
 			"Ability items drop holding one of their class's three abilities. Hover an icon for its full description.",
 			"",
 			"Fastest kills of each realm event, from the first hit on the boss or its set piece to its death. Everyone who fought is listed.",
@@ -168,7 +169,7 @@ package realm {
 				recs.unshift({rec: "rb:" + Bosses.RAIDS[ri].id + ":" + week()});
 			}
 			recs.unshift({rec: "vault:" + week()});
-			return [events, dungeons, hard, finales, raids, abilities, guidePages(), recs, [1]];
+			return [events, dungeons, hard, finales, raids, [1], abilities, guidePages(), recs, [1]];
 		}
 
 		/**
@@ -204,8 +205,8 @@ package realm {
 			tab = t;
 			tabBar.removeChildren();
 			for (var i:int = 0; i < TABS.length; i++) {
-				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 66, 30, tabFn(i), 11);
-				b.x = i * 68;
+				var b:Sprite = Ui.button((i == tab ? "> " : "") + TABS[i], 60, 30, tabFn(i), 10);
+				b.x = i * 62;
 				b.alpha = i == tab ? 1 : 0.7;
 				tabBar.addChild(b);
 			}
@@ -220,12 +221,13 @@ package realm {
 				seasonPage();
 				return;
 			}
+			if (tab == PRIM_TAB) primordialPage();
 			if (tab == GUIDE_TAB) {
 				var gt:TextField = Ui.text(12, 0xd8d8e0, false, "left", W - 36);
 				gt.htmlText = guidePages()[page];
 				gt.x = 18; gt.y = 0;
 				body.addChild(gt);
-			} else for (var k:int = 0; k < PER_PAGE; k++) {
+			} else if (tab != PRIM_TAB) for (var k:int = 0; k < PER_PAGE; k++) {
 				var idx:int = page * PER_PAGE + k;
 				if (idx >= list.length) break;
 				if (tab == ABILITY_TAB) abilityRow(list[idx].cls, k * ROW);
@@ -425,14 +427,68 @@ package realm {
 				none.x = W - 216; none.y = y + 22;
 				body.addChild(none);
 			}
+			// (a raid master's many drops: two rows of smaller slots)
+			var small:Boolean = drops.length > 5;
+			var perRow:int = small ? Math.ceil(drops.length / 2) : drops.length;
 			for (var i:int = 0; i < drops.length; i++) {
 				var sl:ItemSlot = new ItemSlot(i);
 				sl.setItem(drops[i]);
-				sl.x = W - 16 - (drops.length - i) * 52;
-				sl.y = y + 6;
+				if (small) {
+					sl.scaleX = sl.scaleY = 0.6;
+					sl.x = W - 16 - (perRow - i % perRow) * 31;
+					sl.y = y + 3 + int(i / perRow) * 31;
+				} else {
+					sl.x = W - 16 - (drops.length - i) * 52;
+					sl.y = y + 6;
+				}
 				sl.addEventListener(MouseEvent.ROLL_OVER, over);
 				sl.addEventListener(MouseEvent.ROLL_OUT, function(ev:MouseEvent):void { tip.visible = false; });
 				body.addChild(sl);
+			}
+		}
+
+		/** Every Primordial unique, by the kind of item it is (each item type has at least one). */
+		private function primordialPage():void {
+			var groups:Array = [["Weapons", "weapon"], ["Armor", "armor"], ["Abilities", "ability"], ["Rings", "ring"]];
+			var order:Object = {};
+			var n:int = 0;
+			for each (var cid:String in Data.CLASS_ORDER) {
+				var c:Object = Data.CLASSES[cid];
+				for each (var sub:String in [c.weapon, c.armor, c.abilityType]) if (order[sub] == undefined) order[sub] = n++;
+			}
+			for each (var st:String in Data.STATS) order["ring:" + st] = n++;
+			var y:int = 0;
+			for each (var gr:Array in groups) {
+				var items:Array = [];
+				for (var id:String in Uniques.ALL) {
+					var u:Array = Uniques.ALL[id];
+					if (u[1] != gr[1] || Uniques.rarityOf(id) != "ar") continue;
+					items.push(Uniques.make(id));
+				}
+				items.sort(function(a:Object, b:Object):int {
+					var ka:int = order[a.kind == "ring" ? "ring:" + a.sub : a.sub], kb:int = order[b.kind == "ring" ? "ring:" + b.sub : b.sub];
+					return ka != kb ? ka - kb : a.name < b.name ? -1 : 1;
+				});
+				var h:TextField = Ui.text(13, Data.RARITY_COLORS.ar, true, "left", 0, true);
+				h.text = gr[0];
+				h.x = 18; h.y = y;
+				body.addChild(h);
+				y += 20;
+				for (var i:int = 0; i < items.length; i++) {
+					var it:Object = items[i];
+					var sx:int = 18 + i * 55;
+					var sl:ItemSlot = new ItemSlot(i);
+					sl.setItem(it);
+					sl.x = sx; sl.y = y;
+					sl.addEventListener(MouseEvent.ROLL_OVER, over);
+					sl.addEventListener(MouseEvent.ROLL_OUT, function(ev:MouseEvent):void { tip.visible = false; });
+					body.addChild(sl);
+					var lab:TextField = Ui.text(9, 0xb0b0b8, true, "center", 54, true);
+					lab.text = it.kind == "ring" ? Data.STAT_SHORT[it.sub] : String(it.sub).charAt(0).toUpperCase() + String(it.sub).substr(1);
+					lab.x = sx - 3; lab.y = y + 49;
+					body.addChild(lab);
+				}
+				y += 70;
 			}
 		}
 

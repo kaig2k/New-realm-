@@ -24,6 +24,7 @@ package realm {
 		private static const CARD_W:int = 240, CARD_H:int = 146, PER_PAGE:int = 7;
 		private static const EDGE:uint = 0x4c4c4c, BOX:uint = 0x262626, BOX_HI:uint = 0x323232;
 
+		public static var BAND_SCALE:int = 1;
 		private var onPick:Function;
 		private var onBack:Function;
 		private var nameField:TextField;
@@ -42,17 +43,17 @@ package realm {
 		public function Menu(onPick:Function, onBack:Function = null, onCreate:Function = null) {
 			this.onPick = onPick;
 			this.onBack = onBack;
-			addChild(new Backdrop(0.6));
+			addChild(new MenuBackdrop());
 
 			var serverName:String = Online.connected ? Online.serverName : Data.WORLD_NAME;
 			if (String(serverName).toUpperCase() == Data.WORLD_NAME.toUpperCase()) {
 				// Eldmere's pixel-art name band
 				var band:Bitmap = new NAME_BAND() as Bitmap;
 				band.smoothing = false;
-				band.scaleX = band.scaleY = 2;
+				band.scaleX = band.scaleY = BAND_SCALE;
 				band.x = int((Ui.W - band.width) / 2);
-				band.y = 14;
-				band.filters = [new GlowFilter(0xff4dff, 0.45, 16, 16, 1.3, 2)];
+				band.y = BAND_SCALE == 1 ? 30 : 18;
+				band.filters = [new DropShadowFilter(3, 90, 0, 0.6, 6, 6, 1, 2)];
 				addChild(band);
 			} else {
 				var title:Logo = new Logo(serverName, 68);
@@ -60,9 +61,9 @@ package realm {
 				title.y = 16;
 				addChild(title);
 			}
-			var sub:TextField = Ui.text(15, 0xd8d0ff, false, "center", Ui.W, true);
+			var sub:TextField = Ui.text(13, 0x9a90b8, false, "center", Ui.W, true);
 			sub.text = "A bullet-hell adventure inspired by Realm of the Mad God";
-			sub.y = 104;
+			sub.y = BAND_SCALE == 1 ? 84 : 102;
 			addChild(sub);
 
 			accountBox();

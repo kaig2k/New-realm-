@@ -5057,6 +5057,9 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-heroes", title: "What's new in Eldmere",
+				lines: ["<b>New hero screens</b>: every hero is a card showing its level, stats maxed and the gear it wears, with a tab for each mode.",
+					"<b>New Hero</b>: pick a class to see its ability and max stats side by side, then name your hero and press Create (or double-click the class)."]},
 			{id: "2026-10-modes", title: "What's new in Eldmere",
 				lines: ["<b>A character screen for each mode</b>: Regular, Ironman, Hardcore and Group Ironman heroes each have their own tab. Make new heroes from the tab they belong to.",
 					"<b>A vault for each mode</b>: Ironman and Hardcore heroes now have vaults of their own. Items stay in their mode: what your Ironmen find, only your Ironmen use.",

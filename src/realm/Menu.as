@@ -24,7 +24,7 @@ package realm {
 		private static const CARD_W:int = 240, CARD_H:int = 146, PER_PAGE:int = 7;
 		private static const EDGE:uint = 0x4c4c4c, BOX:uint = 0x262626, BOX_HI:uint = 0x323232;
 
-		public static var BAND_SCALE:int = 1;
+		private static const BAND_SCALE:int = 1;
 		private var onPick:Function;
 		private var onBack:Function;
 		private var nameField:TextField;

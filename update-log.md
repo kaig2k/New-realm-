@@ -1,3 +1,19 @@
+**📜 ELDMERE UPDATE: New Hero Screens**
+
+**🗂️ Your Heroes**
+• Every hero is now a card: portrait, level progress (or stats maxed), kills, Ascensions and the **gear it wears**
+• A tab for each mode, with a **+ New Hero** card right in the list
+• Your account totals at a glance: fame, gold, Aether, best fame and heroes lost
+
+**🧙 New Hero**
+• Pick a class to see its **ability and max stats** side by side with the others
+• Name your hero, tick Seasonal if you like, and press **Create** (or double-click the class)
+
+**🌌 A new look**
+• A calmer title and a new night-sky backdrop with drifting embers
+
+---
+
 **📜 ELDMERE UPDATE: Hero Modes & Group Ironman**
 
 **🗂️ A character screen for each mode**

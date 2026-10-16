@@ -11,6 +11,9 @@ Every boss in the game was fought by bots, 5 times each: bots that dodge like a 
 • **Ignivar and Glacius**: the Shattered Sanctum's wardens are no longer deadlier than the boss they guard
 • **Kael'zar, Morwyn and the Shattered Seraph**: blasts give you more time to leave, walls have wider gaps
 
+**😵 Confused works like Realm of the Mad God**
+• Instead of reversing your movement, Confused now swaps your keys around: **W moves you right, D moves you up, S moves you left, A moves you down**. It's the same every time, so you can learn to play through it
+
 **⚔️ More of a fight**
 • **Ssythra**, **Sylith the Frost Wyrm**, **the Tempest Seraph** and **the Tide Hermit** hit harder and have new attacks. You can't just stand there any more
 • **Glacius** and **Morwyn** each have a new slow ring attack to read

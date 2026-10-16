@@ -387,6 +387,9 @@ package realm {
 			if (inp.isDown(Keys.k("left")) || inp.isDown(Keyboard.LEFT)) mx -= 1;
 			if (inp.isDown(Keys.k("right")) || inp.isDown(Keyboard.RIGHT)) mx += 1;
 			if (mx != 0 && my != 0) { mx *= 0.7071; my *= 0.7071; }
+			// Confused, as in Realm of the Mad God: the keys swap around on screen (up goes right,
+			// right goes up, down goes left, left goes down), before the camera's turn is applied
+			if (status.confused > 0) { var cmx:Number = mx; mx = -my; my = -cmx; }
 			// movement is relative to the (possibly rotated) screen
 			if (g.camAngle != 0 && (mx != 0 || my != 0)) {
 				var ca:Number = Math.cos(g.camAngle), sa:Number = Math.sin(g.camAngle);
@@ -394,7 +397,6 @@ package realm {
 				my = mx * sa + my * ca;
 				mx = rmx;
 			}
-			if (status.confused > 0) { mx = -mx; my = -my; }
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
 			if (dashT > 0) { mx = 0; my = 0; updateDash(dt, g); }
 			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (spinT > 0 ? 0.75 : 1) * (shielded ? 0.55 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);

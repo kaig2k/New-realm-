@@ -118,7 +118,7 @@ const site = require('./site');
 /** Server-run monsters for every realm, dungeon, raid and Elder chamber (config "serverMonsters": false turns it off). */
 const sims = config.serverMonsters === false ? null : new Sims();
 // loot the server rolls is written into the looter's ledger
-if (sims) sims.issuer = (c, it) => { const sv = onlineSave(c.key); items.issue(sv, it); store.putSave(c.key, sv); };
+if (sims) sims.issuer = (c, it) => { const sv = onlineSave(c.key); items.issue(sv, it, modes.modeOf(serverChar(c))); store.putSave(c.key, sv); };
 const oracle = require('./oracle');
 if (sims) sims.onOracle = (c, e, got) => {
   if (!c.key) return;
@@ -594,6 +594,15 @@ function renameAccount(key, name) {
     if (sc && sc[key]) { sc[nk] = sc[key]; delete sc[key]; }
   }
   save('accounts.json', accounts);
+  // (and in a Group Ironman group)
+  const gim = groupsMod.groupOf(groupsT, key);
+  if (gim) {
+    const g = gim[1];
+    delete g.members[key];
+    g.members[nk] = name;
+    if (g.leader === key) g.leader = nk;
+    save('groups.json', groupsT);
+  }
   for (const gk in guilds) {
     const g = guilds[gk];
     if (!g.members[key]) continue;
@@ -629,6 +638,34 @@ const guilds = load('guilds.json', {});
   for (const gk in guilds) for (const b of (guilds[gk] && guilds[gk].bank) || []) if (b && items.upgradeHeld(b.item, b.entry)) up = true;
   if (up) save('guilds.json', guilds);
 }
+/** Group Ironman groups (groups.js): groupsT[lowername] = {name, leader, members: {key: name}, bank, log} */
+const groupsMod = require('./groups');
+const groupsT = load('groups.json', {});
+{
+  let up = false;
+  for (const id in groupsT) for (const b of (groupsT[id] && groupsT[id].bank) || []) if (b && items.upgradeHeld(b.item, b.entry)) up = true;
+  if (up) save('groups.json', groupsT);
+}
+/** Group invites waiting for an answer: account key -> {id, from, at}. */
+const groupInvites = new Map();
+/** The Group Ironman group an account is in, or null. */
+function gimOf(c) { const f = groupsMod.groupOf(groupsT, c.key); return f ? f[1] : null; }
+/** Two players' heroes can trade: both regular, or both Group Ironman heroes of the same group. */
+function canTrade(a, b) {
+  if (!modes.restricted(a.mode) && !modes.restricted(b.mode)) return '';
+  if (a.mode === 'group' && b.mode === 'group') {
+    const ga = groupsMod.groupOf(groupsT, a.key), gb = groupsMod.groupOf(groupsT, b.key);
+    if (ga && gb && ga[0] === gb[0]) return '';
+    return 'Group Ironman heroes can only trade with their own group (/group).';
+  }
+  const r = modes.restricted(a.mode) ? a : b;
+  return (r === a ? 'Your ' : r.name + '\'s ') + modes.nameOf(r.mode) + ' hero can\'t trade' + (r.mode === 'group' ? ' outside its group.' : ': everything it uses, it finds.');
+}
+function sendGroup(c) {
+  const g = gimOf(c);
+  c.send({ t: 'gstore', g: g ? groupsMod.view(g, (k) => [...byName.values()].some((o) => o.key === k)) : null });
+}
+
 /** bans[lowername] = {until (ms, 0 = forever), reason, by} */
 const bans = load('bans.json', {});
 
@@ -1261,8 +1298,7 @@ const handlers = {
     const o = clients.get(m.to);
     if (!o || !o.authed || o.world !== c.world) return c.note('That player isn\'t here.');
     if (o === c) return;
-    if (modes.restricted(c.mode)) return c.note('Ironman and Hardcore heroes can\'t trade.');
-    if (modes.restricted(o.mode)) return c.note(o.name + ' is an ' + (o.mode === 'hardcore' ? 'Hardcore' : 'Ironman') + ' hero and can\'t trade.');
+    { const why = canTrade(c, o); if (why) return c.note(why); }
     if (o.trade) return c.note(o.name + ' is busy trading.');
     if (c.trade) return;
     c.tradeAsk = o.id;
@@ -1275,7 +1311,7 @@ const handlers = {
     o.tradeAsk = 0;
     if (!m.yes) return o.note(c.name + ' declined the trade.', 0xff8080);
     if (o.trade || c.trade) return;
-    if (modes.restricted(c.mode) || modes.restricted(o.mode)) return o.note('Ironman and Hardcore heroes can\'t trade.');
+    { const why = canTrade(o, c); if (why) return o.note(why); }
     // trades run on the server's copies of both inventories (each side saves just before)
     if (!serverInv(o) || !serverInv(c)) {
       o.note('The trade could not start: a character has not been saved yet. Try again in a moment.');
@@ -1459,6 +1495,45 @@ const handlers = {
     sendGuild(c.guild);
   },
 
+  // ---------------------------------------------------------------- Group Ironman storage
+  /** The group's page: members and Group Storage (any of the group's members may look). */
+  gsView(c) {
+    const now = Date.now();
+    if (now - (c.gsT || 0) < 400) return;
+    c.gsT = now;
+    sendGroup(c);
+  },
+
+  /** Puts an inventory item in the group's storage (Group Ironman heroes only). */
+  gsPut(c, m) {
+    if (c.mode !== 'group') return c.send({ t: 'shopFail', msg: 'Only Group Ironman heroes can use Group Storage.' });
+    const g = gimOf(c);
+    if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a group: /group create Name, or ask a friend for an invite.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was stored.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = groupsMod.deposit(g, sv, ch.inv, num(m.slot) | 0, c.name);
+    if (typeof r === 'string') return c.send({ t: 'shopFail', msg: r });
+    save('groups.json', groupsT);
+    shopDone(c, sv, ch, { market: 'You put ' + (r.name || 'your item') + ' in Group Storage.' });
+    for (const o of byName.values()) if (gimOf(o) === g) sendGroup(o);
+  },
+
+  /** Takes an item out of the group's storage. */
+  gsTake(c, m) {
+    if (c.mode !== 'group') return c.send({ t: 'shopFail', msg: 'Only Group Ironman heroes can use Group Storage.' });
+    const g = gimOf(c);
+    if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a group.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const r = groupsMod.withdraw(g, sv, ch.inv, num(m.idx) | 0, c.name);
+    if (typeof r === 'string') { sendGroup(c); return c.send({ t: 'shopFail', msg: r }); }
+    save('groups.json', groupsT);
+    shopDone(c, sv, ch, { market: 'You took ' + (r.name || 'an item') + ' from Group Storage.' });
+    for (const o of byName.values()) if (gimOf(o) === g) sendGroup(o);
+  },
+
   // ---------------------------------------------------------------- guild hall
   /** The Guild Hall page. */
   ghView(c) {
@@ -1470,7 +1545,7 @@ const handlers = {
 
   /** Puts an inventory item in the guild bank. */
   ghPut(c, m) {
-    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the guild bank.' });
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was stored.' });
@@ -1485,7 +1560,7 @@ const handlers = {
 
   /** Takes an item out of the guild bank. */
   ghTake(c, m) {
-    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the guild bank.' });
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
@@ -1908,7 +1983,7 @@ const handlers = {
 
   /** Puts an inventory item up for sale. */
   mkList(c, m) {
-    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the Marketplace.' });
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t use the Marketplace.' });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was listed.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
@@ -1920,7 +1995,7 @@ const handlers = {
 
   /** Buys a listing (the seller can be offline: their takings wait for them). */
   mkBuy(c, m) {
-    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: 'Ironman and Hardcore heroes can\'t use the Marketplace.' });
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t use the Marketplace.' });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
@@ -2042,6 +2117,59 @@ const handlers = {
       store.appendLog('reports.log', new Date().toISOString() + ' ' + c.name + ' reported ' + parts[1] + ': ' + rest);
       for (const a of byName.values()) if (isAdmin(a)) a.note('[Report] ' + c.name + ' reported ' + parts[1] + ': ' + rest, 0xffb040);
       return c.note('Thanks, your report was sent to the server admins.', 0x80ff80);
+    }
+    if (cmd === '/group' || cmd === '/gim') {
+      const sub = (parts[1] || '').toLowerCase(), arg = parts.slice(2).join(' ');
+      const mine = groupsMod.groupOf(groupsT, c.key);
+      if (sub === 'create') {
+        const r = groupsMod.create(groupsT, c.key, c.name, arg);
+        if (typeof r === 'string') return c.note(r);
+        save('groups.json', groupsT);
+        log(c.name + ' founded the Group Ironman group ' + r[1].name);
+        sendGroup(c);
+        return c.note('You founded the Group Ironman group ' + r[1].name + '. Invite up to ' + (groupsMod.MAX - 1) + ' friends: /group invite name', 0x7fd8a8);
+      }
+      if (sub === 'invite') {
+        if (!mine) return c.note('Make a group first: /group create Name');
+        const o = byName.get(accountKey(parts[2]) || (parts[2] || '').toLowerCase());
+        if (!o) return c.note('Nobody called ' + (parts[2] || '?') + ' is online.');
+        if (o === c) return;
+        if (groupsMod.groupOf(groupsT, o.key)) return c.note(o.name + ' is already in a group.');
+        if (Object.keys(mine[1].members).length >= groupsMod.MAX) return c.note('Your group is full (' + groupsMod.MAX + ' members).');
+        groupInvites.set(o.key, { id: mine[0], from: c.name, at: Date.now() });
+        o.note(c.name + ' invited you to their Group Ironman group ' + mine[1].name + '. Type /group accept to join.', 0x7fd8a8);
+        return c.note('Invited ' + o.name + ' to ' + mine[1].name + '.', 0x7fd8a8);
+      }
+      if (sub === 'accept' || sub === 'join') {
+        const inv = groupInvites.get(c.key);
+        if (!inv || Date.now() - inv.at > 10 * 60000) return c.note('You have no group invite (they last 10 minutes).');
+        groupInvites.delete(c.key);
+        const r = groupsMod.join(groupsT, inv.id, c.key, c.name);
+        if (typeof r === 'string') return c.note(r);
+        save('groups.json', groupsT);
+        for (const o of byName.values()) if (gimOf(o) === r) { o.note(c.name + ' joined the Group Ironman group ' + r.name + '.', 0x7fd8a8); sendGroup(o); }
+        return;
+      }
+      if (sub === 'leave') {
+        const r = groupsMod.leave(groupsT, c.key);
+        if (r.err) return c.note(r.err);
+        save('groups.json', groupsT);
+        sendGroup(c);
+        for (const o of byName.values()) if (gimOf(o) === mine[1]) { o.note(c.name + ' left the group.', 0x7fd8a8); sendGroup(o); }
+        return c.note('You left ' + r.name + '. Your heroes keep what they carry.', 0x7fd8a8);
+      }
+      if (sub === 'kick') {
+        const r = groupsMod.kick(groupsT, c.key, accountKey(parts[2]) || (parts[2] || '').toLowerCase());
+        if (r.err) return c.note(r.err);
+        save('groups.json', groupsT);
+        for (const o of byName.values()) if (gimOf(o) === mine[1] || o.name === r.name) sendGroup(o);
+        return c.note(r.name + ' is no longer in the group.', 0x7fd8a8);
+      }
+      if (!mine) return c.note('Group Ironman: /group create Name to start a group (up to ' + groupsMod.MAX + ' accounts), or /group accept an invite. ' +
+        'Group Ironman heroes trade only with their group, and share its Group Storage in the vault.', 0x7fd8a8);
+      const v = groupsMod.view(mine[1], (k) => [...byName.values()].some((o) => o.key === k));
+      return c.note('Group ' + v.name + ' (leader ' + v.leader + '): ' + v.members.map((x) => x.name + (x.on ? ' (online)' : '')).join(', ') +
+        '. /group invite name, /group leave' + (mine[1].leader === c.key ? ', /group kick name' : '') + '.', 0x7fd8a8);
     }
     if (cmd === '/spires') {
       const lines = SPIRE_NAMES.map((n, i) => { const h = terr.holder(i); return n + ': ' + (h && guilds[h] ? guilds[h].name : 'nobody'); });
@@ -2474,7 +2602,7 @@ function vipPerk(c, cmd) {
     log(c.name + ' used VIP /backpack on ' + (ch.name || ch.id));
     return shopDone(c, sv, ch, { backpack: true });
   }
-  if (modes.restricted(modes.modeOf(ch))) return c.note('VIP levelling doesn\'t work on Ironman or Hardcore heroes: they earn every level.');
+  if (modes.restricted(modes.modeOf(ch))) return c.note('VIP levelling doesn\'t work on ' + modes.nameOf(modes.modeOf(ch)) + ' heroes: they earn every level.');
   const L = Math.max(1, Number(ch.level) || 1);
   if (L >= 20) return c.note((ch.name || 'This hero') + ' is already level 20.');
   // the levels, the stats they grow, the XP they took and a skill point each

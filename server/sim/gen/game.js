@@ -612,11 +612,21 @@ class Data {
 			for (var d of __vals( Data.DYES)) if (d.id == id) return d;
 			return null;
 		}
+	static vaultOf(save, mode) {
+			if (!save) return [];
+			if (!mode) return (save.vault ) || [];
+			return save.vaults && (save.vaults[mode]  instanceof Array) ? save.vaults[mode] : [];
+		}
+	static setVault(save, mode, items) {
+			if (!mode) { save.vault = items; return; }
+			if (!save.vaults || typeof save.vaults != "object") save.vaults = {};
+			save.vaults[mode] = items;
+		}
 	static findMode(id) {
 			for (var m of __vals( Data.MODES)) if (m.id == (id || "")) return m;
 			return Data.MODES[0];
 		}
-	static modeRestricted(id) { return id == "ironman" || id == "hardcore"; }
+	static modeRestricted(id) { return id == "ironman" || id == "hardcore" || id == "group"; }
 	static climbTop(kind) { return __int(Data.CLIMB_TOP[kind] != undefined ? __int(Data.CLIMB_TOP[kind]) : 7); }
 	static climbTier(it) {
 			if (!it) return __int(0);
@@ -5047,6 +5057,17 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-modes", title: "What's new in Eldmere",
+				lines: ["<b>A character screen for each mode</b>: Regular, Ironman, Hardcore and Group Ironman heroes each have their own tab. Make new heroes from the tab they belong to.",
+					"<b>A vault for each mode</b>: Ironman and Hardcore heroes now have vaults of their own. Items stay in their mode: what your Ironmen find, only your Ironmen use.",
+					"<b>Group Ironman</b>: Ironman with up to 4 friends. <b>/group create Name</b>, then <b>/group invite name</b>. Your group trades only with each other and shares a <b>Group Storage</b> chest in the vault.",
+					"<b>Tip</b>: type <b>/</b> to start a command straight away."]},
+			{id: "2026-10-godly", title: "What's new in Eldmere",
+				lines: ["<b>Godly is truly Godly</b>: every drop has the same, best-in-game stats (no bad rolls), weapons hit 35% harder than Primordial, and each set has its own art, shots and a <b>Divine Wrath</b> special attack. Wear Godly for a golden aura; the full set crowns you with a halo.",
+					"<b>Every weapon tier has its own shot</b>: new projectiles, trails and impacts, and each tier is a clear step up from the last.",
+					"<b>Bosses</b>: the Dark Elder has new survive phases, and Archon Vesper and Nerezza have new looks and attacks.",
+					"<b>Quality of life</b>: delete characters from the character screen, a V-Sync setting (off = up to 240 FPS), and big announcement banners from the admins.",
+					"<b>Fixed</b>: saves refused with \"was changed\" or \"unknown shot motion\" (this also undid stat potions you drank)."]},
 			{id: "2026-10-map", title: "What's new in Eldmere",
 				lines: ["<b>A living minimap</b>: every player in your world shows as an arrow pointing the way they're going. Hover one for their name, click to teleport to them (every 10s).",
 					"<b>Every class is open</b>: the Bard, Alchemist and Chronomancer can be played straight away, no levels needed.",
@@ -5061,11 +5082,14 @@ Data.NEWS = [
 		];
 Data.MODES = [
 			{id: "", name: "Regular", col: 0xd8d8d8, luck: 0, desc: "The game as it is: trade, use the Marketplace, the vault and the guild bank."},
-			{id: "ironman", name: "Ironman", col: 0xb8c4d8, luck: 30,
-				desc: "No trading, Marketplace, guild bank or vault: everything you use, you found. +30 loot luck."},
-			{id: "hardcore", name: "Hardcore", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
-				desc: "Ironman's rules, and you climb the tiers: use each tier in a slot before the next (T1, T2, T3...). +60 loot luck and +5 to every stat (+30 HP, +20 MP)."}
+			{id: "ironman", name: "Ironman", tag: "IM", col: 0xb8c4d8, luck: 30,
+				desc: "No trading, Marketplace or guild bank: everything your Ironman heroes use, they found. Own vault. +30 loot luck."},
+			{id: "hardcore", name: "Hardcore", tag: "HC", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
+				desc: "Ironman's rules, and use each tier in a slot before the next (T1, T2, T3...). Own vault. +60 loot luck, +5 every stat."},
+			{id: "group", name: "Group Ironman", tag: "GIM", col: 0x7fd8a8, luck: 20,
+				desc: "Ironman with up to 4 friends (/group): trade only within your group and share its Group Storage. Own vault. +20 loot luck."}
 		];
+Data.MODE_TABS = ["", "ironman", "hardcore", "group"];
 Data.CLIMB_TOP = {weapon: 7, ability: 6, armor: 7, ring: 5};
 Data.CLIMB_SLOTS = ["weapon", "ability", "armor", "ring"];
 Data.GUILD_BANNERS = [

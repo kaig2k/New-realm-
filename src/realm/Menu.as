@@ -82,9 +82,9 @@ package realm {
 			classLayer.addChild(nameField);
 			seasonBox(classLayer);
 
-			var pick:TextField = Ui.text(18, 0xffffff, true, "center", Ui.W, true);
+			var pick:TextField = Ui.text(18, 0xffffff, true, "left", 400, true);
 			pick.text = "Choose your class";
-			pick.y = 180;
+			pick.x = (Ui.W - 4 * 252 - 3 * 10) / 2; pick.y = 178;
 			classLayer.addChild(pick);
 
 			// 4 to a row, 3 rows (every class is open from the start)
@@ -135,33 +135,56 @@ package realm {
 
 		/** "Your Characters": continue a living character, or make a new one. */
 		private function buildCharLayer(save:Object):void {
-			var chars:Array = Save.chars;
+			var all:Array = Save.chars;
 			// (no heroes left: the class screen has no list to go back to)
-			if (backBtn) backBtn.visible = chars.length > 0;
-			if (chars.length == 0) return;
+			if (backBtn) backBtn.visible = all.length > 0;
+			if (all.length == 0) return;
+			if (charLayer && charLayer.parent) removeChild(charLayer);
 			charLayer = new Sprite();
 			addChild(charLayer);
 			classLayer.visible = false;
 			var t:TextField = Ui.text(20, 0xffffff, true, "center", Ui.W, true);
 			t.text = "Your Characters";
-			t.y = 140;
+			t.y = 136;
 			charLayer.addChild(t);
+			// one tab per hero mode: each mode's heroes, and its own vault, are kept apart
+			var tabW:int = 190, tx0:int = (Ui.W - Data.MODE_TABS.length * (tabW + 8) + 8) / 2;
+			for (var ti:int = 0; ti < Data.MODE_TABS.length; ti++) {
+				var tm:String = Data.MODE_TABS[ti];
+				var n:int = 0;
+				for each (var hc:Object in all) if (hc && (hc.mode || "") == tm) n++;
+				var tmo:Object = Data.findMode(tm);
+				var tb:Sprite = Ui.button((tm == mode ? "> " : "") + tmo.name + (n ? " (" + n + ")" : ""), tabW, 28, tabFn(tm, save), 14);
+				tb.alpha = tm == mode ? 1 : 0.65;
+				tb.x = tx0 + ti * (tabW + 8); tb.y = 168;
+				charLayer.addChild(tb);
+			}
+			var chars:Array = all.filter(function(c:Object, ...r):Boolean { return c && (c.mode || "") == mode; });
 			for (var i:int = 0; i < Math.min(8, chars.length); i++) {
 				var card:Sprite = makeCharCard(chars[i]);
 				card.x = (Ui.W - 4 * 240 - 3 * 14) / 2 + (i % 4) * 254;
-				card.y = 180 + int(i / 4) * 120;
+				card.y = 208 + int(i / 4) * 116;
 				charLayer.addChild(card);
 				// a small "Delete" under the card's corner (asks first)
 				var del:Sprite = Ui.button("Delete", 58, 20, deleteFn(chars[i]), 11);
 				del.x = card.x + 240 - 64; del.y = card.y + 108 - 26;
 				charLayer.addChild(del);
 			}
-			var nb:Sprite = Ui.button("New Character", 220, 40, function():void {
+			var md:Object = Data.findMode(mode);
+			if (!chars.length) {
+				var none:TextField = Ui.text(14, 0xbbbbbb, false, "center", 720, true);
+				none.wordWrap = true; none.multiline = true;
+				none.htmlText = "No " + md.name + " heroes yet.\n<font color='" + Ui.hex(md.col) + "'>" + md.desc + "</font>";
+				none.x = (Ui.W - 720) / 2; none.y = 270;
+				charLayer.addChild(none);
+			}
+			var nb:Sprite = Ui.button("New " + (mode ? md.name + " " : "") + "Character", 260, 40, function():void {
 				charLayer.visible = false;
 				classLayer.visible = true;
+				if (modeRedraw != null) modeRedraw();
 			});
-			nb.x = (Ui.W - 220) / 2;
-			nb.y = 432;
+			nb.x = (Ui.W - 260) / 2;
+			nb.y = 444;
 			charLayer.addChild(nb);
 			if (backBtn) return;
 			backBtn = Ui.button("Back", 100, 30, function():void {
@@ -173,12 +196,19 @@ package realm {
 			classLayer.addChild(backBtn);
 		}
 
+		private function tabFn(m:String, save:Object):Function {
+			return function():void { mode = m; buildCharLayer(save); };
+		}
+
+		/** Redraws the class screen's mode buttons (after a tab picked the mode). */
+		private var modeRedraw:Function;
+
 		/** The "Seasonal hero" box on the class screen (online only). */
 		public static var seasonal:Boolean = false;
-		/** The mode picked for a new hero (Data.MODES): "" regular, "ironman" or "hardcore". */
+		/** The mode picked for a new hero, and the character screen's tab (Data.MODES): "", "ironman", "hardcore" or "group". */
 		public static var mode:String = "";
 
-		/** Regular / Ironman / Hardcore buttons on the class screen, with what each means. */
+		/** Regular / Ironman / Hardcore / Group Ironman buttons on the class screen, with what each means. */
 		private function modePicker(layer:Sprite):void {
 			var row:Sprite = new Sprite();
 			layer.addChild(row);
@@ -191,15 +221,16 @@ package realm {
 				for (var i:int = 0; i < Data.MODES.length; i++) {
 					var md:Object = Data.MODES[i];
 					var on:Boolean = md.id == mode;
-					var b:Sprite = Ui.button((on ? "> " : "") + md.name, 96, 26, pickFn(md.id, draw), 13);
+					var b:Sprite = Ui.button((on ? "> " : "") + md.name, 104, 26, pickFn(md.id, draw), 12);
 					b.alpha = on ? 1 : 0.6;
-					b.x = 98 + i * 100; b.y = 0;
+					b.x = 98 + i * 108; b.y = 0;
 					row.addChild(b);
 				}
 				if (hoverTf) hoverTf.htmlText = "<font color='" + Ui.hex(Data.findMode(mode).col) + "'><b>" + Data.findMode(mode).name + ":</b></font> " + Data.findMode(mode).desc;
 			};
 			draw();
-			row.x = Ui.W - 420; row.y = 176;
+			modeRedraw = draw;
+			row.x = Ui.W - 540; row.y = 176;
 		}
 
 		private function pickFn(id:String, redraw:Function):Function {

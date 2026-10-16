@@ -3,11 +3,19 @@
  * Hero modes (Data.MODES), checked on every save.
  *
  * Regular heroes play the normal game. Ironman heroes can't trade or use the
- * Marketplace, the guild bank or the vault; Hardcore heroes follow the same
- * rules and must also climb the gear tiers one at a time in each slot (use a
- * T3 weapon before a T4, a T7 before anything rarer). In return both get
- * extra loot luck (the server adds it to their rolls), and Hardcore heroes
- * extra stats.
+ * Marketplace or the guild bank; Hardcore heroes follow the same rules and must
+ * also climb the gear tiers one at a time in each slot (use a T3 weapon before a
+ * T4, a T7 before anything rarer). Group Ironman heroes are Ironmen who can trade
+ * with their group's Group Ironman heroes and share its Group Storage (groups.js).
+ * In return all three get extra loot luck (the server adds it to their rolls), and
+ * Hardcore heroes extra stats.
+ *
+ * Every mode has its own vault (save.vault for regular heroes, save.vaults[mode]
+ * for the rest), and items never cross between modes: each item's ledger entry
+ * remembers the mode it belongs to ("p", its pool: set when the server hands it
+ * out, or the first time a save holds it), and a save that holds it anywhere of
+ * another mode is refused. The pet's bag is neutral ground: an item in it keeps
+ * its pool.
  *
  * A hero's mode is set when it's made and can't change afterwards. The
  * server keeps its own record of each Hardcore hero's best tier per slot
@@ -17,21 +25,18 @@ const { Data } = require('./sim/gen/game');
 
 const SLOTS = Data.CLIMB_SLOTS;
 
-function modeOf(ch) { return ch && (ch.mode === 'ironman' || ch.mode === 'hardcore') ? ch.mode : ''; }
-function restricted(mode) { return mode === 'ironman' || mode === 'hardcore'; }
+const MODES = ['ironman', 'hardcore', 'group'];
+function modeOf(ch) { return ch && MODES.indexOf(ch.mode) >= 0 ? ch.mode : ''; }
+function restricted(mode) { return MODES.indexOf(mode) >= 0; }
+/** The name players see for a mode. */
+function nameOf(mode) { return Data.findMode(mode || '').name; }
+/** A mode's vault in a save (Data.vaultOf): the regular one is save.vault. */
+function vaultOf(sv, mode) {
+  if (!mode) return Array.isArray(sv.vault) ? sv.vault : [];
+  return sv.vaults && typeof sv.vaults === 'object' && Array.isArray(sv.vaults[mode]) ? sv.vaults[mode] : [];
+}
 /** Extra loot luck the server gives a hero of this mode. */
 function luck(mode) { return Data.findMode(mode || '').luck | 0; }
-
-/** Every item id (sid) a save holds, and where: Map sid -> 'vault' | hero id. */
-function where(sv) {
-  const out = new Map();
-  for (const it of sv.vault || []) if (it && it.sid) out.set(it.sid, 'vault');
-  for (const ch of sv.chars || []) {
-    if (!ch) continue;
-    for (const it of heroItems(ch)) if (it.sid) out.set(it.sid, ch.id);
-  }
-  return out;
-}
 
 function heroItems(ch) {
   const out = [];
@@ -52,7 +57,6 @@ function heroItems(ch) {
 function check(prev, next, fixes) {
   if (!next || !Array.isArray(next.chars)) return null;
   const before = new Map((prev.chars || []).filter((h) => h && h.id).map((h) => [h.id, h]));
-  const had = where(prev);
   for (const ch of next.chars) {
     if (!ch || typeof ch !== 'object') continue;
     const was = before.get(ch.id);
@@ -61,14 +65,6 @@ function check(prev, next, fixes) {
     else if (!modeOf(ch)) delete ch.mode;
     const mode = modeOf(ch);
     if (!restricted(mode)) { delete ch._climb; continue; }
-    // no items from the vault or from other heroes (new loot, shop buys and the hero's own items are fine)
-    for (const it of heroItems(ch)) {
-      if (!it.sid) continue;
-      const from = had.get(it.sid);
-      if (from !== undefined && from !== ch.id) {
-        return (mode === 'hardcore' ? 'Hardcore' : 'Ironman') + ' heroes can only use what they found themselves (' + (it.name || 'an item') + ' came from ' + (from === 'vault' ? 'the vault' : 'another hero') + ')';
-      }
-    }
     if (mode !== 'hardcore') { delete ch._climb; continue; }
     // the climb: each equipped item at most one tier above the best this hero has used in that slot
     const climb = Object.assign({}, was && was._climb && typeof was._climb === 'object' ? was._climb : {});
@@ -92,6 +88,41 @@ function check(prev, next, fixes) {
     }
     ch._climb = climb;
   }
+  return pools(prev, next);
+}
+
+/**
+ * Every item stays with its mode: in that mode's heroes or vault (or the pet's bag). Items whose
+ * pool isn't known yet (from before pools, or bought into a hero's bag) take the pool of where
+ * they are now. Returns a reason to refuse, or null.
+ */
+function pools(prev, next) {
+  const led = prev._ledger && typeof prev._ledger === 'object' ? prev._ledger : {};
+  const placesOf = (sv) => {
+    const places = [[vaultOf(sv, ''), '', 'the vault']];
+    for (const m of MODES) places.push([vaultOf(sv, m), m, 'the ' + nameOf(m) + ' vault']);
+    for (const ch of Array.isArray(sv.chars) ? sv.chars : []) if (ch && typeof ch === 'object') places.push([heroItems(ch), modeOf(ch), ch.name || 'a hero']);
+    return places;
+  };
+  // items from before pools first take the pool of where the stored save keeps them
+  for (const [list, pool] of placesOf(prev)) {
+    for (const it of list) if (it && typeof it === 'object' && it.sid && led[it.sid] && led[it.sid].p === undefined) led[it.sid].p = pool;
+  }
+  const places = placesOf(next);
+  const seen = [];
+  for (const [list, pool, where] of places) {
+    for (const it of list) {
+      if (!it || typeof it !== 'object' || !it.sid) continue;
+      const e = led[it.sid];
+      if (!e) continue; // (an item the ledger doesn't know is refused by items.check)
+      if (e.p === undefined) { seen.push([e, pool]); continue; }
+      if (e.p !== pool) {
+        return (it.name || 'An item') + ' belongs to your ' + (e.p ? nameOf(e.p) : 'regular') + ' heroes, so it can\'t go to ' + where +
+          (pool ? ' (' + nameOf(pool) + ')' : '') + '.';
+      }
+    }
+  }
+  for (const [e, pool] of seen) e.p = pool;
   return null;
 }
 
@@ -122,4 +153,4 @@ function unequip(ch, slot, old, best) {
   return {};
 }
 
-module.exports = { check, modeOf, restricted, luck };
+module.exports = { check, modeOf, restricted, luck, nameOf, vaultOf, MODES };

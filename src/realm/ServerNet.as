@@ -252,6 +252,9 @@ package realm {
 				case "hall":
 					g.hallArrived(m.hall);
 					break;
+				case "gstore":
+					g.groupArrived(m.g);
+					break;
 				case "records":
 					g.recordsArrived(m.r, m.season);
 					break;
@@ -344,8 +347,8 @@ package realm {
 				// trading
 				case "tradeReq":
 					rp = byId(m.from);
-					// Ironman and Hardcore heroes can't trade: say no straight away
-					if (rp && Data.modeRestricted(g.player.mode)) {
+					// Ironman and Hardcore heroes can't trade: say no straight away (Group Ironman heroes trade within their group: the server checks)
+					if (rp && Data.modeRestricted(g.player.mode) && g.player.mode != "group") {
 						Online.send({t: "tradeAns", to: rp.id, yes: false});
 						g.msg(rp.name + " asked to trade, but " + Data.findMode(g.player.mode).name + " heroes can't trade.", 0xcccccc);
 					} else if (rp) g.tradeRequested(rp);
@@ -432,8 +435,10 @@ package realm {
 
 		// ------------------------------------------------------------ trading
 		override public function requestTrade(p:RemotePlayer):void {
-			if (Data.modeRestricted(g.player.mode)) { g.msg(Data.findMode(g.player.mode).name + " heroes can't trade: everything they use, they find themselves.", 0xff8080); return; }
-			if (p.profile && Data.modeRestricted(p.profile.md)) { g.msg(p.name + " is a " + Data.findMode(p.profile.md).name + " hero and can't trade.", 0xff8080); return; }
+			// (Group Ironman heroes trade with their own group's Group Ironman heroes: the server knows the groups)
+			var both:Boolean = g.player.mode == "group" && p.profile && p.profile.md == "group";
+			if (!both && Data.modeRestricted(g.player.mode)) { g.msg(Data.findMode(g.player.mode).name + " heroes can't trade" + (g.player.mode == "group" ? " except with their group's Group Ironman heroes." : ": everything they use, they find themselves."), 0xff8080); return; }
+			if (!both && p.profile && Data.modeRestricted(p.profile.md)) { g.msg(p.name + " is a " + Data.findMode(p.profile.md).name + " hero and can't trade" + (p.profile.md == "group" ? " outside their group." : "."), 0xff8080); return; }
 			syncForTrade();
 			Online.send({t: "tradeReq", to: int(p.id)});
 			g.msg("You sent a trade request to " + p.name + ".", 0xc8a0ff);

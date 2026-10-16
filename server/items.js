@@ -85,6 +85,8 @@ function eachItem(save, fn) {
     for (const it of c.inv || []) if (it) fn(it);
   }
   for (const it of save.vault || []) if (it) fn(it);
+  // (each hero mode's own vault: modes.js)
+  if (save.vaults && typeof save.vaults === 'object') for (const m in save.vaults) if (Array.isArray(save.vaults[m])) for (const it of save.vaults[m]) if (it && typeof it === 'object') fn(it);
   // what pets carry (the active one and those in the Stable)
   const pets = [save.pet].concat(Array.isArray(save.stable) ? save.stable : []);
   for (const p of pets) if (p && typeof p === 'object' && Array.isArray(p.bag)) for (const it of p.bag) if (it && typeof it === 'object') fn(it);
@@ -96,11 +98,15 @@ function ledger(save) {
   return save._ledger;
 }
 
-/** Gives a new item its id and records it for this account. */
-function issue(save, item) {
+/**
+ * Gives a new item its id and records it for this account. pool: the hero mode it belongs to
+ * ('' regular), when it's known (loot: the mode of the hero who earned it; modes.js).
+ */
+function issue(save, item, pool) {
   if (!item || typeof item !== 'object') return item;
   item.sid = newSid();
   ledger(save)[item.sid] = { f: fingerprint(item), t: Date.now() };
+  if (typeof pool === 'string') ledger(save)[item.sid].p = pool;
   trim(save);
   return item;
 }
@@ -152,6 +158,8 @@ function transfer(fromSave, toSave, item) {
   if (!entry) return;
   delete from[item.sid];
   ledger(toSave)[item.sid] = { f: entry.f, t: Date.now() };
+  // (a trade between Group Ironman heroes: the item stays a Group Ironman item)
+  if (entry.p !== undefined) ledger(toSave)[item.sid].p = entry.p;
 }
 
 /** Keeps the ledger to LEDGER_MAX: entries for items still held always stay. */
@@ -211,6 +219,7 @@ function release(save, item) {
 function adopt(save, item, entry) {
   if (!item || !item.sid || !entry) return;
   ledger(save)[item.sid] = { f: entry.f, t: Date.now() };
+  if (entry.p !== undefined) ledger(save)[item.sid].p = entry.p;
   trim(save);
 }
 

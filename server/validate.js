@@ -72,6 +72,7 @@ function eachItem(save, fn) {
     for (const it of [c.weapon, c.ability, c.armor, c.ring].concat(c.inv || [])) fn(it);
   }
   for (const it of save.vault || []) fn(it);
+  if (save.vaults && typeof save.vaults === 'object') for (const m in save.vaults) if (Array.isArray(save.vaults[m])) for (const it of save.vaults[m]) fn(it);
   // what pets carry
   const pets = [save.pet].concat(Array.isArray(save.stable) ? save.stable : []);
   for (const p of pets) if (p && typeof p === 'object' && Array.isArray(p.bag)) for (const it of p.bag.slice(0, 8)) fn(it);
@@ -95,6 +96,14 @@ function checkSave(prev, next, meta, now, skip) {
   if ((next.chars || []).length > LIMITS.chars) return 'too many characters';
   if (next.vault !== undefined && !Array.isArray(next.vault)) return 'bad vault';
   if ((next.vault || []).length > LIMITS.vault) return 'vault too big';
+  // (each hero mode's own vault)
+  if (next.vaults !== undefined) {
+    if (!next.vaults || typeof next.vaults !== 'object' || Array.isArray(next.vaults)) return 'bad vault';
+    for (const m of Object.keys(next.vaults)) {
+      if (['ironman', 'hardcore', 'group'].indexOf(m) < 0 || !Array.isArray(next.vaults[m])) return 'bad vault';
+      if (next.vaults[m].length > LIMITS.vault) return 'vault too big';
+    }
+  }
   for (const c of next.chars || []) {
     if (!c || typeof c !== 'object') return 'bad character';
     if ((c.inv || []).length > LIMITS.inv) return 'inventory too big';

@@ -129,8 +129,14 @@ package realm {
 				if (!pt || !pt.bag[i]) return;
 				var free:int = g.player.freeSlot();
 				if (free < 0) { g.msg("Your inventory is full.", 0xff8080); return; }
+				// items stay with their hero mode: what one mode's hero gave the pet only comes back out to that mode
+				var from:String = pt.bagMode ? (pt.bagMode[i] || "") : "";
+				if (pt.bagMode && pt.bagMode[i] != null && from != (g.player.mode || "")) {
+					g.msg("That came from your " + Data.findMode(from).name + " heroes: only they can take it back.", 0xff8080); return;
+				}
 				g.player.inv[free] = pt.bag[i];
 				pt.bag[i] = null;
+				if (pt.bagMode) pt.bagMode[i] = null;
 				changed();
 			};
 		}
@@ -143,6 +149,8 @@ package realm {
 				var free:int = pt.bag.indexOf(null);
 				if (free < 0) { g.msg("Your pet can't carry any more.", 0xff8080); return; }
 				pt.bag[free] = it;
+				if (!pt.bagMode) pt.bagMode = [];
+				pt.bagMode[free] = g.player.mode || "";
 				g.player.inv[i] = null;
 				changed();
 			};

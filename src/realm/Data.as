@@ -1572,6 +1572,11 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-modes", title: "What's new in Eldmere",
+				lines: ["<b>A character screen for each mode</b>: Regular, Ironman, Hardcore and Group Ironman heroes each have their own tab. Make new heroes from the tab they belong to.",
+					"<b>A vault for each mode</b>: Ironman and Hardcore heroes now have vaults of their own. Items stay in their mode: what your Ironmen find, only your Ironmen use.",
+					"<b>Group Ironman</b>: Ironman with up to 4 friends. <b>/group create Name</b>, then <b>/group invite name</b>. Your group trades only with each other and shares a <b>Group Storage</b> chest in the vault.",
+					"<b>Tip</b>: type <b>/</b> to start a command straight away."]},
 			{id: "2026-10-godly", title: "What's new in Eldmere",
 				lines: ["<b>Godly is truly Godly</b>: every drop has the same, best-in-game stats (no bad rolls), weapons hit 35% harder than Primordial, and each set has its own art, shots and a <b>Divine Wrath</b> special attack. Wear Godly for a golden aura; the full set crowns you with a halo.",
 					"<b>Every weapon tier has its own shot</b>: new projectiles, trails and impacts, and each tier is a clear step up from the last.",
@@ -1600,17 +1605,35 @@ package realm {
 		 */
 		public static const MODES:Array = [
 			{id: "", name: "Regular", col: 0xd8d8d8, luck: 0, desc: "The game as it is: trade, use the Marketplace, the vault and the guild bank."},
-			{id: "ironman", name: "Ironman", col: 0xb8c4d8, luck: 30,
-				desc: "No trading, Marketplace, guild bank or vault: everything you use, you found. +30 loot luck."},
-			{id: "hardcore", name: "Hardcore", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
-				desc: "Ironman's rules, and you climb the tiers: use each tier in a slot before the next (T1, T2, T3...). +60 loot luck and +5 to every stat (+30 HP, +20 MP)."}
+			{id: "ironman", name: "Ironman", tag: "IM", col: 0xb8c4d8, luck: 30,
+				desc: "No trading, Marketplace or guild bank: everything your Ironman heroes use, they found. Own vault. +30 loot luck."},
+			{id: "hardcore", name: "Hardcore", tag: "HC", col: 0xff5a4a, luck: 60, stats: {hp: 30, mp: 20, att: 5, def: 5, spd: 5, dex: 5, vit: 5, wis: 5},
+				desc: "Ironman's rules, and use each tier in a slot before the next (T1, T2, T3...). Own vault. +60 loot luck, +5 every stat."},
+			{id: "group", name: "Group Ironman", tag: "GIM", col: 0x7fd8a8, luck: 20,
+				desc: "Ironman with up to 4 friends (/group): trade only within your group and share its Group Storage. Own vault. +20 loot luck."}
 		];
+		/** The modes in the order the character screen shows them, as tabs. */
+		public static const MODE_TABS:Array = ["", "ironman", "hardcore", "group"];
+		/**
+		 * Each mode's heroes have a vault of their own, and items never cross between modes:
+		 * the regular vault is save.vault, the others save.vaults[mode] (with save.vaultChestsBy[mode] chests).
+		 */
+		public static function vaultOf(save:Object, mode:String):Array {
+			if (!save) return [];
+			if (!mode) return (save.vault as Array) || [];
+			return save.vaults && (save.vaults[mode] is Array) ? save.vaults[mode] : [];
+		}
+		public static function setVault(save:Object, mode:String, items:Array):void {
+			if (!mode) { save.vault = items; return; }
+			if (!save.vaults || typeof save.vaults != "object") save.vaults = {};
+			save.vaults[mode] = items;
+		}
 		public static function findMode(id:String):Object {
 			for each (var m:Object in MODES) if (m.id == (id || "")) return m;
 			return MODES[0];
 		}
 		/** Ironman and Hardcore heroes can't trade, use the Marketplace, the guild bank or the vault. */
-		public static function modeRestricted(id:String):Boolean { return id == "ironman" || id == "hardcore"; }
+		public static function modeRestricted(id:String):Boolean { return id == "ironman" || id == "hardcore" || id == "group"; }
 		/** The highest regular tier in each Hardcore slot (abilities stop at T6, rings at T5). */
 		public static const CLIMB_TOP:Object = {weapon: 7, ability: 6, armor: 7, ring: 5};
 		/** The slot's top regular tier. */

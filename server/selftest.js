@@ -391,6 +391,71 @@ async function run() {
   B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb' });
   await wait(200);
 
+  console.log('hero modes: own vaults, item pools, Group Ironman');
+  {
+    const items = require('./items');
+    const modes = require('./modes');
+    const groups = require('./groups');
+    const hero = (id, mode, inv) => Object.assign(charSave(id, inv || []), mode ? { mode } : {}, { weapon: null });
+    // an account with a regular hero and an Ironman hero, and one item for each
+    const prev = { chars: [hero('r1', ''), hero('i1', 'ironman')], vault: [], vaults: {} };
+    const reg = items.issue(prev, Object.assign({}, ITEMS.ring), '');
+    const iron = items.issue(prev, Object.assign({}, ITEMS.ring, { name: 'Iron Ring' }), 'ironman');
+    check('loot is issued with the pool of the hero who earned it', prev._ledger[iron.sid].p === 'ironman' && prev._ledger[reg.sid].p === '');
+    const okSave = { chars: [hero('r1', '', [reg]), hero('i1', 'ironman')], vault: [], vaults: { ironman: [iron] } };
+    check('an Ironman item can go in the Ironman vault', modes.check(prev, okSave) === null);
+    check('a regular item can go in the regular vault', modes.check(prev, { chars: [hero('r1', ''), hero('i1', 'ironman')], vault: [reg], vaults: {} }) === null);
+    const sneak = modes.check(prev, { chars: [hero('r1', ''), hero('i1', 'ironman', [reg])], vault: [], vaults: {} });
+    check('a regular item can\'t move to an Ironman hero', sneak && /regular/.test(sneak), sneak);
+    const sneak2 = modes.check(prev, { chars: [hero('r1', ''), hero('i1', 'ironman')], vault: [iron], vaults: {} });
+    check('an Ironman item can\'t go in the regular vault', sneak2 && /Ironman/.test(sneak2), sneak2);
+    check('nor in the Hardcore vault', modes.check(prev, { chars: [hero('r1', ''), hero('i1', 'ironman')], vault: [], vaults: { hardcore: [iron] } }) !== null);
+    check('the pet\'s bag is neutral', modes.check(prev, { chars: [hero('r1', ''), hero('i1', 'ironman')], vault: [], vaults: {}, pet: { bag: [iron, reg] } }) === null);
+    // an item from before pools takes the pool of where it is
+    const old = items.issue(prev, Object.assign({}, ITEMS.ring, { name: 'Old Ring' }));
+    check('an item from before pools has no pool yet', prev._ledger[old.sid].p === undefined);
+    modes.check(prev, { chars: [hero('r1', ''), hero('i1', 'ironman', [old])], vault: [], vaults: {} });
+    check('it joins the pool of the hero holding it', prev._ledger[old.sid].p === 'ironman');
+    // the save checks for the per-mode vaults
+    const vsave = (v) => checkSave({}, { chars: [{ inv: [], level: 1 }], vaults: v }, { lastSave: Date.now() }, Date.now());
+    check('per-mode vaults are accepted', !vsave({ ironman: [ITEMS.ring], hardcore: [], group: [] }));
+    check('a vault for a mode that doesn\'t exist is refused', !!vsave({ wizard: [] }));
+    check('a per-mode vault that isn\'t a list is refused', !!vsave({ ironman: 5 }));
+    check('items in per-mode vaults are checked too', !!vsave({ ironman: [{ kind: 'nope' }] }));
+    let seen = 0; items.eachItem({ vaults: { ironman: [iron], group: [reg] } }, () => { seen++; });
+    check('the item ledger sees the per-mode vaults', seen === 2);
+    // groups
+    const G = {};
+    const made = groups.create(G, 'ann', 'Ann', 'Iron Friends');
+    check('a Group Ironman group can be made', Array.isArray(made) && made[1].leader === 'ann');
+    check('group names are taken once', typeof groups.create(G, 'bob', 'Bob', 'iron friends') === 'string');
+    check('an account is in one group at a time', typeof groups.create(G, 'ann', 'Ann', 'Other Group') === 'string');
+    check('friends can join', groups.join(G, made[0], 'bob', 'Bob') === made[1] && groups.groupOf(G, 'bob')[1] === made[1]);
+    for (const k of ['c', 'd', 'e']) groups.join(G, made[0], k, k);
+    check('groups hold ' + groups.MAX + ' at most', typeof groups.join(G, made[0], 'f', 'f') === 'string');
+    check('only the leader removes members', !!groups.kick(G, 'bob', 'c').err && groups.kick(G, 'ann', 'c').name === 'c' && !groups.groupOf(G, 'c'));
+    // the Group Storage keeps items Group Ironman
+    const annSave = { chars: [hero('g1', 'group')] }, bobSave = { chars: [hero('g2', 'group')] };
+    const gi = items.issue(annSave, Object.assign({}, ITEMS.ring, { name: 'Shared Ring' }), 'group');
+    const inv = [gi, null];
+    check('a locked item stays out of the storage', typeof groups.deposit(made[1], annSave, [Object.assign({}, gi, { locked: true })], 0, 'Ann') === 'string');
+    check('an item goes in the Group Storage', groups.deposit(made[1], annSave, inv, 0, 'Ann') === gi && inv[0] === null && !annSave._ledger[gi.sid]);
+    const binv = [null];
+    check('another member takes it out', groups.withdraw(made[1], bobSave, binv, made[1].bank.findIndex(Boolean), 'Bob') === gi && binv[0] === gi);
+    check('it\'s still a Group Ironman item', bobSave._ledger[gi.sid] && bobSave._ledger[gi.sid].p === 'group');
+    check('so a regular hero can\'t hold it', modes.check(bobSave, { chars: [hero('g2', 'group'), hero('r9', '', [gi])] }) !== null);
+    check('a Group Ironman hero can', modes.check(bobSave, { chars: [hero('g2', 'group', [gi])] }) === null);
+    // leaving
+    const g3 = groups.create(G, 'zed', 'Zed', 'Lone Wolf');
+    const zSave = { chars: [hero('z1', 'group')] };
+    const zi = items.issue(zSave, Object.assign({}, ITEMS.ring), 'group');
+    groups.deposit(g3[1], zSave, [zi], 0, 'Zed');
+    check('the last member can\'t leave a group with items in storage', !!groups.leave(G, 'zed').err && G[g3[0]]);
+    groups.withdraw(g3[1], zSave, [null], g3[1].bank.findIndex(Boolean), 'Zed');
+    check('once it\'s empty the group goes with them', groups.leave(G, 'zed').name === 'Lone Wolf' && !G[g3[0]]);
+    check('when the leader leaves someone else leads', !groups.leave(G, 'ann').err && made[1].leader !== 'ann' && made[1].members[made[1].leader]);
+  }
+
   console.log('ability items');
   {
     const { Data } = require('./sim/gen/game');
@@ -1552,10 +1617,12 @@ async function run() {
     const prev0 = { chars: [{ id: 'r1' }] };
     const next0 = { chars: [{ id: 'r1', mode: 'hardcore' }, { id: 'n1', mode: 'ironman' }, { id: 'n2', mode: 'god' }] };
     check('a hero\'s mode is set when it\'s made and can\'t change', modes.check(prev0, next0) === null && !next0.chars[0].mode && next0.chars[1].mode === 'ironman' && !next0.chars[2].mode);
-    // Ironman: nothing from the vault or other heroes
-    const pv = { vault: [w(5, 'v1')], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own')] }, { id: 'reg', inv: [w(6, 'other')] }] };
+    // Ironman: nothing from the vault or other heroes (items from before pools take the pool of where they were stored)
+    const pv = { vault: [w(5, 'v1')], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own')] }, { id: 'reg', inv: [w(6, 'other')] }],
+      _ledger: { v1: { f: 'x' }, own: { f: 'x' }, other: { f: 'x' }, fresh: { f: 'x', p: 'ironman' } } };
+    const pv2 = JSON.parse(JSON.stringify(pv));
     check('Ironman heroes can\'t take items from the vault or another hero', !!modes.check(pv, { vault: [], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(5, 'v1')] }, { id: 'reg', inv: [w(6, 'other')] }] })
-      && !!modes.check(pv, { vault: [w(5, 'v1')], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(6, 'other')] }, { id: 'reg', inv: [] }] }));
+      && !!modes.check(pv2, { vault: [w(5, 'v1')], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(6, 'other')] }, { id: 'reg', inv: [] }] }));
     check('...but new loot and their own items are fine (and regular heroes may use the vault)', modes.check(pv, { vault: [], chars: [{ id: 'im', mode: 'ironman', inv: [w(3, 'own'), w(7, 'fresh')] }, { id: 'reg', inv: [w(6, 'other'), w(5, 'v1')] }] }) === null);
     // Hardcore: one tier at a time per slot
     const hp = { chars: [{ id: 'hc', mode: 'hardcore', weapon: w(2, 'a'), inv: [] }] };

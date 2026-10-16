@@ -75,14 +75,19 @@ package realm {
 			"when you claim them at the Quest Board. The tracker under the connection status shows what's left (Menu > Settings to hide it).",
 
 			"<font size='15' color='#ffd75e'><b>Hero modes</b></font>\n" +
-			"Pick a mode when you make a hero; it stays for the hero's whole life.\n\n" +
+			"The character screen has a tab for each mode: open a tab to see its heroes, and make a new hero there. A hero's mode stays for its whole life.\n\n" +
+			"<b>Every mode has its own vault</b> (the same Vault portal takes you to it), and items never cross between modes: " +
+			"what your Ironman heroes find stays with your Ironman heroes, and so on. Your pet carries for any mode, but only gives items back to the mode they came from.\n\n" +
 			"<font color='#d8d8d8'><b>Regular</b></font>: the game as it is. Trade, use the Marketplace, your vault and the guild bank.\n\n" +
-			"<font color='#b8c4d8'><b>Ironman</b></font>: no trading, no Marketplace, no vault and no guild bank: everything you use, you found. " +
+			"<font color='#b8c4d8'><b>Ironman</b></font>: no trading, no Marketplace and no guild bank: everything you use, you found. " +
 			"The merchant and the Key Merchant still sell to you. In return: <b>+30 loot luck</b>.\n\n" +
 			"<font color='#ff5a4a'><b>Hardcore</b></font>: Ironman's rules, and you climb the tiers. In each slot (weapon, ability, armor, ring) " +
 			"you must use a T1 before a T2, a T2 before a T3 and so on; special rarities (Runed and up, uniques) open up once you have used the top tier in that slot (T7 weapons and armor, T6 abilities, T5 rings). " +
 			"In return: <b>+60 loot luck</b> and <b>+5 to every stat</b> (+30 HP, +20 MP).\n\n" +
-			"Ironman and Hardcore heroes show IM or HC by their name. The server checks every rule."
+			"<font color='#7fd8a8'><b>Group Ironman</b></font>: Ironman with friends. Make a group with <b>/group create Name</b> and bring in up to 4 friends with " +
+			"<b>/group invite name</b> (they type /group accept). Group Ironman heroes in the same group can trade with each other and share the " +
+			"<b>Group Storage</b> chest in the vault; nobody else can. <b>+20 loot luck</b>. /group shows your group, /group leave leaves it.\n\n" +
+			"Heroes show IM, HC or GIM by their name. The server checks every rule."
 		];
 
 		private var g:Game;

@@ -379,7 +379,7 @@ package realm {
 				case "/help":
 					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /abyss  /ascend  /spires  /bug what happened", 0x8fd0ff);
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
-					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)", 0x8fd0ff);
+					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)  Group Ironman: /group", 0x8fd0ff);
 					var myRole:String = net.online && Online.welcome ? String(Online.welcome.role || "") : "";
 					if (net.online && Online.welcome && (Online.welcome.vip || Online.welcome.admin))
 						msg("VIP: /l20 (your hero to level 20)  /backpack (a free backpack)  and +15 loot luck. Thank you!", 0xffd75e);
@@ -427,7 +427,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
+				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -809,6 +809,9 @@ package realm {
 			// the Vault Keeper sells more chests
 			stations.push({x: 94.5, y: 107.5, kind: "vaultkeeper", spr: "merchant", label: makeLabel("Vault Keeper", Ui.GOLD), w: "vault"});
 			stations[stations.length - 1].label.visible = false;
+			// Group Ironman heroes' shared chest (only they see it)
+			stations.push({x: 106.5, y: 107.5, kind: "groupstore", spr: "chest", label: makeLabel("Group Storage", 0x7fd8a8), w: "vault", only: "group"});
+			stations[stations.length - 1].label.visible = false;
 			// the eight heroes of Eldmere, in stone, around the fountain
 			for (var si:int = 0; si < Data.CLASS_ORDER.length; si++) {
 				var sa:Number = (si + 0.5) * Math.PI * 2 / Data.CLASS_ORDER.length;
@@ -890,7 +893,20 @@ package realm {
 
 		// ------------------------------------------------------------ the vault
 		/** Chests you own (3 to start, up to 10). */
-		private function get vaultChests():int { return Math.max(VAULT_START, Math.min(VAULT_CHESTS, int(Save.data.vaultChests || VAULT_START))); }
+		/** (each hero mode has its own vault, with its own chests: Data.vaultOf) */
+		private function get vaultChests():int {
+			var m:String = player.mode || "";
+			var n:int = !m ? int(Save.data.vaultChests || VAULT_START) : int((Save.data.vaultChestsBy && Save.data.vaultChestsBy[m]) || VAULT_START);
+			return Math.max(VAULT_START, Math.min(VAULT_CHESTS, n));
+		}
+		private function set vaultChests(n:int):void {
+			var m:String = player.mode || "";
+			if (!m) { Save.data.vaultChests = n; return; }
+			if (!Save.data.vaultChestsBy || typeof Save.data.vaultChestsBy != "object") Save.data.vaultChestsBy = {};
+			Save.data.vaultChestsBy[m] = n;
+		}
+		/** What the vault is called for this hero: "Vault", or "Ironman Vault" and so on. */
+		private function get vaultName():String { return player.mode ? Data.findMode(player.mode).name + " Vault" : "Vault"; }
 
 		/** Gold for the next chest: 1,000 for the 4th, rising by 500 each. */
 		private function nextChestCost():int { return 1000 + (vaultChests - VAULT_START) * 500; }
@@ -908,7 +924,7 @@ package realm {
 			fillVault();
 			Sfx.play("portal");
 			switchWorld(vaultWorld, vaultWorld.spawnX, vaultWorld.spawnY);
-			showBanner("Vault", Ui.GOLD, 2);
+			showBanner(vaultName, player.mode ? Data.findMode(player.mode).col : Ui.GOLD, 2);
 			tip("vault", "Stand by a chest to see what's inside. Drag items between it and your inventory. The Vault Keeper sells more chests.");
 		}
 
@@ -934,7 +950,7 @@ package realm {
 		private function fillVault():void {
 			var w:World = vaultWorld;
 			w.bags.length = 0;
-			var saved:Array = (Save.data.vault as Array) || [];
+			var saved:Array = Data.vaultOf(Save.data, player.mode || "");
 			for (var k:int = 0; k < vaultChests; k++) {
 				var items:Array = [];
 				for (var i:int = k * LootBag.MAX; i < (k + 1) * LootBag.MAX && i < saved.length; i++) if (saved[i]) items.push(saved[i]);
@@ -957,7 +973,7 @@ package realm {
 				for (var i:int = 0; i < LootBag.MAX; i++) out.push(b && b.items[i] ? b.items[i] : null);
 			}
 			while (out.length && out[out.length - 1] == null) out.pop();
-			Save.data.vault = out;
+			Data.setVault(Save.data, player.mode || "", out);
 			// the vault and the inventory change together: save both in the same upload,
 			// or the server would see the item in both (or neither) and refuse the save
 			saveCharacter();
@@ -970,7 +986,7 @@ package realm {
 			if (gold < cost) { msg("The next chest costs " + cost + " gold.", 0xff8080); return; }
 			addGold(-cost);
 			saveVault();
-			Save.data.vaultChests = vaultChests + 1;
+			vaultChests = vaultChests + 1;
 			Save.flush();
 			fillVault();
 			var at:Array = chestSpot(vaultChests - 1);
@@ -995,16 +1011,12 @@ package realm {
 			if (p.kind == "elder") return "Dark Elder's Chamber";
 			if (p.kind == "raid") return Bosses.raidName(p.idx % RAID_HEROIC, p.idx >= RAID_HEROIC);
 			if (p.kind == "deep") return "The Endless Abyss";
-			if (p.kind == "vault") return "Your Vault";
+			if (p.kind == "vault") return "Your " + vaultName;
 			if (p.kind == "ghall") return "Guild Hall";
 			return "Nexus";
 		}
 
 		public function usePortal(p:Object):void {
-			if (p.kind == "vault" && Data.modeRestricted(player.mode)) {
-				msg(Data.findMode(player.mode).name + " heroes can't use the vault: everything they use, they find themselves.", 0xff8080);
-				return;
-			}
 			if (p.kind == "deep" && !deepAllowed()) return;
 			if (p.kind == "ghall" && !(net && net.online && net.guild)) {
 				msg("Only guild members can enter a Guild Hall (online). Make or join a guild in the Social window.", 0xff8080);
@@ -1484,7 +1496,7 @@ package realm {
 			for each (var ow:World in [nexusWorld, realms[0], realms[1], realms[2], arenaWorld, dungeonWorld, vaultWorld, guildWorld]) {
 				if (ow) for each (var p:Object in ow.portals) p.label.visible = ow == world;
 			}
-			for each (var st:Object in stations) st.label.visible = st.w == "vault" ? w == vaultWorld : st.w == "ghall" ? guildWorld != null && w == guildWorld : nx;
+			for each (var st:Object in stations) st.label.visible = (!st.only || player.mode == st.only) && (st.w == "vault" ? w == vaultWorld : st.w == "ghall" ? guildWorld != null && w == guildWorld : nx);
 			if (decor) decor.setVisible(nx);
 			if (arenas) arenas.clear();
 			refreshTracker();
@@ -1781,7 +1793,7 @@ package realm {
 				var was:Object = nearStation;
 				nearStation = null;
 				for each (var st:Object in stations) {
-					if (st.w != here || st.kind == "deco") continue;
+					if (st.w != here || st.kind == "deco" || (st.only && player.mode != st.only)) continue;
 					var sx:Number = st.x - player.x, sy:Number = st.y - player.y;
 					if (sx * sx + sy * sy < 1.7 * 1.7) nearStation = st;
 				}
@@ -3622,6 +3634,7 @@ package realm {
 			if (st.kind == "deco") return;
 			// the Guild Hall's stations each open their own page of it
 			if (st.mode) { hallMode = st.mode; if (net && net.online) Online.send({t: "ghView"}); }
+			if (st.kind == "groupstore" && net && net.online) Online.send({t: "gsView"});
 			openStation = st;
 			var why:String = STATION_TIPS[st.kind];
 			if (why) tip("st_" + st.kind, why);
@@ -3637,8 +3650,9 @@ package realm {
 			pets: "The Pet Yard: hatch a pet that follows you, heals you and shoots monsters. Feed it gold to level it up.",
 			skins: "The Fame Store: spend account fame (earned when heroes die) on skins, dyes, titles and pet skins.",
 			raids: "The Raid Table: use a raid key to open a raid, boss fights one after another for a group. The Starfall Vault changes every week.",
-			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes.",
-			guildhall: "Your guild's shared bank, its weekly goals (finish all three for a new banner), its banners and the guild ranking."
+			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes of this mode (Regular, Ironman, Hardcore and Group Ironman heroes each have their own).",
+			guildhall: "Your guild's shared bank, its weekly goals (finish all three for a new banner), its banners and the guild ranking.",
+			groupstore: "Group Storage: shared by every Group Ironman hero in your group. Make a group with /group create Name, then /group invite friends."
 		};
 
 		private function closeStation():void {
@@ -3659,8 +3673,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80}[openStation.kind], true, "center", w, true);
-			title.text = {keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall"}[openStation.kind];
+			var title:TextField = Ui.text(20, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8}[openStation.kind], true, "center", w, true);
+			title.text = {keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage"}[openStation.kind];
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -3850,6 +3864,8 @@ package realm {
 				y = buildPetPanel(sp, info, y, w);
 			} else if (openStation.kind == "guildhall") {
 				y = buildGuildHall(sp, info, y, w);
+			} else if (openStation.kind == "groupstore") {
+				y = buildGroupStore(sp, info, y, w);
 			} else if (openStation.kind == "quests" && showAch) {
 				title.text = "Achievements";
 				var ast0:Object = achState();
@@ -3941,6 +3957,77 @@ package realm {
 		/** The server's Guild Hall view: {name, fame, place, bank, log, goals, weekBanner, banner, banners, top, canTake, canFly}. */
 		private var hallView:Object;
 		private var hallMode:String = "goals";
+
+		/** The Group Ironman group's page (the server's "gstore": members and Group Storage). */
+		private var groupView:Object = null;
+		public function groupArrived(v:Object):void {
+			groupView = v;
+			if (openStation && openStation.kind == "groupstore") refreshStation();
+		}
+
+		private function buildGroupStore(sp:Sprite, info:TextField, y:int, w:int):int {
+			var i:int;
+			if (!net.online) {
+				info.htmlText = "Group Storage is shared on the server: play online to use it.";
+				info.y = y; return y + info.height + 8;
+			}
+			var v:Object = groupView;
+			if (!v) {
+				info.htmlText = "You're not in a Group Ironman group yet.\n<b>/group create Name</b> starts one (up to 5 accounts), " +
+					"<b>/group invite name</b> brings a friend in, and <b>/group accept</b> answers an invite.";
+				info.y = y; return y + info.height + 8;
+			}
+			var mem:Array = [];
+			for each (var mb:Object in v.members) mem.push(mb.on ? "<font color='#9cff7a'>" + Ui.esc(mb.name) + "</font>" : Ui.esc(mb.name));
+			info.htmlText = "<b>" + Ui.esc(v.name) + "</b>  (" + mem.join(", ") + ")\nClick an item to take it. Put items in from your inventory below: everyone in the group shares them.";
+			info.y = y; y += info.height + 8;
+			for (i = 0; i < v.bank.length; i++) {
+				var bx:int = 12 + (i % 8) * 52, by:int = y + int(i / 8) * 52;
+				var slot:Object = v.bank[i];
+				if (slot) marketItem(sp, slot.item, bx, by, groupTakeFn(i), "Put in by " + slot.by + ". Click to take it");
+				else { sp.graphics.beginFill(0x2a2a2a); sp.graphics.drawRoundRect(bx, by, 48, 48, 10, 10); sp.graphics.endFill(); }
+			}
+			y += Math.ceil(v.bank.length / 8) * 52 + 6;
+			var pl:TextField = Ui.text(13, 0xffffff, true, "left", w - 30, true);
+			pl.text = "Your inventory (click to put in):";
+			pl.x = 14; pl.y = y; sp.addChild(pl);
+			y += 22;
+			var n:int = 0;
+			for (i = 0; i < player.inv.length; i++) {
+				var it:Object = player.inv[i];
+				if (!it || !it.sid) continue;
+				marketItem(sp, it, 12 + (n % 8) * 52, y + int(n / 8) * 52, groupPutFn(i), "Click to put it in Group Storage");
+				n++;
+			}
+			if (!n) {
+				var none:TextField = Ui.text(12, 0x888888, false, "left", w - 30);
+				none.text = "Nothing to put in (starter gear stays with its hero).";
+				none.x = 14; none.y = y; sp.addChild(none);
+				y += 24;
+			} else y += (int((n - 1) / 8) + 1) * 52 + 6;
+			for each (var lg:Object in (v.log || []).slice(0, 3)) {
+				var lt:TextField = Ui.text(11, 0x8a8a9a, false, "left", w - 30, true);
+				lt.text = lg.text;
+				lt.x = 16; lt.y = y;
+				sp.addChild(lt);
+				y += 16;
+			}
+			return y;
+		}
+
+		private function groupTakeFn(idx:int):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (net.shopRequest({t: "gsTake", idx: idx})) shopWaiting = true;
+			};
+		}
+
+		private function groupPutFn(slot:int):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (net.shopRequest({t: "gsPut", slot: slot})) shopWaiting = true;
+			};
+		}
 
 		public function hallArrived(v:Object):void {
 			hallView = v;
@@ -6829,7 +6916,7 @@ package realm {
 			if (inNexus || world == vaultWorld || (guildWorld && world == guildWorld)) {
 				var stw:String = inNexus ? "nexus" : world == vaultWorld ? "vault" : "ghall";
 				for each (var st:Object in stations) {
-					if (st.w != stw) continue;
+					if (st.w != stw || (st.only && player.mode != st.only)) continue;
 					var stx:Number = scrX(st.x, st.y);
 					var stop:Number = drawEntity(Sprites.get(st.spr, Sprites.anim(Sprites.IDLE, int(time * 1.4 + stx) % 2)), stx, scrY(st.x, st.y), 0);
 					st.label.x = int(stx - st.label.width / 2);
@@ -7886,10 +7973,10 @@ package realm {
 			if (tf.name == key) return;
 			tf.name = key;
 			var t:Object = Data.findTitle(title);
-			// Ironman and Hardcore heroes wear their mode by their name
+			// Ironman, Hardcore and Group Ironman heroes wear their mode by their name (IM, HC, GIM)
 			var md:Object = mode ? Data.findMode(mode) : null;
 			tf.htmlText = "<font color='" + Ui.hex(col) + "'>" + who + "</font>" +
-				(md && md.id ? " <font size='10' color='" + Ui.hex(md.col) + "'>" + (md.id == "hardcore" ? "HC" : "IM") + "</font>" : "") +
+				(md && md.id ? " <font size='10' color='" + Ui.hex(md.col) + "'>" + md.tag + "</font>" : "") +
 				(t ? "\n<font size='10' color='" + Ui.hex(t.col || 0xc8c8d8) + "'>" + t.name + "</font>" : "");
 		}
 

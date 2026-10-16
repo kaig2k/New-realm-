@@ -1,3 +1,23 @@
+**📜 ELDMERE UPDATE: Hero Modes & Group Ironman**
+
+**🗂️ A character screen for each mode**
+• Regular, Ironman, Hardcore and Group Ironman heroes each get their **own tab** on the character screen
+• Make new heroes from the tab they belong to
+
+**🏦 A vault for each mode**
+• Ironman and Hardcore heroes now have **vaults of their own** (same Vault portal)
+• Items stay in their mode: what your Ironmen find, only your Ironmen use
+
+**🤝 Group Ironman (new mode)**
+• Ironman with up to 4 friends: **/group create Name**, then **/group invite name** (they type /group accept)
+• Trade only within your group, and share a **Group Storage** chest in the vault
+• **+20 loot luck**, and a GIM tag by your name
+
+**🛠️ Quality of life**
+• Type **/** to open chat with a command started
+
+---
+
 **📜 ELDMERE UPDATE: Godly Reforged & Signature Weapons**
 
 **✨ Godly is now truly Godly**

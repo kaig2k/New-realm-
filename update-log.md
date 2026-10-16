@@ -1,3 +1,10 @@
+**🧪 New role: Tester**
+• Testers get the **Tester Menu** (` or /admin): max their own level, stats, skill tree and Ascension tree, give themselves any item, and jump into any dungeon or raid
+• No kicking, muting or banning, and what they make stays with them: **testers can't trade, sell, use the Marketplace, bank items or drop items**
+• Chat shows a green [Tester] badge
+
+---
+
 **📜 ELDMERE UPDATE: Boss Balance Pass**
 
 Every boss in the game was fought by bots, 5 times each: bots that dodge like a good player, and bots that just stand there and shoot. The goal: **every boss can be dodged, and every boss punishes you if you don't.** Now a skilled player can beat nearly every boss without dying, and standing still gets you killed almost everywhere.

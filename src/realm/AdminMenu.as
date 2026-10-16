@@ -6,11 +6,16 @@ package realm {
 
 	/**
 	 * Testing tools (press ` or type /admin): spawn monsters and bosses, open dungeons,
-	 * max your character and give yourself any item.
+	 * max your character and give yourself any item. Testers (a server role) get only the
+	 * levelling, items and dungeons, for themselves.
 	 */
 	public class AdminMenu extends Sprite {
 		public static const W:int = 540, H:int = 470;
-		private static const TABS:Array = ["Player", "Monsters", "Bosses", "Dungeons", "Items", "Give", "Endgame"];
+		private static const ALL_TABS:Array = ["Player", "Monsters", "Bosses", "Dungeons", "Items", "Give", "Endgame"];
+		/** What a tester sees (the rest is the admins'). */
+		private static const TESTER_TABS:Array = ["Player", "Dungeons", "Items", "Give"];
+		private var TABS:Array;
+		private var tester:Boolean;
 
 		private var g:Game;
 		private var tab:int = 0;
@@ -20,9 +25,11 @@ package realm {
 
 		public function AdminMenu(g:Game) {
 			this.g = g;
-			Ui.panel(graphics, 0, 0, W, H, 0x18181e, 0xd04040, 0.96);
-			var title:TextField = Ui.text(20, 0xff6060, true, "left", 300, true);
-			title.text = "Admin Menu";
+			tester = g.isTester;
+			TABS = tester ? TESTER_TABS : ALL_TABS;
+			Ui.panel(graphics, 0, 0, W, H, 0x18181e, tester ? 0x50b080 : 0xd04040, 0.96);
+			var title:TextField = Ui.text(20, tester ? 0x80e0a0 : 0xff6060, true, "left", 300, true);
+			title.text = tester ? "Tester Menu" : "Admin Menu";
 			title.x = 14; title.y = 8;
 			addChild(title);
 			var hint:TextField = Ui.text(12, 0x999999, false, "right", 300, true);
@@ -52,7 +59,7 @@ package realm {
 				tabBtns.addChild(b);
 			}
 			body.removeChildren();
-			switch (tab) {
+			switch (ALL_TABS.indexOf(TABS[tab])) {
 				case 0: buildPlayer(); break;
 				case 1: buildSpawnList(false); break;
 				case 2: buildSpawnList(true); break;
@@ -88,9 +95,22 @@ package realm {
 		// ------------------------------------------------------------ player
 		private function buildPlayer():void {
 			var p:Player = g.player;
-			label("Level " + p.level + "   " + p.maxedCount + "/11 maxed   God mode: " + (g.godMode ? "<font color='#80ff80'>ON</font>" : "off"), 14, 0, 0xffffff);
 			var col:Array = [14, 192, 370];
 			var w:int = 170, y:int = 26;
+			if (tester) {
+				label("Level " + p.level + "   " + p.maxedCount + "/11 maxed", 14, 0, 0xffffff);
+				btn("Max level (20)", col[0], y, w, function():void { g.adminMaxLevel(); show(0); });
+				btn("Max all stats (11/11)", col[1], y, w, function():void { g.adminMaxStats(); show(0); });
+				btn("+10 skill points", col[2], y, w, function():void { p.skillPoints += 10; g.msg("+10 skill points (star tab).", 0x80e0ff); });
+				y += 36;
+				btn("Max skill tree", col[0], y, w, function():void { g.adminMaxTree(); });
+				btn("Max Ascension tree", col[1], y, w, function():void { g.adminMaxAscension(); });
+				btn("Full heal + mana", col[2], y, w, function():void { p.hp = p.maxHp; p.mp = p.maxMp; p.pt = p.maxPt; });
+				y += 48;
+				label("<font color='#80e0a0'>You're a tester.</font> What you make here stays with you: you can't trade, sell, list, drop or bank items.", 14, y, 0xcccccc, 510);
+				return;
+			}
+			label("Level " + p.level + "   " + p.maxedCount + "/11 maxed   God mode: " + (g.godMode ? "<font color='#80ff80'>ON</font>" : "off"), 14, 0, 0xffffff);
 			btn("Max level (20)", col[0], y, w, function():void { g.adminMaxLevel(); show(0); });
 			btn("Max all stats (11/11)", col[1], y, w, function():void { g.adminMaxStats(); show(0); });
 			btn("God mode " + (g.godMode ? "OFF" : "ON"), col[2], y, w, function():void { g.godMode = !g.godMode; show(0); });
@@ -259,10 +279,12 @@ package realm {
 			label("Any item by name: uniques, Godly, potions, runes, keys, <b>T7 Armor</b>, <b>Starforged Ring</b>...", 14, 0, 0xcccccc, 512);
 			label("Item", 14, 34, 0xffd75e, 60);
 			var q:TextField = field(60, 32, 290, query, 40, function(t:String):void { query = t; listResults(); });
-			label("Player", 362, 34, 0xffd75e, 60);
-			field(412, 32, 80, toName, 12, function(t:String):void { toName = t; });
-			field(498, 32, 30, toCount, 2, function(t:String):void { toCount = t; });
-			label("<font size='11'>Me: into your inventory. Player: sends /give (they must be online; the count is how many).</font>", 14, 58, 0x999999, 512);
+			if (!tester) {
+				label("Player", 362, 34, 0xffd75e, 60);
+				field(412, 32, 80, toName, 12, function(t:String):void { toName = t; });
+				field(498, 32, 30, toCount, 2, function(t:String):void { toCount = t; });
+			}
+			label("<font size='11'>" + (tester ? "Me: into your inventory." : "Me: into your inventory. Player: sends /give (they must be online; the count is how many).") + "</font>", 14, 58, 0x999999, 512);
 			results = new Sprite();
 			results.y = 78;
 			body.addChild(results);
@@ -298,6 +320,7 @@ package realm {
 				var me:Sprite = Ui.button("Me", 40, 24, giveMeFn(e), 11);
 				me.x = x + 156; me.y = y;
 				results.addChild(me);
+				if (tester) continue;
 				var pl:Sprite = Ui.button("Player", 54, 24, givePlayerFn(e), 11);
 				pl.x = x + 198; pl.y = y;
 				results.addChild(pl);

@@ -301,7 +301,8 @@ package realm {
 					break;
 				case "role":
 					// promoted, demoted, or VIP started or ended
-					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; }
+					if (Online.welcome) { Online.welcome.role = m.role || ""; Online.welcome.vip = !!m.vip; Online.welcome.tester = !!m.tester; }
+					g.adminReset();
 					break;
 				case "deepWave":
 					g.deepWave(m);

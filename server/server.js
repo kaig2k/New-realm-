@@ -65,8 +65,11 @@ if (!config.realmsSet) {
 /**
  * Roles, from most to least: the owner (config "owner", else the first admin: everything,
  * including making admins), admins (everything else), moderators (config "mods": kick,
- * mute, short bans, /whois, /flags, /bugs, /graves) and VIPs (vips.json, often for a
- * while: /l20, /backpack, a little more loot luck and a badge).
+ * mute, short bans, /whois, /flags, /bugs, /graves), testers (config "testers": the admin
+ * menu's levelling, items and dungeons for themselves, but no moderation, and nothing they
+ * make can leave them: no trading, Marketplace, guild bank, Group Storage, selling or
+ * dropping) and VIPs (vips.json, often for a while: /l20, /backpack, a little more loot
+ * luck and a badge).
  */
 const lcName = (a) => String(a).toLowerCase();
 // (config "owner"; else account #1 if it's an admin; else the first admin)
@@ -84,6 +87,12 @@ function ownerKey() {
 // (the fallback owner is always one of the admins, so only a configured owner needs its own check)
 const isAdmin = (c) => !!c.key && (config.admins.some(a => lcName(a) === c.key) || (!!config.owner && c.key === lcName(config.owner)));
 const isMod = (c) => isAdmin(c) || (Array.isArray(config.mods) && config.mods.some(a => lcName(a) === c.key));
+/** A tester (not an admin): the admin menu's testing tools for themselves only. */
+const isTester = (c) => !!c.key && !isAdmin(c) && Array.isArray(config.testers) && config.testers.some(a => lcName(a) === c.key);
+/** Admins and testers: their own saves may hold items, levels and stats the admin menu made. */
+const canTest = (c) => isAdmin(c) || isTester(c);
+/** Why a tester can't do this (their items can't reach anyone else), or ''. */
+const testerBlock = (c, what) => (isTester(c) ? 'Testers can\'t ' + what + ': what the admin menu makes stays with you.' : '');
 /** Writes the admin list back to config.json (keeping everything else in the file as it is). */
 function saveAdmins() { return saveConfig(['admins']); }
 /** Writes these settings back to config.json (keeping everything else in the file as it is). */
@@ -265,7 +274,7 @@ function finishLogin(c, acc, key, session) {
   acc.lastSeen = Date.now();
   save('accounts.json', accounts);
   c.send({ t: 'welcome', id: c.id, name: c.name, no: acc.no || 0, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
-    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), role: roleOf(c), vip: isVip(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
+    save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), tester: isTester(c), role: roleOf(c), vip: isVip(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
@@ -400,7 +409,7 @@ function openWorld(key) {
 }
 /** May c go into world (from the world it was in)? Admins go anywhere. */
 function mayEnter(c, world, from) {
-  if (!sims || isAdmin(c)) return true;
+  if (!sims || canTest(c)) return true;
   const kind = world.split(':')[0];
   // the Endless Abyss: level 20 heroes only
   if (kind === 'deep') { const ch = serverChar(c); return !!(ch && Number(ch.level) >= 20); }
@@ -542,8 +551,8 @@ const isOwner = (c) => ownerKey() === c.key;
 const vips = load('vips.json', {});
 function isVipKey(key) { const v = vips[key]; return !!v && (!v.until || v.until > Date.now()); }
 const isVip = (c) => isVipKey(c.key);
-/** owner, admin, mod, vip or '' (shown as a badge in chat). */
-const roleOf = (c) => isOwner(c) ? 'owner' : isAdmin(c) ? 'admin' : isMod(c) ? 'mod' : isVip(c) ? 'vip' : '';
+/** owner, admin, mod, tester, vip or '' (shown as a badge in chat). */
+const roleOf = (c) => isOwner(c) ? 'owner' : isAdmin(c) ? 'admin' : isMod(c) ? 'mod' : isTester(c) ? 'tester' : isVip(c) ? 'vip' : '';
 /** The most loot luck VIP adds (WorldSim.dropLoot). */
 const VIP_LUCK = 15;
 const clsName = (id) => (Data.CLASSES[id] && Data.CLASSES[id].name) || id || 'hero';
@@ -618,12 +627,16 @@ function renameAccount(key, name) {
     config.admins = config.admins.map((a) => (String(a).toLowerCase() === key ? name : a));
     saveAdmins();
   }
-  // the owner, moderator and VIP roles go with the account (nobody can take them by registering the old name)
+  // the owner, moderator, tester and VIP roles go with the account (nobody can take them by registering the old name)
   const roles = [];
   if (config.owner && String(config.owner).toLowerCase() === key) { config.owner = name; roles.push('owner'); }
   if (Array.isArray(config.mods) && config.mods.some((a) => String(a).toLowerCase() === key)) {
     config.mods = config.mods.map((a) => (String(a).toLowerCase() === key ? name : a));
     roles.push('mods');
+  }
+  if (Array.isArray(config.testers) && config.testers.some((a) => String(a).toLowerCase() === key)) {
+    config.testers = config.testers.map((a) => (String(a).toLowerCase() === key ? name : a));
+    roles.push('testers');
   }
   if (roles.length) saveConfig(roles);
   if (nk !== key && vips[key]) { vips[nk] = vips[key]; delete vips[key]; save('vips.json', vips); }
@@ -892,7 +905,7 @@ function applySave(c, data, cid) {
   let why = checkSave(prev, data, c.meta, Date.now(), sims && !isAdmin(c) ? ['gold', 'fame', 'onrane'] : null);
   // items must come from the server (admins are trusted), and stats stay within the class limits
   // (only when the server runs the monsters: otherwise players' games still roll loot)
-  if (!why && !isAdmin(c) && sims) why = items.check(prev, data) || items.checkStats(data);
+  if (!why && !canTest(c) && sims) why = items.check(prev, data) || items.checkStats(data);
   // hero modes: Ironman and Hardcore rules (and modes can't change)
   const modeFixes = [];
   if (!why && prev) why = modes.check(prev, data, modeFixes);
@@ -946,7 +959,8 @@ function applySave(c, data, cid) {
       c.send({ t: 'wallet', gold: data.gold || 0, fame: data.fame || 0, onrane: data.onrane || 0, skins: data.skins || {}, cosmetics: data.cosmetics || {} });
     }
     // and hero progress (XP, levels, stats, skill points, potions, backpacks, the pet) only by what was earned
-    const fixed = progress.check(prev, data, c.meta, Date.now());
+    // (testers level and max their heroes from the admin menu)
+    const fixed = isTester(c) ? [] : progress.check(prev, data, c.meta, Date.now());
     if (fixed.length) {
       const why2 = 'put back: ' + fixed.join('; ');
       log('progress ' + c.name + ': ' + why2);
@@ -966,7 +980,7 @@ function applySave(c, data, cid) {
   if (prev._titles) data._titles = prev._titles; else delete data._titles;
   data.earned = Object.keys(data._titles || {});
   // admins' own new items join their ledger
-  if (isAdmin(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
+  if (canTest(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
   store.putSave(c.key, data);
   // a Hardcore item equipped too early went back to the inventory, or progress was put back: the game takes the server's copy
   if (modeFixes.length) c.send({ t: 'saveRejected', reason: modeFixes.join(' '), data: publicSave(data) });
@@ -1298,6 +1312,8 @@ const handlers = {
     const o = clients.get(m.to);
     if (!o || !o.authed || o.world !== c.world) return c.note('That player isn\'t here.');
     if (o === c) return;
+    if (isTester(c)) return c.note(testerBlock(c, 'trade'));
+    if (isTester(o)) return c.note(o.name + ' is a tester: testers can\'t trade.');
     { const why = canTrade(c, o); if (why) return c.note(why); }
     if (o.trade) return c.note(o.name + ' is busy trading.');
     if (c.trade) return;
@@ -1308,6 +1324,7 @@ const handlers = {
   tradeAns(c, m) {
     const o = clients.get(m.to);
     if (!o || o.tradeAsk !== c.id) return;
+    if (isTester(c) || isTester(o)) { o.tradeAsk = 0; return c.note('Testers can\'t trade.'); }
     o.tradeAsk = 0;
     if (!m.yes) return o.note(c.name + ' declined the trade.', 0xff8080);
     if (o.trade || c.trade) return;
@@ -1506,6 +1523,7 @@ const handlers = {
 
   /** Puts an inventory item in the group's storage (Group Ironman heroes only). */
   gsPut(c, m) {
+    if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'use Group Storage') });
     if (c.mode !== 'group') return c.send({ t: 'shopFail', msg: 'Only Group Ironman heroes can use Group Storage.' });
     const g = gimOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a group: /group create Name, or ask a friend for an invite.' });
@@ -1545,6 +1563,7 @@ const handlers = {
 
   /** Puts an inventory item in the guild bank. */
   ghPut(c, m) {
+    if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'put items in the guild bank') });
     if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t use the guild bank.' });
     const g = guildOf(c);
     if (!g) return c.send({ t: 'shopFail', msg: 'You\'re not in a guild.' });
@@ -1780,7 +1799,7 @@ const handlers = {
     const heroic = m.k === 'raid' && !!m.h;
     const wkey = (m.k === 'raid' ? 'raid:' : 'dg:') + i + ':' + seed + (heroic ? ':h' : '');
     // (admins open raids for everyone from the admin menu, without a key)
-    if (isAdmin(c) && !sid && seed) return openWorld(wkey);
+    if (canTest(c) && !sid && seed) return openWorld(wkey);
     if (!ch || !Array.isArray(ch.inv)) return;
     const at = sid ? ch.inv.findIndex((it) => it && it.sid === sid) : -1;
     const key = at >= 0 ? ch.inv[at] : null;
@@ -1915,6 +1934,7 @@ const handlers = {
 
   /** Selling an item to the Nexus merchant (shift-click at the Marketplace): the server pays for it. */
   sell(c, m) {
+    if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'sell items') });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was sold.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
@@ -1983,6 +2003,7 @@ const handlers = {
 
   /** Puts an inventory item up for sale. */
   mkList(c, m) {
+    if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'use the Marketplace') });
     if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t use the Marketplace.' });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was listed.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
@@ -2182,7 +2203,10 @@ const handlers = {
     }
     // moderators have the moderation commands; everything else is the admins'
     if (!isAdmin(c)) {
-      if (!(isMod(c) && MOD_CMDS.has(cmd))) return c.note('Only server ' + (MOD_CMDS.has(cmd) ? 'moderators' : 'admins') + ' can use ' + cmd + '.');
+      // testers level and max their own hero (and nobody else's)
+      const testing = isTester(c) && TESTER_CMDS.has(cmd);
+      if (testing && parts[1]) return c.note('Testers can only use ' + cmd + ' on themselves.');
+      if (!testing && !(isMod(c) && MOD_CMDS.has(cmd))) return c.note('Only server ' + (MOD_CMDS.has(cmd) ? 'moderators' : 'admins') + ' can use ' + cmd + '.');
       // (and they can't act on staff)
       const tk = accountKey(parts[1]) || (parts[1] || '').toLowerCase();
       if (['/kick', '/ban', '/mute'].includes(cmd) && tk && (tk === ownerKey() || config.admins.some(a => lcName(a) === tk) || (config.mods || []).some(a => lcName(a) === tk)))
@@ -2494,6 +2518,31 @@ const handlers = {
         return;
       case '/admins':
         return c.note('Admins: ' + (config.admins.join(', ') || 'none'), 0x80ff80);
+      case '/tester': case '/untester': {
+        // /tester name, /untester name: testers (saved in config.json)
+        if (!who || !accounts[who]) return c.note('Usage: ' + cmd + ' name   (/testers lists them)');
+        const name = accounts[who].name || parts[1];
+        const list = Array.isArray(config.testers) ? config.testers : [];
+        const has = list.some((a) => lcName(a) === who);
+        if (cmd === '/tester') {
+          if (has) return c.note(name + ' is already a tester.');
+          if (config.admins.some((a) => lcName(a) === who)) return c.note(name + ' is an admin: they have every tool already.');
+          config.testers = list.concat([name]);
+        } else {
+          if (!has) return c.note(name + ' is not a tester.');
+          config.testers = list.filter((a) => lcName(a) !== who);
+        }
+        saveConfig(['testers']);
+        log(c.name + (cmd === '/tester' ? ' made ' + name + ' a tester' : ' removed ' + name + ' from the testers'));
+        if (target) {
+          target.send({ t: 'role', role: roleOf(target), vip: isVip(target), tester: isTester(target) });
+          target.note(cmd === '/tester' ? c.name + ' made you a tester: press ` (or /admin) for the testing tools. What they make stays with you: no trading, selling or dropping.' : 'You are no longer a tester.', 0x80ff80);
+          setCaps(target);
+        }
+        return c.note(name + (cmd === '/tester' ? ' is now a tester.' : ' is no longer a tester.'), 0x80ff80);
+      }
+      case '/testers':
+        return c.note('Testers: ' + ((config.testers || []).join(', ') || 'none'), 0x80ff80);
       case '/mod': case '/unmod': {
         // /mod name, /unmod name: moderators (saved in config.json)
         if (!who || !accounts[who]) return c.note('Usage: ' + cmd + ' name');
@@ -2513,7 +2562,7 @@ const handlers = {
         return c.note(name + (cmd === '/mod' ? ' is now a moderator.' : ' is no longer a moderator.'), 0x80ff80);
       }
       case '/mods':
-        return c.note('Owner: ' + (accounts[ownerKey()] ? accounts[ownerKey()].name : ownerKey() || 'none') + '   Admins: ' + (config.admins.join(', ') || 'none') + '   Moderators: ' + ((config.mods || []).join(', ') || 'none'), 0x80ff80);
+        return c.note('Owner: ' + (accounts[ownerKey()] ? accounts[ownerKey()].name : ownerKey() || 'none') + '   Admins: ' + (config.admins.join(', ') || 'none') + '   Moderators: ' + ((config.mods || []).join(', ') || 'none') + '   Testers: ' + ((config.testers || []).join(', ') || 'none'), 0x80ff80);
       case '/vip': case '/unvip': {
         // /vip name [days] (none: for good), /unvip name
         if (!who || !accounts[who]) return c.note('Usage: /vip name [days]  (no days: for good)   /unvip name   /vips');
@@ -2582,6 +2631,8 @@ const handlers = {
 };
 
 // ------------------------------------------------------------------ roles: moderator commands and VIP perks
+/** What testers may use, on themselves only. */
+const TESTER_CMDS = new Set(['/maxhero', '/maxtree', '/maxasc']);
 /** What moderators may use (admins and the owner have everything). */
 const MOD_CMDS = new Set(['/kick', '/mute', '/unmute', '/ban', '/unban', '/whois', '/graves', '/flags', '/bugs', '/mods', '/vips']);
 const MOD_BAN_HOURS = 72;

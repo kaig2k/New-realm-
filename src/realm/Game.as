@@ -383,10 +383,12 @@ package realm {
 					var myRole:String = net.online && Online.welcome ? String(Online.welcome.role || "") : "";
 					if (net.online && Online.welcome && (Online.welcome.vip || Online.welcome.admin))
 						msg("VIP: /l20 (your hero to level 20)  /backpack (a free backpack)  and +15 loot luck. Thank you!", 0xffd75e);
+					if (myRole == "tester")
+						msg("Tester: ` or /admin opens the testing tools (levels, items, dungeons). What they make stays with you: no trading, selling, listing or dropping items.", 0x80e0a0);
 					if (myRole == "mod")
 						msg("Moderator: /kick name  /mute name minutes  /unmute  /ban name hours reason (up to 72h)  /unban  /whois name  /graves name  /flags  /bugs  /mods  /vips", 0x60c8ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
-						msg("Roles: /mod name  /unmod name  /vip name [days]  /unvip name  /vips  /mods" + (myRole == "owner" ? "  /admin name  /unadmin name" : ""), 0xffb040);
+						msg("Roles: /mod name  /unmod name  /tester name  /untester name  /testers  /vip name [days]  /unvip name  /vips  /mods" + (myRole == "owner" ? "  /admin name  /unadmin name" : ""), 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 1 cursed, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
@@ -427,7 +429,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/vip": case "/unvip": case "/vips":
+				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -1037,9 +1039,18 @@ package realm {
 		}
 
 		// ------------------------------------------------------------- admin menu
+		/** A tester (not an admin) on this server: the admin menu's own-hero tools, and nothing they make can leave them. */
+		public function get isTester():Boolean { return !!(net && net.online && Online.welcome && Online.welcome.tester && !Online.welcome.admin); }
+
+		/** The role changed: the admin menu is built again for it next time. */
+		public function adminReset():void {
+			if (admin && admin.parent) removeChild(admin);
+			admin = null;
+		}
+
 		public function toggleAdmin():void {
-			// online, only the server's admins get the testing tools
-			if (net && net.online && !(Online.welcome && Online.welcome.admin) && !(admin && admin.visible)) {
+			// online, only the server's admins (and its testers) get the testing tools
+			if (net && net.online && !(Online.welcome && (Online.welcome.admin || Online.welcome.tester)) && !(admin && admin.visible)) {
 				msg("The admin menu is turned off on this server.", 0xff8080);
 				return;
 			}
@@ -3560,6 +3571,7 @@ package realm {
 			var item:Object = itemAt(kind, idx);
 			if (!item) return;
 			if (item.locked && !(nearBag && nearBag.vault)) { msg(item.name + " is locked, so it can't be dropped. Right-click it (or Ctrl+click) to unlock it.", 0xffd75e); return; }
+			if (isTester && !(nearBag && nearBag.vault)) { msg("Testers can't drop items: what the admin menu makes stays with you.", 0x80e0a0); return; }
 			if (kind == "inv") {
 				player.inv[idx] = null;
 				dropAtPlayer(item);
@@ -3606,6 +3618,7 @@ package realm {
 			} else if (sk == "inv" && dk == "bag") {
 				if (!nearBag) { dragToGround(sk, si); return; }
 				if (item.locked && !nearBag.vault) { msg(item.name + " is locked, so it can't be dropped. Right-click it (or Ctrl+click) to unlock it.", 0xffd75e); return; }
+				if (isTester && !nearBag.vault) { msg("Testers can't drop items: what the admin menu makes stays with you.", 0x80e0a0); return; }
 				p.inv[si] = null;
 				dropAtPlayer(item);
 			} else {
@@ -7620,7 +7633,7 @@ package realm {
 		/** The connection says another player said something. */
 		/** A role's badge in chat: [Owner], [Admin], [Mod] or [VIP]. */
 		public static function roleBadge(role:String):String {
-			var b:Object = {owner: ["Owner", "#ff5a5a"], admin: ["Admin", "#ffb040"], mod: ["Mod", "#60c8ff"], vip: ["VIP", "#ffd75e"]}[role];
+			var b:Object = {owner: ["Owner", "#ff5a5a"], admin: ["Admin", "#ffb040"], mod: ["Mod", "#60c8ff"], tester: ["Tester", "#80e0a0"], vip: ["VIP", "#ffd75e"]}[role];
 			return b ? "<font color='" + b[1] + "'><b>[" + b[0] + "]</b></font> " : "";
 		}
 

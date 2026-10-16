@@ -2357,6 +2357,63 @@ async function run() {
     for (const c of [bz8, M8, V8, P9]) c.s.destroy();
   }
 
+  console.log('testers');
+  {
+    const { Data: TD, Godly: TG } = require('./sim/gen/game');
+    const boss = await login('TestBoss', { password: 'pass1234' });
+    const T = await login('Ttst' + n, { password: 'pass1234', register: true });
+    const P = await login('Tpal' + n, { password: 'pass1234', register: true });
+    const note = (c) => c.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join(' | ');
+    boss.send({ t: 'cmd', text: '/tester Ttst' + n });
+    await wait(400);
+    check('/tester: the player is told their new role', T.find((m) => m.t === 'role' && m.role === 'tester' && m.tester), JSON.stringify(T.msgs.slice(-2)));
+    T.s.destroy();
+    const T2 = await login('Ttst' + n, { password: 'pass1234' });
+    const tw = T2.find((m) => m.t === 'welcome');
+    check('...and the server says so when they log in (but not as an admin)', tw && tw.tester && !tw.admin && tw.role === 'tester', JSON.stringify(tw && { a: tw.admin, t: tw.tester, r: tw.role }));
+    // the admin menu's items, levels and stats are kept
+    const g = TG.make('wizard', 0);
+    const th = { id: 'th1', cls: 'wizard', name: 'Testy', level: 20, xp: 0, stats: clone(TD.CLASSES.wizard.max), skillPoints: 30, inv: [g, null, null, null, null, null, null, null] };
+    T2.send({ t: 'save', data: { gold: 0, fame: 0, chars: [th] } });
+    await wait(400);
+    check('a tester\'s save with admin-menu items, levels and stats is kept', !T2.find((m) => m.t === 'saveRejected'), JSON.stringify(T2.find((m) => m.t === 'saveRejected')));
+    T2.send({ t: 'enter', key: 'nexus', cid: 'th1', x: 100, y: 100 });
+    P.send({ t: 'enter', key: 'nexus', x: 101, y: 100 });
+    await wait(300);
+    T2.clear(); P.clear();
+    T2.send({ t: 'cmd', text: '/kick Tpal' + n });
+    T2.send({ t: 'cmd', text: '/give Tpal' + n + ' 1000 gold' });
+    T2.send({ t: 'cmd', text: '/maxtree Tpal' + n });
+    await wait(400);
+    check('testers can\'t kick, give or max anyone else', /Only server moderators can use \/kick/.test(note(T2)) && /Only server admins can use \/give/.test(note(T2)) && /only use \/maxtree on themselves/.test(note(T2)) && !P.find((m) => m.t === 'kicked'), note(T2));
+    T2.clear();
+    T2.send({ t: 'cmd', text: '/maxtree' });
+    await wait(400);
+    const mt = T2.find((m) => m.t === 'saveRejected');
+    check('...but they max their own skill tree', mt && /top rank/.test(mt.reason), note(T2));
+    T2.clear(); P.clear();
+    T2.send({ t: 'tradeReq', to: P.id });
+    P.send({ t: 'tradeReq', to: T2.id });
+    await wait(300);
+    check('testers can\'t trade, either way', /Testers can't trade/.test(note(T2)) && /is a tester/.test(note(P)) && !P.find((m) => m.t === 'tradeReq') && !T2.find((m) => m.t === 'tradeReq'), note(T2) + ' || ' + note(P));
+    T2.clear();
+    T2.send({ t: 'mkList', slot: 0, price: 100, cid: 'th1' });
+    T2.send({ t: 'sell', slot: 0, cid: 'th1' });
+    T2.send({ t: 'ghPut', slot: 0, cid: 'th1' });
+    await wait(400);
+    const fails = T2.msgs.filter((m) => m.t === 'shopFail').map((m) => m.msg).join(' | ');
+    check('...or list, sell or bank items', /use the Marketplace/.test(fails) && /sell items/.test(fails) && /guild bank/.test(fails), fails);
+    T2.clear();
+    T2.send({ t: 'enter', key: 'dg:0:777', cid: 'th1', x: 100, y: 100 });
+    await wait(400);
+    const pl = T2.find((m) => m.t === 'players');
+    check('testers go into any dungeon from the menu (no key)', pl && pl.key === 'dg:0:777', JSON.stringify(pl && pl.key));
+    boss.send({ t: 'cmd', text: '/untester Ttst' + n });
+    await wait(300);
+    check('/untester takes it away', T2.find((m) => m.t === 'role' && m.role !== 'tester' && !m.tester), JSON.stringify(T2.msgs.filter((m) => m.t === 'role')));
+    for (const c of [boss, T2, P]) c.s.destroy();
+  }
+
   console.log('ascension');
   {
     const { Data: AD } = require('./sim/gen/game');

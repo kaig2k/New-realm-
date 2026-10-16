@@ -139,6 +139,7 @@ package realm {
 		private var quitRequested:Boolean = false;
 		private var pauseButtons:Sprite;
 		private var chatInput:TextField;
+		private static const SLASH:uint = 191;
 		private var drawPool:Array = [];
 		private var drawN:int = 0;
 		private var mtx:Matrix = new Matrix();
@@ -333,12 +334,14 @@ package realm {
 			addChild(chatInput);
 		}
 
-		private function openChat():void {
+		private function openChat(start:String = ""):void {
 			if (chatInput.visible) return;
-			chatInput.text = "";
+			chatInput.text = start;
 			chatInput.visible = true;
 			input.blocked = true;
 			stage.focus = chatInput;
+			// (the cursor after anything typed already, so the command carries on from it)
+			chatInput.setSelection(start.length, start.length);
 			refreshChat();
 		}
 
@@ -1521,7 +1524,7 @@ package realm {
 			msg("The fountain heals you. The gold portal (west) leads to your vault; the Starforge and Raid Table are east; the Marketplace is by the entrance.", 0xcccccc);
 			msg("In a realm: WASD move, mouse shoots, SPACE ability, F/G potions, R returns to the Nexus.", 0xcccccc);
 			msg("Click another player to inspect them or trade.", 0xcccccc);
-			tip("nexus", "Press Enter to chat or type commands; /help lists them (try /glands in a realm).");
+			tip("nexus", "Press Enter to chat, or / to type a command straight away; /help lists them (try /glands in a realm).");
 			if (net.online) {
 				var self:Game = this;
 				Online.onSaveRejected = function(reason:String):void { self.saveRejected(reason); };
@@ -1759,6 +1762,8 @@ package realm {
 				if (nearPortal) { usePortal(nearPortal); return; }
 				openChat();
 			}
+			// "/" starts a command: chat opens with the "/" already typed (unless "/" is bound to something in Controls)
+			if (input.pressed(SLASH) && !Keys.actionFor(SLASH)) openChat("/");
 			if (input.pressed(Keys.k("interact")) && nearPortal) { usePortal(nearPortal); return; }
 			if (input.pressed(Keys.k("realm"))) { runCommand("/realm"); return; }
 			if (input.pressed(Keys.k("glands"))) runCommand("/glands");

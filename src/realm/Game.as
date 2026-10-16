@@ -3979,7 +3979,10 @@ package realm {
 			}
 			var mem:Array = [];
 			for each (var mb:Object in v.members) mem.push(mb.on ? "<font color='#9cff7a'>" + Ui.esc(mb.name) + "</font>" : Ui.esc(mb.name));
-			info.htmlText = "<b>" + Ui.esc(v.name) + "</b>  (" + mem.join(", ") + ")\nClick an item to take it. Put items in from your inventory below: everyone in the group shares them.";
+			var hrs:int = Math.ceil(Number(v.open || 0) / 3600000);
+			var lock:String = v.members.length >= int(v.max || 5) ? "<font color='#aaaaaa'>Full</font>" :
+				hrs > 0 ? "<font color='#ffd75e'>Invites open " + (hrs > 48 ? Math.ceil(hrs / 24) + " more days" : hrs + "h more") + "</font>" : "<font color='#aaaaaa'>Locked</font>";
+			info.htmlText = "<b>" + Ui.esc(v.name) + "</b>  (" + mem.join(", ") + ")  " + lock + "\nClick an item to take it. Put items in from your inventory below: everyone in the group shares them.";
 			info.y = y; y += info.height + 8;
 			for (i = 0; i < v.bank.length; i++) {
 				var bx:int = 12 + (i % 8) * 52, by:int = y + int(i / 8) * 52;

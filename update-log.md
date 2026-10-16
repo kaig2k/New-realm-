@@ -11,6 +11,7 @@
 **🤝 Group Ironman (new mode)**
 • Ironman with up to 4 friends: **/group create Name**, then **/group invite name** (they type /group accept)
 • Trade only within your group, and share a **Group Storage** chest in the vault
+• **Groups are for good**: friends can join only in the **first 7 days** after a group is founded, and nobody can leave or be removed once they've joined
 • **+20 loot luck**, and a GIM tag by your name
 
 **🛠️ Quality of life**

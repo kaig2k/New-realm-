@@ -5,12 +5,18 @@
  * items stay Group Ironman items (modes.js): a trade or a trip through the
  * storage keeps each item's pool.
  *
- * groups[id] = {name, leader (account key), members: {key: name}, bank: [{item, entry, by} | null], log: [{text, at}]}
+ * Groups are for good: friends can only join in the first INVITE_DAYS after the group is
+ * founded, and once someone has joined they stay (nobody can remove them, and they can't
+ * leave). Only a founder who is still alone in the group can give it up.
+ *
+ * groups[id] = {name, leader (account key), founded (ms), members: {key: name}, bank: [{item, entry, by} | null], log: [{text, at}]}
  */
 const items = require('./items');
 
 const MAX = 5;
 const BANK_SLOTS = 32;
+const INVITE_DAYS = 7;
+const INVITE_MS = INVITE_DAYS * 24 * 3600 * 1000;
 
 /** The group an account is in: [id, group], or null. */
 function groupOf(groups, key) {
@@ -22,7 +28,21 @@ function ready(g) {
   if (!Array.isArray(g.bank)) g.bank = [];
   while (g.bank.length < BANK_SLOTS) g.bank.push(null);
   if (!Array.isArray(g.log)) g.log = [];
+  if (!(g.founded > 0)) g.founded = Date.now(); // (groups from before the time limit get a full window from now)
   return g;
+}
+
+/** How long new members can still join (ms), 0 once the group is locked. */
+function openFor(g, now) {
+  ready(g);
+  return Math.max(0, g.founded + INVITE_MS - (now || Date.now()));
+}
+
+/** Why nobody new can join g right now, or null. */
+function closed(g, now) {
+  if (Object.keys(g.members).length >= MAX) return 'That group is full (' + MAX + ' members).';
+  if (!openFor(g, now)) return g.name + ' is locked: friends can only join in the first ' + INVITE_DAYS + ' days after a group is founded.';
+  return null;
 }
 
 function note(g, text) {
@@ -37,7 +57,7 @@ function create(groups, key, who, name) {
   if (!/^[A-Za-z][A-Za-z ]{2,19}$/.test(name)) return 'Group names are 3-20 letters (spaces allowed).';
   const id = name.toLowerCase();
   if (groups[id]) return 'That group name is taken.';
-  groups[id] = ready({ name, leader: key, members: { [key]: who } });
+  groups[id] = ready({ name, leader: key, founded: Date.now(), members: { [key]: who } });
   note(groups[id], who + ' founded the group');
   return [id, groups[id]];
 }
@@ -47,38 +67,22 @@ function join(groups, id, key, who) {
   const g = groups[id];
   if (!g) return 'That group no longer exists.';
   if (groupOf(groups, key)) return 'You\'re already in a group (/group leave first).';
-  if (Object.keys(g.members).length >= MAX) return 'That group is full (' + MAX + ' members).';
+  const why = closed(g);
+  if (why) return why;
   g.members[key] = who;
   note(ready(g), who + ' joined');
   return g;
 }
 
-/** key leaves its group (the last one out takes the group with them, once its storage is empty). Returns {name}, or {err}. */
+/** A founder still alone in their group gives it up (once anyone has joined, everyone stays for good). Returns {name}, or {err}. */
 function leave(groups, key) {
   const found = groupOf(groups, key);
   if (!found) return { err: 'You\'re not in a group.' };
   const [id, g] = found;
-  const others = Object.keys(g.members).filter((k) => k !== key);
-  if (!others.length && ready(g).bank.some(Boolean)) return { err: 'You\'re the last one in ' + g.name + ': take everything out of its Group Storage first.' };
-  const who = g.members[key];
-  delete g.members[key];
-  if (!others.length) { delete groups[id]; return { name: g.name }; }
-  if (g.leader === key) g.leader = others[0];
-  note(g, who + ' left');
+  if (Object.keys(g.members).some((k) => k !== key)) return { err: 'Group Ironman is for good: once friends have joined, nobody leaves ' + g.name + ' and nobody can be removed.' };
+  if (ready(g).bank.some(Boolean)) return { err: 'Take everything out of ' + g.name + '\'s Group Storage first.' };
+  delete groups[id];
   return { name: g.name };
-}
-
-/** The leader removes an account from the group. Returns {name} (theirs), or {err}. */
-function kick(groups, key, target) {
-  const found = groupOf(groups, key);
-  if (!found) return { err: 'You\'re not in a group.' };
-  const [, g] = found;
-  if (g.leader !== key) return { err: 'Only the group\'s leader can remove members.' };
-  if (!g.members[target] || target === key) return { err: 'They\'re not in your group.' };
-  const name = g.members[target];
-  delete g.members[target];
-  note(ready(g), name + ' was removed');
-  return { name };
 }
 
 /** Puts inv[slot] in the group's storage. Returns the item, or an error string. */
@@ -117,10 +121,10 @@ function withdraw(g, sv, inv, idx, who) {
 function view(g, online) {
   ready(g);
   return {
-    name: g.name, leader: g.members[g.leader] || '',
+    name: g.name, leader: g.members[g.leader] || '', open: openFor(g), max: MAX,
     members: Object.keys(g.members).map((k) => ({ name: g.members[k], on: !!online(k) })),
     bank: g.bank, log: g.log.slice(0, 6)
   };
 }
 
-module.exports = { groupOf, create, join, leave, kick, deposit, withdraw, view, ready, MAX, BANK_SLOTS };
+module.exports = { groupOf, create, join, leave, deposit, withdraw, view, ready, openFor, closed, MAX, BANK_SLOTS, INVITE_DAYS };

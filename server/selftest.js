@@ -433,7 +433,7 @@ async function run() {
     check('friends can join', groups.join(G, made[0], 'bob', 'Bob') === made[1] && groups.groupOf(G, 'bob')[1] === made[1]);
     for (const k of ['c', 'd', 'e']) groups.join(G, made[0], k, k);
     check('groups hold ' + groups.MAX + ' at most', typeof groups.join(G, made[0], 'f', 'f') === 'string');
-    check('only the leader removes members', !!groups.kick(G, 'bob', 'c').err && groups.kick(G, 'ann', 'c').name === 'c' && !groups.groupOf(G, 'c'));
+    check('nobody can be removed from a group', groups.kick === undefined);
     // the Group Storage keeps items Group Ironman
     const annSave = { chars: [hero('g1', 'group')] }, bobSave = { chars: [hero('g2', 'group')] };
     const gi = items.issue(annSave, Object.assign({}, ITEMS.ring, { name: 'Shared Ring' }), 'group');
@@ -445,15 +445,20 @@ async function run() {
     check('it\'s still a Group Ironman item', bobSave._ledger[gi.sid] && bobSave._ledger[gi.sid].p === 'group');
     check('so a regular hero can\'t hold it', modes.check(bobSave, { chars: [hero('g2', 'group'), hero('r9', '', [gi])] }) !== null);
     check('a Group Ironman hero can', modes.check(bobSave, { chars: [hero('g2', 'group', [gi])] }) === null);
-    // leaving
+    // groups are for good
+    check('members can\'t leave once friends have joined', !!groups.leave(G, 'bob').err && groups.groupOf(G, 'bob'));
+    check('nor can the founder', !!groups.leave(G, 'ann').err && groups.groupOf(G, 'ann'));
     const g3 = groups.create(G, 'zed', 'Zed', 'Lone Wolf');
     const zSave = { chars: [hero('z1', 'group')] };
     const zi = items.issue(zSave, Object.assign({}, ITEMS.ring), 'group');
     groups.deposit(g3[1], zSave, [zi], 0, 'Zed');
-    check('the last member can\'t leave a group with items in storage', !!groups.leave(G, 'zed').err && G[g3[0]]);
+    check('a founder alone must empty the storage before giving the group up', !!groups.leave(G, 'zed').err && G[g3[0]]);
     groups.withdraw(g3[1], zSave, [null], g3[1].bank.findIndex(Boolean), 'Zed');
-    check('once it\'s empty the group goes with them', groups.leave(G, 'zed').name === 'Lone Wolf' && !G[g3[0]]);
-    check('when the leader leaves someone else leads', !groups.leave(G, 'ann').err && made[1].leader !== 'ann' && made[1].members[made[1].leader]);
+    check('then a founder still alone can give it up', groups.leave(G, 'zed').name === 'Lone Wolf' && !G[g3[0]]);
+    const g4 = groups.create(G, 'yan', 'Yan', 'Late Comers');
+    check('invites are open for ' + groups.INVITE_DAYS + ' days', groups.openFor(g4[1]) > (groups.INVITE_DAYS - 1) * 864e5 && !groups.closed(g4[1]));
+    g4[1].founded -= groups.INVITE_DAYS * 864e5 + 1000;
+    check('after that the group is locked', groups.openFor(g4[1]) === 0 && typeof groups.join(G, g4[0], 'xia', 'Xia') === 'string' && !groups.groupOf(G, 'xia'));
   }
 
   console.log('ability items');

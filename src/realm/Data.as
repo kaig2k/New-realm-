@@ -1575,7 +1575,7 @@ package realm {
 			{id: "2026-10-modes", title: "What's new in Eldmere",
 				lines: ["<b>A character screen for each mode</b>: Regular, Ironman, Hardcore and Group Ironman heroes each have their own tab. Make new heroes from the tab they belong to.",
 					"<b>A vault for each mode</b>: Ironman and Hardcore heroes now have vaults of their own. Items stay in their mode: what your Ironmen find, only your Ironmen use.",
-					"<b>Group Ironman</b>: Ironman with up to 4 friends. <b>/group create Name</b>, then <b>/group invite name</b>. Your group trades only with each other and shares a <b>Group Storage</b> chest in the vault.",
+					"<b>Group Ironman</b>: Ironman with up to 4 friends. <b>/group create Name</b>, then <b>/group invite name</b>. Your group trades only with each other and shares a <b>Group Storage</b> chest in the vault. Choose well: friends can join for 7 days, and nobody leaves or is removed.",
 					"<b>Tip</b>: type <b>/</b> to start a command straight away."]},
 			{id: "2026-10-godly", title: "What's new in Eldmere",
 				lines: ["<b>Godly is truly Godly</b>: every drop has the same, best-in-game stats (no bad rolls), weapons hit 35% harder than Primordial, and each set has its own art, shots and a <b>Divine Wrath</b> special attack. Wear Godly for a golden aura; the full set crowns you with a halo.",

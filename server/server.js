@@ -2127,7 +2127,8 @@ const handlers = {
         save('groups.json', groupsT);
         log(c.name + ' founded the Group Ironman group ' + r[1].name);
         sendGroup(c);
-        return c.note('You founded the Group Ironman group ' + r[1].name + '. Invite up to ' + (groupsMod.MAX - 1) + ' friends: /group invite name', 0x7fd8a8);
+        return c.note('You founded the Group Ironman group ' + r[1].name + '. Invite up to ' + (groupsMod.MAX - 1) + ' friends with /group invite name in the next ' +
+          groupsMod.INVITE_DAYS + ' days: after that the group is locked, and nobody who joins can leave or be removed.', 0x7fd8a8);
       }
       if (sub === 'invite') {
         if (!mine) return c.note('Make a group first: /group create Name');
@@ -2135,9 +2136,10 @@ const handlers = {
         if (!o) return c.note('Nobody called ' + (parts[2] || '?') + ' is online.');
         if (o === c) return;
         if (groupsMod.groupOf(groupsT, o.key)) return c.note(o.name + ' is already in a group.');
-        if (Object.keys(mine[1].members).length >= groupsMod.MAX) return c.note('Your group is full (' + groupsMod.MAX + ' members).');
+        const shut = groupsMod.closed(mine[1]);
+        if (shut) return c.note(shut);
         groupInvites.set(o.key, { id: mine[0], from: c.name, at: Date.now() });
-        o.note(c.name + ' invited you to their Group Ironman group ' + mine[1].name + '. Type /group accept to join.', 0x7fd8a8);
+        o.note(c.name + ' invited you to their Group Ironman group ' + mine[1].name + '. Joining is for good: you can\'t leave or be removed. Type /group accept to join.', 0x7fd8a8);
         return c.note('Invited ' + o.name + ' to ' + mine[1].name + '.', 0x7fd8a8);
       }
       if (sub === 'accept' || sub === 'join') {
@@ -2150,26 +2152,20 @@ const handlers = {
         for (const o of byName.values()) if (gimOf(o) === r) { o.note(c.name + ' joined the Group Ironman group ' + r.name + '.', 0x7fd8a8); sendGroup(o); }
         return;
       }
-      if (sub === 'leave') {
+      if (sub === 'leave' || sub === 'disband') {
         const r = groupsMod.leave(groupsT, c.key);
         if (r.err) return c.note(r.err);
         save('groups.json', groupsT);
         sendGroup(c);
-        for (const o of byName.values()) if (gimOf(o) === mine[1]) { o.note(c.name + ' left the group.', 0x7fd8a8); sendGroup(o); }
-        return c.note('You left ' + r.name + '. Your heroes keep what they carry.', 0x7fd8a8);
+        return c.note('You gave up ' + r.name + ' (nobody had joined yet). Your heroes keep what they carry.', 0x7fd8a8);
       }
-      if (sub === 'kick') {
-        const r = groupsMod.kick(groupsT, c.key, accountKey(parts[2]) || (parts[2] || '').toLowerCase());
-        if (r.err) return c.note(r.err);
-        save('groups.json', groupsT);
-        for (const o of byName.values()) if (gimOf(o) === mine[1] || o.name === r.name) sendGroup(o);
-        return c.note(r.name + ' is no longer in the group.', 0x7fd8a8);
-      }
+      if (sub === 'kick' || sub === 'remove') return c.note('Group Ironman is for good: nobody can be removed from a group.');
       if (!mine) return c.note('Group Ironman: /group create Name to start a group (up to ' + groupsMod.MAX + ' accounts), or /group accept an invite. ' +
         'Group Ironman heroes trade only with their group, and share its Group Storage in the vault.', 0x7fd8a8);
       const v = groupsMod.view(mine[1], (k) => [...byName.values()].some((o) => o.key === k));
-      return c.note('Group ' + v.name + ' (leader ' + v.leader + '): ' + v.members.map((x) => x.name + (x.on ? ' (online)' : '')).join(', ') +
-        '. /group invite name, /group leave' + (mine[1].leader === c.key ? ', /group kick name' : '') + '.', 0x7fd8a8);
+      const left = groupsMod.closed(mine[1]) ? 'Locked: no one new can join.' : 'Invites open for ' + Math.ceil(v.open / 3600000) + 'h more (/group invite name).' +
+        (v.members.length === 1 ? ' While nobody has joined, /group leave gives the group up.' : '');
+      return c.note('Group ' + v.name + ' (founded by ' + v.leader + '): ' + v.members.map((x) => x.name + (x.on ? ' (online)' : '')).join(', ') + '. ' + left, 0x7fd8a8);
     }
     if (cmd === '/spires') {
       const lines = SPIRE_NAMES.map((n, i) => { const h = terr.holder(i); return n + ': ' + (h && guilds[h] ? guilds[h].name : 'nobody'); });

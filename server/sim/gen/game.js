@@ -1511,11 +1511,11 @@ class Bosses {
 			]}, ["lantern_wand", "mothwing_cloak", "dustveil_robe"]);
 
 			Bosses.boss("serpent_boss", {hp: 6500, phases: [
-				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(3, 26, 6, 35, 0.8, 0x60e060, {motion: "wave"}), Bosses.ring(12, 13, 4, 30, 2.0, 0x2a9a6a, {eff: "slowed"})]}),
+				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(3, 26, 6, 40, 0.75, 0x60e060, {motion: "wave"}), Bosses.ring(12, 13, 4, 34, 1.5, 0x2a9a6a, {eff: "slowed"})]}),
 				Bosses.P(0.66, {say: "Ssslither... and die.", shield: 2, move: "orbit",
-					attacks: [Bosses.spiral(2, 23, 5.5, 32, 0.12, 0x80ff80, {motion: "wave"}), Bosses.summon("great_snake", 2, 8, 4)]}),
+					attacks: [Bosses.spiral(3, 23, 5.5, 36, 0.12, 0x80ff80, {motion: "wave"}), Bosses.summon("great_snake", 2, 8, 4)]}),
 				Bosses.P(0.33, {say: "The pit hungers!", move: "chase", speed: 1.3,
-					attacks: [Bosses.wall(11, 6, 40, 2.0, 0x40c040, {eff: "bleeding"}), Bosses.aim(7, 70, 7, 35, 1.3, 0xa0ffa0)]})
+					attacks: [Bosses.wall(11, 6, 45, 1.6, 0x40c040, {eff: "bleeding"}), Bosses.aim(7, 70, 7, 40, 1.1, 0xa0ffa0)]})
 			]}, ["fang_of_ssythra", "venom_quiver", "scaled_hide"]);
 
 			Bosses.boss("spider_boss", {hp: 7000, phases: [
@@ -1546,7 +1546,7 @@ class Bosses {
 			]}, ["emberheart_staff", "magma_plate", "cinder_ring"]);
 
 			Bosses.boss("seraph", {hp: 10000, phases: [
-				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(3, 19, 7, 50, 0.12, 0xfff060, {shape: "dart"})]}),
+				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(3, 19, 7, 55, 0.12, 0xfff060, {shape: "dart"}), Bosses.aim(3, 30, 9, 70, 1.1, 0xffffff, {shape: "blade", name: "gale blades"})]}),
 				Bosses.P(0.66, {say: "Feel the storm!", move: "teleport",
 					attacks: [Bosses.aim(1, 0, 15, 100, 0.5, 0xffffff, {shape: "blade", eff: "paralyzed", r: 0.3}), Bosses.wall(15, 6, 60, 1.8, 0xd0d0ff)]}),
 				Bosses.P(0.33, {say: "Thunder answers me!", shield: 2, move: "center", every: 4,
@@ -1571,11 +1571,11 @@ class Bosses {
 			]}, ["phylactery", "soulreaper", "deathshroud"]);
 
 			Bosses.boss("demon_boss", {hp: 14000, phases: [
-				Bosses.P(1, {move: "chase", attacks: [Bosses.aim(5, 40, 8, 70, 0.9, 0xff6020), Bosses.rain(4, 3, 80, 2.4, 0xff3010, {burst: 6})]}),
+				Bosses.P(1, {move: "chase", speed: 0.8, attacks: [Bosses.aim(5, 56, 7.5, 70, 1.1, 0xff6020), Bosses.rain(4, 3, 80, 2.4, 0xff3010, {burst: 6})]}),
 				Bosses.P(0.66, {say: "Kneel before the Abyss!", shield: 2, summon: [{what: "lesser_demon", n: 3}], move: "charge", speed: 1.4,
 					attacks: [Bosses.flower(20, 9, 5.5, 65, 1.0, 0xff8040), Bosses.aim(1, 0, 11, 110, 0.8, 0xffe040, {shape: "blade", r: 0.3, eff: "armorbroken"})]}),
 				Bosses.P(0.3, {say: "I AM THE ABYSS!", banner: "Malgoroth rages!", move: "center",
-					attacks: [Bosses.spiral(6, 13, 6.5, 65, 0.1, 0xff4020), Bosses.nova(2.5, 1.2, 120, 2.2, 0xff2010, {burst: 12}), Bosses.wall(15, 5.5, 80, 2.8, 0xffb030)]})
+					attacks: [Bosses.spiral(5, 13, 6, 65, 0.12, 0xff4020), Bosses.nova(2.5, 1.2, 120, 2.4, 0xff2010, {burst: 8}), Bosses.wall(15, 5.5, 80, 2.8, 0xffb030, {hole: 3})]})
 			]}, ["hellfire_blade", "infernal_helm", "brimstone_ring"]);
 
 			Bosses.boss("sprite_boss", {hp: 11000, phases: [
@@ -1604,7 +1604,7 @@ class Bosses {
 			]}, ["titanbreaker", "ember_mantle"]);
 
 			Bosses.boss("ev_wyrm", {phases: [
-				Bosses.P(1, {move: "orbit", speed: 1.3, attacks: [Bosses.spiral(5, 9, 6.5, 50, 0.16, 0x8ad8ff, {eff: "slowed"})]}),
+				Bosses.P(1, {move: "orbit", speed: 1.3, attacks: [Bosses.spiral(5, 9, 6.5, 55, 0.15, 0x8ad8ff, {eff: "slowed"}), Bosses.aim(3, 24, 8.5, 65, 1.0, 0xe0f4ff, {shape: "blade", name: "ice shards"})]}),
 				Bosses.P(0.66, {say: "Freeze, little warm thing.", move: "teleport",
 					attacks: [Bosses.aim(9, 90, 7, 60, 0.9, 0xe0f4ff, {motion: "wave"}), Bosses.ring(16, 11, 3.5, 55, 1.6, 0x40a0ff, {motion: "accel", accel: 0.8})]}),
 				Bosses.P(0.33, {say: "WINTER COMES!", banner: "Blizzard!", shield: 2, move: "center",
@@ -1652,9 +1652,9 @@ class Bosses {
 			]}, ["sunken_trident", "drowned_plate"]);
 
 			Bosses.boss("ev_hermit", {phases: [
-				Bosses.P(1, {move: "still", attacks: [Bosses.ring(18, 10, 4, 55, 1.2, 0x2a9a8a), Bosses.aim(1, 0, 10, 80, 0.8, 0xe0ff80)]}),
+				Bosses.P(1, {move: "still", attacks: [Bosses.ring(18, 10, 4.5, 60, 1.1, 0x2a9a8a), Bosses.aim(3, 22, 9, 75, 0.9, 0xe0ff80, {name: "shell shot"})]}),
 				Bosses.P(0.6, {say: "Leave my shore!", shield: 3, move: "still", summon: [{what: "crab", n: 4}],
-					attacks: [Bosses.flower(24, 7.5, 4.5, 60, 0.9, 0x40e0c0, {motion: "return"})]}),
+					attacks: [Bosses.flower(24, 7.5, 4.5, 60, 0.9, 0x40e0c0, {motion: "return"}), Bosses.rain(4, 3, 85, 2.4, 0x2a9a8a, {name: "tide spout"})]}),
 				Bosses.P(0.3, {say: "*the shell cracks*", banner: "The Hermit emerges!", move: "chase", speed: 1.5,
 					attacks: [Bosses.spiral(6, 15, 6.5, 65, 0.1, 0xe0ff80), Bosses.rain(4, 3, 90, 2.2, 0x2a9a8a)]})
 			]}, ["tidecaller", "hermit_shell"]);
@@ -1664,7 +1664,7 @@ class Bosses {
 				Bosses.P(0.66, {say: "THE SHRINE DEMANDS TRIBUTE", shield: 3, summon: [{what: "skeleton", n: 4}], move: "still",
 					attacks: [Bosses.flower(20, 9, 5, 65, 0.9, 0xff2020), Bosses.rain(5, 5, 90, 2.2, 0xff8a20, {burst: 6})]}),
 				Bosses.P(0.33, {say: "BURN IN ITS FLAMES", move: "still", every: 3,
-					cycle: [[Bosses.spiral(8, 9, 6, 65, 0.1, 0xff8a20)], [Bosses.spiral(8, -9, 6, 65, 0.1, 0xffe040)], [Bosses.wall(17, 5, 80, 1, 0xff2020, {hole: 2})]]})
+					cycle: [[Bosses.spiral(6, 9, 5.5, 65, 0.12, 0xff8a20)], [Bosses.spiral(6, -9, 5.5, 65, 0.12, 0xffe040)], [Bosses.wall(17, 5, 80, 1.2, 0xff2020, {hole: 3})]]})
 			]}, ["skullforge", "shrineflame"]);
 
 			
@@ -1705,7 +1705,8 @@ class Bosses {
 			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"])) Data.EVENTS.push(ev);
 		}
 	static vSwing(dmg, cd, n = 7) { dmg = __int(dmg); n = __int(n);
-			return Bosses.aim(n, 120, 8.5, dmg, cd, Bosses.V_RED, {shape: "crescent", r: 0.42, life: 1.1, anim: "swing", animMs: 85, name: "mace swing"});
+			
+			return Bosses.aim(Math.min(n, 5), 120, 8.5, dmg, cd, Bosses.V_RED, {shape: "crescent", r: 0.36, life: 1.1, anim: "swing", animMs: 85, name: "mace swing"});
 		}
 	static vSmash(dmg, cd, radius = 3.4, delay = 1.0) { dmg = __int(dmg);
 			return Bosses.nova(radius, delay, dmg, cd, Bosses.V_RED, {burst: 16, bspd: 5.5, blife: 1.4, land: "slam", radius: radius, fx: "spikes", shape: "spike",
@@ -1733,7 +1734,7 @@ class Bosses {
 		}
 	static siege() {
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
-				attacks: [Bosses.aim(3, 18, 8, 95, 1.1, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.2, 0xff6010, {motion: "home", r: 0.28})]});
+				attacks: [Bosses.aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
 			
 			Bosses.mob("siege_ballista", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 200, keep: 0, prop: true,
 				name: "Siege Ballista", spr: "siege_ballista", hp: 14000, def: 34, col: 0xff7a1a,
@@ -1748,22 +1749,22 @@ class Bosses {
 				
 				Bosses.P(1, {move: "chase", speed: 0.9, attacks: [Bosses.vSwing(150, 2.2), Bosses.vSmash(175, 3.6), Bosses.vBash(130, 4.4), Bosses.vFlail(160, 5.2)]}),
 				
-				Bosses.P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 6}],
+				Bosses.P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 4}],
 					attacks: [Bosses.vBarrage(10, 155, 2.6), Bosses.vSpears(5, 125, 2.2), Bosses.vWarcry(190, 7)]}),
 				
 				Bosses.P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "chase", speed: 1.4,
 					attacks: [Bosses.vCharge(160, 3.2), Bosses.vSwing(150, 2.6, 9), Bosses.vSmash(180, 4.2, 3.6), Bosses.vFlail(160, 4.8, 2)]}),
 				
 				Bosses.P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS! VORGATH IS ENRAGED!", shield: 3, move: "orbit", speed: 1.2,
-					summon: [{what: "siege_soldier", n: 8}], every: 3.2, cycle: [
+					summon: [{what: "siege_soldier", n: 5}], every: 3.2, cycle: [
 						[Bosses.vBarrage(12, 160, 1.6), Bosses.vSpears(7, 130, 1.4)],
 						[Bosses.vWarcry(210, 3.2, 6), Bosses.vFlail(170, 1.6, 3)],
-						[Bosses.vSwing(160, 1.0, 9), Bosses.vSmash(190, 1.6, 3.8, 0.9)],
+						[Bosses.vSwing(160, 1.6, 9), Bosses.vSmash(190, 2.0, 3.8, 1.0)],
 						[Bosses.vBash(140, 1.3), Bosses.vCharge(170, 1.6)]]}),
 				
 				Bosses.P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "THE LAST STAND!", move: "chase", speed: 1.5,
 					attacks: [Bosses.vSwing(170, 1.6, 11), Bosses.vSmash(210, 2.6, 4.2, 0.85), Bosses.vCharge(180, 4.0), Bosses.vWarcry(230, 6.5, 6.5), Bosses.vBarrage(8, 165, 3.4),
-						Bosses.spiral(8, 9, 8, 140, 0.12, Bosses.V_RED, {shape: "spike"})]})
+						Bosses.spiral(5, 9, 7, 140, 0.15, Bosses.V_RED, {shape: "spike"})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 	static hBarrage(dmg, cd, waves = 5) { dmg = __int(dmg); waves = __int(waves);
@@ -1821,10 +1822,10 @@ class Bosses {
 			Bosses.boss("sun_king", {phases: [
 				Bosses.P(1, {move: "wander", attacks: [Bosses.flower(16, 11, 5, 70, 1.0, 0xffb020), Bosses.aim(3, 20, 9, 80, 1.0, 0xffe060)]}),
 				Bosses.P(0.5, {say: "Kneel before the noon sun!", shield: 1.5, move: "center",
-					attacks: [Bosses.spiral(6, 8, 6, 70, 0.12, 0xffd040), Bosses.nova(2.5, 1.2, 120, 2.6, 0xff9020, {burst: 10})]})
+					attacks: [Bosses.spiral(5, 8, 6, 70, 0.13, 0xffd040), Bosses.nova(2.5, 1.3, 120, 2.6, 0xff9020, {burst: 8})]})
 			]}, ["solar_crown", "sunfire_staff"]);
 			Bosses.boss("moon_queen", {phases: [
-				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(5, 50, 7, 70, 1.0, 0xb0c0ff, {motion: "wave"}), Bosses.ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
+				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(5, 64, 7, 70, 1.15, 0xb0c0ff, {motion: "wave"}), Bosses.ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
 				Bosses.P(0.5, {say: "The night is mine.", move: "teleport",
 					attacks: [Bosses.spiral(4, -14, 6, 70, 0.12, 0xd0d8ff), Bosses.rain(5, 4, 100, 2.4, 0x6a7ac0, {eff: "slowed"})]})
 			]}, ["moonlight_bow", "lunar_robe"]);
@@ -1834,33 +1835,35 @@ class Bosses {
 					attacks: [Bosses.rain(8, 6, 90, 2, 0xc070ff, {burst: 4}), Bosses.spiral(3, 23, 7, 70, 0.1, 0xfff060)]})
 			]}, ["starfall_dagger", "astral_cloak"]);
 			Bosses.boss("frost_warden", {phases: [
-				Bosses.P(1, {move: "wander", attacks: [Bosses.spiral(4, 10, 5, 70, 0.14, 0x80e0ff, {eff: "slowed"}), Bosses.aim(1, 0, 12, 110, 0.9, 0xffffff, {shape: "blade", r: 0.3})]}),
+				Bosses.P(1, {move: "wander", attacks: [Bosses.spiral(4, 10, 5, 70, 0.14, 0x80e0ff, {eff: "slowed"}), Bosses.aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
+					Bosses.ring(10, 18, 3.5, 60, 2.4, 0xc0e8ff, {name: "frost ring"})]}),
 				Bosses.P(0.5, {say: "The cold takes everything.", shield: 2, move: "center",
-					attacks: [Bosses.wall(15, 4.5, 90, 1.8, 0xc0e8ff, {eff: "slowed"}), Bosses.rain(5, 5, 100, 2.4, 0x80f0ff)]})
+					attacks: [Bosses.wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3, eff: "slowed"}), Bosses.rain(5, 5, 85, 2.6, 0x80f0ff, {delay: 1.3})]})
 			]}, ["glacial_plate", "icicle_ring"]);
 			Bosses.boss("flame_warden", {phases: [
-				Bosses.P(1, {move: "chase", attacks: [Bosses.aim(5, 50, 8, 75, 1.0, 0xff6020), Bosses.ring(12, 15, 4, 70, 1.5, 0xffb020, {split: {n: 4, spd: 4, life: 0.8, dmg: 45}, life: 1.4})]}),
+				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(4, 60, 8, 75, 1.2, 0xff6020), Bosses.ring(10, 15, 4, 65, 2.0, 0xffb020, {split: {n: 3, spd: 3.5, life: 0.7, dmg: 40}, life: 1.4})]}),
 				Bosses.P(0.5, {say: "Burn with your friend!", shield: 2, move: "charge",
-					attacks: [Bosses.spiral(5, 13, 6, 75, 0.12, 0xff6020), Bosses.nova(2.2, 1, 110, 2.2, 0xff3010, {burst: 8})]})
+					attacks: [Bosses.spiral(4, 13, 5.5, 70, 0.14, 0xff6020), Bosses.nova(2.2, 1.3, 95, 2.7, 0xff3010, {burst: 5, bspd: 3.5})]})
 			]}, ["flamewarden_blade", "ember_ring"]);
 			Bosses.boss("shattered_seraph", {phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(4, 12, 6, 70, 0.12, 0xff60c0), Bosses.aim(3, 24, 10, 90, 1.0, 0xffffff, {shape: "blade"})]}),
 				Bosses.P(0.75, {say: "You broke the seal... now see what you freed.", shield: 2.5, summon: [{what: "sprite_god", n: 2}], move: "center",
-					attacks: [Bosses.flower(24, 7.5, 5, 75, 0.9, 0xff60c0), Bosses.wall(17, 5, 90, 2.2, 0xd8d0e8)]}),
+					attacks: [Bosses.flower(24, 7.5, 5, 75, 0.9, 0xff60c0), Bosses.wall(17, 5, 90, 2.4, 0xd8d0e8, {hole: 3})]}),
 				Bosses.P(0.45, {say: "SHATTER!", banner: "The Seraph shatters!", move: "teleport",
-					attacks: [Bosses.rain(9, 7, 110, 1.8, 0xff2060, {burst: 6}), Bosses.spiral(6, -9, 6.5, 75, 0.11, 0xd8d0e8)]}),
+					attacks: [Bosses.rain(7, 7, 110, 2.0, 0xff2060, {burst: 4}), Bosses.spiral(5, -9, 6, 75, 0.13, 0xd8d0e8)]}),
 				Bosses.P(0.15, {say: "I... will not... fade!", shield: 2, move: "center", every: 3,
-					cycle: [[Bosses.flower(30, 6, 6, 80, 0.6, 0xff60c0)], [Bosses.aim(9, 120, 9, 90, 0.5, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]]})
+					cycle: [[Bosses.flower(24, 6, 6, 80, 0.75, 0xff60c0)], [Bosses.aim(7, 120, 9, 90, 0.8, 0xffffff, {shape: "blade", waves: 2, gap: 0.3})]]})
 			]}, ["shardwing_bow", "seraph_halo"]);
 			Bosses.boss("blood_knight", {phases: [
 				Bosses.P(1, {move: "charge", speed: 1.3, attacks: [Bosses.aim(3, 30, 9, 85, 0.9, 0xd02030, {eff: "bleeding"}), Bosses.wall(9, 6, 80, 2.4, 0xff4040)]}),
 				Bosses.P(0.5, {say: "Your blood will feed my blade!", shield: 1.5, move: "chase", speed: 1.5,
-					attacks: [Bosses.spiral(4, 17, 6.5, 80, 0.11, 0xff4040), Bosses.nova(2, 0.9, 120, 2, 0xd02030, {burst: 8, eff: "bleeding"})]})
+					attacks: [Bosses.spiral(4, 17, 6.5, 80, 0.12, 0xff4040), Bosses.nova(1.8, 1.3, 115, 2.5, 0xd02030, {burst: 5, bspd: 3.5, eff: "bleeding"})]})
 			]}, ["bloodletter", "sanguine_plate"]);
 			Bosses.boss("hex_queen", {phases: [
-				Bosses.P(1, {move: "teleport", attacks: [Bosses.aim(3, 30, 7, 75, 1.0, 0x80ff60, {motion: "home", eff: "confused"}), Bosses.rain(4, 4, 90, 2.6, 0xd060ff)]}),
+				Bosses.P(1, {move: "teleport", attacks: [Bosses.aim(3, 30, 7, 75, 1.2, 0x80ff60, {motion: "home", eff: "confused"}), Bosses.rain(4, 4, 90, 2.6, 0xd060ff),
+					Bosses.ring(12, 14, 3.5, 60, 2.2, 0xd060ff, {name: "hex ring"})]}),
 				Bosses.P(0.5, {say: "A curse on all your houses!", shield: 2, move: "orbit",
-					attacks: [Bosses.flower(20, 9, 5, 75, 1.0, 0x80ff60, {split: {n: 4, spd: 4, life: 0.9, dmg: 45}, life: 1.5}), Bosses.wall(13, 5, 90, 2.2, 0xd060ff, {eff: "slowed"})]})
+					attacks: [Bosses.flower(16, 9, 5, 75, 1.2, 0x80ff60, {split: {n: 3, spd: 3.5, life: 0.8, dmg: 40}, life: 1.5}), Bosses.wall(13, 5, 90, 2.4, 0xd060ff, {hole: 3, eff: "slowed"})]})
 			]}, ["hexweave_robe", "cursed_skull"]);
 		}
 	static eBlast(dmg, cd) { dmg = __int(dmg);
@@ -1939,7 +1942,7 @@ class Bosses {
 				Bosses.P(0.5, {say: "The tide turns!", banner: "The throne room floods!", move: "teleport",
 					attacks: [Bosses.nGeyser(9, 110, 1.8), Bosses.nSlam(90, 2.4), Bosses.nTeleport(6), Bosses.flower(24, 7.5, 5, 75, 0.9, Bosses.N_LIGHT, {motion: "return", shape: "orb"})]}),
 				Bosses.P(0.2, {say: "The sea is my voice. And you are but a ripple.", banner: "Nerezza's fury turns the sea violet!", shield: 2, move: "orbit", speed: 1.4,
-					attacks: [Bosses.spiral(8, 9, 6, 80, 0.1, Bosses.N_VIOLET, {motion: "wave", shape: "orb"}), Bosses.nSpout(110, 2.6), Bosses.nExplode(150, 3.0, 6), Bosses.nWhirl(18, 90, 3.6), Bosses.nTrident(7, 90, 1.0)]})
+					attacks: [Bosses.spiral(5, 9, 6, 80, 0.12, Bosses.N_VIOLET, {motion: "wave", shape: "orb"}), Bosses.nSpout(110, 2.6), Bosses.nExplode(150, 3.0, 6), Bosses.nWhirl(18, 90, 3.6), Bosses.nTrident(7, 90, 1.0)]})
 			]}, ["tidebreaker", "empress_coral"]);
 
 			Bosses.boss("gearmind", {name: "Gearmind Omega", spr: "gearmind", hp: 42000, def: 38, spd: 1.0, xp: 5000, col: 0xffd060,
@@ -1961,9 +1964,9 @@ class Bosses {
 				Bosses.P(0.75, {say: "Feel the void's breath!", shield: 2, move: "center",
 					attacks: [Bosses.wall(21, 5, 90, 1.6, 0x8040c0, {hole: 2, waves: 2, gap: 0.5}), Bosses.summon("void_wisp", 2, 7, 6)]}),
 				Bosses.P(0.5, {say: "The stars go dark.", banner: "The rift tears open!", move: "teleport", every: 4,
-					cycle: [[Bosses.spiral(6, 13, 6.5, 80, 0.1, 0xc080ff)], [Bosses.rain(10, 7, 120, 1.8, 0xd040ff, {burst: 6})], [Bosses.flower(30, 6, 5.5, 80, 0.7, 0xff40ff)]]}),
+					cycle: [[Bosses.spiral(5, 13, 6, 80, 0.12, 0xc080ff)], [Bosses.rain(8, 7, 120, 2.0, 0xd040ff, {burst: 5})], [Bosses.flower(24, 6, 5.5, 80, 0.8, 0xff40ff)]]}),
 				Bosses.P(0.2, {say: "I AM ETERNAL!", shield: 3, move: "orbit", speed: 1.4,
-					attacks: [Bosses.spiral(8, -11, 7, 85, 0.09, 0xff40ff), Bosses.nova(3.5, 1.4, 160, 2.6, 0xd040ff, {burst: 20}), Bosses.aim(5, 30, 11, 110, 1.0, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]})
+					attacks: [Bosses.spiral(5, -11, 6.5, 85, 0.12, 0xff40ff), Bosses.nova(3.5, 1.5, 160, 2.8, 0xd040ff, {burst: 14}), Bosses.aim(5, 30, 11, 110, 1.0, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]})
 			]}, ["voidfang", "dragonscale"]);
 
 			var D = Data.DUNGEONS;
@@ -2113,13 +2116,15 @@ class Bosses {
 			var raid = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			
 			Bosses.mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Blood Altar", spr: "blood_altar", hp: 16000, def: 30, col: 0xd8102a,
-				attacks: [Bosses.ring(10, 18, 4.2, 80, 2.2, 0xd8102a, {shape: "orb", eff: "bleeding"}),
-					Bosses.rain(3, 3, 95, 3.4, 0xff3040, {radius: 1.4, delay: 1.0, fx: "spikes", name: "blood geyser"})]});
+				name: "Blood Altar", spr: "blood_altar", hp: 40000, def: 30, col: 0xd8102a,
+				attacks: [Bosses.ring(10, 18, 4.2, 80, 1.7, 0xd8102a, {shape: "orb", eff: "bleeding"}),
+					Bosses.rain(4, 3.5, 95, 2.6, 0xff3040, {radius: 1.4, delay: 1.1, fx: "spikes", name: "blood geyser"}),
+					Bosses.spiral(2, 21, 5, 70, 0.16, 0xff3040, {shape: "orb", name: "bleeding spiral"})]});
 			Bosses.mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Lightning Rod", spr: "storm_rod", hp: 18000, def: 32, col: 0x80ffff,
-				attacks: [Bosses.aim(1, 0, 13, 90, 0.9, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
-					Bosses.rain(4, 5, 100, 3.0, 0x80ffff, {radius: 1.3, delay: 0.9, fx: "pillar", name: "lightning strike"})]});
+				name: "Lightning Rod", spr: "storm_rod", hp: 45000, def: 32, col: 0x80ffff,
+				attacks: [Bosses.aim(1, 0, 13, 90, 1.0, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
+					Bosses.rain(4, 5, 100, 2.4, 0x80ffff, {radius: 1.3, delay: 1.0, fx: "pillar", name: "lightning strike"}),
+					Bosses.ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"})]});
 			
 			Bosses.boss("zealot_a", Bosses.o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(3, 24, 8, 70, 0.9, 0xff3040, {eff: "bleeding", shape: "crescent", r: 0.3}),
@@ -2158,10 +2163,10 @@ class Bosses {
 						[Bosses.aCascade(10, 115, 1.6), Bosses.aLance(95, 1.8)],
 						[Bosses.bloodBrand(1, 160, 4, {anim: "brand", animMs: 110, animHit: 3}), Bosses.aDash(95, 2.2)]]}),
 				Bosses.P(0.55, {say: "The Conclave answers its Architect!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
-					attacks: [Bosses.spiral(6, -11, 6.5, 80, 0.1, Bosses.A_PALE, {shape: "voidorb"}), Bosses.aBlink(6), Bosses.aGravity(18, 90, 4.0), Bosses.aSummon(2, 9),
+					attacks: [Bosses.spiral(5, -11, 6, 80, 0.12, Bosses.A_PALE, {shape: "voidorb"}), Bosses.aBlink(6), Bosses.aGravity(18, 90, 4.0), Bosses.aSummon(2, 9),
 						Bosses.bloodBrand(1, 180, 9, {anim: "brand", animMs: 110, animHit: 3}), Bosses.aLanceDash(110, 4.6)]}),
 				Bosses.P(0.25, {say: "TIME ITSELF ENDS AT MY WORD!", banner: "The Architect unmakes the hour!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [Bosses.spiral(8, 9, 7, 90, 0.09, Bosses.A_RED, {motion: "wave", shape: "voidorb"}), Bosses.aCascade(14, 130, 2.2), Bosses.aLance(110, 1.6),
+					attacks: [Bosses.spiral(5, 9, 6.5, 90, 0.12, Bosses.A_RED, {motion: "wave", shape: "voidorb"}), Bosses.aCascade(14, 130, 2.2), Bosses.aLance(110, 1.6),
 						Bosses.aRanged(9, 90, 1.7), Bosses.aDash(110, 3.0), Bosses.bloodBrand(2, 200, 8.5, {name: "the crimson brand", anim: "brand", animMs: 110, animHit: 3})]})
 			]}, raid), ["vesper_staff", "crimson_crown", "vesper_kiss", "bloodsworn_bulwark", "red_mass_codex", "first_zealot_skull", "vesper_shroud", "heartblood_signet", "unbleeding_ring", "archon_brand"]);
 
@@ -2194,11 +2199,11 @@ class Bosses {
 				Bosses.P(0.8, {say: "THUNDER!", shield: 3, move: "center", every: 3.5,
 					cycle: [[Bosses.tRain(10, 115, 1.4), Bosses.tSpread(9, 70, 1.4)],
 						[Bosses.tRadius(150, 3.0, 5.5), Bosses.tChain(4, 115, 2.4)],
-						[Bosses.tStrike(140, 1.4), Bosses.flower(30, 6, 6, 85, 0.6, Bosses.T_BLUE)]]}),
+						[Bosses.tStrike(140, 1.4), Bosses.flower(24, 6, 6, 85, 0.75, Bosses.T_BLUE)]]}),
 				Bosses.P(0.5, {say: "LIGHTNING!", banner: "The storm's eye opens!", summon: [{what: "storm_wisp", n: 6}], move: "orbit",
-					attacks: [Bosses.tDash(100, 3.6), Bosses.tBlink(6), Bosses.tPull(18, 90, 4.2), Bosses.tChain(5, 120, 4.4), Bosses.spiral(6, 15, 7, 85, 0.09, Bosses.T_PALE, {motion: "wave", shape: "voidorb"})]}),
+					attacks: [Bosses.tDash(100, 3.6), Bosses.tBlink(6), Bosses.tPull(18, 90, 4.2), Bosses.tChain(5, 120, 4.4), Bosses.spiral(5, 15, 6.5, 85, 0.12, Bosses.T_PALE, {motion: "wave", shape: "voidorb"})]}),
 				Bosses.P(0.2, {say: "I AM THE STORM ETERNAL!", banner: "THE STORM IS MY HEART!", shield: 3, move: "orbit", speed: 1.6,
-					attacks: [Bosses.tRain(12, 125, 2.0), Bosses.tChain(6, 130, 3.2), Bosses.tSlash(110, 1.6), Bosses.tRadius(170, 3.4, 6.5), Bosses.spiral(10, 9, 7, 90, 0.09, Bosses.T_PALE, {shape: "voidorb"})]})
+					attacks: [Bosses.tRain(12, 125, 2.0), Bosses.tChain(6, 130, 3.2), Bosses.tSlash(110, 1.6), Bosses.tRadius(170, 3.4, 6.5), Bosses.spiral(6, 9, 6.5, 90, 0.12, Bosses.T_PALE, {shape: "voidorb"})]})
 			]}, raid), ["heart_of_storm", "stormbreaker", "tempest_eye", "stormweave_jerkin", "rolling_thunder", "squall_crown", "cyclone_snare", "galeband", "stormwall_ring", "lightning_rod"]);
 
 			
@@ -2236,17 +2241,17 @@ class Bosses {
 			]}, raid), ["sovereign_signet"]);
 			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
 				Bosses.P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
-					attacks: [Bosses.spiral(4, 12, 6.5, 80, 0.11, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 95, 1.1, 0xffffff, {shape: "crescent", r: 0.3}),
+					attacks: [Bosses.spiral(4, 12, 6.5, 80, 0.13, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
 						Bosses.pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
 				Bosses.P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
-					cycle: [[Bosses.flower(30, 5.6, 5.5, 85, 0.7, 0xffd060)], [Bosses.wall(21, 5.5, 95, 1.3, 0xfff0a0, {hole: 2, waves: 2, gap: 0.6})],
+					cycle: [[Bosses.flower(24, 5.6, 5.5, 85, 0.85, 0xffd060)], [Bosses.wall(21, 5.5, 95, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7})],
 						[Bosses.rain(10, 7, 130, 1.6, 0xffb040, {burst: 6, fx: "pillar"}), Bosses.lineRain(7, 120, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
 				Bosses.P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "orbit",
-					attacks: [Bosses.spiral(6, -11, 7, 90, 0.1, 0xffe080, {motion: "wave"}), Bosses.selfNova(5.5, 1.3, 180, 3.0, 0xffb040, {burst: 20, shape: "star", fx: "pillar", name: "supernova"}),
+					attacks: [Bosses.spiral(4, -11, 6, 90, 0.13, 0xffe080, {motion: "wave"}), Bosses.selfNova(5.5, 1.4, 180, 3.2, 0xffb040, {burst: 14, shape: "star", fx: "pillar", name: "supernova"}),
 						Bosses.blinkRing(6, 0xfff0a0), Bosses.pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), Bosses.eclipse(10, 4, 140, 24)]}),
 				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [Bosses.spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), Bosses.aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "crescent", waves: 3, gap: 0.2}),
-						Bosses.selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), Bosses.eclipse(12, 5, 160, 20)]})
+					attacks: [Bosses.spiral(5, 9, 6.5, 95, 0.12, 0xffffff, {shape: "star"}), Bosses.aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
+						Bosses.selfNova(6, 1.5, 200, 2.8, 0xffe080, {burst: 16, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), Bosses.eclipse(12, 5, 160, 20)]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
 }
@@ -5057,6 +5062,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-bossbalance", title: "What's new in Eldmere",
+				lines: ["<b>Boss balance pass</b>: every boss was fought by bots that dodge, and by bots that don't. Now nearly every boss can be beaten without a scratch if you dodge well, and will kill you if you don't.",
+					"<b>Easier to read</b>: Astraeon, the Siege Warlord, Archon Vesper, Tempestus, Nerezza, the Void Dragon, Malgoroth, the Skull Shrine and the Shattered Sanctum's wardens fire spirals and fans with real gaps in them, and their blasts give you time to get out.",
+					"<b>Harder</b>: Ssythra, Sylith, the Tempest Seraph, the Tide Hermit, Glacius and Morwyn have new attacks, and the raids' Blood Altars and Lightning Rods now fight back."]},
 			{id: "2026-10-primordial", title: "What's new in Eldmere",
 				lines: ["<b>24 new Primordial uniques</b>: now every weapon, armor, ability and ring type has its own Primordial unique. Archon Vesper, Tempestus and Astraeon each carry a set of them.",
 					"<b>New wiki page</b>: the Primordial tab shows all of them by item type. Hover one to see its stats and who drops it."]},

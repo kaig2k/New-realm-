@@ -1,3 +1,23 @@
+**📜 ELDMERE UPDATE: Boss Balance Pass**
+
+Every boss in the game was fought by bots, 5 times each: bots that dodge like a good player, and bots that just stand there and shoot. The goal: **every boss can be dodged, and every boss punishes you if you don't.** Now a skilled player can beat nearly every boss without dying, and standing still gets you killed almost everywhere.
+
+**🎯 Fairer, still deadly** (attacks now have gaps you can find, and more warning)
+• **Astraeon**: his star spirals were a solid wall in the last phases. They now have lanes to dodge through, and his supernova throws fewer shards
+• **Vorgath the Siege Warlord**: mace swings have gaps between the crescents, fewer soldiers join the fight, and his last stand fires a readable spiral
+• **Archon Vesper, Tempestus, Nerezza, Vael'thrax**: their final-phase spirals are less dense and a little slower
+• **Malgoroth**: his fan of shots spreads wider, and he no longer runs you down
+• **The Skull Shrine**: its last-phase spirals and fire walls have room to breathe
+• **Ignivar and Glacius**: the Shattered Sanctum's wardens are no longer deadlier than the boss they guard
+• **Kael'zar, Morwyn and the Shattered Seraph**: blasts give you more time to leave, walls have wider gaps
+
+**⚔️ More of a fight**
+• **Ssythra**, **Sylith the Frost Wyrm**, **the Tempest Seraph** and **the Tide Hermit** hit harder and have new attacks. You can't just stand there any more
+• **Glacius** and **Morwyn** each have a new slow ring attack to read
+• **Raid objectives**: the Blood Altars and Lightning Rods are tougher and fight back with a new attack each, so breaking them is a real stage, not a speed bump
+
+---
+
 **📜 ELDMERE UPDATE: A Primordial for Everything**
 
 **🔥 24 new Primordial uniques**

@@ -430,11 +430,11 @@ package realm {
 			]}, ["lantern_wand", "mothwing_cloak", "dustveil_robe"]);
 
 			boss("serpent_boss", {hp: 6500, phases: [
-				P(1, {move: "wander", attacks: [aim(3, 26, 6, 35, 0.8, 0x60e060, {motion: "wave"}), ring(12, 13, 4, 30, 2.0, 0x2a9a6a, {eff: "slowed"})]}),
+				P(1, {move: "wander", attacks: [aim(3, 26, 6, 40, 0.75, 0x60e060, {motion: "wave"}), ring(12, 13, 4, 34, 1.5, 0x2a9a6a, {eff: "slowed"})]}),
 				P(0.66, {say: "Ssslither... and die.", shield: 2, move: "orbit",
-					attacks: [spiral(2, 23, 5.5, 32, 0.12, 0x80ff80, {motion: "wave"}), summon("great_snake", 2, 8, 4)]}),
+					attacks: [spiral(3, 23, 5.5, 36, 0.12, 0x80ff80, {motion: "wave"}), summon("great_snake", 2, 8, 4)]}),
 				P(0.33, {say: "The pit hungers!", move: "chase", speed: 1.3,
-					attacks: [wall(11, 6, 40, 2.0, 0x40c040, {eff: "bleeding"}), aim(7, 70, 7, 35, 1.3, 0xa0ffa0)]})
+					attacks: [wall(11, 6, 45, 1.6, 0x40c040, {eff: "bleeding"}), aim(7, 70, 7, 40, 1.1, 0xa0ffa0)]})
 			]}, ["fang_of_ssythra", "venom_quiver", "scaled_hide"]);
 
 			boss("spider_boss", {hp: 7000, phases: [
@@ -467,7 +467,7 @@ package realm {
 			]}, ["emberheart_staff", "magma_plate", "cinder_ring"]);
 
 			boss("seraph", {hp: 10000, phases: [
-				P(1, {move: "orbit", attacks: [spiral(3, 19, 7, 50, 0.12, 0xfff060, {shape: "dart"})]}),
+				P(1, {move: "orbit", attacks: [spiral(3, 19, 7, 55, 0.12, 0xfff060, {shape: "dart"}), aim(3, 30, 9, 70, 1.1, 0xffffff, {shape: "blade", name: "gale blades"})]}),
 				P(0.66, {say: "Feel the storm!", move: "teleport",
 					attacks: [aim(1, 0, 15, 100, 0.5, 0xffffff, {shape: "blade", eff: "paralyzed", r: 0.3}), wall(15, 6, 60, 1.8, 0xd0d0ff)]}),
 				P(0.33, {say: "Thunder answers me!", shield: 2, move: "center", every: 4,
@@ -492,11 +492,11 @@ package realm {
 			]}, ["phylactery", "soulreaper", "deathshroud"]);
 
 			boss("demon_boss", {hp: 14000, phases: [
-				P(1, {move: "chase", attacks: [aim(5, 40, 8, 70, 0.9, 0xff6020), rain(4, 3, 80, 2.4, 0xff3010, {burst: 6})]}),
+				P(1, {move: "chase", speed: 0.8, attacks: [aim(5, 56, 7.5, 70, 1.1, 0xff6020), rain(4, 3, 80, 2.4, 0xff3010, {burst: 6})]}),
 				P(0.66, {say: "Kneel before the Abyss!", shield: 2, summon: [{what: "lesser_demon", n: 3}], move: "charge", speed: 1.4,
 					attacks: [flower(20, 9, 5.5, 65, 1.0, 0xff8040), aim(1, 0, 11, 110, 0.8, 0xffe040, {shape: "blade", r: 0.3, eff: "armorbroken"})]}),
 				P(0.3, {say: "I AM THE ABYSS!", banner: "Malgoroth rages!", move: "center",
-					attacks: [spiral(6, 13, 6.5, 65, 0.1, 0xff4020), nova(2.5, 1.2, 120, 2.2, 0xff2010, {burst: 12}), wall(15, 5.5, 80, 2.8, 0xffb030)]})
+					attacks: [spiral(5, 13, 6, 65, 0.12, 0xff4020), nova(2.5, 1.2, 120, 2.4, 0xff2010, {burst: 8}), wall(15, 5.5, 80, 2.8, 0xffb030, {hole: 3})]})
 			]}, ["hellfire_blade", "infernal_helm", "brimstone_ring"]);
 
 			boss("sprite_boss", {hp: 11000, phases: [
@@ -527,7 +527,7 @@ package realm {
 			]}, ["titanbreaker", "ember_mantle"]);
 
 			boss("ev_wyrm", {phases: [
-				P(1, {move: "orbit", speed: 1.3, attacks: [spiral(5, 9, 6.5, 50, 0.16, 0x8ad8ff, {eff: "slowed"})]}),
+				P(1, {move: "orbit", speed: 1.3, attacks: [spiral(5, 9, 6.5, 55, 0.15, 0x8ad8ff, {eff: "slowed"}), aim(3, 24, 8.5, 65, 1.0, 0xe0f4ff, {shape: "blade", name: "ice shards"})]}),
 				P(0.66, {say: "Freeze, little warm thing.", move: "teleport",
 					attacks: [aim(9, 90, 7, 60, 0.9, 0xe0f4ff, {motion: "wave"}), ring(16, 11, 3.5, 55, 1.6, 0x40a0ff, {motion: "accel", accel: 0.8})]}),
 				P(0.33, {say: "WINTER COMES!", banner: "Blizzard!", shield: 2, move: "center",
@@ -575,9 +575,9 @@ package realm {
 			]}, ["sunken_trident", "drowned_plate"]);
 
 			boss("ev_hermit", {phases: [
-				P(1, {move: "still", attacks: [ring(18, 10, 4, 55, 1.2, 0x2a9a8a), aim(1, 0, 10, 80, 0.8, 0xe0ff80)]}),
+				P(1, {move: "still", attacks: [ring(18, 10, 4.5, 60, 1.1, 0x2a9a8a), aim(3, 22, 9, 75, 0.9, 0xe0ff80, {name: "shell shot"})]}),
 				P(0.6, {say: "Leave my shore!", shield: 3, move: "still", summon: [{what: "crab", n: 4}],
-					attacks: [flower(24, 7.5, 4.5, 60, 0.9, 0x40e0c0, {motion: "return"})]}),
+					attacks: [flower(24, 7.5, 4.5, 60, 0.9, 0x40e0c0, {motion: "return"}), rain(4, 3, 85, 2.4, 0x2a9a8a, {name: "tide spout"})]}),
 				P(0.3, {say: "*the shell cracks*", banner: "The Hermit emerges!", move: "chase", speed: 1.5,
 					attacks: [spiral(6, 15, 6.5, 65, 0.1, 0xe0ff80), rain(4, 3, 90, 2.2, 0x2a9a8a)]})
 			]}, ["tidecaller", "hermit_shell"]);
@@ -587,7 +587,7 @@ package realm {
 				P(0.66, {say: "THE SHRINE DEMANDS TRIBUTE", shield: 3, summon: [{what: "skeleton", n: 4}], move: "still",
 					attacks: [flower(20, 9, 5, 65, 0.9, 0xff2020), rain(5, 5, 90, 2.2, 0xff8a20, {burst: 6})]}),
 				P(0.33, {say: "BURN IN ITS FLAMES", move: "still", every: 3,
-					cycle: [[spiral(8, 9, 6, 65, 0.1, 0xff8a20)], [spiral(8, -9, 6, 65, 0.1, 0xffe040)], [wall(17, 5, 80, 1, 0xff2020, {hole: 2})]]})
+					cycle: [[spiral(6, 9, 5.5, 65, 0.12, 0xff8a20)], [spiral(6, -9, 5.5, 65, 0.12, 0xffe040)], [wall(17, 5, 80, 1.2, 0xff2020, {hole: 3})]]})
 			]}, ["skullforge", "shrineflame"]);
 
 			// ---- new realm events
@@ -632,7 +632,8 @@ package realm {
 		private static const V_RED:uint = 0xff2a3a, V_GOLD:uint = 0xd8a030;
 		// Mace Swing: a wide sweep of crimson crescents in front of him
 		private static function vSwing(dmg:int, cd:Number, n:int = 7):Object {
-			return aim(n, 120, 8.5, dmg, cd, V_RED, {shape: "crescent", r: 0.42, life: 1.1, anim: "swing", animMs: 85, name: "mace swing"});
+			// (crescents a hand apart: a gap to step into between each)
+			return aim(Math.min(n, 5), 120, 8.5, dmg, cd, V_RED, {shape: "crescent", r: 0.36, life: 1.1, anim: "swing", animMs: 85, name: "mace swing"});
 		}
 		// Mace Smash: overhead and down, the ground erupts in spikes where you stood and shards fly
 		private static function vSmash(dmg:int, cd:Number, radius:Number = 3.4, delay:Number = 1.0):Object {
@@ -675,7 +676,7 @@ package realm {
 		 */
 		private static function siege():void {
 			mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
-				attacks: [aim(3, 18, 8, 95, 1.1, 0xd8d0c0, {shape: "blade"}), aim(1, 0, 6, 110, 2.2, 0xff6010, {motion: "home", r: 0.28})]});
+				attacks: [aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
 			// his war camp's ballistas: heavy burning bolts at whoever comes near, and fire-pots lobbed into the camp
 			mob("siege_ballista", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 200, keep: 0, prop: true,
 				name: "Siege Ballista", spr: "siege_ballista", hp: 14000, def: 34, col: 0xff7a1a,
@@ -690,22 +691,22 @@ package realm {
 				// the March: he comes on swinging, smashing and bashing
 				P(1, {move: "chase", speed: 0.9, attacks: [vSwing(150, 2.2), vSmash(175, 3.6), vBash(130, 4.4), vFlail(160, 5.2)]}),
 				// Siege Engines: he plants himself, and the sky fills with spikes and spears
-				P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 6}],
+				P(0.8, {say: "SIEGE ENGINES! LOOSE!", banner: "The bombardment begins!", shield: 4, move: "still", summon: [{what: "siege_soldier", n: 4}],
 					attacks: [vBarrage(10, 155, 2.6), vSpears(5, 125, 2.2), vWarcry(190, 7)]}),
 				// the Warlord's Charge: he dashes through the camp, crescents ahead of him
 				P(0.6, {say: "I HAVE BROKEN A HUNDRED GATES!", banner: "Vorgath charges!", move: "chase", speed: 1.4,
 					attacks: [vCharge(160, 3.2), vSwing(150, 2.6, 9), vSmash(180, 4.2, 3.6), vFlail(160, 4.8, 2)]}),
 				// the Camp Burns: enraged and wreathed in fire, every weapon in turn
 				P(0.35, {say: "BURN IT ALL! LEAVE NOTHING STANDING!", banner: "THE CAMP BURNS! VORGATH IS ENRAGED!", shield: 3, move: "orbit", speed: 1.2,
-					summon: [{what: "siege_soldier", n: 8}], every: 3.2, cycle: [
+					summon: [{what: "siege_soldier", n: 5}], every: 3.2, cycle: [
 						[vBarrage(12, 160, 1.6), vSpears(7, 130, 1.4)],
 						[vWarcry(210, 3.2, 6), vFlail(170, 1.6, 3)],
-						[vSwing(160, 1.0, 9), vSmash(190, 1.6, 3.8, 0.9)],
+						[vSwing(160, 1.6, 9), vSmash(190, 2.0, 3.8, 1.0)],
 						[vBash(140, 1.3), vCharge(170, 1.6)]]}),
 				// the Last Stand: faster, everything at once
 				P(0.12, {say: "VORGATH... DOES NOT... FALL!", banner: "THE LAST STAND!", move: "chase", speed: 1.5,
 					attacks: [vSwing(170, 1.6, 11), vSmash(210, 2.6, 4.2, 0.85), vCharge(180, 4.0), vWarcry(230, 6.5, 6.5), vBarrage(8, 165, 3.4),
-						spiral(8, 9, 8, 140, 0.12, V_RED, {shape: "spike"})]})
+						spiral(5, 9, 7, 140, 0.15, V_RED, {shape: "spike"})]})
 			]}, ["siegebreaker", "warlords_banner", "rampart_plate"]);
 		}
 
@@ -780,10 +781,10 @@ package realm {
 			boss("sun_king", {phases: [
 				P(1, {move: "wander", attacks: [flower(16, 11, 5, 70, 1.0, 0xffb020), aim(3, 20, 9, 80, 1.0, 0xffe060)]}),
 				P(0.5, {say: "Kneel before the noon sun!", shield: 1.5, move: "center",
-					attacks: [spiral(6, 8, 6, 70, 0.12, 0xffd040), nova(2.5, 1.2, 120, 2.6, 0xff9020, {burst: 10})]})
+					attacks: [spiral(5, 8, 6, 70, 0.13, 0xffd040), nova(2.5, 1.3, 120, 2.6, 0xff9020, {burst: 8})]})
 			]}, ["solar_crown", "sunfire_staff"]);
 			boss("moon_queen", {phases: [
-				P(1, {move: "orbit", attacks: [aim(5, 50, 7, 70, 1.0, 0xb0c0ff, {motion: "wave"}), ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
+				P(1, {move: "orbit", attacks: [aim(5, 64, 7, 70, 1.15, 0xb0c0ff, {motion: "wave"}), ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
 				P(0.5, {say: "The night is mine.", move: "teleport",
 					attacks: [spiral(4, -14, 6, 70, 0.12, 0xd0d8ff), rain(5, 4, 100, 2.4, 0x6a7ac0, {eff: "slowed"})]})
 			]}, ["moonlight_bow", "lunar_robe"]);
@@ -793,33 +794,35 @@ package realm {
 					attacks: [rain(8, 6, 90, 2, 0xc070ff, {burst: 4}), spiral(3, 23, 7, 70, 0.1, 0xfff060)]})
 			]}, ["starfall_dagger", "astral_cloak"]);
 			boss("frost_warden", {phases: [
-				P(1, {move: "wander", attacks: [spiral(4, 10, 5, 70, 0.14, 0x80e0ff, {eff: "slowed"}), aim(1, 0, 12, 110, 0.9, 0xffffff, {shape: "blade", r: 0.3})]}),
+				P(1, {move: "wander", attacks: [spiral(4, 10, 5, 70, 0.14, 0x80e0ff, {eff: "slowed"}), aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
+					ring(10, 18, 3.5, 60, 2.4, 0xc0e8ff, {name: "frost ring"})]}),
 				P(0.5, {say: "The cold takes everything.", shield: 2, move: "center",
-					attacks: [wall(15, 4.5, 90, 1.8, 0xc0e8ff, {eff: "slowed"}), rain(5, 5, 100, 2.4, 0x80f0ff)]})
+					attacks: [wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3, eff: "slowed"}), rain(5, 5, 85, 2.6, 0x80f0ff, {delay: 1.3})]})
 			]}, ["glacial_plate", "icicle_ring"]);
 			boss("flame_warden", {phases: [
-				P(1, {move: "chase", attacks: [aim(5, 50, 8, 75, 1.0, 0xff6020), ring(12, 15, 4, 70, 1.5, 0xffb020, {split: {n: 4, spd: 4, life: 0.8, dmg: 45}, life: 1.4})]}),
+				P(1, {move: "wander", attacks: [aim(4, 60, 8, 75, 1.2, 0xff6020), ring(10, 15, 4, 65, 2.0, 0xffb020, {split: {n: 3, spd: 3.5, life: 0.7, dmg: 40}, life: 1.4})]}),
 				P(0.5, {say: "Burn with your friend!", shield: 2, move: "charge",
-					attacks: [spiral(5, 13, 6, 75, 0.12, 0xff6020), nova(2.2, 1, 110, 2.2, 0xff3010, {burst: 8})]})
+					attacks: [spiral(4, 13, 5.5, 70, 0.14, 0xff6020), nova(2.2, 1.3, 95, 2.7, 0xff3010, {burst: 5, bspd: 3.5})]})
 			]}, ["flamewarden_blade", "ember_ring"]);
 			boss("shattered_seraph", {phases: [
 				P(1, {move: "orbit", attacks: [spiral(4, 12, 6, 70, 0.12, 0xff60c0), aim(3, 24, 10, 90, 1.0, 0xffffff, {shape: "blade"})]}),
 				P(0.75, {say: "You broke the seal... now see what you freed.", shield: 2.5, summon: [{what: "sprite_god", n: 2}], move: "center",
-					attacks: [flower(24, 7.5, 5, 75, 0.9, 0xff60c0), wall(17, 5, 90, 2.2, 0xd8d0e8)]}),
+					attacks: [flower(24, 7.5, 5, 75, 0.9, 0xff60c0), wall(17, 5, 90, 2.4, 0xd8d0e8, {hole: 3})]}),
 				P(0.45, {say: "SHATTER!", banner: "The Seraph shatters!", move: "teleport",
-					attacks: [rain(9, 7, 110, 1.8, 0xff2060, {burst: 6}), spiral(6, -9, 6.5, 75, 0.11, 0xd8d0e8)]}),
+					attacks: [rain(7, 7, 110, 2.0, 0xff2060, {burst: 4}), spiral(5, -9, 6, 75, 0.13, 0xd8d0e8)]}),
 				P(0.15, {say: "I... will not... fade!", shield: 2, move: "center", every: 3,
-					cycle: [[flower(30, 6, 6, 80, 0.6, 0xff60c0)], [aim(9, 120, 9, 90, 0.5, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]]})
+					cycle: [[flower(24, 6, 6, 80, 0.75, 0xff60c0)], [aim(7, 120, 9, 90, 0.8, 0xffffff, {shape: "blade", waves: 2, gap: 0.3})]]})
 			]}, ["shardwing_bow", "seraph_halo"]);
 			boss("blood_knight", {phases: [
 				P(1, {move: "charge", speed: 1.3, attacks: [aim(3, 30, 9, 85, 0.9, 0xd02030, {eff: "bleeding"}), wall(9, 6, 80, 2.4, 0xff4040)]}),
 				P(0.5, {say: "Your blood will feed my blade!", shield: 1.5, move: "chase", speed: 1.5,
-					attacks: [spiral(4, 17, 6.5, 80, 0.11, 0xff4040), nova(2, 0.9, 120, 2, 0xd02030, {burst: 8, eff: "bleeding"})]})
+					attacks: [spiral(4, 17, 6.5, 80, 0.12, 0xff4040), nova(1.8, 1.3, 115, 2.5, 0xd02030, {burst: 5, bspd: 3.5, eff: "bleeding"})]})
 			]}, ["bloodletter", "sanguine_plate"]);
 			boss("hex_queen", {phases: [
-				P(1, {move: "teleport", attacks: [aim(3, 30, 7, 75, 1.0, 0x80ff60, {motion: "home", eff: "confused"}), rain(4, 4, 90, 2.6, 0xd060ff)]}),
+				P(1, {move: "teleport", attacks: [aim(3, 30, 7, 75, 1.2, 0x80ff60, {motion: "home", eff: "confused"}), rain(4, 4, 90, 2.6, 0xd060ff),
+					ring(12, 14, 3.5, 60, 2.2, 0xd060ff, {name: "hex ring"})]}),
 				P(0.5, {say: "A curse on all your houses!", shield: 2, move: "orbit",
-					attacks: [flower(20, 9, 5, 75, 1.0, 0x80ff60, {split: {n: 4, spd: 4, life: 0.9, dmg: 45}, life: 1.5}), wall(13, 5, 90, 2.2, 0xd060ff, {eff: "slowed"})]})
+					attacks: [flower(16, 9, 5, 75, 1.2, 0x80ff60, {split: {n: 3, spd: 3.5, life: 0.8, dmg: 40}, life: 1.5}), wall(13, 5, 90, 2.4, 0xd060ff, {hole: 3, eff: "slowed"})]})
 			]}, ["hexweave_robe", "cursed_skull"]);
 		}
 
@@ -921,7 +924,7 @@ package realm {
 				P(0.5, {say: "The tide turns!", banner: "The throne room floods!", move: "teleport",
 					attacks: [nGeyser(9, 110, 1.8), nSlam(90, 2.4), nTeleport(6), flower(24, 7.5, 5, 75, 0.9, N_LIGHT, {motion: "return", shape: "orb"})]}),
 				P(0.2, {say: "The sea is my voice. And you are but a ripple.", banner: "Nerezza's fury turns the sea violet!", shield: 2, move: "orbit", speed: 1.4,
-					attacks: [spiral(8, 9, 6, 80, 0.1, N_VIOLET, {motion: "wave", shape: "orb"}), nSpout(110, 2.6), nExplode(150, 3.0, 6), nWhirl(18, 90, 3.6), nTrident(7, 90, 1.0)]})
+					attacks: [spiral(5, 9, 6, 80, 0.12, N_VIOLET, {motion: "wave", shape: "orb"}), nSpout(110, 2.6), nExplode(150, 3.0, 6), nWhirl(18, 90, 3.6), nTrident(7, 90, 1.0)]})
 			]}, ["tidebreaker", "empress_coral"]);
 
 			boss("gearmind", {name: "Gearmind Omega", spr: "gearmind", hp: 42000, def: 38, spd: 1.0, xp: 5000, col: 0xffd060,
@@ -943,9 +946,9 @@ package realm {
 				P(0.75, {say: "Feel the void's breath!", shield: 2, move: "center",
 					attacks: [wall(21, 5, 90, 1.6, 0x8040c0, {hole: 2, waves: 2, gap: 0.5}), summon("void_wisp", 2, 7, 6)]}),
 				P(0.5, {say: "The stars go dark.", banner: "The rift tears open!", move: "teleport", every: 4,
-					cycle: [[spiral(6, 13, 6.5, 80, 0.1, 0xc080ff)], [rain(10, 7, 120, 1.8, 0xd040ff, {burst: 6})], [flower(30, 6, 5.5, 80, 0.7, 0xff40ff)]]}),
+					cycle: [[spiral(5, 13, 6, 80, 0.12, 0xc080ff)], [rain(8, 7, 120, 2.0, 0xd040ff, {burst: 5})], [flower(24, 6, 5.5, 80, 0.8, 0xff40ff)]]}),
 				P(0.2, {say: "I AM ETERNAL!", shield: 3, move: "orbit", speed: 1.4,
-					attacks: [spiral(8, -11, 7, 85, 0.09, 0xff40ff), nova(3.5, 1.4, 160, 2.6, 0xd040ff, {burst: 20}), aim(5, 30, 11, 110, 1.0, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]})
+					attacks: [spiral(5, -11, 6.5, 85, 0.12, 0xff40ff), nova(3.5, 1.5, 160, 2.8, 0xd040ff, {burst: 14}), aim(5, 30, 11, 110, 1.0, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]})
 			]}, ["voidfang", "dragonscale"]);
 
 			var D:Array = Data.DUNGEONS;
@@ -1190,13 +1193,15 @@ package realm {
 			var raid:Object = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			// the raids' objectives (a stage of their own: it ends when they're all broken, see stageFoe)
 			mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Blood Altar", spr: "blood_altar", hp: 16000, def: 30, col: 0xd8102a,
-				attacks: [ring(10, 18, 4.2, 80, 2.2, 0xd8102a, {shape: "orb", eff: "bleeding"}),
-					rain(3, 3, 95, 3.4, 0xff3040, {radius: 1.4, delay: 1.0, fx: "spikes", name: "blood geyser"})]});
+				name: "Blood Altar", spr: "blood_altar", hp: 40000, def: 30, col: 0xd8102a,
+				attacks: [ring(10, 18, 4.2, 80, 1.7, 0xd8102a, {shape: "orb", eff: "bleeding"}),
+					rain(4, 3.5, 95, 2.6, 0xff3040, {radius: 1.4, delay: 1.1, fx: "spikes", name: "blood geyser"}),
+					spiral(2, 21, 5, 70, 0.16, 0xff3040, {shape: "orb", name: "bleeding spiral"})]});
 			mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Lightning Rod", spr: "storm_rod", hp: 18000, def: 32, col: 0x80ffff,
-				attacks: [aim(1, 0, 13, 90, 0.9, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
-					rain(4, 5, 100, 3.0, 0x80ffff, {radius: 1.3, delay: 0.9, fx: "pillar", name: "lightning strike"})]});
+				name: "Lightning Rod", spr: "storm_rod", hp: 45000, def: 32, col: 0x80ffff,
+				attacks: [aim(1, 0, 13, 90, 1.0, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
+					rain(4, 5, 100, 2.4, 0x80ffff, {radius: 1.3, delay: 1.0, fx: "pillar", name: "lightning strike"}),
+					ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"})]});
 			// ---- the Crimson Conclave: blood rising out of the floor, bones and bleeding blades
 			boss("zealot_a", o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
 				P(1, {move: "orbit", attacks: [aim(3, 24, 8, 70, 0.9, 0xff3040, {eff: "bleeding", shape: "crescent", r: 0.3}),
@@ -1235,10 +1240,10 @@ package realm {
 						[aCascade(10, 115, 1.6), aLance(95, 1.8)],
 						[bloodBrand(1, 160, 4, {anim: "brand", animMs: 110, animHit: 3}), aDash(95, 2.2)]]}),
 				P(0.55, {say: "The Conclave answers its Architect!", banner: "Vesper calls the Conclave!", summon: [{what: "blood_acolyte", n: 6}], move: "orbit",
-					attacks: [spiral(6, -11, 6.5, 80, 0.1, A_PALE, {shape: "voidorb"}), aBlink(6), aGravity(18, 90, 4.0), aSummon(2, 9),
+					attacks: [spiral(5, -11, 6, 80, 0.12, A_PALE, {shape: "voidorb"}), aBlink(6), aGravity(18, 90, 4.0), aSummon(2, 9),
 						bloodBrand(1, 180, 9, {anim: "brand", animMs: 110, animHit: 3}), aLanceDash(110, 4.6)]}),
 				P(0.25, {say: "TIME ITSELF ENDS AT MY WORD!", banner: "The Architect unmakes the hour!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [spiral(8, 9, 7, 90, 0.09, A_RED, {motion: "wave", shape: "voidorb"}), aCascade(14, 130, 2.2), aLance(110, 1.6),
+					attacks: [spiral(5, 9, 6.5, 90, 0.12, A_RED, {motion: "wave", shape: "voidorb"}), aCascade(14, 130, 2.2), aLance(110, 1.6),
 						aRanged(9, 90, 1.7), aDash(110, 3.0), bloodBrand(2, 200, 8.5, {name: "the crimson brand", anim: "brand", animMs: 110, animHit: 3})]})
 			]}, raid), ["vesper_staff", "crimson_crown", "vesper_kiss", "bloodsworn_bulwark", "red_mass_codex", "first_zealot_skull", "vesper_shroud", "heartblood_signet", "unbleeding_ring", "archon_brand"]);
 
@@ -1271,11 +1276,11 @@ package realm {
 				P(0.8, {say: "THUNDER!", shield: 3, move: "center", every: 3.5,
 					cycle: [[tRain(10, 115, 1.4), tSpread(9, 70, 1.4)],
 						[tRadius(150, 3.0, 5.5), tChain(4, 115, 2.4)],
-						[tStrike(140, 1.4), flower(30, 6, 6, 85, 0.6, T_BLUE)]]}),
+						[tStrike(140, 1.4), flower(24, 6, 6, 85, 0.75, T_BLUE)]]}),
 				P(0.5, {say: "LIGHTNING!", banner: "The storm's eye opens!", summon: [{what: "storm_wisp", n: 6}], move: "orbit",
-					attacks: [tDash(100, 3.6), tBlink(6), tPull(18, 90, 4.2), tChain(5, 120, 4.4), spiral(6, 15, 7, 85, 0.09, T_PALE, {motion: "wave", shape: "voidorb"})]}),
+					attacks: [tDash(100, 3.6), tBlink(6), tPull(18, 90, 4.2), tChain(5, 120, 4.4), spiral(5, 15, 6.5, 85, 0.12, T_PALE, {motion: "wave", shape: "voidorb"})]}),
 				P(0.2, {say: "I AM THE STORM ETERNAL!", banner: "THE STORM IS MY HEART!", shield: 3, move: "orbit", speed: 1.6,
-					attacks: [tRain(12, 125, 2.0), tChain(6, 130, 3.2), tSlash(110, 1.6), tRadius(170, 3.4, 6.5), spiral(10, 9, 7, 90, 0.09, T_PALE, {shape: "voidorb"})]})
+					attacks: [tRain(12, 125, 2.0), tChain(6, 130, 3.2), tSlash(110, 1.6), tRadius(170, 3.4, 6.5), spiral(6, 9, 6.5, 90, 0.12, T_PALE, {shape: "voidorb"})]})
 			]}, raid), ["heart_of_storm", "stormbreaker", "tempest_eye", "stormweave_jerkin", "rolling_thunder", "squall_crown", "cyclone_snare", "galeband", "stormwall_ring", "lightning_rod"]);
 
 			// ---- the Starfall Vault: four chambers, each a set piece that changes as you fight
@@ -1313,17 +1318,17 @@ package realm {
 			]}, raid), ["sovereign_signet"]);
 			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
 				P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
-					attacks: [spiral(4, 12, 6.5, 80, 0.11, 0xffd060, {shape: "star"}), aim(5, 40, 10, 95, 1.1, 0xffffff, {shape: "crescent", r: 0.3}),
+					attacks: [spiral(4, 12, 6.5, 80, 0.13, 0xffd060, {shape: "star"}), aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
 						pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
 				P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
-					cycle: [[flower(30, 5.6, 5.5, 85, 0.7, 0xffd060)], [wall(21, 5.5, 95, 1.3, 0xfff0a0, {hole: 2, waves: 2, gap: 0.6})],
+					cycle: [[flower(24, 5.6, 5.5, 85, 0.85, 0xffd060)], [wall(21, 5.5, 95, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7})],
 						[rain(10, 7, 130, 1.6, 0xffb040, {burst: 6, fx: "pillar"}), lineRain(7, 120, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
 				P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "orbit",
-					attacks: [spiral(6, -11, 7, 90, 0.1, 0xffe080, {motion: "wave"}), selfNova(5.5, 1.3, 180, 3.0, 0xffb040, {burst: 20, shape: "star", fx: "pillar", name: "supernova"}),
+					attacks: [spiral(4, -11, 6, 90, 0.13, 0xffe080, {motion: "wave"}), selfNova(5.5, 1.4, 180, 3.2, 0xffb040, {burst: 14, shape: "star", fx: "pillar", name: "supernova"}),
 						blinkRing(6, 0xfff0a0), pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), eclipse(10, 4, 140, 24)]}),
 				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [spiral(10, 9, 7, 95, 0.09, 0xffffff, {shape: "star"}), aim(9, 100, 9, 100, 1.1, 0xffd060, {shape: "crescent", waves: 3, gap: 0.2}),
-						selfNova(6, 1.4, 200, 2.6, 0xffe080, {burst: 24, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), eclipse(12, 5, 160, 20)]})
+					attacks: [spiral(5, 9, 6.5, 95, 0.12, 0xffffff, {shape: "star"}), aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
+						selfNova(6, 1.5, 200, 2.8, 0xffe080, {burst: 16, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), eclipse(12, 5, 160, 20)]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
 	}

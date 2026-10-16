@@ -1572,6 +1572,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-bossbalance", title: "What's new in Eldmere",
+				lines: ["<b>Boss balance pass</b>: every boss was fought by bots that dodge, and by bots that don't. Now nearly every boss can be beaten without a scratch if you dodge well, and will kill you if you don't.",
+					"<b>Easier to read</b>: Astraeon, the Siege Warlord, Archon Vesper, Tempestus, Nerezza, the Void Dragon, Malgoroth, the Skull Shrine and the Shattered Sanctum's wardens fire spirals and fans with real gaps in them, and their blasts give you time to get out.",
+					"<b>Harder</b>: Ssythra, Sylith, the Tempest Seraph, the Tide Hermit, Glacius and Morwyn have new attacks, and the raids' Blood Altars and Lightning Rods now fight back."]},
 			{id: "2026-10-primordial", title: "What's new in Eldmere",
 				lines: ["<b>24 new Primordial uniques</b>: now every weapon, armor, ability and ring type has its own Primordial unique. Archon Vesper, Tempestus and Astraeon each carry a set of them.",
 					"<b>New wiki page</b>: the Primordial tab shows all of them by item type. Hover one to see its stats and who drops it."]},

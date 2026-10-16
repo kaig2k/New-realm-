@@ -286,6 +286,14 @@ function fight(id, opts) {
   function pick(b) {
     const list = targets();
     if (!list.length) return null;
+    // adds the boss called up, when they're on top of you, go first (as players do)
+    let add = null, ad = 25;
+    for (const e of sim.enemies) {
+      if (e.dead || e.isBoss || e.def.prop || e.def.stageFoe || list.indexOf(e) >= 0 || e.immune) continue;
+      const d = (e.x - b.x) ** 2 + (e.y - b.y) ** 2;
+      if (d < ad) { ad = d; add = e; }
+    }
+    if (add) return add;
     // what shields, heals or helps the boss first (its wards, menders, altars, rods, crystals), then the boss
     const open = list.filter((e) => !e.immune && !e.invuln);
     const pool = open.length ? open : list;

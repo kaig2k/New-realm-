@@ -892,6 +892,13 @@ function applySave(c, data, cid) {
   if (prev._graves) data._graves = prev._graves; else delete data._graves;
   if (prev._dead) data._dead = prev._dead; else delete data._dead;
   const fell = graves.fallen(prev, data);
+  // the hero being played died: until a hero enters a world again, monsters' shots at where it fell
+  // aren't hits it should have taken (it sits on the death screen; no godmode flags for that)
+  if (c.charId && fell.some((f) => f.hero.id === c.charId)) {
+    c.heroDead = true;
+    c.grace = Date.now() + 1e12;
+    c.expHits = 0; c.expBase = 0; c.hitsBase = c.hitsRep || 0; c.expDmg = 0; c.expDmgBase = 0; c.dmgBase = c.dmgRep || 0;
+  }
   // gold and fame only go up by what the server saw earned
   if (sims && !isAdmin(c)) {
     const cut = wallet.settle(prev, data, c.meta, Date.now());
@@ -1086,6 +1093,7 @@ const handlers = {
     // the godmode count starts over in each world (and arriving, you can't be hit for a moment)
     c.expHits = 0; c.hitsBase = c.hitsRep || 0; c.expBase = 0;
     c.expDmg = 0; c.expDmgBase = 0; c.dmgBase = c.dmgRep || 0;
+    if (c.heroDead) { c.heroDead = false; c.grace = 0; }
     c.grace = Math.max(c.grace || 0, Date.now() + 3500);
     c.spireJson = null; // (a new world: its Spires are sent again)
     deepEnter(c, world);

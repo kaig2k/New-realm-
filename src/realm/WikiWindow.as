@@ -38,17 +38,23 @@ package realm {
 			"Tiered gear goes from T0 to T7. Above that, from common to rarest: " +
 			"<font color='#6aa8ff'>Runed</font>, <font color='#4ee08a'>Bonded</font> (class sets, 4-piece bonus), " +
 			"<font color='#c85cff'>Eldritch</font>, <font color='#ffc23a'>Starforged</font>, <font color='#ff5533'>Primordial</font> and " +
-			"<font color='#fff6e0'>Godly</font>. Godly items drop 1 in 1,000 from the bosses that carry them (a little more with Luck).\n\n" +
+			"<font color='#fff6e0'>Godly</font>.\n" +
+			"Each tier of a weapon fires its own shot, and each is a clear step up from the one before.\n\n" +
+			"<font size='15' color='#fff6e0'><b>Godly sets</b></font>\n" +
+			"Every class has a four-piece Godly set. Each piece drops 1 in 1,000 from the boss that carries it (a little more with Luck), " +
+			"and <b>every drop is the same</b>: the best stats in the game, no bad rolls. Godly weapons hit 35% harder than Primordial ones " +
+			"and every 6th volley unleash their class's <b>Divine Wrath</b> (every 4th with the full set). Wearing Godly gives you a golden aura; " +
+			"the full set crowns you with a halo. The Bosses tabs show which boss drops which piece.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Boss uniques</b></font>\n" +
 			"Every boss has its own unique items, and their rarity matches the boss: Runed from the early dungeons, Eldritch from the " +
 			"other dungeons and realm events, Starforged from the biggest events, endgame dungeons, realm finales and raid bosses, and " +
 			"Primordial from the final boss of each raid. Rarer uniques have stronger stats and damage. Uniques never change: they " +
-			"can't be forged or rerolled.\n\n" +
+			"can't be forged or rerolled.",
+
 			"<font size='15' color='#ffd75e'><b>The Starforge (Nexus, east)</b></font>\n" +
 			"<b>Forge</b>: a Runed, Bonded or Eldritch item + 1 Star Shard + 100 Aether = a Starforged item of the same kind.\n" +
 			"<b>New prefix</b>: 400 gold gives any weapon a different prefix (Swift, Farshot, Scattershot...); the rest of the weapon stays.\n" +
-			"<b>Reroll stats</b>: 60 Aether rolls the bonus stats (and a weapon's passive) of special-rarity gear again.",
-
+			"<b>Reroll stats</b>: 60 Aether rolls the bonus stats (and a weapon's passive) of special-rarity gear again.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Abilities</b></font>\n" +
 			"Every class has three abilities (see the Abilities tab). An ability item holds one of them: its name says which, " +
 			"like a <i>Comet Spell of Storms</i> (Lightning Strike). Each ability costs MP and has its own cooldown, shown on your ability " +
@@ -155,7 +161,35 @@ package realm {
 				recs.unshift({rec: "rb:" + Bosses.RAIDS[ri].id + ":" + week()});
 			}
 			recs.unshift({rec: "vault:" + week()});
-			return [events, dungeons, hard, finales, raids, abilities, GUIDE, recs, [1]];
+			return [events, dungeons, hard, finales, raids, abilities, guidePages(), recs, [1]];
+		}
+
+		/**
+		 * The Guide's text laid out in pages that fit the window: whole sections (each under its own
+		 * heading) go onto a page until the next one wouldn't fit, so nothing runs off the bottom
+		 * however much is added to GUIDE.
+		 */
+		private static var guideCache:Array;
+		private static function guidePages():Array {
+			if (guideCache) return guideCache;
+			var all:String = GUIDE.join("\n\n");
+			var head:String = "<font size='15'";
+			var parts:Array = all.split("\n\n" + head);
+			var sections:Array = [];
+			for (var i:int = 0; i < parts.length; i++) sections.push(i == 0 ? parts[i] : head + parts[i]);
+			var limit:Number = PER_PAGE * ROW - 8;
+			var probe:TextField = Ui.text(12, 0xd8d8e0, false, "left", W - 36);
+			var fits:Function = function(html:String):Boolean { probe.htmlText = html; return probe.textHeight <= limit; };
+			var pages:Array = [], cur:String = "";
+			for each (var sec:String in sections) {
+				var next:String = cur ? cur + "\n\n" + sec : sec;
+				if (!cur || fits(next)) { cur = next; continue; }
+				pages.push(cur);
+				cur = sec;
+			}
+			if (cur) pages.push(cur);
+			guideCache = pages;
+			return pages;
 		}
 
 		private function show(t:int):void {
@@ -181,7 +215,7 @@ package realm {
 			}
 			if (tab == GUIDE_TAB) {
 				var gt:TextField = Ui.text(12, 0xd8d8e0, false, "left", W - 36);
-				gt.htmlText = GUIDE[page];
+				gt.htmlText = guidePages()[page];
 				gt.x = 18; gt.y = 0;
 				body.addChild(gt);
 			} else for (var k:int = 0; k < PER_PAGE; k++) {

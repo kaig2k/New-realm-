@@ -1,3 +1,29 @@
+**📜 ELDMERE UPDATE: Godly Reforged & Signature Weapons**
+
+**✨ Godly is now truly Godly**
+• Every Godly drop is **the same, every time**: fixed best-in-game stats, no bad rolls
+• Godly weapons hit **35% harder than Primordial**, and fire their set's own projectile
+• **Divine Wrath**: every 6th volley (every 4th with the full set) unleashes your class's special attack: Meteor, Sunbeam, Aegis Nova, Seraph Stars, Eclipse, Titan Slam, Soulstorm, Wild Hunt, Crescendo, Transmute, Stopped Time
+• Wear Godly for a **golden aura**. The full set crowns you with a **halo**
+• All 44 Godly pieces have **brand-new art**
+• Old Godly items are upgraded automatically
+
+**🏹 Signature weapons**
+• Every tier of every weapon now fires its **own projectile**, with its own trail and impact
+• Each tier is a clear step up in strength
+
+**👹 Bosses**
+• The **Dark Elder** is tougher, with survive phases you have to dodge through
+• **Archon Vesper** and **Nerezza, the Tide Empress** have new looks and attacks
+
+**🛠️ Quality of life**
+• Delete characters from the character screen
+• **V-Sync** setting: turn it off for up to 240 FPS
+• Server announcements now show as a banner across your screen
+• Fixed: saves refused with "was changed" or "unknown shot motion" (this was also undoing stat potions)
+
+---
+
 **📜 ELDMERE UPDATE: Endgame, Pets & More** (part 1/5)
 
 **🕳️ The Endless Abyss**

@@ -1572,6 +1572,12 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-godly", title: "What's new in Eldmere",
+				lines: ["<b>Godly is truly Godly</b>: every drop has the same, best-in-game stats (no bad rolls), weapons hit 35% harder than Primordial, and each set has its own art, shots and a <b>Divine Wrath</b> special attack. Wear Godly for a golden aura; the full set crowns you with a halo.",
+					"<b>Every weapon tier has its own shot</b>: new projectiles, trails and impacts, and each tier is a clear step up from the last.",
+					"<b>Bosses</b>: the Dark Elder has new survive phases, and Archon Vesper and Nerezza have new looks and attacks.",
+					"<b>Quality of life</b>: delete characters from the character screen, a V-Sync setting (off = up to 240 FPS), and big announcement banners from the admins.",
+					"<b>Fixed</b>: saves refused with \"was changed\" or \"unknown shot motion\" (this also undid stat potions you drank)."]},
 			{id: "2026-10-map", title: "What's new in Eldmere",
 				lines: ["<b>A living minimap</b>: every player in your world shows as an arrow pointing the way they're going. Hover one for their name, click to teleport to them (every 10s).",
 					"<b>Every class is open</b>: the Bard, Alchemist and Chronomancer can be played straight away, no levels needed.",

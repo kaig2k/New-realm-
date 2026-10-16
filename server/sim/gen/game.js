@@ -2576,59 +2576,66 @@ class World {
 	generateNexus() {
 			var x = 0, y = 0, i = 0, d = NaN;
 			for (i = __int(0); i < this.N * this.N; i++) { this.tiles[i] = World.VOID; this.zones[i] = -1; this.objs[i] = 0; }
-			var x0 = __int(66), x1 = __int(134), y0 = __int(64), y1 = __int(128);
+			var x0 = __int(66), x1 = __int(134), y0 = __int(64), y1 = __int(128), cut = __int(10);
 			for (y = __int(y0); y <= y1; y++) {
 				for (x = __int(x0); x <= x1; x++) {
+					var c = __int(Math.min(x - x0, x1 - x) + Math.min(y - y0, y1 - y));
+					if (c < cut) continue;
 					i = __int(y * this.N + x);
 					this.zones[i] = World.NEXUS_ZONE;
-					this.tiles[i] = (x == x0 || x == x1 || y == y0 || y == y1) ? World.WALL : World.STONE;
+					this.tiles[i] = (x == x0 || x == x1 || y == y0 || y == y1 || c == cut) ? World.WALL : World.STARSTONE;
 				}
 			}
 			
-			this.fillN(80, 65, 41, 10, World.CARPET);
-			this.fillN(80, 75, 41, 1, World.RUIN);
-			for (x = __int(82); x <= 118; x = __int(x + (6))) this.objs[66 * this.N + x] = 8;
-			this.objs[70 * this.N + 78] = 7; this.objs[70 * this.N + 122] = 7;
+			this.fillN(80, 65, 41, 10, World.MARBLE);
+			this.fillN(80, 75, 41, 1, World.GOLD);
+			for (x = __int(82); x <= 118; x = __int(x + (6))) this.objs[66 * this.N + x] = 23;
+			this.objs[70 * this.N + 78] = 30; this.objs[70 * this.N + 122] = 30;
 			
-			this.fillN(99, 76, 3, 52, World.CARPET);
-			this.fillN(67, 97, 66, 3, World.CARPET);
+			this.fillN(99, 76, 3, 52, World.RUNNER);
+			this.fillN(67, 97, 66, 3, World.RUNNER);
 			
 			for (y = __int(85); y <= 111; y++) {
 				for (x = __int(87); x <= 113; x++) {
 					d = Math.sqrt((x - 100) * (x - 100) + (y - 98) * (y - 98));
 					i = __int(y * this.N + x);
 					if (d <= 3) this.tiles[i] = World.FOUNTAIN;
-					else if (d <= 5.6 && d > 4.4) this.tiles[i] = World.CARPET;
-					else if (d <= 12.5) this.tiles[i] = World.PLAZA;
-					else if (d <= 13.6) this.tiles[i] = World.RUIN;
+					else if (d <= 5.6 && d > 4.4) this.tiles[i] = World.RUNNER;
+					else if (d <= 12.5) this.tiles[i] = World.MARBLE;
 				}
 			}
-			for (var br of __vals( [[89, 87], [111, 87], [89, 109], [111, 109]])) this.objs[br[1] * this.N + br[0]] = 7;
+			for (var br of __vals( [[89, 87], [111, 87], [89, 109], [111, 109]])) this.objs[br[1] * this.N + br[0]] = 30;
 			
 			for (var gd of __vals( [[79, 82], [121, 82], [79, 113], [121, 113]])) {
-				this.fillN(gd[0] - 7, gd[1] - 5, 15, 11, World.RUIN);
-				this.fillN(gd[0] - 6, gd[1] - 4, 13, 9, World.GRASS);
+				this.fillN(gd[0] - 7, gd[1] - 5, 15, 11, World.SPECTRAL);
+				this.fillN(gd[0] - 6, gd[1] - 4, 13, 9, World.DARK);
 				this.fillN(gd[0] - 2, gd[1] - 1, 5, 3, World.WATER);
-				for (var tr of __vals( [[-5, -3, 1], [5, -3, 2], [-5, 3, 2], [5, 3, 1], [0, -3, 2], [0, 3, 1]])) this.objs[(gd[1] + tr[1]) * this.N + gd[0] + tr[0]] = tr[2];
+				for (var tr of __vals( [[-5, -3, 2], [5, -3, 2], [-5, 3, 2], [5, 3, 2], [0, -3, 1], [0, 3, 1]])) this.objs[(gd[1] + tr[1]) * this.N + gd[0] + tr[0]] = tr[2];
 			}
 			
-			for (y = __int(76); y <= 84; y++) { this.tiles[y * this.N + 98] = World.RUIN; this.tiles[y * this.N + 102] = World.RUIN; }
-			for (x = __int(67); x <= 87; x++) { this.tiles[96 * this.N + x] = World.RUIN; this.tiles[100 * this.N + x] = World.RUIN; }
-			for (x = __int(113); x <= 133; x++) { this.tiles[96 * this.N + x] = World.RUIN; this.tiles[100 * this.N + x] = World.RUIN; }
-			for (var cx of __vals( [77, 82, 118, 123])) { this.objs[95 * this.N + cx] = 8; this.objs[101 * this.N + cx] = 8; }
+			for (var cx of __vals( [77, 82, 118, 123])) { this.objs[95 * this.N + cx] = 23; this.objs[101 * this.N + cx] = 23; }
 			
-			for (y = __int(78); y <= 84; y = __int(y + (3))) { this.objs[y * this.N + 96] = 2; this.objs[y * this.N + 104] = 2; }
+			for (y = __int(78); y <= 84; y = __int(y + (3))) { this.objs[y * this.N + 96] = y == 81 ? 30 : 24; this.objs[y * this.N + 104] = y == 81 ? 30 : 24; }
 			
-			this.fillN(67, 93, 7, 11, World.CARPET);
-			this.objs[94 * this.N + 68] = 8; this.objs[102 * this.N + 68] = 8;
+			this.fillN(67, 92, 8, 13, World.GOLD);
+			this.fillN(67, 93, 7, 11, World.MARBLE);
+			this.fillN(67, 97, 7, 3, World.RUNNER);
+			this.objs[94 * this.N + 68] = 23; this.objs[102 * this.N + 68] = 23;
 			
-			this.fillN(124, 87, 10, 21, World.BRICK);
-			this.fillN(124, 97, 10, 3, World.CARPET);
+			this.fillN(124, 87, 10, 21, World.OBSIDIAN);
+			this.fillN(124, 97, 10, 3, World.RUNNER);
 			
-			this.fillN(84, 117, 33, 10, World.RUIN);
-			this.fillN(99, 117, 3, 10, World.CARPET);
+			for (y = __int(102); y <= 113; y++) for (x = __int(108); x <= 119; x++) {
+				d = Math.sqrt((x + 0.5 - 113.5) * (x + 0.5 - 113.5) + (y + 0.5 - 107.5) * (y + 0.5 - 107.5));
+				i = __int(y * this.N + x);
+				if (d <= 3.6) { this.tiles[i] = World.OBSIDIAN; this.objs[i] = 0; }
+				else if (d <= 4.4) { this.tiles[i] = World.MARBLE; this.objs[i] = 0; }
+			}
 			
-			for (var lp of __vals( [[84, 118], [116, 118], [70, 122], [130, 122]])) this.objs[lp[1] * this.N + lp[0]] = 7;
+			this.fillN(84, 117, 33, 10, World.MARBLE);
+			this.fillN(99, 117, 3, 11, World.RUNNER);
+			
+			for (var lp of __vals( [[84, 118], [116, 118], [76, 122], [124, 122]])) this.objs[lp[1] * this.N + lp[0]] = 30;
 			this.spawnX = 100.5;
 			this.spawnY = 124.5;
 		}
@@ -5776,6 +5783,9 @@ World.SPECTRAL = __int(28);
 World.HEXFIRE = __int(29);
 World.VOIDFIRE = __int(30);
 World.SHOCK = __int(31);
+World.STARSTONE = __int(32);
+World.MARBLE = __int(33);
+World.RUNNER = __int(34);
 World.SHORE_ZONE = __int(0);
 World.LOW_ZONE = __int(1);
 World.MID_ZONE = __int(2);

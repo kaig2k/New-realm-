@@ -6736,6 +6736,10 @@ package realm {
 		public function get camCos():Number { return rc; }
 		public function get camSin():Number { return rs; }
 		private var camZeroing:Boolean = false;
+		/** Camera offset (like Realm's "toggle centering"): the hero sits low on the screen so you see more ahead. camOff eases toward its target (a share of the view height). */
+		private var camOff:Number = 0;
+		private static const CAM_OFFSET:Number = 0.22;
+		private function get camOffsetOn():Boolean { return Save.data.opt && Save.data.opt.camOffset; }
 		private var rc:Number = 1, rs:Number = 0, shx:Number = 0, shy:Number = 0;
 		/** Mouse wheel / - and = keys: zoom the world view in or out. */
 		public function setZoom(z:Number):void {
@@ -6749,7 +6753,7 @@ package realm {
 				canvasBmp.bitmapData = canvas;
 			}
 			vw = w; vh = h;
-			cx = w / 2; cy = h / 2 + 20 / z;
+			cx = w / 2; cy = h / 2 + 20 / z + camOff * h;
 			worldLayer.scaleX = worldLayer.scaleY = z;
 			if (!Save.data.opt) Save.data.opt = {};
 			Save.data.opt.zoom = Math.round(z * 100) / 100;
@@ -6790,6 +6794,17 @@ package realm {
 			if (input.isDown(Keys.k("rotl"))) { camAngle -= dt * 2.2; camZeroing = false; }
 			if (input.isDown(Keys.k("rotr"))) { camAngle += dt * 2.2; camZeroing = false; }
 			if (input.pressed(Keys.k("camreset"))) { camAngle = 0; camZeroing = false; }
+			if (input.pressed(Keys.k("camoffset"))) {
+				if (!Save.data.opt) Save.data.opt = {};
+				Save.data.opt.camOffset = !camOffsetOn;
+				msg(camOffsetOn ? "Camera offset on" : "Camera centred", 0xc8b8ff);
+			}
+			var want:Number = camOffsetOn ? CAM_OFFSET : 0;
+			if (camOff != want) {
+				camOff += (want - camOff) * Math.min(1, dt * 10);
+				if (Math.abs(want - camOff) < 0.002) camOff = want;
+				cy = vh / 2 + 20 / zoom + camOff * vh;
+			}
 			if (camZeroing) {
 				while (camAngle > Math.PI) camAngle -= Math.PI * 2;
 				while (camAngle < -Math.PI) camAngle += Math.PI * 2;
@@ -6898,7 +6913,7 @@ package realm {
 			mtx.translate(-viewX * TS, -viewY * TS);
 			if (camAngle != 0) mtx.rotate(-camAngle);
 			mtx.translate(cx + shx, cy + shy);
-			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw + vh * vh) / 2 / TS + 1);
+			world.drawGround(canvas, mtx, viewX, viewY, Math.sqrt(vw * vw / 4 + Math.max(cy, vh - cy) * Math.max(cy, vh - cy)) / TS + 1);
 			if (inNexus && decor) decor.drawGround(canvas);
 			if (arenas) arenas.drawGround(canvas);
 
@@ -6991,7 +7006,7 @@ package realm {
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
 			drawN = 0;
-			var reach:int = int(Math.sqrt(vw * vw + vh * vh) / 2 / TS) + 3;
+			var reach:int = int(Math.sqrt(vw * vw / 4 + Math.max(cy, vh - cy) * Math.max(cy, vh - cy)) / TS) + 3;
 			var tx0:int = int(viewX) - reach, tx1:int = int(viewX) + reach;
 			var ty0:int = int(viewY) - reach, ty1:int = int(viewY) + reach;
 			for (var ty:int = ty0; ty <= ty1; ty++) {

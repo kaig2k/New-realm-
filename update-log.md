@@ -1,3 +1,12 @@
+**📜 ELDMERE UPDATE: Camera Offset**
+
+**🎥 See further ahead**
+• Press **C** to toggle **camera offset**: your hero sits lower on the screen so you see more of what's coming, like Realm's "toggle centering"
+• Press it again to centre the camera. It eases smoothly between the two and remembers your choice
+• Works with camera rotation and zoom. Rebind it in **Menu > Controls** (for example to X, the Realm default; X swaps with Interact)
+
+---
+
 **📜 ELDMERE UPDATE: Raid Gates**
 
 **🌀 Raid portals reborn**

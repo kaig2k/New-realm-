@@ -5062,6 +5062,8 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-camoffset", title: "What's new in Eldmere",
+				lines: ["<b>Camera offset</b>: press <b>C</b> to move your hero down the screen so you can see further ahead, like Realm's \"toggle centering\". Press it again to centre the camera. It works with camera rotation and zoom, and you can rebind it in Menu > Controls."]},
 			{id: "2026-10-raidgates", title: "What's new in Eldmere",
 				lines: ["<b>Raid gates</b>: raid portals are now great obsidian gates with a swirling vortex, a rune circle turning on the ground and a beam of light into the sky. They rise out of a shockwave when they open (gold for Heroic).",
 					"<b>The whole server hears it</b>: when anyone opens a raid, everyone gets the news, wherever they are.",

@@ -21,6 +21,7 @@ package realm {
 			{id: "rotl", name: "Rotate camera left", key: 81},
 			{id: "rotr", name: "Rotate camera right", key: 69},
 			{id: "camreset", name: "Reset camera", key: 90},
+			{id: "camoffset", name: "Camera offset", key: 67},
 			{id: "zoomout", name: "Zoom out", key: 189},
 			{id: "zoomin", name: "Zoom in", key: 187},
 			{id: "social", name: "Party & guild", key: 76},

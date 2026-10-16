@@ -44,7 +44,9 @@ package realm {
 			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner",
 			// 20+: set-piece decorations (see SetPieces)
 			"sp_crystal_cube", "sp_spike_ice", "sp_pillar_ice", "sp_pillar_gold", "sp_pillar_dark", "sp_brazier_blue", "sp_pillar_sand",
-			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex"];
+			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex",
+			// 34+: the Nexus's violet trees
+			"startree", "starpine"];
 		/** Shrine kinds, in the order of their objects (14-18). */
 		public static const SHRINES:Array = ["might", "haste", "fortune", "vigor", "arcana"];
 		public static const NEXUS_ZONE:int = 5;
@@ -487,12 +489,12 @@ package realm {
 				}
 			}
 			for each (var br:Array in [[89, 87], [111, 87], [89, 109], [111, 109]]) objs[br[1] * N + br[0]] = 30;
-			// four moonlit gardens: dark grass, a starlit pond, pines, a rim of spectral stone
+			// four moonlit gardens: violet grass, a starlit pond, violet trees, a rim of spectral stone
 			for each (var gd:Array in [[79, 82], [121, 82], [79, 113], [121, 113]]) {
 				fillN(gd[0] - 7, gd[1] - 5, 15, 11, SPECTRAL);
 				fillN(gd[0] - 6, gd[1] - 4, 13, 9, DARK);
 				fillN(gd[0] - 2, gd[1] - 1, 5, 3, WATER);
-				for each (var tr:Array in [[-5, -3, 2], [5, -3, 2], [-5, 3, 2], [5, 3, 2], [0, -3, 1], [0, 3, 1]]) objs[(gd[1] + tr[1]) * N + gd[0] + tr[0]] = tr[2];
+				for each (var tr:Array in [[-5, -3, 35], [5, -3, 35], [-5, 3, 35], [5, 3, 35], [0, -3, 34], [0, 3, 34]]) objs[(gd[1] + tr[1]) * N + gd[0] + tr[0]] = tr[2];
 			}
 			// gold colonnades down the east-west runner
 			for each (var cx:int in [77, 82, 118, 123]) { objs[95 * N + cx] = 23; objs[101 * N + cx] = 23; }
@@ -1402,8 +1404,8 @@ package realm {
 							c = y % 4 == 3 ? 0x4a2e16 : (x == 0 || x == PX - 1) ? 0x5a3a1c : r < 0.15 ? 0x7a4e26 : 0x8a5a2e;
 							break;
 						case DARK:
-							// (the Nexus's gardens: grass under the night sky, silvered by the stars)
-							if (kind == "nexus") c = blade(gx, gy, hs) ? 0x3e7a6a : blade(gx + 4, gy + 2, hs + 7) ? 0x142c2c : 0x1f4440;
+							// (the Nexus's gardens: violet grass under the night sky)
+							if (kind == "nexus") c = blade(gx, gy, hs) ? 0x9a6ad8 : blade(gx + 4, gy + 2, hs + 7) ? 0x2a1848 : 0x4a3074;
 							else c = blade(gx, gy, hs) ? 0x447a2c : blade(gx + 4, gy + 2, hs + 7) ? 0x24481a : 0x31612a;
 							break;
 						case GOD:

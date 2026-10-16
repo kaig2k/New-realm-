@@ -2610,7 +2610,7 @@ class World {
 				this.fillN(gd[0] - 7, gd[1] - 5, 15, 11, World.SPECTRAL);
 				this.fillN(gd[0] - 6, gd[1] - 4, 13, 9, World.DARK);
 				this.fillN(gd[0] - 2, gd[1] - 1, 5, 3, World.WATER);
-				for (var tr of __vals( [[-5, -3, 2], [5, -3, 2], [-5, 3, 2], [5, 3, 2], [0, -3, 1], [0, 3, 1]])) this.objs[(gd[1] + tr[1]) * this.N + gd[0] + tr[0]] = tr[2];
+				for (var tr of __vals( [[-5, -3, 35], [5, -3, 35], [-5, 3, 35], [5, 3, 35], [0, -3, 34], [0, 3, 34]])) this.objs[(gd[1] + tr[1]) * this.N + gd[0] + tr[0]] = tr[2];
 			}
 			
 			for (var cx of __vals( [77, 82, 118, 123])) { this.objs[95 * this.N + cx] = 23; this.objs[101 * this.N + cx] = 23; }
@@ -5798,7 +5798,9 @@ World.OBJ_NAMES = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", 
 			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner",
 			
 			"sp_crystal_cube", "sp_spike_ice", "sp_pillar_ice", "sp_pillar_gold", "sp_pillar_dark", "sp_brazier_blue", "sp_pillar_sand",
-			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex"];
+			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex",
+			
+			"startree", "starpine"];
 World.SHRINES = ["might", "haste", "fortune", "vigor", "arcana"];
 World.NEXUS_ZONE = __int(5);
 World.customMap = null;

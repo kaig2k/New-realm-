@@ -43,12 +43,12 @@ package realm {
 			for (var y:int = 60; y < 132; y++) for (var x:int = 60; x < 140; x++) {
 				var i:int = y * N + x;
 				if (w.objs[i] == 7 || w.objs[i] == 30) braziers.push([x + 0.5, y + 0.5, w.objs[i] == 30 ? 0xa070ff : 0xffb050]);
-				if (w.tiles[i] == World.GRASS && w.objs[i] == 0) {
+				if ((w.tiles[i] == World.GRASS || w.tiles[i] == World.DARK) && w.objs[i] == 0) {
 					for (var k:int = 0; k < 2; k++) {
 						r = (r * 1103515245 + 12345) & 0x7fffffff;
 						if (r % 3 != 0) continue;
 						var fx:Number = x + (r % 97) / 97, fy:Number = y + ((r >> 8) % 89) / 89;
-						flowers.push([fx, fy, [0xff7090, 0xffe060, 0x9ab0ff, 0xffffff, 0xff9a40][(r >> 4) % 5]]);
+						flowers.push([fx, fy, [0xe0a0ff, 0xffe060, 0x9ab0ff, 0xffffff, 0xff80d0][(r >> 4) % 5]]);
 					}
 				}
 			}

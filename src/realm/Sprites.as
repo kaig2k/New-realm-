@@ -330,6 +330,9 @@ package realm {
 
 			tree: [TREE, {g: 0x24561c, G: 0x3e8a2c, L: 0x6cc04a, T: 0x6b4423, t: 0x442a14}],
 			pine: [PINE, {g: 0x163c16, G: 0x2a6424, L: 0x4a9a3a, T: 0x5a3a1c, t: 0x3a2410}],
+			// the Nexus's gardens: star-touched trees, violet leaves on dark trunks
+			startree: [TREE, {g: 0x3a1e62, G: 0x6a3aa8, L: 0xb48aff, T: 0x2e2238, t: 0x1a1222}],
+			starpine: [PINE, {g: 0x2a1450, G: 0x55308e, L: 0x9a70e8, T: 0x2e2238, t: 0x1a1222}],
 			palm: [PALM, {G: 0x3a9a2a, L: 0x7ad060, T: 0x9a7040, t: 0x6a4a28}],
 			rock: [ROCK, {k: 0x6a6a70, K: 0x8e8e96, L: 0xc0c0c8, d: 0x48484e}],
 			boulder: [BOULDER, {k: 0x4e4e54, K: 0x6a6a72, L: 0x9a9aa4, d: 0x34343a}],

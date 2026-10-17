@@ -804,6 +804,83 @@ package realm {
 			return bd;
 		}
 
+		/**
+		 * Inventory icons: the item's 8x8 drawing, smoothed to 16x16 (EPX, so diagonal
+		 * blades and staffs come out clean), then shaded with the light from the top
+		 * left: warm highlights on the edges facing it, cool shadows on the far edges,
+		 * so each part reads as 3-4 tones. Drawn at 2x with the dark outline (same size
+		 * as before: 36px).
+		 */
+		public static function buildIcon(rows:Array, pal:Object):BitmapData {
+			var h:int = rows.length, w:int = String(rows[0]).length;
+			var x:int, y:int;
+			var g8:Vector.<uint> = new Vector.<uint>(w * h, true);
+			for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+				var ch:String = String(rows[y]).charAt(x);
+				if (ch != "." && pal[ch] != undefined) g8[y * w + x] = 0xff000000 | uint(pal[ch]);
+			}
+			// EPX / Scale2x
+			var W:int = w * 2, H:int = h * 2;
+			var g:Vector.<uint> = new Vector.<uint>(W * H, true);
+			for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+				var P:uint = g8[y * w + x];
+				var A:uint = y > 0 ? g8[(y - 1) * w + x] : 0, D:uint = y < h - 1 ? g8[(y + 1) * w + x] : 0;
+				var C:uint = x > 0 ? g8[y * w + x - 1] : 0, B:uint = x < w - 1 ? g8[y * w + x + 1] : 0;
+				var p1:uint = P, p2:uint = P, p3:uint = P, p4:uint = P;
+				// only fill the empty corners of a diagonal (never cut a pixel away): thin blades
+				// and staffs keep their full weight, and their steps get smoothed
+				if (!P) {
+					if (C && C == A && C != D && A != B) p1 = A;
+					if (A && A == B && A != C && B != D) p2 = B;
+					if (C && D == C && D != B && C != A) p3 = C;
+					if (B && B == D && B != A && D != C) p4 = D;
+				}
+				var o:int = (y * 2) * W + x * 2;
+				g[o] = p1; g[o + 1] = p2; g[o + W] = p3; g[o + W + 1] = p4;
+			}
+			// light from the top left
+			var out:Vector.<uint> = g.concat();
+			for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+				var c:uint = g[y * W + x];
+				if (!c) continue;
+				var up:Boolean = y == 0 || !g[(y - 1) * W + x], lf:Boolean = x == 0 || !g[y * W + x - 1];
+				var dn:Boolean = y == H - 1 || !g[(y + 1) * W + x], rt:Boolean = x == W - 1 || !g[y * W + x + 1];
+				var lit:Boolean = up || lf, dark:Boolean = dn || rt;
+				if (up && lf && !dark) out[y * W + x] = 0xff000000 | lightOf(c, 0.5);
+				else if (lit && !dark) out[y * W + x] = 0xff000000 | lightOf(c, 0.3);
+				else if (dark && !lit) out[y * W + x] = 0xff000000 | darkOf(c, dn && rt ? 0.5 : 0.66);
+				else if (!lit && !dark) {
+					// inside: a colour change below or to the right reads as a soft crease
+					var below:uint = g[(y + 1) * W + x], right:uint = g[y * W + x + 1];
+					if ((below != c && lum(below) < lum(c)) || (right != c && lum(right) < lum(c))) out[y * W + x] = 0xff000000 | darkOf(c, 0.84);
+				}
+			}
+			var S:int = 2, pad:int = 2;
+			var bd:BitmapData = new BitmapData(W * S + pad * 2, H * S + pad * 2, true, 0);
+			var rr:Rectangle = new Rectangle(0, 0, S, S);
+			for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+				if (!out[y * W + x]) continue;
+				rr.x = pad + x * S; rr.y = pad + y * S;
+				bd.fillRect(rr, out[y * W + x]);
+			}
+			addOutline(bd, 2);
+			return bd;
+		}
+
+		/** Toward a warm light (and a touch more saturated). */
+		private static function lightOf(c:uint, t:Number):uint {
+			var r:Number = (c >> 16) & 255, gg:Number = (c >> 8) & 255, b:Number = c & 255;
+			r += (255 - r) * t; gg += (244 - gg) * t; b += (214 - b) * t * 0.8;
+			return (uint(Math.min(255, r)) << 16) | (uint(Math.min(255, gg)) << 8) | uint(Math.min(255, b));
+		}
+		/** Darker, and shifted toward a cool violet so shadows don't go muddy. */
+		private static function darkOf(c:uint, f:Number):uint {
+			var r:Number = ((c >> 16) & 255) * f, gg:Number = ((c >> 8) & 255) * f, b:Number = (c & 255) * f;
+			var k:Number = (1 - f) * 0.35;
+			r += (40 - r) * k; gg += (24 - gg) * k; b += (80 - b) * k;
+			return (uint(Math.max(0, r)) << 16) | (uint(Math.max(0, gg)) << 8) | uint(Math.max(0, b));
+		}
+
 		private static function addOutline(bd:BitmapData, passes:int):void {
 			var w:int = bd.width, h:int = bd.height;
 			var px:Vector.<uint> = bd.getVector(bd.rect);
@@ -956,7 +1033,7 @@ package realm {
 			// gear and stat potions: every item has its own drawing (ItemArt)
 			var art:Object = ItemArt.art(item);
 			if (art) {
-				bd = build(art.rows, art.pal, 4, 2);
+				bd = buildIcon(art.rows, art.pal);
 				if (rar == "gd") bd = godlyFrame(bd);
 				else if (rar) bd = glowEdge(bd, rc);
 				else if (item.curse) bd = glowEdge(bd, Data.CURSE_COLOR);
@@ -1015,7 +1092,7 @@ package realm {
 					rows = ICON_POT[0];
 					pal = {W: 0x8a5a2a, G: 0xc8c8d0, H: 0xffffff, P: pc, p: shade(pc, 0.6)};
 			}
-			bd = build(rows, pal, 4, 2);
+			bd = buildIcon(rows, pal);
 			if (rar) bd = glowEdge(bd, rc);
 			else if (item.curse) bd = glowEdge(bd, Data.CURSE_COLOR);
 			cache[key] = bd;

@@ -921,6 +921,8 @@ class Slot extends Sprite {
 		var label:String = Data.tierLabel(it);
 		tierTf.text = label;
 		tierTf.textColor = Data.tierColor(it);
+		// like RotMG: the tier up in the corner, a rarity tag down at the bottom
+		tierTf.y = it.rarity ? 28 : -1;
 	}
 }
 

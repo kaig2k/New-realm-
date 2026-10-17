@@ -49,6 +49,8 @@ package realm {
 			icon.y = int((SIZE - icon.height) / 2);
 			tierTf.text = Data.tierLabel(it);
 			tierTf.textColor = Data.tierColor(it);
+			// like RotMG: the tier up in the corner, a rarity tag down at the bottom
+			tierTf.y = it.rarity ? 28 : -1;
 		}
 
 		/** Highlight: 0 = none, otherwise a coloured ring (and a tinted fill when `fill`). */

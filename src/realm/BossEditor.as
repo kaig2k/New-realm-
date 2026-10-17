@@ -109,138 +109,147 @@ package realm {
 		private static function clamp(v:Number, lo:Number, hi:Number):Number { return Math.max(lo, Math.min(hi, v)); }
 
 		// ------------------------------------------------------------ layout
+		private var preview:BossPreview;
+		private var mapName:String = null, mapObj:Object = null;
+
 		private function rebuild():void {
 			body.removeChildren();
 			body.graphics.clear();
-			// --- left: the boss itself
-			Ui.panel(body.graphics, 16, 60, 300, 568, 0x1e2026, 0x3a3a4a);
-			var spr:String = b.sprite.indexOf("cs:") == 0 ? CreatorData.useSprite(b.sprite.substr(3)) : b.sprite;
-			var pic:Bitmap = new Bitmap(Sprites.get(spr));
-			var sc:Number = Math.min(2, 110 / Math.max(pic.width, pic.height));
-			pic.scaleX = pic.scaleY = sc;
-			pic.x = 166 - pic.width / 2; pic.y = 74 + (110 - pic.height) / 2;
-			body.addChild(pic);
+			if (!preview) {
+				// the live preview: the boss in its arena, firing as you edit it
+				preview = new BossPreview();
+				preview.x = 18; preview.y = 58;
+				addChild(preview);
+			}
+			// --- under the preview: the boss itself
+			Ui.panel(body.graphics, 12, 432, 550, 200, 0x1e2026, 0x3a3a4a);
 			var looks:Array = lookList();
-			cycler("Look", lookName(b.sprite), 40, 194, function(d:int):void { b.sprite = next(looks, b.sprite, d); }, 252);
-			stepper("Health", Ui.commas(b.hp), 40, 240, function():void { b.hp = clamp(b.hp - (b.hp > 20000 ? 5000 : 1000), 1000, 200000); },
-				function():void { b.hp = clamp(b.hp + (b.hp >= 20000 ? 5000 : 1000), 1000, 200000); }, 252);
-			stepper("Defense", String(b.def), 40, 286, function():void { b.def = clamp(b.def - 5, 0, 80); }, function():void { b.def = clamp(b.def + 5, 0, 80); }, 252);
-			stepper("Move speed", Number(b.spd).toFixed(1), 40, 332, function():void { b.spd = clamp(Math.round((b.spd - 0.2) * 10) / 10, 0, 4); },
-				function():void { b.spd = clamp(Math.round((b.spd + 0.2) * 10) / 10, 0, 4); }, 252);
+			cycler("Look", lookName(b.sprite), 24, 438, function(d:int):void { b.sprite = next(looks, b.sprite, d); }, 256);
+			stepper("Health", Ui.commas(b.hp), 296, 438, function():void { b.hp = clamp(b.hp - (b.hp > 20000 ? 5000 : 1000), 1000, 200000); },
+				function():void { b.hp = clamp(b.hp + (b.hp >= 20000 ? 5000 : 1000), 1000, 200000); }, 256);
+			stepper("Defense", String(b.def), 24, 484, function():void { b.def = clamp(b.def - 5, 0, 80); }, function():void { b.def = clamp(b.def + 5, 0, 80); }, 256);
+			stepper("Move speed", Number(b.spd).toFixed(1), 296, 484, function():void { b.spd = clamp(Math.round((b.spd - 0.2) * 10) / 10, 0, 4); },
+				function():void { b.spd = clamp(Math.round((b.spd + 0.2) * 10) / 10, 0, 4); }, 256);
 			var maps:Array = [null].concat(CreatorData.names("maps"));
-			cycler("Arena (from the Map Builder)", b.map || "Default arena", 40, 378, function(d:int):void { b.map = next(maps, b.map, d); }, 252);
-			cycler("Test with", Data.CLASSES[b.cls].name, 40, 424, function(d:int):void { b.cls = next(Data.CLASS_ORDER, b.cls, d); }, 252);
-			var hint:TextField = Ui.text(12, 0x8a8a9a, false, "left", 260);
+			cycler("Arena (from the Map Builder)", b.map || "Default arena", 24, 530, function(d:int):void { b.map = next(maps, b.map, d); }, 256);
+			cycler("Test with", Data.CLASSES[b.cls].name, 296, 530, function(d:int):void { b.cls = next(Data.CLASS_ORDER, b.cls, d); }, 256);
+			var hint:TextField = Ui.text(12, 0x8a8a9a, false, "left", 530);
 			hint.text = "Draw your own look in the Sprite Editor and build arenas in the Map Builder; they show up here.";
-			hint.x = 36; hint.y = 474;
+			hint.x = 24; hint.y = 584;
 			body.addChild(hint);
 
-			// --- right: phases
-			Ui.panel(body.graphics, 330, 60, 754, 568, 0x1e2026, 0x3a3a4a);
+			// --- right: phases and their attacks
+			Ui.panel(body.graphics, 572, 56, 516, 576, 0x1e2026, 0x3a3a4a);
 			if (phase >= b.phases.length) phase = b.phases.length - 1;
 			for (var i:int = 0; i < b.phases.length; i++) {
-				var pt:Sprite = Ui.button("Phase " + (i + 1), 100, 28, phaseFn(i), 14);
+				var pt:Sprite = Ui.button("Phase " + (i + 1), 84, 26, phaseFn(i), 13);
 				pt.alpha = i == phase ? 1 : 0.5;
-				pt.x = 346 + i * 106; pt.y = 70;
+				pt.x = 582 + i * 88; pt.y = 64;
 				body.addChild(pt);
 			}
 			if (b.phases.length < 4) {
-				var ap:Sprite = Ui.button("+ Phase", 90, 28, function():void {
+				var ap:Sprite = Ui.button("+ Phase", 76, 26, function():void {
 					var last:Object = b.phases[b.phases.length - 1];
 					b.phases.push({hp: Math.max(10, last.hp - 30), move: last.move, say: "", attacks: Save.clone(last.attacks)});
 					phase = b.phases.length - 1;
 					rebuild();
-				}, 13);
-				ap.x = 346 + b.phases.length * 106; ap.y = 70;
+					preview.showPhase(phase);
+				}, 12);
+				ap.x = 582 + b.phases.length * 88; ap.y = 64;
 				body.addChild(ap);
 			}
 			var ph:Object = b.phases[phase];
 			if (phase > 0) {
-				var rp:Sprite = Ui.button("Remove phase", 120, 28, function():void { b.phases.splice(phase, 1); phase--; rebuild(); }, 12);
-				rp.x = 950; rp.y = 70;
+				var rp:Sprite = Ui.button("Remove", 70, 26, function():void { b.phases.splice(phase, 1); phase--; rebuild(); }, 12);
+				rp.x = 1010; rp.y = 64;
 				body.addChild(rp);
-				stepper("Starts at boss health", ph.hp + "%", 346, 108, function():void { ph.hp = clamp(ph.hp - 5, 5, 95); },
-					function():void { ph.hp = clamp(ph.hp + 5, 5, 95); }, 160);
+				stepper("Starts at health", ph.hp + "%", 582, 96, function():void { ph.hp = clamp(ph.hp - 5, 5, 95); },
+					function():void { ph.hp = clamp(ph.hp + 5, 5, 95); }, 120);
 			} else {
-				var first:TextField = Ui.text(12, 0xaaaaaa, false, "left", 160);
+				var first:TextField = Ui.text(12, 0xaaaaaa, false, "left", 120);
 				first.text = "Phase 1 starts the fight.";
-				first.x = 346; first.y = 118;
+				first.x = 582; first.y = 104;
+				first.wordWrap = true;
 				body.addChild(first);
 			}
-			cycler("Movement", MOVE_NAMES[ph.move], 520, 108, function(d:int):void { ph.move = next(MOVES, ph.move, d); }, 180);
+			cycler("Movement", MOVE_NAMES[ph.move], 710, 96, function(d:int):void { ph.move = next(MOVES, ph.move, d); }, 150);
 			var sl:TextField = Ui.text(12, 0xaaaaaa, false, "left", 200);
 			sl.text = "Says when the phase starts";
-			sl.x = 716; sl.y = 108;
+			sl.x = 868; sl.y = 96;
 			body.addChild(sl);
-			var say:TextField = Ui.input(350, ph.say, 60, 12);
-			say.x = 716; say.y = 126;
+			var say:TextField = Ui.input(212, ph.say, 60, 12);
+			say.x = 868; say.y = 114;
 			say.addEventListener(Event.CHANGE, function(e:Event):void { ph.say = say.text; });
 			body.addChild(say);
 
-			var y:int = 164;
+			var y:int = 144;
 			for (i = 0; i < ph.attacks.length; i++) {
 				attackRow(ph, i, y);
-				y += 102;
+				y += 108;
 			}
 			if (ph.attacks.length < 4) {
-				var aa:Sprite = Ui.button("+ Attack", 120, 28, function():void {
+				var aa:Sprite = Ui.button("+ Attack", 110, 26, function():void {
 					ph.attacks.push({p: "aimed", n: 1, spd: 9, dmg: 60, cd: 1.0, col: 0xff8030, shape: "blade", eff: ""});
 					rebuild();
 				}, 13);
-				aa.x = 346; aa.y = y + 4;
+				aa.x = 582; aa.y = y + 2;
 				body.addChild(aa);
 			}
+			// the preview follows every change straight away
+			if (b.map != mapName || (b.map && !mapObj)) { mapName = b.map; mapObj = b.map ? CreatorData.load("maps", b.map) : null; }
+			preview.setBoss(toDef(b), mapObj, b.cls);
 		}
 
 		private function phaseFn(i:int):Function {
-			return function():void { phase = i; rebuild(); };
+			return function():void { phase = i; rebuild(); preview.showPhase(i); };
 		}
 
 		private function attackRow(ph:Object, i:int, y:int):void {
 			var a:Object = ph.attacks[i];
-			Ui.panel(body.graphics, 342, y, 730, 94, 0x262830, 0x4a4a5a);
-			cycler("Attack " + (i + 1), PATTERN_NAMES[a.p], 352, y + 4, function(d:int):void { a.p = next(PATTERNS, a.p, d); fit(a); }, 190);
+			var x0:int = 578;
+			Ui.panel(body.graphics, x0, y, 504, 102, 0x262830, 0x4a4a5a);
+			cycler("Attack " + (i + 1), PATTERN_NAMES[a.p], x0 + 6, y + 4, function(d:int):void { a.p = next(PATTERNS, a.p, d); fit(a); }, 150);
 			var maxN:int = maxCount(a.p);
-			stepper(a.p == "summon" ? "Minions" : a.p == "wall" ? "Wall width" : "Bullets", String(a.n), 554, y + 4,
-				function():void { a.n = clamp(a.n - 1, 1, maxN); }, function():void { a.n = clamp(a.n + 1, 1, maxN); }, 120);
+			stepper(a.p == "summon" ? "Minions" : a.p == "wall" ? "Wall width" : "Bullets", String(a.n), x0 + 162, y + 4,
+				function():void { a.n = clamp(a.n - 1, 1, maxN); }, function():void { a.n = clamp(a.n + 1, 1, maxN); }, 96);
 			if (a.p != "summon") {
-				stepper("Speed", String(a.spd), 686, y + 4, function():void { a.spd = clamp(a.spd - 1, 3, a.p == "rain" || a.p == "nova" ? 8 : 12); },
-					function():void { a.spd = clamp(a.spd + 1, 3, a.p == "rain" || a.p == "nova" ? 8 : 12); }, 110);
-				stepper("Damage", String(a.dmg), 808, y + 4, function():void { a.dmg = clamp(a.dmg - 10, 10, 250); },
-					function():void { a.dmg = clamp(a.dmg + 10, 10, 250); }, 120);
+				stepper("Speed", String(a.spd), x0 + 264, y + 4, function():void { a.spd = clamp(a.spd - 1, 3, a.p == "rain" || a.p == "nova" ? 8 : 12); },
+					function():void { a.spd = clamp(a.spd + 1, 3, a.p == "rain" || a.p == "nova" ? 8 : 12); }, 100);
+				stepper("Damage", String(a.dmg), x0 + 370, y + 4, function():void { a.dmg = clamp(a.dmg - 10, 10, 250); },
+					function():void { a.dmg = clamp(a.dmg + 10, 10, 250); }, 126);
 			}
 			var minCd:Number = a.p == "spiral" ? 0.08 : a.p == "aimed" ? 0.25 : a.p == "summon" ? 4 : 0.5;
 			var cdStep:Number = a.cd < 0.5 ? 0.05 : 0.25;
-			stepper("Every (s)", Number(a.cd).toFixed(2), 940, y + 4, function():void { a.cd = clamp(Math.round((a.cd - cdStep) * 100) / 100, minCd, 12); },
-				function():void { a.cd = clamp(Math.round((a.cd + cdStep) * 100) / 100, minCd, 12); }, 120);
+			stepper("Every (s)", Number(a.cd).toFixed(2), x0 + 6, y + 52, function():void { a.cd = clamp(Math.round((a.cd - cdStep) * 100) / 100, minCd, 12); },
+				function():void { a.cd = clamp(Math.round((a.cd + cdStep) * 100) / 100, minCd, 12); }, 104);
 			if (a.p == "summon") {
-				cycler("Minion", Data.ENEMIES[a.what || MINIONS[0]].name, 352, y + 50, function(d:int):void { a.what = next(MINIONS, a.what || MINIONS[0], d); }, 190);
+				cycler("Minion", Data.ENEMIES[a.what || MINIONS[0]].name, x0 + 118, y + 52, function(d:int):void { a.what = next(MINIONS, a.what || MINIONS[0], d); }, 190);
 			} else {
+				var cl:TextField = Ui.text(12, 0xaaaaaa, false, "left", 60);
+				cl.text = "Colour";
+				cl.x = x0 + 118; cl.y = y + 52;
+				body.addChild(cl);
 				var sw:Sprite = new Sprite();
 				sw.graphics.lineStyle(2, 0xffffff);
 				sw.graphics.beginFill(a.col);
-				sw.graphics.drawRect(0, 0, 24, 22);
+				sw.graphics.drawRect(0, 0, 22, 22);
 				sw.graphics.endFill();
-				var cl:TextField = Ui.text(12, 0xaaaaaa, false, "left", 80);
-				cl.text = "Colour";
-				cl.x = 352; cl.y = y + 50;
-				body.addChild(cl);
-				sw.x = 352; sw.y = y + 67;
+				sw.x = x0 + 118; sw.y = y + 69;
 				sw.buttonMode = true;
 				sw.addEventListener("click", function(e:Event):void { a.col = next(COLOURS, a.col, 1); rebuild(); });
 				body.addChild(sw);
 				var prev:Bitmap = new Bitmap(Sprites.projectile(a.shape, a.col, 3)[0]);
-				prev.x = 384; prev.y = y + 66;
+				prev.x = x0 + 146; prev.y = y + 68;
 				body.addChild(prev);
-				cycler("Bullet shape", a.shape, 420, y + 50, function(d:int):void { a.shape = next(SHAPES, a.shape, d); }, 140);
-				cycler("Effect on hit", a.eff ? Player.STATUS_NAMES[a.eff] : "None", 574, y + 50, function(d:int):void { a.eff = next(EFFECTS, a.eff || "", d); }, 170);
+				cycler("Shape", a.shape, x0 + 176, y + 52, function(d:int):void { a.shape = next(SHAPES, a.shape, d); }, 110);
+				cycler("Effect on hit", a.eff ? Player.STATUS_NAMES[a.eff] : "None", x0 + 292, y + 52, function(d:int):void { a.eff = next(EFFECTS, a.eff || "", d); }, 148);
 			}
-			var del:Sprite = Ui.button("Delete", 70, 26, function():void {
+			var del:Sprite = Ui.button("X", 44, 26, function():void {
 				if (ph.attacks.length <= 1) { info.text = "A phase needs at least one attack."; return; }
 				ph.attacks.splice(i, 1);
 				rebuild();
 			}, 12);
-			del.x = 990; del.y = y + 62;
+			del.x = x0 + 452; del.y = y + 68;
 			body.addChild(del);
 		}
 

@@ -1,3 +1,14 @@
+**📜 ELDMERE UPDATE: Boss Maker 2.0**
+
+**👁️ See your boss as you build it**
+• The Boss Maker now has a **live preview**: your boss in its arena (the Map Builder map, or the default one), moving and firing its attacks **as you change them**
+• Steer the hero with your mouse to feel how dodgeable it is; it shows hits taken and damage a minute
+• A **phase bar** under it: the boss's health with every phase marked in its own colour. Click it to jump to any health, or let the health drain and watch the phases turn over (banner, flash and the boss's line)
+• Clicking a phase tab jumps the preview to that phase
+• Pause, 0.5x/1x/2x speed and restart
+
+---
+
 **📜 ELDMERE UPDATE: Staff Feedback**
 
 **🐛 Fixes**

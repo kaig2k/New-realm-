@@ -717,6 +717,8 @@ const groupsT = load('groups.json', {});
 const groupInvites = new Map();
 /** The Group Ironman group an account is in, or null. */
 function gimOf(c) { const f = groupsMod.groupOf(groupsT, c.key); return f ? f[1] : null; }
+/** Whether an account still has a Group Ironman hero alive. */
+function hasGimHero(key) { const sv = store.getSave(key); return !!(sv && Array.isArray(sv.chars) && sv.chars.some((h) => h && typeof h === 'object' && modes.modeOf(h) === 'group')); }
 /** Two players' heroes can trade: both regular, or both Group Ironman heroes of the same group. */
 function canTrade(a, b) {
   if (!modes.restricted(a.mode) && !modes.restricted(b.mode)) return '';
@@ -2214,6 +2216,8 @@ const handlers = {
         if (!o) return c.note('Nobody called ' + (parts[2] || '?') + ' is online.');
         if (o === c) return;
         if (groupsMod.groupOf(groupsT, o.key)) return c.note(o.name + ' is already in a group.');
+        // (testers and players don't mix: a tester's items come from the admin menu)
+        if (isTester(c) !== isTester(o)) return c.note('Testers and players can\'t share a Group Ironman group.');
         const shut = groupsMod.closed(mine[1]);
         if (shut) return c.note(shut);
         groupInvites.set(o.key, { id: mine[0], from: c.name, at: Date.now() });
@@ -2224,6 +2228,8 @@ const handlers = {
         const inv = groupInvites.get(c.key);
         if (!inv || Date.now() - inv.at > 10 * 60000) return c.note('You have no group invite (they last 10 minutes).');
         groupInvites.delete(c.key);
+        const tg = groupsT[inv.id];
+        if (tg && Object.keys(tg.members).some((k) => isTester({ key: k, name: tg.members[k] }) !== isTester(c))) return c.note('Testers and players can\'t share a Group Ironman group.');
         const r = groupsMod.join(groupsT, inv.id, c.key, c.name);
         if (typeof r === 'string') return c.note(r);
         save('groups.json', groupsT);
@@ -2231,13 +2237,19 @@ const handlers = {
         return;
       }
       if (sub === 'leave' || sub === 'disband') {
-        const r = groupsMod.leave(groupsT, c.key);
+        const g0 = mine && mine[1];
+        const r = groupsMod.leave(groupsT, c.key, hasGimHero(c.key));
         if (r.err) return c.note(r.err);
         save('groups.json', groupsT);
         sendGroup(c);
+        log(c.name + ' left the Group Ironman group ' + r.name);
+        if (r.gone) {
+          for (const o of byName.values()) if (gimOf(o) === g0) { o.note(c.name + ' left the Group Ironman group ' + r.name + '. Their spot stays taken.', 0x7fd8a8); sendGroup(o); }
+          return c.note('You left ' + r.name + '. You can found or join another group now.', 0x7fd8a8);
+        }
         return c.note('You gave up ' + r.name + ' (nobody had joined yet). Your heroes keep what they carry.', 0x7fd8a8);
       }
-      if (sub === 'kick' || sub === 'remove') return c.note('Group Ironman is for good: nobody can be removed from a group.');
+      if (sub === 'kick' || sub === 'remove') return c.note('Group Ironman is for good: nobody can be removed from a group (members leave by giving up all their Group Ironman heroes).');
       if (!mine) return c.note('Group Ironman: /group create Name to start a group (up to ' + groupsMod.MAX + ' accounts), or /group accept an invite. ' +
         'Group Ironman heroes trade only with their group, and share its Group Storage in the vault.', 0x7fd8a8);
       const v = groupsMod.view(mine[1], (k) => [...byName.values()].some((o) => o.key === k));
@@ -2597,6 +2609,18 @@ const handlers = {
           setCaps(target);
         }
         return c.note(name + (cmd === '/tester' ? ' is now a tester.' : ' is no longer a tester.'), 0x80ff80);
+      }
+      case '/gimremove': {
+        // /gimremove name: take someone out of their Group Ironman group (a mistake, a test account); frees the spot
+        if (!who || !accounts[who]) return c.note('Usage: /gimremove name');
+        const name = accounts[who].name || parts[1];
+        const r = groupsMod.remove(groupsT, who);
+        if (r.err) return c.note(name + ': ' + r.err);
+        save('groups.json', groupsT);
+        log(c.name + ' took ' + name + ' out of the Group Ironman group ' + r.name);
+        for (const o of byName.values()) if (o.key === who || (groupsT[r.name.toLowerCase()] && gimOf(o) === groupsT[r.name.toLowerCase()])) sendGroup(o);
+        if (target) target.note('An admin took you out of the Group Ironman group ' + r.name + '. You can found or join another group now.', 0x7fd8a8);
+        return c.note('Took ' + name + ' out of ' + r.name + (r.emptied ? ' (nobody was left, so the group is gone)' : '') + '.', 0x80ff80);
       }
       case '/testers':
         return c.note('Testers: ' + ((config.testers || []).join(', ') || 'none'), 0x80ff80);

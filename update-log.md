@@ -5,6 +5,12 @@
 • Press it again to centre the camera. It eases smoothly between the two and remembers your choice
 • Works with camera rotation and zoom. Rebind it in **Menu > Controls** (for example to X, the Realm default; X swaps with Interact)
 
+**👥 Group Ironman fixes**
+• You're no longer stuck in a group for good: once you've given up **all** your Group Ironman heroes (deleted, or fallen), **/group leave** lets you go and found or join another group
+• Your spot in the old group stays taken, so nobody can be swapped in
+• Testers and players can't share a group any more
+• Admins can take someone out of a group with **/gimremove name** (for mistakes and test accounts)
+
 • (Server) The owner can now restart the server from Discord with **/restart**, and check it with **/status**
 
 ---

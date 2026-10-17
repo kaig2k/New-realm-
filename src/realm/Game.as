@@ -389,7 +389,7 @@ package realm {
 					if (myRole == "mod")
 						msg("Moderator: /kick name  /mute name minutes  /unmute  /ban name hours reason (up to 72h)  /unban  /whois name  /graves name  /flags  /bugs  /mods  /vips", 0x60c8ff);
 					if (net.online && Online.welcome && Online.welcome.admin)
-						msg("Roles: /mod name  /unmod name  /tester name  /untester name  /testers  /vip name [days]  /unvip name  /vips  /mods" + (myRole == "owner" ? "  /admin name  /unadmin name" : ""), 0xffb040);
+						msg("Roles: /mod name  /unmod name  /tester name  /untester name  /testers  /vip name [days]  /unvip name  /vips  /mods  /gimremove name" + (myRole == "owner" ? "  /admin name  /unadmin name" : ""), 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin)
 						msg("Admin: /admin (menu)  /admin name  /unadmin name  /admins  /give name 1000 gold|fame|aether (or 3 stone, 2 rune att, 1 cursed, 200 petxp)  /discord (test)  /kick  /ban  /unban  /mute  /unmute  /announce  /restart 5|now|cancel", 0xffb040);
 					if (net.online && Online.welcome && Online.welcome.admin) {
@@ -430,7 +430,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/vip": case "/unvip": case "/vips":
+				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);

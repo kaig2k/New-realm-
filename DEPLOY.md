@@ -119,6 +119,7 @@ Restart the service after editing: `sudo systemctl restart newrealm`.
   - `/unban name`
   - `/mute name [minutes]`
   - `/unmute name`
+  - `/gimremove name` takes someone out of their Group Ironman group (a mistake, or a test account), freeing their spot
   - `/announce message`
   - `/admin name` makes that account an admin straight away (saved in `config.json`, so it lasts), `/unadmin name` takes it back, `/admins` lists them. `/admin` on its own opens the admin menu.
   - `/restart 5`, `/restart now`, `/restart cancel`

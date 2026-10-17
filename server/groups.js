@@ -6,10 +6,12 @@
  * storage keeps each item's pool.
  *
  * Groups are for good: friends can only join in the first INVITE_DAYS after the group is
- * founded, and once someone has joined they stay (nobody can remove them, and they can't
- * leave). Only a founder who is still alone in the group can give it up.
+ * founded, and nobody can be removed. A member leaves only by giving up all their Group
+ * Ironman heroes (once none is left alive, /group leave), and their spot stays taken
+ * (gone), so nobody can be swapped in. A founder still alone can give the group up.
+ * An admin can take someone out by hand (/gimremove), which frees the spot.
  *
- * groups[id] = {name, leader (account key), founded (ms), members: {key: name}, bank: [{item, entry, by} | null], log: [{text, at}]}
+ * groups[id] = {name, leader (account key), founded (ms), members: {key: name}, gone: {key: name}, bank: [{item, entry, by} | null], log: [{text, at}]}
  */
 const items = require('./items');
 
@@ -28,6 +30,7 @@ function ready(g) {
   if (!Array.isArray(g.bank)) g.bank = [];
   while (g.bank.length < BANK_SLOTS) g.bank.push(null);
   if (!Array.isArray(g.log)) g.log = [];
+  if (!g.gone || typeof g.gone !== 'object') g.gone = {};
   if (!(g.founded > 0)) g.founded = Date.now(); // (groups from before the time limit get a full window from now)
   return g;
 }
@@ -40,7 +43,7 @@ function openFor(g, now) {
 
 /** Why nobody new can join g right now, or null. */
 function closed(g, now) {
-  if (Object.keys(g.members).length >= MAX) return 'That group is full (' + MAX + ' members).';
+  if (Object.keys(g.members).length + Object.keys(ready(g).gone).length >= MAX) return 'That group is full (' + MAX + ' spots, counting members who left).';
   if (!openFor(g, now)) return g.name + ' is locked: friends can only join in the first ' + INVITE_DAYS + ' days after a group is founded.';
   return null;
 }
@@ -74,14 +77,41 @@ function join(groups, id, key, who) {
   return g;
 }
 
-/** A founder still alone in their group gives it up (once anyone has joined, everyone stays for good). Returns {name}, or {err}. */
-function leave(groups, key) {
+/**
+ * key leaves their group. A founder still alone gives it up (its storage must be empty).
+ * Anyone else may only leave once they have no Group Ironman hero left (heroLeft: they
+ * still have one); their spot stays taken. Returns {name, gone}, or {err}.
+ */
+function leave(groups, key, heroLeft) {
   const found = groupOf(groups, key);
   if (!found) return { err: 'You\'re not in a group.' };
   const [id, g] = found;
-  if (Object.keys(g.members).some((k) => k !== key)) return { err: 'Group Ironman is for good: once friends have joined, nobody leaves ' + g.name + ' and nobody can be removed.' };
-  if (ready(g).bank.some(Boolean)) return { err: 'Take everything out of ' + g.name + '\'s Group Storage first.' };
-  delete groups[id];
+  ready(g);
+  if (!Object.keys(g.members).some((k) => k !== key)) {
+    if (g.bank.some(Boolean)) return { err: 'Take everything out of ' + g.name + '\'s Group Storage first.' };
+    delete groups[id];
+    return { name: g.name };
+  }
+  if (heroLeft) return { err: 'Group Ironman is for good: to leave ' + g.name + ', none of your Group Ironman heroes can be left alive (delete them or let them fall first). Nobody can be removed.' };
+  const who = g.members[key];
+  g.gone[key] = who;
+  delete g.members[key];
+  if (g.leader === key) g.leader = Object.keys(g.members)[0];
+  note(g, who + ' left (their spot stays taken)');
+  return { name: g.name, gone: true };
+}
+
+/** An admin takes key out of their group (a mistake, a test account): the spot is freed. An empty group is given up. Returns {name, emptied}, or {err}. */
+function remove(groups, key) {
+  const found = groupOf(groups, key);
+  if (!found) return { err: 'They\'re not in a Group Ironman group.' };
+  const [id, g] = found;
+  ready(g);
+  const who = g.members[key];
+  delete g.members[key];
+  if (!Object.keys(g.members).length) { delete groups[id]; return { name: g.name, emptied: true }; }
+  if (g.leader === key) g.leader = Object.keys(g.members)[0];
+  note(g, who + ' was taken out by an admin');
   return { name: g.name };
 }
 
@@ -127,4 +157,4 @@ function view(g, online) {
   };
 }
 
-module.exports = { groupOf, create, join, leave, deposit, withdraw, view, ready, openFor, closed, MAX, BANK_SLOTS, INVITE_DAYS };
+module.exports = { groupOf, create, join, leave, remove, deposit, withdraw, view, ready, openFor, closed, MAX, BANK_SLOTS, INVITE_DAYS };

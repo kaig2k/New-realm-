@@ -88,7 +88,8 @@ package realm {
 			"<font color='#7fd8a8'><b>Group Ironman</b></font>: Ironman with friends. Make a group with <b>/group create Name</b> and bring in up to 4 friends with " +
 			"<b>/group invite name</b> (they type /group accept). Group Ironman heroes in the same group can trade with each other and share the " +
 			"<b>Group Storage</b> chest in the vault; nobody else can. <b>+20 loot luck</b>. /group shows your group.\n" +
-			"<b>Groups are for good</b>: friends can only join in the <b>first 7 days</b> after the group is founded, and once someone joins they can't leave or be removed. " +
+			"<b>Groups are for good</b>: friends can only join in the <b>first 7 days</b> after the group is founded, and nobody can be removed. " +
+			"To leave, you give up all your Group Ironman heroes first (once none is left alive, /group leave); your spot stays taken, so nobody can be swapped in. " +
 			"(While nobody has joined yet, /group leave gives a group up.)\n\n" +
 			"Heroes show IM, HC or GIM by their name. The server checks every rule."
 		];

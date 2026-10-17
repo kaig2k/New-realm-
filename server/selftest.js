@@ -443,8 +443,13 @@ async function run() {
     check('so a regular hero can\'t hold it', modes.check(bobSave, { chars: [hero('g2', 'group'), hero('r9', '', [gi])] }) !== null);
     check('a Group Ironman hero can', modes.check(bobSave, { chars: [hero('g2', 'group', [gi])] }) === null);
     // groups are for good
-    check('members can\'t leave once friends have joined', !!groups.leave(G, 'bob').err && groups.groupOf(G, 'bob'));
-    check('nor can the founder', !!groups.leave(G, 'ann').err && groups.groupOf(G, 'ann'));
+    check('members can\'t leave while they have a Group Ironman hero', !!groups.leave(G, 'bob', true).err && groups.groupOf(G, 'bob'));
+    check('nor can the founder', !!groups.leave(G, 'ann', true).err && groups.groupOf(G, 'ann'));
+    check('with no Group Ironman hero left, a member can leave', groups.leave(G, 'e', false).gone === true && !groups.groupOf(G, 'e'));
+    check('their spot stays taken', typeof groups.join(G, made[0], 'f', 'f') === 'string' && !groups.groupOf(G, 'f'));
+    check('a founder who leaves hands the group on', groups.leave(G, 'ann', false).gone && made[1].leader !== 'ann' && made[1].members[made[1].leader]);
+    check('and can found another group', Array.isArray(groups.create(G, 'ann', 'Ann', 'Second Try')) && groups.leave(G, 'ann').name === 'Second Try');
+    check('an admin can take someone out, freeing the spot', groups.remove(G, 'd').name === 'Iron Friends' && !groups.groupOf(G, 'd') && groups.join(G, made[0], 'f', 'f') === made[1]);
     const g3 = groups.create(G, 'zed', 'Zed', 'Lone Wolf');
     const zSave = { chars: [hero('z1', 'group')] };
     const zi = items.issue(zSave, Object.assign({}, ITEMS.ring), 'group');
@@ -2450,10 +2455,48 @@ async function run() {
     await wait(400);
     const pl = T2.find((m) => m.t === 'players');
     check('testers go into any dungeon from the menu (no key)', pl && pl.key === 'dg:0:777', JSON.stringify(pl && pl.key));
+    T2.clear();
+    T2.send({ t: 'cmd', text: '/group create Testgroup' + String(n).replace(/[^0-9]/g, '').split('').map((d) => 'abcdefghij'[d]).join('').slice(0, 10) });
+    T2.send({ t: 'cmd', text: '/group invite Tpal' + n });
+    await wait(400);
+    check('testers and players can\'t share a Group Ironman group', /Testers and players/.test(note(T2)), note(T2));
+    T2.send({ t: 'cmd', text: '/group leave' });
     boss.send({ t: 'cmd', text: '/untester Ttst' + n });
     await wait(300);
     check('/untester takes it away', T2.find((m) => m.t === 'role' && m.role !== 'tester' && !m.tester), JSON.stringify(T2.msgs.filter((m) => m.t === 'role')));
     for (const c of [boss, T2, P]) c.s.destroy();
+  }
+
+  console.log('group ironman: leaving, and /gimremove');
+  {
+    const { Data: GD } = require('./sim/gen/game');
+    const boss = await login('TestBoss', { password: 'pass1234' });
+    const A = await login('Tgia' + n, { password: 'pass1234', register: true });
+    const B = await login('Tgib' + n, { password: 'pass1234', register: true });
+    const note = (c) => c.msgs.filter((m) => m.t === 'msg').map((m) => m.text).join(' | ');
+    const gh = (id) => ({ id, cls: 'wizard', name: 'Gim', level: 1, xp: 0, mode: 'group', stats: clone(GD.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] });
+    B.send({ t: 'save', data: { gold: 0, fame: 0, chars: [gh('gb1')] } });
+    const gname = 'Grp ' + String(n).replace(/[^0-9]/g, '').split('').map((d) => 'abcdefghij'[d]).join('').slice(0, 12);
+    A.send({ t: 'cmd', text: '/group create ' + gname });
+    await wait(300);
+    A.send({ t: 'cmd', text: '/group invite Tgib' + n });
+    await wait(300);
+    B.send({ t: 'cmd', text: '/group accept' });
+    await wait(400);
+    B.clear();
+    B.send({ t: 'cmd', text: '/group leave' });
+    await wait(300);
+    check('a member with a Group Ironman hero can\'t leave', /none of your Group Ironman heroes/.test(note(B)), note(B));
+    B.clear();
+    boss.send({ t: 'cmd', text: '/gimremove Tgib' + n });
+    await wait(400);
+    check('/gimremove: an admin takes them out', /An admin took you out/.test(note(B)) && /Took Tgib/.test(note(boss)), note(B) + ' || ' + note(boss));
+    B.clear();
+    B.send({ t: 'cmd', text: '/group' });
+    await wait(300);
+    check('...and they\'re in no group now', /\/group create Name/.test(note(B)), note(B));
+    A.send({ t: 'cmd', text: '/group leave' });
+    for (const c of [boss, A, B]) c.s.destroy();
   }
 
   console.log('ascension');

@@ -63,10 +63,12 @@ function caps(ch, pet, extra) {
   const rank = (id) => Math.min(SKILL_MAX[id] || 0, Math.max(0, num(skills[id])));
   const level = Math.max(1, Math.min(20, num(ch.level) || 1));
   // every boost at once (Player.damageMult, Game.hurtEnemy, Player.critMult)
-  const boost = (1 + rank('brutality') * 0.05) * 1.3 * (1 + 5 * 0.06) * 1.25 * (1 + rank('executioner') * 0.1) * 1.5 *
-    (1.5 + stat(ch, 'mgt', extra) / 100 + rank('ferocity') * 0.1) *
+  const boost = (1 + rank('brutality') * 0.03) * 1.3 * (1 + 5 * 0.06) * 1.25 * (1 + rank('executioner') * 0.08) * 1.5 *
+    (1.5 + stat(ch, 'mgt', extra) / 100 + rank('ferocity') * 0.08) *
+    // (Arcana: Arcane Surge's max-MP damage, Clarity while topped up)
+    (1 + (rank('arcanesurge') > 0 ? Math.min(0.3, stat(ch, 'mp', extra) / 2000) : 0) + rank('clarity') * 0.03) *
     // (Predator on bosses, Ambush on untouched monsters, Apex Predator crits on bosses)
-    (1 + rank('predator') * 0.04) * (1 + rank('ambush') * 0.1) * (rank('apex') > 0 ? 1.5 : 1);
+    (1 + rank('predator') * 0.04) * (1 + rank('ambush') * 0.1) * (rank('apex') > 0 ? 1.25 : 1);
   const mult = 0.5 + stat(ch, 'att', extra) / 50;
   const w = ch.weapon && typeof ch.weapon === 'object' ? ch.weapon : null;
   const weaponHit = w ? num(w.dmax) * mult : 0;

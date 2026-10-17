@@ -5,6 +5,18 @@
 • **Returning** weapons now really hit on the way back: the server was throwing away the second hit
 • Your guild's **Spire luck** shows from the moment you log in, wherever you are (it always counted on drops; now your luck panel shows it too)
 
+**🌳 Skill tree balance**
+• **Brutality** +5% → **+3%** damage a rank
+• **Overwhelm** +4 → **+2** Might a rank
+• **Apex Predator** boss crits +50% → **+25%**
+• **Ferocity** +0.1x → **+0.08x** crit damage a rank; **Executioner** +10% → **+8%** a rank
+• **Last Stand** once a minute → **once every 3 minutes**
+
+**🔮 Mana matters now**
+• **Arcane Surge** (Arcana capstone): **+1% damage for every 20 max MP** (up to +30%), and every 4th cast is still free
+• **Clarity**: also **+3% damage a rank while you're above 75% MP**
+• Mana Font's extra MP now feeds Arcane Surge's damage
+
 ---
 
 **📜 ELDMERE UPDATE: Item Art Maker**

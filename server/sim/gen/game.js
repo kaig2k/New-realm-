@@ -5380,12 +5380,12 @@ Data.SKILL_COSTS = [1, 2, 3, 6];
 Data.SKILL_TIER_REQ = [0, 4, 12, 22];
 Data.SKILLS = [
 			
-			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+5% damage", max: 5},
+			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+3% damage", max: 5},
 			{id: "precision", b: 0, t: 0, name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.1x crit damage", max: 5},
+			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.08x crit damage", max: 5},
 			{id: "honed", b: 0, t: 1, name: "Honed Edge", desc: "+2 Attack", max: 5},
-			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+10% damage to monsters under 30% HP", max: 3},
-			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+4 Might", max: 3},
+			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+8% damage to monsters under 30% HP", max: 3},
+			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+2 Might", max: 3},
 			{id: "bloodlust", b: 0, t: 3, name: "Bloodlust", desc: "Every kill gives +6% damage for 5s, stacking up to 5 times", max: 1, cap: true, cost: 6},
 			
 			{id: "vigor", b: 1, t: 0, name: "Vigor", desc: "+40 max HP", max: 5},
@@ -5394,7 +5394,7 @@ Data.SKILLS = [
 			{id: "leech", b: 1, t: 1, name: "Leech", desc: "+1 HP per hit", max: 5},
 			{id: "stoneskin", b: 1, t: 2, name: "Stoneskin", desc: "+3 Defense and +25 max HP", max: 3},
 			{id: "secondwind", b: 1, t: 2, name: "Second Wind", desc: "Health potions heal 25% more", max: 3},
-			{id: "laststand", b: 1, t: 3, name: "Last Stand", desc: "Once a minute, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true, cost: 6},
+			{id: "laststand", b: 1, t: 3, name: "Last Stand", desc: "Once every 3 minutes, a killing blow leaves you at 1 HP and untouchable for 2s instead", max: 1, cap: true, cost: 6},
 			
 			{id: "fortune", b: 2, t: 0, name: "Prosperity", desc: "+5 Luck (better loot)", max: 5},
 			{id: "luckystar", b: 2, t: 0, name: "Lucky Star", desc: "+4 Luck", max: 5},
@@ -5404,13 +5404,13 @@ Data.SKILLS = [
 			{id: "goldrush", b: 2, t: 2, name: "Gold Rush", desc: "+10% gold from monsters", max: 3},
 			{id: "highstakes", b: 2, t: 3, name: "High Stakes", desc: "Every loot bag: 50% doubled, 50% gone. Toggle it any time.", max: 1, cap: true, cost: 5},
 			
-			{id: "manafont", b: 3, t: 0, name: "Mana Font", desc: "+30 max MP", max: 5},
+			{id: "manafont", b: 3, t: 0, name: "Mana Font", desc: "+30 max MP (Arcane Surge turns it into damage)", max: 5},
 			{id: "insight", b: 3, t: 0, name: "Insight", desc: "+3 Wisdom", max: 5},
 			{id: "arcane", b: 3, t: 1, name: "Arcane Flow", desc: "-6% ability MP cost", max: 5},
 			{id: "channeling", b: 3, t: 1, name: "Channeling", desc: "Abilities recharge 4% faster", max: 5},
 			{id: "overflow", b: 3, t: 2, name: "Overflow", desc: "+4 Wisdom and +20 max MP", max: 3},
-			{id: "clarity", b: 3, t: 2, name: "Clarity", desc: "+3 MP for every kill", max: 3},
-			{id: "arcanesurge", b: 3, t: 3, name: "Arcane Surge", desc: "Every 4th ability cast costs no MP", max: 1, cap: true, cost: 6},
+			{id: "clarity", b: 3, t: 2, name: "Clarity", desc: "+3 MP for every kill, and +3% damage while above 75% MP", max: 3},
+			{id: "arcanesurge", b: 3, t: 3, name: "Arcane Surge", desc: "+1% damage for every 20 max MP (up to +30%), and every 4th ability cast costs no MP", max: 1, cap: true, cost: 6},
 			
 			{id: "swiftness", b: 4, t: 0, name: "Swiftness", desc: "+4 Speed", max: 5},
 			{id: "keeneye", b: 4, t: 0, name: "Keen Eye", desc: "+3 Dexterity", max: 5},
@@ -5418,10 +5418,10 @@ Data.SKILLS = [
 			{id: "relentless", b: 4, t: 1, name: "Relentless", desc: "+2 Dexterity and +2 Speed", max: 5},
 			{id: "ambush", b: 4, t: 2, name: "Ambush", desc: "+10% damage to monsters at full health", max: 3},
 			{id: "tenacity", b: 4, t: 2, name: "Tenacity", desc: "+4 Vitality", max: 3},
-			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +50% more", max: 1, cap: true, cost: 6}
+			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +25% more", max: 1, cap: true, cost: 6}
 		];
 Data.SKILL_STATS = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5},
-			honed: {att: 2}, overwhelm: {mgt: 4}, stoneskin: {def: 3, hp: 25}, luckystar: {luc: 4}, favor: {luc: 3, frt: 3}, treasure: {frt: 8},
+			honed: {att: 2}, overwhelm: {mgt: 2}, stoneskin: {def: 3, hp: 25}, luckystar: {luc: 4}, favor: {luc: 3, frt: 3}, treasure: {frt: 8},
 			manafont: {mp: 30}, insight: {wis: 3}, overflow: {wis: 4, mp: 20}, keeneye: {dex: 3}, relentless: {dex: 2, spd: 2}, tenacity: {vit: 4}};
 Data.XP_PER_SKILL_POINT = __int(1000);
 Data.QUESTS = [

@@ -221,8 +221,15 @@ package realm {
 		/** Base 5%, +1% per 10 Luck (and +10% from the Executioner passive). */
 		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon && weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
 		/** Base x1.5, +0.1 per 10 Might. */
-		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.1; }
-		public function get damageMult():Number { return (1 + rank("brutality") * 0.05) * (buffs.might > 0 ? 1.3 : 1) * (bloodT > 0 ? 1 + bloodStacks * 0.06 : 1); }
+		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.08; }
+		/** Arcana: Arcane Surge turns max MP into damage (+1% per 20, up to +30%), Clarity rewards staying topped up. */
+		public function get manaMult():Number {
+			var m:Number = 1;
+			if (rank("arcanesurge") > 0) m += Math.min(0.3, maxMp / 2000);
+			if (rank("clarity") > 0 && mp > maxMp * 0.75) m += rank("clarity") * 0.03;
+			return m;
+		}
+		public function get damageMult():Number { return (1 + rank("brutality") * 0.03) * manaMult * (buffs.might > 0 ? 1.3 : 1) * (bloodT > 0 ? 1 + bloodStacks * 0.06 : 1); }
 		/** Bloodlust stacks (from kills) and how long they last. */
 		public var bloodStacks:int = 0, bloodT:Number = 0;
 		public var lastStandT:Number = 0;
@@ -1195,7 +1202,7 @@ package realm {
 			if (hp <= 0 && rank("laststand") > 0 && lastStandT <= 0) {
 				hp = 1;
 				invulnT = 2;
-				lastStandT = 60;
+				lastStandT = 180;
 				g.floatText(x, y - 1.5, "Last Stand!", 0x60a8ff);
 				g.ring(x, y, 0x60a8ff, 24);
 				Sfx.play("level");

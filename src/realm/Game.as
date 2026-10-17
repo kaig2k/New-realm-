@@ -2065,7 +2065,7 @@ package realm {
 			// War Cry: shaken monsters take a quarter more
 			if (e.vulnT > 0) raw = int(raw * 1.25);
 			if (p.leech > 0 && !dot) p.hp = Math.min(p.maxHp, p.hp + p.leech);
-			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.1));
+			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.08));
 			// Predator (bosses) and Ambush (untouched monsters)
 			if (e.isBoss && p.rank("predator") > 0) raw = int(raw * (1 + p.rank("predator") * 0.04));
 			if (e.hp >= e.maxHp && p.rank("ambush") > 0) raw = int(raw * (1 + p.rank("ambush") * 0.1));
@@ -2077,7 +2077,7 @@ package realm {
 				raw = int(raw * 1.5);
 				floatText(e.x, e.y - e.r - 1.1, "Backstab!", 0xc0a0ff);
 			}
-			if (crit) raw = int(raw * p.critMult * (e.isBoss && p.rank("apex") > 0 ? 1.5 : 1));
+			if (crit) raw = int(raw * p.critMult * (e.isBoss && p.rank("apex") > 0 ? 1.25 : 1));
 			if (!dot) p.shotsHit++;
 			// Piercing Shot ignores defense
 			var d:int = effect == "true" || effect == "venom" ? Math.max(1, raw) : Math.max(1, raw - e.defense, int(raw * 0.15));

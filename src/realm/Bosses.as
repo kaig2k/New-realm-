@@ -1152,9 +1152,10 @@ package realm {
 		public static const HEROIC:Object = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
 
 		/** Makes a raid monster heroic (its boss or one of its guards). */
-		public static function heroicEnemy(e:Enemy, boss:Boolean):void {
+		public static function heroicEnemy(e:Enemy, boss:Boolean, th:Object = null):void {
 			if (!e) return;
-			e.maxHp *= boss ? HEROIC.hp : HEROIC.guardHp;
+			// (a raid's theme can make its Heroic tougher still: the Starfall Vault's heroicHp)
+			e.maxHp *= (boss ? HEROIC.hp : HEROIC.guardHp) * (th && th.heroicHp ? Number(th.heroicHp) : 1);
 			e.hp = e.maxHp;
 			e.dmgMult *= boss ? HEROIC.dmg : HEROIC.guardDmg;
 			if (boss) e.rateMult *= HEROIC.rate;
@@ -1185,7 +1186,7 @@ package realm {
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
-				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, layout: "starfall",
+				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 

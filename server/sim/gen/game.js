@@ -74,7 +74,9 @@ class Data {
 					break;
 				case "swift": w.rate *= 1.45; mul = 0.7; break;
 				case "siege":
-					w.spd *= 0.55; w.life *= 1.7; w.pierce = true; mul = 1.35; w.size = (w.size || 3) + 1;
+					
+					w.spd *= 0.55; w.life *= 1.7; w.pierce = true; mul = 1.05; w.rate *= 0.85; w.size = (w.size || 3) + 1;
+					w.fv = Data.SIEGE_V;
 					break;
 				case "serpent": w.motion = "wave"; w.life *= 1.15; mul = 1.1; break;
 				case "returning": w.motion = "return"; w.pierce = true; w.life *= 1.3; mul = 0.85; break;
@@ -135,9 +137,27 @@ class Data {
 	static isTieredWeapon(it) {
 			return it && it.kind == "weapon" && !it.rarity && !it.uid && !it.curse && Data.SIGS[it.sub] && it.tier >= 0 && it.tier <= 7;
 		}
+	static weaponDps(w) {
+			if (!w) return 0;
+			return (w.dmin + w.dmax) / 2 * Math.max(1, w.shots || 1) * (w.rate || 1) * Data.weaponExtra(w) * (w.motion == "return" ? 1.5 : 1);
+		}
 	static upgradeWeapon(it) {
 			
 			if (it && it.gid) return Godly.upgrade(it);
+			
+			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
+				var uq = Uniques.make(it.uid);
+				if (!uq) return false;
+				for (var uk of __vals( Data.WEAPON_KEYS)) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
+				return true;
+			}
+			
+			if (it && it.kind == "weapon" && it.form == "siege" && it.fv !== Data.SIEGE_V && (!Data.isTieredWeapon(it) || it.sig === it.tier)) {
+				it.dmin = __int(it.dmin * 1.05 / 1.35); it.dmax = __int(it.dmax * 1.05 / 1.35);
+				it.rate = Math.round((it.rate || 1) * 0.85 * 1000) / 1000;
+				it.fv = Data.SIEGE_V;
+				return true;
+			}
 			if (!Data.isTieredWeapon(it) || it.sig === it.tier) return false;
 			var fresh = Data.makeWeapon(it.sub, it.tier, null, it.form || "");
 			for (var k of __vals( ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"])) {
@@ -971,7 +991,7 @@ class Data {
 			}
 			if (def.treasure) {
 				
-				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
+				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : null));
 				if (Math.random() < 0.03 * rare) items.push(Data.makeSor());
 				for (var tp = __int(0); tp < 3; tp++) items.push(Data.makePotion("stat", Data.randomStat()));
 				items.push(Data.makePotion("hp"));
@@ -981,7 +1001,7 @@ class Data {
 			if (def.dungeon && def.dtier >= 5) {
 				
 				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
-				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : "st"));
+				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : null));
 				if (Math.random() < (def.sealed ? 0.15 : 0.07) * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < (def.sealed ? 0.008 : 0.0025) * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "ar"));
 				if (Math.random() < 0.07 * rare) items.push(Data.makeSor());
@@ -1001,7 +1021,8 @@ class Data {
 				return items;
 			}
 			if (def.dungeon) {
-				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "st"));
+				
+				items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), Math.random() < 0.5 ? 7 : 6, Math.random() < 0.35 ? "st" : null));
 				if (Math.random() < 0.03 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.03 * rare) items.push(Data.makeSor());
 				items.push(Data.makePotion("stat", Data.randomStat()));
@@ -1011,7 +1032,7 @@ class Data {
 			if (def.ai == "boss") {
 				
 				slot = __int(__int(Math.random() * 4));
-				items.push(Data.makeForSlot(Data.lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.25 ? "st" : null));
+				items.push(Data.makeForSlot(Data.lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.15 ? "st" : null));
 				if (Math.random() < 0.02 * rare) items.push(Data.makeForSlot(Data.lootClass(cls), __int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.025 * rare) items.push(Data.makeSor());
 				items.push(Data.makePotion("stat", Data.randomStat()));
@@ -1121,6 +1142,12 @@ class Uniques {
 					if (x.size) it.size = x.size;
 					if (x.mult) { it.dmin = __int(it.dmin * x.mult); it.dmax = __int(it.dmax * x.mult); }
 				}
+				
+				
+				var plain = Data.weaponDps(Data.makeWeapon(sub, 7, rar, "")) * Uniques.FLOOR / (Uniques.PASSIVE_DPS[it.passive] || 1);
+				var mine = Data.weaponDps(it);
+				if (mine > 0 && mine < plain) { it.dmin = __int(it.dmin * plain / mine) + 1; it.dmax = __int(it.dmax * plain / mine) + 1; }
+				it.uv = Uniques.VERSION;
 			} else if (kind == "ability" && x && x.power) {
 				it.power = x.power;
 			}
@@ -2101,9 +2128,10 @@ class Bosses {
 	static dashAt(dmg, cd, col, x = null) { dmg = __int(dmg); col = __uint(col);
 			return Bosses.aim(5, 50, 10, dmg, cd, col, Bosses.o({shape: "crescent", r: 0.38, life: 1.0, dash: 0.5, dashSpd: 10, name: "charge"}, x));
 		}
-	static heroicEnemy(e, boss) {
+	static heroicEnemy(e, boss, th = null) {
 			if (!e) return;
-			e.maxHp *= boss ? Bosses.HEROIC.hp : Bosses.HEROIC.guardHp;
+			
+			e.maxHp *= (boss ? Bosses.HEROIC.hp : Bosses.HEROIC.guardHp) * (th && th.heroicHp ? Number(th.heroicHp) : 1);
 			e.hp = e.maxHp;
 			e.dmgMult *= boss ? Bosses.HEROIC.dmg : Bosses.HEROIC.guardDmg;
 			if (boss) e.rateMult *= Bosses.HEROIC.rate;
@@ -4544,6 +4572,8 @@ Data.SIGS = {
 			]
 		};
 Data.TIER_DPS = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [29, 110], dagger: [30, 188]};
+Data.SIEGE_V = __int(2);
+Data.WEAPON_KEYS = ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "passive", "uv", "fv"];
 Data.ABILITIES = {
 			fireball: {type: "spell", name: "Fireball", cost: 30, cd: 3, col: 0},
 			lightning: {type: "spell", name: "Lightning Strike", cost: 40, cd: 5, school: "Storms", col: 0x3a5ad0},
@@ -5619,6 +5649,9 @@ Uniques.source = {};
 Uniques.bossOf = {};
 Uniques.STAT_MUL = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
 Uniques.DMG_MUL = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
+Uniques.FLOOR = 1.08;
+Uniques.PASSIVE_DPS = {rampage: 1.3, critical: 1.08};
+Uniques.VERSION = __int(2);
 Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 Godly.CHANCE = 1 / 1000;
 Godly.SETS = {
@@ -5776,7 +5809,7 @@ Bosses.RAIDS = [
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
-				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, layout: "starfall",
+				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 World.DEFAULT_N = __int(200);

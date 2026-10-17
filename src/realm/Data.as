@@ -287,7 +287,9 @@ package realm {
 					break;
 				case "swift": w.rate *= 1.45; mul = 0.7; break;
 				case "siege":
-					w.spd *= 0.55; w.life *= 1.7; w.pierce = true; mul = 1.35; w.size = (w.size || 3) + 1;
+					// (it pierces and reaches far: so it hits only a little harder, and fires a little slower)
+					w.spd *= 0.55; w.life *= 1.7; w.pierce = true; mul = 1.05; w.rate *= 0.85; w.size = (w.size || 3) + 1;
+					w.fv = SIEGE_V;
 					break;
 				case "serpent": w.motion = "wave"; w.life *= 1.15; mul = 1.1; break;
 				case "returning": w.motion = "return"; w.pierce = true; w.life *= 1.3; mul = 0.85; break;
@@ -424,9 +426,32 @@ package realm {
 		}
 
 		/** An older tiered weapon brought up to its tier's signature (same weapon, same form; true if it changed). */
+		/** Siege weapons from before its rebalance (+35% damage, full fire rate) are brought in line once. */
+		public static const SIEGE_V:int = 2;
+		/** A weapon's damage a second on one target (both ends of its roll, every shot, its extras). */
+		public static function weaponDps(w:Object):Number {
+			if (!w) return 0;
+			return (w.dmin + w.dmax) / 2 * Math.max(1, w.shots || 1) * (w.rate || 1) * weaponExtra(w) * (w.motion == "return" ? 1.5 : 1);
+		}
+		private static const WEAPON_KEYS:Array = ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "passive", "uv", "fv"];
+
 		public static function upgradeWeapon(it:Object):Boolean {
 			// (and Godly pieces from before every drop was the same: remade as they drop now)
 			if (it && it.gid) return Godly.upgrade(it);
+			// a unique weapon from before its numbers changed: remade as it drops now
+			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
+				var uq:Object = Uniques.make(it.uid);
+				if (!uq) return false;
+				for each (var uk:String in WEAPON_KEYS) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
+				return true;
+			}
+			// a Siege weapon from before its rebalance
+			if (it && it.kind == "weapon" && it.form == "siege" && it.fv !== SIEGE_V && (!isTieredWeapon(it) || it.sig === it.tier)) {
+				it.dmin = int(it.dmin * 1.05 / 1.35); it.dmax = int(it.dmax * 1.05 / 1.35);
+				it.rate = Math.round((it.rate || 1) * 0.85 * 1000) / 1000;
+				it.fv = SIEGE_V;
+				return true;
+			}
 			if (!isTieredWeapon(it) || it.sig === it.tier) return false;
 			var fresh:Object = makeWeapon(it.sub, it.tier, null, it.form || "");
 			for each (var k:String in ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"]) {
@@ -2467,8 +2492,8 @@ package realm {
 				return items;
 			}
 			if (def.treasure) {
-				// treasure room chest: a set piece for your class plus potions
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
+				// treasure room chest: a coin flip for a Bonded piece for your class (else top-tier gear), plus potions
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : null));
 				if (Math.random() < 0.03 * rare) items.push(makeSor());
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
@@ -2478,7 +2503,7 @@ package realm {
 			if (def.dungeon && def.dtier >= 5) {
 				// hard multi-boss dungeons: the best loot outside the Dark Elder
 				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : "st"));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : null));
 				if (Math.random() < (def.sealed ? 0.15 : 0.07) * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < (def.sealed ? 0.008 : 0.0025) * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
 				if (Math.random() < 0.07 * rare) items.push(makeSor());
@@ -2498,7 +2523,8 @@ package realm {
 				return items;
 			}
 			if (def.dungeon) {
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
+				// (Bonded gear is earned: a good chance, not a sure thing; else strong tiered gear)
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), Math.random() < 0.5 ? 7 : 6, Math.random() < 0.35 ? "st" : null));
 				if (Math.random() < 0.03 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.03 * rare) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));
@@ -2508,7 +2534,7 @@ package realm {
 			if (def.ai == "boss") {
 				// realm event: Runed or Bonded piece, sometimes Starforged
 				slot = int(Math.random() * 4);
-				items.push(makeForSlot(lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.25 ? "st" : null));
+				items.push(makeForSlot(lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.15 ? "st" : null));
 				if (Math.random() < 0.02 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
 				if (Math.random() < 0.025 * rare) items.push(makeSor());
 				items.push(makePotion("stat", randomStat()));

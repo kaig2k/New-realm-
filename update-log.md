@@ -17,6 +17,12 @@
 • **Clarity**: also **+3% damage a rank while you're above 75% MP**
 • Mana Font's extra MP now feeds Arcane Surge's damage
 
+**⚔️ Gear balance**
+• **Siege** prefix: +35% → **+5% damage** and fires a little slower: it pierces and reaches far, so it's a crowd and range pick now, not the best at everything (existing Siege weapons updated)
+• **Unique weapons are never weaker than a plain weapon of their rarity**: at least 8% above one, with their special effect on top. Unique Primordials now sit at the top: **Vesper's Kiss** 238 → 361 damage a second, **Eye of the Tempest** 200 → 524, **Starfall** 338 → 384 (existing copies updated)
+• **Heroic Starfall Vault**: bosses and guards have **60% more health**
+• **Bonded gear is earned now**: normal dungeons give a Bonded piece 35% of the time (else strong tiered gear), treasure rooms 50%, realm events 15%; hard dungeons still give one guaranteed
+
 ---
 
 **📜 ELDMERE UPDATE: Item Art Maker**

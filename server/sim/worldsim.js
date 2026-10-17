@@ -318,7 +318,7 @@ class WorldSim {
         e.hp = e.maxHp;
         e.dmgMult = 1 + (th.hard - 1) * 0.6;
         Bosses.twistEnemy(e, tw, false);
-        if (this.heroic) Bosses.heroicEnemy(e, false);
+        if (this.heroic) Bosses.heroicEnemy(e, false, th);
       }
     }
   }
@@ -694,7 +694,7 @@ class WorldSim {
       const b = this.spawn(st[k], at[0], at[1], World.DUNGEON_ZONE, true);
       if (b) made.push(b);
       if (b && k === 0 && b.isBoss) w.boss = b;
-      if (b && this.heroic) Bosses.heroicEnemy(b, true);
+      if (b && this.heroic) Bosses.heroicEnemy(b, true, rd.theme);
       if (b && this.twist) {
         Bosses.twistEnemy(b, this.twist, true);
         // Honour Guard: guards at the master's side
@@ -705,7 +705,7 @@ class WorldSim {
           if (!ge) continue;
           ge.maxHp *= th.hard; ge.hp = ge.maxHp; ge.dmgMult = 1 + (th.hard - 1) * 0.6;
           Bosses.twistEnemy(ge, this.twist, false);
-          if (this.heroic) Bosses.heroicEnemy(ge, false);
+          if (this.heroic) Bosses.heroicEnemy(ge, false, th);
         }
       }
       if (n === 0 && k === 0) w.raidStart = Date.now();

@@ -4755,7 +4755,7 @@ package realm {
 					e.maxHp *= th.hard;
 					e.hp = e.maxHp;
 					e.dmgMult = 1 + (th.hard - 1) * 0.6;
-					if (w.heroic) Bosses.heroicEnemy(e, false);
+					if (w.heroic) Bosses.heroicEnemy(e, false, th);
 				}
 			}
 			msg("Raid: everything here is far tougher than anywhere else. Bring friends.", 0xff8080);
@@ -4785,7 +4785,7 @@ package realm {
 				if (b && k == 0 && b.isBoss) w.boss = b;
 				// (the server does the same, with guards at their side on Honour Guard weeks)
 				if (b && rd.twists) Bosses.twistEnemy(b, Bosses.vaultTwist(WikiWindow.week()), true);
-				if (b && w.heroic) Bosses.heroicEnemy(b, true);
+				if (b && w.heroic) Bosses.heroicEnemy(b, true, rd.theme);
 				// a chamber master's set-piece pieces (the structure itself rises in SetPieceDecor)
 				if (b && b.def.setpiece) {
 					b.props = [];

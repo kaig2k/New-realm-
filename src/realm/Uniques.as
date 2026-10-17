@@ -193,6 +193,12 @@ package realm {
 		/** How much stronger each rarity makes a unique (stats, then weapon damage). */
 		private static const STAT_MUL:Object = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
 		private static const DMG_MUL:Object = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
+		/** Unique weapons: at least this much above a plain weapon of their rarity (Data.weaponDps). */
+		private static const FLOOR:Number = 1.08;
+		/** What a passive adds on its own (so a Rampage weapon's floor counts its rings). */
+		private static const PASSIVE_DPS:Object = {rampage: 1.3, critical: 1.08};
+		/** Bumped when unique weapons' numbers change: older copies are remade (Data.upgradeWeapon). */
+		public static const VERSION:int = 2;
 		private static const POWER_ADD:Object = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 
 		public static function make(id:String):Object {
@@ -240,6 +246,12 @@ package realm {
 					if (x.size) it.size = x.size;
 					if (x.mult) { it.dmin = int(it.dmin * x.mult); it.dmax = int(it.dmax * x.mult); }
 				}
+				// never weaker than a plain weapon of its rarity: at least 8% above one, its own trick on top
+				// (one that's already stronger, like the Seventh Star's seeking sparks, keeps its numbers)
+				var plain:Number = Data.weaponDps(Data.makeWeapon(sub, 7, rar, "")) * FLOOR / (PASSIVE_DPS[it.passive] || 1);
+				var mine:Number = Data.weaponDps(it);
+				if (mine > 0 && mine < plain) { it.dmin = int(it.dmin * plain / mine) + 1; it.dmax = int(it.dmax * plain / mine) + 1; }
+				it.uv = VERSION;
 			} else if (kind == "ability" && x && x.power) {
 				it.power = x.power;
 			}

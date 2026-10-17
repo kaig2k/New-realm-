@@ -96,7 +96,7 @@ Players then join with `play.yourgame.com:2050`.
 | `motd` | Message shown to players when they join. |
 | `realmCap` | Players per realm (85). |
 | `minRealms` / `maxRealms` | Realms open at once (1 for now). Admins change it in game with `/realms n` (or `/realms min max` to let more open as they fill); extra realms close once they're empty. |
-| `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
+| `admins` | Account names with moderator powers, the in-game admin menu and the Creator Tools (Boss Maker, Map Builder, Sprite Editor, Item Art Maker), e.g. `["YourName"]`. Put yourself here once; after that you can add others in game with `/admin name`. |
 | `discordWebhook` | A Discord webhook address. The server posts there when it comes online, before restarts, each week's Starfall Vault twist, and for new #1 Records times (and the Vault's weekly board), raid clears, Dark Elder kills, Godly drops and earned titles. In Discord: channel settings > Integrations > Webhooks > New Webhook > Copy Webhook URL. Test it in game with `/discord`. |
 | `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
 | `backupKeep` | How many days of backups to keep (14). |
@@ -219,6 +219,14 @@ Then in any channel of your Discord:
 Only the user IDs in `discordBotAdmins` can use the commands (with an empty list, members with Discord's
 Administrator permission can). Discord only shows the commands to Administrators. The bot's answers are
 only visible to you.
+
+### Item Art Maker
+
+Creator Tools > **Item Art** (admins): pick any tiered weapon, ability, armour or ring, and redraw its
+inventory art on an 8x8 grid (it starts from the game's own drawing). **Save for everyone** puts it in the
+game straight away for every player; **Back to game art** undoes it. Rings are drawn once per tier: the two
+GEM colours become each stat's colour. The drawings are kept in `server/data/itemart.json` (and in the
+nightly backups).
 
 ## 8. Backups
 

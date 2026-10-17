@@ -2499,6 +2499,36 @@ async function run() {
     for (const c of [boss, A, B]) c.s.destroy();
   }
 
+  console.log('item art maker');
+  {
+    const boss = await login('TestBoss', { password: 'pass1234' });
+    const P = await login('Tart' + n, { password: 'pass1234', register: true });
+    const rows = ['........', '......ab', '.....ab.', '....ab..', '...ab...', '..ab....', '.ab.....', 'a.......'];
+    P.clear();
+    P.send({ t: 'itemArtPut', key: 'weapon:staff:2', rows, pal: { a: 0x8a5a2a, b: 0xffffff } });
+    await wait(300);
+    check('only admins can change item art', !P.find((m) => m.t === 'itemArt'));
+    boss.send({ t: 'itemArtPut', key: 'weapon:staff:2', rows, pal: { a: 0x8a5a2a, b: 0xffffff } });
+    await wait(300);
+    const got = P.find((m) => m.t === 'itemArt');
+    check('an admin\'s item art goes to everyone online', got && got.art['weapon:staff:2'] && got.art['weapon:staff:2'].rows[1] === '......ab', JSON.stringify(got));
+    P.clear();
+    boss.send({ t: 'itemArtPut', key: 'weapon:staff:2', rows: rows.concat(['........']), pal: {} });
+    boss.send({ t: 'itemArtPut', key: '../../etc', rows, pal: {} });
+    boss.send({ t: 'itemArtPut', key: 'ring:3', rows: rows.map((r) => r.replace(/a/g, 'z')), pal: {} });
+    await wait(300);
+    check('bad drawings and keys are refused', !P.find((m) => m.t === 'itemArt'));
+    P.s.destroy();
+    const P2 = await login('Tart' + n, { password: 'pass1234' });
+    const all = P2.find((m) => m.t === 'itemArt' && m.all);
+    check('...and it\'s handed out at login', all && all.art['weapon:staff:2'], JSON.stringify(all && Object.keys(all.art)));
+    boss.send({ t: 'itemArtPut', key: 'weapon:staff:2', del: true });
+    await wait(300);
+    const gone = P2.find((m) => m.t === 'itemArt' && !m.all);
+    check('back to the game\'s art: everyone is told', gone && gone.art['weapon:staff:2'] === null, JSON.stringify(gone));
+    for (const c of [boss, P2]) c.s.destroy();
+  }
+
   console.log('ascension');
   {
     const { Data: AD } = require('./sim/gen/game');

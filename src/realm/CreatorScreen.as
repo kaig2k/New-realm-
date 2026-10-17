@@ -15,7 +15,9 @@ package realm {
 			{id: "maps", name: "Map Builder", kind: "maps", col: 0x60c0ff,
 				desc: "Paint a boss arena tile by tile: floors, walls, water, lava and decorations. Mark where you start and where the boss stands."},
 			{id: "sprites", name: "Sprite Editor", kind: "sprites", col: 0x80e080,
-				desc: "Draw a 16x16 pixel sprite with up to 16 colours. Use it for your bosses in the Boss Maker."}
+				desc: "Draw a 16x16 pixel sprite with up to 16 colours. Use it for your bosses in the Boss Maker."},
+			{id: "items", name: "Item Art", kind: null, col: 0xffd75e,
+				desc: "Redraw the inventory art of any weapon, ability, armour or ring (8x8). Saving puts it in the game for everyone."}
 		];
 
 		private var onBack:Function;
@@ -48,7 +50,7 @@ package realm {
 			for (var i:int = 0; i < TABS.length; i++) {
 				t = TABS[i];
 				var tb:Sprite = Ui.button(t.name, 200, 38, tabFn(t.id), 17);
-				tb.x = Ui.W / 2 - 320 + i * 220; tb.y = 82;
+				tb.x = Ui.W / 2 - TABS.length * 110 + 10 + i * 220; tb.y = 82;
 				tb.alpha = t.id == tab ? 1 : 0.55;
 				hub.addChild(tb);
 			}
@@ -72,7 +74,8 @@ package realm {
 		}
 
 		private function tabFn(id:String):Function {
-			return function():void { tab = id; showHub(); };
+			// (Item Art has no saved list here: it opens straight onto every item)
+			return function():void { if (id == "items") { open(id, null); return; } tab = id; showHub(); };
 		}
 
 		/** One saved thing: its name (and picture), Edit, Test (bosses) and Delete. */
@@ -119,7 +122,8 @@ package realm {
 		private function open(id:String, name:String):void {
 			hub.visible = false;
 			var done:Function = function():void { showHub(); };
-			if (id == "maps") editor = new MapEditor(name, done);
+			if (id == "items") editor = new ItemArtEditor(done);
+			else if (id == "maps") editor = new MapEditor(name, done);
 			else if (id == "sprites") editor = new SpriteEditor(name, done);
 			else editor = new BossEditor(name, done, test);
 			addChild(editor);

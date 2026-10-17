@@ -1,3 +1,13 @@
+**📜 ELDMERE UPDATE: Item Art Maker**
+
+**🎨 New item art, drawn in game**
+• Admins have a new **Item Art Maker** in Creator Tools: redraw the icon of any weapon, ability, armour or ring, tier by tier
+• Pen, eraser, fill, colour picker, mirror and undo, with 16 colours of your choosing and a live preview in a bag slot
+• Saved art reaches **every player straight away**, no update needed
+• Rings are drawn once per tier and take each stat's gem colour
+
+---
+
 **📜 ELDMERE UPDATE: The New Nexus**
 
 **✨ A citadel among the stars**

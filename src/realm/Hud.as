@@ -899,7 +899,8 @@ class Slot extends Sprite {
 	}
 
 	public function setItem(it:Object):void {
-		if (it == item) { refreshLock(); return; }
+		// (the same item: only redrawn when its art changed, e.g. an admin drew new art for it)
+		if (it == item && (!it || icon.bitmapData == Sprites.icon(it))) { refreshLock(); return; }
 		item = it;
 		var bad:Boolean = it && !Data.canUse(it, Data.viewerClass);
 		graphics.clear();

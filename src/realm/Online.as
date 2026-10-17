@@ -46,6 +46,8 @@ package realm {
 		public static var connected:Boolean = false;
 		/** An admin revived one of our heroes (it's in Save.chars already): the menus show it. */
 		public static var onRevived:Function;
+		/** New item art arrived (the Item Art Maker refreshes its list). */
+		public static var onItemArt:Function;
 		/** The server's welcome: {id, name, realms: [{name, seed}], online}. */
 		public static var welcome:Object;
 		/** The connection to a game in progress was lost (the server restarted, most likely). */
@@ -300,6 +302,8 @@ package realm {
 				if (onRevived != null) onRevived(m);
 				return;
 			}
+			// item art the admins drew (Item Art Maker): on every screen
+			if (m.t == "itemArt") { Sprites.setItemArt(m.art || {}, !!m.all); if (onItemArt != null) onItemArt(); return; }
 			// the answer to a keep-alive: nothing to do
 			if (m.t == "pong" && m.at == -1) return;
 			if (_onMessage != null) _onMessage(m);

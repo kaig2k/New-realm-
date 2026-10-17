@@ -280,6 +280,7 @@ function finishLogin(c, acc, key, session) {
   c.send({ t: 'welcome', id: c.id, name: c.name, no: acc.no || 0, ver: VERSION, serverName: str(config.name, 32) || 'Eldmere', realms: realmList(), online: byName.size,
     save: publicSave(onlineSave(key)), motd: config.motd, serverMonsters: !!sims, admin: isAdmin(c), tester: isTester(c), role: roleOf(c), vip: isVip(c), session, needPassword: !acc.pwHash, build: GAME_BUILD, restartIn: restartLeft(), season: ladder.current, tpAny: !!config.teleportToAnyone });
   sendRaidState(c);
+  if (Object.keys(itemArt).length) c.send({ t: 'itemArt', art: itemArt, all: true });
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
@@ -1111,7 +1112,43 @@ function cleanProfile(p, sv) {
   return out;
 }
 
+// ------------------------------------------------------------------ item art (the admins' Item Art Maker)
+/**
+ * Inventory art drawn in game by the admins (Creator Tools > Item Art): itemArt[key] = {rows: 8 strings of
+ * 8 letters a-p or '.', pal: {letter: colour}}, key "weapon:staff:3", "ability:spell:2", "armor:robe:5" or
+ * "ring:4". Everyone gets it when they log in, and again whenever an admin saves.
+ */
+const itemArt = load('itemart.json', {});
+const ITEM_ART_KEY = /^(weapon:[a-z]{2,12}:[0-9]|ability:[a-z]{2,12}:[0-9]|armor:[a-z]{2,12}:[0-9]|ring:[0-9])$/;
+function cleanItemArt(m) {
+  const size = 8;
+  if (!Array.isArray(m.rows) || m.rows.length !== size) return null;
+  const rows = m.rows.map((x) => String(x));
+  if (!rows.every((x) => x.length === size && /^[a-p.]+$/.test(x))) return null;
+  if (!rows.some((x) => /[a-p]/.test(x))) return null;
+  const pal = {};
+  for (const k of 'abcdefghijklmnop') {
+    const v = m.pal && m.pal[k];
+    if (v !== undefined) { const n = Number(v); if (!(n >= 0 && n <= 0xffffff)) return null; pal[k] = n | 0; }
+  }
+  return { rows, pal };
+}
+
 const handlers = {
+  /** An admin saved (or removed: del) a piece of item art: it's kept, and everyone online gets it. */
+  itemArtPut(c, m) {
+    if (!isAdmin(c)) return c.note('Only admins can change item art.');
+    const key = String(m.key || '');
+    if (!ITEM_ART_KEY.test(key)) return c.note('That isn\'t an item the Item Art Maker knows.');
+    let v = null;
+    if (!m.del) { v = cleanItemArt(m); if (!v) return c.note('That drawing couldn\'t be saved (8x8, a-p colours).'); itemArt[key] = v; }
+    else delete itemArt[key];
+    save('itemart.json', itemArt);
+    log(c.name + (m.del ? ' reset the art of ' : ' drew new art for ') + key);
+    for (const o of clients.values()) if (o.authed) o.send({ t: 'itemArt', art: { [key]: v } });
+    c.note(m.del ? 'Back to the game\'s own art.' : 'Saved: everyone sees the new art now.', 0x80ff80);
+  },
+
   hello(c, m) {
     if (c.authed || c.loggingIn) return;
     if (m.ver !== VERSION) return c.fail('Version mismatch: this server runs New Realm network version ' + VERSION +

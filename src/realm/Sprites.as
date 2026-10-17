@@ -937,12 +937,52 @@ package realm {
 		}
 
 		/** Inventory icon (36x36). */
+		/**
+		 * Item art the admins drew in the Item Art Maker (from the server): key -> {rows: 8 strings, pal: {a-p: colour}}.
+		 * It replaces the game's own drawing of that tiered item. Rings are drawn once per tier: their "o" and "p"
+		 * colours become each stat's gem shade and gem.
+		 */
+		public static var itemArt:Object = {};
+		public static function setItemArt(art:Object, all:Boolean):void {
+			if (all) itemArt = {};
+			for (var k:String in art) { if (art[k]) itemArt[k] = art[k]; else delete itemArt[k]; }
+			for (var ck:String in cache) if (ck.indexOf("icon_") == 0) delete cache[ck];
+		}
+		/** The Item Art Maker's key for a tiered item (null for named gear, potions and the rest). */
+		public static function itemArtKey(item:Object):String {
+			if (!item || item.rarity) return null;
+			var t:int = int(item.tier || 0);
+			switch (item.kind) {
+				case "weapon": case "ability": case "armor": return item.kind + ":" + item.sub + ":" + t;
+				case "ring": return "ring:" + t;
+			}
+			return null;
+		}
+		/** A drawing from the Item Art Maker as an inventory icon (rings take their stat's gem colours). */
+		public static function drawnIcon(art:Object, ringStat:String = null):BitmapData {
+			var pal:Object = {};
+			for (var k:String in art.pal) pal[k] = art.pal[k];
+			if (ringStat) {
+				var gem:uint = Data.STAT_COLORS[ringStat] || 0xffffff;
+				pal.p = gem; pal.o = shade(gem, 0.6);
+			}
+			return build(art.rows, pal, 4, 2);
+		}
+
 		public static function icon(item:Object):BitmapData {
 			var key:String = "icon_" + ItemArt.identity(item) + "_" + item.kind + "_" + (item.sub || "") + (item.curse ? "_cursed" : "");
 			var bd:BitmapData = cache[key];
 			if (bd) return bd;
 			var rar:String = item.rarity;
 			var rc:uint = rar ? Data.RARITY_COLORS[rar] : 0;
+			// drawn by the admins in the Item Art Maker
+			var drawn:Object = itemArt[itemArtKey(item)];
+			if (drawn) {
+				bd = drawnIcon(drawn, item.kind == "ring" ? item.sub : null);
+				if (item.curse) bd = glowEdge(bd, Data.CURSE_COLOR);
+				cache[key] = bd;
+				return bd;
+			}
 			// a Godly piece with art drawn for it (GodlyArt): outlined, in its Godly frame
 			var gart:BitmapData = GodlyArt.icon(item);
 			if (gart) {

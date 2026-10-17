@@ -7,10 +7,11 @@ package realm {
 	import flash.text.TextField;
 
 	/**
-	 * The Nexus as the heart of Eldmere: the star of Eldmere inlaid around the
-	 * fountain, rune circles under the realm portals with light rising from them,
-	 * warm light around the braziers, the eight class banners on the walls,
-	 * flowers and fireflies in the gardens.
+	 * The Nexus as the heart of Eldmere, a citadel adrift among the stars: the star of Eldmere
+	 * inlaid round the star well, a shard of the fallen star floating over it, rune circles under
+	 * the realm portals with light rising from them, violet light round the braziers, the class
+	 * banners on the ramparts, flowers and fireflies in the gardens, and all round it the night
+	 * sky, with stars twinkling and broken stones drifting past.
 	 */
 	public class NexusDecor {
 		private var g:Game;
@@ -21,12 +22,15 @@ package realm {
 		private var flowers:Array = [];
 		private var motes:Array = [];
 		private var labels:Array = [];
+		/** Stars twinkling in the sky round the citadel, and stones drifting through it. */
+		private var stars:Array = [];
+		private var isles:Array = [];
 
 		/** The fountain at the heart of the plaza. */
 		public static const FX:Number = 100.5, FY:Number = 98.5;
 
 		/** Banners along the walls: [x, y, class]. */
-		private static const BANNERS:Array = [[70.5, 64.9, "wizard"], [75.5, 64.9, "archer"], [125.5, 64.9, "knight"], [130.5, 64.9, "priest"],
+		private static const BANNERS:Array = [[78.5, 64.9, "wizard"], [82.5, 64.9, "archer"], [118.5, 64.9, "knight"], [122.5, 64.9, "priest"],
 			[66.9, 87.5, "rogue"], [66.9, 109.5, "warrior"], [134.1, 87.5, "necromancer"], [134.1, 109.5, "huntress"]];
 		private static const CLASS_COL:Object = {wizard: 0xb02a2a, archer: 0x2f7a35, knight: 0x6a7a98, priest: 0xd8c890,
 			rogue: 0x4a2f7a, warrior: 0xa0401e, necromancer: 0x2e2238, huntress: 0x8a5a24};
@@ -38,19 +42,29 @@ package realm {
 			var r:uint = 12345;
 			for (var y:int = 60; y < 132; y++) for (var x:int = 60; x < 140; x++) {
 				var i:int = y * N + x;
-				if (w.objs[i] == 7) braziers.push([x + 0.5, y + 0.5]);
-				if (w.tiles[i] == World.GRASS && w.objs[i] == 0) {
+				if (w.objs[i] == 7 || w.objs[i] == 30) braziers.push([x + 0.5, y + 0.5, w.objs[i] == 30 ? 0xa070ff : 0xffb050]);
+				if ((w.tiles[i] == World.GRASS || w.tiles[i] == World.DARK) && w.objs[i] == 0) {
 					for (var k:int = 0; k < 2; k++) {
 						r = (r * 1103515245 + 12345) & 0x7fffffff;
 						if (r % 3 != 0) continue;
 						var fx:Number = x + (r % 97) / 97, fy:Number = y + ((r >> 8) % 89) / 89;
-						flowers.push([fx, fy, [0xff7090, 0xffe060, 0x9ab0ff, 0xffffff, 0xff9a40][(r >> 4) % 5]]);
+						flowers.push([fx, fy, [0xe0a0ff, 0xffe060, 0x9ab0ff, 0xffffff, 0xff80d0][(r >> 4) % 5]]);
 					}
 				}
 			}
 			for (k = 0; k < 40; k++) motes.push(newMote(true));
+			// the sky: stars just past the ramparts, and a few stones drifting by
+			for (k = 0; k < 160; k++) {
+				r = (r * 1103515245 + 12345) & 0x7fffffff;
+				var sx:Number = 52 + (r % 9700) / 100, sy:Number = 50 + ((r >> 9) % 9200) / 100;
+				if (w.tiles[int(sy) * N + int(sx)] != World.VOID) continue;
+				stars.push([sx, sy, (r >> 3) % 628 / 100, 0.5 + ((r >> 5) % 100) / 100]);
+			}
+			for (k = 0; k < 9; k++) isles.push({a: k * Math.PI * 2 / 9 + 0.3, r: 42 + (k % 3) * 5, s: 0.006 + (k % 4) * 0.003, size: 1 + (k % 3), seed: k});
 			label(makeLabel, "The Realm Gate", 0xffd75e, 100.5, 75.6);
 			label(makeLabel, "Hall of Heroes", 0xe8d8b0, 100.5, 86.2);
+			label(makeLabel, "The Treasury", 0xf0c030, 70.5, 91.4);
+			label(makeLabel, "War Quarter", 0xff8a60, 128.5, 86.2);
 		}
 
 		private function label(makeLabel:Function, text:String, col:uint, x:Number, y:Number):void {
@@ -87,14 +101,16 @@ package realm {
 			}
 			if (!Game.opt("parts") || g.parts.length > 360) return;
 			// the fountain sprays, the braziers throw sparks
+			// the star well rises in motes of light toward the shard above it
 			if (Math.random() < dt * 22) {
-				var a:Number = Math.random() * Math.PI * 2, s:Number = 0.6 + Math.random() * 1.2;
-				g.parts.push(new Particle(FX + Math.cos(a) * 0.3, FY - 0.6, Math.cos(a) * s, Math.sin(a) * s * 0.6 - 1.4, 0.7, Sprites.glow(Math.random() < 0.5 ? 0xc8ecff : 0xffffff)));
+				var a:Number = Math.random() * Math.PI * 2, s:Number = 0.4 + Math.random() * 1.6;
+				g.parts.push(new Particle(FX + Math.cos(a) * s, FY + Math.sin(a) * s * 0.6, -Math.cos(a) * 0.3, -1.2 - Math.random() * 1.2, 1.0, Sprites.glow(Math.random() < 0.5 ? 0xc8b8ff : 0xffffff)));
 			}
 			for each (var b:Array in braziers) {
 				var dx:Number = b[0] - p.x, dy:Number = b[1] - p.y;
 				if (dx * dx + dy * dy > 18 * 18 || Math.random() > dt * 5) continue;
-				g.parts.push(new Particle(b[0] + (Math.random() - 0.5) * 0.4, b[1] - 0.9, (Math.random() - 0.5) * 0.4, -1.6 - Math.random(), 0.8, Sprites.glow(Math.random() < 0.6 ? 0xffa030 : 0xffe080)));
+				var vio:Boolean = b[2] == 0xa070ff;
+				g.parts.push(new Particle(b[0] + (Math.random() - 0.5) * 0.4, b[1] - 0.9, (Math.random() - 0.5) * 0.4, -1.6 - Math.random(), 0.8, Sprites.glow(Math.random() < 0.6 ? (vio ? 0xa070ff : 0xffa030) : (vio ? 0xe0d0ff : 0xffe080))));
 			}
 		}
 
@@ -106,6 +122,28 @@ package realm {
 			var TS:int = Game.TS, gr:* = sh.graphics, t:Number = g.time, i:int, a:Number, k:int;
 			gr.clear();
 			var cx:Number = X(FX, FY - 0.5), cy:Number = Y(FX, FY - 0.5);
+			// the sky round the citadel: stones drifting slowly round it, stars twinkling
+			for each (var isl:Object in isles) {
+				var ia:Number = isl.a + t * isl.s;
+				var ix:Number = X(FX + Math.cos(ia) * isl.r, FY + Math.sin(ia) * isl.r * 0.8), iy:Number = Y(FX + Math.cos(ia) * isl.r, FY + Math.sin(ia) * isl.r * 0.8) + Math.sin(t * 0.8 + isl.seed) * 6;
+				if (ix < -200 || iy < -200 || ix > canvas.width + 200 || iy > canvas.height + 200) continue;
+				var isb:BitmapData = isleArt(isl.size, isl.seed);
+				pt.x = int(ix - isb.width / 2); pt.y = int(iy - isb.height / 2);
+				canvas.copyPixels(isb, isb.rect, pt, null, null, true);
+			}
+			for each (var st:Array in stars) {
+				var sx2:Number = X(st[0], st[1]), sy2:Number = Y(st[0], st[1]);
+				if (sx2 < -8 || sy2 < -8 || sx2 > canvas.width + 8 || sy2 > canvas.height + 8) continue;
+				var tw:Number = Math.max(0, Math.sin(t * st[3] * 2 + st[2]));
+				if (tw < 0.2) continue;
+				gr.beginFill(0xc8b8ff, 0.25 * tw);
+				gr.drawCircle(sx2, sy2, 4 * st[3]);
+				gr.endFill();
+				gr.beginFill(0xffffff, 0.9 * tw);
+				gr.moveTo(sx2, sy2 - 4 * tw); gr.lineTo(sx2 + 1, sy2 - 1); gr.lineTo(sx2 + 4 * tw, sy2); gr.lineTo(sx2 + 1, sy2 + 1);
+				gr.lineTo(sx2, sy2 + 4 * tw); gr.lineTo(sx2 - 1, sy2 + 1); gr.lineTo(sx2 - 4 * tw, sy2); gr.lineTo(sx2 - 1, sy2 - 1);
+				gr.endFill();
+			}
 
 			// the star of Eldmere inlaid in gold around the fountain
 			var R1:Number = 6.3 * TS, R2:Number = 12.1 * TS;
@@ -143,7 +181,7 @@ package realm {
 				var flick:Number = 0.85 + 0.15 * Math.sin(t * 9 + b[0]) * Math.sin(t * 13 + b[1]);
 				var lr:Number = TS * 3.2 * flick;
 				mtx.createGradientBox(lr * 2, lr * 2, 0, bx - lr, by - lr);
-				gr.beginGradientFill(GradientType.RADIAL, [0xffb050, 0xffb050], [0.28 * flick, 0], [0, 255], mtx);
+				gr.beginGradientFill(GradientType.RADIAL, [b[2], b[2]], [0.28 * flick, 0], [0, 255], mtx);
 				gr.drawCircle(bx, by, lr);
 				gr.endFill();
 			}
@@ -178,6 +216,56 @@ package realm {
 		}
 
 		private var flowerCache:Object = {};
+		private var shardCache:Object = {};
+
+		/** The star-shard (or one of its slivers): a tall faceted crystal, lilac to white, gold-tipped. */
+		private function shardArt(small:Boolean = false):BitmapData {
+			var key:String = small ? "s" : "b";
+			if (shardCache[key]) return shardCache[key];
+			var w:int = small ? 7 : 17, h:int = small ? 13 : 33, sc:int = small ? 3 : 4;
+			var bd:BitmapData = new BitmapData(w * sc + 2, h * sc + 2, true, 0);
+			var cx:Number = (w - 1) / 2;
+			for (var y:int = 0; y < h; y++) {
+				// widest a third of the way down, a point at each end
+				var f:Number = y < h * 0.35 ? y / (h * 0.35) : (h - 1 - y) / (h * 0.65);
+				var half:Number = cx * f;
+				for (var x:int = 0; x < w; x++) {
+					var dx:Number = x - cx;
+					if (Math.abs(dx) > half + 0.25) continue;
+					var c:uint = dx < -half * 0.35 ? 0x8a6ad8 : dx < 0 ? 0xc0aaff : dx < half * 0.4 ? 0xf0eaff : 0xa088f0;
+					if (Math.abs(dx) > half - 0.75) c = 0x5a3ea8;
+					if (y == 0 || y == h - 1) c = 0xffe9a0;
+					if (!small && y == int(h * 0.35)) c = 0xffffff;
+					bd.fillRect(new flash.geom.Rectangle(1 + x * sc, 1 + y * sc, sc, sc), 0xff000000 | c);
+				}
+			}
+			shardCache[key] = bd;
+			return bd;
+		}
+
+		private var isleCache:Object = {};
+
+		/** A broken stone drifting in the sky: star-stone on top, a jagged rocky underside. */
+		private function isleArt(size:int, seed:int):BitmapData {
+			var key:String = size + "_" + seed;
+			if (isleCache[key]) return isleCache[key];
+			var w:int = 10 + size * 6, top:int = 3 + size, deep:int = 6 + size * 4, sc:int = 3;
+			var bd:BitmapData = new BitmapData(w * sc, (top + deep) * sc, true, 0);
+			var r:uint = 77 + seed * 131;
+			for (var x:int = 0; x < w; x++) {
+				var e:Number = Math.abs(x - (w - 1) / 2) / (w / 2);
+				r = (r * 1103515245 + 12345) & 0x7fffffff;
+				var d:int = int(deep * (1 - e * e) * (0.7 + (r % 30) / 100));
+				for (var y:int = 0; y < top + d; y++) {
+					if (y < top && e > 0.92) continue;
+					var c:uint = y == 0 ? 0x4a4270 : y < top ? (y == top - 1 ? 0xd8b048 : 0x2c2642) : (y - top) % 3 == 0 ? 0x1c1630 : 0x261e3c;
+					if (y >= top && y == top + d - 1) c = 0x120e1e;
+					bd.fillRect(new flash.geom.Rectangle(x * sc, y * sc, sc, sc), 0xff000000 | c);
+				}
+			}
+			isleCache[key] = bd;
+			return bd;
+		}
 
 		/** A tiny four-petal flower on a stem. */
 		private function flowerArt(col:uint):BitmapData {
@@ -214,7 +302,36 @@ package realm {
 				gr.drawRect(px - bw / 2, py - TS * 6, bw, TS * 6);
 				gr.endFill();
 			}
-			// the eight class banners
+			// the shard of the fallen star, floating over the well: a soft halo, slow rays, the crystal
+			var scx:Number = X(FX, FY), scy:Number = Y(FX, FY) - TS * 3.6 + Math.sin(t * 1.3) * 6;
+			var hr:Number = TS * (2.4 + 0.2 * Math.sin(t * 2));
+			mtx.createGradientBox(hr * 2, hr * 2, 0, scx - hr, scy - hr);
+			gr.beginGradientFill(GradientType.RADIAL, [0xd8c8ff, 0x8a6aff, 0x8a6aff], [0.35, 0.12, 0], [0, 110, 255], mtx);
+			gr.drawCircle(scx, scy, hr);
+			gr.endFill();
+			for (i = 0; i < 8; i++) {
+				var ra:Number = i * Math.PI / 4 + t * 0.15, rl:Number = TS * (2.6 + 0.6 * Math.sin(t * 1.7 + i));
+				gr.beginFill(0xe8deff, 0.08 + 0.05 * Math.sin(t * 2 + i));
+				gr.moveTo(scx, scy);
+				gr.lineTo(scx + Math.cos(ra - 0.07) * rl, scy + Math.sin(ra - 0.07) * rl);
+				gr.lineTo(scx + Math.cos(ra + 0.07) * rl, scy + Math.sin(ra + 0.07) * rl);
+				gr.lineTo(scx, scy);
+				gr.endFill();
+			}
+			canvas.draw(sh);
+			gr.clear();
+			var shard:BitmapData = shardArt();
+			mtx.identity();
+			mtx.translate(int(scx - shard.width / 2), int(scy - shard.height / 2));
+			canvas.draw(shard, mtx);
+			// three slivers circling it
+			for (i = 0; i < 3; i++) {
+				var oa:Number = t * 0.9 + i * Math.PI * 2 / 3;
+				var sl:BitmapData = shardArt(true);
+				pt.x = int(scx + Math.cos(oa) * TS * 1.6 - sl.width / 2); pt.y = int(scy + Math.sin(oa) * TS * 0.55 - sl.height / 2 + TS * 0.3);
+				canvas.copyPixels(sl, sl.rect, pt, null, null, true);
+			}
+			// the class banners
 			for each (var b:Array in BANNERS) {
 				var bx:Number = X(b[0], b[1]), by:Number = Y(b[0], b[1]) - TS * 1.6;
 				var sway:Number = Math.sin(t * 1.6 + b[0] * 0.3) * 2.5;

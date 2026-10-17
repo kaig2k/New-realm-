@@ -33,6 +33,8 @@ package realm {
 		public static const VOIDFIRE:int = 30;
 		/** Charged ground: Heart of the Storm's arenas crackling with lightning (burns like lava). */
 		public static const SHOCK:int = 31;
+		/** The Nexus, a citadel adrift among the stars: star-stone, polished marble and violet runners. */
+		public static const STARSTONE:int = 32, MARBLE:int = 33, RUNNER:int = 34;
 		/** Realm biomes, from the coast inwards (RotMG order). */
 		public static const SHORE_ZONE:int = 0, LOW_ZONE:int = 1, MID_ZONE:int = 2, HIGH_ZONE:int = 3, GOD_ZONE:int = 4;
 		public static const SAFE_ZONE:int = 9;
@@ -42,14 +44,17 @@ package realm {
 			"shrine_might", "shrine_haste", "shrine_fortune", "shrine_vigor", "shrine_arcana", "banner",
 			// 20+: set-piece decorations (see SetPieces)
 			"sp_crystal_cube", "sp_spike_ice", "sp_pillar_ice", "sp_pillar_gold", "sp_pillar_dark", "sp_brazier_blue", "sp_pillar_sand",
-			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex"];
+			"sp_coral", "sp_shell", "sp_skull", "sp_brazier_purple", "sp_spire", "sp_brazier_green", "sp_banner_hex",
+			// 34+: the Nexus's violet trees
+			"startree", "starpine"];
 		/** Shrine kinds, in the order of their objects (14-18). */
 		public static const SHRINES:Array = ["might", "haste", "fortune", "vigor", "arcana"];
 		public static const NEXUS_ZONE:int = 5;
 
 		public static const MINI_COL:Array = [0x2b4ea0, 0xd6bc7a, 0x4e8c2f, 0x35602a, 0x46464a, 0xd0d0d0, 0x9c6236, 0xc0301a,
 			0x000000, 0x5c5c64, 0xa0a0a8, 0x9a2020, 0x3a8ad8, 0xdcdcdc, 0xa01c1c, 0x77733c, 0x9a9080, 0x8a5a2e, 0x8e8e96,
-			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040, 0xa040ff, 0x80ffff];
+			0xbfe4f6, 0x221a28, 0xc8a064, 0x3c2846, 0x3c968c, 0x283050, 0xe8e0c8, 0xdcb43c, 0x30221c, 0x34325a, 0x60e040, 0xa040ff, 0x80ffff,
+			0x2c2642, 0xd0c8e0, 0x4a2070];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
 
@@ -443,62 +448,78 @@ package realm {
 		 * the west wing, the Starforge and Raid Table in the east, and the
 		 * Marketplace and Quest Board by the south entrance.
 		 */
+		/**
+		 * The Nexus: a citadel adrift among the stars. An octagon of star-stone behind ramparts,
+		 * the sky all round it. The Realm Gate on a marble dais to the north; violet runners from
+		 * the gate to the south door and out to both wings; a round marble plaza ringed in gold
+		 * round the star well (the healing pool) and the Hall of Heroes' statues; the treasury
+		 * (the vault) to the west and the war quarter (Starforge, Raid Table and the raid dais) to
+		 * the east; moonlit gardens in the four corners; the entrance hall to the south.
+		 * (Every station, portal and the spawn stay where they always were: Game.buildNexus.)
+		 */
 		private function generateNexus():void {
 			var x:int, y:int, i:int, d:Number;
 			for (i = 0; i < N * N; i++) { tiles[i] = VOID; zones[i] = -1; objs[i] = 0; }
-			var x0:int = 66, x1:int = 134, y0:int = 64, y1:int = 128;
+			var x0:int = 66, x1:int = 134, y0:int = 64, y1:int = 128, cut:int = 10;
 			for (y = y0; y <= y1; y++) {
 				for (x = x0; x <= x1; x++) {
+					var c:int = Math.min(x - x0, x1 - x) + Math.min(y - y0, y1 - y);
+					if (c < cut) continue;
 					i = y * N + x;
 					zones[i] = NEXUS_ZONE;
-					tiles[i] = (x == x0 || x == x1 || y == y0 || y == y1) ? WALL : STONE;
+					tiles[i] = (x == x0 || x == x1 || y == y0 || y == y1 || c == cut) ? WALL : STARSTONE;
 				}
 			}
-			// the Realm Gate: a carpeted dais along the north wall, pillars between the portals
-			fillN(80, 65, 41, 10, CARPET);
-			fillN(80, 75, 41, 1, RUIN);
-			for (x = 82; x <= 118; x += 6) objs[66 * N + x] = 8;
-			objs[70 * N + 78] = 7; objs[70 * N + 122] = 7;
-			// avenues: gate to plaza to the south entrance, and out to both wings
-			fillN(99, 76, 3, 52, CARPET);
-			fillN(67, 97, 66, 3, CARPET);
-			// the round plaza with the healing fountain
+			// the Realm Gate: a marble dais along the north wall, gold pillars between the portals
+			fillN(80, 65, 41, 10, MARBLE);
+			fillN(80, 75, 41, 1, GOLD);
+			for (x = 82; x <= 118; x += 6) objs[66 * N + x] = 23;
+			objs[70 * N + 78] = 30; objs[70 * N + 122] = 30;
+			// runners: gate to plaza to the south door, and out to both wings
+			fillN(99, 76, 3, 52, RUNNER);
+			fillN(67, 97, 66, 3, RUNNER);
+			// the round plaza: the star well at its heart in a violet ring, marble all round (the gold star is NexusDecor's)
 			for (y = 85; y <= 111; y++) {
 				for (x = 87; x <= 113; x++) {
 					d = Math.sqrt((x - 100) * (x - 100) + (y - 98) * (y - 98));
 					i = y * N + x;
 					if (d <= 3) tiles[i] = FOUNTAIN;
-					else if (d <= 5.6 && d > 4.4) tiles[i] = CARPET;
-					else if (d <= 12.5) tiles[i] = PLAZA;
-					else if (d <= 13.6) tiles[i] = RUIN;
+					else if (d <= 5.6 && d > 4.4) tiles[i] = RUNNER;
+					else if (d <= 12.5) tiles[i] = MARBLE;
 				}
 			}
-			for each (var br:Array in [[89, 87], [111, 87], [89, 109], [111, 109]]) objs[br[1] * N + br[0]] = 7;
-			// four gardens with trees, a pond and a stone rim
+			for each (var br:Array in [[89, 87], [111, 87], [89, 109], [111, 109]]) objs[br[1] * N + br[0]] = 30;
+			// four moonlit gardens: violet grass, a starlit pond, violet trees, a rim of spectral stone
 			for each (var gd:Array in [[79, 82], [121, 82], [79, 113], [121, 113]]) {
-				fillN(gd[0] - 7, gd[1] - 5, 15, 11, RUIN);
-				fillN(gd[0] - 6, gd[1] - 4, 13, 9, GRASS);
+				fillN(gd[0] - 7, gd[1] - 5, 15, 11, SPECTRAL);
+				fillN(gd[0] - 6, gd[1] - 4, 13, 9, DARK);
 				fillN(gd[0] - 2, gd[1] - 1, 5, 3, WATER);
-				for each (var tr:Array in [[-5, -3, 1], [5, -3, 2], [-5, 3, 2], [5, 3, 1], [0, -3, 2], [0, 3, 1]]) objs[(gd[1] + tr[1]) * N + gd[0] + tr[0]] = tr[2];
+				for each (var tr:Array in [[-5, -3, 35], [5, -3, 35], [-5, 3, 35], [5, 3, 35], [0, -3, 34], [0, 3, 34]]) objs[(gd[1] + tr[1]) * N + gd[0] + tr[0]] = tr[2];
 			}
-			// pale stone kerbs along the avenues, and colonnades down the east-west one
-			for (y = 76; y <= 84; y++) { tiles[y * N + 98] = RUIN; tiles[y * N + 102] = RUIN; }
-			for (x = 67; x <= 87; x++) { tiles[96 * N + x] = RUIN; tiles[100 * N + x] = RUIN; }
-			for (x = 113; x <= 133; x++) { tiles[96 * N + x] = RUIN; tiles[100 * N + x] = RUIN; }
-			for each (var cx:int in [77, 82, 118, 123]) { objs[95 * N + cx] = 8; objs[101 * N + cx] = 8; }
-			// hedges of pines along the avenue up to the Realm Gate
-			for (y = 78; y <= 84; y += 3) { objs[y * N + 96] = 2; objs[y * N + 104] = 2; }
-			// west wing: a gold-trimmed alcove around the vault portal
-			fillN(67, 93, 7, 11, CARPET);
-			objs[94 * N + 68] = 8; objs[102 * N + 68] = 8;
-			// east wing: a brick workshop floor for the Starforge and Raid Table
-			fillN(124, 87, 10, 21, BRICK);
-			fillN(124, 97, 10, 3, CARPET);
-			// south entrance hall
-			fillN(84, 117, 33, 10, RUIN);
-			fillN(99, 117, 3, 10, CARPET);
-			// (the eight class banners along the walls are drawn by NexusDecor)
-			for each (var lp:Array in [[84, 118], [116, 118], [70, 122], [130, 122]]) objs[lp[1] * N + lp[0]] = 7;
+			// gold colonnades down the east-west runner
+			for each (var cx:int in [77, 82, 118, 123]) { objs[95 * N + cx] = 23; objs[101 * N + cx] = 23; }
+			// dark obelisks and violet braziers up the runner to the Realm Gate
+			for (y = 78; y <= 84; y += 3) { objs[y * N + 96] = y == 81 ? 30 : 24; objs[y * N + 104] = y == 81 ? 30 : 24; }
+			// west: the treasury, marble with a gold border round the vault portal
+			fillN(67, 92, 8, 13, GOLD);
+			fillN(67, 93, 7, 11, MARBLE);
+			fillN(67, 97, 7, 3, RUNNER);
+			objs[94 * N + 68] = 23; objs[102 * N + 68] = 23;
+			// east: the war quarter, obsidian floor for the Starforge and Raid Table
+			fillN(124, 87, 10, 21, OBSIDIAN);
+			fillN(124, 97, 10, 3, RUNNER);
+			// the raid dais: where raid gates open (Game.openRaid), obsidian ringed in marble
+			for (y = 102; y <= 113; y++) for (x = 108; x <= 119; x++) {
+				d = Math.sqrt((x + 0.5 - 113.5) * (x + 0.5 - 113.5) + (y + 0.5 - 107.5) * (y + 0.5 - 107.5));
+				i = y * N + x;
+				if (d <= 3.6) { tiles[i] = OBSIDIAN; objs[i] = 0; }
+				else if (d <= 4.4) { tiles[i] = MARBLE; objs[i] = 0; }
+			}
+			// the south entrance hall
+			fillN(84, 117, 33, 10, MARBLE);
+			fillN(99, 117, 3, 11, RUNNER);
+			// (the class banners, the floating star-shard, the sky and its drifting stones are NexusDecor's)
+			for each (var lp:Array in [[84, 118], [116, 118], [76, 122], [124, 122]]) objs[lp[1] * N + lp[0]] = 30;
 			spawnX = 100.5;
 			spawnY = 124.5;
 		}
@@ -1353,6 +1374,8 @@ package realm {
 							// RotMG-style water: flat blue with diagonal wave dashes
 							var wd:int = (gx + gy * 2 + hs) % 12;
 							c = shal ? (wd < 2 && gy % 4 == 0 ? 0x6a98e8 : 0x3a6ac0) : (wd < 2 && gy % 4 == 0 ? 0x4a78d0 : 0x2a52a8);
+							// (the Nexus's garden ponds hold the night sky)
+							if (kind == "nexus") c = wd < 2 && gy % 4 == 0 ? 0x4a3e90 : mark(gx, gy, 11, hs) ? 0xd8d0ff : 0x221c4e;
 							break;
 						case SAND:
 							// flat sand with a few darker grains
@@ -1381,7 +1404,9 @@ package realm {
 							c = y % 4 == 3 ? 0x4a2e16 : (x == 0 || x == PX - 1) ? 0x5a3a1c : r < 0.15 ? 0x7a4e26 : 0x8a5a2e;
 							break;
 						case DARK:
-							c = blade(gx, gy, hs) ? 0x447a2c : blade(gx + 4, gy + 2, hs + 7) ? 0x24481a : 0x31612a;
+							// (the Nexus's gardens: violet grass under the night sky)
+							if (kind == "nexus") c = blade(gx, gy, hs) ? 0x9a6ad8 : blade(gx + 4, gy + 2, hs + 7) ? 0x2a1848 : 0x4a3074;
+							else c = blade(gx, gy, hs) ? 0x447a2c : blade(gx + 4, gy + 2, hs + 7) ? 0x24481a : 0x31612a;
 							break;
 						case GOD:
 							// Godlands rock: dark grey with short cracks
@@ -1398,7 +1423,12 @@ package realm {
 							if (r < 0.15) c = Sprites.shade(c, 0.93);
 							break;
 						case VOID:
-							c = 0x000000;
+							// round the Nexus, the night sky it drifts in: deep blue-violet, scattered stars
+							if (kind == "nexus") {
+								var sv:Number = wash(gx * 3, gy * 3);
+								c = sv > 1.03 ? 0x140f2a : sv > 0.98 ? 0x0e0b20 : 0x090716;
+								if (mark(gx, gy, 23, hs) && r < 0.6) c = r < 0.15 ? 0xffffff : r < 0.35 ? 0xc8b8ff : 0x6a5aa0;
+							} else c = 0x000000;
 							break;
 						case STONE:
 							var sc:String = String(STONE_PAT[y]).charAt(x);
@@ -1407,13 +1437,17 @@ package realm {
 							break;
 						case WALL:
 							var wc:String = String(WALL_PAT[y]).charAt(x);
-							c = wc == "L" ? 0xc4c4cc : wc == "T" ? 0xa4a4ac : wc == "d" ? 0x7a7a82 : wc == "F" ? 0x55555c : 0x3a3a40;
+							// the Nexus's ramparts: dark violet stone capped with gold
+							if (kind == "nexus") c = wc == "L" ? 0xd8b048 : wc == "T" ? 0x4a4068 : wc == "d" ? 0x342c4c : wc == "F" ? 0x221c34 : 0x14101e;
+							else c = wc == "L" ? 0xc4c4cc : wc == "T" ? 0xa4a4ac : wc == "d" ? 0x7a7a82 : wc == "F" ? 0x55555c : 0x3a3a40;
 							break;
 						case CARPET:
 							c = r < 0.08 ? 0x7a1616 : ((gx + gy) % 4 == 0 && r < 0.5) ? 0xa82828 : 0x8c1c1c;
 							break;
 						case FOUNTAIN:
-							c = r < 0.06 ? 0xb0e8ff : (gx * 3 + gy * 5) % 9 == 0 ? 0x5aa8f0 : 0x3a86d4;
+							// (the Nexus's star well: starlight instead of water)
+							if (kind == "nexus") c = r < 0.07 ? 0xffffff : (gx * 3 + gy * 5) % 9 == 0 ? 0xb8a8ff : (gx + gy * 2) % 7 == 0 ? 0x8a74e8 : 0x5a46b8;
+							else c = r < 0.06 ? 0xb0e8ff : (gx * 3 + gy * 5) % 9 == 0 ? 0x5aa8f0 : 0x3a86d4;
 							break;
 						case ARENA:
 							var ac:String = String(PLAZA_PAT[y]).charAt(x);
@@ -1496,6 +1530,26 @@ package realm {
 							c = hf == 0 ? 0xc0ff80 : hf < 3 ? 0x60e040 : (gx + gy) % 4 == 0 ? 0x2a8a20 : 0x14301a;
 							if (r < 0.05) c = 0xffffff;
 							break;
+						case STARSTONE:
+							// deep indigo flagstones with the odd vein of gold
+							var stc:String = String(STONE_PAT[y]).charAt(x);
+							c = stc == "S" ? 0x2c2642 : stc == "H" ? 0x372f52 : stc == "h" ? 0x322a4a : 0x16121f;
+							if (stc != "m" && mark(gx, gy, 19, hs)) c = 0xb89040;
+							else if (r < 0.1 && stc != "m") c = Sprites.shade(c, 0.9);
+							break;
+						case MARBLE:
+							// polished pale marble, lilac-veined, catching the light
+							var mc2:String = String(PLAZA_PAT[y]).charAt((x + (ty & 1) * 4) % PX);
+							c = mc2 == "L" ? 0xb6aecc : mc2 == "M" ? 0xa49cbc : 0x908aa8;
+							if (mark(gx, gy, 13, hs)) c = 0x7a6ea8;
+							else if (r < 0.03) c = 0xe8e0ff;
+							break;
+						case RUNNER:
+							// a violet runner with a gold diamond woven in every few steps
+							c = r < 0.08 ? 0x3a1858 : ((gx + gy) % 4 == 0 && r < 0.5) ? 0x5e2a8a : 0x4a2070;
+							if ((gx & 7) == 4 && (gy & 7) == 4) c = 0xe0b850;
+							else if (((gx & 7) == 4 && ((gy & 7) == 3 || (gy & 7) == 5)) || ((gy & 7) == 4 && ((gx & 7) == 3 || (gx & 7) == 5))) c = 0xa07a30;
+							break;
 						case LAVA:
 							var ls:int = (gx + gy) & 3;
 							c = ls == 0 ? 0x8a1a0e : ls == 1 ? 0xe04a22 : 0xc0301a;
@@ -1504,7 +1558,7 @@ package realm {
 					}
 					// variety, so no two stretches of ground look stamped from the same tile:
 					// a slow wash of light and shade, each flagstone its own shade, and the odd detail
-					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != VOIDFIRE && t != SHOCK && t != CARPET) {
+					if (t != VOID && t != WALL && t != WATER && t != LAVA && t != FOUNTAIN && t != HEXFIRE && t != VOIDFIRE && t != SHOCK && t != CARPET && t != RUNNER) {
 						var f:Number = wash(gx, gy);
 						if (t == STONE || t == ROAD || t == PLAZA || t == RUIN || t == BRICK || t == SANDSTONE || t == ICE || t == BONE || t == SPECTRAL || t == HEXSTONE || t == OBSIDIAN)
 							f *= 0.965 + ((hs >> 3) & 7) * 0.01;
@@ -1727,6 +1781,9 @@ package realm {
 			else if (t == OBSIDIAN) { col = 0x6a4a7a; dark = 0x0a060c; }
 			else if (t == SPECTRAL) { col = 0x8090e0; dark = 0x1c1a34; }
 			else if (t == BONE) { col = 0xfff8e0; dark = 0x8a8068; }
+			else if (t == STARSTONE) { col = 0x4a4270; dark = 0x0c0a14; }
+			else if (t == MARBLE) { col = 0xd8d0ee; dark = 0x6a6290; }
+			else if (t == RUNNER) { col = 0xd8a830; dark = 0x8a6a18; }
 			else return;
 			var px:int = x * PX - offX, py:int = y * PX - offY;
 			var bitmap:BitmapData = target;

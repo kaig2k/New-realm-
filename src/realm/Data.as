@@ -1572,6 +1572,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-nexus", title: "What's new in Eldmere",
+				lines: ["<b>A new Nexus</b>: the Nexus is now a starstone citadel adrift among the stars, with a great star well and its floating shard at its heart, a marble Realm Gate, violet gardens with star trees and ponds, a Treasury and a War Quarter.",
+					"<b>Everything is where it was</b>: every portal, merchant and station stands in the same spot, so your way around hasn't changed."]},
 			{id: "2026-10-camoffset", title: "What's new in Eldmere",
 				lines: ["<b>Camera offset</b>: press <b>C</b> to move your hero down the screen so you can see further ahead, like Realm's \"toggle centering\". Press it again to centre the camera. It works with camera rotation and zoom, and you can rebind it in Menu > Controls."]},
 			{id: "2026-10-raidgates", title: "What's new in Eldmere",

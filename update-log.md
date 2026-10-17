@@ -1,3 +1,18 @@
+**📜 ELDMERE UPDATE: The New Nexus**
+
+**✨ A citadel among the stars**
+• The Nexus has been rebuilt as a **starstone citadel adrift in the night sky**, to match the new realm
+• At its heart, a **star well** with a great **floating shard**, and motes of light rising toward it
+• A marble **Realm Gate** with gold pillars and violet braziers, starlit **avenues**, and gold colonnades
+• Four **violet gardens** with purple grass, **star trees**, flowers and starlit ponds
+• A **Treasury** and a **War Quarter**, and a raid dais for the Raid Table
+• Twinkling stars and drifting sky stones all around
+
+**🧭 Nothing moved**
+• Every portal, merchant and station stands exactly where it was, so your way around hasn't changed
+
+---
+
 **📜 ELDMERE UPDATE: Camera Offset**
 
 **🎥 See further ahead**

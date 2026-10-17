@@ -3358,6 +3358,33 @@ class World {
 			
 			return (t != World.WATER || this.zones[i] >= 0) && t != World.VOID && t != World.WALL && this.objs[i] == 0;
 		}
+	reachableNear(x, y, ax, ay) {
+			if (this.walkable(x, y) && this.clearWalk(ax, ay, x, y)) return [x, y];
+			for (var r = 0.5; r <= 8; r += 0.5) {
+				var best = null, bd = 1e9;
+				var steps = __int(__int(r * 8));
+				for (var k = __int(0); k < steps; k++) {
+					var a = k / steps * Math.PI * 2;
+					var px = __int((x + Math.cos(a) * r) * 2) / 2 + 0.25, py = __int((y + Math.sin(a) * r) * 2) / 2 + 0.25;
+					if (!this.walkable(px, py) || !this.clearWalk(ax, ay, px, py)) continue;
+					var d = (px - x) * (px - x) + (py - y) * (py - y);
+					if (d < bd) { bd = d; best = [px, py]; }
+				}
+				if (best) return best;
+			}
+			return this.walkable(ax, ay) ? [ax, ay] : [x, y];
+		}
+	clearWalk(ax, ay, bx, by) {
+			var n = __int(__int(Math.max(Math.abs(bx - ax), Math.abs(by - ay)) * 3) + 1);
+			for (var i = __int(0); i <= n; i++) {
+				var t = i / n;
+				var sx = ax + (bx - ax) * t, sy = ay + (by - ay) * t;
+				if (sx < 0 || sy < 0 || sx >= this.N || sy >= this.N) return false;
+				var ti = __int(this.tiles[__int(sy) * this.N + __int(sx)]);
+				if (ti == World.WALL || ti == World.VOID || (ti == World.WATER && this.zones[__int(sy) * this.N + __int(sx)] < 0)) return false;
+			}
+			return true;
+		}
 	canFloat(x, y, r) {
 			if (x - r < 1 || y - r < 1 || x + r >= this.N - 1 || y + r >= this.N - 1) return false;
 			if (this.tiles[__int(y) * this.N + __int(x)] == World.VOID) return false;

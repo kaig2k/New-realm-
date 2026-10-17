@@ -167,7 +167,9 @@ class WorldSim {
     return 'dg:' + Data.dungeonIndex(fid) + ':' + dseed;
   }
 
-  portal(x, y, kind, idx, color) {
+  portal(x, y, kind, idx, color, ax, ay) {
+    // never in a wall or past it: on the boss's side (ax, ay), as the games place them too
+    if (ax !== undefined || !this.w.walkable(x, y)) [x, y] = this.w.reachableNear(x, y, ax === undefined ? x : ax, ay === undefined ? y : ay);
     const seed = 1 + Math.floor(Math.random() * 0x7ffffffe);
     this.all({ t: 'portal', x: r2(x), y: r2(y), k: kind, i: idx, c: color, l: PORTAL_TIME, s: seed });
     // (the server lets people into the world behind it: see server.js openWorlds)
@@ -788,7 +790,7 @@ class WorldSim {
         if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
           let di = Math.floor(Math.random() * Data.EVENT_DUNGEONS);
           if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
-          this.portal(e.x + 1.5, e.y, 'dungeon', di, Data.DUNGEONS[di].color);
+          this.portal(e.x + 1.5, e.y, 'dungeon', di, Data.DUNGEONS[di].color, e.x, e.y);
         }
         if (w.eventsDone >= Data.EVENTS_PER_REALM) {
           this.closeT = 15;
@@ -801,7 +803,7 @@ class WorldSim {
     }
     if (this.kind === 'realm' && e.def.portal && Math.random() < e.def.portalChance) {
       const pi = Data.dungeonIndex(e.def.portal);
-      if (pi >= 0) this.portal(e.x, e.y, 'dungeon', pi, Data.DUNGEONS[pi].color);
+      if (pi >= 0) this.portal(e.x, e.y, 'dungeon', pi, Data.DUNGEONS[pi].color, e.x, e.y);
     }
   }
 

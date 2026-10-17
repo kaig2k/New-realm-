@@ -530,6 +530,9 @@ async function run() {
     const c7 = combat.caps({ level: 20, stats: { att: 75, dex: 75 }, weapon: t7 }, null);
     check('the server lets a signature\'s explosions and shards through (its damage-a-second cap counts them)',
       c7.rate >= (t7.dmax * (0.5 + 75 / 50)) * t7.shots * Data.weaponExtra(t7, true), String(c7.rate));
+    const plainW = Data.makeWeapon('dagger', 5, 'st', 'heavy'), retW = Data.makeWeapon('dagger', 5, 'st', 'returning');
+    const cp = combat.caps({ level: 20, stats: { att: 75, dex: 75 }, weapon: plainW }, null), cr = combat.caps({ level: 20, stats: { att: 75, dex: 75 }, weapon: retW }, null);
+    check('a Returning weapon\'s shots count twice on the way back (the server lets the second hit through)', retW.motion === 'return' && cr.rate > cp.rate * 1.5, cp.rate + ' / ' + cr.rate);
   }
 
   console.log('every item the game makes is a valid item');

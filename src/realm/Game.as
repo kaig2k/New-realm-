@@ -848,7 +848,12 @@ package realm {
 			return lab;
 		}
 
-		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint, life:Number = 0, seed:uint = 0, share:Boolean = true):void {
+		private function addPortal(w:World, x:Number, y:Number, kind:String, idx:int, color:uint, life:Number = 0, seed:uint = 0, share:Boolean = true, ax:Number = NaN, ay:Number = NaN):void {
+			// never in a wall or out past it: a boss's portals stand on its side of the wall
+			if (!isNaN(ax) || !w.walkable(x, y)) {
+				var spot:Array = w.reachableNear(x, y, isNaN(ax) ? x : ax, isNaN(ay) ? y : ay);
+				x = spot[0]; y = spot[1];
+			}
 			var lab:TextField = makeLabel("", 0xffffff);
 			lab.visible = w == world;
 			if (kind == "dungeon" && !seed) seed = 1 + uint(Math.random() * 0x7ffffffe);
@@ -2334,14 +2339,14 @@ package realm {
 					// a closing realm's finale (the Drowned Throne, the Foundry, the Void Rift): Azrakor's chamber
 					// opens beside the way home, as the Citadel's does
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
-					addPortal(world, e.x - 1.5, e.y + 2, "elder", 0, 0xc060ff);
-					addPortal(world, e.x + 1.5, e.y + 2, "nexus", 0, 0xffffff);
+					addPortal(world, e.x - 1.5, e.y + 2, "elder", 0, 0xc060ff, 0, 0, true, e.x, e.y);
+					addPortal(world, e.x + 1.5, e.y + 2, "nexus", 0, 0xffffff, 0, 0, true, e.x, e.y);
 					say(SOVEREIGN, "You have broken my champion... Come, then. Face me!");
 					msg("A portal to the Dark Elder's Chamber has opened (and one back to the Nexus).", 0xc060ff);
 				} else if (e.def.dungeon) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
 					msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);
-					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
+					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff, 0, 0, true, e.x, e.y);
 				} else if (e.def.raid) {
 					var rdw:Object = world.raid;
 					// one of a bonded pair or trio: the rest take its strength (online the server says so)
@@ -2350,7 +2355,7 @@ package realm {
 					if (rdw && world.raidStage >= rdw.stages.length - 1 && aliveBosses() == 0) {
 						showBanner(rdw.name + " conquered!", rdw.color, 5);
 						msg("Raid complete! A portal back to the Nexus has opened.", Ui.GOLD);
-						addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
+						addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff, 0, 0, true, e.x, e.y);
 						questEvent("dungeon");
 					} else if (bondLine) {
 						showBanner(bondLine, rdw ? rdw.color : Ui.GOLD, 3.5);
@@ -2360,7 +2365,7 @@ package realm {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 5);
 					say(SOVEREIGN, "This... is not... the end...");
 					msg("Eldritch loot has dropped! Take the portal back to the Nexus when you're ready.", 0xff6060);
-					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff);
+					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff, 0, 0, true, e.x, e.y);
 				} else {
 					world.eventsDone++;
 					world.eventT = 20 + Math.random() * 10;
@@ -2368,7 +2373,7 @@ package realm {
 					if (!remote && Math.random() < Data.DUNGEON_DROP_CHANCE) {
 						var di:int = int(Math.random() * Data.EVENT_DUNGEONS);
 						if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
-						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, PORTAL_TIME);
+						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, PORTAL_TIME, 0, true, e.x, e.y);
 						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (30s)", Data.DUNGEONS[di].color);
 						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 					}
@@ -5168,9 +5173,11 @@ package realm {
 			for (i = 0; i < 4; i++) rep += int(parts[i][1]);
 			return n + Math.max(0, Math.min(LUCK_REPORTED_MAX, rep));
 		}
-		/** +5 loot luck for each Godlands Spire your guild holds (as last seen in a realm). */
+		/** +5 loot luck for each Godlands Spire your guild holds (the server says how many, wherever you are). */
 		private function spireLuck():int {
-			if (!spires || !net || !net.guild) return 0;
+			if (!net || !net.guild) return 0;
+			if (net.guild.spires != undefined) return int(net.guild.spires) * 5;
+			if (!spires) return 0;
 			var n:int = 0;
 			for each (var sp:Object in spires) if (sp.g && sp.g == net.guild.name) n++;
 			return n * 5;

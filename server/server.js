@@ -3162,7 +3162,7 @@ function sendGuild(gk) {
       const m = g.members[k], on = byName.get(k);
       members.push({ name: m.name, rank: m.rank, cls: m.cls, level: m.level, fame: m.fame, online: !!on, world: on ? on.world : '', id: on ? on.id : 0 });
     }
-    o.send({ t: 'guild', guild: { name: g.name, myRank: g.members[o.key].rank, members, banner: g.banner || '' } });
+    o.send({ t: 'guild', guild: { name: g.name, myRank: g.members[o.key].rank, members, banner: g.banner || '', spires: terr.count(gk) } });
   }
 }
 
@@ -3491,7 +3491,12 @@ function territoryTick() {
       feat('spireweek', { guild: g.name, hours: Math.round(ev.minutes / 60) });
     }
   }
-  if (evs.length) { spireLuck(); save('territory.json', terr.s); }
+  if (evs.length) {
+    spireLuck();
+    save('territory.json', terr.s);
+    // every member everywhere learns how many Spires their guild holds (their luck counts them wherever they are)
+    for (const gk of new Set([...byName.values()].map((o) => o.guild).filter(Boolean))) sendGuild(gk);
+  }
   else if (terr.minuteT > 59) save('territory.json', terr.s);
   // each realm's players see its Spires (sent again only when something changes)
   for (const [sm, spots, idle] of worlds) {

@@ -1845,6 +1845,41 @@ package realm {
 			return (t != WATER || zones[i] >= 0) && t != VOID && t != WALL && objs[i] == 0;
 		}
 
+		/**
+		 * Where a portal (or anything players must reach) can stand near (x, y): the spot itself
+		 * if it's walkable, else the nearest walkable spot that a straight walk from (ax, ay)
+		 * (the boss that left it) reaches without crossing a wall. Returns [x, y].
+		 */
+		public function reachableNear(x:Number, y:Number, ax:Number, ay:Number):Array {
+			if (walkable(x, y) && clearWalk(ax, ay, x, y)) return [x, y];
+			for (var r:Number = 0.5; r <= 8; r += 0.5) {
+				var best:Array = null, bd:Number = 1e9;
+				var steps:int = int(r * 8);
+				for (var k:int = 0; k < steps; k++) {
+					var a:Number = k / steps * Math.PI * 2;
+					var px:Number = int((x + Math.cos(a) * r) * 2) / 2 + 0.25, py:Number = int((y + Math.sin(a) * r) * 2) / 2 + 0.25;
+					if (!walkable(px, py) || !clearWalk(ax, ay, px, py)) continue;
+					var d:Number = (px - x) * (px - x) + (py - y) * (py - y);
+					if (d < bd) { bd = d; best = [px, py]; }
+				}
+				if (best) return best;
+			}
+			return walkable(ax, ay) ? [ax, ay] : [x, y];
+		}
+
+		/** A straight walk from a to b crosses no wall, void or deep sea. */
+		private function clearWalk(ax:Number, ay:Number, bx:Number, by:Number):Boolean {
+			var n:int = int(Math.max(Math.abs(bx - ax), Math.abs(by - ay)) * 3) + 1;
+			for (var i:int = 0; i <= n; i++) {
+				var t:Number = i / n;
+				var sx:Number = ax + (bx - ax) * t, sy:Number = ay + (by - ay) * t;
+				if (sx < 0 || sy < 0 || sx >= N || sy >= N) return false;
+				var ti:int = tiles[int(sy) * N + int(sx)];
+				if (ti == WALL || ti == VOID || (ti == WATER && zones[int(sy) * N + int(sx)] < 0)) return false;
+			}
+			return true;
+		}
+
 		/** Ghosts: anywhere on the map that isn't the void or the safe haven. */
 		public function canFloat(x:Number, y:Number, r:Number):Boolean {
 			if (x - r < 1 || y - r < 1 || x + r >= N - 1 || y + r >= N - 1) return false;

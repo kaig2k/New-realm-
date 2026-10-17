@@ -1,3 +1,12 @@
+**📜 ELDMERE UPDATE: Staff Feedback**
+
+**🐛 Fixes**
+• Portals no longer spawn inside or behind walls: a boss's portals (the Dark Elder's Chamber, the way home, dungeon drops) always stand on its side of the wall
+• **Returning** weapons now really hit on the way back: the server was throwing away the second hit
+• Your guild's **Spire luck** shows from the moment you log in, wherever you are (it always counted on drops; now your luck panel shows it too)
+
+---
+
 **📜 ELDMERE UPDATE: Item Art Maker**
 
 **🎨 New item art, drawn in game**

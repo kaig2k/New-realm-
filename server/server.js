@@ -53,6 +53,9 @@ const DEFAULT_CONFIG = {
   discordBotToken: '',
   discordGuild: '',
   discordBotAdmins: [],
+  // channel IDs the bot keeps a log of (e.g. #mod-chat), and the key for reading it at /discordlog (DEPLOY.md)
+  discordReadChannels: [],
+  discordLogKey: '',
   viewRange: 32,
   chatPerTenSeconds: 8,
   // true: click anyone on the minimap (or /tp name) to teleport to them, like RotMG; false: party and guild only
@@ -3250,6 +3253,18 @@ function serveHttp(sock, req) {
     sock.end(head('text/plain', Buffer.byteLength(msg)) + msg);
     return;
   }
+  // the logged Discord channels, for the owner (and Claude): needs the key from config "discordLogKey" in an X-Log-Key header
+  if (pathOnly === '/discordlog') {
+    const want = String(config.discordLogKey || '');
+    const got = String((/^x-log-key:[ \t]*(\S+)/im.exec(req) || [])[1] || '');
+    let ok = want.length >= 24 && got.length === want.length;
+    if (ok) ok = crypto.timingSafeEqual(Buffer.from(got), Buffer.from(want));
+    const q = (k) => decodeURIComponent((new RegExp('[?&]' + k + '=([^&]*)').exec(url) || [])[1] || '');
+    const txt = ok ? discordLogText(Number(q('n')) || 300, Number(q('since')) || 0, q('ch')) + '\n' : 'Not allowed.\n';
+    if (!ok) log('discordlog: refused a request from ' + sock.remoteAddress);
+    sock.end(head('text/plain; charset=utf-8', Buffer.byteLength(txt)) + txt);
+    return;
+  }
   // the VPS itself can read the server's health (curl http://127.0.0.1:PORT/stats)
   if (pathOnly === '/stats') {
     const local = /^(::ffff:)?127\.0\.0\.1$|^::1$/.test(String(sock.remoteAddress || ''));
@@ -3764,7 +3779,37 @@ function shutdown() {
 }
 // ------------------------------------------------------------------ Discord bot: /restart and /status from Discord
 const { DiscordBot } = require('./discordbot');
-const discordBot = new DiscordBot({ token: config.discordBotToken, guild: config.discordGuild, admins: Array.isArray(config.discordBotAdmins) ? config.discordBotAdmins : [] }, {
+/** The log of the Discord channels the bot reads: discordLog.msgs = [{id, ch, chName, at, by, bot, text, att, edited}], oldest first. */
+const DISCORD_LOG_MAX = 5000;
+const discordLog = load('discordlog.json', { msgs: [] });
+if (!Array.isArray(discordLog.msgs)) discordLog.msgs = [];
+let discordLogTimer = null;
+function keepDiscordMessage(m) {
+  const at = discordLog.msgs.findIndex((x) => x.id === m.id);
+  if (at >= 0) { if (m.edited) Object.assign(discordLog.msgs[at], { text: m.text, att: m.att, edited: true }); else return; }
+  else {
+    discordLog.msgs.push(m);
+    if (discordLog.msgs.length > 1 && m.at < discordLog.msgs[discordLog.msgs.length - 2].at) discordLog.msgs.sort((a, b) => a.at - b.at);
+    if (discordLog.msgs.length > DISCORD_LOG_MAX) discordLog.msgs.splice(0, discordLog.msgs.length - DISCORD_LOG_MAX);
+  }
+  if (!discordLogTimer) discordLogTimer = setTimeout(() => { discordLogTimer = null; save('discordlog.json', discordLog); }, 5000);
+}
+/** The log as text: the last n messages (or those after `since`, ms), one per line. */
+function discordLogText(n, since, ch) {
+  let list = discordLog.msgs;
+  if (ch) { const id = (discordLog.msgs.find((m) => m.chName === ch) || {}).ch; list = list.filter((m) => m.ch === ch || m.ch === id); }
+  if (since > 0) list = list.filter((m) => m.at > since);
+  list = list.slice(-Math.max(1, Math.min(DISCORD_LOG_MAX, n || 300)));
+  const names = {};
+  for (const m of discordLog.msgs) if (m.chName) names[m.ch] = m.chName;
+  return list.map((m) => new Date(m.at).toISOString().slice(0, 16).replace('T', ' ') + ' #' + (m.chName || names[m.ch] || m.ch) + ' ' + m.by + (m.bot ? ' [bot]' : '') + ': ' +
+    m.text.replace(/\n/g, ' / ') + (m.att && m.att.length ? ' [attached: ' + m.att.join(' ') + ']' : '') + (m.edited ? ' (edited)' : '')).join('\n');
+}
+
+const discordBot = new DiscordBot({ token: config.discordBotToken, guild: config.discordGuild, admins: Array.isArray(config.discordBotAdmins) ? config.discordBotAdmins : [],
+  read: Array.isArray(config.discordReadChannels) ? config.discordReadChannels : [] }, {
+  message: keepDiscordMessage,
+  chatlog: (n) => discordLogText(n),
   restart: (seconds, by) => scheduleRestart(seconds, by),
   cancel: () => cancelRestart(),
   status: () => {

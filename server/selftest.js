@@ -93,7 +93,9 @@ async function run() {
   const hook = require('http').createServer((q, r) => { let b = ''; q.on('data', (d) => { b += d; }); q.on('end', () => { try { posts.push(JSON.parse(b)); } catch (e) {} r.writeHead(204); r.end(); }); });
   await new Promise((r) => hook.listen(0, '127.0.0.1', r));
   const hookUrl = 'http://127.0.0.1:' + hook.address().port + '/api/webhooks/1/x';
-  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl, combatCheck: 'auto' }));
+  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl, combatCheck: 'auto', discordLogKey: 'test-log-key-0123456789abcdef' }));
+  // a logged Discord channel (as the bot would have kept it)
+  fs.writeFileSync(path.join(DATA, 'discordlog.json'), JSON.stringify({ msgs: [{ id: '1', ch: '42', chName: 'mod-chat', at: Date.parse('2026-10-17T18:00:00Z'), by: 'Nyfot', bot: false, text: 'we should add camera offset', att: [], edited: false }] }));
   // two accounts from before account numbers (oldest first gets #1)
   fs.writeFileSync(path.join(DATA, 'accounts.json'), JSON.stringify({ yold: { name: 'Yold', created: 2000 }, zold: { name: 'Zold', created: 1000 } }));
   const srv = spawn(process.execPath, [path.join(__dirname, 'server.js'), String(PORT)], {
@@ -2497,6 +2499,22 @@ async function run() {
     check('...and they\'re in no group now', /\/group create Name/.test(note(B)), note(B));
     A.send({ t: 'cmd', text: '/group leave' });
     for (const c of [boss, A, B]) c.s.destroy();
+  }
+
+  console.log('discord channel log');
+  {
+    const ask = (key) => new Promise((resolve) => {
+      const s2 = net.connect(PORT, '127.0.0.1', () => s2.write('GET /discordlog?n=50 HTTP/1.1\r\nHost: x\r\n' + (key ? 'X-Log-Key: ' + key + '\r\n' : '') + '\r\n'));
+      let b = ''; s2.on('data', (d) => { b += d; }); s2.on('end', () => resolve(b)); s2.on('error', () => resolve(b)); s2.on('close', () => resolve(b));
+    });
+    const no = await ask(''), wrong = await ask('test-log-key-0123456789abcdeX'), yes = await ask('test-log-key-0123456789abcdef');
+    check('the Discord log needs its key', /Not allowed/.test(no) && /Not allowed/.test(wrong) && !/camera offset/.test(no + wrong));
+    check('...and with it, shows the logged channel', /#mod-chat Nyfot: we should add camera offset/.test(yes), yes.slice(-200));
+    const { answer } = require('./discordbot');
+    const cl = answer({ type: 2, guild_id: 'G', member: { user: { id: '42' }, permissions: '0' }, data: { name: 'chatlog', options: [] } }, { guild: 'G', admins: ['42'] },
+      { restart() {}, cancel() {}, status: () => '', chatlog: (n) => 'log ' + n });
+    const cl2 = answer({ type: 2, guild_id: 'G', member: { user: { id: '7' }, permissions: '0' }, data: { name: 'chatlog', options: [] } }, { guild: 'G', admins: ['42'] }, { chatlog: () => 'secret' });
+    check('/chatlog: the bot\'s admins get the log as a file, nobody else', cl && cl.file === 'log 300' && /not allowed/.test(cl2));
   }
 
   console.log('item art maker');

@@ -36,6 +36,7 @@
 • Testers and players can't share a group any more
 • Admins can take someone out of a group with **/gimremove name** (for mistakes and test accounts)
 
+• (Server) The Discord bot can keep a log of chosen channels for the owner (**/chatlog**)
 • (Server) The owner can now restart the server from Discord with **/restart**, and check it with **/status**
 
 ---

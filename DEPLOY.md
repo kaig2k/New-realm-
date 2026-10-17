@@ -220,6 +220,28 @@ Only the user IDs in `discordBotAdmins` can use the commands (with an empty list
 Administrator permission can). Discord only shows the commands to Administrators. The bot's answers are
 only visible to you.
 
+### Let the bot read a channel (e.g. #mod-chat)
+
+The same bot can keep a log of chosen channels, so you (or Claude) can read them later.
+
+1. Discord developer portal > your app > **Bot** > turn on **Message Content Intent**.
+2. In Discord, let the bot into the channel: channel settings > Permissions > add the bot with
+   **View Channel** and **Read Message History**.
+3. Right-click the channel > **Copy Channel ID**, and add to `server/config.json`:
+   ```json
+   "discordReadChannels": ["the channel ID"],
+   "discordLogKey": "a long random key (at least 24 characters)"
+   ```
+4. Restart. The log says `discord bot: reading #mod-chat`. It also picks up the last 100 messages.
+
+Then:
+- In Discord, `/chatlog` (or `/chatlog count:1000`) sends you the log as a text file, only visible to you.
+- Over the web: `curl -H "X-Log-Key: YOUR_KEY" "http://YOUR_IP:2050/discordlog?n=500"` (add `&ch=mod-chat` for
+  one channel, or `&since=` a time in ms for only newer messages). Without the key it answers "Not allowed".
+
+The server keeps the last 5000 messages in `server/data/discordlog.json`. If you skip step 1, the bot keeps
+working for `/restart` and `/status` and says in the log that it can't read messages.
+
 ### Item Art Maker
 
 Creator Tools > **Item Art** (admins): pick any tiered weapon, ability, armour or ring, and redraw its

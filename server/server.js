@@ -452,9 +452,10 @@ setInterval(() => { const b = raidBusy(); if (b.replace(/\(\d+s left/, '(') !== 
 function announceRaid(c, wkey, i, seed, heroic) {
   const rd = Bosses.RAIDS[i];
   const name = raidNameOf(wkey), color = heroic ? 0xffb040 : (rd ? rd.color : 0xff3050);
-  raidLock = { key: wkey, name, color, until: Date.now() + RAID_PORTAL_MS, by: c.name };
   const pi = heroic ? 100 + i : i; // (Game.RAID_HEROIC + the raid)
   const portal = { t: 'w', from: 0, d: { t: 'portal', x: 113.5, y: 107.5, k: 'raid', i: pi, c: color, l: RAID_PORTAL_MS / 1000, s: seed, by: c.name } };
+  // (kept so anyone who reaches the Nexus while it's open gets it too: sendRaidPortal)
+  raidLock = { key: wkey, name, color, until: Date.now() + RAID_PORTAL_MS, by: c.name, portal: portal.d };
   for (const o of clients.values()) {
     if (!o.authed) continue;
     if (o.world === 'nexus') o.send(portal);
@@ -464,6 +465,16 @@ function announceRaid(c, wkey, i, seed, heroic) {
   feat('raidopen', { name: c.name, raid: name, heroic: !!heroic });
   sendRaidState();
   setTimeout(sendRaidState, RAID_PORTAL_MS + 500).unref();
+}
+/**
+ * A raid portal still open in the Nexus, for someone who just arrived there (from a realm, a
+ * dungeon, logging in): its time left is what's left of the 30 seconds. (Games drop a portal
+ * they already have, by its seed, so arriving twice never shows two.)
+ */
+function sendRaidPortal(c) {
+  const left = raidLock && raidLock.portal ? raidLock.until - Date.now() : 0;
+  if (left < 500) return;
+  c.send({ t: 'w', from: 0, d: Object.assign({}, raidLock.portal, { l: Math.round(left / 100) / 10 }) });
 }
 /** May c go into world (from the world it was in)? Admins go anywhere. */
 function mayEnter(c, world, from) {
@@ -1259,6 +1270,8 @@ const handlers = {
     if (!c.sim && (!hosts.get(world) || hosts.get(world).world !== world)) hosts.set(world, c);
     c.send({ t: 'players', key: world, host: c.sim ? 0 : hosts.get(world).id, list: inWorld(world, c).map(publicInfo) });
     for (const o of inWorld(world, c)) o.send({ t: 'join', p: publicInfo(c) });
+    // a raid portal opened before you got here is still yours to take until it closes
+    if (world === 'nexus') sendRaidPortal(c);
     updateGuildMember(c);
     sendParty(c.party);
     // the first time into the game each day: the daily login reward

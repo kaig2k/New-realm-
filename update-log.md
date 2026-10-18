@@ -1,3 +1,10 @@
+**📜 ELDMERE UPDATE: Raid Portal Fix**
+
+**🐛 Fixes**
+• Raid portals now show for **everyone who reaches the Nexus while they're open**, not just the players already standing there when it opened. Come back from a realm or a dungeon in time and the portal is waiting, with the seconds it has left
+
+---
+
 **📜 ELDMERE UPDATE: Boss Maker 2.0**
 
 **👁️ See your boss as you build it**

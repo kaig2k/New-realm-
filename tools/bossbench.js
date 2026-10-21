@@ -3,7 +3,8 @@
  * Boss benchmark: bots fight every boss in the server's own simulation and report how
  * long each fight takes, how much it hurts, and how varied it is.
  *
- *   node tools/bossbench.js [--only id,id] [--cls archer] [--runs 3] [--json out.json]
+ *   node tools/bossbench.js [--only id,id] [--cls archer] [--runs 3] [--json out.json] [--gear raid]
+ *   (--gear: fight every boss with that GEAR row instead of the one for where it's met; raid = maxed)
  *
  * Each fight runs the real boss scripts (server/sim/gen/game.js) in its real world (realm
  * event with its set piece, dungeon room, raid stage, the Dark Elder's chamber). The world
@@ -154,7 +155,8 @@ function fight(id, opts) {
   const { sim, targets, tier, group, label } = setup(id);
   const w = sim.w, g = sim.g;
   const n = opts.group ? group : 1;
-  const H = hero(CLS, GEAR[tier]);
+  const gr = GEAR[opt('gear', tier)] || GEAR[tier];
+  const H = hero(CLS, gr);
   const shots = [], timers = [], marks = [];
   const stats = { label, tier, n, hits: 0, dmg: 0, deaths: 0, attacks: new Map(), quiet: 0, windows: 0, area: 0, time: 0, done: false, phases: 0, maxPhase: 0 };
   // ---- the world as the bots see it (what players' games do with a boss's attacks)
@@ -174,7 +176,7 @@ function fight(id, opts) {
   if (!first) return null;
   for (let k = 0; k < n; k++) {
     const a = k * Math.PI * 2 / n + 0.4;
-    const c = { id: 900 + k, send() {}, hidden: false, caps: null, maxDps: 1e9, hp: H.maxHp, alive: true, deadT: 0, shootT: 0, stand: !!opts.stand, pots: GEAR[tier].T >= 7 ? 6 : 3, potT: 0 };
+    const c = { id: 900 + k, send() {}, hidden: false, caps: null, maxDps: 1e9, hp: H.maxHp, alive: true, deadT: 0, shootT: 0, stand: !!opts.stand, pots: gr.T >= 7 ? 6 : 3, potT: 0 };
     place(c, first.x + Math.cos(a) * Math.min(7, H.range * 0.8), first.y + Math.sin(a) * Math.min(7, H.range * 0.8));
     bots.push(c);
     sim.join(c);

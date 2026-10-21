@@ -325,9 +325,9 @@ package realm {
 			// the Starfall Vault
 			Sprites.recolor("star_pylon", "crystal", {W: 0xffffff, C: 0xffd060, c: 0xb08020, D: 0x5a3a08, S: 0x34325a}, 6);
 			Sprites.recolor("star_guard", "bandit", {H: 0xe8e0ff, h: 0x8a80c0, S: 0xfff4d0, E: 0xffd060, B: 0x5a50a0, b: 0x34306a, A: 0xffd060, L: 0x2a2850, W: 0xfff6a0});
-			Sprites.recolor("vault_ignis", "flame_warden", {H: 0xffb040, h: 0xa04010, E: 0xffffff, G: 0xffffa0, A: 0x2a0800, M: 0xff6a20, m: 0x8a2a10, L: 0xffe060, l: 0xd0d0d0});
+			Sprites.recolor("vault_ignis", "flame_warden_flat", {H: 0xffb040, h: 0xa04010, E: 0xffffff, G: 0xffffa0, A: 0x2a0800, M: 0xff6a20, m: 0x8a2a10, L: 0xffe060, l: 0xd0d0d0});
 			Sprites.recolor("vault_archivist", "sunken_lord_flat", {S: 0x3a7a8a, s: 0x1a4050, B: 0xe8f0d8, E: 0x40ffd0, G: 0xa0fff0, W: 0x60c0a0, H: 0x2a6a5a});
-			Sprites.recolor("vault_sovereign", "lich_king", {Y: 0xe8e0c8, B: 0xe8e0c8, E: 0xc060ff, R: 0x9a2030, T: 0x4a4050, P: 0x6a1a2a, p: 0x3a0a14, G: 0xb060ff});
+			Sprites.recolor("vault_sovereign", "lich_king_flat", {Y: 0xe8e0c8, B: 0xe8e0c8, E: 0xc060ff, R: 0x9a2030, T: 0x4a4050, P: 0x6a1a2a, p: 0x3a0a14, G: 0xb060ff});
 			Sprites.recolor("astraeon", "star_prince", {H: 0xf0c840, h: 0x9a7020, S: 0xfff4d0, E: 0x2a1060, W: 0xffffff, R: 0xd0a030, r: 0x6a4a10, O: 0xfff6a0, o: 0xffffff}, 6);
 			Sprites.recolor("cube_shard", "cubelet", {P: 0xff60ff, p: 0xa020c0, Q: 0xffc0ff, E: 0x46c0e8});
 			Sprites.recolor("royal_guard", "bandit", {H: 0xd8b050, h: 0x8a6a20, S: 0xe8e0c0, E: 0x40c0ff, B: 0xc8c8d0, b: 0x8a8a96, A: 0x8a1a2a, L: 0x5a5a66, W: 0xffe080});
@@ -358,17 +358,17 @@ package realm {
 			Sprites.recolor("thunder_golem", "golem", {H: 0x6a6a8a, h: 0x40405a, E: 0xffff60, B: 0x5a5a7a, b: 0x3a3a50, A: 0xffff60, L: 0x2a2a3a, W: 0x5a5a7a, S: 0x6a6a8a}, 6);
 			Sprites.recolor("cloud_serpent", "great_snake", {G: 0xe8f4ff, g: 0x8ab0d0, E: 0x40c0ff}, 6);
 			Sprites.recolor("colossus", "titan_flat", {R: 0x2a2a34, r: 0x141418, Y: 0xc070ff, L: 0x8030ff}, 6);
-			Sprites.recolor("phoenix", "seraph", {Y: 0xffd040, W: 0xff8030, S: 0xffe0a0, E: 0x601000, G: 0xff4010, g: 0xa02008}, 6);
-			Sprites.recolor("witch", "lich_king", {Y: 0x80ff60, B: 0x3a2a4a, E: 0xc0ff40, R: 0xff60ff, T: 0x2a2a2a, P: 0x2a6a2a, p: 0x143a14, G: 0xff80ff}, 5);
+			Sprites.recolor("phoenix", "seraph_flat", {Y: 0xffd040, W: 0xff8030, S: 0xffe0a0, E: 0x601000, G: 0xff4010, g: 0xa02008}, 6);
+			Sprites.recolor("witch", "lich_king_flat", {Y: 0x80ff60, B: 0x3a2a4a, E: 0xc0ff40, R: 0xff60ff, T: 0x2a2a2a, P: 0x2a6a2a, p: 0x143a14, G: 0xff80ff}, 5);
 			Sprites.recolor("kraken", "hermit_flat", {S: 0x6a3a8a, s: 0x3a1a5a, C: 0xff6080, c: 0xa02040, E: 0xffe040, W: 0xffffff}, 6);
 			Sprites.recolor("gearmind", "boss_flat", {Y: 0xc0a060, y: 0x806030, Q: 0x60e0ff, P: 0x6a6a72, p: 0x3a3a42, W: 0xffffff, E: 0x40ff80, K: 0x101010}, 6);
 			Sprites.recolor("void_dragon", "wyrm", {C: 0x4a2a7a, c: 0x1a0a2a, W: 0xc080ff, w: 0x8040c0, E: 0xff40ff, K: 0xffffff}, 7);
 			Sprites.recolor("matron", "regent_flat", {Y: 0xff4040, y: 0xa01010, C: 0x6a0a1a, c: 0x3a0008, Q: 0xffd0d0, E: 0xff2020, W: 0xffa0a0, M: 0x8a2030, m: 0x5a1020}, 6);
-			Sprites.recolor("zealot", "sorcerer", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
-			Sprites.recolor("galecaller", "seraph", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
+			Sprites.recolor("zealot", "sorcerer_flat", {H: 0xa01828, h: 0x5a0a14, S: 0xf5dc72, E: 0x101010, W: 0xf0f0f0, R: 0xc02030, r: 0x6a0a18, O: 0xff8080, o: 0xffffff}, 4);
+			Sprites.recolor("galecaller", "seraph_flat", {Y: 0x80ffff, W: 0xd0f0ff, S: 0xf5dc72, E: 0x2040a0, G: 0x60a0ff, g: 0x3060c0}, 5);
 			Sprites.recolor("bag_godly", "bag_relic", {K: 0x8a6a20, C: 0xfff6e0, c: 0xd8c8a0, D: 0xf2cc6a});
 			Sprites.recolor("raidtable", "chest", {K: 0x2a0810, C: 0xa01830, c: 0x6a0a1c, Y: 0xffd040}, 6);
-			Sprites.recolor("sentinel", "warden", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
+			Sprites.recolor("sentinel", "warden_flat", {H: 0xe0e080, h: 0x8a8a40, E: 0xffff40, G: 0xffffff, A: 0x203050, M: 0x6080c0, m: 0x304070, L: 0xffff60, l: 0xd0d0d0}, 4);
 			// the Endless Abyss
 			Sprites.recolor("abyss_chest", "chest", {K: 0x1a0a2a, C: 0x8040c0, c: 0x4a1a7a, Y: 0xff80ff}, 6);
 			// the Godlands Spires (guild territory)

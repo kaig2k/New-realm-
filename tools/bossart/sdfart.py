@@ -81,6 +81,11 @@ class Model:
         """A bevelled rectangle (a breastplate, a stone block)."""
         self.slab([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], z, bevel, mat, tex)
 
+    def mark(self, x, y, mat, w=1, h=1):
+        """A crisp mark painted on the finished surface (an eye, a glint): w x h pixels at (x, y),
+        in the material's brightest tone (mat=None darkens what is there: a shadow, a brow)."""
+        self.shapes.append(('mark', x, y, mat, w, h))
+
     def paint(self, fn):
         """A last pass: fn(x, y, hit) -> material name or None, for markings drawn on the surface."""
         self.shapes.append(('paint', fn))
@@ -207,14 +212,17 @@ class Model:
                         mat = m2
                 m = mats[mat]
                 ramp = m['ramp']
-                if m.get('facet'):
-                    # chiselled: the surface direction snapped to a few planes (8 around, 3 tilts)
-                    k = m['facet']
+                if not m.get('glow') and not m.get('smooth'):
+                    # planes: the surface direction pulled toward a few facets (sharper for armour and
+                    # rock, which name facet=8; everything else gets a lighter touch, between round and flat)
+                    k = m.get('facet', 12)
+                    blend = m.get('facetk', 0.6 if 'facet' in m else 0.4)
                     a = math.atan2(n[1], n[0])
                     a = round(a / (math.pi * 2 / k)) * (math.pi * 2 / k)
-                    tilt = min((0.97, 0.72, 0.38), key=lambda c: abs(c - n[2]))
+                    tilt = min((0.97, 0.8, 0.58, 0.32), key=lambda c: abs(c - n[2]))
                     r = math.sqrt(max(0.0, 1 - tilt * tilt))
-                    n = (math.cos(a) * r, math.sin(a) * r, tilt)
+                    fn_ = (math.cos(a) * r, math.sin(a) * r, tilt)
+                    n = norm((n[0] + (fn_[0] - n[0]) * blend, n[1] + (fn_[1] - n[1]) * blend, n[2] + (fn_[2] - n[2]) * blend))
                 if m.get('glow'):
                     # emissive: brightest at its heart
                     v = m.get('glow0', 0.3) + 0.62 * n[2]
@@ -242,6 +250,22 @@ class Model:
                     i += 1
                 c = ramp[min(i, len(ramp) - 1)]
                 px[x, y] = ((c >> 16) & 255, (c >> 8) & 255, c & 255, 255)
+        # marks: eyes and glints, crisp single pixels on the finished surface
+        for sh in self.shapes:
+            if sh[0] != 'mark':
+                continue
+            _, mx, my, mmat, mw, mh = sh
+            for yy in range(int(round(my)), int(round(my)) + mh):
+                for xx in range(int(round(mx)), int(round(mx)) + mw):
+                    if not (0 <= xx < W and 0 <= yy < H) or not px[xx, yy][3]:
+                        continue
+                    if mmat is None:
+                        p0 = px[xx, yy]
+                        px[xx, yy] = (int(p0[0] * 0.45), int(p0[1] * 0.45), int(p0[2] * 0.45), 255)
+                    else:
+                        ramp = mats[mmat]['ramp']
+                        c = ramp[-2] if mats[mmat].get('glow') and len(ramp) > 2 else ramp[-1]
+                        px[xx, yy] = ((c >> 16) & 255, (c >> 8) & 255, c & 255, 255)
         # no outer outline (the game draws a thin black one round every sprite); only a soft seam where a
         # nearer part overlaps a farther one: the farther part's second-darkest tone, not black
         out = img.copy()

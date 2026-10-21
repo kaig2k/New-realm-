@@ -57,10 +57,13 @@ def head(m, cx, cy, r, mat, z=4):
 
 
 def eyes(m, cx, cy, gap, z, mat, r=0.65):
-    # (a little proud of the face, so the head's own curve never swallows them; never smaller than a pixel)
-    r = max(r, 0.72)
-    m.sphere((cx - gap, cy, z + 1.8), r, mat)
-    m.sphere((cx + gap, cy, z + 1.8), r, mat)
+    """Two eyes as pixel art draws them: crisp marks of a pixel or two on the face (wider for big
+    eyes), with a shadow of brow above. (z is unused: marks sit on whatever surface is there.)"""
+    w = 2 if r >= 0.95 else 1
+    for ex in (cx - gap, cx + gap):
+        x0 = int(round(ex - (w - 1) / 2))
+        m.mark(x0 - 1, cy - 1, None, w + 2, 1)        # the brow's shadow
+        m.mark(x0, cy, mat, w, 1)
 
 
 def hood(m, cx, cy, r, mat, void):

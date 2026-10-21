@@ -87,8 +87,8 @@ def hollow_king(t):
     m.capsule((17, 19, 6), (31, 19, 6), 1.0, 1.0, 'trim')
     # the hood: an empty dark face
     m.sphere((24, 12, 2), 8, 'robe', 1, 1.05, 1, F)
-    m.sphere((24, 13.5, 6.5), 5, 'void', 0.95, 1.1, 0.6)
-    m.sphere((22, 13, 9.6), 0.9, 'eye'); m.sphere((26, 13, 9.6), 0.9, 'eye')
+    m.sphere((24, 13, 8.2), 4.6, 'void', 0.95, 1.0, 0.45)
+    m.mark(22, 13, 'eye'); m.mark(26, 13, 'eye')                       # eyes burning in the dark of the hood
     # the crown
     m.capsule((17.5, 5.5, 4), (30.5, 5.5, 4), 1.6, 1.6, 'trim')
     for x in (18, 21, 24, 27, 30):
@@ -130,7 +130,7 @@ def phantom_regent(t):
     m.sphere((24, 13, 1), 8, 'shroud', 1, 1, 1, F)
     m.sphere((24, 14, 7.5), 5.0, 'face', 0.9, 1.1, 0.9)
     m.sphere((22, 13.5, 11.6), 1.0, 'void'); m.sphere((26, 13.5, 11.6), 1.0, 'void')
-    m.sphere((22, 13.6, 12.4), 0.45, 'eye'); m.sphere((26, 13.6, 12.4), 0.45, 'eye')
+    m.mark(22, 14, 'eye'); m.mark(26, 14, 'eye')
     m.capsule((18.5, 5, 6), (29.5, 5, 6), 1.2, 1.2, 'crown')
     for x in (19, 22, 24, 26, 29):
         m.capsule((x, 4.6, 6.5), (x, 1 if x == 24 else 2.2, 6.5), 0.8, 0.3, 'crown')
@@ -176,7 +176,9 @@ def sand_sphinx(t):
     m.capsule((38.6, 8.5, 6.5), (49.4, 8.5, 6.5), 1.3, 1.3, 'gold')     # the headband
     m.capsule((44, 8.2, 7.4), (44, 4 + t * 0.3, 7.4), 1.0, 0.5, 'gold') # the cobra on its brow
     m.capsule((38.6, 8.5, 9.5), (49.4, 8.5, 9.5), 1.3, 1.3, 'gold')     # the headband, in front
-    m.sphere((42, 12.8, 13.2), 0.85, 'eye'); m.sphere((46, 12.8, 13.2), 0.85, 'eye')
+    for ex in (42, 46):
+        m.mark(ex - 1, 12, None, 3, 1)                                    # the brow's shadow
+        m.mark(ex, 13, 'eye')
     m.capsule((44, 18, 13), (44, 22.5, 12), 0.9, 0.6, 'gold')           # the beard
     return m, SPHINX
 

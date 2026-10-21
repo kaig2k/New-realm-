@@ -39,7 +39,7 @@ def moon_queen(t):
 def shattered_seraph(t):
     M = {'robe': g([0x7a7280, 0xa8a0b0, 0xd0c8d8, 0xeee8f4, 0xffffff], gamma=1.1), 'crack': glow(0xc02080, 0xff60b0, 0xffb0e0, base=0.25),
          'wing': g([0x8a5a7a, 0xb87aa0, 0xe0a8c8, 0xfcd4ea], gamma=1.0), 'skin': g([0x8a7a7a, 0xc0acac, 0xe8d6d6]),
-         'halo': glow(0xc09020, 0xffd860, 0xfff4c0), 'hair': g([0xa08a5a, 0xd0b880, 0xf4e0b0]), 'eye': glow(0xc02080, 0xff70c0)}
+         'halo': glow(0xc09020, 0xffd860, 0xfff4c0), 'hair': g([0xa08a5a, 0xd0b880, 0xf4e0b0]), 'eye': g([0x4a0828, 0x9a1458])}
     m = Model(60, 54)
     for s in (-1, 1):                                             # broken wings: a few feathers left
         root = (30 + s * 4, 18)
@@ -109,7 +109,7 @@ def star_prince(t):
     m.capsule((36.5, 21.5, 8.5), (41.5, 18.5, 8.5), 0.8, 0.8, 'gold')
     head(m, 25, 12, 4.2, 'skin')
     m.sphere((25, 9.5, 2), 4.8, 'hair', 1.05, 0.85, 1)
-    eyes(m, 25, 12.4, 1.5, 7.6, 'eye', 0.45)
+    eyes(m, 25, 12.4, 1.8, 7.6, 'eye', 0.45)
     crown(m, 25, 8.2, 3, 'gold', spikes=3, tall=2, z=6, gem='star')
     return m, M
 
@@ -132,7 +132,7 @@ def pirate_king(t):
     m.capsule((41, 20, 8), (47, 6, 8), 1.0, 0.5, 'steel')        # a cutlass
     m.capsule((38.6, 21.6, 8.6), (43, 19, 8.6), 0.8, 0.8, 'gold')
     head(m, 25, 13, 4.6, 'skin')
-    m.capsule((25, 15, 7.5), (25, 25, 8.5), 4.0, 1.2, 'beard')   # a big grey beard
+    m.capsule((25, 17.5, 7.8), (25, 26, 8.5), 3.8, 1.2, 'beard')   # a big grey beard
     m.sphere((23, 12.6, 9.6), 1.2, 'patch')                      # eye patch
     m.capsule((20, 10, 8.6), (29.5, 14, 8.6), 0.35, 0.35, 'patch')
     eyes(m, 27.5, 12.8, 0, 7.8, 'eye', 0.5)

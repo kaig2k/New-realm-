@@ -43,7 +43,9 @@ def model():
     m.sphere((31, 25, 11), 7.6, 'face', 1.05, 0.95, 1.0, rough(0.08))
     m.sphere((31, 31, 15), 4.8, 'face', 1.25, 0.75, 1.0, rough(0.06))
     m.capsule((25, 21.5, 16.5), (37, 21.5, 16.5), 1.9, 1.9, 'hide')           # the heavy brow
-    m.sphere((27.5, 24.6, 17.6), 1.2, 'glow'); m.sphere((34.5, 24.6, 17.6), 1.2, 'glow')   # eyes
+    for ex in (27, 34):                                                     # eyes: under the brow, burning
+        m.mark(ex - 1, 24, None, 4, 1)
+        m.mark(ex, 25, 'glow', 2, 1)
     m.capsule((28.4, 33.6, 19.2), (33.6, 33.6, 19.2), 1.0, 1.0, 'glow')       # the maw
     for s in (-1, 1):
         m.capsule((31 + s * 3.5, 33.5, 19), (31 + s * 5, 29.5, 19.5), 1.1, 0.35, 'bone')   # tusks

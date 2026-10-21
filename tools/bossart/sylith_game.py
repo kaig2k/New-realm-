@@ -53,7 +53,8 @@ def model():
     m.capsule((56, 12.4, 7.5), (61, 13.8, 6), 1.1, 0.7, 'glow')         # frost in her jaws
     for x, y in ((58, 11.4), (60, 12), (57, 13.6)):
         m.sphere((x, y, 9), 0.7, 'horn')                                    # fangs
-    m.sphere((55.5, 7.6, 10.5), 1.2, 'glow')                               # her eye
+    m.mark(54, 7, None, 4, 1)                                               # her eye, under the brow
+    m.mark(55, 8, 'glow', 2, 1)
     m.capsule((52, 6.0, 9.5), (57.5, 5.8, 9.5), 1.0, 0.8, 'hide')           # the brow over it
     # horns sweeping back
     m.capsule((51, 5, 4), (44, 0.5, 3), 1.7, 0.4, 'horn')

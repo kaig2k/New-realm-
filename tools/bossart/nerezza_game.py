@@ -71,7 +71,9 @@ def model():
     # ---- her face
     m.sphere((24, 12, 4.5), 4.3, 'skin', 0.88, 1.08, 1.0)
     m.capsule((20.6, 8.6, 7.4), (27.4, 8.6, 7.4), 1.1, 1.1, 'hair')          # her fringe
-    m.sphere((22.4, 11.8, 8.5), 0.62, 'glow'); m.sphere((25.6, 11.8, 8.5), 0.62, 'glow')   # eyes like the sea
+    for ex in (22, 26):                                                     # eyes like the sea
+        m.mark(ex - 1, 11, None, 3, 1)
+        m.mark(ex, 12, 'glow')
     # ---- the tall crown: five spikes of sea-ice, a gem at its heart
     m.capsule((19.2, 7.2, 6), (28.8, 7.2, 6), 1.0, 1.0, 'ice')
     for x, top, lean in ((19.4, 3.0, -1.2), (21.7, 1.4, -0.5), (24, -0.8, 0), (26.3, 1.4, 0.5), (28.6, 3.0, 1.2)):

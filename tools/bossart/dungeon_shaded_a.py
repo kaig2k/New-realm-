@@ -86,9 +86,9 @@ def cellar_sorcerer(t):
     staff(m, 34, 8, 56, 'wood', z=6, r=0.9)
     m.sphere((34, 6.5 - t * 0.3, 8), 2.4, 'orb')
     head(m, 21, 19, 4.2, 'skin')
-    m.capsule((21, 21, 7.5), (21, 30, 8.5), 3.2, 1.0, 'beard')   # a long white beard
-    m.capsule((17.5, 20, 7.8), (24.5, 20, 7.8), 1.0, 1.0, 'beard')
-    eyes(m, 21, 18.2, 1.6, 7.9, 'eye', 0.5)
+    m.capsule((21, 23.5, 7.5), (21, 31, 8.5), 3.0, 1.0, 'beard')   # a long white beard
+    m.capsule((18, 21.5, 8.2), (24, 21.5, 8.2), 0.8, 0.8, 'beard')
+    eyes(m, 21, 19, 1.6, 7.9, 'eye', 0.5)
     # a tall pointed hat, a little crooked, with stars
     m.capsule((21, 15, 3), (23.5, -0.5, 2), 6.5, 0.4, 'robe')
     m.sphere((21, 15.5, 3), 8.2, 'robe', 1.0, 0.22, 1.0)
@@ -168,7 +168,7 @@ def archdemon(t):
         m.capsule((x, 6, 8.5), (x, 1, 8.5), 0.7, 0.3, 'iron')
     m.capsule((41, 6, 8.5), (47, 6, 8.5), 0.7, 0.7, 'iron')
     m.sphere((32, 11, 4), 5.6, 'skin', 0.95, 1.0, 1, rough(0.06))
-    eyes(m, 32, 11, 2.0, 9.0, 'eye', 0.7)
+    eyes(m, 32, 11, 2.5, 9.0, 'eye', 1.0)
     m.capsule((29, 14.5, 10.4), (35, 14.5, 10.4), 0.5, 0.5, 'fire')
     for s in (-1, 1):
         m.chain([(32 + s * 4, 7, 5), (32 + s * 8, 3, 5), (32 + s * 7, -0.5, 4)], [1.6, 1.1, 0.3], 'horn')

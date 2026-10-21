@@ -63,49 +63,6 @@ def cube_overlord(t):
     return m, CUBE
 
 
-# ---------------------------------------------------------------- Vorgath the Ember Titan
-TITAN = {
-    'rock': g([0x140a06, 0x24140c, 0x3a2214, 0x54321e, 0x70462a, 0x8e5c38], spec=0.05),
-    'far': g([0x0e0704, 0x1a0e08, 0x281610]),
-    'horn': g([0x4a4034, 0x7a6c58, 0xa89a80, 0xd4c8ac]),
-    'lava': GLOW(0xa02a08, 0xff6010, 0xffa040, 0xffe0a0),
-    'core': GLOW(0xff7010, 0xffc050, 0xfff0c0),
-}
-
-
-def ember_titan(t):
-    m = Model(54, 56)
-    R = rough(0.12, 0.3, 3)
-    # legs
-    for s in (-1, 1):
-        m.capsule((27 + s * 6, 38, -2), (27 + s * 7, 50, 0), 5, 4.4, 'rock', R)
-        m.sphere((27 + s * 7.5, 51.5, 1), 4.8, 'rock', 1.2, 0.55, 1.1, R)
-    # torso: a great slab of a chest
-    m.sphere((27, 27, 0), 13, 'rock', 1.05, 0.95, 0.85, R)
-    m.sphere((27, 14, 0), 7, 'rock', 1.5, 0.7, 0.85, R)
-    # arms hanging, fists of molten rock
-    for s in (-1, 1):
-        m.sphere((27 + s * 14, 18, 3), 6, 'rock', 1, 1, 1, R)
-        m.capsule((27 + s * 16, 21, 4), (27 + s * 19, 34, 6), 4.6, 4.0, 'rock', R)
-        m.sphere((27 + s * 19.5, 38.5 + t * 0.5, 7), 4.6, 'rock', 1, 1, 1, R)
-        m.sphere((27 + s * 19.5, 39.5 + t * 0.5, 9), 3.0, 'lava')
-    # head sunk between the shoulders, horns, burning eyes
-    m.sphere((27, 11, 6), 5.6, 'rock', 1.1, 0.9, 1, R)
-    for s in (-1, 1):
-        m.chain([(27 + s * 4, 8, 7), (27 + s * 10, 4, 6), (27 + s * 14, 0.6, 5)], [1.8, 1.2, 0.4], 'horn')
-        m.sphere((27 + s * 2.4, 11, 11.4), 1.0, 'core')
-    # the molten core in his chest
-    m.sphere((27, 26, 11.5), 3.0 + t * 0.3, 'core', 1, 1.2, 0.5)
-
-    def cracks(x, y, h):
-        if h[2] != 'rock':
-            return None
-        v = vnoise((x + vnoise(x * 0.2, y * 0.2, 2) * 5) * 0.2, y * 0.2, 13)
-        return 'lava' if abs(v - 0.5) < 0.016 and h[1][2] > 0.5 else None
-    m.paint(cracks)
-    return m, TITAN
-
-
 # ---------------------------------------------------------------- the Hollow King
 HOLLOW = {
     'robe': g([0x0e0618, 0x1a0c2c, 0x281444, 0x3a1e60, 0x522c80]),
@@ -224,49 +181,6 @@ def sand_sphinx(t):
     return m, SPHINX
 
 
-# ---------------------------------------------------------------- the Lord of the Sunken Lands
-SUNKEN = {
-    'armor': g([0x0a1616, 0x142626, 0x203a3a, 0x2e5250, 0x426e6a, 0x5e8c86], spec=0.4),
-    'weed': g([0x0e2414, 0x1a3c22, 0x2a5a32]),
-    'barn': g([0x4a4a3c, 0x7a7862, 0xaaa88c]),
-    'rust': g([0x2a1a10, 0x4a2c18, 0x6a4024]),
-    'eye': GLOW(0xd06010, 0xffa040, 0xffe0a0),
-}
-
-
-def sunken_lord(t):
-    m = Model(50, 58)
-    R = rough(0.1, 0.3, 9)
-    for s in (-1, 1):
-        m.capsule((25 + s * 5, 36, -1), (25 + s * 6, 52, 1), 4.4, 3.6, 'armor', R)
-        m.sphere((25 + s * 6.4, 53.5, 2), 4, 'armor', 1.2, 0.55, 1.1, R)
-    m.sphere((25, 28, 0), 11, 'armor', 0.95, 1.05, 0.85, R)
-    for s in (-1, 1):
-        m.sphere((25 + s * 11, 18, 2), 5.4, 'armor', 1.1, 0.9, 1, R)    # pauldrons
-        m.capsule((25 + s * 12, 21, 3), (25 + s * 14, 34, 5), 3.4, 3.0, 'armor', R)
-    # the helm: a closed visor with one burning slit
-    m.sphere((25, 11, 3), 6.4, 'armor', 0.95, 1.1, 1, R)
-    m.capsule((21.5, 11.5, 9.2), (28.5, 11.5, 9.2), 0.7, 0.7, 'eye')
-    m.capsule((25, 4.4, 5), (25, -0.5, 4), 1.4, 0.4, 'armor')           # crest
-    # the anchor it carries
-    m.capsule((41, 8, 7), (41, 50, 7), 1.1, 1.1, 'rust')
-    m.capsule((36, 12, 7), (46, 12, 7), 0.9, 0.9, 'rust')
-    m.chain([(34, 44, 7), (37, 50, 7.5), (41, 52, 8), (45, 50, 7.5), (48, 44, 7)], [1.2, 1.3, 1.4, 1.3, 1.2], 'rust')
-    m.sphere((40.5, 34, 9), 2.6, 'armor')                               # its hand on the shaft
-
-    def growth(x, y, h):
-        if h[2] != 'armor':
-            return None
-        v = vnoise(x * 0.35, y * 0.35, 21)
-        if v > 0.78:
-            return 'barn'
-        if v < 0.16:
-            return 'weed'
-        return None
-    m.paint(growth)
-    return m, SUNKEN
-
-
 # ---------------------------------------------------------------- the Tide Hermit
 HERMIT = {
     'shell': g([0x3a2a1e, 0x5e4430, 0x86644a, 0xae8a68, 0xd4b28e, 0xecd2b0], spec=0.2),
@@ -345,8 +259,8 @@ def skull_shrine(t):
 
 
 MODELS = [
-    ('boss', cube_overlord), ('titan', ember_titan), ('hollowking', hollow_king), ('regent', phantom_regent),
-    ('sphinx', sand_sphinx), ('sunken_lord', sunken_lord), ('hermit', tide_hermit), ('shrine', skull_shrine),
+    ('boss', cube_overlord), ('hollowking', hollow_king), ('regent', phantom_regent),
+    ('sphinx', sand_sphinx), ('hermit', tide_hermit), ('shrine', skull_shrine),
 ]
 
 

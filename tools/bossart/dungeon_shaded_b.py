@@ -34,27 +34,6 @@ def moon_queen(t):
     return m, M
 
 
-def frost_warden(t):
-    M = {'ice': g([0x1a3a5a, 0x2a5a82, 0x3e7aa8, 0x5c9ccc, 0x86c0e8, 0xb8e2ff], spec=0.6), 'deep': g([0x0e2440, 0x183a5e, 0x24507c]),
-         'core': glow(0x40a0ff, 0xa0e0ff, 0xffffff), 'haft': g([0x2a3440, 0x48566a, 0x6a7c94]), 'blade': g([0x5a7a98, 0x9ac0e0, 0xe0f4ff], spec=0.8)}
-    m = Model(56, 58)
-    R = rough(0.1, 0.3, 23)
-    legs(m, 26, 38, 56, 5.5, 4.6, 'ice')
-    torso(m, 26, 18, 38, 9.5, 'ice', R)
-    m.sphere((26, 27, 10.5), 3.0 + t * 0.2, 'core')
-    for s in (-1, 1):
-        m.sphere((26 + s * 11, 18, 2), 5.6, 'ice', 1.1, 0.9, 1, R)
-        for k in range(3):                                        # crystal spikes on his shoulders
-            m.capsule((26 + s * (9 + k * 2.5), 15, 2), (26 + s * (10 + k * 3), 8 - k, 2), 1.4, 0.3, 'ice')
-    arm(m, (15, 20, 3), (12, 29, 5), (14, 36, 7), 3.2, 'ice', 'ice', 2.8)
-    arm(m, (37, 20, 3), (42, 27, 5), (44, 32, 7), 3.2, 'ice', 'ice', 2.8)
-    m.capsule((46, 4, 8), (46, 56, 8), 1.0, 1.0, 'haft')          # a great axe
-    m.membrane([(46, 6), (54, 2), (55, 14), (46, 12)], 9, 'blade', (0.5, -0.2))
-    m.sphere((26, 10, 3), 5.6, 'ice', 1.05, 0.95, 1, R)
-    eyes(m, 26, 10.4, 2.0, 7.8, 'core', 0.6)
-    for x in (22, 26, 30):
-        m.capsule((x, 6, 3), (x, 1.5 if x == 26 else 3, 3), 1.2, 0.3, 'ice')
-    return m, M
 
 
 def shattered_seraph(t):
@@ -85,31 +64,6 @@ def shattered_seraph(t):
     return m, M
 
 
-def blood_knight(t):
-    M = {'armor': g([0x08080c, 0x121218, 0x1c1c26, 0x2a2a38, 0x3e3e52, 0x5a5a72], spec=0.7), 'cape': g([0x2a0408, 0x46080e, 0x680e16, 0x8e1a22, 0xb02a30]),
-         'red': glow(0xa00810, 0xff2a30, 0xff9090, base=0.2), 'steel': g([0x4a5260, 0x7c8698, 0xb4bed0, 0xeef2ff], spec=0.9),
-         'gold': g([0x5a420c, 0x9a7418, 0xd8a830])}
-    m = Model(52, 58)
-    R = rough(0.06, 0.3, 37)
-    m.membrane([(14, 17), (38, 17), (44, 52), (36, 55), (26, 52), (16, 55), (8, 52)], -8, 'cape', (0, -0.15), folds(0.12, 3.5, 4))
-    legs(m, 26, 36, 56, 4.5, 3.8, 'armor')
-    torso(m, 26, 18, 36, 7.5, 'armor', R)
-    m.capsule((26, 22, 8.6), (26, 31, 8.6), 0.8, 0.8, 'red')     # a red cross on his breastplate
-    m.capsule((22.5, 25, 8.6), (29.5, 25, 8.6), 0.8, 0.8, 'red')
-    for s in (-1, 1):
-        m.sphere((26 + s * 9, 18, 2), 4.6, 'armor', 1.1, 0.9, 1, R)
-        m.capsule((26 + s * 8, 15, 3), (26 + s * 11, 11, 3), 1.2, 0.3, 'armor')
-    arm(m, (17, 20, 3), (14, 29, 5), (18, 34, 8), 2.8, 'armor', 'armor', 2.4)
-    arm(m, (35, 20, 3), (38, 29, 5), (34, 34, 8), 2.8, 'armor', 'armor', 2.4)
-    m.capsule((26, 34, 10), (26, 56, 10), 1.6, 0.6, 'steel')    # a greatsword planted point-down
-    m.capsule((20, 34.5, 11), (32, 34.5, 11), 1.0, 1.0, 'gold')
-    m.capsule((26, 34, 11), (26, 28, 11), 1.0, 1.0, 'cape')
-    # the horned helm with its burning visor
-    m.sphere((26, 10, 3), 5.8, 'armor', 0.95, 1.1, 1, R)
-    m.capsule((22, 10.5, 8.6), (30, 10.5, 8.6), 0.8, 0.8, 'red')
-    for s in (-1, 1):
-        m.chain([(26 + s * 4, 6, 4), (26 + s * 8, 2, 4), (26 + s * 8, -0.5, 4)], [1.5, 1.0, 0.3], 'armor')
-    return m, M
 
 
 def hex_queen(t):
@@ -237,8 +191,8 @@ def broodmother(t):
     return m, M
 
 
-MODELS = [('moon_queen', moon_queen), ('frost_warden', frost_warden), ('shattered_seraph', shattered_seraph),
-          ('blood_knight', blood_knight), ('hex_queen', hex_queen), ('star_prince', star_prince), ('pirate_king', pirate_king),
+MODELS = [('moon_queen', moon_queen), ('shattered_seraph', shattered_seraph),
+          ('hex_queen', hex_queen), ('star_prince', star_prince), ('pirate_king', pirate_king),
           ('moth', mothwing), ('broodmother', broodmother)]
 
 

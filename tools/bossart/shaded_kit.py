@@ -174,3 +174,47 @@ def sheet(models, path, sc=5):
         s.alpha_composite(z, (x, H - z.height - 16))
         x += z.width + 16
     s.convert('RGB').save(path)
+
+
+# ---------------------------------------------------------------- hard-edged pieces (armour, rock, ice)
+def chest(m, cx, top, bottom, wtop, wbot, z, mat, bevel=3.0, tex=None):
+    """A breastplate or a slab of a chest: broad at the shoulders, narrower at the waist, chiselled edges."""
+    m.slab([(cx - wtop, top + 2), (cx - wtop + 2, top), (cx + wtop - 2, top), (cx + wtop, top + 2),
+            (cx + wbot, bottom), (cx, bottom + 1.5), (cx - wbot, bottom)], z, bevel, mat, tex)
+
+
+def plate(m, a, b, wa, wb, z, mat, bevel=1.6, tex=None):
+    """An armoured limb: a straight-sided plate from a (half-width wa) to b (half-width wb)."""
+    import math as _m
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    l = _m.hypot(dx, dy) or 1
+    px, py = -dy / l, dx / l
+    m.slab([(a[0] + px * wa, a[1] + py * wa), (b[0] + px * wb, b[1] + py * wb),
+            (b[0] - px * wb, b[1] - py * wb), (a[0] - px * wa, a[1] - py * wa)], z, bevel, mat, tex)
+
+
+def pauldron(m, cx, cy, w, h, z, mat, side, bevel=2.0, tex=None):
+    """A shoulder guard: an angular shell sloping down and out."""
+    m.slab([(cx - w * 0.6 * side, cy - h * 0.5), (cx + w * 0.5 * side, cy - h * 0.6), (cx + w * side, cy + h * 0.2),
+            (cx + w * 0.8 * side, cy + h * 0.6), (cx - w * 0.6 * side, cy + h * 0.5)], z, bevel, mat, tex)
+
+
+def rock(m, cx, cy, r, z, mat, seed=1, sides=7, bevel=None, squash=1.0, tex=None):
+    """A jagged chunk of rock or ice: an irregular polygon with chiselled faces."""
+    import math as _m
+    from sdfart import hash2
+    pts = []
+    for k in range(sides):
+        a = k * _m.pi * 2 / sides + hash2(k, seed) * 0.5
+        rr = r * (0.78 + 0.3 * hash2(seed, k))
+        pts.append((cx + _m.cos(a) * rr, cy + _m.sin(a) * rr * squash))
+    m.slab(pts, z, bevel or r * 0.45, mat, tex, height=r * 0.6)
+
+
+def spike(m, base, tip, w, z, mat, bevel=1.0):
+    """A hard triangular spike or horn."""
+    import math as _m
+    dx, dy = tip[0] - base[0], tip[1] - base[1]
+    l = _m.hypot(dx, dy) or 1
+    px, py = -dy / l * w, dx / l * w
+    m.slab([(base[0] + px, base[1] + py), tip, (base[0] - px, base[1] - py)], z, bevel, mat)

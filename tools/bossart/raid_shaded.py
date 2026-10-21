@@ -22,24 +22,6 @@ def lava_cracks(mat, into, seed=13, k=0.02):
     return f
 
 
-def ignis(t):
-    M = {'plate': g([0x0c0604, 0x1a0c08, 0x2a140c, 0x3e1e12, 0x582c1a], spec=0.5), 'lava': glow(0xc03008, 0xff7a20, 0xffc060, base=0.15),
-         'fire': glow(0xd04010, 0xff9030, 0xffe0a0, base=0.1), 'horn': g([0x1a1410, 0x342a20, 0x544636])}
-    m = Model(54, 58)
-    R = rough(0.08, 0.3, 61)
-    legs(m, 27, 36, 56, 5, 4.2, 'plate')
-    torso(m, 27, 18, 36, 8.5, 'plate', R)
-    m.sphere((27, 25, 9.5), 2.6 + t * 0.2, 'lava')
-    for s in (-1, 1):
-        m.sphere((27 + s * 10, 18, 2), 5, 'plate', 1.1, 0.9, 1, R)
-        flame(m, 27 + s * 10, 15, 8, 4, ('fire', 'lava'), z=4, t=t)
-        arm(m, (27 + s * 11, 20, 3), (27 + s * 14, 29, 5), (27 + s * 13, 35, 7), 3.0, 'plate', 'lava', 2.4)
-    m.sphere((27, 10, 3), 5.6, 'plate', 0.95, 1.05, 1, R)
-    m.capsule((23, 10.5, 8.4), (31, 10.5, 8.4), 0.8, 0.8, 'lava')
-    for s in (-1, 1):
-        m.chain([(27 + s * 4, 6, 4), (27 + s * 9, 3, 4), (27 + s * 10, -0.5, 4)], [1.6, 1.0, 0.3], 'horn')
-    m.paint(lava_cracks('plate', 'lava', 63))
-    return m, M
 
 
 def archivist(t):
@@ -112,24 +94,6 @@ def astraeon(t):
     return m, M
 
 
-def sentinel(t):
-    M = {'steel': g([0x14181e, 0x222832, 0x343c4a, 0x4a5466, 0x68748a, 0x8e9ab0], spec=0.7), 'core': glow(0x2080d0, 0x60c0ff, 0xd0f0ff),
-         'brass': g([0x5a420c, 0x9a7418, 0xd8a830, 0xffe080], spec=0.6), 'eye': glow(0xc0a010, 0xffe040, 0xffffa0)}
-    m = Model(48, 54)
-    R = rough(0.05, 0.3, 91)
-    m.capsule((24, 34, 0), (24, 50 + t * 0.4, 0), 8, 0.6, 'steel', R)   # it floats on a tapering point
-    m.sphere((24, 24, 0), 11, 'steel', 1.15, 0.85, 0.9, R)
-    m.capsule((14, 26, 9), (34, 26, 9), 1.8, 1.8, 'core')         # a band of light round its middle
-    for s in (-1, 1):
-        m.sphere((24 + s * 14, 22, 2), 4.6, 'steel', 1, 1, 1, R)  # arms of armour
-        m.capsule((24 + s * 15, 26, 3), (24 + s * 16, 34, 4), 2.6, 2.0, 'steel')
-    m.sphere((24, 12, 2), 6, 'steel', 1.1, 0.9, 1, R)
-    eyes(m, 24, 12, 2.2, 6.4, 'eye', 0.8)
-    for s in (-1, 1):
-        m.capsule((24 + s * 3, 7, 3), (24 + s * 4, 1.5, 3), 1.1, 0.4, 'brass')
-    for k in range(2):
-        m.sphere((24 + (k * 2 - 1) * 20, 8 + t, 6), 1.2, 'core')
-    return m, M
 
 
 def void_dragon(t):
@@ -260,21 +224,6 @@ def gearmind(t):
     return m, M
 
 
-def colossus(t):
-    M = {'rock': g([0x060608, 0x0e0e14, 0x18181f, 0x24242e, 0x343444, 0x48485c], spec=0.4), 'glow': glow(0x6020c0, 0xa050ff, 0xe0c0ff, base=0.15)}
-    m = Model(62, 56)
-    R = rough(0.12, 0.3, 131)
-    legs(m, 31, 38, 54, 7, 5.5, 'rock')
-    m.sphere((31, 26, 0), 15, 'rock', 1.2, 0.95, 0.85, R)
-    for s in (-1, 1):
-        m.sphere((31 + s * 17, 20, 3), 7.5, 'rock', 1, 1, 1, R)
-        m.capsule((31 + s * 19, 24, 4), (31 + s * 21, 38, 6), 5.6, 4.8, 'rock', R)
-        m.sphere((31 + s * 21, 41, 7), 5.6, 'rock', 1, 0.9, 1, R)
-    m.sphere((31, 11, 4), 6, 'rock', 1.2, 0.8, 1, R)
-    m.capsule((27, 11.5, 9.2), (35, 11.5, 9.2), 0.8, 0.8, 'glow')
-    m.sphere((31, 25, 12), 2.8 + t * 0.2, 'glow')
-    m.paint(lava_cracks('rock', 'glow', 133, 0.016))
-    return m, M
 
 
 def matron(t):
@@ -319,9 +268,9 @@ def kraken(t):
     return m, M
 
 
-MODELS = [('vault_ignis', ignis), ('vault_archivist', archivist), ('vault_sovereign', sovereign), ('astraeon', astraeon),
-          ('sentinel', sentinel), ('void_dragon', void_dragon), ('zealot', zealot), ('phoenix', phoenix), ('galecaller', galecaller),
-          ('witch', witch), ('gearmind', gearmind), ('colossus', colossus), ('matron', matron), ('kraken', kraken)]
+MODELS = [('vault_archivist', archivist), ('vault_sovereign', sovereign), ('astraeon', astraeon),
+          ('void_dragon', void_dragon), ('zealot', zealot), ('phoenix', phoenix), ('galecaller', galecaller),
+          ('witch', witch), ('gearmind', gearmind), ('matron', matron), ('kraken', kraken)]
 
 
 def all_designs():

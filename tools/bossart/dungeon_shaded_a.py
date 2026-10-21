@@ -118,50 +118,8 @@ def tempest_seraph(t):
     return m, M
 
 
-def crypt_warden(t):
-    M = {'iron': g([0x0c0e12, 0x181c24, 0x262c38, 0x384050, 0x50586c, 0x707a90], spec=0.6), 'shield': g([0x14161c, 0x22262e, 0x343a46, 0x4a5262], spec=0.4),
-         'void': VOID, 'eye': glow(0x1a70c0, 0x40b0ff, 0xc0e8ff, base=0.15), 'lamp': glow(0x2060a0, 0x60c0ff, 0xd0f0ff),
-         'chain': g([0x2a2a30, 0x4a4a54, 0x70707c])}
-    m = Model(48, 58)
-    R = rough(0.08, 0.3, 11)
-    legs(m, 25, 36, 56, 4.5, 4.0, 'iron')
-    torso(m, 25, 20, 36, 7.5, 'iron', R)
-    for s in (-1, 1):
-        m.sphere((25 + s * 9, 19, 2), 4.6, 'iron', 1.1, 0.9, 1, R)
-    arm(m, (34, 20, 3), (37, 30, 5), (38, 36, 7), 3.0, 'iron', 'iron', 2.6)
-    m.capsule((38, 37, 8), (38, 41, 8), 0.4, 0.4, 'chain')
-    m.sphere((38, 43.5 + t * 0.3, 8.5), 2.2, 'lamp')            # a lantern in his fist
-    # a tower shield on his other arm
-    m.membrane([(4, 20), (18, 19), (19, 44), (11, 50), (3, 44)], 10, 'shield', (-0.25, -0.1), rough(0.07))
-    m.capsule((11, 21, 10.6), (11, 47, 10.6), 0.8, 0.8, 'iron')
-    m.capsule((5, 32, 10.6), (18, 32, 10.6), 0.8, 0.8, 'iron')
-    # the helm, empty but for two blue eyes
-    m.sphere((25, 12, 3), 6, 'iron', 0.95, 1.1, 1, R)
-    m.capsule((21, 12.5, 8.4), (29, 12.5, 8.4), 1.0, 1.0, 'void')
-    eyes(m, 25, 12.5, 2.0, 9.2, 'eye', 0.6)
-    m.capsule((25, 6, 6.5), (25, 2, 5.5), 1.1, 0.4, 'iron')
-    return m, M
 
 
-def furnace_warden(t):
-    M = {'iron': g([0x1a0806, 0x2e100a, 0x481a10, 0x642818, 0x863a24, 0xa8543a], spec=0.4), 'grill': g([0x0a0404, 0x180808]),
-         'fire': glow(0xc03010, 0xff7a20, 0xffc060, 0xfff0c0, base=0.15), 'horn': g([0x2a1a14, 0x4a3024, 0x6e4a36])}
-    m = Model(54, 56)
-    R = rough(0.1, 0.3, 17)
-    legs(m, 27, 36, 54, 6, 4.6, 'iron')
-    torso(m, 27, 18, 38, 10, 'iron', R)
-    m.membrane([(20, 22), (34, 22), (34, 34), (20, 34)], 11, 'grill', (0, 0))
-    for k in range(4):
-        m.capsule((21.5 + k * 3.7, 23, 11.5), (21.5 + k * 3.7, 33, 11.5), 1.0 + t * 0.1, 1.0, 'fire')
-    for s in (-1, 1):
-        m.sphere((27 + s * 12, 18, 2), 5.4, 'iron', 1.1, 0.9, 1, R)
-        arm(m, (27 + s * 13, 20, 3), (27 + s * 17, 30, 5), (27 + s * 19, 38, 7), 3.2, 'iron')
-        flame(m, 27 + s * 19, 40, 7, 4, ('fire', 'fire'), z=9, t=t)
-    m.sphere((27, 10, 3), 6, 'iron', 1.1, 0.9, 1, R)
-    m.capsule((23, 10.5, 8.6), (31, 10.5, 8.6), 0.9, 0.9, 'fire')
-    for s in (-1, 1):
-        m.chain([(27 + s * 5, 7, 4), (27 + s * 9, 3, 4), (27 + s * 9, -0.5, 4)], [1.5, 1.0, 0.3], 'horn')
-    return m, M
 
 
 def living_flame(t):
@@ -267,7 +225,7 @@ def sun_king(t):
 
 
 MODELS = [('lich_king', lich_king), ('serpent_queen', serpent_queen), ('sorcerer', cellar_sorcerer), ('seraph', tempest_seraph),
-          ('warden', crypt_warden), ('flame_warden', furnace_warden), ('pyrelord', living_flame), ('archdemon', archdemon),
+          ('pyrelord', living_flame), ('archdemon', archdemon),
           ('sprite_queen', sprite_queen), ('sun_king', sun_king)]
 
 

@@ -72,6 +72,15 @@ class Model:
         """A flat polygon (a wing, a cape) at depth z, its normal tilted by tilt (nx, ny)."""
         self.shapes.append(('mem', pts, z, mat, tilt, tex))
 
+    def slab(self, pts, z, bevel, mat, tex=None, height=None):
+        """A hard-edged solid: the polygon pts, its face at depth z, its edges bevelled over `bevel` pixels
+        (chiselled, not round). height raises the face (default: the bevel)."""
+        self.shapes.append(('slab', pts, z, bevel, mat, tex, height if height is not None else bevel))
+
+    def block(self, x0, y0, x1, y1, z, bevel, mat, tex=None):
+        """A bevelled rectangle (a breastplate, a stone block)."""
+        self.slab([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], z, bevel, mat, tex)
+
     def paint(self, fn):
         """A last pass: fn(x, y, hit) -> material name or None, for markings drawn on the surface."""
         self.shapes.append(('paint', fn))
@@ -124,6 +133,24 @@ class Model:
             j = i
         return ins
 
+    @staticmethod
+    def _edge(x, y, pts):
+        """(distance to the polygon's nearest edge, outward direction from it)."""
+        best, bd = (0.0, 0.0), 1e9
+        for i in range(len(pts)):
+            ax, ay = pts[i]
+            bx, by = pts[(i + 1) % len(pts)]
+            vx, vy = bx - ax, by - ay
+            ll = vx * vx + vy * vy or 1e-9
+            t = max(0.0, min(1.0, ((x - ax) * vx + (y - ay) * vy) / ll))
+            cx, cy = ax + vx * t, ay + vy * t
+            d = math.hypot(x - cx, y - cy)
+            if d < bd:
+                bd = d
+                l = math.hypot(vy, -vx) or 1
+                best = (vy / l, -vx / l)
+        return bd, best
+
     def hit(self, x, y):
         best = None
         for s in self.shapes:
@@ -135,6 +162,22 @@ class Model:
                 r = self._cap(x, y, s[1], s[2], s[3], s[4])
                 if r and (best is None or r[0] > best[0]):
                     best = (r[0], r[1], s[5], s[6])
+            elif s[0] == 'slab':
+                pts, z0, bev, mat, tex, hgt = s[1], s[2], s[3], s[4], s[5], s[6]
+                if self._inside(x, y, pts):
+                    d, (ex, ey) = self._edge(x, y, pts)
+                    # (outward: make sure the normal points away from the inside)
+                    if self._inside(x + ex * 0.6, y + ey * 0.6, pts):
+                        ex, ey = -ex, -ey
+                    if d < bev:
+                        f = 1 - d / bev
+                        n = norm((ex * (0.55 + f), ey * (0.55 + f), 0.6))
+                        z = z0 + hgt * d / bev
+                    else:
+                        n = (0.0, 0.0, 1.0)
+                        z = z0 + hgt
+                    if best is None or z > best[0]:
+                        best = (z, n, mat, tex)
             elif s[0] == 'mem':
                 if self._inside(x, y, s[1]) and (best is None or s[2] > best[0]):
                     n = norm((s[4][0], s[4][1], 1))
@@ -164,6 +207,14 @@ class Model:
                         mat = m2
                 m = mats[mat]
                 ramp = m['ramp']
+                if m.get('facet'):
+                    # chiselled: the surface direction snapped to a few planes (8 around, 3 tilts)
+                    k = m['facet']
+                    a = math.atan2(n[1], n[0])
+                    a = round(a / (math.pi * 2 / k)) * (math.pi * 2 / k)
+                    tilt = min((0.97, 0.72, 0.38), key=lambda c: abs(c - n[2]))
+                    r = math.sqrt(max(0.0, 1 - tilt * tilt))
+                    n = (math.cos(a) * r, math.sin(a) * r, tilt)
                 if m.get('glow'):
                     # emissive: brightest at its heart
                     v = m.get('glow0', 0.3) + 0.62 * n[2]

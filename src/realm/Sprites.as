@@ -1,6 +1,7 @@
 package realm {
 	import flash.display.BitmapData;
 	import flash.utils.Dictionary;
+	import flash.utils.getTimer;
 	import flash.display.Shape;
 	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
@@ -543,7 +544,7 @@ package realm {
 			if (frame >= frames.length && frame < 10) frame = 0;
 			var key:String = name + ":" + frame + (flip ? "f" : "");
 			var bd:BitmapData = cache[key];
-			if (bd) return bd;
+			if (bd) { if (bd.width * bd.height >= BIG_PX) bigUse[key] = getTimer(); return bd; }
 			if (flip) {
 				var src:BitmapData = get(name, frame);
 				bd = new BitmapData(src.width, src.height, true, 0);
@@ -554,8 +555,32 @@ package realm {
 			} else {
 				bd = build(frames[frame], d[1], d[2] || SCALE, 2);
 			}
-			cache[key] = bd;
+			keep(key, bd);
 			return bd;
+		}
+
+		/**
+		 * Big frames (the animated bosses: a few hundred each, counting their turned, hit and
+		 * enraged copies) are let go once they haven't been drawn for a while, so a long session
+		 * doesn't pile up hundreds of megabytes of bosses long gone. (Not disposed: a window may
+		 * still be showing one; they go when nothing holds them.)
+		 */
+		private static const BIG_PX:int = 96 * 96, BIG_BUDGET:Number = 96 * 1024 * 1024, BIG_IDLE:int = 6000;
+		private static var bigUse:Object = {}, bigBytes:Number = 0, bigSwept:int = 0;
+		private static function keep(key:String, bd:BitmapData):void {
+			cache[key] = bd;
+			if (bd.width * bd.height < BIG_PX) return;
+			var now:int = getTimer();
+			bigUse[key] = now;
+			bigBytes += bd.width * bd.height * 4;
+			if (bigBytes < BIG_BUDGET || now - bigSwept < 1000) return;
+			bigSwept = now;
+			for (var k:String in bigUse) {
+				if (now - bigUse[k] < BIG_IDLE) continue;
+				var old:BitmapData = cache[k];
+				if (old) { bigBytes -= old.width * old.height * 4; delete cache[k]; }
+				delete bigUse[k];
+			}
 		}
 
 		/**
@@ -728,20 +753,20 @@ package realm {
 		public static function rage(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var key:String = name + ":" + frame + (flip ? "f" : "") + ":rage";
 			var bd:BitmapData = cache[key];
-			if (bd) return bd;
+			if (bd) { if (bd.width * bd.height >= BIG_PX) bigUse[key] = getTimer(); return bd; }
 			bd = get(name, frame, flip).clone();
 			bd.colorTransform(bd.rect, new ColorTransform(1, 0.55, 0.55, 1, 70, 0, 0, 0));
-			cache[key] = bd;
+			keep(key, bd);
 			return bd;
 		}
 
 		public static function hit(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var key:String = name + ":" + frame + (flip ? "f" : "") + ":hit";
 			var bd:BitmapData = cache[key];
-			if (bd) return bd;
+			if (bd) { if (bd.width * bd.height >= BIG_PX) bigUse[key] = getTimer(); return bd; }
 			bd = get(name, frame, flip).clone();
 			bd.colorTransform(bd.rect, new ColorTransform(0.5, 0.5, 0.5, 1, 140, 60, 60, 0));
-			cache[key] = bd;
+			keep(key, bd);
 			return bd;
 		}
 
@@ -802,7 +827,48 @@ package realm {
 					bd.fillRect(r, 0xff000000 | uint(pal[ch]));
 				}
 			}
-			if (outline > 0) addOutline(bd, outline);
+			if (outline > 0) fastOutline(bd, outline);
+			return bd;
+		}
+
+		/**
+		 * addOutline done with the player's own blits (the same picture, for art of solid pixels): the
+		 * shape's silhouette stamped all round it, the art over that. Big boss frames took tens of
+		 * milliseconds pixel by pixel, a stutter every time one was first drawn.
+		 */
+		private static var olPt:Point = new Point();
+		private static function fastOutline(bd:BitmapData, passes:int):void {
+			var w:int = bd.width, h:int = bd.height;
+			olPt.x = 0; olPt.y = 0;
+			var mask:BitmapData = new BitmapData(w, h, true, 0);
+			mask.threshold(bd, bd.rect, olPt, ">", 0, OUTLINE_COL, 0xff000000, false);
+			var out:BitmapData = new BitmapData(w, h, true, 0);
+			var solid:int = passes;
+			// (a 3px outline's last ring is soft, like RotMG's glow)
+			if (passes >= 3) {
+				var soft:BitmapData = stamp(mask, passes);
+				soft.threshold(soft, soft.rect, olPt, "==", OUTLINE_COL, 0x66000000, 0xffffffff, false);
+				out.copyPixels(soft, soft.rect, olPt);
+				soft.dispose();
+				solid = passes - 1;
+			}
+			var ring:BitmapData = stamp(mask, solid);
+			out.copyPixels(ring, ring.rect, olPt, null, null, true);
+			ring.dispose();
+			mask.dispose();
+			out.copyPixels(bd, bd.rect, olPt, null, null, true);
+			bd.copyPixels(out, out.rect, olPt);
+			out.dispose();
+		}
+
+		/** The silhouette stamped at every offset up to r pixels away (a square brush). */
+		private static function stamp(mask:BitmapData, r:int):BitmapData {
+			var bd:BitmapData = new BitmapData(mask.width, mask.height, true, 0);
+			var p:Point = new Point();
+			for (var dy:int = -r; dy <= r; dy++) for (var dx:int = -r; dx <= r; dx++) {
+				p.x = dx; p.y = dy;
+				bd.copyPixels(mask, mask.rect, p, null, null, true);
+			}
 			return bd;
 		}
 

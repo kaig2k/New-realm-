@@ -9,8 +9,8 @@ from raidprops import PROPS
 # bosses first, then every monster that used to share another's drawing, then the raids' objectives
 DESIGNS = DESIGNS + MA + MB + MC + PROPS
 # the realm's event bosses, shaded from solids (realm_shaded.py), replace their older flat drawings
-import realm_shaded, dungeon_shaded_a, dungeon_shaded_b
-_shaded = realm_shaded.designs() + dungeon_shaded_a.all_designs() + dungeon_shaded_b.all_designs()
+import realm_shaded, dungeon_shaded_a, dungeon_shaded_b, raid_shaded
+_shaded = realm_shaded.designs() + dungeon_shaded_a.all_designs() + dungeon_shaded_b.all_designs() + raid_shaded.all_designs()
 _names = {d[0] for d in _shaded}
 # (bosses that reuse an old drawing with a colour swap keep it, as name_flat, until they get shaded art of their own)
 DESIGNS = [d for d in DESIGNS if d[0] not in _names] + [(d[0] + '_flat',) + tuple(d[1:]) for d in DESIGNS if d[0] in _names] + _shaded

@@ -328,7 +328,7 @@ package realm {
 			Sprites.recolor("vault_ignis", "flame_warden_flat", {H: 0xffb040, h: 0xa04010, E: 0xffffff, G: 0xffffa0, A: 0x2a0800, M: 0xff6a20, m: 0x8a2a10, L: 0xffe060, l: 0xd0d0d0});
 			Sprites.recolor("vault_archivist", "sunken_lord_flat", {S: 0x3a7a8a, s: 0x1a4050, B: 0xe8f0d8, E: 0x40ffd0, G: 0xa0fff0, W: 0x60c0a0, H: 0x2a6a5a});
 			Sprites.recolor("vault_sovereign", "lich_king_flat", {Y: 0xe8e0c8, B: 0xe8e0c8, E: 0xc060ff, R: 0x9a2030, T: 0x4a4050, P: 0x6a1a2a, p: 0x3a0a14, G: 0xb060ff});
-			Sprites.recolor("astraeon", "star_prince", {H: 0xf0c840, h: 0x9a7020, S: 0xfff4d0, E: 0x2a1060, W: 0xffffff, R: 0xd0a030, r: 0x6a4a10, O: 0xfff6a0, o: 0xffffff}, 6);
+			Sprites.recolor("astraeon", "star_prince_flat", {H: 0xf0c840, h: 0x9a7020, S: 0xfff4d0, E: 0x2a1060, W: 0xffffff, R: 0xd0a030, r: 0x6a4a10, O: 0xfff6a0, o: 0xffffff}, 6);
 			Sprites.recolor("cube_shard", "cubelet", {P: 0xff60ff, p: 0xa020c0, Q: 0xffc0ff, E: 0x46c0e8});
 			Sprites.recolor("royal_guard", "bandit", {H: 0xd8b050, h: 0x8a6a20, S: 0xe8e0c0, E: 0x40c0ff, B: 0xc8c8d0, b: 0x8a8a96, A: 0x8a1a2a, L: 0x5a5a66, W: 0xffe080});
 			Sprites.recolor("grave_wraith", "ghost", {W: 0x9ab0ff, w: 0x5a6aa8, E: 0xffffff}, 4);

@@ -57,7 +57,8 @@ def head(m, cx, cy, r, mat, z=4):
 
 
 def eyes(m, cx, cy, gap, z, mat, r=0.65):
-    # (a little proud of the face, so the head's own curve never swallows them)
+    # (a little proud of the face, so the head's own curve never swallows them; never smaller than a pixel)
+    r = max(r, 0.72)
     m.sphere((cx - gap, cy, z + 1.8), r, mat)
     m.sphere((cx + gap, cy, z + 1.8), r, mat)
 

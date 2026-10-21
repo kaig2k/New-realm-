@@ -14,6 +14,12 @@ package realm {
 		public static const W:int = 240;
 		private static const MINI_H:int = 176;
 		private static const ZOOMS:Array = [1, 2, 4];
+		private static const MINI_X:int = 9, MINI_Y:int = 7, MINI_W:int = W - 16;
+		public static const BG_TOP:uint = 0x1c1530;
+		public static const BG_BOT:uint = 0x0d0a16;
+		public static const GOLD:uint = 0xb8913e;
+		public static const GOLD_HI:uint = 0xf2d68a;
+		public static const EDGE:uint = 0x4a3c70;
 
 		private static const I_TEMPLE:Array = ["...WW...", "..WWWW..", "WWWWWWWW", ".W.WW.W.", ".W.WW.W.", ".W.WW.W.", "WWWWWWWW", "........"];
 		private static const I_PACK:Array = ["..WWWW..", ".W....W.", "WWWWWWWW", "WWWDDWWW", "WWWWWWWW", "WWWWWWWW", ".WWWWWW.", "........"];
@@ -36,6 +42,12 @@ package realm {
 		private var zoom:int = 1;
 		private var frameN:int = 0;
 		private var nameTf:TextField;
+		private var subTf:TextField;
+		private var zoneTf:TextField, onlineTf:TextField;
+		private var medal:Shape;
+		private var lvlBadge:TextField;
+		private var lastXpFrac:Number = -1, lastLevel:int = -1;
+		private var bagLegend:Sprite;
 		private var portrait:Bitmap;
 		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar, ptBar:Bar, sgBar:Bar;
 		private var equip:Vector.<Slot> = new Vector.<Slot>();
@@ -63,26 +75,52 @@ package realm {
 
 		public function Hud(g:Game) {
 			this.g = g;
-			graphics.beginFill(Ui.PANEL);
+			// deep violet, darker toward the bottom, with a gold seam on the left
+			var bm:Matrix = new Matrix();
+			bm.createGradientBox(W, Ui.H, Math.PI / 2);
+			graphics.beginGradientFill("linear", [BG_TOP, BG_BOT], [1, 1], [0, 255], bm);
 			graphics.drawRect(0, 0, W, Ui.H);
 			graphics.endFill();
+			// a faint diamond lattice
+			graphics.lineStyle(1, 0x8a70c0, 0.05);
+			for (var dl:int = -Ui.H; dl < W; dl += 24) {
+				graphics.moveTo(dl, 0); graphics.lineTo(dl + Ui.H, Ui.H);
+				graphics.moveTo(dl + Ui.H, 0); graphics.lineTo(dl, Ui.H);
+			}
+			graphics.lineStyle();
 			graphics.beginFill(0x000000);
 			graphics.drawRect(0, 0, 2, Ui.H);
 			graphics.endFill();
+			graphics.beginFill(GOLD, 0.7);
+			graphics.drawRect(2, 0, 1, Ui.H);
+			graphics.endFill();
 
-			// --- minimap
-			mini = new BitmapData(W - 2, MINI_H, false, 0);
+			// --- minimap, set in a gold frame
+			mini = new BitmapData(MINI_W, MINI_H - 14, false, 0);
 			var miniBmp:Bitmap = new Bitmap(mini);
-			miniBmp.x = 2;
+			miniBmp.x = MINI_X; miniBmp.y = MINI_Y;
 			addChild(miniBmp);
 			miniDots = new Shape();
-			miniDots.x = 2;
+			miniDots.x = MINI_X; miniDots.y = MINI_Y;
 			addChild(miniDots);
+			var mf:Shape = new Shape();
+			frame(mf.graphics, MINI_X - 1, MINI_Y - 1, MINI_W + 2, mini.height + 2);
+			// the place name on a dark ribbon along the bottom
+			mf.graphics.beginFill(0x000000, 0.55);
+			mf.graphics.drawRect(MINI_X, MINI_Y + mini.height - 17, MINI_W, 17);
+			mf.graphics.endFill();
+			addChild(mf);
+			zoneTf = Ui.text(11, GOLD_HI, true, "left", 0, true);
+			zoneTf.x = MINI_X + 4; zoneTf.y = MINI_Y + mini.height - 17;
+			addChild(zoneTf);
+			onlineTf = Ui.text(11, 0xb8a8e0, true, "right", 90, true);
+			onlineTf.x = MINI_X + MINI_W - 94; onlineTf.y = zoneTf.y;
+			addChild(onlineTf);
 			miniHit = new Sprite();
 			miniHit.graphics.beginFill(0, 0);
-			miniHit.graphics.drawRect(0, 0, W - 2, MINI_H);
+			miniHit.graphics.drawRect(0, 0, MINI_W, mini.height);
 			miniHit.graphics.endFill();
-			miniHit.x = 2;
+			miniHit.x = MINI_X; miniHit.y = MINI_Y;
 			miniHit.addEventListener(MouseEvent.MOUSE_MOVE, function(e:MouseEvent):void { miniHover(e.localX, e.localY); });
 			miniHit.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { miniLabel.visible = false; miniHit.buttonMode = false; });
 			miniHit.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void {
@@ -99,21 +137,31 @@ package realm {
 			miniLabel.visible = false;
 			miniLabel.mouseEnabled = false;
 			addChild(miniLabel);
-			addChild(zoomButton("+", W - 24, 6, 1));
-			addChild(zoomButton("-", W - 24, 28, -1));
+			addChild(zoomButton("+", MINI_X + MINI_W - 22, MINI_Y + 4, 1));
+			addChild(zoomButton("-", MINI_X + MINI_W - 22, MINI_Y + 26, -1));
 			setChildIndex(miniLabel, numChildren - 1);
 
-			// --- name row: portrait, name, nexus button
+			// --- name row: portrait medallion (its ring fills with XP), name and class, buttons
 			var y:int = MINI_H + 4;
+			medal = new Shape();
+			medal.x = 25; medal.y = y + 19;
+			addChild(medal);
 			portrait = new Bitmap(Sprites.get(g.player.spriteId));
-			portrait.scaleX = portrait.scaleY = 0.72;
-			portrait.x = 6;
-			portrait.y = y - 2;
+			portrait.scaleX = portrait.scaleY = 0.62;
+			portrait.x = medal.x - portrait.width / 2;
+			portrait.y = medal.y - portrait.height / 2;
 			addChild(portrait);
-			nameTf = Ui.text(24, 0xffffff, true, "left", 0, true);
-			nameTf.x = 44;
+			lvlBadge = Ui.text(10, 0xffffff, true, "center", 20, true);
+			lvlBadge.x = medal.x + 6; lvlBadge.y = medal.y + 8;
+			addChild(lvlBadge);
+			nameTf = Ui.text(20, 0xffffff, true, "left", 0, true);
+			nameTf.x = 50;
 			nameTf.y = y - 2;
 			addChild(nameTf);
+			subTf = Ui.text(11, 0xb8a8e0, true, "left", 0, true);
+			subTf.x = 51;
+			subTf.y = y + 22;
+			addChild(subTf);
 			var nexusBtn:Sprite = iconButton(I_TEMPLE, W - 34, y + 2, 0xe8e8e8);
 			nexusBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.nexus(); });
 			addChild(nexusBtn);
@@ -125,36 +173,37 @@ package realm {
 			addChild(wikiBtn);
 
 			// --- bars
-			y = MINI_H + 40;
-			lvlBar = new Bar(110, 18, 0x9a7480, 0x2a2224, 11, "", "left");
-			lvlBar.x = 6; lvlBar.y = y;
+			y = MINI_H + 46;
+			lvlBar = new Bar(112, 15, 0x9a6ae0, 0, 10, "", "left");
+			lvlBar.x = 8; lvlBar.y = y;
 			addChild(lvlBar);
-			fameBar = new Bar(110, 18, 0xe0762a, 0x3a2410, 11, "", "left");
+			fameBar = new Bar(112, 15, 0xe8862a, 0, 10, "", "left");
 			fameBar.x = 124; fameBar.y = y;
 			addChild(fameBar);
-			hpBar = new Bar(228, 22, 0xe03838, 0x3a1a1a, 15, "HP");
-			hpBar.x = 6; hpBar.y = y + 22;
+			hpBar = new Bar(228, 21, 0xe0303e, 0, 14, "HP");
+			hpBar.x = 8; hpBar.y = y + 19;
 			addChild(hpBar);
-			mpBar = new Bar(228, 22, 0x3d6fe8, 0x1a2244, 15, "MP");
-			mpBar.x = 6; mpBar.y = y + 48;
+			mpBar = new Bar(228, 21, 0x3a64f0, 0, 14, "MP");
+			mpBar.x = 8; mpBar.y = y + 44;
 			addChild(mpBar);
 			hpBar.trail = mpBar.trail = true;
 			// Ward (WD, from Warding) and Fervor (FV) bars
-			ptBar = new Bar(110, 18, 0xe8e8f0, 0x2a2a2a, 12, "WD", "left", 0x222222);
-			ptBar.x = 6; ptBar.y = y + 74;
+			ptBar = new Bar(112, 15, 0xdcdcf4, 0, 10, "WD", "left");
+			ptBar.x = 8; ptBar.y = y + 69;
 			addChild(ptBar);
-			sgBar = new Bar(110, 18, 0xd8b030, 0x2a2a2a, 12, "FV", "left");
-			sgBar.x = 124; sgBar.y = y + 74;
+			sgBar = new Bar(112, 15, 0xe0b030, 0, 10, "FV", "left");
+			sgBar.x = 124; sgBar.y = y + 69;
 			addChild(sgBar);
 
 			// --- equipment
 			y = MINI_H + 138;
 			var eq:Shape = new Shape();
-			Ui.panel(eq.graphics, 4, y, 232, 58, 0x262626, 0x4a4a4a);
+			glass(eq.graphics, 4, y, 232, 58);
 			addChild(eq);
+			addChild(legend("EQUIPMENT", y));
 			var kinds:Array = ["weapon", "ability", "armor", "ring"];
 			for (var i:int = 0; i < 4; i++) {
-				equip.push(makeSlot(kinds[i], i, 10 + i * 56, y + 5, false));
+				equip.push(makeSlot(kinds[i], i, 10 + i * 56, y + 6, false));
 				addChild(equip[i]);
 			}
 
@@ -165,8 +214,8 @@ package realm {
 			tabs.push(makeTab(I_STAR, 84, y, 2));
 			// backpack page toggle
 			packBtn = new Sprite();
-			Ui.panel(packBtn.graphics, 0, 0, 104, 24, 0x3a3020, 0x8a7040);
-			packTf = Ui.text(12, 0xffd75e, true, "center", 104, true);
+			glass(packBtn.graphics, 0, 0, 104, 24, GOLD, 8);
+			packTf = Ui.text(12, GOLD_HI, true, "center", 104, true);
 			packTf.y = 3;
 			packBtn.addChild(packTf);
 			packBtn.x = 128; packBtn.y = y;
@@ -203,7 +252,7 @@ package realm {
 
 			// --- stats page
 			statPage = new Sprite();
-			Ui.panel(statPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
+			glass(statPage.graphics, 4, y - 2, 232, 140);
 			statTf = Ui.text(13, 0xdddddd, true, "left", 214);
 			statTf.x = 14; statTf.y = y + 2;
 			statPage.addChild(statTf);
@@ -226,7 +275,7 @@ package realm {
 
 			// --- skill tree page (Awakening)
 			skillPage = new Sprite();
-			Ui.panel(skillPage.graphics, 4, y - 2, 232, 140, 0x262626, 0x4a4a4a);
+			glass(skillPage.graphics, 4, y - 2, 232, 140);
 			skillTf = Ui.text(12, 0x80e0ff, false, "left", 220);
 			skillTf.x = 10; skillTf.y = y;
 			skillPage.addChild(skillTf);
@@ -240,6 +289,8 @@ package realm {
 			y += 142;
 			bagBox = new Shape();
 			addChild(bagBox);
+			bagLegend = legend("LOOT", y);
+			addChild(bagLegend);
 			for (i = 0; i < 8; i++) {
 				s = makeSlot("bag", i, 12 + (i % 4) * 56, y + 4 + int(i / 4) * 44, false);
 				s.scaleX = s.scaleY = 0.84;
@@ -257,8 +308,59 @@ package realm {
 		private function drawBagBox(active:Boolean, y:int = -1):void {
 			if (y >= 0) bagY = y;
 			bagBox.graphics.clear();
-			Ui.panel(bagBox.graphics, 4, bagY, 232, Ui.H - bagY - 4, active ? 0x3a2c20 : 0x2c2c2c, active ? 0x8a6838 : 0x404040);
-			for each (var s:Slot in bagSlots) s.alpha = active ? 1 : 0.45;
+			glass(bagBox.graphics, 4, bagY, 232, Ui.H - bagY - 4, active ? GOLD : EDGE, 10, active ? 0x2c2014 : 0);
+			bagLegend.alpha = active ? 1 : 0.5;
+			for each (var s:Slot in bagSlots) s.alpha = active ? 1 : 0.4;
+		}
+
+		/** A dark glass panel: a soft top-lit gradient, a violet (or gold) edge and a thin highlight. */
+		public static function glass(g:*, x:Number, y:Number, w:Number, h:Number, edge:uint = EDGE, r:Number = 10, tint:uint = 0):void {
+			var m:Matrix = new Matrix();
+			m.createGradientBox(w, h, Math.PI / 2, x, y);
+			g.lineStyle(1, 0x05030a);
+			g.beginGradientFill("linear", tint ? [tint, 0x0e0a16] : [0x241c38, 0x120e1e], [0.92, 0.92], [0, 255], m);
+			g.drawRoundRect(x, y, w, h, r * 2, r * 2);
+			g.endFill();
+			g.lineStyle(1, edge, 0.85);
+			g.drawRoundRect(x + 1, y + 1, w - 2, h - 2, r * 2 - 2, r * 2 - 2);
+			g.lineStyle(1, 0xffffff, 0.07);
+			g.moveTo(x + r, y + 2); g.lineTo(x + w - r, y + 2);
+			g.lineStyle();
+		}
+
+		/** A gold frame with small diamonds at the corners. */
+		private static function frame(g:*, x:Number, y:Number, w:Number, h:Number):void {
+			g.lineStyle(3, 0x05030a);
+			g.drawRect(x - 1, y - 1, w + 2, h + 2);
+			g.lineStyle(1, GOLD);
+			g.drawRect(x, y, w, h);
+			g.lineStyle();
+			for each (var c:Array in [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) diamond(g, c[0], c[1], 4);
+		}
+
+		private static function diamond(g:*, x:Number, y:Number, r:Number):void {
+			g.lineStyle(1, 0x05030a);
+			g.beginFill(GOLD_HI);
+			g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.lineTo(x, y - r);
+			g.endFill();
+			g.lineStyle();
+		}
+
+		/** A small spaced-out gold caption sitting on a panel's top edge. */
+		private function legend(label:String, y:int):Sprite {
+			var sp:Sprite = new Sprite();
+			sp.mouseEnabled = sp.mouseChildren = false;
+			var tf:TextField = Ui.text(9, GOLD_HI, true, "left", 0, true);
+			tf.text = label.split("").join(" ");
+			tf.x = (W - tf.width) / 2; tf.y = y - tf.height / 2;
+			var gr:* = sp.graphics;
+			gr.beginFill(BG_TOP);
+			gr.drawRect(tf.x - 6, y - 2, tf.width + 12, 4);
+			gr.endFill();
+			diamond(gr, tf.x - 8, y, 2.5);
+			diamond(gr, tf.x + tf.width + 8, y, 2.5);
+			sp.addChild(tf);
+			return sp;
 		}
 
 		private function pix(rows:Array, color:uint, scale:int):BitmapData {
@@ -279,8 +381,11 @@ package realm {
 
 		private function zoomButton(label:String, x:int, y:int, dir:int):Sprite {
 			var b:Sprite = new Sprite();
-			Ui.panel(b.graphics, 0, 0, 18, 18, 0x2a2a2a, 0x777777, 0.85);
-			var t:TextField = Ui.text(15, 0xffffff, true, "center", 18);
+			b.graphics.lineStyle(1, GOLD, 0.9);
+			b.graphics.beginFill(0x120e1e, 0.8);
+			b.graphics.drawCircle(9, 9, 9);
+			b.graphics.endFill();
+			var t:TextField = Ui.text(15, GOLD_HI, true, "center", 18);
 			t.text = label;
 			t.y = -2;
 			b.addChild(t);
@@ -331,7 +436,12 @@ package realm {
 
 		private function drawTab(t:Sprite, on:Boolean):void {
 			t.graphics.clear();
-			Ui.panel(t.graphics, 0, 0, 32, 24, on ? 0x5a5a5a : 0x2a2a2a, on ? 0x9a9a9a : 0x4a4a4a);
+			glass(t.graphics, 0, 0, 32, 24, on ? GOLD : EDGE, 7, on ? 0x3c2e5c : 0);
+			if (on) {
+				t.graphics.beginFill(GOLD_HI);
+				t.graphics.drawRect(8, 21, 16, 2);
+				t.graphics.endFill();
+			}
 		}
 
 		private function selectTab(idx:int):void {
@@ -447,7 +557,19 @@ package realm {
 			var p:Player = g.player;
 			nameTf.text = p.name;
 			var pbd:BitmapData = Sprites.get(p.spriteId);
-			if (portrait.bitmapData != pbd) { portrait.bitmapData = pbd; portrait.scaleX = portrait.scaleY = 0.72; }
+			if (portrait.bitmapData != pbd) {
+				portrait.bitmapData = pbd;
+				portrait.scaleX = portrait.scaleY = 0.62;
+				portrait.x = medal.x - portrait.width / 2;
+				portrait.y = medal.y - portrait.height / 2;
+			}
+			var xpFrac:Number = p.level >= Player.MAX_LEVEL ? 1 : p.xp / p.xpNext;
+			if (xpFrac != lastXpFrac || p.level != lastLevel) {
+				lastXpFrac = xpFrac; lastLevel = p.level;
+				drawMedal(xpFrac);
+				lvlBadge.text = String(p.level);
+				subTf.text = p.cls.name + "  \u00b7  Level " + p.level;
+			}
 			if (p.level >= Player.MAX_LEVEL) lvlBar.set(1, "Lvl " + p.level, "Max");
 			else lvlBar.set(p.xp / p.xpNext, "Lvl " + p.level, p.xp + "/" + p.xpNext);
 			fameBar.set(1, "Fame", Ui.commas(p.fame));
@@ -500,6 +622,44 @@ package realm {
 			}
 
 			if (++frameN % 4 == 0) drawMinimap();
+			if (frameN % 30 == 1) {
+				zoneTf.text = g.world.kind == "realm" ? g.world.name + " Realm" : g.world.name;
+				onlineTf.htmlText = "<font color='#5ee08a'>\u25cf</font> " + (g.net.players.length + 1) + " here";
+			}
+		}
+
+		/** The portrait medallion: a dark disc, a gold rim, and an XP arc around it. */
+		private function drawMedal(frac:Number):void {
+			var gr:* = medal.graphics;
+			gr.clear();
+			gr.beginFill(0x05030a);
+			gr.drawCircle(0, 0, 21);
+			gr.endFill();
+			gr.lineStyle(3, 0x2a2040);
+			gr.drawCircle(0, 0, 18.5);
+			if (frac > 0) {
+				gr.lineStyle(3, 0xb48aff);
+				var a0:Number = -Math.PI / 2;
+				gr.moveTo(Math.cos(a0) * 18.5, Math.sin(a0) * 18.5);
+				for (var i:int = 1; i <= 40; i++) {
+					var a:Number = a0 + Math.PI * 2 * frac * i / 40;
+					gr.lineTo(Math.cos(a) * 18.5, Math.sin(a) * 18.5);
+				}
+			}
+			gr.lineStyle(1, GOLD);
+			gr.drawCircle(0, 0, 20.5);
+			gr.lineStyle();
+			var m:Matrix = new Matrix();
+			m.createGradientBox(32, 32, 0, -16, -20);
+			gr.beginGradientFill("radial", [0x3a2c5c, 0x150f22], [1, 1], [0, 255], m);
+			gr.drawCircle(0, 0, 16.5);
+			gr.endFill();
+			// the level badge
+			gr.lineStyle(1, GOLD);
+			gr.beginFill(0x2a1c48);
+			gr.drawCircle(16, 14, 8);
+			gr.endFill();
+			gr.lineStyle();
 		}
 
 		/** Gear your class can use that beats what you have on in that slot. */
@@ -656,7 +816,7 @@ package realm {
 			var lv:String = rp.profile && rp.profile.level ? " (" + rp.profile.level + ")" : "";
 			miniLabel.htmlText = " " + rp.name.replace(/</g, "&lt;") + lv + "  <font color='#9a7cff'>click to teleport</font> ";
 			miniLabel.x = Math.max(2, Math.min(W - miniLabel.width - 2, miniHit.x + m.x - miniLabel.width / 2));
-			miniLabel.y = m.y > MINI_H - 24 ? m.y - 24 : m.y + 8;
+			miniLabel.y = miniHit.y + (m.y > mini.height - 24 ? m.y - 24 : m.y + 8);
 			miniLabel.visible = true;
 		}
 		/**
@@ -698,10 +858,12 @@ package realm {
 import flash.display.Bitmap;
 import flash.display.Shape;
 import flash.display.Sprite;
+import flash.geom.Matrix;
 import flash.text.TextField;
 import flash.utils.getTimer;
 
 import realm.Data;
+import realm.Hud;
 import realm.Sprites;
 import realm.Ui;
 
@@ -727,20 +889,34 @@ class Bar extends Sprite {
 		this.w = w;
 		this.h = h;
 		this.valueAlign = valueAlign;
-		graphics.lineStyle(1, 0x111111);
-		graphics.beginFill(back);
-		graphics.drawRoundRect(0, 0, w, h, 6, 6);
+		// a recessed dark track (tinted by the bar's colour unless a back colour is given)
+		var r:Number = Math.min(h, 10);
+		var m:Matrix = new Matrix();
+		m.createGradientBox(w, h, Math.PI / 2);
+		graphics.lineStyle(1, 0x05030a);
+		graphics.beginGradientFill("linear", [0x07050c, back || mix(color, 0x0a0812, 0.82)], [1, 1], [0, 255], m);
+		graphics.drawRoundRect(0, 0, w, h, r, r);
 		graphics.endFill();
+		graphics.lineStyle(1, 0xffffff, 0.06);
+		graphics.moveTo(r / 2, h); graphics.lineTo(w - r / 2, h);
+		graphics.lineStyle();
 		ghost.graphics.beginFill(0xfff0d0, 0.75);
-		ghost.graphics.drawRoundRect(1, 1, w - 1, h - 1, 5, 5);
+		ghost.graphics.drawRoundRect(1, 1, w - 1, h - 1, r - 1, r - 1);
 		ghost.graphics.endFill();
 		ghost.visible = false;
 		addChild(ghost);
-		fill.graphics.beginFill(color);
-		fill.graphics.drawRoundRect(1, 1, w - 1, h - 1, 5, 5);
-		fill.graphics.beginFill(0xffffff, 0.14);
-		fill.graphics.drawRect(2, 2, w - 4, (h - 2) / 2);
+		// the fill: lit from above, a glossy top half and fine notches every tenth
+		fill.graphics.beginGradientFill("linear", [mix(color, 0xffffff, 0.28), color, mix(color, 0x000000, 0.45)], [1, 1, 1], [0, 110, 255], m);
+		fill.graphics.drawRoundRect(1, 1, w - 1, h - 1, r - 1, r - 1);
 		fill.graphics.endFill();
+		fill.graphics.beginFill(0xffffff, 0.16);
+		fill.graphics.drawRoundRect(3, 2, w - 6, (h - 2) * 0.42, r - 3, r - 3);
+		fill.graphics.endFill();
+		if (w > 150) for (var n:int = 1; n < 10; n++) {
+			fill.graphics.beginFill(0x000000, 0.18);
+			fill.graphics.drawRect(int(w * n / 10), 2, 1, h - 3);
+			fill.graphics.endFill();
+		}
 		addChild(fill);
 		labelTf = Ui.text(size, 0xffffff, true, "left", 0, true);
 		labelTf.x = 5;
@@ -749,6 +925,14 @@ class Bar extends Sprite {
 		addChild(valueTf);
 		mouseChildren = false;
 		if (label) set(0, label, "");
+	}
+
+	/** Blend a toward b by t (0..1). */
+	public static function mix(a:uint, b:uint, t:Number):uint {
+		var r:int = ((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t;
+		var g:int = ((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t;
+		var bl:int = (a & 255) * (1 - t) + (b & 255) * t;
+		return (r << 16) | (g << 8) | bl;
 	}
 
 	public function set(frac:Number, label:String, value:String):void {
@@ -790,12 +974,18 @@ class Slot extends Sprite {
 	public function Slot(kind:String, idx:int, numbered:Boolean) {
 		this.kind = kind;
 		this.idx = idx;
-		graphics.lineStyle(1, 0x1a1a1a);
-		graphics.beginFill(kind == "bag" ? 0x4a3e34 : 0x545454);
-		graphics.drawRoundRect(0, 0, 48, 48, 10, 10);
-		graphics.endFill();
+		drawBack(null, false);
+		// empty gear slots show a faint mark of what goes there
+		var mark:Array = MARKS[kind];
+		if (mark) {
+			watermark = new Bitmap(Sprites.build(mark, {W: 0xc8b8f0}, 3, 1));
+			watermark.alpha = 0.16;
+			watermark.x = int((48 - watermark.width) / 2);
+			watermark.y = int((48 - watermark.height) / 2);
+			addChild(watermark);
+		}
 		if (numbered) {
-			numTf = Ui.text(24, 0x6e6e6e, true, "center", 48);
+			numTf = Ui.text(22, 0x3e3260, true, "center", 48);
 			numTf.text = String(idx + 1);
 			numTf.y = 7;
 			addChild(numTf);
@@ -809,6 +999,41 @@ class Slot extends Sprite {
 		addChild(tierTf);
 		mouseChildren = false;
 		buttonMode = true;
+	}
+
+	private static const MARKS:Object = {
+		weapon: ["......WW", ".....WWW", "....WWW.", "W..WWW..", ".WWWW...", "..WW....", ".W.WW...", "W.......", "........"],
+		ability: ["..WWWW..", ".WW..WW.", "WW.WW.WW", "W.WWWW.W", "W.WWWW.W", "WW.WW.WW", ".WW..WW.", "..WWWW.."],
+		armor: [".WW..WW.", "WWWWWWWW", "WWWWWWWW", ".WWWWWW.", ".WWWWWW.", ".WWWWWW.", ".WWWWWW.", "..WWWW.."],
+		ring: ["...WW...", "..W..W..", "..WWWW..", ".W....W.", "W......W", "W......W", ".W....W.", "..WWWW.."]
+	};
+	private var watermark:Bitmap;
+
+	/** The slot's face: dark glass, its rim in the item's rarity colour. */
+	private function drawBack(it:Object, bad:Boolean):void {
+		var m:Matrix = new Matrix();
+		m.createGradientBox(48, 48, Math.PI / 2);
+		var top:uint = bad ? 0x5a2430 : kind == "bag" ? 0x33281c : 0x2a2244;
+		var bot:uint = bad ? 0x2a0e14 : kind == "bag" ? 0x17110a : 0x130f20;
+		graphics.clear();
+		graphics.lineStyle(1, 0x05030a);
+		graphics.beginGradientFill("linear", [top, bot], [1, 1], [0, 255], m);
+		graphics.drawRoundRect(0, 0, 48, 48, 12, 12);
+		graphics.endFill();
+		var rim:uint = it && it.rarity ? Data.tierColor(it) : kind == "bag" ? 0x6a5434 : Hud.EDGE;
+		if (it && it.rarity) {
+			// a soft glow of the rarity colour from the bottom
+			var gm:Matrix = new Matrix();
+			gm.createGradientBox(60, 48, 0, -6, 18);
+			graphics.beginGradientFill("radial", [rim, rim], [0.32, 0], [0, 255], gm);
+			graphics.drawRoundRect(1, 1, 46, 46, 11, 11);
+			graphics.endFill();
+		}
+		graphics.lineStyle(it && it.rarity ? 1.5 : 1, rim, it && it.rarity ? 0.95 : 0.8);
+		graphics.drawRoundRect(1, 1, 46, 46, 11, 11);
+		graphics.lineStyle(1, 0xffffff, 0.07);
+		graphics.moveTo(7, 2.5); graphics.lineTo(41, 2.5);
+		graphics.lineStyle();
 	}
 
 	private var upArrow:Shape;
@@ -903,12 +1128,9 @@ class Slot extends Sprite {
 		if (it == item && (!it || icon.bitmapData == Sprites.icon(it))) { refreshLock(); return; }
 		item = it;
 		var bad:Boolean = it && !Data.canUse(it, Data.viewerClass);
-		graphics.clear();
-		graphics.lineStyle(1, 0x1a1a1a);
-		graphics.beginFill(bad ? 0x7a3434 : kind == "bag" ? 0x4a3e34 : 0x545454);
-		graphics.drawRoundRect(0, 0, 48, 48, 10, 10);
-		graphics.endFill();
+		drawBack(it, bad);
 		if (numTf) numTf.visible = !it;
+		if (watermark) watermark.visible = !it;
 		if (!it) {
 			refreshLock();
 			icon.bitmapData = null;
@@ -931,10 +1153,16 @@ class PotSlot extends Sprite {
 	private var last:int = -1;
 
 	public function PotSlot(health:Boolean) {
-		graphics.lineStyle(1, 0x1a1a1a);
-		graphics.beginFill(0x545454);
-		graphics.drawRoundRect(0, 0, 108, 32, 10, 10);
+		var col:uint = health ? 0xe0303e : 0x3a64f0;
+		var m:Matrix = new Matrix();
+		m.createGradientBox(108, 32, 0);
+		graphics.lineStyle(1, 0x05030a);
+		graphics.beginGradientFill("linear", [Bar.mix(col, 0x120e1e, 0.62), 0x1a1428, 0x120e1e], [1, 1, 1], [0, 120, 255], m);
+		graphics.drawRoundRect(0, 0, 108, 32, 32, 32);
 		graphics.endFill();
+		graphics.lineStyle(1, Bar.mix(col, Hud.EDGE, 0.5), 0.9);
+		graphics.drawRoundRect(1, 1, 106, 30, 30, 30);
+		graphics.lineStyle();
 		var ic:Bitmap = new Bitmap(Sprites.icon(Data.makePotion(health ? "hp" : "mp")));
 		ic.scaleX = ic.scaleY = 0.75;
 		ic.x = 30; ic.y = 2;
@@ -942,8 +1170,8 @@ class PotSlot extends Sprite {
 		tf = Ui.text(18, 0xffffff, true, "left", 0, true);
 		tf.x = 62; tf.y = 3;
 		addChild(tf);
-		key = Ui.text(11, 0x9a9a9a, true);
-		key.x = 6; key.y = 1;
+		key = Ui.text(11, 0xf2d68a, true);
+		key.x = 10; key.y = 8;
 		addChild(key);
 		buttonMode = true;
 		mouseChildren = false;

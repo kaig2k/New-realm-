@@ -33,8 +33,11 @@ out += vesper.sequences()
 # Nerezza, the Tide Empress: the user's own art, kept as drawn (see nerezza.py)
 import nerezza
 out += nerezza.sequences()
-# sprites that reuse another's frames with a palette of their own (Nerezza's attacks in her rage colours)
-RECOLORS = nerezza.recolors()
+# Gorehorn the Behemoth: the user's own art, kept as drawn (see gorehorn.py)
+import gorehorn
+out += gorehorn.sequences()
+# sprites that reuse another's frames with a palette of their own (Nerezza's and Gorehorn's attacks in their rage colours)
+RECOLORS = nerezza.recolors() + gorehorn.recolors()
 
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])

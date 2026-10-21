@@ -1,3 +1,19 @@
+**📜 ELDMERE UPDATE: Gorehorn the Behemoth**
+
+**🐗 A realm boss that hunts you**
+• Gorehorn has been rebuilt from the ground up, with all-new art: a towering monstrosity of bone and blood
+• He **hunts you** round his arena instead of standing still
+• **Charge**: he paws the ground, a **lane of red spikes** marks his path, then he thunders down it and the spikes erupt behind him. Get out of the lane!
+• **Bone stakes** ring his arena: bait him into one and he's **floored**, stunned and taking extra damage
+• **Horn Slam**: he rears up and drives his horn into the ground in front of him
+• **Spike Barrage**: the spikes on his back fly out in every direction
+• **Ground Pulse**: a blazing ring round him bursts into spikes; get clear
+• **His brood**: gore spawn claw out of the ground to help him
+• At a third of his health his cracks **blaze ember-orange** and he stampedes
+• He has far more health and hits harder: standing still gets you trampled
+
+---
+
 **📜 ELDMERE UPDATE: Class Changes**
 
 **💀 Necromancer**

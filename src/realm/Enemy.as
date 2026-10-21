@@ -129,6 +129,8 @@ package realm {
 			defense = def.def;
 			r = def.r || 0.4;
 			isBoss = def.ai == "boss";
+			// (pieces of an arena no shot can break: Gorehorn's bone stakes)
+			if (def.invuln) invuln = true;
 			if (def.fly == undefined) def.fly = FLYERS.indexOf(def.spr) >= 0;
 			orbitDir = Math.random() < 0.5 ? 1 : -1;
 			orbitA = Math.random() * Math.PI * 2;
@@ -201,6 +203,13 @@ package realm {
 
 		/** A lunge at a target (an attack's dash): seconds left, angle and speed. */
 		private var dashT:Number = 0, dashA:Number = 0, dashSpd:Number = 0;
+		/**
+		 * A dash with a wind-up (an attack's wind): it plants its feet and holds still for windT
+		 * (its lane already marked on the ground), then lunges along the angle it locked in.
+		 */
+		private var windT:Number = 0, windDash:Number = 0, windA:Number = 0, windSpd:Number = 0;
+		/** A bone stake (def.stake) that's floored a charging boss rests a while before it can again. */
+		public var stakeT:Number = 0;
 
 		/** A boss with a guard animation (def.seq.guard) plays it while a new phase's shield holds. */
 		private function guardAnim(ph:Object):void {
@@ -239,6 +248,8 @@ package realm {
 				if (frame >= 0) name = def.spr + "_" + anim + (def.rageAll && def.rageAt != undefined && phase >= def.rageAt ? "_r" : "");
 				else anim = "";
 			}
+			// (floored by a stake, or any stun: reeling, if it has an animation for it)
+			if (!name && stunT > 0 && def.seq.stun) { name = def.spr + "_stun"; frame = int(now / 120) % def.seq.stun; }
 			if (!name) {
 				var rage:Boolean = def.rageAt != undefined && phase >= def.rageAt && def.seq.ridle;
 				var st:String = (rage ? "r" : "") + (moving ? "move" : "idle");
@@ -280,6 +291,7 @@ package realm {
 		public function update(dt:Number, g:Game):void {
 			if (hitT > 0) hitT -= dt;
 			if (stunImmuneT > 0) stunImmuneT -= dt;
+			if (stakeT > 0) stakeT -= dt;
 			if (slowT > 0) slowT -= dt;
 			if (shieldT > 0) shieldT -= dt;
 			if (remote) { follow(dt, g); return; }
@@ -405,12 +417,32 @@ package realm {
 				if (bx * bx + by * by > leash) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
 			if (def.ai == "still" || (isBoss && shieldT > 0 && mode != "orbit")) { mvx = 0; mvy = 0; }
+			if (windT > 0) {
+				// winding up a charge: feet planted, then away along the lane it marked
+				windT -= dt;
+				mvx = mvy = 0; velX = velY = 0;
+				if (windT <= 0) { dashT = windDash; dashA = windA; dashSpd = windSpd; }
+			}
 			if (dashT > 0) {
 				// mid-lunge: straight at where the target was
 				dashT -= dt;
 				velX = Math.cos(dashA) * dashSpd;
 				velY = Math.sin(dashA) * dashSpd;
-			} else {
+				// a boss that rams a bone stake of its arena is floored: stunned, and open to every blow
+				if (def.stakeStun && props) for each (var sp:Enemy in props) {
+					if (sp.dead || !sp.def.stake || sp.stakeT > 0) continue;
+					var sdx:Number = sp.x - x, sdy:Number = sp.y - y, sr:Number = r + sp.r + 0.6;
+					if (sdx * sdx + sdy * sdy > sr * sr) continue;
+					dashT = 0; velX = velY = 0;
+					stunT = Math.max(stunT, def.stakeStun);
+					stunImmuneT = def.stakeStun + BOSS_STUN_IMMUNE;
+					vulnT = Math.max(vulnT, def.stakeStun + 1);
+					sp.stakeT = 8;
+					g.burst(sp.x, sp.y, 0xe6cfa8, 30);
+					g.soundAt(x, y, "slam", 1, 0.2);
+					break;
+				}
+			} else if (windT <= 0) {
 				// ease toward the wanted velocity (charges lunge, everything else turns smoothly)
 				var accel:Number = Math.min(1, dt * (mode == "charge" ? 18 : 7));
 				velX += (mvx * speed - velX) * accel;
@@ -418,7 +450,7 @@ package realm {
 			}
 			move(velX * dt, velY * dt, g.world);
 
-			if (aggro && dist < (def.range || 10) && shieldT <= 0) {
+			if (aggro && dist < (def.range || 10) && shieldT <= 0 && windT <= 0 && dashT <= 0) {
 				var ang:Number = Math.atan2(dy, dx);
 				for (var i:int = 0; i < attacks.length; i++) {
 					timers[i] -= dt * rateMult;
@@ -565,7 +597,8 @@ package realm {
 			// patterns that rotate or scatter carry their own seed so every player sees the same bullets
 			var spin0:Number = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : spins[i];
 			shootAttack(a, ang, spin0, dist, g);
-			if (a.dash) { dashT = a.dash; dashA = ang; dashSpd = a.dashSpd || 9; }
+			if (a.dash && a.wind) { windT = a.wind; windDash = a.dash; windA = ang; windSpd = a.dashSpd || 9; }
+			else if (a.dash) { dashT = a.dash; dashA = ang; dashSpd = a.dashSpd || 9; }
 			if (a.blink) blinkAway(a.blink, g);
 			if (a.p == "ring" || a.p == "spiral" || a.p == "flower" || a.p == "implode") spins[i] += (a.rot || 0) * DEG;
 			g.sync.fired(this, i, ang, spin0, phaseCode, dist);

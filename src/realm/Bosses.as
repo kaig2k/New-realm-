@@ -238,7 +238,7 @@ package realm {
 			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},
 			ev_wyrm: {style: "frost", prop: "ice_obelisk", n: 3, r: 5.5, hint: "Ice Obelisks keep healing the Wyrm. Shatter them!"},
 			ev_king: {style: "throne", prop: "royal_effigy", n: 4, r: 5.5, ward: true, hint: "The Hollow King's royal effigies make him untouchable. Topple them!"},
-			ev_behemoth: {style: "bone", prop: "war_drum", n: 3, r: 5.5, hint: "War drums heal Gorehorn with every beat. Break the drums!"},
+			ev_behemoth: {style: "bone", prop: "bone_stake", n: 6, r: 6.5, hint: "Gorehorn charges down a lane of red spikes: get out of it! Bait him into a bone stake and he's floored, open to every blow."},
 			ev_regent: {style: "ghost", prop: "spectral_candle", n: 4, r: 5.5, ward: true, hint: "Spectral candles bind the Regent to this world. Snuff them out to hurt him!"},
 			ev_sphinx: {style: "sand", prop: "sun_obelisk", n: 4, r: 6, hint: "Sun obelisks sweep the sands with light. Topple them to make the fight easier."},
 			ev_lord: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "Tidal shrines pour the sea back into the Lord. Destroy them!"},
@@ -283,6 +283,8 @@ package realm {
 			// menders: heal the boss while they stand
 			mob("ice_obelisk", o(o({}, still), {name: "Ice Obelisk", spr: "ice_obelisk", hp: 2600, def: 14, col: 0x9ad8ff, mend: 0.006,
 				attacks: [spiral(2, 13, 4, 40, 0.6, 0x9ad8ff, {eff: "slowed"})]}));
+			// Gorehorn's bone stakes: nothing breaks them, but a charging Gorehorn that rams one is floored (Enemy.stakeStun)
+			mob("bone_stake", o(o({}, still), {name: "Bone Stake", spr: "bone_stake", hp: 99999, def: 99, col: 0xe6cfa8, stake: true, invuln: true, xp: 0, aggro: 0, range: 0, attacks: []}));
 			mob("war_drum", o(o({}, still), {name: "War Drum", spr: "war_drum", hp: 2600, def: 16, col: 0xe8d0a0, mend: 0.006,
 				attacks: [ring(10, 18, 3.5, 45, 2.2, 0xe8d0a0, {shape: "ring"})]}));
 			mob("tidal_shrine", o(o({}, still), {name: "Tidal Shrine", spr: "tidal_shrine", hp: 2600, def: 14, col: 0x40d0c0, mend: 0.006,
@@ -542,13 +544,22 @@ package realm {
 					attacks: [spiral(4, 14, 6, 65, 0.12, 0x9aff7a), nova(2, 1.0, 100, 2.2, 0x6aff4a, {burst: 8, eff: "bleeding"})]})
 			]}, ["hollow_crown", "kings_ransom"]);
 
-			boss("ev_behemoth", {phases: [
-				P(1, {move: "charge", attacks: [aim(7, 70, 7, 70, 1.2, 0x9aff5a, {eff: "bleeding"})]}),
-				P(0.66, {say: "*THUNDEROUS ROAR*", shield: 1.5, summon: [{what: "orc", n: 3}], move: "charge", speed: 1.3,
-					attacks: [ring(20, 9, 5, 60, 0.9, 0x6ac040), wall(13, 6, 75, 2.4, 0x9aff5a)]}),
-				P(0.33, {say: "*STAMPEDE*", banner: "Gorehorn stampedes!", move: "charge", speed: 1.8,
-					attacks: [spiral(4, 21, 7, 65, 0.1, 0xc0ff60), aim(3, 30, 10, 90, 0.8, 0xffffff, {shape: "blade", eff: "armorbroken"})]})
+			// Gorehorn the Behemoth, from the user's own art and design sheet (tools/bossart/gorehorn.py keeps it as drawn):
+			// he hunts you round his arena. Every charge marks its lane in red spikes first: step out of it, and bait him
+			// into one of his arena's bone stakes to floor him (stunned and open to every blow)
+			boss("ev_behemoth", {name: "Gorehorn the Behemoth", spr: "gorehorn", hp: 80000, def: 28, spd: 1.7, r: 1.2, col: G_RED,
+				seq: {idle: 4, move: 6, slam: 6, charge: 6, barrage: 5, pulse: 6, summon: 5, stun: 4, guard: 4, death: 7, ridle: 4, rmove: 6},
+				rageAt: 2, rageAll: true, stakeStun: 2.6, phases: [
+				P(1, {say: "*a low, hungry growl*", move: "chase",
+					attacks: [ghCharge(110, 4.4), ghSlam(100, 3.0), ghBarrage(10, 60, 2.2), ghSpikes(3, 70, 1.4)]}),
+				P(0.66, {say: "*THUNDEROUS ROAR*", banner: "Gorehorn calls his brood!", shield: 2, summon: [{what: "gore_spawn", n: 3}], move: "chase",
+					attacks: [ghCharge(115, 3.8), ghPulse(110, 5.5), ghBarrage(12, 65, 2.0), ghSpikes(3, 75, 1.3), ghSummon(2, 11)]}),
+				P(0.33, {say: "*the cracks in his hide blaze*", banner: "Gorehorn stampedes!", shield: 1.5, move: "chase", speed: 1.4,
+					attacks: [ghCharge(125, 2.8), ghSlam(115, 3.2), ghPulse(115, 5.0), ghBarrage(14, 70, 1.9), ghSpikes(5, 80, 1.2)]})
 			]}, ["gorehorn_bow", "behemoth_hide"]);
+			// his brood: blood-and-bone whelps that rush you and spit spikes
+			mob("gore_spawn", {name: "Gore Spawn", spr: "gore_spawn", hp: 1400, def: 10, spd: 3.2, xp: 60, r: 0.45, keep: 1.5, col: G_RED, aggro: 14, range: 9,
+				attacks: [aim(1, 0, 8, 55, 1.2, G_RED, {shape: "spike", r: 0.22})]});
 
 			boss("ev_regent", {phases: [
 				P(1, {move: "teleport", attacks: [spiral(6, 8, 5, 50, 0.15, 0xc090ff), aim(1, 0, 11, 80, 0.9, 0xffffff, {eff: "confused"})]}),
@@ -665,6 +676,36 @@ package realm {
 		// Dash / Charge: crescents loosed ahead, and he barrels after them
 		private static function vCharge(dmg:int, cd:Number):Object {
 			return aim(5, 50, 10, dmg, cd, V_RED, {shape: "crescent", r: 0.4, life: 1.0, dash: 0.55, dashSpd: 10, anim: "charge", animMs: 140, name: "warlord's charge"});
+		}
+
+		// ------------------------------------------------------------ Gorehorn the Behemoth (his sheet's five attacks)
+		private static const G_RED:uint = 0xd01420, G_HOT:uint = 0xff3a2a, G_BONE:uint = 0xe6cfa8;
+		// Charge: he paws the ground and his lane bursts into red spikes a moment after he thunders down it
+		private static function ghCharge(dmg:int, cd:Number):Object {
+			return rain(8, 0, dmg, cd, G_HOT, {line: true, step: 1.15, radius: 1.05, delay: 1.15, stagger: 0.085, fx: "spikes", shape: "spike", land: "slam",
+				burst: 2, bspd: 4, blife: 0.6, wind: 0.95, dash: 0.62, dashSpd: 14, anim: "charge", animMs: 110, animHit: 3, animHold: 0.95, name: "gore charge"});
+		}
+		// Horn Slam: he rears back and drives his horn into the ground in front of him; spikes erupt there
+		private static function ghSlam(dmg:int, cd:Number):Object {
+			return nova(3.0, 0.9, dmg, cd, G_RED, {reach: 3.5, burst: 10, bspd: 5, blife: 1.0, fx: "spikes", shape: "spike", land: "slam",
+				anim: "slam", animMs: 110, animHit: 3, animHold: 0.9, name: "horn slam"});
+		}
+		// Spike Barrage: the spikes on his back fly out in every direction
+		private static function ghBarrage(n:int, dmg:int, cd:Number):Object {
+			return ring(n, 13, 6, dmg, cd, G_BONE, {shape: "spike", r: 0.26, life: 1.8, anim: "barrage", animMs: 100, animHit: 3, name: "spike barrage"});
+		}
+		// Ground Pulse: he stamps; a rune ring blazes round him, then bursts into a ring of spikes
+		private static function ghPulse(dmg:int, cd:Number):Object {
+			return nova(4.6, 1.3, dmg, cd, G_HOT, {reach: 0.01, marker: "rune", radius: 4.6, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", shape: "spike", land: "slam",
+				anim: "pulse", animMs: 110, animHit: 2, animHold: 1.3, name: "ground pulse"});
+		}
+		// Horn Spikes: a fan of bone spikes flicked at you between his big moves
+		private static function ghSpikes(n:int, dmg:int, cd:Number):Object {
+			return aim(n, 14 * n, 9.5, dmg, cd, G_BONE, {shape: "spike", r: 0.26, life: 1.1, name: "horn spikes"});
+		}
+		// Summon: gore spawn claw out of pools of blood at his sides
+		private static function ghSummon(n:int, cd:Number):Object {
+			return o(summon("gore_spawn", n, cd, 5), {anim: "summon", animMs: 130});
 		}
 
 		// ------------------------------------------------------------ the Realm Siege

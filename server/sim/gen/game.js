@@ -1454,6 +1454,8 @@ class Bosses {
 			
 			Bosses.mob("ice_obelisk", Bosses.o(Bosses.o({}, still), {name: "Ice Obelisk", spr: "ice_obelisk", hp: 2600, def: 14, col: 0x9ad8ff, mend: 0.006,
 				attacks: [Bosses.spiral(2, 13, 4, 40, 0.6, 0x9ad8ff, {eff: "slowed"})]}));
+			
+			Bosses.mob("bone_stake", Bosses.o(Bosses.o({}, still), {name: "Bone Stake", spr: "bone_stake", hp: 99999, def: 99, col: 0xe6cfa8, stake: true, invuln: true, xp: 0, aggro: 0, range: 0, attacks: []}));
 			Bosses.mob("war_drum", Bosses.o(Bosses.o({}, still), {name: "War Drum", spr: "war_drum", hp: 2600, def: 16, col: 0xe8d0a0, mend: 0.006,
 				attacks: [Bosses.ring(10, 18, 3.5, 45, 2.2, 0xe8d0a0, {shape: "ring"})]}));
 			Bosses.mob("tidal_shrine", Bosses.o(Bosses.o({}, still), {name: "Tidal Shrine", spr: "tidal_shrine", hp: 2600, def: 14, col: 0x40d0c0, mend: 0.006,
@@ -1646,13 +1648,22 @@ class Bosses {
 					attacks: [Bosses.spiral(4, 14, 6, 65, 0.12, 0x9aff7a), Bosses.nova(2, 1.0, 100, 2.2, 0x6aff4a, {burst: 8, eff: "bleeding"})]})
 			]}, ["hollow_crown", "kings_ransom"]);
 
-			Bosses.boss("ev_behemoth", {phases: [
-				Bosses.P(1, {move: "charge", attacks: [Bosses.aim(7, 70, 7, 70, 1.2, 0x9aff5a, {eff: "bleeding"})]}),
-				Bosses.P(0.66, {say: "*THUNDEROUS ROAR*", shield: 1.5, summon: [{what: "orc", n: 3}], move: "charge", speed: 1.3,
-					attacks: [Bosses.ring(20, 9, 5, 60, 0.9, 0x6ac040), Bosses.wall(13, 6, 75, 2.4, 0x9aff5a)]}),
-				Bosses.P(0.33, {say: "*STAMPEDE*", banner: "Gorehorn stampedes!", move: "charge", speed: 1.8,
-					attacks: [Bosses.spiral(4, 21, 7, 65, 0.1, 0xc0ff60), Bosses.aim(3, 30, 10, 90, 0.8, 0xffffff, {shape: "blade", eff: "armorbroken"})]})
+			
+			
+			
+			Bosses.boss("ev_behemoth", {name: "Gorehorn the Behemoth", spr: "gorehorn", hp: 80000, def: 28, spd: 1.7, r: 1.2, col: Bosses.G_RED,
+				seq: {idle: 4, move: 6, slam: 6, charge: 6, barrage: 5, pulse: 6, summon: 5, stun: 4, guard: 4, death: 7, ridle: 4, rmove: 6},
+				rageAt: 2, rageAll: true, stakeStun: 2.6, phases: [
+				Bosses.P(1, {say: "*a low, hungry growl*", move: "chase",
+					attacks: [Bosses.ghCharge(110, 4.4), Bosses.ghSlam(100, 3.0), Bosses.ghBarrage(10, 60, 2.2), Bosses.ghSpikes(3, 70, 1.4)]}),
+				Bosses.P(0.66, {say: "*THUNDEROUS ROAR*", banner: "Gorehorn calls his brood!", shield: 2, summon: [{what: "gore_spawn", n: 3}], move: "chase",
+					attacks: [Bosses.ghCharge(115, 3.8), Bosses.ghPulse(110, 5.5), Bosses.ghBarrage(12, 65, 2.0), Bosses.ghSpikes(3, 75, 1.3), Bosses.ghSummon(2, 11)]}),
+				Bosses.P(0.33, {say: "*the cracks in his hide blaze*", banner: "Gorehorn stampedes!", shield: 1.5, move: "chase", speed: 1.4,
+					attacks: [Bosses.ghCharge(125, 2.8), Bosses.ghSlam(115, 3.2), Bosses.ghPulse(115, 5.0), Bosses.ghBarrage(14, 70, 1.9), Bosses.ghSpikes(5, 80, 1.2)]})
 			]}, ["gorehorn_bow", "behemoth_hide"]);
+			
+			Bosses.mob("gore_spawn", {name: "Gore Spawn", spr: "gore_spawn", hp: 1400, def: 10, spd: 3.2, xp: 60, r: 0.45, keep: 1.5, col: Bosses.G_RED, aggro: 14, range: 9,
+				attacks: [Bosses.aim(1, 0, 8, 55, 1.2, Bosses.G_RED, {shape: "spike", r: 0.22})]});
 
 			Bosses.boss("ev_regent", {phases: [
 				Bosses.P(1, {move: "teleport", attacks: [Bosses.spiral(6, 8, 5, 50, 0.15, 0xc090ff), Bosses.aim(1, 0, 11, 80, 0.9, 0xffffff, {eff: "confused"})]}),
@@ -1758,6 +1769,27 @@ class Bosses {
 		}
 	static vCharge(dmg, cd) { dmg = __int(dmg);
 			return Bosses.aim(5, 50, 10, dmg, cd, Bosses.V_RED, {shape: "crescent", r: 0.4, life: 1.0, dash: 0.55, dashSpd: 10, anim: "charge", animMs: 140, name: "warlord's charge"});
+		}
+	static ghCharge(dmg, cd) { dmg = __int(dmg);
+			return Bosses.rain(8, 0, dmg, cd, Bosses.G_HOT, {line: true, step: 1.15, radius: 1.05, delay: 1.15, stagger: 0.085, fx: "spikes", shape: "spike", land: "slam",
+				burst: 2, bspd: 4, blife: 0.6, wind: 0.95, dash: 0.62, dashSpd: 14, anim: "charge", animMs: 110, animHit: 3, animHold: 0.95, name: "gore charge"});
+		}
+	static ghSlam(dmg, cd) { dmg = __int(dmg);
+			return Bosses.nova(3.0, 0.9, dmg, cd, Bosses.G_RED, {reach: 3.5, burst: 10, bspd: 5, blife: 1.0, fx: "spikes", shape: "spike", land: "slam",
+				anim: "slam", animMs: 110, animHit: 3, animHold: 0.9, name: "horn slam"});
+		}
+	static ghBarrage(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.ring(n, 13, 6, dmg, cd, Bosses.G_BONE, {shape: "spike", r: 0.26, life: 1.8, anim: "barrage", animMs: 100, animHit: 3, name: "spike barrage"});
+		}
+	static ghPulse(dmg, cd) { dmg = __int(dmg);
+			return Bosses.nova(4.6, 1.3, dmg, cd, Bosses.G_HOT, {reach: 0.01, marker: "rune", radius: 4.6, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", shape: "spike", land: "slam",
+				anim: "pulse", animMs: 110, animHit: 2, animHold: 1.3, name: "ground pulse"});
+		}
+	static ghSpikes(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 14 * n, 9.5, dmg, cd, Bosses.G_BONE, {shape: "spike", r: 0.26, life: 1.1, name: "horn spikes"});
+		}
+	static ghSummon(n, cd) { n = __int(n);
+			return Bosses.o(Bosses.summon("gore_spawn", n, cd, 5), {anim: "summon", animMs: 130});
 		}
 	static siege() {
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
@@ -3748,6 +3780,11 @@ class Enemy {
 		this.dashT = 0;
 		this.dashA = 0;
 		this.dashSpd = 0;
+		this.windT = 0;
+		this.windDash = 0;
+		this.windA = 0;
+		this.windSpd = 0;
+		this.stakeT = 0;
 
 			this.defId = id;
 			this.def = Data.ENEMIES[id];
@@ -3758,6 +3795,8 @@ class Enemy {
 			this.defense = __int(this.def.def);
 			this.r = this.def.r || 0.4;
 			this.isBoss = this.def.ai == "boss";
+			
+			if (this.def.invuln) this.invuln = true;
 			if (this.def.fly == undefined) this.def.fly = Enemy.FLYERS.indexOf(this.def.spr) >= 0;
 			this.orbitDir = Math.random() < 0.5 ? 1 : -1;
 			this.orbitA = Math.random() * Math.PI * 2;
@@ -3844,6 +3883,8 @@ class Enemy {
 				if (frame >= 0) name = this.def.spr + "_" + this.anim + (this.def.rageAll && this.def.rageAt != undefined && this.phase >= this.def.rageAt ? "_r" : "");
 				else this.anim = "";
 			}
+			
+			if (!name && this.stunT > 0 && this.def.seq.stun) { name = this.def.spr + "_stun"; frame = __int(__int(now / 120) % this.def.seq.stun); }
 			if (!name) {
 				var rage = this.def.rageAt != undefined && this.phase >= this.def.rageAt && this.def.seq.ridle;
 				var st = (rage ? "r" : "") + (this.moving ? "move" : "idle");
@@ -3864,6 +3905,7 @@ class Enemy {
 	update(dt, g) {
 			if (this.hitT > 0) this.hitT -= dt;
 			if (this.stunImmuneT > 0) this.stunImmuneT -= dt;
+			if (this.stakeT > 0) this.stakeT -= dt;
 			if (this.slowT > 0) this.slowT -= dt;
 			if (this.shieldT > 0) this.shieldT -= dt;
 			if (this.remote) { this.follow(dt, g); return; }
@@ -3989,12 +4031,32 @@ class Enemy {
 				if (bx * bx + by * by > leash) { mvx = bx * 0.2; mvy = by * 0.2; }
 			}
 			if (this.def.ai == "still" || (this.isBoss && this.shieldT > 0 && mode != "orbit")) { mvx = 0; mvy = 0; }
+			if (this.windT > 0) {
+				
+				this.windT -= dt;
+				mvx = mvy = 0; this.velX = this.velY = 0;
+				if (this.windT <= 0) { this.dashT = this.windDash; this.dashA = this.windA; this.dashSpd = this.windSpd; }
+			}
 			if (this.dashT > 0) {
 				
 				this.dashT -= dt;
 				this.velX = Math.cos(this.dashA) * this.dashSpd;
 				this.velY = Math.sin(this.dashA) * this.dashSpd;
-			} else {
+				
+				if (this.def.stakeStun && this.props) for (var sp of __vals( this.props)) {
+					if (sp.dead || !sp.def.stake || sp.stakeT > 0) continue;
+					var sdx = sp.x - this.x, sdy = sp.y - this.y, sr = this.r + sp.r + 0.6;
+					if (sdx * sdx + sdy * sdy > sr * sr) continue;
+					this.dashT = 0; this.velX = this.velY = 0;
+					this.stunT = Math.max(this.stunT, this.def.stakeStun);
+					this.stunImmuneT = this.def.stakeStun + Enemy.BOSS_STUN_IMMUNE;
+					this.vulnT = Math.max(this.vulnT, this.def.stakeStun + 1);
+					sp.stakeT = 8;
+					g.burst(sp.x, sp.y, 0xe6cfa8, 30);
+					g.soundAt(this.x, this.y, "slam", 1, 0.2);
+					break;
+				}
+			} else if (this.windT <= 0) {
 				
 				var accel = Math.min(1, dt * (mode == "charge" ? 18 : 7));
 				this.velX += (mvx * speed - this.velX) * accel;
@@ -4002,7 +4064,7 @@ class Enemy {
 			}
 			this.move(this.velX * dt, this.velY * dt, g.world);
 
-			if (aggro && dist < (this.def.range || 10) && this.shieldT <= 0) {
+			if (aggro && dist < (this.def.range || 10) && this.shieldT <= 0 && this.windT <= 0 && this.dashT <= 0) {
 				var ang = Math.atan2(dy, dx);
 				for (var i = __int(0); i < this.attacks.length; i++) {
 					this.timers[i] -= dt * this.rateMult;
@@ -4134,7 +4196,8 @@ class Enemy {
 			
 			var spin0 = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : this.spins[i];
 			this.shootAttack(a, ang, spin0, dist, g);
-			if (a.dash) { this.dashT = a.dash; this.dashA = ang; this.dashSpd = a.dashSpd || 9; }
+			if (a.dash && a.wind) { this.windT = a.wind; this.windDash = a.dash; this.windA = ang; this.windSpd = a.dashSpd || 9; }
+			else if (a.dash) { this.dashT = a.dash; this.dashA = ang; this.dashSpd = a.dashSpd || 9; }
 			if (a.blink) this.blinkAway(a.blink, g);
 			if (a.p == "ring" || a.p == "spiral" || a.p == "flower" || a.p == "implode") this.spins[i] += (a.rot || 0) * Enemy.DEG;
 			g.sync.fired(this, i, ang, spin0, this.phaseCode, dist);
@@ -5751,7 +5814,7 @@ Bosses.SETPIECES = {
 			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},
 			ev_wyrm: {style: "frost", prop: "ice_obelisk", n: 3, r: 5.5, hint: "Ice Obelisks keep healing the Wyrm. Shatter them!"},
 			ev_king: {style: "throne", prop: "royal_effigy", n: 4, r: 5.5, ward: true, hint: "The Hollow King's royal effigies make him untouchable. Topple them!"},
-			ev_behemoth: {style: "bone", prop: "war_drum", n: 3, r: 5.5, hint: "War drums heal Gorehorn with every beat. Break the drums!"},
+			ev_behemoth: {style: "bone", prop: "bone_stake", n: 6, r: 6.5, hint: "Gorehorn charges down a lane of red spikes: get out of it! Bait him into a bone stake and he's floored, open to every blow."},
 			ev_regent: {style: "ghost", prop: "spectral_candle", n: 4, r: 5.5, ward: true, hint: "Spectral candles bind the Regent to this world. Snuff them out to hurt him!"},
 			ev_sphinx: {style: "sand", prop: "sun_obelisk", n: 4, r: 6, hint: "Sun obelisks sweep the sands with light. Topple them to make the fight easier."},
 			ev_lord: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "Tidal shrines pour the sea back into the Lord. Destroy them!"},
@@ -5776,6 +5839,9 @@ Bosses.SETPIECES = {
 		};
 Bosses.V_RED = __uint(0xff2a3a);
 Bosses.V_GOLD = __uint(0xd8a030);
+Bosses.G_RED = __uint(0xd01420);
+Bosses.G_HOT = __uint(0xff3a2a);
+Bosses.G_BONE = __uint(0xe6cfa8);
 Bosses.H_CYAN = __uint(0x30d8ff);
 Bosses.H_PALE = __uint(0xb8f6ff);
 Bosses.H_DEEP = __uint(0x2050e0);
@@ -6119,16 +6185,16 @@ SetPieces.LAYOUTS = {
 				"  -,,,,...P...,,,,-  ",
 				"  -,,,.........,,,-  ",
 				" -,c,...........,c,- ",
-				" -,,.............,,- ",
+				" -,,P...........P,,- ",
 				" -,...............,- ",
 				"-,,...............,,-",
 				"-,a.......B.......a,-",
 				"-,,...............,,-",
 				"-,b...............b,-",
-				" -,...............,- ",
-				" -,,.P.........P.,,- ",
+				" -,.P...........P.,- ",
+				" -,,.............,,- ",
 				" -,,,...........,,,- ",
-				"  -,c,,.......,,c,-  ",
+				"  -,c,,...P...,,c,-  ",
 				"  -,,,,,,a,a,,,,,,-  ",
 				"   -,,,,,,,,,,,,,-   ",
 				"    --,,,,,,,,,--    ",
@@ -6379,8 +6445,8 @@ SetPieces.PHASES = {
 				msg: "The ice cracks! The edge of the court gives way to freezing water."}],
 			throne: [{when: "broken", sel: "walls", to: "floor", spawn: "royal_guard", n: 4, col: 0xffd060,
 				msg: "The effigies topple and the throne room's walls crumble! The King's guard storms in!"}],
-			bone: [{when: "low", sel: "char", ch: "b", to: "floor", spawn: "war_orc", n: 3, col: 0xff6040,
-				msg: "Gorehorn bellows for his warband! Orcs burst out of the tents!"}],
+			bone: [{when: "low", sel: "char", ch: "b", to: "floor", spawn: "gore_spawn", n: 3, col: 0xff3030,
+				msg: "Gorehorn bellows! Gore spawn claw their way out of the bone tents!"}],
 			ghost: [{when: "broken", sel: "char", ch: "a", to: "floor", spawn: "grave_wraith", n: 4, col: 0x90c0ff,
 				msg: "The candles die and the graves split open! The Regent's dead rise!"}],
 			sand: [{when: "low", sel: "char", ch: "a", to: "floor", spawn: "temple_scorpion", n: 4, col: 0xffe080,

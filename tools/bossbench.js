@@ -297,7 +297,7 @@ function fight(id, opts) {
     // what shields, heals or helps the boss first (its wards, menders, altars, rods, crystals), then the boss
     const open = list.filter((e) => !e.immune && !e.invuln);
     const pool = open.length ? open : list;
-    const props = pool.filter((e) => e.def.prop || e.def.stageFoe || e.defId === 'elder_crystal');
+    const props = pool.filter((e) => (e.def.prop && !e.def.invuln) || e.def.stageFoe || e.defId === 'elder_crystal');
     const from = props.length ? props : pool;
     let best = null, bd = 1e9;
     for (const e of from) { const d = (e.x - b.x) ** 2 + (e.y - b.y) ** 2; if (d < bd) { bd = d; best = e; } }

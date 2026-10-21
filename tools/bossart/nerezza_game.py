@@ -80,9 +80,6 @@ def model():
     return m
 
 
-_cache = None
-
-
 class _Pic:
     def __init__(self, rows):
         self._rows = rows
@@ -92,22 +89,17 @@ class _Pic:
 
 
 def image():
-    global _cache
-    if _cache is None:
-        img = model().render(MATS)
-        # the teal panel and its glowing seam down the front of her gown
-        _cache = img
-    return _cache
+    return model().render(MATS)
+
+
+_IMG = image()
+ROWS, PAL = to_rows(_IMG)
 
 
 def design():
-    return _Pic(to_rows(image())[0])
-
-
-def palette():
-    return to_rows(image())[1]
+    return _Pic(ROWS)
 
 
 if __name__ == '__main__':
     import sys
-    image().save(sys.argv[1])
+    _IMG.save(sys.argv[1])

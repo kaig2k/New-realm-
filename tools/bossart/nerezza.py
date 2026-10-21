@@ -18,8 +18,7 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CW, CH = 196, 200          # the canvas: her picture plus room for the sea round her
-OX, OY = 52, 93            # where the picture sits in it (her feet stay where the old picture's were)
-SCALE = 4                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
+SCALE = 3                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
 
 # letters for the palette (no digits: the rows are run-length coded), effects first
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%&*+-=?@^~'
@@ -63,11 +62,13 @@ def fx(name):
 # ------------------------------------------------------------------ the picture, moved
 # landmarks in the picture (its own pixels): her raised hand's water, the staff's orb,
 # the staff hand, her crown and the hem of her gown
-HAND_ORB = (18, 22)
-STAFF_ORB = (78, 22)
-STAFF_HAND = (70, 54)
-CROWN = (46, 0)
-WAIST = 56
+import nerezza_game as _ng
+OX, OY = (CW - _ng.W * 2) // 2, CH - _ng.H * 2 - 6     # where the picture sits on the canvas
+HAND_ORB = (17, 15)
+STAFF_ORB = (74, 6)
+STAFF_HAND = (73, 62)
+CROWN = (48, 0)
+WAIST = 58
 
 
 def her(dy=0, sway=0.0, lean=0.0, t=0.0):
@@ -230,7 +231,7 @@ def seawarden(d, x, base_y, ht):
     d.polygon([(x, base_y - ht - 4), (x + 3, base_y - ht + 2), (x - 3, base_y - ht + 2)], fill=fx('light'))
 
 
-FEET = OY + 101
+FEET = OY + _ng.H * 2 - 3
 
 
 # ------------------------------------------------------------------ the animations

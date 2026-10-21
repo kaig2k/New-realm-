@@ -68,9 +68,6 @@ def model():
     return m
 
 
-_cache = None
-
-
 class _Pic:
     def __init__(self, rows):
         self._rows = rows
@@ -80,20 +77,31 @@ class _Pic:
 
 
 def image():
-    global _cache
-    if _cache is None:
-        _cache = model().render(MATS)
-    return _cache
+    img = model().render(MATS)
+    # a crack pixel on its own reads as a speck: give it back to the hide around it
+    crack = {((v >> 16) & 255, (v >> 8) & 255, v & 255) for v in MATS['crack']['ramp']}
+    px = img.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            if px[x, y][:3] not in crack:
+                continue
+            nb = [px[x + dx, y + dy] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1))
+                  if 0 <= x + dx < img.width and 0 <= y + dy < img.height]
+            if sum(1 for q in nb if q[:3] in crack) < 1:
+                others = [q for q in nb if q[3] and q[:3] not in crack]
+                if others:
+                    px[x, y] = others[0]
+    return img
+
+
+_IMG = image()
+ROWS, PAL = to_rows(_IMG)
 
 
 def design():
-    return _Pic(to_rows(image())[0])
-
-
-def palette():
-    return to_rows(image())[1]
+    return _Pic(ROWS)
 
 
 if __name__ == '__main__':
     import sys
-    image().save(sys.argv[1])
+    _IMG.save(sys.argv[1])

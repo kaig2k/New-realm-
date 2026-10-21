@@ -17,9 +17,9 @@ import sys
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CW, CH = 120, 100          # the canvas: his picture plus room for spikes and dust round him
-OX, OY = 28, 36            # where the picture sits in it (his feet where the old picture's were)
-SCALE = 4                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
+CW, CH = 172, 150          # the canvas (2 pixels a cell): his picture plus room for spikes and dust round him
+K = CW / 120               # (his effects were laid out on a 120-wide canvas)
+SCALE = 3                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
 
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 # his own colours (the picture's palette), then the effects'
@@ -31,7 +31,8 @@ FX = {'hot': 0xff7a4a, 'glow': 0xffc890, 'white': 0xffffff, 'dust': 0x6a5a52, 'd
 RED = [0x4a0810, 0x8c0c18, 0xd01420, 0xff3a2a]
 # rage: the cracks burn ember-orange, a little brighter
 RAGE = {0x4a0810: 0x7a1a08, 0x8c0c18: 0xc03010, 0xd01420: 0xff6020, 0xff3a2a: 0xffb040,
-        0x7a0e16: 0xa02a08, 0xd8242a: 0xff6020, 0xff7a54: 0xffc060}
+        0x8a0c14: 0xa03008, 0xd8202a: 0xff6a20, 0xff6040: 0xffa040, 0xffc090: 0xffe0a0,
+        0x5a0810: 0x7a2008, 0x9a1018: 0xc04010, 0xd82028: 0xff7020}
 
 
 def rgb(v):
@@ -66,8 +67,9 @@ def pic():
 
 
 PW, PH = gorehorn_game.W * 2, gorehorn_game.H * 2
-EYES = (31, 20)            # between his eyes (picture pixels)
-HORN = (52, 8)             # his right horn's curve
+OX, OY = (CW - PW) // 2, CH - PH - 6   # where the picture sits on the canvas
+EYES = (62, 49)            # between his eyes (picture pixels)
+HORN = (94, 4)             # his right horn's tip
 FEET = OY + PH - 1         # where his claws meet the ground, on the canvas
 
 
@@ -195,7 +197,7 @@ def move(t):
     base = him(dy, lean=[1, 2, 1, -1, -2, -1][t], sway=1.2, t=t * 1.05)
     img = layer()
     d = ImageDraw.Draw(img)
-    dust(d, CW // 2, FEET, t, n=5, spread=26)
+    dust(d, CW // 2, FEET, t, n=5, spread=int(26 * K))
     return under(img, base)
 
 
@@ -208,10 +210,10 @@ def slam(t):
     d = ImageDraw.Draw(img)
     if t >= 3:
         hts = [0, 0, 0, 16, 26, 14][t]
-        for k, x in enumerate([16, 30, 46, 62, 78, 94, 106]):
+        for k, x in enumerate([int(v * K) for v in (16, 30, 46, 62, 78, 94, 106)]):
             spike(d, x, FEET + 3 - (k % 2) * 3, hts - abs(k - 3) * 3, 3 + (k % 2))
         crack(d, CW // 2, FEET + 1, 7, t)
-        dust(d, CW // 2, FEET, t, n=8, spread=40, light=True)
+        dust(d, CW // 2, FEET, t, n=8, spread=int(40 * K), light=True)
     img = under(img, base)
     if t in (1, 2):
         eye_glow(ImageDraw.Draw(img), dy, lean, 3 + t)
@@ -233,7 +235,7 @@ def charge(t):
     base = him([2, 3, 2][t - 3], lean=7, squash=2)
     img = layer()
     d = ImageDraw.Draw(img)
-    streak(d, OY + 18, FEET - 4, t)
+    streak(d, OY + int(PH * 0.3), FEET - 4, t)
     dust(d, 14, FEET, t, n=8, spread=18)
     img = under(img, base)
     d = ImageDraw.Draw(img)
@@ -247,13 +249,13 @@ def barrage(t):
     dy = [0, -1, -2, 1, 0][t]
     img = him(dy, squash=[0, 2, 3, 0, 0][t])
     d = ImageDraw.Draw(img)
-    cx, cy = OX + PW // 2, OY + 26 - dy
+    cx, cy = OX + PW // 2, OY + int(PH * 0.45) - dy
     if t in (1, 2):
-        ring(d, cx, cy, 20 + t * 4, 14 + t * 3, fx('hot'))
+        ring(d, cx, cy, int((20 + t * 4) * K), int((14 + t * 3) * K), fx('hot'))
     if t >= 3:
         for k in range(10):
             a = k * math.pi * 2 / 10 + (t - 3) * 0.2
-            r = 30 + (t - 3) * 14
+            r = (30 + (t - 3) * 14) * K
             flying_spike(d, cx + math.cos(a) * r, cy + math.sin(a) * r * 0.75, a, 7)
     return img
 
@@ -266,7 +268,7 @@ def pulse(t):
     d = ImageDraw.Draw(img)
     cx, cy = CW // 2, FEET - 2
     if t >= 2:
-        r = 14 + (t - 2) * 13
+        r = (14 + (t - 2) * 13) * K
         ring(d, cx, cy, r, r * 0.35, fx('hot'), 2)
         ring(d, cx, cy, r - 4, (r - 4) * 0.35, rgb(0xd01420))
         for k in range(12):
@@ -311,8 +313,8 @@ def guard(t):
     dy = [0, 4, 6, 4][t]
     img = him(dy, lean=[0, -3, -4, -3][t])
     d = ImageDraw.Draw(img)
-    ring(d, CW // 2, FEET - 30, 44 + t * 2, 34 + t * 2, fx('hot'))
-    ring(d, CW // 2, FEET - 30, 40 + t * 2, 30 + t * 2, rgb(0xd01420))
+    ring(d, CW // 2, FEET - int(30 * K), int((44 + t * 2) * K), int((34 + t * 2) * K), fx('hot'))
+    ring(d, CW // 2, FEET - int(30 * K), int((40 + t * 2) * K), int((30 + t * 2) * K), rgb(0xd01420))
     ex, ey = at(EYES, dy, -4)
     for k in range(5):
         d.line((ex - 6 - k * 3, ey - 8 + k * 4, ex - 14 - k * 4 - t * 2, ey - 10 + k * 5), fill=fx('glow') if k % 2 else fx('hot'))
@@ -334,9 +336,9 @@ def death(t):
     img = layer()
     d = ImageDraw.Draw(img)
     if t >= 3:
-        for k, x in enumerate([22, 38, 54, 70, 86, 100]):
+        for k, x in enumerate([int(v * K) for v in (22, 38, 54, 70, 86, 100)]):
             spike(d, x, FEET + 2, [0, 0, 0, 10, 18, 14, 8][t] - abs(k - 2.5) * 2, 3)
-        d.ellipse((CW // 2 - 30, FEET - 3, CW // 2 + 30, FEET + 3), fill=rgb(0x4a0810))
+        d.ellipse((CW // 2 - int(30 * K), FEET - 3, CW // 2 + int(30 * K), FEET + 3), fill=rgb(0x4a0810))
     return under(img, base)
 
 

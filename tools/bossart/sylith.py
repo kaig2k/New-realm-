@@ -15,17 +15,17 @@ import sys
 from PIL import Image, ImageDraw
 import sylith_game
 
-CW, CH = 120, 100          # the canvas (2 pixels a cell): her picture plus room round her
-OX, OY = 16, 14            # where the picture sits in it
-SCALE = 4                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
+CW, CH = 180, 150          # the canvas (2 pixels a cell): her picture plus room round her
+K = CW / 120               # (her effects were laid out on a 120-wide canvas)
+SCALE = 3                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
 
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 ART = list(sylith_game.PAL.values())
 FX = {'frost': 0x9ad8ff, 'white': 0xffffff, 'deep': 0x3a7ce0, 'glow': 0xd8f4ff, 'shadow': 0x0e1838,
       'wolf': 0xa8c8f0, 'wolfd': 0x5a78b8, 'wolfe': 0x40e8ff}
 # rage: her scales darken to midnight, her wings and eye blaze
-RAGE = {0x2446b0: 0x2a1c8a, 0x4880e4: 0x5a48d8, 0x0b1140: 0x0c0630, 0x9ff4ff: 0xffffff,
-        0x62aef8: 0x8ad0ff, 0x6cb8ff: 0x8ad0ff, 0x3a7ce0: 0x4a64e8}
+RAGE = {0x080c18: 0x0a0616, 0x121c38: 0x160c34, 0x1c2e5a: 0x221456, 0x284480: 0x30207c, 0x3a60a8: 0x4430a8,
+        0x5a86cc: 0x6a54d0, 0x1a90d0: 0x7ad8ff, 0x5ad0ff: 0xb8f0ff}
 
 
 def rgb(v):
@@ -60,10 +60,11 @@ def pic():
 
 
 PW, PH = sylith_game.W * 2, sylith_game.H * 2
-MOUTH = (86, 22)           # the tip of her snout (picture pixels)
-EYE = (75, 19)
-TAIL = (4, 72)             # the tip of her tail
-FEET = OY + 77             # where her claws meet the ground, on the canvas
+OX, OY = (CW - PW) // 2, CH - PH - 6   # where the picture sits on the canvas
+MOUTH = (124, 25)          # the tip of her open jaws (picture pixels)
+EYE = (111, 15)
+TAIL = (26, 106)           # her tail's spade
+FEET = OY + 112            # where her claws meet the ground, on the canvas
 
 
 def her(dy=0, lean=0.0, sway=0.0, t=0.0, squash=0):
@@ -124,7 +125,7 @@ def mist(d, cx, cy, t, n=6, spread=12):
         d.ellipse((x - s, y - s, x + s, y + s), fill=fx('glow' if k % 2 else 'frost'))
 
 
-def shadow(d, w=34):
+def shadow(d, w=int(34 * K)):
     d.ellipse((CW // 2 - w, FEET - 3, CW // 2 + w, FEET + 3), fill=fx('shadow'))
 
 
@@ -158,7 +159,7 @@ def move(t):
     img = layer()
     d = ImageDraw.Draw(img)
     shadow(d)
-    mist(d, CW // 2, FEET, t, n=4, spread=24)
+    mist(d, CW // 2, FEET, t, n=4, spread=int(24 * K))
     return under(img, base)
 
 
@@ -173,7 +174,7 @@ def breath(t):
         ring(d, mx, my, 2 + t * 2, 2 + t * 2, fx('frost'))
         d.point((mx, my), fill=fx('white'))
     if t >= 3:
-        reach = [0, 0, 0, 22, 30, 26][t]
+        reach = int([0, 0, 0, 22, 30, 26][t] * K) or 1
         for k in range(14):
             f = (k * 37 % 100) / 100
             a = (f - 0.5) * 0.7
@@ -192,12 +193,12 @@ def spikes(t):
     mx, my = at(MOUTH, dy)
     if t in (1, 2):
         for k in range(5):
-            x, y = OX + 40 + k * 8, OY + 6 - dy - (k % 2) * 3
+            x, y = OX + 70 + k * 10, OY + 14 - dy - (k % 2) * 4
             d.line((x, y, x - 2, y - 4 - t * 2), fill=fx('white'))
     if t >= 3:
         for k in range(6):
             a = (k / 5 - 0.5) * 1.3
-            r = 8 + (t - 3) * 12
+            r = (8 + (t - 3) * 12) * K
             shard(d, mx + math.cos(a) * r, my + math.sin(a) * r, a, 7)
     return img
 
@@ -216,7 +217,7 @@ def lance(t):
             d.point((mx + 3 + math.cos(a) * r, my + math.sin(a) * r), fill=fx('glow'))
         d.ellipse((mx + 1, my - 2, mx + 5, my + 2), fill=fx('white'))
     if t >= 3:
-        ln = [0, 0, 0, 30, 34][t]
+        ln = int([0, 0, 0, 30, 34][t] * K)
         d.line((mx, my, min(CW - 1, mx + ln), my), fill=fx('frost'), width=3)
         d.line((mx, my, min(CW - 1, mx + ln), my), fill=fx('white'), width=1)
         for k in range(4):
@@ -231,7 +232,7 @@ def tail(t):
     d = ImageDraw.Draw(img)
     tx, ty = at(TAIL, dy)
     if t >= 2:
-        r = [0, 0, 18, 26, 30][t]
+        r = int([0, 0, 18, 26, 30][t] * K)
         d.arc((CW // 2 - r - 10, FEET - 14 - r // 3, CW // 2 + r - 10, FEET + 4 + r // 4), 120, 260, fill=fx('frost'), width=2)
         d.arc((CW // 2 - r - 12, FEET - 12 - r // 3, CW // 2 + r - 12, FEET + 2 + r // 4), 130, 250, fill=fx('white'), width=1)
         for k in range(3):
@@ -245,15 +246,15 @@ def storm(t):
     img = layer()
     d = ImageDraw.Draw(img)
     cx, cy = CW // 2, FEET - 4
-    r = 26 + t * 4
+    r = (26 + t * 4) * K
     ring(d, cx, cy, r, r * 0.3, fx('frost'))
     base = her(dy, sway=2.2, t=t * 1.6)
     img = under(img, base)
     d = ImageDraw.Draw(img)
     for k in range(16):
         a = k * math.pi * 2 / 16 + t * 0.5
-        rr = 14 + (k * 7 + t * 5) % 40
-        flake(d, cx + math.cos(a) * rr, cy - 18 + math.sin(a) * rr * 0.6, 1 + (k % 3 == 0), 'white' if k % 2 else 'glow')
+        rr = (14 + (k * 7 + t * 5) % 40) * K
+        flake(d, cx + math.cos(a) * rr, cy - 18 * K + math.sin(a) * rr * 0.6, 1 + (k % 3 == 0), 'white' if k % 2 else 'glow')
     return img
 
 
@@ -283,13 +284,13 @@ def fly(t):
     base = her(dy, sway=3 * (t < 4), t=t * 2.2)
     img = layer()
     d = ImageDraw.Draw(img)
-    shadow(d, 34 - min(dy, 16))
+    shadow(d, int((34 - min(dy, 16)) * K))
     if t == 4 or t == 5:
-        ring(d, CW // 2, FEET - 2, 40 + t * 3, 9, fx('frost'), 2)
+        ring(d, CW // 2, FEET - 2, int((40 + t * 3) * K), 12, fx('frost'), 2)
         for k in range(10):
             a = k * math.pi * 2 / 10
-            shard(d, CW // 2 + math.cos(a) * 36, FEET - 2 + math.sin(a) * 8, a - math.pi / 2 * 0.3, 6)
-        mist(d, CW // 2, FEET, t, n=8, spread=34)
+            shard(d, CW // 2 + math.cos(a) * 36 * K, FEET - 2 + math.sin(a) * 10, a - math.pi / 2 * 0.3, 6)
+        mist(d, CW // 2, FEET, t, n=8, spread=int(34 * K))
     return under(img, base)
 
 
@@ -298,8 +299,8 @@ def guard(t):
     dy = [0, 4, 6, 4][t]
     img = her(dy, lean=[0, -3, -4, -3][t], sway=1.5, t=t)
     d = ImageDraw.Draw(img)
-    ring(d, CW // 2, FEET - 28, 46 + t * 2, 34 + t * 2, fx('frost'))
-    ring(d, CW // 2, FEET - 28, 42 + t * 2, 30 + t * 2, fx('deep'))
+    ring(d, CW // 2, FEET - int(28 * K), int((46 + t * 2) * K), int((34 + t * 2) * K), fx('frost'))
+    ring(d, CW // 2, FEET - int(28 * K), int((42 + t * 2) * K), int((30 + t * 2) * K), fx('deep'))
     mx, my = at(MOUTH, dy, -4)
     for k in range(5):
         d.line((mx + 3 + k * 2, my - 6 + k * 3, mx + 10 + k * 3 + t * 2, my - 8 + k * 4), fill=fx('glow') if k % 2 else fx('white'))
@@ -323,9 +324,9 @@ def death(t):
     if t >= 3:
         for k in range(12):
             a = k * math.pi * 2 / 12 + 0.2
-            r = 12 + (t - 3) * 12
-            shard(d, CW // 2 + math.cos(a) * r, FEET - 24 + math.sin(a) * r * 0.6, a, 6, 'frost' if k % 2 else 'white')
-        ring(d, CW // 2, FEET, 30, 4, fx('frost'))
+            r = (12 + (t - 3) * 12) * K
+            shard(d, CW // 2 + math.cos(a) * r, FEET - 24 * K + math.sin(a) * r * 0.6, a, 6, 'frost' if k % 2 else 'white')
+        ring(d, CW // 2, FEET, int(30 * K), 5, fx('frost'))
     return under(img, base)
 
 

@@ -166,7 +166,7 @@ class Model:
                 ramp = m['ramp']
                 if m.get('glow'):
                     # emissive: brightest at its heart
-                    v = 0.55 + 0.45 * n[2]
+                    v = m.get('glow0', 0.3) + 0.62 * n[2]
                 else:
                     diff = max(0.0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2])
                     rim = max(0.0, n[0] * R_[0] + n[1] * R_[1] + n[2] * R_[2]) ** 2 * m.get('rimk', 0.35)

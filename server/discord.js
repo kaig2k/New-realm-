@@ -28,13 +28,21 @@ class Discord {
 
   get on() { return /^https?:\/\//.test(this.url); }
 
-  /** Queues a post: text, with an optional colour stripe (embed). */
-  post(text, color) {
+  /**
+   * Queues a post: text, with an optional colour stripe (embed). opts (a Forum channel's webhook):
+   * {title} starts a new forum post with that title, {thread} posts into an existing one; done(threadId)
+   * is told the new post's id.
+   */
+  post(text, color, opts, done) {
     if (!this.on || !text) return;
     const body = color === undefined
       ? { username: this.name, content: String(text).slice(0, 1900), allowed_mentions: { parse: [] } }
       : { username: this.name, embeds: [{ description: String(text).slice(0, 1900), color: color & 0xffffff }], allowed_mentions: { parse: [] } };
-    this.queue.push(body);
+    if (opts && opts.title) body.thread_name = String(opts.title).slice(0, 95);
+    const q = [];
+    if (opts && opts.thread) q.push('thread_id=' + encodeURIComponent(opts.thread));
+    if (done) q.push('wait=true');
+    this.queue.push({ body, q: q.join('&'), done });
     if (this.queue.length > MAX_QUEUE) this.queue.shift();
     this.pump();
   }
@@ -42,16 +50,23 @@ class Discord {
   pump() {
     if (this.busy || !this.queue.length) return;
     this.busy = true;
-    const body = JSON.stringify(this.queue.shift());
+    const job = this.queue.shift();
+    const body = JSON.stringify(job.body);
     let u;
-    try { u = new URL(this.url); } catch (e) { this.log('discord: bad webhook address'); this.queue.length = 0; this.busy = false; return; }
+    try { u = new URL(this.url + (job.q ? (this.url.includes('?') ? '&' : '?') + job.q : '')); } catch (e) { this.log('discord: bad webhook address'); this.queue.length = 0; this.busy = false; return; }
     const lib = u.protocol === 'http:' ? http : https;
     const done = () => { setTimeout(() => { this.busy = false; this.pump(); }, GAP_MS); };
     const req = lib.request(u, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, timeout: 8000 }, (res) => {
-      res.resume();
-      if (res.statusCode >= 200 && res.statusCode < 300) this.sent++;
-      else this.log('discord: webhook answered ' + res.statusCode);
-      done();
+      let got = '';
+      res.on('data', (d) => { if (got.length < 20000) got += d; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          this.sent++;
+          // (a new forum post: the message's channel is the post's thread)
+          if (job.done) { try { job.done(String(JSON.parse(got).channel_id || '')); } catch (e) { job.done(''); } }
+        } else this.log('discord: webhook answered ' + res.statusCode);
+        done();
+      });
     });
     req.on('timeout', () => req.destroy(new Error('timed out')));
     req.on('error', (e) => { this.log('discord: ' + e.message); done(); });

@@ -17,6 +17,9 @@
 • **Shield Bash**: untouchable through the charge, then **half damage for 1.5s** behind your shield
 • **Berserker Charge** is no longer untouchable: it takes **a third less damage** for a second instead
 
+**🐞 Bug reports**
+• Every **/bug** report now opens its own post in our Discord's bug forum, so each one can be discussed, and the post says when it's fixed
+
 (The stun change applies to every stun on bosses: Shield Wall, Frost Nova, War Cry, Lullaby, Time Stop and Snare too.)
 
 ---

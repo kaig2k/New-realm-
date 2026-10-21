@@ -90,10 +90,14 @@ async function run() {
   console.log('New Realm server self-test (port ' + PORT + ')');
   // a stand-in for Discord: collects what the server posts to its webhook
   const posts = [];
-  const hook = require('http').createServer((q, r) => { let b = ''; q.on('data', (d) => { b += d; }); q.on('end', () => { try { posts.push(JSON.parse(b)); } catch (e) {} r.writeHead(204); r.end(); }); });
+  const hook = require('http').createServer((q, r) => { let b = ''; q.on('data', (d) => { b += d; }); q.on('end', () => {
+    try { const o = JSON.parse(b); o._url = q.url; posts.push(o); } catch (e) {}
+    // (a forum webhook with ?wait=true answers with the message: its channel is the new post)
+    if (/wait=true/.test(q.url)) { r.writeHead(200, { 'Content-Type': 'application/json' }); r.end(JSON.stringify({ id: '1', channel_id: '777' })); } else { r.writeHead(204); r.end(); }
+  }); });
   await new Promise((r) => hook.listen(0, '127.0.0.1', r));
   const hookUrl = 'http://127.0.0.1:' + hook.address().port + '/api/webhooks/1/x';
-  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl, combatCheck: 'auto', discordLogKey: 'test-log-key-0123456789abcdef' }));
+  fs.writeFileSync(path.join(DATA, 'config.json'), JSON.stringify({ admins: ['TestBoss'], motd: 'test', discordWebhook: hookUrl, combatCheck: 'auto', discordLogKey: 'test-log-key-0123456789abcdef', discordBugForum: hookUrl.replace('/x', '/forum') }));
   // a logged Discord channel (as the bot would have kept it)
   fs.writeFileSync(path.join(DATA, 'discordlog.json'), JSON.stringify({ msgs: [{ id: '1', ch: '42', chName: 'mod-chat', at: Date.parse('2026-10-17T18:00:00Z'), by: 'Nyfot', bot: false, text: 'we should add camera offset', att: [], edited: false }] }));
   // two accounts from before account numbers (oldest first gets #1)
@@ -2693,7 +2697,8 @@ async function run() {
     await wait(600);
     const thanks = B7.msgs.find((m) => m.t === 'msg' && /Bug #\d+ was sent/.test(m.text));
     check('/bug thanks the player and tells online admins', thanks && bz7.msgs.some((m) => m.t === 'msg' && /\[Bug #\d+\].*pet vanished/.test(m.text)), JSON.stringify(B7.msgs.slice(-2)));
-    check('...and posts it to the Discord feed', posts.slice(before).some((p) => JSON.stringify(p).includes('pet vanished')), JSON.stringify(posts.slice(before)));
+    const fp = posts.slice(before).find((p) => JSON.stringify(p).includes('pet vanished'));
+    check('...and opens a post of its own in the Discord bug forum, titled after it', fp && /\/forum/.test(fp._url) && /^Bug #\d+: my pet vanished/.test(fp.thread_name || ''), JSON.stringify(fp));
     B7.clear();
     B7.send({ t: 'bug', text: 'second report straight away' });
     await wait(300);
@@ -2709,6 +2714,8 @@ async function run() {
     await wait(300);
     const bl2 = bz7.find((m) => m.t === 'bugs');
     check('/bugs done marks one fixed', bl2 && bl2.list.find((b) => mine && b.id === mine.id && b.done));
+    await wait(2500);
+    check('...and says so in its forum post', posts.some((p) => /thread_id=777/.test(p._url || '') && /Marked fixed/.test(JSON.stringify(p))), JSON.stringify(posts.slice(-2)));
     for (const c of [B7, bz7]) c.s.destroy();
   }
 

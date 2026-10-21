@@ -55,6 +55,8 @@ const DEFAULT_CONFIG = {
   discordBotAdmins: [],
   // channel IDs the bot keeps a log of (e.g. #mod-chat), and the key for reading it at /discordlog (DEPLOY.md)
   discordReadChannels: [],
+  // a webhook in a Discord Forum channel: every /bug report becomes a post of its own there
+  discordBugForum: '',
   discordLogKey: '',
   viewRange: 32,
   chatPerTenSeconds: 8,
@@ -847,6 +849,8 @@ function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); 
 // ------------------------------------------------------------------ Discord feed
 const { Discord, StatusBoard, esc: desc, names: dnames } = require('./discord');
 const discord = new Discord(config.discordWebhook, config.name || 'Eldmere', log);
+/** config "discordBugForum": a webhook in a Discord Forum channel, where every /bug report opens a post of its own. */
+const bugForum = new Discord(config.discordBugForum, config.name || 'Eldmere', log);
 /** What the server did that's worth telling the Discord: (kind, details). */
 function feat(kind, d) {
   // the rarest drops are news for everyone online too
@@ -1752,7 +1756,10 @@ const handlers = {
     save('bugs.json', bugs);
     store.appendLog('bugs.log', new Date(now).toISOString() + ' #' + b.id + ' ' + c.name + ' (' + b.hero + ', ' + b.world + '): ' + text);
     for (const a of byName.values()) if (isAdmin(a)) a.note('[Bug #' + b.id + '] ' + c.name + ': ' + text + '  (/bugs to see them all)', 0xffb040);
-    if (discord.on) discord.post('🐞 **Bug #' + b.id + '** from **' + desc(c.name) + '**: ' + desc(text) + '\n_' + desc(b.hero) + (b.pet ? ', ' + desc(b.pet) : '') + ' · ' + desc(b.world || 'menu') + (b.fps ? ' · ' + b.fps + ' fps' : '') + (b.ping ? ' · ' + b.ping + ' ms' : '') + '_', 0xffa040);
+    const bugLine = '🐞 **Bug #' + b.id + '** from **' + desc(c.name) + '**: ' + desc(text) + '\n_' + desc(b.hero) + (b.pet ? ', ' + desc(b.pet) : '') + ' · ' + desc(b.world || 'menu') + (b.fps ? ' · ' + b.fps + ' fps' : '') + (b.ping ? ' · ' + b.ping + ' ms' : '') + '_';
+    // a bug forum (config discordBugForum): every report its own post, titled after it; else the main feed
+    if (bugForum.on) bugForum.post(bugLine, 0xffa040, { title: 'Bug #' + b.id + ': ' + text.replace(/\s+/g, ' ').slice(0, 70) }, (thread) => { if (thread) { b.thread = thread; save('bugs.json', bugs); } });
+    else if (discord.on) discord.post(bugLine, 0xffa040);
     c.note('Thanks! Bug #' + b.id + ' was sent to the admins.', 0x80ff80);
   },
 
@@ -2543,6 +2550,8 @@ const handlers = {
           b.done = sub === 'done';
           b.by = c.name;
           save('bugs.json', bugs);
+          // (and its forum post hears about it)
+          if (b.thread && bugForum.on) bugForum.post(b.done ? '✅ Marked fixed by **' + desc(c.name) + '**.' : '🔁 Reopened by **' + desc(c.name) + '**.', b.done ? 0x60d060 : 0xffa040, { thread: b.thread });
         } else if (sub === 'clear') {
           bugs.list = bugs.list.filter((e) => !e.done);
           save('bugs.json', bugs);

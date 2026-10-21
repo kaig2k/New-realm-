@@ -101,6 +101,7 @@ Players then join with `play.yourgame.com:2050`.
 | `backups` | `true` (the default): the server copies everything in `server/data/` once a day into `server/data/backups/YYYY-MM-DD/`. `false` turns it off. |
 | `backupKeep` | How many days of backups to keep (14). |
 | `discordBotToken` / `discordGuild` / `discordBotAdmins` | A Discord bot so you can restart the server from Discord with `/restart` and check it with `/status`. See **Restart from Discord** below. |
+| `discordBugForum` | A webhook in a Discord **Forum** channel (Create Channel > Forum, then its settings > Integrations > Webhooks > New Webhook). Every `/bug` report opens a post of its own there, titled "Bug #12: what happened", and when an admin marks it fixed with `/bugs done 12` (or the Bugs window) the post says so. Without it, bug reports go to `discordWebhook` as before. |
 | `discordStatusWebhook` | A second Discord webhook (best in its own read-only #status channel). The server posts one message there and keeps editing it every 5 minutes: players online, today's peak, the season leaders, the top guild, this week's Vault twist and the latest Records time. |
 | `discordInvite` | Your Discord invite link, shown on the website. |
 | `viewRange` | How far away (in tiles) players see each other move and shoot. |

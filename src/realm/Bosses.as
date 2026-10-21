@@ -141,7 +141,7 @@ package realm {
 		public static const POSED:Array = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord", "hermit", "shrine",
 			"colossus", "phoenix", "witch", "kraken"];
 		public static const POSED_SEQ:Object = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
-		/** Their own shots (tools/bossart/shots.py): [from its strikes, from its casts], in place of the plain shapes. */
+		/** Their own shots (tools/bossart/boss_shots.py): [from its strikes, from its casts], in place of the plain shapes. */
 		public static const POSED_SHOTS:Object = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
 			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],

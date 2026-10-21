@@ -1,6 +1,6 @@
 package realm {
 	/**
-	 * The bosses' own shots (tools/bossart/shots.py): drawings pointing the way they fly, tinted by
+	 * The bosses' own shots (tools/bossart/boss_shots.py): drawings pointing the way they fly, tinted by
 	 * each attack's colour (see Sprites.projectile). Generated: edit them there.
 	 */
 	public class BossShots {

@@ -1,7 +1,7 @@
 """
-Nerezza, the Tide Empress, from the user's own art (ref/nerezza.jpg): the sprite
-IS that picture, cut from its background at its native pixel size (ref_cut.py)
-and kept exactly as drawn. Her animations never redraw her: they move the
+Nerezza, the Tide Empress, after the user's own art (ref/nerezza.jpg), redrawn on
+the game's grid by nerezza_game.py so she sits with the other bosses (at about the
+Dark Elder's size). Her animations never redraw her: they move the
 picture (a breath, the sway of her cape and gown, a lean as she glides) and lay
 the sea's effects over and around it, after her design sheet: the trident blast,
 the geysers, the tide slam, the seawardens she calls, her teleport, the ocean
@@ -15,13 +15,11 @@ import os
 import sys
 import colorsys
 from PIL import Image, ImageDraw
-from ref_cut import cut
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BLOCK = 5.12               # screen pixels per pixel of the art
 CW, CH = 196, 200          # the canvas: her picture plus room for the sea round her
-OX, OY = 15, 16            # where the picture sits in it
-SCALE = 2
+OX, OY = 52, 93            # where the picture sits in it (her feet stay where the old picture's were)
+SCALE = 4                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
 
 # letters for the palette (no digits: the rows are run-length coded), effects first
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%&*+-=?@^~'
@@ -29,31 +27,31 @@ FX = {
     'deep': 0x123a9a, 'water': 0x2f7cf0, 'light': 0x7cc8ff, 'foam': 0xd8f6ff, 'white': 0xffffff,
     'violet': 0x8a48f0, 'lilac': 0xc8a0ff, 'abyss': 0x081430,
 }
-N_ART = len(LETTERS) - len(FX)
 
 _base = None
 
 
 def base():
-    """Her picture, quantised to the art's own colours: (RGBA image, palette {rgb: letter})."""
+    """Her picture (the game-grid drawing, each cell 2x2 canvas pixels) and its palette {rgb: letter}."""
     global _base
     if _base:
         return _base
-    im = cut(os.path.join(HERE, 'ref', 'nerezza.jpg'), BLOCK)
-    alpha = im.getchannel('A')
-    q = im.convert('RGB').quantize(colors=N_ART, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-    pal = q.getpalette()[:N_ART * 3]
-    rgb = q.convert('RGB')
-    out = Image.new('RGBA', im.size, (0, 0, 0, 0))
-    out.paste(rgb, mask=alpha)
+    import nerezza_game
+    c = nerezza_game.design()
+    im = Image.new('RGBA', (nerezza_game.W, nerezza_game.H), (0, 0, 0, 0))
+    px = im.load()
     colours = {}
-    for i in range(N_ART):
-        c = (pal[i * 3], pal[i * 3 + 1], pal[i * 3 + 2])
-        colours.setdefault(c, LETTERS[i])
+    for i, v in enumerate(nerezza_game.PAL.values()):
+        colours.setdefault(((v >> 16) & 255, (v >> 8) & 255, v & 255), LETTERS[i])
+    for y, row in enumerate(c.rows()):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                v = nerezza_game.PAL[ch]
+                px[x, y] = ((v >> 16) & 255, (v >> 8) & 255, v & 255, 255)
+    n = len(colours)
     for k, (name, v) in enumerate(FX.items()):
-        c = ((v >> 16) & 255, (v >> 8) & 255, v & 255)
-        colours.setdefault(c, LETTERS[N_ART + k])
-    _base = (out, colours)
+        colours.setdefault(((v >> 16) & 255, (v >> 8) & 255, v & 255), LETTERS[n + k])
+    _base = (im.resize((im.width * 2, im.height * 2), Image.NEAREST), colours)
     return _base
 
 
@@ -65,11 +63,11 @@ def fx(name):
 # ------------------------------------------------------------------ the picture, moved
 # landmarks in the picture (its own pixels): her raised hand's water, the staff's orb,
 # the staff hand, her crown and the hem of her gown
-HAND_ORB = (41, 42)
-STAFF_ORB = (146, 35)
-STAFF_HAND = (136, 85)
-CROWN = (90, 6)
-WAIST = 104
+HAND_ORB = (18, 22)
+STAFF_ORB = (78, 22)
+STAFF_HAND = (70, 54)
+CROWN = (46, 0)
+WAIST = 56
 
 
 def her(dy=0, sway=0.0, lean=0.0, t=0.0):
@@ -232,7 +230,7 @@ def seawarden(d, x, base_y, ht):
     d.polygon([(x, base_y - ht - 4), (x + 3, base_y - ht + 2), (x - 3, base_y - ht + 2)], fill=fx('light'))
 
 
-FEET = OY + 178
+FEET = OY + 101
 
 
 # ------------------------------------------------------------------ the animations
@@ -484,13 +482,34 @@ SEQ = [
 ]
 
 
+def chunk(img, colours):
+    """Halves a frame: each 2x2 block becomes one cell of its most common colour (if at least half is drawn),
+    so her frames and their effects keep the game's chunky grid."""
+    w, h = img.size
+    px = img.load()
+    out = Image.new('RGBA', (w // 2, h // 2), (0, 0, 0, 0))
+    op = out.load()
+    for y in range(h // 2):
+        for x in range(w // 2):
+            seen = {}
+            for dy in (0, 1):
+                for dx in (0, 1):
+                    p = px[x * 2 + dx, y * 2 + dy]
+                    if p[3] and p[:3] in colours:
+                        seen[p[:3]] = seen.get(p[:3], 0) + 1
+            if sum(seen.values()) >= 2:
+                op[x, y] = max(seen, key=lambda c: seen[c]) + (255,)
+    return out
+
+
 def rows(img, colours):
-    """An image of exact palette colours -> rows of letters ('.' for nothing)."""
+    """An image of exact palette colours -> rows of letters ('.' for nothing), halved onto the game's grid."""
+    img = chunk(img, colours)
     px = img.load()
     out = []
-    for y in range(CH):
+    for y in range(img.size[1]):
         r = []
-        for x in range(CW):
+        for x in range(img.size[0]):
             p = px[x, y]
             r.append('.' if p[3] == 0 else colours[(p[0], p[1], p[2])])
         out.append(''.join(r))

@@ -290,9 +290,10 @@ package realm {
 			restartTf.mouseEnabled = false;
 			restartTf.filters = [new GlowFilter(0x000000, 0.95, 4, 4, 5)];
 			trackerTf = Ui.text(12, 0xe8e0c8, true, "right", 400, true);
-			trackerTf.x = VIEW_W - 412; trackerTf.y = 68;
+			trackerTf.x = VIEW_W - 416; trackerTf.y = 80;
 			trackerTf.mouseEnabled = false;
-			trackerTf.filters = [new GlowFilter(0x000000, 0.9, 3, 3, 4)];
+			trackerBg = new Shape();
+			addChild(trackerBg);
 			addChild(netTf);
 			addChild(trackerTf);
 			addChild(restartTf);
@@ -324,9 +325,9 @@ package realm {
 			chatInput.selectable = true;
 			chatInput.mouseEnabled = true;
 			chatInput.background = true;
-			chatInput.backgroundColor = 0x1a1a1a;
+			chatInput.backgroundColor = 0x120e1e;
 			chatInput.border = true;
-			chatInput.borderColor = 0x6a6a6a;
+			chatInput.borderColor = Hud.GOLD;
 			chatInput.maxChars = 80;
 			chatInput.x = 8;
 			chatInput.y = VIEW_H - 30;
@@ -712,13 +713,23 @@ package realm {
 		private function buildCounters():void {
 			var icons:Array = ["fame", "gold", "onrane", "skull"];
 			var tfs:Array = [];
+			// each counter sits in a small glass pill, the icon in a dark socket at its right end
+			var pills:Shape = new Shape();
+			addChild(pills);
 			for (var i:int = 0; i < 4; i++) {
 				var col:int = i % 2, row:int = int(i / 2);
-				var tf:TextField = Ui.text(16, 0xffffff, true, "right", 90, true);
-				tf.x = VIEW_W - 250 + col * 122; tf.y = 6 + row * 22;
+				var px:int = VIEW_W - 252 + col * 124, py:int = 5 + row * 25;
+				Hud.glass(pills.graphics, px, py, 118, 22, Hud.EDGE, 11);
+				pills.graphics.lineStyle(1, Hud.GOLD, 0.9);
+				pills.graphics.beginFill(0x0d0a16);
+				pills.graphics.drawCircle(px + 107, py + 11, 10);
+				pills.graphics.endFill();
+				pills.graphics.lineStyle();
+				var tf:TextField = Ui.text(14, 0xffffff, true, "right", 86, true);
+				tf.x = px + 6; tf.y = py + 1;
 				var ic:Bitmap = new Bitmap(Sprites.get(icons[i]));
-				ic.scaleX = ic.scaleY = 0.7;
-				ic.x = tf.x + 92; ic.y = tf.y + 2;
+				ic.scaleX = ic.scaleY = 0.5;
+				ic.x = px + 107 - ic.width / 2; ic.y = py + 11 - ic.height / 2;
 				addChild(tf); addChild(ic);
 				tfs.push(tf);
 			}
@@ -5437,6 +5448,7 @@ package realm {
 
 		/** The quest tracker under the connection status. */
 		private var trackerTf:TextField;
+		private var trackerBg:Shape;
 
 		/** True when the server keeps the quests (online on a server that runs the monsters). */
 		private function get serverKeepsQuests():Boolean { return net && net.online && Online.welcome && Online.welcome.serverMonsters; }
@@ -5595,12 +5607,12 @@ package realm {
 
 		public function refreshTracker():void {
 			if (!trackerTf) return;
-			if (!opt("tracker") || !world) { trackerTf.htmlText = ""; return; }
+			if (!opt("tracker") || !world) { trackerTf.htmlText = ""; trackerBg.graphics.clear(); return; }
 			var lines:Array = [];
 			var gk:int = guideStep;
 			if (gk < GUIDE.length) {
 				var gs:Array = GUIDE[gk];
-				lines.push("<font color='#80e0ff'>GETTING STARTED " + (gk + 1) + "/" + GUIDE.length + "</font>");
+				lines.push("<font color='#80e0ff' size='11'>G E T T I N G   S T A R T E D   " + (gk + 1) + "/" + GUIDE.length + "</font>");
 				lines.push(gs[1] + (gs[2] > 1 ? "  <font color='#b8b8c0'>" + int(Save.data.guideN || 0) + "/" + gs[2] + "</font>" : ""));
 			}
 			for each (var qe:Object in questList()) {
@@ -5610,8 +5622,19 @@ package realm {
 				else lines.push(tag + qe.text + "  <font color='#b8b8c0'>" + Ui.commas(qe.p) + "/" + Ui.commas(qe.goal) + "</font>");
 			}
 			var qi:int = gk < GUIDE.length ? 2 : 0;
-			if (lines.length > qi) lines.splice(qi, 0, "<font color='#ffd75e'>QUESTS</font>");
+			if (lines.length > qi) lines.splice(qi, 0, "<font color='#f2d68a' size='11'>Q U E S T S</font>");
 			trackerTf.htmlText = lines.join("\n");
+			// a glass panel fitted to the text, with a gold rule down its right edge
+			var tg:* = trackerBg.graphics;
+			tg.clear();
+			if (lines.length) {
+				var tw:Number = trackerTf.textWidth + 22, th:Number = trackerTf.textHeight + 10;
+				var tx:Number = trackerTf.x + 400 - tw + 6;
+				Hud.glass(tg, tx, trackerTf.y - 4, tw, th, Hud.EDGE, 8);
+				tg.beginFill(Hud.GOLD);
+				tg.drawRect(tx + tw - 3, trackerTf.y + 2, 2, th - 12);
+				tg.endFill();
+			}
 		}
 
 		/** Account achievement progress: {counts: {event: n}, done: {id: true}}. */
@@ -6509,8 +6532,16 @@ package realm {
 			}
 			chatBg.graphics.clear();
 			if (open && show.length) {
-				chatBg.graphics.beginFill(0x000000, 0.45);
-				chatBg.graphics.drawRoundRect(4, chat.y - 4, 632, chat.height + 8, 10, 10);
+				// violet glass with a gold line along the top
+				var cm:Matrix = new Matrix();
+				cm.createGradientBox(632, chat.height + 8, Math.PI / 2, 4, chat.y - 4);
+				chatBg.graphics.lineStyle(1, Hud.EDGE, 0.8);
+				chatBg.graphics.beginGradientFill("linear", [0x1c1530, 0x0d0a16], [0.82, 0.82], [0, 255], cm);
+				chatBg.graphics.drawRoundRect(4, chat.y - 4, 632, chat.height + 8, 12, 12);
+				chatBg.graphics.endFill();
+				chatBg.graphics.lineStyle();
+				chatBg.graphics.beginFill(Hud.GOLD, 0.8);
+				chatBg.graphics.drawRect(14, chat.y - 4, 612, 1);
 				chatBg.graphics.endFill();
 				// a scrollbar showing where in the history you are
 				if (chatLines.length > CHAT_OPEN_LINES) {

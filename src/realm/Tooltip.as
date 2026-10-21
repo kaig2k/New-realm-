@@ -1,6 +1,7 @@
 package realm {
 	import flash.display.Bitmap;
 	import flash.display.Sprite;
+	import flash.geom.Matrix;
 	import flash.text.TextField;
 
 	/** RotMG-style item tooltip: icon, name, tier tag, stats and a usage hint. */
@@ -24,10 +25,10 @@ package realm {
 			tier = Ui.text(15, 0xffffff, true, "right", 40, true);
 			tier.x = W - 48; tier.y = 8;
 			addChild(tier);
-			body = Ui.text(13, 0xb8b8b8, false, "left", W - 20);
+			body = Ui.text(13, 0xc4bcd8, false, "left", W - 20);
 			body.x = 10;
 			addChild(body);
-			hint = Ui.text(12, 0x8a8a8a, false, "left", W - 20);
+			hint = Ui.text(12, 0x8a7cb0, false, "left", W - 20);
 			hint.x = 10;
 			addChild(hint);
 		}
@@ -52,11 +53,17 @@ package realm {
 			hint.y = body.y + body.height + 4;
 			var h:Number = hint.y + hint.height + 8;
 			graphics.clear();
-			Ui.panel(graphics, 0, 0, W, h, 0x1c1c1c, 0x6a6a6a, 0.96);
-			graphics.lineStyle(1, 0x444444);
-			graphics.moveTo(8, top);
-			graphics.lineTo(W - 8, top);
-			graphics.lineStyle();
+			// violet glass, its rim and a header band in the item's rarity colour
+			var rc:uint = item.rarity ? Data.tierColor(item) : Hud.EDGE;
+			Hud.glass(graphics, 0, 0, W, h, rc, 8);
+			var m:Matrix = new Matrix();
+			m.createGradientBox(W - 4, top - 2, Math.PI / 2, 2, 2);
+			graphics.beginGradientFill("linear", [item.rarity ? rc : 0x3a2c5c, 0x120e1e], [0.35, 0], [0, 255], m);
+			graphics.drawRoundRect(2, 2, W - 4, top - 2, 12, 12);
+			graphics.endFill();
+			graphics.beginFill(Hud.GOLD, 0.7);
+			graphics.drawRect(10, top, W - 20, 1);
+			graphics.endFill();
 			visible = true;
 		}
 

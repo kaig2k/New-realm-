@@ -140,6 +140,9 @@ package realm {
 			} else setAttacks(def.attacks);
 		}
 
+		/** A boss's phases as phase objects (for Bosses, which sets up their animations). */
+		public static function phaseList(list:Array):Array { return normalise(list); }
+
 		/** Old-style phase arrays become phase objects at 100% / 66% / 33%. */
 		private static function normalise(list:Array):Array {
 			if (list.normalised) return list.normalised;
@@ -821,7 +824,7 @@ package realm {
 			if (a.p == "nova") return "ground blast";
 			if (a.p == "rain") return "falling blasts";
 			var adj:String = a.motion == "home" ? "homing " : a.motion == "wave" ? "weaving " : a.motion == "boomerang" ? "returning " : a.accel > 0 ? "speeding " : "";
-			var thing:String = a.shape == "blade" ? "blade" : a.shape == "star" ? "star" : a.shape == "ring" ? "ring" : "shot";
+			var thing:String = a.noun ? a.noun : a.shape == "blade" ? "blade" : a.shape == "star" ? "star" : a.shape == "ring" ? "ring" : "shot";
 			if (a.p == "spiral") return adj + thing + " spiral";
 			if (a.p == "ring") return "ring of " + adj + thing + "s";
 			return adj + thing + ((a.n || 1) > 1 ? " volley" : "");

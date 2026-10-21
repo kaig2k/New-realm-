@@ -850,8 +850,9 @@ package realm {
 			var key:String = "p_" + shape + "_" + color + "_" + scale;
 			var frames:Vector.<BitmapData> = cache[key];
 			if (frames) return frames;
-			var rows:Array = PROJ[shape] || P_ORB;
-			var pal:Object = {C: color, a: shade(color, 0.6), W: tint(color, 0.75), S: 0x8a5a2a, H: 0xe8e8e8, F: color, I: 0x2c3046, i: 0x5a6280, G: 0xd8a030, K: 0x06000c};
+			var rows:Array = PROJ[shape] || BossShots.SHAPES[shape] || P_ORB;
+			var pal:Object = {C: color, a: shade(color, 0.6), W: tint(color, 0.75), S: 0x8a5a2a, H: 0xe8e8e8, F: color, I: 0x2c3046, i: 0x5a6280, G: 0xd8a030, K: 0x06000c,
+				B: 0xe8dcc0, b: 0x9a8e74};
 			var base:BitmapData = build(rows, pal, scale, 1);
 			var D:int = Math.ceil(Math.sqrt(base.width * base.width + base.height * base.height));
 			frames = new Vector.<BitmapData>(ROT_FRAMES, true);

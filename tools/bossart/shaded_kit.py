@@ -38,22 +38,48 @@ def torso(m, cx, top, bottom, w, mat, tex=None):
     m.capsule((cx, top, 1), (cx, bottom, 1), w, w * 0.8, mat, tex or rough(0.06))
 
 
+def side(m, x):
+    """Which side of the body a point is on (the rig's armR / armL): 'R' right of the middle."""
+    return 'R' if x >= m.w0 / 2 else 'L'
+
+
 def arm(m, sh, el, hand, r, mat, hand_mat=None, hand_r=None):
+    """An arm (the rig's armR or armL, turning at the shoulder); what's drawn in its hand afterwards
+    with held() moves with it."""
+    prev = m.cur
+    s = side(m, hand[0])
+    m.part('arm' + s, sh[:2])
     m.capsule(sh, el, r, r * 0.85, mat)
     m.capsule(el, hand, r * 0.85, r * 0.7, mat)
     if hand_mat:
         m.sphere((hand[0], hand[1], hand[2] + 0.5), hand_r or r * 0.8, hand_mat)
+    m.anchor('hand' + s, hand[:2])
+    m.hands[s] = hand[:2]
+    m.part(*prev)
+
+
+def held(m, s=None, x=None):
+    """Shapes from here belong to what a hand holds (heldR / heldL), until m.part(None)."""
+    s = s or side(m, x)
+    m.part('held' + s, m.hands.get(s, (x or m.w0 / 2, m.h0 / 2)), 'arm' + s)
 
 
 def legs(m, cx, top, bottom, gap, r, mat, foot=True):
+    prev = m.cur
     for s in (-1, 1):
+        m.part('legR' if s > 0 else 'legL', (cx + s * gap, top))
         m.capsule((cx + s * gap, top, 0), (cx + s * (gap + 0.6), bottom - 2, 1), r, r * 0.8, mat)
         if foot:
             m.sphere((cx + s * (gap + 0.8), bottom - 1, 2), r * 0.95, mat, 1.25, 0.55, 1.1)
+    m.part(*prev)
 
 
 def head(m, cx, cy, r, mat, z=4):
+    """A head; it starts the rig's 'head' part (turning at the neck), which stays on for the face, hair and
+    hat drawn after it: call m.part(None) when the head is done."""
+    m.part('head', (cx, cy + r))
     m.sphere((cx, cy, z), r, mat, 0.92, 1.05, 1.0)
+    m.anchor('cast', (cx, cy - r))
 
 
 def eyes(m, cx, cy, gap, z, mat, r=0.65):
@@ -82,13 +108,20 @@ def crown(m, cx, y, w, mat, spikes=5, tall=3.5, z=6, gem=None):
 
 
 def staff(m, x, top, bottom, mat, z=6, r=0.9):
+    """A staff in the nearest hand (it moves with that arm); draw its head after it with held() still on
+    (staff() leaves it on: call m.part(None) when the staff is done)."""
+    s = side(m, x)
+    if s in m.hands:
+        held(m, s)
     m.capsule((x, top, z), (x, bottom, z), r, r, mat)
+    m.anchor('cast', (x, top))
 
 
 def wing(m, root, tip_dir, span, mat, bone, z, feathers=True, n=5, droop=0.5, side=1):
     """A wing from root, spreading toward tip_dir (dx, dy normalised), span long."""
     dx, dy = tip_dir
     tip = (root[0] + dx * span, root[1] + dy * span)
+    m.part('wingR' if dx >= 0 else 'wingL', root[:2])
     m.capsule((root[0], root[1], z + 0.5), (tip[0], tip[1], z + 0.5), 1.6, 0.6, bone)
     pts = [root, tip]
     for k in range(n):

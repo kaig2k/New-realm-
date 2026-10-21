@@ -55,6 +55,7 @@ def cube_overlord(t):
     m.sphere((cx, cy + 6, 4), 5.2, 'dark', 1.0, 0.85, 0.6)
     m.sphere((cx, cy + 6, 6.5), 3.6, 'eye', 1.0, 0.85, 0.6)
     m.sphere((cx, cy + 6, 8.6), 1.6, 'pupil', 0.8, 1.2, 0.5)
+    m.anchor('cast', (cx, cy + 6)); m.anchor('handR', (cx + 16, cy)); m.anchor('handL', (cx - 16, cy))
     for k in range(4):
         a = k * math.pi / 2 + 0.4 + t * 0.25
         x, y = 26 + math.cos(a) * 22, 26 + math.sin(a) * 9 - bob
@@ -81,11 +82,14 @@ def hollow_king(t):
     m.capsule((24, 18, 0), (24, 48, 0), 6, 15, 'robe', F)
     m.sphere((24, 49, 0), 15, 'robe', 1, 0.28, 1, F)
     for k in range(7):
+        m.part('hem%d' % (k % 2), (11 + k * 4.3, 50))
         m.capsule((11 + k * 4.3, 50, 4), (11 + k * 4.3, 54 - (k % 2) * 2, 4), 1.6, 0.6, 'robe')
+    m.part(None)
     # gold trim down the front
     m.capsule((24, 20, 7), (24, 52, 14), 0.9, 1.2, 'trim')
     m.capsule((17, 19, 6), (31, 19, 6), 1.0, 1.0, 'trim')
     # the hood: an empty dark face
+    m.part('head', (24, 19))
     m.sphere((24, 12, 2), 8, 'robe', 1, 1.05, 1, F)
     m.sphere((24, 13, 8.2), 4.6, 'void', 0.95, 1.0, 0.45)
     m.mark(22, 13, 'eye'); m.mark(26, 13, 'eye')                       # eyes burning in the dark of the hood
@@ -94,10 +98,18 @@ def hollow_king(t):
     for x in (18, 21, 24, 27, 30):
         m.capsule((x, 5, 4.5), (x, 1.5 if x == 24 else 2.8, 4.5), 1.0, 0.4, 'trim')
     # the arm and the staff, a green gem at its head
+    m.part('armR', (32, 20))
     m.capsule((32, 20, 5), (37, 30, 7), 2.6, 2.2, 'robe')
-    m.capsule((39, 6, 6), (39, 52, 6), 0.9, 0.9, 'staff')
     m.sphere((38.6, 30, 9), 1.8, 'robe')
+    m.anchor('handR', (38.6, 30))
+    m.part('heldR', (38.6, 30), 'armR')
+    m.capsule((39, 6, 6), (39, 52, 6), 0.9, 0.9, 'staff')
     m.sphere((39, 4.4, 7), 2.4 + t * 0.2, 'gem')
+    m.anchor('cast', (39, 4.4))
+    m.part('armL', (16, 20))
+    m.capsule((16, 20, 5), (12, 29, 6), 2.6, 2.0, 'robe')
+    m.sphere((12, 30, 7), 1.6, 'robe')
+    m.anchor('handL', (12, 30))
     return m, HOLLOW
 
 
@@ -119,14 +131,22 @@ def phantom_regent(t):
     m.capsule((24, 20, 0), (24, 40, 0), 7.5, 12, 'shroud', F)
     for k in range(6):
         x = 14 + k * 4 + (t if k % 2 else -t) * 0.6
+        m.part('hem%d' % (k % 2), (x, 40))
         m.capsule((x, 40, 2), (x + (k - 2.5) * 0.8, 48 + (k % 3) * 2, 2), 2.6, 0.5, 'shroud')
     # arms: one reaching out with a sceptre
+    m.part('armL', (16, 22))
     m.capsule((16, 22, 4), (9, 30, 6), 3, 2, 'shroud', F)
+    m.anchor('handL', (9, 30))
+    m.part('armR', (32, 22))
     m.capsule((32, 22, 4), (38, 27, 6), 3, 2, 'shroud', F)
+    m.anchor('handR', (38, 27))
+    m.part('heldR', (38, 27), 'armR')
     m.capsule((39, 10, 7), (39, 40, 7), 0.8, 0.8, 'crown')
     for x in (37, 39, 41):
         m.capsule((x, 10, 7.5), (x, 6, 7.5), 0.6, 0.3, 'crown')
+    m.anchor('cast', (39, 7))
     # a pale mask of a face under the hood
+    m.part('head', (24, 21))
     m.sphere((24, 13, 1), 8, 'shroud', 1, 1, 1, F)
     m.sphere((24, 14, 7.5), 5.0, 'face', 0.9, 1.1, 0.9)
     m.sphere((22, 13.5, 11.6), 1.0, 'void'); m.sphere((26, 13.5, 11.6), 1.0, 'void')
@@ -135,6 +155,7 @@ def phantom_regent(t):
     for x in (19, 22, 24, 26, 29):
         m.capsule((x, 4.6, 6.5), (x, 1 if x == 24 else 2.2, 6.5), 0.8, 0.3, 'crown')
     # wisps of its glow drifting round it
+    m.part(None)
     for k in range(5):
         a = k * 1.3 + t * 0.6
         m.sphere((24 + math.cos(a) * 19, 30 + math.sin(a) * 14, 10), 0.9, 'wisp')
@@ -157,13 +178,19 @@ def sand_sphinx(t):
     # lying down: a long lion body, paws stretched forward (to the right)
     m.sphere((26, 30, 0), 14, 'body', 1.4, 0.62, 0.9, R)
     m.sphere((12, 30, -2), 8, 'body', 1.0, 0.8, 1.0, R)                 # haunch
-    m.capsule((36, 36, 5), (54, 38, 6), 3.4, 3.0, 'body', R)            # forepaws
+    m.part('armL', (36, 37))
     m.capsule((36, 37, -4), (52, 39, -4), 3.2, 2.8, 'stone')
+    m.part('armR', (36, 36))
+    m.capsule((36, 36, 5), (54, 38, 6), 3.4, 3.0, 'body', R)            # forepaws
     m.sphere((55, 38.4, 7), 3.4, 'body', 1.3, 0.7, 1, R)
+    m.anchor('handR', (55, 38)); m.anchor('handL', (52, 39))
     # tail curled at its side
+    m.part('tail', (10, 32))
     m.chain([(6, 32, 4), (2, 36, 5), (6, 40, 6), (12, 40, 6)], [1.6, 1.4, 1.2, 1.0], 'body')
     # the chest rising to a pharaoh's head
+    m.part(None)
     m.sphere((40, 24, 3), 8, 'body', 1, 1.1, 0.9, R)
+    m.part('head', (42, 26))
     # the headdress: striped blue and gold, falling to the shoulders
     m.capsule((44, 10, 2), (44, 26, 2), 7, 8.5, 'blue')
 
@@ -180,6 +207,7 @@ def sand_sphinx(t):
         m.mark(ex - 1, 12, None, 3, 1)                                    # the brow's shadow
         m.mark(ex, 13, 'eye')
     m.capsule((44, 18, 13), (44, 22.5, 12), 0.9, 0.6, 'gold')           # the beard
+    m.anchor('cast', (44, 5))
     return m, SPHINX
 
 
@@ -211,16 +239,24 @@ def tide_hermit(t):
     # the crab coming out of it: legs, body, eyestalks, two great claws
     for k in range(3):
         x = 30 + k * 5
+        m.part('legR' if k % 2 else 'legL', (x, 38))
         m.capsule((x, 38, 6), (x + 4, 47, 7), 1.6, 1.0, 'crab')
+    m.part(None)
     m.sphere((40, 34, 6), 8, 'crab', 1.1, 0.8, 1, rough(0.05))
+    m.part('head', (43, 31))
     for s, ex in ((0, 41), (1, 46)):
         m.capsule((ex, 30, 8), (ex + 1, 22 - t * 0.5, 9), 0.8, 0.6, 'crab')
         m.sphere((ex + 1, 21.4 - t * 0.5, 9.6), 1.6, 'eye')
+    m.anchor('cast', (44, 21))
+    m.part('armR', (44, 36))
     m.capsule((44, 36, 10), (51, 32, 12), 2.6, 2.4, 'claw')
     m.sphere((53, 29.5, 13), 4.6, 'claw', 1.2, 0.9, 1)
     m.capsule((53, 26, 14), (57, 22, 14), 1.6, 0.6, 'claw')
+    m.anchor('handR', (54, 27))
+    m.part('armL', (36, 37))
     m.capsule((36, 37, 11), (40, 43, 12), 2.2, 2.0, 'claw')
     m.sphere((42, 45, 12.5), 3.4, 'claw', 1.2, 0.8, 1)
+    m.anchor('handL', (42, 45))
     return m, HERMIT
 
 
@@ -243,18 +279,25 @@ def skull_shrine(t):
     m.membrane([(8, 30), (50, 30), (52, 37), (6, 37)], 2, 'stone', (0, -0.6), R)
     m.membrane([(6, 37), (52, 37), (54, 40), (4, 40)], 2.5, 'stone', (0, 0.9), R)
     # the great skull on it
+    m.part('head', (29, 34))
     m.sphere((29, 18, 6), 12, 'bone', 1.05, 0.95, 0.9, rough(0.05))
+    m.part('jaw', (29, 26), 'head')
     m.sphere((29, 28, 9), 7.5, 'bone', 1.0, 0.55, 0.8)                  # jaw
+    m.part('head', (29, 34))
     for s in (-1, 1):
         m.sphere((29 + s * 5, 17, 15.5), 3.4, 'void', 1, 1.1, 0.5)
         m.sphere((29 + s * 5, 17.4, 17), 1.2 + t * 0.15, 'eye')
     m.sphere((29, 23, 16.6), 1.4, 'void', 0.9, 1.2, 0.4)               # the nose
+    m.anchor('cast', (29, 17)); m.anchor('handR', (34, 17)); m.anchor('handL', (24, 17))
+    m.part('jaw', (29, 26), 'head')
     for k in range(6):
         m.capsule((24 + k * 2, 28.4, 15.6), (24 + k * 2, 30.6, 15.6), 0.7, 0.7, 'bone')
     m.capsule((22, 29.5, 16.4), (36, 29.5, 16.4), 0.4, 0.4, 'void')
     # candles with purple flames at its corners
     for x in (8, 15, 43, 50):
+        m.part(None)
         m.capsule((x, 30, 8), (x, 24, 8), 1.5, 1.4, 'wax')
+        m.part('hem%d' % (x % 2), (x, 23))
         m.sphere((x, 21.0 - (t if x % 2 else 0) * 0.5, 10), 1.9, 'flame', 0.8, 1.5, 1)
         m.capsule((x, 20, 11), (x + (0.6 if t else -0.6), 16.5, 11), 1.0, 0.3, 'flame')
     return m, SHRINE
@@ -334,3 +377,14 @@ if __name__ == '__main__':
         sheet.alpha_composite(z, (x, H - z.height - 20))
         x += z.width + 20
     sheet.convert('RGB').save(sys.argv[1])
+
+
+# how each boss moves (posed.py): which hand holds what, whether it walks or floats
+RIG = {
+    'boss': {'fly': True, 'arms': 0},
+    'hollowking': {'legs': False, 'cast': 'one', 'held': 'staff'},
+    'regent': {'fly': True, 'cast': 'one', 'held': 'staff'},
+    'sphinx': {'legs': False, 'arms': 0.3, 'heavy': True},
+    'hermit': {'legs': True, 'arms': 0.5, 'heavy': True},
+    'shrine': {'legs': False, 'still': True, 'heavy': True},
+}

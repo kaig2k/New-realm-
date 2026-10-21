@@ -6,7 +6,7 @@ the Kraken.
 """
 import math
 from sdfart import Model, rough, folds, scales, fur, vnoise
-from shaded_kit import g, glow, robe, torso, arm, legs, head, eyes, hood, crown, staff, wing, flame, designs, sheet
+from shaded_kit import g, glow, robe, torso, arm, legs, head, eyes, hood, crown, staff, held, wing, flame, designs, sheet
 
 VOID = g([0x040306, 0x0a080e])
 BONE = g([0x3e3828, 0x6c6450, 0x9e967c, 0xcac4a8, 0xece8d4], spec=0.2)
@@ -144,20 +144,27 @@ def phoenix(t):
     m = Model(64, 54)
     flap = t * 2
     for s in (-1, 1):                                              # wings of flame, feather by feather
+        m.part('wingR' if s > 0 else 'wingL', (32 + s * 5, 20))
+        m.anchor('handR' if s > 0 else 'handL', (32 + s * 26, 10))
         for k in range(6):
             a = -0.35 - k * 0.16
             x0, y0 = 32 + s * 5, 20
             ln = 26 - k * 2
             m.capsule((x0, y0 + k * 1.2, -2 - k * 0.2), (x0 + s * math.cos(a) * ln, y0 + math.sin(a) * ln * 0.6 + k * 3 - flap, -2 - k * 0.2), 2.6, 0.4, 'out')
+    m.part('tail', (32, 34))
     for k in range(5):                                             # tail plumes
         m.capsule((32, 34, 0), (32 + (k - 2) * 4, 52 - abs(k - 2) * 2, 0), 2.4, 0.4, 'out')
+    m.part(None)
     m.sphere((32, 26, 2), 7.5, 'out', 0.9, 1.25, 0.9)
     m.sphere((32, 26, 5), 5, 'in', 0.9, 1.2, 0.8)
+    m.part('head', (32, 19))
     m.sphere((32, 13, 5), 4.4, 'out', 1, 1, 1)
+    m.anchor('cast', (32, 17))
     m.capsule((32, 14, 9), (32, 18, 9.5), 1.4, 0.3, 'beak')
     eyes(m, 32, 12.4, 2.0, 7.6, 'eye', 0.7)
     for k in range(3):
         m.capsule((32 + (k - 1) * 2, 10, 5), (32 + (k - 1) * 4, 3 - (k == 1) * 2, 5), 1.0, 0.3, 'out')   # crest
+    m.part(None)
     return m, M
 
 
@@ -190,9 +197,11 @@ def witch(t):
     torso(m, 24, 18, 30, 4.8, 'robe')
     arm(m, (19, 20, 3), (16, 27, 6), (20, 32, 9), 1.7, 'robe', 'skin', 1.3)
     arm(m, (29, 20, 3), (33, 26, 5), (36, 22, 7), 1.7, 'robe', 'skin', 1.3)
+    held(m, 'R')
     m.capsule((37, 8, 6), (37, 54, 6), 0.9, 0.9, 'wood')           # her broom-staff
     for k in range(5):
         m.capsule((37, 50, 7), (35 + k, 56, 7), 0.6, 0.4, 'straw')
+    m.part(None)
     m.sphere((24, 48, 6), 10, 'pot', 1.1, 0.75, 1)                 # the cauldron, bubbling
     m.sphere((24, 41, 9.5), 8.2, 'brew', 1.05, 0.25, 0.6)
     for k in range(4):
@@ -202,6 +211,8 @@ def witch(t):
     eyes(m, 24, 11.4, 1.5, 7.4, 'eye', 0.55)
     m.sphere((24, 8.5, 2.5), 9, 'robe', 1.0, 0.24, 1.0)            # her hat: a wide brim, a crooked peak
     m.capsule((24, 8, 2.5), (27, -0.5, 1.5), 4.2, 0.4, 'robe')
+    m.part(None)
+    m.anchor('cast', (24, 40))                                      # (her spells rise from the cauldron)
     return m, M
 
 
@@ -255,8 +266,15 @@ def kraken(t):
         j = k % 4
         x0 = 31 + side * (2 + j * 2.5)
         pts = [(x0, 30, 2), (x0 + side * (6 + j * 3), 38 + j, 3), (x0 + side * (10 + j * 4), 46 - j, 3 + j * 0.2), (x0 + side * (8 + j * 5), 51 - j * 2 + t * (1 if k % 2 else -1), 3)]
+        # (the outermost pair are its arms: they rise to strike and cast; the rest sway)
+        S = 'R' if side > 0 else 'L'
+        m.part(('arm' + S) if j == 3 else ('leg' + S if k % 2 else 'hem%d' % (j % 2)), (x0, 30))
         m.chain(pts, [3.4, 2.6, 1.8, 0.8], 'skin')
+        if j == 3:
+            m.anchor('hand' + S, pts[-1][:2])
+    m.part(None)
     m.sphere((31, 18, 0), 13, 'skin', 1, 1.15, 0.9, rough(0.06))   # the great mantle
+    m.anchor('cast', (31, 24))
     m.sphere((31, 28, 4), 9, 'skin', 1.1, 0.6, 0.9)
     for s in (-1, 1):
         m.sphere((31 + s * 5.5, 24, 10), 3.2, 'eye', 1.1, 0.9, 0.6)
@@ -281,3 +299,11 @@ if __name__ == '__main__':
     import sys
     sheet(MODELS[:7], sys.argv[1])
     sheet(MODELS[7:], sys.argv[2])
+
+
+# how each moves (posed.py)
+RIG = {
+    'phoenix': {'fly': True, 'arms': 0, 'flap': 2},
+    'witch': {'legs': False, 'cast': 'one', 'held': 'staff'},
+    'kraken': {'legs': False, 'arms': 0.6, 'held': 'blade'},
+}

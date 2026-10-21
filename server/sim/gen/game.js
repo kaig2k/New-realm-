@@ -1373,9 +1373,40 @@ class Bosses {
 			Bosses.setPieces();
 			Bosses.families();
 			Bosses.harden();
+			Bosses.posed();
 			Bosses.fair();
 			Godly.init();
 			
+		}
+	static posed() {
+			var want = {};
+			for (var n of __vals( Bosses.POSED)) want[n] = true;
+			for (var id in Data.ENEMIES) {
+				var d = Data.ENEMIES[id];
+				if (d.seq || !want[d.spr]) continue;
+				d.seq = Bosses.POSED_SEQ;
+				d.rageAll = true;
+				var ph = d.phases ? Enemy.phaseList(d.phases) : null;
+				if (d.rageAt == undefined && ph && ph.length > 1) d.rageAt = ph.length - 1;
+				var shots = Bosses.POSED_SHOTS[d.spr];
+				if (d.attacks) Bosses.poseAttacks(d.attacks, shots);
+				for (var p of __vals( ph)) {
+					if (p.attacks) Bosses.poseAttacks(p.attacks, shots);
+					for (var c of __vals( p.cycle)) Bosses.poseAttacks(c, shots);
+					for (var dg of __vals( p.dodge)) Bosses.poseAttacks(dg, shots);
+				}
+			}
+		}
+	static poseAttacks(list, shots) {
+			for (var a of __vals( list)) {
+				if (!a || a.anim) continue;
+				a.anim = a.p == "summon" ? "summon" : (a.p == "aimed" || a.p == "wall" || a.dash || a.lead) ? "strike" : "cast";
+				if (!a.animMs) a.animMs = 90;
+				if (shots && a.p != "summon" && (!a.shape || Bosses.PLAIN_SHAPES[a.shape])) {
+					a.shape = shots[a.anim == "strike" ? 0 : 1];
+					a.noun = Bosses.SHOT_NOUNS[a.shape];        
+				}
+			}
 		}
 	static fair() {
 			for (var id in Data.ENEMIES) {
@@ -3850,6 +3881,7 @@ class Enemy {
 			this.stunImmuneT = Enemy.BOSS_STUN_IMMUNE;
 			return true;
 		}
+	static phaseList(list) { return Enemy.normalise(list); }
 	static normalise(list) {
 			if (list.normalised) return list.normalised;
 			var out = [];
@@ -4446,7 +4478,7 @@ class Enemy {
 			if (a.p == "nova") return "ground blast";
 			if (a.p == "rain") return "falling blasts";
 			var adj = a.motion == "home" ? "homing " : a.motion == "wave" ? "weaving " : a.motion == "boomerang" ? "returning " : a.accel > 0 ? "speeding " : "";
-			var thing = a.shape == "blade" ? "blade" : a.shape == "star" ? "star" : a.shape == "ring" ? "ring" : "shot";
+			var thing = a.noun ? a.noun : a.shape == "blade" ? "blade" : a.shape == "star" ? "star" : a.shape == "ring" ? "ring" : "shot";
 			if (a.p == "spiral") return adj + thing + " spiral";
 			if (a.p == "ring") return "ring of " + adj + thing + "s";
 			return adj + thing + ((a.n || 1) > 1 ? " volley" : "");
@@ -5855,6 +5887,18 @@ Godly.DROPS = {
 Godly.source = {};
 Bosses.done = false;
 Bosses.PRIMORDIAL_CHANCE = 0.025;
+Bosses.POSED = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord", "hermit", "shrine",
+			"colossus", "phoenix", "witch", "kraken"];
+Bosses.POSED_SEQ = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
+Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
+			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
+			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],
+			"kraken": ["ink", "bubble"]};
+Bosses.SHOT_NOUNS = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma ball", "ember": "ember", "skull": "skull",
+			"crownlet": "crown", "mask": "mask", "phantom": "phantom", "scarab": "scarab", "ankh": "ankh", "anchor": "anchor", "bubble": "bubble",
+			"claw": "claw", "shell": "shell", "skullfire": "burning skull", "candle": "candle flame", "boulder": "boulder", "voidshard": "void shard",
+			"feather": "feather", "pflame": "fireball", "potion": "potion", "hex": "hex", "ink": "ink blot"};
+Bosses.PLAIN_SHAPES = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
 			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},

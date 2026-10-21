@@ -49,6 +49,32 @@ out += sylith.sequences()
 # sprites that reuse another's frames with a palette of their own (Nerezza's and Gorehorn's attacks in their rage colours)
 RECOLORS = nerezza.recolors() + gorehorn.recolors() + sylith.recolors()
 
+# the posed bosses (posed.py): every animation rendered from the boss's own model. Which ones is Bosses.POSED in
+# the game (read from there, so the list lives in one place)
+import re, posed
+from multiprocessing import Pool
+_src = open(os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'realm', 'Bosses.as')).read()
+POSED = re.findall(r'"(\w+)"', re.search(r'POSED:Array = \[([^\]]*)\]', _src).group(1))
+_RIGS = {}
+for _mod in (realm_shaded, dungeon_shaded_a, dungeon_shaded_b, raid_shaded, angular_shaded):
+    for _n, _fn in _mod.MODELS:
+        _RIGS[_n] = (_fn, getattr(_mod, 'RIG', {}).get(_n, {}))
+
+
+def _pose_one(n):
+    fn, spec = _RIGS[n]
+    seq, rec, imgs = posed.sequences(n, fn, spec)
+    return seq, rec
+
+
+if __name__ == '__main__':
+    missing = [n for n in POSED if n not in _RIGS]
+    assert not missing, 'posed bosses with no model: %s' % missing
+    with Pool() as pool:
+        for seq, rec in pool.map(_pose_one, POSED):
+            out += seq
+            RECOLORS += rec
+
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])
 
@@ -77,7 +103,8 @@ out = [d for i, d in enumerate(out) if latest[d[0]] == i]
 
 lines = []
 for name, frames, pal, scale in out:
-    packed = len(frames[0][0]) > 120
+    # (any sprite whose palette has no digits can be packed: the posed bosses' many frames are)
+    packed = len(frames[0][0]) > 120 or not any(k.isdigit() for k in pal)
     if packed:
         frames = [[rle(r) for r in f] for f in frames]
     lines.append('\t\t\t' + name + ': [[' + ', '.join(as3_rows(f) for f in frames) + '], {' +

@@ -47,21 +47,88 @@ def vnoise(x, y, s=0):
     return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy
 
 
+# ---- the rig's affine maps (a, b, c, d, e, f): x' = a x + b y + c, y' = d x + e y + f
+POSE = {}       # set by posed.py before a model is built: part -> (degrees, dx, dy); 'all' -> (degrees, dx, dy, pivot)
+PAD = 0         # room round the model (posed frames: raised arms and weapons)
+
+
+def _turn(deg, pivot, dx=0, dy=0):
+    a = math.radians(deg)
+    c, s = math.cos(a), math.sin(a)
+    px, py = pivot[0], pivot[1]
+    return (c, -s, px - c * px + s * py + dx, s, c, py - s * px - c * py + dy)
+
+
+def _mul(f, g):
+    """f after g."""
+    return (f[0] * g[0] + f[1] * g[3], f[0] * g[1] + f[1] * g[4], f[0] * g[2] + f[1] * g[5] + f[2],
+            f[3] * g[0] + f[4] * g[3], f[3] * g[1] + f[4] * g[4], f[3] * g[2] + f[4] * g[5] + f[5])
+
+
+def _inv(f):
+    det = f[0] * f[4] - f[1] * f[3]
+    a, b, d, e = f[4] / det, -f[1] / det, -f[3] / det, f[0] / det
+    return (a, b, -(a * f[2] + b * f[5]), d, e, -(d * f[2] + e * f[5]))
+
+
 class Model:
     """Shapes in screen space: x right, y down, z toward the viewer (pixels)."""
 
     def __init__(self, w, h):
-        self.w, self.h = w, h
+        # (posed frames, posed.py: room round the body for raised arms, and the pose itself)
+        self.w0, self.h0 = w, h
+        self.pad = PAD
+        self.w, self.h = w + 2 * PAD, h + 2 * PAD
+        self.pose = POSE
         self.shapes = []
+        self.anchors = {}
+        self.part(None)
+
+    # ---- the rig: parts that a pose turns round their joints
+    def part(self, name, pivot=(0, 0), parent=None):
+        """Shapes from here on belong to a movable part (an arm, the head, a wing); a pose (POSE) turns it
+        round pivot and shifts it. A part with a parent (a staff in a hand) moves with it too. part(None)
+        goes back to the body. Every part also follows 'all'."""
+        if not hasattr(self, '_local'):
+            self._local, self.hands = {}, {}
+        self.cur = (name, pivot, parent)
+        f = (1, 0, 0, 0, 1, 0)
+        p = self.pose.get(name) if name else None
+        if p:
+            f = _turn(p[0], pivot, p[1] if len(p) > 1 else 0, p[2] if len(p) > 2 else 0)
+        if parent:
+            f = _mul(self._local.get(parent, (1, 0, 0, 0, 1, 0)), f)
+        if name:
+            self._local[name] = f
+        a = self.pose.get('all')
+        if a:
+            f = _mul(_turn(a[0], a[3] if len(a) > 3 else (self.w0 / 2, self.h0), a[1], a[2]), f)
+        self._f = _mul((1, 0, self.pad, 0, 1, self.pad), f)
+        self._fi = _inv(self._f)
+
+    def _p(self, q):
+        f = self._f
+        return (f[0] * q[0] + f[1] * q[1] + f[2], f[3] * q[0] + f[4] * q[1] + f[5]) + tuple(q[2:])
+
+    def _t(self, tex):
+        """A texture that stays put on its part as the part moves."""
+        if not tex or self._fi == (1, 0, 0, 0, 1, 0):
+            return tex
+        fi = self._fi
+        return lambda x, y, n: tex(fi[0] * x + fi[1] * y + fi[2], fi[3] * x + fi[4] * y + fi[5], n)
+
+    def anchor(self, name, q):
+        """Remember where a point of the current part ends up (a hand, a mouth): posed.py puts effects there."""
+        self.anchors[name] = self._p(q)
 
     # ---- solids: each returns, for a pixel (x, y), the front surface depth z and its normal
     def sphere(self, c, r, mat, sx=1.0, sy=1.0, sz=1.0, tex=None):
         """An ellipsoid centred at c with radii r*sx, r*sy, r*sz."""
-        self.shapes.append(('ell', c, (r * sx, r * sy, r * sz), mat, tex))
+        self.shapes.append(('ell', self._p(c), (r * sx, r * sy, r * sz), mat, self._t(tex), self._fi))
 
     def capsule(self, a, b, ra, rb, mat, tex=None):
         """A tapered capsule from a (radius ra) to b (radius rb)."""
-        self.shapes.append(('cap', a, b, ra, rb, mat, tex))
+        self.shapes.append(('cap', self._p(a), self._p(b), ra, rb, mat, self._t(tex), self._fi))
 
     def chain(self, pts, radii, mat, tex=None):
         """Capsules through a list of points, the radius easing along them."""
@@ -70,12 +137,12 @@ class Model:
 
     def membrane(self, pts, z, mat, tilt=(0.0, 0.0), tex=None):
         """A flat polygon (a wing, a cape) at depth z, its normal tilted by tilt (nx, ny)."""
-        self.shapes.append(('mem', pts, z, mat, tilt, tex))
+        self.shapes.append(('mem', [self._p(q) for q in pts], z, mat, tilt, self._t(tex), self._fi))
 
     def slab(self, pts, z, bevel, mat, tex=None, height=None):
         """A hard-edged solid: the polygon pts, its face at depth z, its edges bevelled over `bevel` pixels
         (chiselled, not round). height raises the face (default: the bevel)."""
-        self.shapes.append(('slab', pts, z, bevel, mat, tex, height if height is not None else bevel))
+        self.shapes.append(('slab', [self._p(q) for q in pts], z, bevel, mat, self._t(tex), height if height is not None else bevel, self._fi))
 
     def block(self, x0, y0, x1, y1, z, bevel, mat, tex=None):
         """A bevelled rectangle (a breastplate, a stone block)."""
@@ -84,6 +151,7 @@ class Model:
     def mark(self, x, y, mat, w=1, h=1):
         """A crisp mark painted on the finished surface (an eye, a glint): w x h pixels at (x, y),
         in the material's brightest tone (mat=None darkens what is there: a shadow, a brow)."""
+        x, y = self._p((x, y))
         self.shapes.append(('mark', x, y, mat, w, h))
 
     def paint(self, fn):
@@ -162,11 +230,11 @@ class Model:
             if s[0] == 'ell':
                 r = self._ell(x, y, s[1], s[2])
                 if r and (best is None or r[0] > best[0]):
-                    best = (r[0], r[1], s[3], s[4])
+                    best = (r[0], r[1], s[3], s[4], s[-1])
             elif s[0] == 'cap':
                 r = self._cap(x, y, s[1], s[2], s[3], s[4])
                 if r and (best is None or r[0] > best[0]):
-                    best = (r[0], r[1], s[5], s[6])
+                    best = (r[0], r[1], s[5], s[6], s[-1])
             elif s[0] == 'slab':
                 pts, z0, bev, mat, tex, hgt = s[1], s[2], s[3], s[4], s[5], s[6]
                 if self._inside(x, y, pts):
@@ -182,11 +250,11 @@ class Model:
                         n = (0.0, 0.0, 1.0)
                         z = z0 + hgt
                     if best is None or z > best[0]:
-                        best = (z, n, mat, tex)
+                        best = (z, n, mat, tex, s[-1])
             elif s[0] == 'mem':
                 if self._inside(x, y, s[1]) and (best is None or s[2] > best[0]):
                     n = norm((s[4][0], s[4][1], 1))
-                    best = (s[2], n, s[3], s[5])
+                    best = (s[2], n, s[3], s[5], s[-1])
         return best
 
     # ---- render
@@ -205,9 +273,11 @@ class Model:
                 h = depth[y][x]
                 if not h:
                     continue
-                z, n, mat, tex = h
+                z, n, mat, tex, fi = h
+                # (paints see the surface where it was drawn, so markings ride along on a moving part)
+                lx, ly = fi[0] * x + fi[1] * y + fi[2], fi[3] * x + fi[4] * y + fi[5]
                 for fn in paints:
-                    m2 = fn(x, y, h)
+                    m2 = fn(lx, ly, h)
                     if m2:
                         mat = m2
                 m = mats[mat]

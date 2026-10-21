@@ -24,30 +24,46 @@ def golem(m, mat, cx=27, w=13, fist=None, seed=1):
     """A hulking stone body: plated legs, a broad chiselled chest, rock shoulders, arms to heavy fists."""
     R = rough(0.08, 0.35, seed)
     for s in (-1, 1):
+        m.part('legR' if s > 0 else 'legL', (cx + s * 6, 37))
         plate(m, (cx + s * 6, 37), (cx + s * 7, 50), 4.6, 4.0, 1, mat, 1.8, R)
         m.block(cx + s * 7 - 5, 49, cx + s * 7 + 5, 54, 3, 1.6, mat, R)
+    m.part(None)
     chest(m, cx, 14, 39, w, w * 0.66, 3, mat, 4.0, R)
     m.block(cx - w * 0.55, 30, cx + w * 0.55, 38, 7.5, 2.0, mat, R)          # the plated belly
     for s in (-1, 1):
+        m.part('armR' if s > 0 else 'armL', (cx + s * (w + 1), 18))
         rock(m, cx + s * (w + 1), 18, 7, 7, mat, seed + s * 3, sides=7, tex=R)
         plate(m, (cx + s * (w + 2), 22), (cx + s * (w + 5), 34), 4.4, 3.8, 6, mat, 1.8, R)
         rock(m, cx + s * (w + 5.5), 38, 5.4, 9, fist or mat, seed + s * 7, sides=6, tex=R)
+        m.anchor('hand' + ('R' if s > 0 else 'L'), (cx + s * (w + 5.5), 38))
+        m.hands['R' if s > 0 else 'L'] = (cx + s * (w + 5.5), 38)
+    m.part('head', (cx, 14))
     m.slab([(cx - 5, 8), (cx - 3, 4), (cx + 3, 4), (cx + 5, 8), (cx + 4, 14), (cx - 4, 14)], 9, 2.2, mat, R)   # head
+    m.anchor('cast', (cx, 9))
+    m.part(None)
 
 
 def knight(m, mat, cx=26, seed=1):
     """A plated figure: greaves, a breastplate, faulds, pauldrons, plated arms, a helm."""
     R = rough(0.05, 0.3, seed)
     for s in (-1, 1):
+        m.part('legR' if s > 0 else 'legL', (cx + s * 4.5, 36))
         plate(m, (cx + s * 4.5, 36), (cx + s * 5, 52), 3.6, 3.0, 1, mat, 1.5, R)
         m.block(cx + s * 5 - 4, 51, cx + s * 5 + 4, 55, 3, 1.4, mat, R)
+    m.part(None)
     chest(m, cx, 16, 34, 9, 6.5, 3, mat, 3.0, R)
     m.slab([(cx - 7, 33), (cx + 7, 33), (cx + 8, 40), (cx - 8, 40)], 4, 1.6, mat, R)   # faulds
     for s in (-1, 1):
+        m.part('armR' if s > 0 else 'armL', (cx + s * 9, 18))
         pauldron(m, cx + s * 9, 17.5, 6, 6, 7, mat, s, 2.2, R)
         plate(m, (cx + s * 11, 21), (cx + s * 13, 30), 2.8, 2.4, 5, mat, 1.4, R)
         plate(m, (cx + s * 13, 30), (cx + s * 12, 36), 2.4, 2.6, 6, mat, 1.4, R)
+        m.anchor('hand' + ('R' if s > 0 else 'L'), (cx + s * 12, 36))
+        m.hands['R' if s > 0 else 'L'] = (cx + s * 12, 36)
+    m.part('head', (cx, 15))
+    m.anchor('cast', (cx, 9))
     m.slab([(cx - 5, 6), (cx - 3, 2.5), (cx + 3, 2.5), (cx + 5, 6), (cx + 5, 13), (cx + 2, 15), (cx - 2, 15), (cx - 5, 13)], 8, 2.0, mat, R)   # helm
+    m.part(None)
 
 
 def ember_titan(t):
@@ -57,9 +73,12 @@ def ember_titan(t):
     m = Model(56, 58)
     golem(m, 'rock', 28, 13, seed=3)
     for s in (-1, 1):
+        m.part('armR' if s > 0 else 'armL', (28 + s * 14, 18))
         m.sphere((28 + s * 18.5, 39 + t * 0.4, 13), 2.6, 'lava')              # molten fists
+        m.part('head', (28, 14))
         spike(m, (28 + s * 4, 6), (28 + s * 13, 0.5), 1.6, 11, 'horn')
         m.sphere((28 + s * 2.2, 10, 12.4), 0.9, 'core')
+    m.part(None)
     m.sphere((28, 24, 9.5), 3.0 + t * 0.3, 'core', 1, 1.2, 0.5)
     m.paint(cracks('rock', 'lava', 13))
     return m, M
@@ -70,7 +89,9 @@ def colossus(t):
          'glow': glow(0x6020c0, 0xa050ff, 0xe0c0ff, base=0.15)}
     m = Model(62, 58)
     golem(m, 'rock', 31, 16, seed=131)
+    m.part('head', (31, 14))
     m.capsule((27, 10, 12.2), (35, 10, 12.2), 0.8, 0.8, 'glow')
+    m.part(None)
     m.sphere((31, 24, 9.6), 2.8 + t * 0.2, 'glow')
     m.paint(cracks('rock', 'glow', 133, 0.014))
     return m, M
@@ -83,14 +104,19 @@ def frost_warden(t):
     m = Model(58, 60)
     golem(m, 'ice', 27, 12, seed=23)
     for s in (-1, 1):
+        m.part('armR' if s > 0 else 'armL', (27 + s * 13, 18))
         for k in range(3):                                                    # crystal spikes on his shoulders
             spike(m, (27 + s * (11 + k * 2.6), 15), (27 + s * (12 + k * 3), 6 - k), 1.5, 9, 'ice')
+    m.part(None)
     m.sphere((27, 24, 10), 3.0 + t * 0.2, 'core')
-    eyes(m, 27, 9.6, 2.0, 9.4, 'core', 0.7)
+    m.part('heldR', (44.5, 38), 'armR')
     m.capsule((48, 4, 11), (48, 58, 11), 1.0, 1.0, 'haft')                   # a great axe
     m.slab([(48, 6), (56, 2), (57, 15), (48, 12)], 12, 1.4, 'blade')
+    m.part('head', (27, 14))
+    eyes(m, 27, 9.6, 2.0, 9.4, 'core', 0.7)
     for x in (23, 27, 31):
         spike(m, (x, 5), (x, 0.5 if x == 27 else 2), 1.2, 11, 'ice')
+    m.part(None)
     return m, M
 
 
@@ -103,8 +129,11 @@ def furnace_warden(t):
     for k in range(4):
         m.block(22.5 + k * 3.4, 20.5, 24 + k * 3.4, 29.5, 11.5, 0.5, 'fire')
     for s in (-1, 1):
+        m.part('armR' if s > 0 else 'armL', (28 + s * 14, 18))
         flame(m, 28 + s * 18.5, 36, 7, 4, ('fire', 'fire'), z=14, t=t)
+        m.part('head', (28, 14))
         spike(m, (28 + s * 4, 6), (28 + s * 10, 0.5), 1.4, 11, 'horn')
+    m.part(None)
     m.capsule((24, 10, 11.6), (32, 10, 11.6), 0.9, 0.9, 'fire')
     return m, M
 
@@ -116,9 +145,12 @@ def ignis(t):
     knight(m, 'plate', 27, seed=61)
     m.sphere((27, 23, 8.5), 2.6 + t * 0.2, 'lava')
     for s in (-1, 1):
+        m.part('armR' if s > 0 else 'armL', (27 + s * 9, 18))
         flame(m, 27 + s * 9, 14, 8, 4, ('fire', 'lava'), z=11, t=t)
+        m.part('head', (27, 15))
         spike(m, (27 + s * 4, 4), (27 + s * 11, -0.5), 1.4, 10, 'horn')
     m.capsule((23.5, 9.5, 10.5), (30.5, 9.5, 10.5), 0.8, 0.8, 'lava')
+    m.part(None)
     m.paint(cracks('plate', 'lava', 63, 0.02))
     return m, M
 
@@ -129,14 +161,19 @@ def crypt_warden(t):
          'eye': glow(0x1a70c0, 0x40b0ff, 0xc0e8ff, base=0.15), 'lamp': glow(0x2060a0, 0x60c0ff, 0xd0f0ff), 'chain': g([0x2a2a30, 0x4a4a54, 0x70707c])}
     m = Model(50, 60)
     knight(m, 'iron', 27, seed=11)
+    m.part('heldR', (39, 36), 'armR')
     m.capsule((40, 37, 9), (40, 41, 9), 0.4, 0.4, 'chain')
     m.sphere((40, 43.5 + t * 0.3, 9.5), 2.2, 'lamp')                          # a lantern in his fist
+    m.anchor('cast', (40, 43.5))
+    m.part('heldL', (15, 36), 'armL')
     m.slab([(3, 19), (17, 18), (18, 44), (10, 51), (2, 44)], 11, 2.0, 'shield', rough(0.06))   # a tower shield
     m.block(9.5, 20, 11.5, 48, 13.5, 0.6, 'iron')
     m.block(4, 31, 17, 33, 13.5, 0.6, 'iron')
+    m.part('head', (27, 15))
     m.block(22.5, 8.5, 31.5, 10.5, 10.5, 0.5, 'void')                         # the visor slit
     eyes(m, 27, 9.5, 2.0, 9.6, 'eye', 0.7)
     spike(m, (27, 3), (27, -1), 1.0, 9, 'iron')
+    m.part(None)
     return m, M
 
 
@@ -149,13 +186,18 @@ def blood_knight(t):
     knight(m, 'armor', 27, seed=37)
     m.block(26, 20, 28, 30, 9, 0.6, 'red')                                    # a red cross on his breastplate
     m.block(23, 23.5, 31, 25.5, 9, 0.6, 'red')
+    m.part('heldR', (36, 34), 'armR')
     m.slab([(25.6, 36), (28.4, 36), (28.4, 54), (27, 58), (25.6, 54)], 14, 0.8, 'steel')   # a greatsword, point down
     m.block(21, 34, 33, 36, 15, 0.6, 'gold')
     m.block(26, 28, 28, 34, 15, 0.6, 'cape')
+    m.part('head', (27, 15))
     m.block(22.5, 8.5, 31.5, 10.5, 10.5, 0.5, 'red')                          # the burning visor
     for s in (-1, 1):
+        m.part('head', (27, 15))
         spike(m, (27 + s * 4, 4), (27 + s * 10, -0.5), 1.4, 10, 'armor')
+        m.part('armR' if s > 0 else 'armL', (27 + s * 9, 18))
         spike(m, (27 + s * 9, 14.5), (27 + s * 13, 9), 1.2, 10, 'armor')
+    m.part(None)
     return m, M
 
 
@@ -164,11 +206,15 @@ def sunken_lord(t):
          'barn': g([0x4a4a3c, 0x7a7862, 0xaaa88c]), 'rust': g([0x2a1a10, 0x4a2c18, 0x6a4024], facet=8), 'eye': glow(0xd06010, 0xffa040, 0xffe0a0)}
     m = Model(52, 60)
     knight(m, 'armor', 25, seed=9)
+    m.part('head', (25, 15))
     m.block(20.5, 8.5, 29.5, 10.5, 10.5, 0.5, 'eye')                          # one burning slit in the helm
     spike(m, (25, 3), (25, -1.5), 1.4, 9, 'armor')
+    m.part('heldR', (37, 34), 'armR')
     m.capsule((43, 8, 11), (43, 52, 11), 1.1, 1.1, 'rust')                    # the anchor
+    m.capsule((37, 34, 9), (43, 34, 11), 1.3, 1.1, 'armor')                    # (the gauntlet on its shaft)
     m.block(38, 11, 48, 13, 11.5, 0.6, 'rust')
     m.chain([(36, 46, 11), (39, 52, 11.5), (43, 54, 12), (47, 52, 11.5), (50, 46, 11)], [1.2, 1.3, 1.4, 1.3, 1.2], 'rust')
+    m.part(None)
 
     def growth(x, y, h):
         if h[2] != 'armor':
@@ -188,12 +234,20 @@ def sentinel(t):
     chest(m, 25, 14, 34, 12, 10, 4, 'steel', 3.5, R)
     m.block(13, 24, 37, 27, 9, 0.8, 'core')                                  # a band of light round its middle
     for s in (-1, 1):
+        S = 'R' if s > 0 else 'L'
+        m.part('arm' + S, (25 + s * 13, 18))
         pauldron(m, 25 + s * 13, 18, 6, 7, 7, 'steel', s, 2.2, R)
         plate(m, (25 + s * 15, 23), (25 + s * 16, 34), 2.8, 2.2, 6, 'steel', 1.4, R)
+        m.anchor('hand' + S, (25 + s * 16, 34))
+        m.part('head', (25, 14))
         spike(m, (25 + s * 3, 7), (25 + s * 4.5, 0.5), 1.2, 10, 'brass')
+        m.part('wing' + S, (25 + s * 13, 18))
         m.sphere((25 + s * 21, 8 + t, 10), 1.2, 'core')
+    m.part('head', (25, 14))
     m.slab([(20, 8), (30, 8), (31, 14), (19, 14)], 8, 1.8, 'steel', R)
     eyes(m, 25, 11, 2.2, 8.6, 'eye', 0.8)
+    m.anchor('cast', (25, 11))
+    m.part(None)
     return m, M
 
 
@@ -210,3 +264,11 @@ if __name__ == '__main__':
     import sys
     sheet(MODELS[:5], sys.argv[1], sc=4)
     sheet(MODELS[5:], sys.argv[2], sc=4)
+
+
+# how each moves (posed.py)
+RIG = {
+    'titan': {'heavy': True}, 'colossus': {'heavy': True}, 'frost_warden': {'heavy': True},
+    'flame_warden': {'heavy': True}, 'vault_ignis': {}, 'warden': {}, 'blood_knight': {},
+    'sunken_lord': {'held': 'staff'}, 'sentinel': {'fly': True},
+}

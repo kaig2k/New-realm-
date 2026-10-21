@@ -127,9 +127,65 @@ package realm {
 			setPieces();
 			families();
 			harden();
+			posed();
 			fair();
 			Godly.init();
 			skins();
+		}
+
+		/**
+		 * Bosses with posed art (tools/bossart/posed.py draws each one breathing, walking, casting,
+		 * striking, summoning, bracing and dying, every pose rendered from its own model): their
+		 * attacks play the animation that fits them, and their last phase plays in rage colours.
+		 */
+		public static const POSED:Array = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord", "hermit", "shrine",
+			"colossus", "phoenix", "witch", "kraken"];
+		public static const POSED_SEQ:Object = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
+		/** Their own shots (tools/bossart/shots.py): [from its strikes, from its casts], in place of the plain shapes. */
+		public static const POSED_SHOTS:Object = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
+			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
+			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],
+			"kraken": ["ink", "bubble"]};
+		private static const SHOT_NOUNS:Object = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma ball", "ember": "ember", "skull": "skull",
+			"crownlet": "crown", "mask": "mask", "phantom": "phantom", "scarab": "scarab", "ankh": "ankh", "anchor": "anchor", "bubble": "bubble",
+			"claw": "claw", "shell": "shell", "skullfire": "burning skull", "candle": "candle flame", "boulder": "boulder", "voidshard": "void shard",
+			"feather": "feather", "pflame": "fireball", "potion": "potion", "hex": "hex", "ink": "ink blot"};
+		private static const PLAIN_SHAPES:Object = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
+
+		private static function posed():void {
+			var want:Object = {};
+			for each (var n:String in POSED) want[n] = true;
+			for (var id:String in Data.ENEMIES) {
+				var d:Object = Data.ENEMIES[id];
+				if (d.seq || !want[d.spr]) continue;
+				d.seq = POSED_SEQ;
+				d.rageAll = true;
+				var ph:Array = d.phases ? Enemy.phaseList(d.phases) : null;
+				if (d.rageAt == undefined && ph && ph.length > 1) d.rageAt = ph.length - 1;
+				var shots:Array = POSED_SHOTS[d.spr];
+				if (d.attacks) poseAttacks(d.attacks, shots);
+				for each (var p:Object in ph) {
+					if (p.attacks) poseAttacks(p.attacks, shots);
+					for each (var c:Array in p.cycle) poseAttacks(c, shots);
+					for each (var dg:Array in p.dodge) poseAttacks(dg, shots);
+				}
+			}
+		}
+
+		/**
+		 * Summons summon; aimed volleys, walls and charges strike; everything else (rings, novas, rains) is
+		 * cast. Shots in a plain shape become the boss's own (its strike shot or its cast shot).
+		 */
+		private static function poseAttacks(list:Array, shots:Array):void {
+			for each (var a:Object in list) {
+				if (!a || a.anim) continue;
+				a.anim = a.p == "summon" ? "summon" : (a.p == "aimed" || a.p == "wall" || a.dash || a.lead) ? "strike" : "cast";
+				if (!a.animMs) a.animMs = 90;
+				if (shots && a.p != "summon" && (!a.shape || PLAIN_SHAPES[a.shape])) {
+					a.shape = shots[a.anim == "strike" ? 0 : 1];
+					a.noun = SHOT_NOUNS[a.shape];        // (what the death recap calls it)
+				}
+			}
 		}
 
 		/**

@@ -1347,7 +1347,8 @@ package realm {
 			whenHost(function():void { populateDungeon(dw, th); });
 			player.bossDmg = 0;
 			showBanner(th.name, th.color, 3);
-			if (th.trio) msg("You enter the " + th.name + ". Three kings rest in the last hall. Each one that falls makes the others stronger.", th.color);
+			if (th.lair) msg("You enter " + th.name + ". " + th.lair.intro, th.color);
+			else if (th.trio) msg("You enter the " + th.name + ". Three kings rest in the last hall. Each one that falls makes the others stronger.", th.color);
 			else if (th.toElder) msg("You storm " + th.name + ". Slay Azrakor's two lieutenants to open the way to his chamber.", th.color);
 			else if (th.guardians) msg("You enter the " + th.name + ". Its master is sealed until both guardians fall.", th.color);
 			else msg("You enter the " + th.name + ". Its master waits in the last chamber.", th.color);
@@ -1400,6 +1401,8 @@ package realm {
 				if (dungeonWorld.boss.def.sealed) dungeonWorld.boss.invuln = true;
 				dungeonWorld.enemies.push(dungeonWorld.boss);
 			}
+			// a realm boss's lair: its objectives and its master (Lairs.as)
+			if (th.lair) Lairs.populate(dungeonWorld, th, lairApi());
 			// elite monsters in the hard dungeons
 			if (th.hard) {
 				for each (e in dungeonWorld.enemies) {
@@ -1687,6 +1690,7 @@ package realm {
 				updateEvents(dt);
 			}
 			if (world.raid && sync.isHost) updateRaid(dt);
+			if (world.lair && sync.isHost) Lairs.update(world, dt, lairApi());
 			updateLightning(dt);
 			updateAtmosphere(dt);
 			updateAmbient(dt);
@@ -2255,6 +2259,39 @@ package realm {
 		public function hostKill(e:Enemy):void { killEnemy(e); }
 
 		/** Remove a monster without killing it (the host despawned it). */
+		/** What a lair's rules can do in this game (when it's the host: offline). */
+		private var lairApiObj:Object;
+		private function lairApi():Object {
+			if (!lairApiObj) {
+				var self:Game = this;
+				lairApiObj = {
+					spawn: function(id:String, x:Number, y:Number, zone:int, force:Boolean):Enemy {
+						if (!force) return self.spawnEnemy(id, x, y, zone);
+						if (!Data.ENEMIES[id]) return null;
+						var e:Enemy = new Enemy(id, x, y, zone);
+						self.enemies.push(e);
+						return e;
+					},
+					remove: function(e:Enemy):void { if (!e.dead) { e.dead = true; self.dropEnemy(e); } },
+					say: function(text:String, color:uint, banner:Boolean):void { if (banner) self.showBanner(text, color, 3); self.msg(text, color); },
+					done: function(x:Number, y:Number):void { self.lairCleared(x, y); },
+					players: []
+				};
+			}
+			lairApiObj.players = [player];
+			return lairApiObj;
+		}
+
+		/** A lair is cleared (here, or the server says so): the way home opens. */
+		public function lairCleared(x:Number, y:Number):void {
+			if (!world.lair) world.lair = {done: true};
+			world.lair.done = true;
+			msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);
+			addPortal(world, x, y + 2, "nexus", 0, 0xffffff, 0, 0, true, x, y);
+			questEvent("dungeon");
+			player.dungeons++;
+		}
+
 		public function dropEnemy(e:Enemy):void {
 			var i:int = enemies.indexOf(e);
 			if (i >= 0) { enemies[i] = enemies[enemies.length - 1]; enemies.length--; }
@@ -2265,6 +2302,8 @@ package realm {
 		private function killEnemy(e:Enemy, remote:Boolean = false):void {
 			if (e.dead) return;
 			e.dead = true;
+			// a lair's rules (its host runs them: online the server, which tells everyone when it's cleared)
+			if (!remote && world.lair && sync.isHost) Lairs.killed(world, e, lairApi());
 			// a quick squash-and-fade where it fell
 			if (e.def.seq && e.def.seq.death) corpses.push({seq: e.def.spr + "_death", n: e.def.seq.death, flip: e.facingLeft, x: e.x, y: e.y, t: 0, big: true});
 			else if (corpses.length < 40) corpses.push({bd: e.sprite, x: e.x, y: e.y, t: 0, big: e.isBoss});
@@ -2289,7 +2328,7 @@ package realm {
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) questEvent("godkills");
 				if (world.kind == "realm" && e.zone == World.GOD_ZONE) p.godKills++;
 				if (e.def.final || e.def.finale) { questEvent("elder"); p.elders++; }
-				else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0)) { questEvent("dungeon"); p.dungeons++; }
+				else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0) && !(world.theme && world.theme.lair)) { questEvent("dungeon"); p.dungeons++; }
 				else if (e.isBoss) questEvent("events");
 				p.kills++;
 			}
@@ -2354,6 +2393,8 @@ package realm {
 					addPortal(world, e.x + 1.5, e.y + 2, "nexus", 0, 0xffffff, 0, 0, true, e.x, e.y);
 					say(SOVEREIGN, "You have broken my champion... Come, then. Face me!");
 					msg("A portal to the Dark Elder's Chamber has opened (and one back to the Nexus).", 0xc060ff);
+				} else if (e.def.dungeon && world.theme && world.theme.lair) {
+					// (a lair says itself when it's cleared: Lairs.killed, lairCleared)
 				} else if (e.def.dungeon) {
 					showBanner(e.def.name + " has been defeated!", Ui.GOLD, 4);
 					msg("Dungeon cleared! A portal back to the Nexus has opened.", Ui.GOLD);
@@ -2381,9 +2422,11 @@ package realm {
 					world.eventsDone++;
 					world.eventT = 20 + Math.random() * 10;
 					// events often leave a dungeon portal behind
-					if (!remote && Math.random() < Data.DUNGEON_DROP_CHANCE) {
-						var di:int = int(Math.random() * Data.EVENT_DUNGEONS);
-						if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
+					// its own lair (Lairs.as); a boss without one leaves one of the old event dungeons
+					var li:int = e.def.lair ? Data.dungeonIndex(e.def.lair) : -1;
+					if (!remote && (li >= 0 || Math.random() < Data.DUNGEON_DROP_CHANCE)) {
+						var di:int = li >= 0 ? li : int(Math.random() * Data.EVENT_DUNGEONS);
+						if (li < 0 && e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
 						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, PORTAL_TIME, 0, true, e.x, e.y);
 						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (30s)", Data.DUNGEONS[di].color);
 						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");

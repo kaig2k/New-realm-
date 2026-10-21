@@ -123,6 +123,7 @@ package realm {
 			deep();
 			hardDungeons();
 			finales();
+			lairs();
 			raids();
 			setPieces();
 			families();
@@ -1140,6 +1141,215 @@ package realm {
 				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind"});
 			D.push({id: "void_rift", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
 				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
+			// and every realm boss's own lair (Lairs.as)
+			for each (var lth:Object in Lairs.DUNGEONS) D.push(lth);
+		}
+
+		// ------------------------------------------------------------ lairs
+		/**
+		 * The masters of the realm bosses' lairs (Lairs.as) and what guards them: a lair boss is an endgame
+		 * dungeon boss (dtier 5), its objectives are props or lesser bosses the lair's rules count.
+		 */
+		private static function lairBoss(id:String, f:Object):void {
+			boss(id, o({ai: "boss", dungeon: true, dtier: 5, lairBoss: true, xp: 4500, gold: 1400, onrane: 14, aggro: 18, range: 16, def: 32, r: 1.0}, f));
+		}
+		private static function lairProp(id:String, f:Object):void {
+			mob(id, o({ai: "still", spd: 0, prop: true, drop: 0, xp: 300, keep: 0, aggro: 16, range: 12, def: 22, r: 0.7}, f));
+		}
+
+		private static function crone(id:String, name:String, col:uint, x:Object):void {
+			lairBoss(id, {name: name, spr: id, hp: 13000, spd: 1.8, col: col, trio: true, phases: [
+				P(1, {move: "orbit", attacks: x.a}),
+				P(0.5, {say: x.say, move: "teleport", attacks: x.b})
+			]});
+		}
+
+		private static function lairs():void {
+			// --- the Tesseract (the Cube Overlord's): it splits into four shards when it breaks
+			lairBoss("tesseract", {name: "The Tesseract", spr: "tesseract", hp: 24000, spd: 1.3, r: 1.1, col: 0xc040ff,
+				splitInto: {what: "tesseract_shard", n: 4}, phases: [
+				P(1, {say: "GEOMETRY IS ABSOLUTE.", move: "orbit",
+					attacks: [ring(14, 15, 5, 70, 1.4, 0xc040ff), aim(3, 30, 9, 80, 0.9, 0xff60ff), spiral(3, 14, 6, 60, 0.16, 0x8040ff)]}),
+				P(0.6, {say: "REFOLDING.", banner: "The Tesseract folds space!", shield: 2, move: "teleport", summon: [{what: "cubelet", n: 4}],
+					attacks: [wall(19, 5, 85, 1.8, 0x8040ff, {hole: 3}), spiral(4, 12, 6, 70, 0.12, 0xc040ff), aim(5, 60, 9, 75, 1.1, 0xff60ff)]}),
+				P(0.3, {say: "ALL ANGLES CONVERGE.", move: "center",
+					attacks: [flower(24, 10, 6, 80, 0.9, 0xff40ff), rain(5, 5, 110, 2.0, 0xc040ff, {burst: 8}), aim(5, 50, 10, 85, 0.8, 0xffa0ff, {motion: "accel", accel: 0.6})]})
+			]});
+			lairBoss("tesseract_shard", {name: "Tesseract Shard", spr: "cube_shard", hp: 6000, spd: 2.4, r: 0.7, col: 0xc040ff, xp: 800, gold: 200, onrane: 2,
+				phases: [P(1, {move: "chase", attacks: [aim(3, 24, 9, 70, 1.1, 0xff60ff), ring(8, 20, 5, 60, 1.6, 0xc040ff)]})]});
+			lairProp("prism_node", {name: "Prism Node", spr: "cube_pylon", hp: 9000, col: 0xc040ff, lairShield: true,
+				attacks: [ring(8, 22, 4.5, 60, 1.5, 0xc040ff, {name: "prism pulse"})]});
+
+			// --- Titan's Forge (Vorgath the Ember Titan's): the Forgemaster and his bellows
+			lairBoss("forgemaster", {name: "Kragg the Forgemaster", spr: "forgemaster", hp: 26000, spd: 1.2, r: 1.15, col: 0xff6018, phases: [
+				P(1, {say: "Another ingot for my anvil.", move: "chase",
+					attacks: [aim(1, 0, 8, 110, 2.6, 0xffa040, {r: 0.42, life: 1.0, dash: 0.5, dashSpd: 11, wind: 0.6, name: "hammer charge"}),
+						nova(3.2, 0.9, 120, 3.0, 0xff6018, {reach: 3.4, burst: 12, bspd: 5, blife: 1.0, fx: "spikes", land: "slam", name: "anvil slam"}),
+						aim(5, 40, 9, 70, 1.2, 0xff8020)]}),
+				P(0.6, {say: "THE FORGE BURNS HOTTER!", banner: "The Forge roars!", shield: 2, move: "chase", summon: [{what: "imp", n: 4}],
+					attacks: [rain(6, 6, 100, 2.2, 0xff4010, {burst: 6}), wall(19, 5, 85, 2.0, 0xff6018, {hole: 3}), aim(7, 60, 9, 70, 1.0, 0xffa040)]}),
+				P(0.25, {say: "I WILL HAMMER YOU FLAT!", move: "charge", speed: 1.3,
+					attacks: [nova(4.2, 1.1, 150, 2.4, 0xff3010, {reach: 0.01, marker: "rune", radius: 4.2, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", land: "slam", name: "forge quake"}),
+						spiral(5, 16, 7, 75, 0.1, 0xffa040), aim(1, 0, 8, 120, 2.0, 0xffc060, {r: 0.42, life: 1.0, dash: 0.55, dashSpd: 13, wind: 0.5, name: "hammer charge"})]})
+			]});
+			lairProp("forge_bellows", {name: "Forge Bellows", spr: "lava_vent", hp: 11000, col: 0xff6018,
+				attacks: [aim(3, 30, 6, 55, 1.6, 0xff8020, {name: "cinder spit"})]});
+
+			// --- the Wyrm Cradle (Sylith's): Glacia, mother of wyrms, in her ring of obelisks
+			lairBoss("glacia", {name: "Glacia, Mother of Wyrms", spr: "glacia", hp: 25000, spd: 1.8, r: 1.15, col: 0x80d8ff, phases: [
+				P(1, {say: "*the cradle groans with frost*", move: "orbit",
+					attacks: [aim(7, 60, 8, 75, 1.3, 0x80d8ff, {motion: "wave", name: "frost breath"}), ring(12, 15, 5, 65, 1.6, 0xd0f0ff), aim(1, 0, 6, 90, 2.2, 0xffffff, {motion: "home", r: 0.3})]}),
+				P(0.6, {say: "My children, wake!", banner: "Glacia calls her brood!", shield: 2, summon: [{what: "ice_wolf", n: 4}], move: "orbit",
+					attacks: [rain(6, 6, 95, 2.0, 0xa0e8ff, {burst: 6, eff: "slowed"}), aim(9, 80, 8, 70, 1.2, 0x80d8ff, {motion: "wave"}), spiral(4, 14, 6, 65, 0.12, 0xd0f0ff)]}),
+				P(0.25, {say: "WINTER DOES NOT END.", move: "chase", speed: 1.2,
+					attacks: [flower(28, 9, 6, 80, 0.9, 0xd0f0ff), wall(21, 5, 90, 1.6, 0x80d8ff, {hole: 3, eff: "slowed"}), aim(1, 0, 7, 110, 1.8, 0xffffff, {motion: "home", r: 0.32})]})
+			]});
+			lairProp("cradle_obelisk", {name: "Ice Obelisk", spr: "ice_obelisk", hp: 8000, col: 0x80d8ff, lairShield: true,
+				attacks: [ring(6, 25, 4.5, 55, 1.8, 0xd0f0ff, {eff: "slowed", name: "frost pulse"})]});
+
+			// --- the Hollow Court (the Hollow King's): the Hollow Prince and his three Crown Knights
+			lairBoss("hollow_prince", {name: "The Hollow Prince", spr: "hollow_prince", hp: 24000, spd: 1.9, col: 0x9aff7a, phases: [
+				P(1, {say: "Father's crown is mine now.", move: "teleport",
+					attacks: [aim(3, 20, 10, 85, 0.9, 0x9aff7a, {motion: "home", r: 0.26}), ring(16, 12, 5, 70, 1.5, 0x6aff4a), nova(2.6, 1.0, 110, 2.6, 0x9aff7a, {burst: 10, eff: "bleeding"})]}),
+				P(0.6, {say: "Rise, my court!", banner: "The dead court rises!", shield: 2, summon: [{what: "skeleton", n: 5}], move: "orbit",
+					attacks: [wall(19, 5, 85, 1.8, 0xe8e0c8, {hole: 3}), spiral(4, -14, 6, 70, 0.12, 0x9aff7a), aim(5, 50, 9, 80, 1.0, 0x6aff4a)]}),
+				P(0.25, {say: "Kneel to the HOLLOW CROWN!", move: "chase", speed: 1.25,
+					attacks: [aim(1, 0, 8, 120, 2.0, 0x9aff7a, {r: 0.4, life: 1.0, dash: 0.5, dashSpd: 12, wind: 0.55, name: "regicide lunge"}),
+						flower(24, 10, 6, 80, 0.9, 0x6aff4a), rain(5, 5, 110, 2.2, 0x9aff7a, {burst: 8, eff: "bleeding"})]})
+			]});
+			mob("crown_knight", {name: "Crown Knight", spr: "royal_guard", hp: 16000, def: 28, spd: 1.8, xp: 900, r: 0.6, keep: 2, aggro: 14, range: 11, col: 0x9aff7a, lairShield: true,
+				attacks: [aim(3, 30, 9, 75, 1.2, 0xe8e0c8, {shape: "blade"}), nova(2.4, 1.0, 100, 3.0, 0x9aff7a, {burst: 8})]});
+
+			// --- the Bone Pit (Gorehorn's): Rendmaw, the brood's alpha
+			lairBoss("rendmaw", {name: "Rendmaw, Alpha of the Brood", spr: "rendmaw", hp: 25000, spd: 2.4, r: 1.15, col: 0xff3a30, phases: [
+				P(1, {say: "*a wet, hungry snarl*", move: "chase",
+					attacks: [aim(1, 0, 8, 110, 2.4, 0xff3a30, {r: 0.42, life: 1.0, dash: 0.6, dashSpd: 13, wind: 0.7, name: "rending charge"}),
+						ring(14, 15, 5.5, 70, 1.5, 0xe8e0c0, {shape: "spike"}), aim(4, 30, 10, 70, 1.0, 0xff6040, {shape: "spike"})]}),
+				P(0.55, {say: "*the brood answers its howl*", banner: "Rendmaw howls for the brood!", shield: 2, summon: [{what: "gore_spawn", n: 5}], move: "chase",
+					attacks: [nova(3.4, 1.0, 130, 2.6, 0xff3a30, {reach: 3.6, burst: 12, bspd: 5, blife: 1.0, fx: "spikes", land: "slam", name: "maul"}),
+						aim(1, 0, 8, 115, 2.0, 0xff3a30, {r: 0.42, life: 1.0, dash: 0.6, dashSpd: 14, wind: 0.6, name: "rending charge"}), spiral(4, 15, 6, 70, 0.12, 0xe8e0c0)]}),
+				P(0.2, {say: "*it goes berserk*", move: "charge", speed: 1.4,
+					attacks: [aim(1, 0, 8, 125, 1.4, 0xff2020, {r: 0.42, life: 1.0, dash: 0.6, dashSpd: 15, wind: 0.45, name: "berserk charge"}),
+						flower(24, 10, 6, 85, 0.9, 0xff3a30), rain(5, 5, 110, 2.2, 0xe8e0c0, {burst: 8})]})
+			]});
+
+			// --- the Phantom Court (the Phantom Regent's): the Mirror Regent and its echoes (it looks just like them)
+			lairBoss("mirror_regent", {name: "The Mirror Regent", spr: "regent", hp: 22000, spd: 2.4, col: 0xc090ff, phases: [
+				P(1, {say: "Which of us is real?", move: "teleport",
+					attacks: [spiral(6, 8, 5, 60, 0.14, 0xc090ff), aim(1, 0, 11, 90, 0.9, 0xffffff, {eff: "confused"}), ring(14, 12, 4.5, 65, 1.4, 0x8040c0, {motion: "return"})]}),
+				P(0.66, {say: "We are legion, and we are one.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "orbit",
+					attacks: [aim(3, 40, 6, 70, 1.3, 0x8040c0, {motion: "home"}), wall(17, 5, 80, 2.0, 0xff60c0, {eff: "slowed"}), spiral(4, -12, 6, 65, 0.12, 0xe0b0ff)]}),
+				P(0.33, {say: "Shatter us all, then.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 4}], move: "teleport",
+					attacks: [flower(24, 10, 6, 80, 0.9, 0xc090ff), aim(5, 60, 9, 85, 1.0, 0xffffff, {eff: "confused"}), rain(5, 5, 110, 2.0, 0x8040c0, {burst: 8})]})
+			]});
+			mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 7000, def: 18, spd: 2.2, xp: 400, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff, lairShield: true,
+				attacks: [spiral(4, 10, 5, 55, 0.2, 0xc090ff), aim(1, 0, 9, 70, 1.4, 0xffffff, {eff: "confused"})]});
+
+			// --- the Tomb of Riddles (the Sphinx's): Ankhamun, whose heart is in four jars
+			lairBoss("pharaoh", {name: "Ankhamun the Undying", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
+				P(1, {say: "Who disturbs the eternal sleep?", move: "center",
+					attacks: [wall(19, 5, 85, 1.8, 0xe8c070, {hole: 3, motion: "wave"}), aim(3, 30, 9, 80, 1.0, 0x40e0ff), spiral(3, 15, 6, 65, 0.14, 0xffc040)]}),
+				P(0.6, {say: "My servants never rest.", banner: "The tomb's servants rise!", shield: 2, summon: [{what: "temple_scorpion", n: 4}], move: "orbit",
+					attacks: [rain(6, 5, 100, 2.0, 0xffc040, {burst: 8}), aim(1, 0, 6, 95, 2.0, 0x40e0ff, {motion: "home", r: 0.3, eff: "armorbroken", name: "curse of the tomb"}), ring(16, 14, 5, 70, 1.3, 0xe8c070)]}),
+				P(0.25, {say: "The sands will swallow you!", move: "teleport",
+					attacks: [flower(28, 9, 6, 80, 0.9, 0xffc040), wall(21, 5, 95, 1.5, 0xe8c070, {hole: 2, waves: 2, gap: 0.5}), nova(3, 1.2, 140, 2.4, 0x40e0ff, {burst: 14, eff: "armorbroken"})]})
+			]});
+			lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 9000, col: 0xffc040, lairShield: true,
+				attacks: [ring(6, 20, 4.5, 55, 1.6, 0xffc040, {name: "jar's curse"})]});
+
+			// --- the Drowned Keep (the Lord of the Sunken Lands'): Admiral Brine, twice
+			lairBoss("admiral_brine", {name: "Admiral Brine", spr: "admiral", hp: 20000, spd: 1.6, col: 0x50a0c0, phases: [
+				P(1, {say: "All hands! Repel boarders!", move: "orbit",
+					attacks: [aim(3, 18, 10, 85, 1.0, 0x50a0c0), wall(17, 5, 80, 2.0, 0x40a0ff, {hole: 3, motion: "wave"}), ring(14, 12, 4.5, 65, 1.5, 0x80d0ff)]}),
+				P(0.5, {say: "Fire the guns!", banner: "Brine opens fire!", shield: 2, summon: [{what: "pirate_brawler", n: 4}], move: "center",
+					attacks: [rain(6, 6, 100, 2.2, 0x50a0c0, {burst: 8}), aim(5, 40, 9, 80, 1.1, 0x40a0ff), spiral(4, 14, 6, 65, 0.12, 0x80d0ff)]})
+			]});
+			lairBoss("admiral_drowned", {name: "Brine, the Drowned Admiral", spr: "admiral", hp: 16000, spd: 2.0, col: 0x30e0c0, rageAt: 0, phases: [
+				P(1, {say: "The sea... gives me back...", banner: "Brine rises from the deep!", move: "chase",
+					attacks: [aim(5, 50, 9, 85, 1.0, 0x30e0c0, {motion: "wave"}), flower(24, 10, 6, 80, 0.9, 0x40a0ff), aim(1, 0, 6, 100, 1.8, 0xd0ffff, {motion: "home", r: 0.32})]}),
+				P(0.4, {say: "DROWN WITH ME!", move: "charge", speed: 1.3,
+					attacks: [wall(21, 5, 95, 1.5, 0x30e0c0, {hole: 2, waves: 2, gap: 0.5}), rain(6, 5, 120, 2.0, 0x40a0ff, {burst: 10}), aim(7, 70, 9, 85, 1.0, 0x30e0c0)]})
+			]});
+
+			// --- the Coral Grotto (the Tide Hermit's): Pearlmaw and its giant clams
+			lairBoss("pearlmaw", {name: "Pearlmaw", spr: "pearlmaw", hp: 25000, spd: 1.0, r: 1.2, col: 0x30c8b0, phases: [
+				P(1, {say: "*CLACK CLACK*", move: "wander",
+					attacks: [ring(16, 12, 4.5, 70, 1.4, 0xf0f0ff), aim(3, 22, 9, 80, 1.0, 0x30c8b0, {shape: "orb"}), aim(1, 0, 7, 100, 2.4, 0xffffff, {r: 0.4, motion: "return", name: "pearl shot"})]}),
+				P(0.55, {say: "*it clamps shut and the tide rises*", banner: "The tide surges!", shield: 2.5, summon: [{what: "crab", n: 5}], move: "center",
+					attacks: [wall(19, 5, 85, 1.8, 0x30c8b0, {hole: 3, motion: "wave"}), spiral(5, 12, 6, 65, 0.12, 0xf0f0ff), rain(5, 5, 100, 2.2, 0x40a0ff, {burst: 6})]}),
+				P(0.2, {say: "*CLACK CLACK CLACK*", move: "chase", speed: 1.3,
+					attacks: [flower(24, 10, 6, 80, 0.9, 0x30c8b0), aim(1, 0, 7, 115, 1.6, 0xffffff, {r: 0.42, motion: "return", name: "pearl shot"}), nova(3.2, 1.0, 140, 2.4, 0xf0f0ff, {burst: 14})]})
+			]});
+			lairProp("pearl_clam", {name: "Pearl Clam", spr: "clam_cannon", hp: 10000, col: 0x30c8b0,
+				attacks: [aim(1, 0, 6, 70, 2.0, 0xffffff, {r: 0.3, name: "pearl"})]});
+
+			// --- the Ossuary (the Skull Shrine's): Ossarion, bound to five candles
+			lairBoss("ossarion", {name: "Ossarion the Bone Lord", spr: "ossarion", hp: 25000, spd: 1.3, r: 1.15, col: 0xb070ff, phases: [
+				P(1, {say: "Your bones will join my throne.", move: "center",
+					attacks: [aim(1, 0, 8, 115, 2.4, 0xe8e0c8, {r: 0.42, life: 1.0, dash: 0.5, dashSpd: 11, wind: 0.6, name: "scythe reap"}),
+						ring(16, 14, 5, 70, 1.4, 0xb070ff), aim(3, 26, 9, 80, 1.0, 0xe8e0c8)]}),
+				P(0.6, {say: "Rise, rise, RISE!", banner: "The bones rise!", shield: 2, summon: [{what: "bone_thrall", n: 4}], move: "orbit",
+					attacks: [wall(19, 5, 85, 1.8, 0xb070ff, {hole: 3}), spiral(4, -15, 6, 70, 0.12, 0xe8e0c8), nova(3, 1.0, 130, 2.6, 0xb070ff, {burst: 12})]}),
+				P(0.25, {say: "DEATH IS MY HARVEST.", move: "chase", speed: 1.3,
+					attacks: [flower(26, 10, 6, 85, 0.85, 0xb070ff), aim(1, 0, 8, 130, 1.8, 0xe8e0c8, {r: 0.42, life: 1.0, dash: 0.55, dashSpd: 13, wind: 0.5, name: "scythe reap"}),
+						rain(6, 5, 120, 2.0, 0xd0a0ff, {burst: 8})]})
+			]});
+			lairProp("soul_candle", {name: "Soulfire Candle", spr: "spectral_candle", hp: 7000, col: 0xb070ff, lairShield: true,
+				attacks: [aim(1, 0, 6, 60, 1.8, 0xb070ff, {motion: "home", name: "soulfire"})]});
+
+			// --- the Obsidian Quarry (the Colossus's): the Quarry Heart breaks into three
+			lairBoss("quarry_heart", {name: "The Quarry Heart", spr: "quarry_heart", hp: 26000, spd: 1.0, r: 1.2, col: 0x9060ff,
+				splitInto: {what: "obsidian_shard", n: 3}, phases: [
+				P(1, {say: "*glass grinds on glass*", move: "chase",
+					attacks: [nova(3.4, 1.0, 130, 2.8, 0x9060ff, {reach: 3.6, burst: 12, bspd: 5, blife: 1.0, fx: "spikes", land: "slam", name: "quarry slam"}),
+						aim(5, 40, 9, 75, 1.1, 0xc0a0ff), ring(14, 12, 5, 65, 1.6, 0x9060ff)]}),
+				P(0.55, {say: "*shards rain from the ceiling*", banner: "The quarry collapses!", shield: 2, move: "center",
+					attacks: [rain(7, 7, 110, 1.8, 0x9060ff, {burst: 8}), wall(19, 5, 85, 2.0, 0xc0a0ff, {hole: 3}), spiral(4, 14, 6, 70, 0.12, 0x9060ff)]}),
+				P(0.2, {say: "*it cracks open, glowing*", move: "chase", speed: 1.3,
+					attacks: [flower(24, 10, 6, 85, 0.9, 0xc0a0ff), nova(4.2, 1.1, 150, 2.2, 0x9060ff, {reach: 0.01, marker: "rune", radius: 4.2, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", land: "slam", name: "heartquake"})]})
+			]});
+			lairBoss("obsidian_shard", {name: "Obsidian Shard", spr: "golem", hp: 8000, spd: 1.8, r: 0.8, col: 0x9060ff, xp: 900, gold: 250, onrane: 3,
+				phases: [P(1, {move: "chase", attacks: [aim(3, 24, 9, 75, 1.1, 0xc0a0ff), nova(2.4, 1.0, 100, 2.8, 0x9060ff, {burst: 8})]})]});
+
+			// --- the Ashen Aerie (Pyraxis's): Ignaria and her egg
+			lairBoss("ignaria", {name: "Ignaria, Mother of Phoenixes", spr: "ignaria", hp: 22000, spd: 2.2, r: 1.1, col: 0xff8a20, phases: [
+				P(1, {say: "Burn, little sparks.", move: "orbit",
+					attacks: [aim(5, 50, 9, 80, 1.0, 0xff8a20), spiral(4, 16, 6, 65, 0.12, 0xffd060), rain(4, 5, 100, 2.4, 0xff6010, {burst: 6})]}),
+				P(0.5, {say: "The flame never dies!", banner: "Ignaria blazes!", shield: 2, summon: [{what: "imp", n: 4}], move: "teleport",
+					attacks: [flower(24, 10, 6, 80, 0.9, 0xff8a20), wall(19, 5, 85, 1.8, 0xffd060, {hole: 3}), aim(1, 0, 6, 100, 1.8, 0xffffff, {motion: "home", r: 0.3})]})
+			]});
+			lairBoss("ignaria_reborn", {name: "Ignaria Reborn", spr: "ignaria", hp: 13000, spd: 2.6, r: 1.1, col: 0xffd060, rageAt: 0, phases: [
+				P(1, {say: "FROM ASH, I RISE!", move: "chase",
+					attacks: [spiral(6, 18, 7, 75, 0.09, 0xffd060), aim(7, 70, 10, 85, 0.9, 0xff8a20), nova(3.2, 1.0, 140, 2.2, 0xff4010, {burst: 16})]})
+			]});
+			lairProp("ember_egg", {name: "Ember Egg", spr: "ember_nest", hp: 9000, col: 0xff8a20,
+				attacks: [ring(8, 20, 4.5, 60, 1.4, 0xffd060, {name: "egg's heat"})]});
+
+			// --- the Hexwood (Mother Hexis's): her three sisters
+			crone("crone_bramble", "Bramble, the Thorn Sister", 0x60e040, {say: "The wood takes you!",
+				a: [aim(5, 40, 8, 75, 1.1, 0x60e040, {eff: "slowed"}), ring(12, 15, 4.5, 60, 1.6, 0x3a8a20)],
+				b: [wall(17, 5, 85, 1.8, 0x60e040, {hole: 3, eff: "slowed"}), spiral(4, 14, 6, 65, 0.12, 0x9aff6a)]});
+			crone("crone_bog", "Morra, the Bog Sister", 0x40c0a0, {say: "Sink, and drown in my bog!",
+				a: [rain(4, 5, 95, 2.2, 0x40c0a0, {burst: 6}), aim(3, 26, 8, 75, 1.2, 0x2a8a70, {motion: "wave"})],
+				b: [flower(20, 10, 5.5, 75, 1.0, 0x40c0a0), aim(1, 0, 6, 95, 2.0, 0xa0ffe0, {motion: "home", r: 0.3})]});
+			crone("crone_ash", "Cinder, the Ash Sister", 0xff6030, {say: "Burn, burn, burn!",
+				a: [spiral(3, 16, 6, 65, 0.14, 0xff6030), aim(3, 20, 10, 80, 1.0, 0xffa040)],
+				b: [nova(3, 1.0, 130, 2.4, 0xff4010, {burst: 14}), aim(5, 50, 9, 85, 1.0, 0xff6030)]});
+
+			// --- the Kraken's Maw (the Reef Kraken's): the Leviathan beneath its tentacles
+			lairBoss("leviathan", {name: "The Leviathan", spr: "leviathan", hp: 26000, spd: 1.2, r: 1.25, col: 0x8040c0, phases: [
+				P(1, {say: "*the water churns*", move: "center",
+					attacks: [wall(19, 5, 85, 1.8, 0x8040c0, {hole: 3, motion: "wave"}), aim(5, 40, 9, 80, 1.0, 0xb060ff), ring(16, 12, 5, 70, 1.4, 0x40a0ff)]}),
+				P(0.55, {say: "*a roar from the deep*", banner: "The Leviathan surfaces!", shield: 2, move: "center",
+					attacks: [rain(7, 7, 110, 1.8, 0x40a0ff, {burst: 8}), spiral(5, 14, 6, 70, 0.12, 0xb060ff), aim(1, 0, 6, 110, 1.8, 0xffffff, {motion: "home", r: 0.34})]}),
+				P(0.2, {say: "*it thrashes in fury*", move: "center",
+					attacks: [flower(28, 9, 6, 85, 0.85, 0x8040c0), wall(21, 5, 95, 1.5, 0x40a0ff, {hole: 2, waves: 2, gap: 0.5}), nova(4, 1.2, 150, 2.2, 0xb060ff, {burst: 18})]})
+			]});
+			lairProp("maw_tentacle", {name: "Maw Tentacle", spr: "kraken_tentacle", hp: 6500, col: 0x8040c0, lairShield: true,
+				attacks: [aim(3, 30, 7, 60, 1.6, 0xb060ff, {name: "tentacle lash"})]});
+
+			// each realm boss now drops a portal to its own lair
+			for each (var lth:Object in Lairs.DUNGEONS) if (Data.ENEMIES[lth.by]) Data.ENEMIES[lth.by].lair = lth.id;
 		}
 
 		// ------------------------------------------------------------ raids

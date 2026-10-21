@@ -12,7 +12,7 @@
  * bullets), "ekill", "edel", "emax", "wstate", "rstage" and "portal". Games
  * send their hits as "ehit"; the server decides when a monster dies.
  */
-const { Bosses, Data, World, Enemy, SetPieces } = require('./gen/game');
+const { Bosses, Data, World, Enemy, SetPieces, Lairs } = require('./gen/game');
 
 Bosses.init();
 
@@ -308,6 +308,8 @@ class WorldSim {
       if (w.boss.def.sealed) w.boss.invuln = true;
       this.add(w.boss);
     }
+    // a realm boss's lair: its objectives and its master (Lairs.as)
+    if (th.lair) Lairs.populate(w, th, this.lairApi());
     if (th.hard) {
       for (const e of w.enemies) {
         if (e.def.treasure) continue;
@@ -316,6 +318,26 @@ class WorldSim {
         e.dmgMult = 1 + (th.hard - 1) * 0.6;
       }
     }
+  }
+
+  /** What a lair's rules can do here (Lairs.as). */
+  lairApi() {
+    if (this._lairApi) return this._lairApi;
+    const sim = this;
+    this._lairApi = {
+      spawn: (id, x, y, zone, force) => {
+        if (!force) return sim.spawn(id, x, y, zone);
+        if (!Data.ENEMIES[id]) return null;
+        const e = new Enemy(id, x, y, zone);
+        sim.add(e);
+        return e;
+      },
+      remove: (e) => { if (!e.dead) { e.dead = true; sim.all({ t: 'edel', id: e.id }); } },
+      say: (text, color, banner) => sim.all({ t: 'wmsg', text, banner: banner ? text : undefined, color }),
+      done: (x, y) => sim.all({ t: 'wmsg', lairDone: 1, x: r2(x), y: r2(y) }),
+      get players() { return [...sim.players.values()].filter((c) => c.alive !== false); }
+    };
+    return this._lairApi;
   }
 
   populateRaid() {
@@ -429,6 +451,7 @@ class WorldSim {
       if (this.closeT > 0) { this.closeT -= dt; if (this.closeT <= 0) this.w.closed = true; }
     }
     if (this.w.raid) this.updateRaid(dt);
+    if (this.kind === 'dg' && this.theme && this.theme.lair) Lairs.update(this.w, dt, this.lairApi());
     if (this.deep) this.updateWaves(dt);
     if (this.siege) this.updateSiege(dt);
     this.updateArena(dt);
@@ -749,6 +772,8 @@ class WorldSim {
     e.dead = true;
     const w = this.w;
     this.all({ t: 'ekill', id: e.id });
+    // a lair's rules first (a master that splits or comes back isn't beaten yet: see questKill)
+    if (this.kind === 'dg' && this.theme && this.theme.lair) Lairs.killed(w, e, this.lairApi());
     // one of a bonded pair or trio of raid bosses: the rest take its strength (Enemy.checkBond)
     if (e.bonded && e.bonded.some((o) => !o.dead)) this.all({ t: 'wmsg', banner: e.def.bond, text: e.def.bond, color: this.w.raid ? this.w.raid.color : 0xffd75e });
     // what each player who hit it could earn from it (gold and fame checks)
@@ -800,7 +825,10 @@ class WorldSim {
           if (team.length) this.onEventKill(e.defId, Date.now() - e.firstHit, team);
         }
         w.eventT = 20 + Math.random() * 10;
-        if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
+        // its own lair (Lairs.as); a boss without one leaves one of the old event dungeons
+        const li = e.def.lair ? Data.dungeonIndex(e.def.lair) : -1;
+        if (li >= 0) this.portal(e.x + 1.5, e.y, 'dungeon', li, Data.DUNGEONS[li].color, e.x, e.y);
+        else if (Math.random() < Data.DUNGEON_DROP_CHANCE) {
           let di = Math.floor(Math.random() * Data.EVENT_DUNGEONS);
           if (e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
           this.portal(e.x + 1.5, e.y, 'dungeon', di, Data.DUNGEONS[di].color, e.x, e.y);
@@ -844,6 +872,7 @@ class WorldSim {
         !this.enemies.some((o) => o !== e && !o.dead && o.isBoss)) evs.push('raid:' + this.w.raid.id);
       if (this.heroic && evs.includes('raid:' + this.w.raid.id)) evs.push('raidh:' + this.w.raid.id);
       if (e.def.final || e.def.finale) evs.push('elder');
+      else if (this.kind === 'dg' && this.theme && this.theme.lair) { if (w.lair && w.lair.done && !this.lairQuested) { this.lairQuested = true; evs.push('dungeon'); } }
       else if (this.kind === 'dg' && e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
       else if (this.kind === 'realm' && e.def.setpiece) {
         evs.push('events', 'event:' + e.defId);

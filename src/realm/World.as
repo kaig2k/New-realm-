@@ -116,6 +116,8 @@ package realm {
 		/** Dungeon side room holding a treasure chest (or null). */
 		public var treasure:Object;
 		public var theme:Object;
+		/** A lair's state (Lairs.populate): its waves, shields and eggs. */
+		public var lair:Object;
 
 		private var noise:Vector.<Number>;
 		private var noiseW:int;

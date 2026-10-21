@@ -2872,6 +2872,38 @@ async function run() {
     check('a save full of them is accepted', !why, why);
   }
 
+  console.log('lairs');
+  {
+    // every realm boss leaves its own lair; each one's rules work and it can be cleared (shields, regrowth, waves,
+    // splitting, eggs, trios), with the cleared message every game uses to open the way home
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: LD, Lairs } = require('./sim/gen/game');
+    for (const th of Lairs.DUNGEONS) {
+      check(th.name + ' is ' + (LD.ENEMIES[th.by] && LD.ENEMIES[th.by].name) + '\'s lair', LD.ENEMIES[th.by] && LD.ENEMIES[th.by].lair === th.id);
+      const ws = new WorldSim('dg:' + LD.dungeonIndex(th.id) + ':4242'), w = ws.w, last = w.rooms[w.rooms.length - 1], L = th.lair;
+      const msgs = [];
+      const pl = { id: 1, x: last.x + 0.5, y: last.y + 3.5, maxDps: 1e9, send: (m) => msgs.push(m) };
+      ws.join(pl);
+      let shielded = false, regrew = false, egg = false, waitRegrow = !!(L.shield && L.shield.regrow), hatch = false;
+      for (let step = 0; step < 4000 && !(w.lair && w.lair.done); step++) {
+        ws.tick(0.1);
+        const live = ws.enemies.filter((e) => !e.dead);
+        const shields = live.filter((e) => e.lairShield || e.def.lairShield);
+        if (shields.length && w.boss && !w.boss.dead && w.boss.invuln) shielded = true;
+        const eggs = live.filter((e) => L.rebirth && e.defId === L.rebirth.egg);
+        if (eggs.length) { egg = true; if (!hatch) { hatch = true; continue; } }
+        const next = shields[0] || live.find((e) => (L.mend && e.defId === L.mend.id) || e.lairWave) || eggs[0];
+        if (next) { ws.kill(next); continue; }
+        const masters = live.filter((e) => (e.def.lairBoss || e.def.trio) && !e.invuln);
+        if (waitRegrow && masters.length) { if (msgs.some((m) => m.d && m.d.banner === L.shield.text)) { regrew = true; waitRegrow = false; } continue; }
+        if (masters.length) ws.kill(masters[0]);
+      }
+      const cleared = !!(w.lair && w.lair.done) && msgs.some((m) => m.d && m.d.lairDone);
+      check('  ' + th.name + ': its rules hold and it can be cleared', cleared && (!L.shield || shielded) && (!(L.shield && L.shield.regrow) || regrew) &&
+        (!L.waves || w.lair.wave === L.waves.n) && (!(L.rebirth && L.rebirth.egg) || egg), JSON.stringify({ cleared, shielded, regrew, egg, wave: w.lair && w.lair.wave }));
+    }
+  }
+
   check('no errors in the server log', !/error handling|TypeError|ReferenceError/.test(srvOut), (srvOut.match(/.*error.*/i) || [''])[0]);
   for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil, ws]) c.s.destroy();
   hook.close();

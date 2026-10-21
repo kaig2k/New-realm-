@@ -24,7 +24,7 @@ SRC = os.path.join(ROOT, 'src', 'realm')
 OUT = os.path.join(ROOT, 'server', 'sim', 'gen', 'game.js')
 
 # classes to convert, and members to leave out (rendering, client-only)
-CLASSES = ['Data', 'Uniques', 'Godly', 'Bosses', 'World', 'SetPieces', 'Enemy']
+CLASSES = ['Data', 'Uniques', 'Godly', 'Bosses', 'World', 'SetPieces', 'Enemy', 'Lairs']
 SKIP = {
     'World': {'texture', 'mark', 'blade', 'shallow', 'render', 'chunk', 'drawGround', 'releaseGround', 'drawEdges',
               'reveal', 'minimap', 'seen', 'chunks', 'chunkOrder', 'drawMtx', 'target', 'offX', 'offY', 'trng',

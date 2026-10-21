@@ -163,6 +163,7 @@ package realm {
 					if (from != 0) return;
 					if (d.banner) g.showBanner(String(d.banner), d.color || 0xffd75e, 3.5);
 					if (d.text) g.msg(Ui.esc(String(d.text)), d.color || 0xffd75e);
+					if (d.lairDone) g.lairCleared(Number(d.x), Number(d.y));
 					break;
 				case "espawn":
 					if (isHost) return;

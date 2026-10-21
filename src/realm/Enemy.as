@@ -64,6 +64,8 @@ package realm {
 		public var shieldT:Number = 0;
 		/** Damage multiplier (elite dungeon monsters, enraged kings). */
 		public var dmgMult:Number = 1;
+		/** A lair's (Lairs.as): one of what shields its master, a monster of one of its waves, an egg's time left. */
+		public var lairShield:Boolean = false, lairWave:Boolean = false, eggT:Number = 0;
 		/** You hit it at least once (you only get loot from monsters you fought). */
 		public var playerHit:Boolean = false;
 		/** Network id (online: shared by every player in the world). */

@@ -1369,6 +1369,7 @@ class Bosses {
 			Bosses.deep();
 			Bosses.hardDungeons();
 			Bosses.finales();
+			Bosses.lairs();
 			Bosses.raids();
 			Bosses.setPieces();
 			Bosses.families();
@@ -2120,6 +2121,207 @@ class Bosses {
 				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind"});
 			D.push({id: "void_rift", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
 				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
+			
+			for (var lth of __vals( Lairs.DUNGEONS)) D.push(lth);
+		}
+	static lairBoss(id, f) {
+			Bosses.boss(id, Bosses.o({ai: "boss", dungeon: true, dtier: 5, lairBoss: true, xp: 4500, gold: 1400, onrane: 14, aggro: 18, range: 16, def: 32, r: 1.0}, f));
+		}
+	static lairProp(id, f) {
+			Bosses.mob(id, Bosses.o({ai: "still", spd: 0, prop: true, drop: 0, xp: 300, keep: 0, aggro: 16, range: 12, def: 22, r: 0.7}, f));
+		}
+	static crone(id, name, col, x) { col = __uint(col);
+			Bosses.lairBoss(id, {name: name, spr: id, hp: 13000, spd: 1.8, col: col, trio: true, phases: [
+				Bosses.P(1, {move: "orbit", attacks: x.a}),
+				Bosses.P(0.5, {say: x.say, move: "teleport", attacks: x.b})
+			]});
+		}
+	static lairs() {
+			
+			Bosses.lairBoss("tesseract", {name: "The Tesseract", spr: "tesseract", hp: 24000, spd: 1.3, r: 1.1, col: 0xc040ff,
+				splitInto: {what: "tesseract_shard", n: 4}, phases: [
+				Bosses.P(1, {say: "GEOMETRY IS ABSOLUTE.", move: "orbit",
+					attacks: [Bosses.ring(14, 15, 5, 70, 1.4, 0xc040ff), Bosses.aim(3, 30, 9, 80, 0.9, 0xff60ff), Bosses.spiral(3, 14, 6, 60, 0.16, 0x8040ff)]}),
+				Bosses.P(0.6, {say: "REFOLDING.", banner: "The Tesseract folds space!", shield: 2, move: "teleport", summon: [{what: "cubelet", n: 4}],
+					attacks: [Bosses.wall(19, 5, 85, 1.8, 0x8040ff, {hole: 3}), Bosses.spiral(4, 12, 6, 70, 0.12, 0xc040ff), Bosses.aim(5, 60, 9, 75, 1.1, 0xff60ff)]}),
+				Bosses.P(0.3, {say: "ALL ANGLES CONVERGE.", move: "center",
+					attacks: [Bosses.flower(24, 10, 6, 80, 0.9, 0xff40ff), Bosses.rain(5, 5, 110, 2.0, 0xc040ff, {burst: 8}), Bosses.aim(5, 50, 10, 85, 0.8, 0xffa0ff, {motion: "accel", accel: 0.6})]})
+			]});
+			Bosses.lairBoss("tesseract_shard", {name: "Tesseract Shard", spr: "cube_shard", hp: 6000, spd: 2.4, r: 0.7, col: 0xc040ff, xp: 800, gold: 200, onrane: 2,
+				phases: [Bosses.P(1, {move: "chase", attacks: [Bosses.aim(3, 24, 9, 70, 1.1, 0xff60ff), Bosses.ring(8, 20, 5, 60, 1.6, 0xc040ff)]})]});
+			Bosses.lairProp("prism_node", {name: "Prism Node", spr: "cube_pylon", hp: 9000, col: 0xc040ff, lairShield: true,
+				attacks: [Bosses.ring(8, 22, 4.5, 60, 1.5, 0xc040ff, {name: "prism pulse"})]});
+
+			
+			Bosses.lairBoss("forgemaster", {name: "Kragg the Forgemaster", spr: "forgemaster", hp: 26000, spd: 1.2, r: 1.15, col: 0xff6018, phases: [
+				Bosses.P(1, {say: "Another ingot for my anvil.", move: "chase",
+					attacks: [Bosses.aim(1, 0, 8, 110, 2.6, 0xffa040, {r: 0.42, life: 1.0, dash: 0.5, dashSpd: 11, wind: 0.6, name: "hammer charge"}),
+						Bosses.nova(3.2, 0.9, 120, 3.0, 0xff6018, {reach: 3.4, burst: 12, bspd: 5, blife: 1.0, fx: "spikes", land: "slam", name: "anvil slam"}),
+						Bosses.aim(5, 40, 9, 70, 1.2, 0xff8020)]}),
+				Bosses.P(0.6, {say: "THE FORGE BURNS HOTTER!", banner: "The Forge roars!", shield: 2, move: "chase", summon: [{what: "imp", n: 4}],
+					attacks: [Bosses.rain(6, 6, 100, 2.2, 0xff4010, {burst: 6}), Bosses.wall(19, 5, 85, 2.0, 0xff6018, {hole: 3}), Bosses.aim(7, 60, 9, 70, 1.0, 0xffa040)]}),
+				Bosses.P(0.25, {say: "I WILL HAMMER YOU FLAT!", move: "charge", speed: 1.3,
+					attacks: [Bosses.nova(4.2, 1.1, 150, 2.4, 0xff3010, {reach: 0.01, marker: "rune", radius: 4.2, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", land: "slam", name: "forge quake"}),
+						Bosses.spiral(5, 16, 7, 75, 0.1, 0xffa040), Bosses.aim(1, 0, 8, 120, 2.0, 0xffc060, {r: 0.42, life: 1.0, dash: 0.55, dashSpd: 13, wind: 0.5, name: "hammer charge"})]})
+			]});
+			Bosses.lairProp("forge_bellows", {name: "Forge Bellows", spr: "lava_vent", hp: 11000, col: 0xff6018,
+				attacks: [Bosses.aim(3, 30, 6, 55, 1.6, 0xff8020, {name: "cinder spit"})]});
+
+			
+			Bosses.lairBoss("glacia", {name: "Glacia, Mother of Wyrms", spr: "glacia", hp: 25000, spd: 1.8, r: 1.15, col: 0x80d8ff, phases: [
+				Bosses.P(1, {say: "*the cradle groans with frost*", move: "orbit",
+					attacks: [Bosses.aim(7, 60, 8, 75, 1.3, 0x80d8ff, {motion: "wave", name: "frost breath"}), Bosses.ring(12, 15, 5, 65, 1.6, 0xd0f0ff), Bosses.aim(1, 0, 6, 90, 2.2, 0xffffff, {motion: "home", r: 0.3})]}),
+				Bosses.P(0.6, {say: "My children, wake!", banner: "Glacia calls her brood!", shield: 2, summon: [{what: "ice_wolf", n: 4}], move: "orbit",
+					attacks: [Bosses.rain(6, 6, 95, 2.0, 0xa0e8ff, {burst: 6, eff: "slowed"}), Bosses.aim(9, 80, 8, 70, 1.2, 0x80d8ff, {motion: "wave"}), Bosses.spiral(4, 14, 6, 65, 0.12, 0xd0f0ff)]}),
+				Bosses.P(0.25, {say: "WINTER DOES NOT END.", move: "chase", speed: 1.2,
+					attacks: [Bosses.flower(28, 9, 6, 80, 0.9, 0xd0f0ff), Bosses.wall(21, 5, 90, 1.6, 0x80d8ff, {hole: 3, eff: "slowed"}), Bosses.aim(1, 0, 7, 110, 1.8, 0xffffff, {motion: "home", r: 0.32})]})
+			]});
+			Bosses.lairProp("cradle_obelisk", {name: "Ice Obelisk", spr: "ice_obelisk", hp: 8000, col: 0x80d8ff, lairShield: true,
+				attacks: [Bosses.ring(6, 25, 4.5, 55, 1.8, 0xd0f0ff, {eff: "slowed", name: "frost pulse"})]});
+
+			
+			Bosses.lairBoss("hollow_prince", {name: "The Hollow Prince", spr: "hollow_prince", hp: 24000, spd: 1.9, col: 0x9aff7a, phases: [
+				Bosses.P(1, {say: "Father's crown is mine now.", move: "teleport",
+					attacks: [Bosses.aim(3, 20, 10, 85, 0.9, 0x9aff7a, {motion: "home", r: 0.26}), Bosses.ring(16, 12, 5, 70, 1.5, 0x6aff4a), Bosses.nova(2.6, 1.0, 110, 2.6, 0x9aff7a, {burst: 10, eff: "bleeding"})]}),
+				Bosses.P(0.6, {say: "Rise, my court!", banner: "The dead court rises!", shield: 2, summon: [{what: "skeleton", n: 5}], move: "orbit",
+					attacks: [Bosses.wall(19, 5, 85, 1.8, 0xe8e0c8, {hole: 3}), Bosses.spiral(4, -14, 6, 70, 0.12, 0x9aff7a), Bosses.aim(5, 50, 9, 80, 1.0, 0x6aff4a)]}),
+				Bosses.P(0.25, {say: "Kneel to the HOLLOW CROWN!", move: "chase", speed: 1.25,
+					attacks: [Bosses.aim(1, 0, 8, 120, 2.0, 0x9aff7a, {r: 0.4, life: 1.0, dash: 0.5, dashSpd: 12, wind: 0.55, name: "regicide lunge"}),
+						Bosses.flower(24, 10, 6, 80, 0.9, 0x6aff4a), Bosses.rain(5, 5, 110, 2.2, 0x9aff7a, {burst: 8, eff: "bleeding"})]})
+			]});
+			Bosses.mob("crown_knight", {name: "Crown Knight", spr: "royal_guard", hp: 16000, def: 28, spd: 1.8, xp: 900, r: 0.6, keep: 2, aggro: 14, range: 11, col: 0x9aff7a, lairShield: true,
+				attacks: [Bosses.aim(3, 30, 9, 75, 1.2, 0xe8e0c8, {shape: "blade"}), Bosses.nova(2.4, 1.0, 100, 3.0, 0x9aff7a, {burst: 8})]});
+
+			
+			Bosses.lairBoss("rendmaw", {name: "Rendmaw, Alpha of the Brood", spr: "rendmaw", hp: 25000, spd: 2.4, r: 1.15, col: 0xff3a30, phases: [
+				Bosses.P(1, {say: "*a wet, hungry snarl*", move: "chase",
+					attacks: [Bosses.aim(1, 0, 8, 110, 2.4, 0xff3a30, {r: 0.42, life: 1.0, dash: 0.6, dashSpd: 13, wind: 0.7, name: "rending charge"}),
+						Bosses.ring(14, 15, 5.5, 70, 1.5, 0xe8e0c0, {shape: "spike"}), Bosses.aim(4, 30, 10, 70, 1.0, 0xff6040, {shape: "spike"})]}),
+				Bosses.P(0.55, {say: "*the brood answers its howl*", banner: "Rendmaw howls for the brood!", shield: 2, summon: [{what: "gore_spawn", n: 5}], move: "chase",
+					attacks: [Bosses.nova(3.4, 1.0, 130, 2.6, 0xff3a30, {reach: 3.6, burst: 12, bspd: 5, blife: 1.0, fx: "spikes", land: "slam", name: "maul"}),
+						Bosses.aim(1, 0, 8, 115, 2.0, 0xff3a30, {r: 0.42, life: 1.0, dash: 0.6, dashSpd: 14, wind: 0.6, name: "rending charge"}), Bosses.spiral(4, 15, 6, 70, 0.12, 0xe8e0c0)]}),
+				Bosses.P(0.2, {say: "*it goes berserk*", move: "charge", speed: 1.4,
+					attacks: [Bosses.aim(1, 0, 8, 125, 1.4, 0xff2020, {r: 0.42, life: 1.0, dash: 0.6, dashSpd: 15, wind: 0.45, name: "berserk charge"}),
+						Bosses.flower(24, 10, 6, 85, 0.9, 0xff3a30), Bosses.rain(5, 5, 110, 2.2, 0xe8e0c0, {burst: 8})]})
+			]});
+
+			
+			Bosses.lairBoss("mirror_regent", {name: "The Mirror Regent", spr: "regent", hp: 22000, spd: 2.4, col: 0xc090ff, phases: [
+				Bosses.P(1, {say: "Which of us is real?", move: "teleport",
+					attacks: [Bosses.spiral(6, 8, 5, 60, 0.14, 0xc090ff), Bosses.aim(1, 0, 11, 90, 0.9, 0xffffff, {eff: "confused"}), Bosses.ring(14, 12, 4.5, 65, 1.4, 0x8040c0, {motion: "return"})]}),
+				Bosses.P(0.66, {say: "We are legion, and we are one.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "orbit",
+					attacks: [Bosses.aim(3, 40, 6, 70, 1.3, 0x8040c0, {motion: "home"}), Bosses.wall(17, 5, 80, 2.0, 0xff60c0, {eff: "slowed"}), Bosses.spiral(4, -12, 6, 65, 0.12, 0xe0b0ff)]}),
+				Bosses.P(0.33, {say: "Shatter us all, then.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 4}], move: "teleport",
+					attacks: [Bosses.flower(24, 10, 6, 80, 0.9, 0xc090ff), Bosses.aim(5, 60, 9, 85, 1.0, 0xffffff, {eff: "confused"}), Bosses.rain(5, 5, 110, 2.0, 0x8040c0, {burst: 8})]})
+			]});
+			Bosses.mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 7000, def: 18, spd: 2.2, xp: 400, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff, lairShield: true,
+				attacks: [Bosses.spiral(4, 10, 5, 55, 0.2, 0xc090ff), Bosses.aim(1, 0, 9, 70, 1.4, 0xffffff, {eff: "confused"})]});
+
+			
+			Bosses.lairBoss("pharaoh", {name: "Ankhamun the Undying", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
+				Bosses.P(1, {say: "Who disturbs the eternal sleep?", move: "center",
+					attacks: [Bosses.wall(19, 5, 85, 1.8, 0xe8c070, {hole: 3, motion: "wave"}), Bosses.aim(3, 30, 9, 80, 1.0, 0x40e0ff), Bosses.spiral(3, 15, 6, 65, 0.14, 0xffc040)]}),
+				Bosses.P(0.6, {say: "My servants never rest.", banner: "The tomb's servants rise!", shield: 2, summon: [{what: "temple_scorpion", n: 4}], move: "orbit",
+					attacks: [Bosses.rain(6, 5, 100, 2.0, 0xffc040, {burst: 8}), Bosses.aim(1, 0, 6, 95, 2.0, 0x40e0ff, {motion: "home", r: 0.3, eff: "armorbroken", name: "curse of the tomb"}), Bosses.ring(16, 14, 5, 70, 1.3, 0xe8c070)]}),
+				Bosses.P(0.25, {say: "The sands will swallow you!", move: "teleport",
+					attacks: [Bosses.flower(28, 9, 6, 80, 0.9, 0xffc040), Bosses.wall(21, 5, 95, 1.5, 0xe8c070, {hole: 2, waves: 2, gap: 0.5}), Bosses.nova(3, 1.2, 140, 2.4, 0x40e0ff, {burst: 14, eff: "armorbroken"})]})
+			]});
+			Bosses.lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 9000, col: 0xffc040, lairShield: true,
+				attacks: [Bosses.ring(6, 20, 4.5, 55, 1.6, 0xffc040, {name: "jar's curse"})]});
+
+			
+			Bosses.lairBoss("admiral_brine", {name: "Admiral Brine", spr: "admiral", hp: 20000, spd: 1.6, col: 0x50a0c0, phases: [
+				Bosses.P(1, {say: "All hands! Repel boarders!", move: "orbit",
+					attacks: [Bosses.aim(3, 18, 10, 85, 1.0, 0x50a0c0), Bosses.wall(17, 5, 80, 2.0, 0x40a0ff, {hole: 3, motion: "wave"}), Bosses.ring(14, 12, 4.5, 65, 1.5, 0x80d0ff)]}),
+				Bosses.P(0.5, {say: "Fire the guns!", banner: "Brine opens fire!", shield: 2, summon: [{what: "pirate_brawler", n: 4}], move: "center",
+					attacks: [Bosses.rain(6, 6, 100, 2.2, 0x50a0c0, {burst: 8}), Bosses.aim(5, 40, 9, 80, 1.1, 0x40a0ff), Bosses.spiral(4, 14, 6, 65, 0.12, 0x80d0ff)]})
+			]});
+			Bosses.lairBoss("admiral_drowned", {name: "Brine, the Drowned Admiral", spr: "admiral", hp: 16000, spd: 2.0, col: 0x30e0c0, rageAt: 0, phases: [
+				Bosses.P(1, {say: "The sea... gives me back...", banner: "Brine rises from the deep!", move: "chase",
+					attacks: [Bosses.aim(5, 50, 9, 85, 1.0, 0x30e0c0, {motion: "wave"}), Bosses.flower(24, 10, 6, 80, 0.9, 0x40a0ff), Bosses.aim(1, 0, 6, 100, 1.8, 0xd0ffff, {motion: "home", r: 0.32})]}),
+				Bosses.P(0.4, {say: "DROWN WITH ME!", move: "charge", speed: 1.3,
+					attacks: [Bosses.wall(21, 5, 95, 1.5, 0x30e0c0, {hole: 2, waves: 2, gap: 0.5}), Bosses.rain(6, 5, 120, 2.0, 0x40a0ff, {burst: 10}), Bosses.aim(7, 70, 9, 85, 1.0, 0x30e0c0)]})
+			]});
+
+			
+			Bosses.lairBoss("pearlmaw", {name: "Pearlmaw", spr: "pearlmaw", hp: 25000, spd: 1.0, r: 1.2, col: 0x30c8b0, phases: [
+				Bosses.P(1, {say: "*CLACK CLACK*", move: "wander",
+					attacks: [Bosses.ring(16, 12, 4.5, 70, 1.4, 0xf0f0ff), Bosses.aim(3, 22, 9, 80, 1.0, 0x30c8b0, {shape: "orb"}), Bosses.aim(1, 0, 7, 100, 2.4, 0xffffff, {r: 0.4, motion: "return", name: "pearl shot"})]}),
+				Bosses.P(0.55, {say: "*it clamps shut and the tide rises*", banner: "The tide surges!", shield: 2.5, summon: [{what: "crab", n: 5}], move: "center",
+					attacks: [Bosses.wall(19, 5, 85, 1.8, 0x30c8b0, {hole: 3, motion: "wave"}), Bosses.spiral(5, 12, 6, 65, 0.12, 0xf0f0ff), Bosses.rain(5, 5, 100, 2.2, 0x40a0ff, {burst: 6})]}),
+				Bosses.P(0.2, {say: "*CLACK CLACK CLACK*", move: "chase", speed: 1.3,
+					attacks: [Bosses.flower(24, 10, 6, 80, 0.9, 0x30c8b0), Bosses.aim(1, 0, 7, 115, 1.6, 0xffffff, {r: 0.42, motion: "return", name: "pearl shot"}), Bosses.nova(3.2, 1.0, 140, 2.4, 0xf0f0ff, {burst: 14})]})
+			]});
+			Bosses.lairProp("pearl_clam", {name: "Pearl Clam", spr: "clam_cannon", hp: 10000, col: 0x30c8b0,
+				attacks: [Bosses.aim(1, 0, 6, 70, 2.0, 0xffffff, {r: 0.3, name: "pearl"})]});
+
+			
+			Bosses.lairBoss("ossarion", {name: "Ossarion the Bone Lord", spr: "ossarion", hp: 25000, spd: 1.3, r: 1.15, col: 0xb070ff, phases: [
+				Bosses.P(1, {say: "Your bones will join my throne.", move: "center",
+					attacks: [Bosses.aim(1, 0, 8, 115, 2.4, 0xe8e0c8, {r: 0.42, life: 1.0, dash: 0.5, dashSpd: 11, wind: 0.6, name: "scythe reap"}),
+						Bosses.ring(16, 14, 5, 70, 1.4, 0xb070ff), Bosses.aim(3, 26, 9, 80, 1.0, 0xe8e0c8)]}),
+				Bosses.P(0.6, {say: "Rise, rise, RISE!", banner: "The bones rise!", shield: 2, summon: [{what: "bone_thrall", n: 4}], move: "orbit",
+					attacks: [Bosses.wall(19, 5, 85, 1.8, 0xb070ff, {hole: 3}), Bosses.spiral(4, -15, 6, 70, 0.12, 0xe8e0c8), Bosses.nova(3, 1.0, 130, 2.6, 0xb070ff, {burst: 12})]}),
+				Bosses.P(0.25, {say: "DEATH IS MY HARVEST.", move: "chase", speed: 1.3,
+					attacks: [Bosses.flower(26, 10, 6, 85, 0.85, 0xb070ff), Bosses.aim(1, 0, 8, 130, 1.8, 0xe8e0c8, {r: 0.42, life: 1.0, dash: 0.55, dashSpd: 13, wind: 0.5, name: "scythe reap"}),
+						Bosses.rain(6, 5, 120, 2.0, 0xd0a0ff, {burst: 8})]})
+			]});
+			Bosses.lairProp("soul_candle", {name: "Soulfire Candle", spr: "spectral_candle", hp: 7000, col: 0xb070ff, lairShield: true,
+				attacks: [Bosses.aim(1, 0, 6, 60, 1.8, 0xb070ff, {motion: "home", name: "soulfire"})]});
+
+			
+			Bosses.lairBoss("quarry_heart", {name: "The Quarry Heart", spr: "quarry_heart", hp: 26000, spd: 1.0, r: 1.2, col: 0x9060ff,
+				splitInto: {what: "obsidian_shard", n: 3}, phases: [
+				Bosses.P(1, {say: "*glass grinds on glass*", move: "chase",
+					attacks: [Bosses.nova(3.4, 1.0, 130, 2.8, 0x9060ff, {reach: 3.6, burst: 12, bspd: 5, blife: 1.0, fx: "spikes", land: "slam", name: "quarry slam"}),
+						Bosses.aim(5, 40, 9, 75, 1.1, 0xc0a0ff), Bosses.ring(14, 12, 5, 65, 1.6, 0x9060ff)]}),
+				Bosses.P(0.55, {say: "*shards rain from the ceiling*", banner: "The quarry collapses!", shield: 2, move: "center",
+					attacks: [Bosses.rain(7, 7, 110, 1.8, 0x9060ff, {burst: 8}), Bosses.wall(19, 5, 85, 2.0, 0xc0a0ff, {hole: 3}), Bosses.spiral(4, 14, 6, 70, 0.12, 0x9060ff)]}),
+				Bosses.P(0.2, {say: "*it cracks open, glowing*", move: "chase", speed: 1.3,
+					attacks: [Bosses.flower(24, 10, 6, 85, 0.9, 0xc0a0ff), Bosses.nova(4.2, 1.1, 150, 2.2, 0x9060ff, {reach: 0.01, marker: "rune", radius: 4.2, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", land: "slam", name: "heartquake"})]})
+			]});
+			Bosses.lairBoss("obsidian_shard", {name: "Obsidian Shard", spr: "golem", hp: 8000, spd: 1.8, r: 0.8, col: 0x9060ff, xp: 900, gold: 250, onrane: 3,
+				phases: [Bosses.P(1, {move: "chase", attacks: [Bosses.aim(3, 24, 9, 75, 1.1, 0xc0a0ff), Bosses.nova(2.4, 1.0, 100, 2.8, 0x9060ff, {burst: 8})]})]});
+
+			
+			Bosses.lairBoss("ignaria", {name: "Ignaria, Mother of Phoenixes", spr: "ignaria", hp: 22000, spd: 2.2, r: 1.1, col: 0xff8a20, phases: [
+				Bosses.P(1, {say: "Burn, little sparks.", move: "orbit",
+					attacks: [Bosses.aim(5, 50, 9, 80, 1.0, 0xff8a20), Bosses.spiral(4, 16, 6, 65, 0.12, 0xffd060), Bosses.rain(4, 5, 100, 2.4, 0xff6010, {burst: 6})]}),
+				Bosses.P(0.5, {say: "The flame never dies!", banner: "Ignaria blazes!", shield: 2, summon: [{what: "imp", n: 4}], move: "teleport",
+					attacks: [Bosses.flower(24, 10, 6, 80, 0.9, 0xff8a20), Bosses.wall(19, 5, 85, 1.8, 0xffd060, {hole: 3}), Bosses.aim(1, 0, 6, 100, 1.8, 0xffffff, {motion: "home", r: 0.3})]})
+			]});
+			Bosses.lairBoss("ignaria_reborn", {name: "Ignaria Reborn", spr: "ignaria", hp: 13000, spd: 2.6, r: 1.1, col: 0xffd060, rageAt: 0, phases: [
+				Bosses.P(1, {say: "FROM ASH, I RISE!", move: "chase",
+					attacks: [Bosses.spiral(6, 18, 7, 75, 0.09, 0xffd060), Bosses.aim(7, 70, 10, 85, 0.9, 0xff8a20), Bosses.nova(3.2, 1.0, 140, 2.2, 0xff4010, {burst: 16})]})
+			]});
+			Bosses.lairProp("ember_egg", {name: "Ember Egg", spr: "ember_nest", hp: 9000, col: 0xff8a20,
+				attacks: [Bosses.ring(8, 20, 4.5, 60, 1.4, 0xffd060, {name: "egg's heat"})]});
+
+			
+			Bosses.crone("crone_bramble", "Bramble, the Thorn Sister", 0x60e040, {say: "The wood takes you!",
+				a: [Bosses.aim(5, 40, 8, 75, 1.1, 0x60e040, {eff: "slowed"}), Bosses.ring(12, 15, 4.5, 60, 1.6, 0x3a8a20)],
+				b: [Bosses.wall(17, 5, 85, 1.8, 0x60e040, {hole: 3, eff: "slowed"}), Bosses.spiral(4, 14, 6, 65, 0.12, 0x9aff6a)]});
+			Bosses.crone("crone_bog", "Morra, the Bog Sister", 0x40c0a0, {say: "Sink, and drown in my bog!",
+				a: [Bosses.rain(4, 5, 95, 2.2, 0x40c0a0, {burst: 6}), Bosses.aim(3, 26, 8, 75, 1.2, 0x2a8a70, {motion: "wave"})],
+				b: [Bosses.flower(20, 10, 5.5, 75, 1.0, 0x40c0a0), Bosses.aim(1, 0, 6, 95, 2.0, 0xa0ffe0, {motion: "home", r: 0.3})]});
+			Bosses.crone("crone_ash", "Cinder, the Ash Sister", 0xff6030, {say: "Burn, burn, burn!",
+				a: [Bosses.spiral(3, 16, 6, 65, 0.14, 0xff6030), Bosses.aim(3, 20, 10, 80, 1.0, 0xffa040)],
+				b: [Bosses.nova(3, 1.0, 130, 2.4, 0xff4010, {burst: 14}), Bosses.aim(5, 50, 9, 85, 1.0, 0xff6030)]});
+
+			
+			Bosses.lairBoss("leviathan", {name: "The Leviathan", spr: "leviathan", hp: 26000, spd: 1.2, r: 1.25, col: 0x8040c0, phases: [
+				Bosses.P(1, {say: "*the water churns*", move: "center",
+					attacks: [Bosses.wall(19, 5, 85, 1.8, 0x8040c0, {hole: 3, motion: "wave"}), Bosses.aim(5, 40, 9, 80, 1.0, 0xb060ff), Bosses.ring(16, 12, 5, 70, 1.4, 0x40a0ff)]}),
+				Bosses.P(0.55, {say: "*a roar from the deep*", banner: "The Leviathan surfaces!", shield: 2, move: "center",
+					attacks: [Bosses.rain(7, 7, 110, 1.8, 0x40a0ff, {burst: 8}), Bosses.spiral(5, 14, 6, 70, 0.12, 0xb060ff), Bosses.aim(1, 0, 6, 110, 1.8, 0xffffff, {motion: "home", r: 0.34})]}),
+				Bosses.P(0.2, {say: "*it thrashes in fury*", move: "center",
+					attacks: [Bosses.flower(28, 9, 6, 85, 0.85, 0x8040c0), Bosses.wall(21, 5, 95, 1.5, 0x40a0ff, {hole: 2, waves: 2, gap: 0.5}), Bosses.nova(4, 1.2, 150, 2.2, 0xb060ff, {burst: 18})]})
+			]});
+			Bosses.lairProp("maw_tentacle", {name: "Maw Tentacle", spr: "kraken_tentacle", hp: 6500, col: 0x8040c0, lairShield: true,
+				attacks: [Bosses.aim(3, 30, 7, 60, 1.6, 0xb060ff, {name: "tentacle lash"})]});
+
+			
+			for (var lth of __vals( Lairs.DUNGEONS)) if (Data.ENEMIES[lth.by]) Data.ENEMIES[lth.by].lair = lth.id;
 		}
 	static vaultTwist(week) { week = __int(week); return Bosses.VAULT_TWISTS[((week % Bosses.VAULT_TWISTS.length) + Bosses.VAULT_TWISTS.length) % Bosses.VAULT_TWISTS.length]; }
 	static twistEnemy(e, tw, master) {
@@ -2431,6 +2633,7 @@ class World {
 		this.mobRooms = [];
 		this.treasure = null;
 		this.theme = null;
+		this.lair = null;
 		this.noise = null;
 		this.noiseW = 0;
 		this.CELL = __int(10);
@@ -3816,6 +4019,9 @@ class Enemy {
 		this.invuln = false;
 		this.shieldT = 0;
 		this.dmgMult = 1;
+		this.lairShield = false;
+		this.lairWave = false;
+		this.eggT = 0;
 		this.playerHit = false;
 		this.id = __int(0);
 		this.remote = false;
@@ -4511,6 +4717,161 @@ class Enemy {
 			if (a.split) s.split = a.split;
 			if (a.ghost) s.passWalls = true;
 			g.addShot(s);
+		}
+}
+
+class Lairs {
+	constructor() {
+
+	}
+	static lairOf(bossId) {
+			for (var th of __vals( Lairs.DUNGEONS)) if (th.by == bossId) return __int(Data.dungeonIndex(th.id));
+			return __int(-1);
+		}
+	static populate(w, th, api) {
+			var L = th.lair;
+			var last = w.rooms[w.rooms.length - 1];
+			w.lair = {woke: !L.waves, wave: 0, regrowT: 0, eggs: [], shielded: false, done: false, pending: !!L.waves};
+			if (L.shield) Lairs.placeShield(w, L.shield, last, th.tier, api);
+			if (L.mend) for (var k = __int(0); k < L.mend.n; k++) {
+				var a = k * Math.PI * 2 / L.mend.n + 0.4;
+				api.spawn(L.mend.id, last.x + 0.5 + Math.cos(a) * L.mend.r, last.y + 0.5 + Math.sin(a) * L.mend.r, th.tier, true);
+			}
+			if (L.boss && !L.waves) Lairs.master(w, L.boss, last.x + 0.5, last.y + 0.5, th.tier, api);
+		}
+	static placeShield(w, sh, last, zone, api) { zone = __int(zone);
+			var rooms = w.rooms;
+			for (var k = __int(0); k < sh.n; k++) {
+				var x = NaN, y = NaN;
+				if (sh.where == "rooms") {
+					
+					var rm = rooms[Math.max(1, Math.min(rooms.length - 2, Math.round((k + 1) * (rooms.length - 1) / (sh.n + 1))))];
+					x = rm.x + 0.5; y = rm.y + 0.5;
+				} else {
+					var a = k * Math.PI * 2 / sh.n + 0.2;
+					x = last.x + 0.5 + Math.cos(a) * sh.r; y = last.y + 0.5 + Math.sin(a) * sh.r;
+				}
+				var e = api.spawn(sh.ids[k % sh.ids.length], x, y, zone, true);
+				if (e) e.lairShield = true;
+			}
+		}
+	static master(w, id, x, y, zone, api) { zone = __int(zone);
+			var e = api.spawn(id, x, y, zone, true);
+			if (e) w.boss = e;
+			return e;
+		}
+	static cleared(w) {
+			var st = w.lair;
+			if (!st || st.pending) return false;
+			for (var egg of __vals( st.eggs)) if (!egg.dead) return false;
+			for (var e of __vals( w.enemies)) if (!e.dead && (e.def.lairBoss || e.def.trio)) return false;
+			return true;
+		}
+	static update(w, dt, api) {
+			var th = w.theme, L = th && th.lair, st = w.lair;
+			if (!L || !st || st.done) return;
+			var last = w.rooms[w.rooms.length - 1];
+			var e = null;
+			
+			if (!st.woke) {
+				for (var p of __vals( api.players)) {
+					if (Math.abs(p.x - last.x) < last.w / 2 && Math.abs(p.y - last.y) < last.h / 2) { st.woke = true; break; }
+				}
+				if (!st.woke) return;
+				api.say("The " + th.name + " stirs! Hold the den!", th.color, true);
+				st.waveT = 1;
+			}
+			if (L.waves && st.pending) {
+				var alive = __int(0);
+				for (e of __vals( w.enemies)) if (!e.dead && e.lairWave) alive++;
+				if (alive == 0) {
+					st.waveT -= dt;
+					if (st.waveT > 0) return;
+					if (st.wave >= L.waves.n) {
+						st.pending = false;
+						var b = Lairs.master(w, L.boss, last.x + 0.5, last.y + 0.5, th.tier, api);
+						if (b) api.say(b.def.name + " comes for you!", th.color, true);
+					} else {
+						st.wave++;
+						for (var k = __int(0); k < L.waves.size + st.wave; k++) {
+							var a = Math.random() * Math.PI * 2, rr = 4 + Math.random() * 6;
+							var m = api.spawn(L.waves.mobs[__int(Math.random() * L.waves.mobs.length)], last.x + 0.5 + Math.cos(a) * rr, last.y + 0.5 + Math.sin(a) * rr, th.tier, false);
+							if (m) m.lairWave = true;
+						}
+						api.say("Wave " + st.wave + " of " + L.waves.n + "!", th.color, false);
+						st.waveT = 2.5;
+					}
+				}
+			}
+			var boss = w.boss && !w.boss.dead ? w.boss : null;
+			
+			if (L.shield && boss) {
+				var up = __int(0);
+				for (e of __vals( w.enemies)) if (!e.dead && (e.lairShield || e.def.lairShield)) up++;
+				if (up > 0 && !st.shielded) { st.shielded = true; boss.invuln = true; }
+				else if (up == 0 && st.shielded) {
+					st.shielded = false; boss.invuln = false; st.regrowT = 0;
+					api.say(boss.def.name + " is vulnerable!", th.color, true);
+				}
+				if (up == 0 && L.shield.regrow) {
+					st.regrowT += dt;
+					if (st.regrowT >= L.shield.regrow) {
+						st.regrowT = 0;
+						Lairs.placeShield(w, L.shield, last, th.tier, api);
+						api.say(L.shield.text, th.color, true);
+					}
+				}
+			}
+			
+			if (L.mend && boss && boss.hp < boss.maxHp) {
+				var n = __int(0);
+				for (e of __vals( w.enemies)) if (!e.dead && e.defId == L.mend.id) n++;
+				if (n > 0) boss.hp = Math.min(boss.maxHp, boss.hp + boss.maxHp * L.mend.rate * n * dt);
+			}
+			
+			for (var i = __int(st.eggs.length - 1); i >= 0; i--) {
+				var egg = st.eggs[i];
+				if (egg.dead) { st.eggs.splice(i, 1); continue; }
+				egg.eggT -= dt;
+				if (egg.eggT <= 0) {
+					st.eggs.splice(i, 1);
+					api.remove(egg);
+					var reborn = Lairs.master(w, L.rebirth.into, egg.x, egg.y, th.tier, api);
+					if (reborn) api.say(reborn.def.name + " rises from the ashes!", th.color, true);
+				}
+			}
+		}
+	static killed(w, e, api) {
+			var th = w.theme, L = th && th.lair, st = w.lair;
+			if (!L || !st) return;
+			if (L.shield && e.lairShield && L.shield.text && !L.shield.regrow) api.say(L.shield.text, th.color, false);
+			var sp = e.def.splitInto;
+			if (sp) {
+				for (var k = __int(0); k < sp.n; k++) {
+					var a = k * Math.PI * 2 / sp.n;
+					var piece = api.spawn(sp.what, e.x + Math.cos(a) * 2.5, e.y + Math.sin(a) * 2.5, th.tier, true);
+					if (piece && k == 0) w.boss = piece;
+				}
+				api.say(e.def.name + " breaks apart!", th.color, true);
+			}
+			if (L.rebirth && e.defId == L.boss) {
+				if (L.rebirth.egg) {
+					var egg = api.spawn(L.rebirth.egg, e.x, e.y, th.tier, true);
+					if (egg) {
+						egg.eggT = L.rebirth.t;
+						st.eggs.push(egg);
+						api.say("Break the egg before it hatches! (" + L.rebirth.t + "s)", th.color, true);
+					}
+				} else {
+					var r = Lairs.master(w, L.rebirth.into, e.x, e.y, th.tier, api);
+					if (r) api.say(e.def.name + " rises again as " + r.def.name + "!", th.color, true);
+				}
+			}
+			if (!st.done && Lairs.cleared(w)) {
+				st.done = true;
+				api.say(th.name + " is cleared!", th.color, true);
+				api.done(e.x, e.y);
+			}
 		}
 }
 
@@ -6639,5 +7000,62 @@ Enemy.FLYERS = ["ghost", "ghost_god", "sprite", "sprite_god", "harpy", "djinn", 
 Enemy.BOSS_STUN_MAX = 1;
 Enemy.BOSS_STUN_IMMUNE = 6;
 Enemy.SURVIVE_K = __int(8);
+Lairs.DUNGEONS = [
+			{id: "tesseract", by: "ev_cube", name: "The Tesseract", color: 0xc040ff, layout: "grid", floor: 24, accent: 30, tier: 4, hard: 1.35, lair: {
+				boss: "tesseract", intro: "Four Prism Nodes feed the Tesseract its shield. Find them in the halls and shatter them.",
+				shield: {ids: ["prism_node"], n: 4, where: "rooms", text: "A Prism Node shatters! The Tesseract's shield flickers."}},
+				mobs: ["cubelet", "cube_shard", "gazer", "beholder"]},
+			{id: "titan_forge", by: "ev_titan", name: "Titan's Forge", color: 0xff6018, layout: "cave", hazard: "lava", floor: 20, accent: 7, tier: 4, hard: 1.35, lair: {
+				boss: "forgemaster", intro: "The Forgemaster's bellows breathe fire into him. Silence them or he never tires.",
+				mend: {id: "forge_bellows", n: 3, r: 8, rate: 0.012}},
+				mobs: ["imp", "lesser_demon", "dwarf", "golem"]},
+			{id: "wyrm_cradle", by: "ev_wyrm", name: "The Wyrm Cradle", color: 0x80d8ff, layout: "ring", hazard: "water", floor: 19, accent: 0, tier: 4, hard: 1.35, lair: {
+				boss: "glacia", intro: "Glacia sleeps inside a ring of ice obelisks. Break them, and keep breaking them: the cold grows them back.",
+				shield: {ids: ["cradle_obelisk"], n: 4, where: "boss", r: 8, regrow: 28, text: "The ice obelisks grow back! Glacia is warded again!"}},
+				mobs: ["ice_wolf", "ice_wolf", "ghost", "djinn"]},
+			{id: "hollow_court", by: "ev_king", name: "The Hollow Court", color: 0x9aff7a, layout: "grid", dark: true, floor: 33, accent: 11, tier: 4, hard: 1.35, lair: {
+				boss: "hollow_prince", intro: "Three Crown Knights each keep a shard of the Hollow Prince's crown. He can't be touched while one stands.",
+				shield: {ids: ["crown_knight"], n: 3, where: "rooms", text: "A Crown Knight falls and its shard goes dark."}},
+				mobs: ["skeleton", "royal_guard", "shade", "grave_wraith"]},
+			{id: "bone_pit", by: "ev_behemoth", name: "The Bone Pit", color: 0xff3a30, layout: "cave", floor: 25, accent: 14, tier: 4, hard: 1.35, lair: {
+				boss: "rendmaw", intro: "Gorehorn's brood nests in the Pit. Survive their rush in the great den and their alpha comes for you.",
+				waves: {mobs: ["gore_spawn", "gore_spawn", "blood_hound", "minotaur"], n: 3, size: 7}},
+				mobs: ["gore_spawn", "blood_hound", "ogre", "minotaur"]},
+			{id: "phantom_court", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.35, lair: {
+				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections. Shatter the echoes and the true Regent is laid bare.",
+				shield: {ids: ["regent_echo"], n: 3, where: "boss", r: 7, text: "An echo shatters into mist!"}},
+				mobs: ["shade", "ghost", "void_wisp", "grave_wraith"]},
+			{id: "tomb_of_riddles", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.35, lair: {
+				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze. While one is whole, he cannot die.",
+				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", text: "A canopic jar breaks! Ankhamun howls in his tomb."}},
+				mobs: ["temple_scorpion", "scorpion", "great_snake", "medusa"]},
+			{id: "drowned_keep", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.35, lair: {
+				boss: "admiral_brine", intro: "Admiral Brine drowned with his keep, and the sea will not let him stay dead.",
+				rebirth: {into: "admiral_drowned"}},
+				mobs: ["pirate", "pirate_brawler", "tide_spawn", "crab"]},
+			{id: "coral_grotto", by: "ev_hermit", name: "The Coral Grotto", color: 0x30c8b0, layout: "cave", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.35, lair: {
+				boss: "pearlmaw", intro: "Pearlmaw's giant clams pour their pearls into it. Crack the clams or it heals faster than you can hurt it.",
+				mend: {id: "pearl_clam", n: 3, r: 8, rate: 0.014}},
+				mobs: ["crab", "tide_spawn", "snake", "great_snake"]},
+			{id: "ossuary", by: "ev_shrine", name: "The Ossuary", color: 0xb070ff, layout: "grid", dark: true, floor: 25, accent: 28, tier: 4, hard: 1.35, lair: {
+				boss: "ossarion", intro: "Ossarion is bound to five soulfire candles. Snuff them all, and keep them snuffed: they relight.",
+				shield: {ids: ["soul_candle"], n: 5, where: "boss", r: 8, regrow: 25, text: "The soulfire candles relight! Ossarion is warded again!"}},
+				mobs: ["skeleton", "bone_thrall", "lich", "ghost"]},
+			{id: "obsidian_quarry", by: "ev_colossus", name: "The Obsidian Quarry", color: 0x9060ff, layout: "cave", floor: 20, accent: 4, tier: 4, hard: 1.35, lair: {
+				boss: "quarry_heart", intro: "The Quarry Heart is a colossus of living glass. Break it and it breaks into more of itself."},
+				mobs: ["golem", "thunder_golem", "dwarf", "dwarf_king"]},
+			{id: "ashen_aerie", by: "ev_phoenix", name: "The Ashen Aerie", color: 0xff8a20, layout: "islands", hazard: "lava", floor: 27, accent: 7, tier: 4, hard: 1.35, lair: {
+				boss: "ignaria", intro: "Ignaria, mother of phoenixes, rises from her own ashes. When she falls, break her egg before it hatches.",
+				rebirth: {egg: "ember_egg", t: 10, into: "ignaria_reborn"}},
+				mobs: ["imp", "harpy", "gale_harpy", "lesser_demon"]},
+			{id: "hexwood", by: "ev_witch", name: "The Hexwood", color: 0x60e040, layout: "maze", dark: true, floor: 22, accent: 29, tier: 4, hard: 1.35, lair: {
+				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
+				trio: ["crone_bramble", "crone_bog", "crone_ash"],
+				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
+			{id: "krakens_maw", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.35, lair: {
+				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
+				shield: {ids: ["maw_tentacle"], n: 6, where: "boss", r: 9, regrow: 22, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
+				mobs: ["tide_spawn", "crab", "pirate", "cloud_serpent"]}
+		];
 
-module.exports = { Data, Uniques, Godly, Bosses, World, SetPieces, Enemy };
+module.exports = { Data, Uniques, Godly, Bosses, World, SetPieces, Enemy, Lairs };

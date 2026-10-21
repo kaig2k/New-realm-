@@ -5031,6 +5031,7 @@ package realm {
 
 		// ------------------------------------------------------------ kill streaks
 		private var streakN:int = 0;
+		public function get killStreak():int { return streakN; }
 		private var streakT:Number = 0;
 		private var streakTf:TextField;
 		private var streakBar:Shape;
@@ -5132,7 +5133,7 @@ package realm {
 
 		// ------------------------------------------------------------ shrines
 		private var buffTf:TextField;
-		private static const BLESSINGS:Object = {
+		public static const BLESSINGS:Object = {
 			might: ["Shrine of Might", "+30% damage", 0xff4040],
 			haste: ["Shrine of Haste", "+35% speed", 0x40e0ff],
 			fortune: ["Shrine of Fortune", "+25% loot luck", 0xffd040],

@@ -5,9 +5,11 @@ package realm {
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.filters.GlowFilter;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.text.TextField;
+	import flash.utils.getTimer;
 
 	/** The right-hand sidebar, laid out like RotMG. */
 	public class Hud extends Sprite {
@@ -47,9 +49,20 @@ package realm {
 		private var medal:Shape;
 		private var lvlBadge:TextField;
 		private var lastXpFrac:Number = -1, lastLevel:int = -1;
-		private var bagLegend:Sprite;
+		private var bagLegend:Sprite, statusLegend:Sprite;
+		private var lastFame:int = -1;
+		/** Over the medallion: the low-HP throb and the level-up flash. */
+		private var medalFx:Shape;
+		private var lvlFlash:Number = 0;
+		private var sparks:Array = [];
+		private var fog:BitmapData;
+		private var btnHint:TextField;
+		// the status panel shown where the loot grid goes when no bag is near
+		private var statusBox:Sprite;
+		private var petPic:Bitmap;
+		private var petTf:TextField, blessTf:TextField, luckTf:TextField;
 		private var portrait:Bitmap;
-		private var lvlBar:Bar, fameBar:Bar, hpBar:Bar, mpBar:Bar, ptBar:Bar, sgBar:Bar;
+		private var lvlBar:Bar, hpBar:Bar, mpBar:Bar, ptBar:Bar, sgBar:Bar;
 		private var equip:Vector.<Slot> = new Vector.<Slot>();
 		private var invSlots:Vector.<Slot> = new Vector.<Slot>();
 		private var bagSlots:Vector.<Slot> = new Vector.<Slot>();
@@ -100,6 +113,24 @@ package realm {
 			var miniBmp:Bitmap = new Bitmap(mini);
 			miniBmp.x = MINI_X; miniBmp.y = MINI_Y;
 			addChild(miniBmp);
+			// unexplored ground: violet fog with a faint lattice (copied under the map each draw)
+			fog = new BitmapData(mini.width, mini.height, false, 0x100c1a);
+			var fs:Shape = new Shape();
+			fs.graphics.lineStyle(1, 0x231b38);
+			for (var fl:int = -mini.height; fl < mini.width; fl += 12) {
+				fs.graphics.moveTo(fl, 0); fs.graphics.lineTo(fl + mini.height, mini.height);
+				fs.graphics.moveTo(fl + mini.height, 0); fs.graphics.lineTo(fl, mini.height);
+			}
+			fog.draw(fs);
+			// darker toward the edges
+			var vig:Shape = new Shape();
+			var vm:Matrix = new Matrix();
+			vm.createGradientBox(mini.width * 1.3, mini.height * 1.3, 0, -mini.width * 0.15, -mini.height * 0.15);
+			vig.graphics.beginGradientFill("radial", [0x05030a, 0x05030a], [0, 0.7], [140, 255], vm);
+			vig.graphics.drawRect(0, 0, mini.width, mini.height);
+			vig.graphics.endFill();
+			vig.x = MINI_X; vig.y = MINI_Y;
+			addChild(vig);
 			miniDots = new Shape();
 			miniDots.x = MINI_X; miniDots.y = MINI_Y;
 			addChild(miniDots);
@@ -151,6 +182,8 @@ package realm {
 			portrait.x = medal.x - portrait.width / 2;
 			portrait.y = medal.y - portrait.height / 2;
 			addChild(portrait);
+			medalFx = new Shape();
+			medalFx.x = medal.x; medalFx.y = medal.y;
 			lvlBadge = Ui.text(10, 0xffffff, true, "center", 20, true);
 			lvlBadge.x = medal.x + 6; lvlBadge.y = medal.y + 8;
 			addChild(lvlBadge);
@@ -160,39 +193,31 @@ package realm {
 			addChild(nameTf);
 			subTf = Ui.text(11, 0xb8a8e0, true, "left", 0, true);
 			subTf.x = 51;
-			subTf.y = y + 22;
+			subTf.y = y + 23;
 			addChild(subTf);
-			var nexusBtn:Sprite = iconButton(I_TEMPLE, W - 34, y + 2, 0xe8e8e8);
-			nexusBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.nexus(); });
-			addChild(nexusBtn);
-			var socialBtn:Sprite = iconButton(I_PEOPLE, W - 62, y + 2, 0x9ad0ff);
-			socialBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.toggleSocial(); });
-			addChild(socialBtn);
-			var wikiBtn:Sprite = iconButton(I_BOOK, W - 90, y + 2, 0xffd75e);
-			wikiBtn.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.toggleWiki(); });
-			addChild(wikiBtn);
+			addChild(iconButton(I_TEMPLE, W - 20, y + 9, "Nexus", function():void { g.nexus(); }));
+			addChild(iconButton(I_PEOPLE, W - 50, y + 9, "Friends & Guild", function():void { g.toggleSocial(); }));
+			addChild(iconButton(I_BOOK, W - 80, y + 9, "Wiki", function():void { g.toggleWiki(); }));
+			addChild(medalFx);
 
-			// --- bars
+			// --- bars: a thin XP line, then HP and MP, then Ward and Fervor
 			y = MINI_H + 46;
-			lvlBar = new Bar(112, 15, 0x9a6ae0, 0, 10, "", "left");
+			lvlBar = new Bar(228, 10, 0x9a6ae0, 0, 9, "", "center");
 			lvlBar.x = 8; lvlBar.y = y;
 			addChild(lvlBar);
-			fameBar = new Bar(112, 15, 0xe8862a, 0, 10, "", "left");
-			fameBar.x = 124; fameBar.y = y;
-			addChild(fameBar);
-			hpBar = new Bar(228, 21, 0xe0303e, 0, 14, "HP");
-			hpBar.x = 8; hpBar.y = y + 19;
+			hpBar = new Bar(228, 23, 0xe0303e, 0, 14, "HP");
+			hpBar.x = 8; hpBar.y = y + 14;
 			addChild(hpBar);
-			mpBar = new Bar(228, 21, 0x3a64f0, 0, 14, "MP");
-			mpBar.x = 8; mpBar.y = y + 44;
+			mpBar = new Bar(228, 23, 0x3a64f0, 0, 14, "MP");
+			mpBar.x = 8; mpBar.y = y + 41;
 			addChild(mpBar);
 			hpBar.trail = mpBar.trail = true;
 			// Ward (WD, from Warding) and Fervor (FV) bars
 			ptBar = new Bar(112, 15, 0xdcdcf4, 0, 10, "WD", "left");
-			ptBar.x = 8; ptBar.y = y + 69;
+			ptBar.x = 8; ptBar.y = y + 68;
 			addChild(ptBar);
 			sgBar = new Bar(112, 15, 0xe0b030, 0, 10, "FV", "left");
-			sgBar.x = 124; sgBar.y = y + 69;
+			sgBar.x = 124; sgBar.y = y + 68;
 			addChild(sgBar);
 
 			// --- equipment
@@ -291,6 +316,23 @@ package realm {
 			addChild(bagBox);
 			bagLegend = legend("LOOT", y);
 			addChild(bagLegend);
+			statusLegend = legend("STATUS", y);
+			addChild(statusLegend);
+			statusBox = new Sprite();
+			statusBox.mouseEnabled = statusBox.mouseChildren = false;
+			petPic = new Bitmap();
+			petPic.x = 12; petPic.y = y + 8;
+			statusBox.addChild(petPic);
+			petTf = Ui.text(12, 0xffffff, true, "left", 0, true);
+			petTf.x = 44; petTf.y = y + 12;
+			statusBox.addChild(petTf);
+			blessTf = Ui.text(11, 0xb8a8e0, true, "left", 216, true);
+			blessTf.x = 12; blessTf.y = y + 40;
+			statusBox.addChild(blessTf);
+			luckTf = Ui.text(11, 0xb8a8e0, true, "left", 216, true);
+			luckTf.x = 12; luckTf.y = y + 60;
+			statusBox.addChild(luckTf);
+			addChild(statusBox);
 			for (i = 0; i < 8; i++) {
 				s = makeSlot("bag", i, 12 + (i % 4) * 56, y + 4 + int(i / 4) * 44, false);
 				s.scaleX = s.scaleY = 0.84;
@@ -309,8 +351,17 @@ package realm {
 			if (y >= 0) bagY = y;
 			bagBox.graphics.clear();
 			glass(bagBox.graphics, 4, bagY, 232, Ui.H - bagY - 4, active ? GOLD : EDGE, 10, active ? 0x2c2014 : 0);
-			bagLegend.alpha = active ? 1 : 0.5;
-			for each (var s:Slot in bagSlots) s.alpha = active ? 1 : 0.4;
+			if (!active) {
+				// thin dividers between the status rows
+				for each (var dy:int in [34, 56]) {
+					bagBox.graphics.beginFill(EDGE, 0.5);
+					bagBox.graphics.drawRect(14, bagY + dy, 212, 1);
+					bagBox.graphics.endFill();
+				}
+			}
+			bagLegend.visible = active;
+			statusLegend.visible = statusBox.visible = !active;
+			for each (var s:Slot in bagSlots) s.visible = active;
 		}
 
 		/** A dark glass panel: a soft top-lit gradient, a violet (or gold) edge and a thin highlight. */
@@ -367,15 +418,48 @@ package realm {
 			return Sprites.build(rows, {W: color, D: 0x303030}, scale, 1);
 		}
 
-		private function iconButton(rows:Array, x:int, y:int, color:uint):Sprite {
+		/** A round gold button centred on (x, y), with its name shown on hover. */
+		private function iconButton(rows:Array, x:int, y:int, label:String, onClick:Function):Sprite {
 			var b:Sprite = new Sprite();
-			var bmp:Bitmap = new Bitmap(pix(rows, color, 3));
+			var draw:Function = function(hover:Boolean):void {
+				var m:Matrix = new Matrix();
+				m.createGradientBox(26, 26, Math.PI / 2, -13, -13);
+				b.graphics.clear();
+				b.graphics.lineStyle(1, 0x05030a);
+				b.graphics.beginGradientFill("linear", hover ? [0x4a3878, 0x221a38] : [0x2e2448, 0x140f22], [1, 1], [0, 255], m);
+				b.graphics.drawCircle(0, 0, 13);
+				b.graphics.endFill();
+				b.graphics.lineStyle(1, hover ? GOLD_HI : GOLD);
+				b.graphics.drawCircle(0, 0, 12);
+				b.graphics.lineStyle();
+				b.filters = hover ? [new GlowFilter(GOLD_HI, 0.6, 8, 8, 2)] : [];
+			};
+			draw(false);
+			var bmp:Bitmap = new Bitmap(pix(rows, 0xf2e6c8, 2));
+			bmp.x = -int(bmp.width / 2); bmp.y = -int(bmp.height / 2);
 			b.addChild(bmp);
 			b.x = x; b.y = y;
 			b.buttonMode = true;
 			b.mouseChildren = false;
-			b.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { bmp.alpha = 0.7; });
-			b.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { bmp.alpha = 1; });
+			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { onClick(); });
+			b.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void {
+				draw(true);
+				if (!btnHint) {
+					btnHint = Ui.text(11, GOLD_HI, true, "left", 0, true);
+					btnHint.background = true;
+					btnHint.backgroundColor = 0x120e1e;
+					btnHint.border = true;
+					btnHint.borderColor = GOLD;
+				}
+				btnHint.text = " " + label + " ";
+				btnHint.x = Math.min(W - btnHint.width - 4, b.x - btnHint.width / 2);
+				btnHint.y = b.y + 16;
+				addChild(btnHint);
+			});
+			b.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void {
+				draw(false);
+				if (btnHint && btnHint.parent) removeChild(btnHint);
+			});
 			return b;
 		}
 
@@ -565,14 +649,20 @@ package realm {
 			}
 			var xpFrac:Number = p.level >= Player.MAX_LEVEL ? 1 : p.xp / p.xpNext;
 			if (xpFrac != lastXpFrac || p.level != lastLevel) {
+				if (lastLevel > 0 && p.level > lastLevel) levelUp();
 				lastXpFrac = xpFrac; lastLevel = p.level;
 				drawMedal(xpFrac);
 				lvlBadge.text = String(p.level);
-				subTf.text = p.cls.name + "  \u00b7  Level " + p.level;
+				lastFame = -1;
 			}
-			if (p.level >= Player.MAX_LEVEL) lvlBar.set(1, "Lvl " + p.level, "Max");
-			else lvlBar.set(p.xp / p.xpNext, "Lvl " + p.level, p.xp + "/" + p.xpNext);
-			fameBar.set(1, "Fame", Ui.commas(p.fame));
+			if (p.level >= Player.MAX_LEVEL) lvlBar.set(1, "", "MAX LEVEL");
+			else lvlBar.set(p.xp / p.xpNext, "", Ui.commas(p.xp) + " / " + Ui.commas(p.xpNext) + " XP");
+			if (p.fame != lastFame) {
+				lastFame = p.fame;
+				// class, level and Fame on one line
+				subTf.htmlText = p.cls.name + " \u00b7 Lv " + p.level + "   <font color='#ffb060'>Fame " + Ui.commas(p.fame) + "</font>";
+			}
+			tickMedalFx(p);
 			var hb:int = p.bonus("hp"), mb:int = p.bonus("mp");
 			hpBar.set(p.hp / p.maxHp, "HP", int(Math.max(0, p.hp)) + "/" + p.maxHp + (hb > 0 ? " <font color='#ffe36e'>(+" + hb + ")</font>" : ""));
 			mpBar.set(p.mp / p.maxMp, "MP", int(p.mp) + "/" + p.maxMp + (mb > 0 ? " <font color='#ffe36e'>(+" + mb + ")</font>" : ""));
@@ -621,11 +711,80 @@ package realm {
 				hover = null;
 			}
 
+			var now:int = getTimer();
+			for each (var es:Slot in equip) es.tick(now);
+			if (invPage.visible) for each (es in invSlots) es.tick(now);
+			if (bag) for each (es in bagSlots) es.tick(now);
+			else if (frameN % 15 == 0) refreshStatus(p);
 			if (++frameN % 4 == 0) drawMinimap();
 			if (frameN % 30 == 1) {
 				zoneTf.text = g.world.kind == "realm" ? g.world.name + " Realm" : g.world.name;
 				onlineTf.htmlText = "<font color='#5ee08a'>\u25cf</font> " + (g.net.players.length + 1) + " here";
 			}
+		}
+
+		private function levelUp():void {
+			lvlFlash = 1;
+			for (var i:int = 0; i < 18; i++) {
+				var a:Number = Math.PI * 2 * i / 18 + Math.random() * 0.3;
+				var sp:Number = 30 + Math.random() * 40;
+				sparks.push({x: Math.cos(a) * 18, y: Math.sin(a) * 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.6 + Math.random() * 0.4});
+			}
+		}
+
+		/** Low HP makes the HP bar and the medallion rim throb red; a level-up rings gold and throws sparks. */
+		private function tickMedalFx(p:Player):void {
+			var low:Boolean = p.hp > 0 && p.hp < p.maxHp * 0.3;
+			var throb:Number = low ? 0.5 + 0.5 * Math.sin(getTimer() / 120) : 0;
+			hpBar.setPulse(throb);
+			var gr:* = medalFx.graphics;
+			gr.clear();
+			if (low) {
+				gr.lineStyle(3, 0xff3040, 0.35 + throb * 0.6);
+				gr.drawCircle(0, 0, 21);
+				gr.lineStyle();
+			}
+			if (lvlFlash > 0) {
+				lvlFlash = Math.max(0, lvlFlash - Ui.FRAME * 1.2);
+				gr.lineStyle(3, GOLD_HI, lvlFlash);
+				gr.drawCircle(0, 0, 21 + (1 - lvlFlash) * 16);
+				gr.lineStyle();
+				gr.beginFill(0xfff4c0, lvlFlash * 0.35);
+				gr.drawCircle(0, 0, 17);
+				gr.endFill();
+			}
+			for (var i:int = sparks.length - 1; i >= 0; i--) {
+				var s:Object = sparks[i];
+				s.life -= Ui.FRAME;
+				if (s.life <= 0) { sparks.splice(i, 1); continue; }
+				s.x += s.vx * Ui.FRAME; s.y += s.vy * Ui.FRAME;
+				s.vx *= 0.94; s.vy *= 0.94;
+				gr.beginFill(i % 3 ? GOLD_HI : 0xffffff, Math.min(1, s.life * 2));
+				gr.drawRect(s.x - 1, s.y - 1, 2, 2);
+				gr.endFill();
+			}
+		}
+
+		/** Pet, shrine blessings, loot luck and kill streak, while no loot bag is near. */
+		private function refreshStatus(p:Player):void {
+			var pet:Object = g.pet;
+			if (pet) {
+				var pbd:BitmapData = Sprites.get(Sprites.petForm(pet, Save.data.petSkin || ""));
+				if (petPic.bitmapData != pbd) { petPic.bitmapData = pbd; petPic.scaleX = petPic.scaleY = 26 / Math.max(1, pbd.height); }
+				petTf.htmlText = (pet.name || "Pet").replace(/</g, "&lt;") + "  <font color='#b8a8e0' size='11'>Lv " + (pet.level || 1) + "</font>";
+			} else {
+				petPic.bitmapData = null;
+				petTf.htmlText = "<font color='#6a5c90'>No pet</font>";
+			}
+			petTf.x = pet ? 44 : 12;
+			var bl:Array = [];
+			for (var k:String in Game.BLESSINGS) {
+				var t:Number = p.buffs[k];
+				if (t > 0) bl.push("<font color='" + Ui.hex(Game.BLESSINGS[k][2]) + "'>" + Game.BLESSINGS[k][0].replace("Shrine of ", "") + " " + Math.ceil(t) + "s</font>");
+			}
+			blessTf.htmlText = bl.length ? bl.join("  ") : "<font color='#6a5c90'>No blessing - touch a shrine</font>";
+			var st:int = g.killStreak;
+			luckTf.htmlText = "Loot luck <font color='#ffe080'>+" + g.totalLuck() + "</font>" + (st >= 3 ? "     Streak <font color='#ff9a50'>x" + st + "</font>" : "");
 		}
 
 		/** The portrait medallion: a dark disc, a gold rim, and an XP arc around it. */
@@ -709,7 +868,7 @@ package realm {
 			var z:Number = zoom == 0 ? Math.min(1, Math.min(mw / n, mh / n)) : ZOOMS[zoom];
 			var ox:Number = Math.round(mw / 2 - p.x * z), oy:Number = Math.round(mh / 2 - p.y * z);
 			if (zoom == 0) { ox = Math.round((mw - n * z) / 2); oy = Math.round((mh - n * z) / 2); }
-			mini.fillRect(mini.rect, 0xff000000);
+			mini.copyPixels(fog, fog.rect, new Point(0, 0));
 			mini.draw(g.world.seen, new Matrix(z, 0, 0, z, ox, oy), null, null, null, false);
 
 			var gr:* = miniDots.graphics;
@@ -858,6 +1017,8 @@ package realm {
 import flash.display.Bitmap;
 import flash.display.Shape;
 import flash.display.Sprite;
+import flash.events.MouseEvent;
+import flash.filters.GlowFilter;
 import flash.geom.Matrix;
 import flash.text.TextField;
 import flash.utils.getTimer;
@@ -925,6 +1086,23 @@ class Bar extends Sprite {
 		addChild(valueTf);
 		mouseChildren = false;
 		if (label) set(0, label, "");
+	}
+
+	private var pulse:Shape;
+	/** A red throb over the fill (0 = off). */
+	public function setPulse(a:Number):void {
+		if (a <= 0 && !pulse) return;
+		if (!pulse) {
+			pulse = new Shape();
+			pulse.graphics.beginFill(0xffb0b0);
+			pulse.graphics.drawRoundRect(1, 1, w - 1, h - 1, Math.min(h, 10) - 1, Math.min(h, 10) - 1);
+			pulse.graphics.endFill();
+			addChildAt(pulse, getChildIndex(fill) + 1);
+		}
+		pulse.visible = a > 0;
+		pulse.scaleX = fill.scaleX;
+		pulse.alpha = a * 0.35;
+		filters = a > 0 ? [new GlowFilter(0xff3040, a * 0.9, 10, 10, 2)] : [];
 	}
 
 	/** Blend a toward b by t (0..1). */
@@ -997,8 +1175,58 @@ class Slot extends Sprite {
 		tierTf.x = 15;
 		tierTf.y = 28;
 		addChild(tierTf);
+		fx = new Shape();
+		addChild(fx);
+		hoverFx = new Shape();
+		addChildAt(hoverFx, 0);
 		mouseChildren = false;
 		buttonMode = true;
+		addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { drawHover(1); });
+		addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { drawHover(0); });
+		addEventListener(MouseEvent.MOUSE_DOWN, function(e:MouseEvent):void { drawHover(2); });
+		addEventListener(MouseEvent.MOUSE_UP, function(e:MouseEvent):void { drawHover(1); });
+	}
+
+	private var fx:Shape;
+	private var hoverFx:Shape;
+	private var shimmer:Boolean = false;
+	private var rim:uint = 0;
+
+	/** 0 = idle, 1 = hovered (a soft light), 2 = pressed (brighter). */
+	private function drawHover(state:int):void {
+		var g:* = hoverFx.graphics;
+		g.clear();
+		if (!state) return;
+		g.beginFill(0xd8c8ff, state == 2 ? 0.22 : 0.1);
+		g.drawRoundRect(1, 1, 46, 46, 11, 11);
+		g.endFill();
+		g.lineStyle(1, 0xf2d68a, state == 2 ? 1 : 0.7);
+		g.drawRoundRect(1, 1, 46, 46, 11, 11);
+		g.lineStyle();
+	}
+
+	/** Legendary and better: a spark of light runs round the rim. */
+	public function tick(now:int):void {
+		if (!shimmer) return;
+		var g:* = fx.graphics;
+		g.clear();
+		var t:Number = (now % 2400) / 2400;
+		for (var i:int = 0; i < 8; i++) {
+			var q:Array = rimPoint(t - i * 0.012);
+			g.beginFill(i ? Bar.mix(rim, 0xffffff, 0.5) : 0xffffff, 1 - i / 8);
+			g.drawCircle(q[0], q[1], i < 2 ? 1.6 : 1.1);
+			g.endFill();
+		}
+	}
+
+	/** A point on the slot's rim, 0..1 clockwise from the top-left. */
+	private static function rimPoint(t:Number):Array {
+		t = (t % 1 + 1) % 1;
+		var d:Number = t * 176, s:Number = 44;
+		if (d < s) return [2 + d, 1.5];
+		if (d < s * 2) return [46.5, 2 + d - s];
+		if (d < s * 3) return [46 - (d - s * 2), 46.5];
+		return [1.5, 46 - (d - s * 3)];
 	}
 
 	private static const MARKS:Object = {
@@ -1020,7 +1248,9 @@ class Slot extends Sprite {
 		graphics.beginGradientFill("linear", [top, bot], [1, 1], [0, 255], m);
 		graphics.drawRoundRect(0, 0, 48, 48, 12, 12);
 		graphics.endFill();
-		var rim:uint = it && it.rarity ? Data.tierColor(it) : kind == "bag" ? 0x6a5434 : Hud.EDGE;
+		rim = it && it.rarity ? Data.tierColor(it) : kind == "bag" ? 0x6a5434 : Hud.EDGE;
+		shimmer = it && (it.rarity == "lg" || it.rarity == "ar" || it.rarity == "gd");
+		if (!shimmer && fx) fx.graphics.clear();
 		if (it && it.rarity) {
 			// a soft glow of the rarity colour from the bottom
 			var gm:Matrix = new Matrix();
@@ -1072,13 +1302,15 @@ class Slot extends Sprite {
 			cdTf.visible = true;
 		} else cdTf.visible = false;
 		if (readyGlow > 0) {
-			g.lineStyle(3, 0xfff0a0, readyGlow);
-			g.drawRoundRect(1, 1, 46, 46, 10, 10);
+			// ready: a gold ring swells out from the slot
+			var e:Number = (1 - readyGlow) * 7;
+			g.lineStyle(2, 0xf2d68a, readyGlow);
+			g.drawRoundRect(1 - e, 1 - e, 46 + e * 2, 46 + e * 2, 11 + e, 11 + e);
 			g.lineStyle();
-			g.beginFill(0xffffff, readyGlow * 0.25);
-			g.drawRoundRect(1, 1, 46, 46, 10, 10);
+			g.beginFill(0xf2d68a, readyGlow * 0.22);
+			g.drawRoundRect(1, 1, 46, 46, 11, 11);
 			g.endFill();
-			readyGlow = Math.max(0, readyGlow - Ui.FRAME * 2);
+			readyGlow = Math.max(0, readyGlow - Ui.FRAME * 1.6);
 		}
 	}
 

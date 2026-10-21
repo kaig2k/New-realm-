@@ -598,6 +598,7 @@ package realm {
 			var spin0:Number = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : spins[i];
 			shootAttack(a, ang, spin0, dist, g);
 			if (a.dash && a.wind) { windT = a.wind; windDash = a.dash; windA = ang; windSpd = a.dashSpd || 9; }
+			else if (a.lead) { windT = a.lead + (a.waves || 1) * (a.gap || 0.2); windDash = 0; }
 			else if (a.dash) { dashT = a.dash; dashA = ang; dashSpd = a.dashSpd || 9; }
 			if (a.blink) blinkAway(a.blink, g);
 			if (a.p == "ring" || a.p == "spiral" || a.p == "flower" || a.p == "implode") spins[i] += (a.rot || 0) * DEG;
@@ -610,9 +611,17 @@ package realm {
 			var waves:int = a.waves || 1;
 			if (a.sfx) g.soundAt(x, y, a.sfx, 0.7, a.sfxGap || 0.15);
 			startAnim(a);
+			// a lead: it plants its feet and the way it will fire is marked on the ground first (breath)
+			var lead:Number = a.lead || 0;
+			if (lead > 0) {
+				for (var lk:int = 1; lk <= (a.leadN || 5); lk++) {
+					var ldd:Number = lk * (a.leadStep || 1.6);
+					g.addMarker(x + Math.cos(ang) * ldd, y + Math.sin(ang) * ldd, 0.6 + lk * 0.18, lead, a.leadCol || a.col, null, null);
+				}
+			}
 			for (var w:int = 0; w < waves; w++) {
-				if (w == 0) shootWave(a, ang, spin0, dist, g, 0);
-				else g.later(w * (a.gap || 0.2), waveFn(a, ang, spin0, dist, g, w));
+				if (w == 0 && lead <= 0) shootWave(a, ang, spin0, dist, g, 0);
+				else g.later(lead + w * (a.gap || 0.2), waveFn(a, ang, spin0, dist, g, w));
 			}
 		}
 

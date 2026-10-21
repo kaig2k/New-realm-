@@ -1632,13 +1632,24 @@ class Bosses {
 					attacks: [Bosses.ring(30, 6, 5, 70, 0.9, 0xffd040), Bosses.aim(3, 16, 11, 95, 0.7, 0xff3010, {shape: "blade", r: 0.3}), Bosses.nova(2.5, 1.2, 110, 3, 0xff6010, {burst: 10})]})
 			]}, ["titanbreaker", "ember_mantle"]);
 
-			Bosses.boss("ev_wyrm", {phases: [
-				Bosses.P(1, {move: "orbit", speed: 1.3, attacks: [Bosses.spiral(5, 9, 6.5, 55, 0.15, 0x8ad8ff, {eff: "slowed"}), Bosses.aim(3, 24, 8.5, 65, 1.0, 0xe0f4ff, {shape: "blade", name: "ice shards"})]}),
-				Bosses.P(0.66, {say: "Freeze, little warm thing.", move: "teleport",
-					attacks: [Bosses.aim(9, 90, 7, 60, 0.9, 0xe0f4ff, {motion: "wave"}), Bosses.ring(16, 11, 3.5, 55, 1.6, 0x40a0ff, {motion: "accel", accel: 0.8})]}),
-				Bosses.P(0.33, {say: "WINTER COMES!", banner: "Blizzard!", shield: 2, move: "center",
-					attacks: [Bosses.rain(10, 7, 70, 1.8, 0xc0ecff, {delay: 1.0, eff: "slowed"}), Bosses.spiral(8, -7, 5.5, 60, 0.14, 0xc0ecff)]})
+			
+			
+			
+			
+			Bosses.boss("ev_wyrm", {name: "Sylith the Frost Wyrm", spr: "sylith", hp: 75000, def: 24, spd: 2.0, r: 1.1, col: Bosses.S_ICE,
+				seq: {idle: 4, move: 6, breath: 6, spikes: 5, lance: 5, tail: 5, storm: 6, summon: 5, fly: 6, guard: 4, death: 7, ridle: 4, rmove: 6},
+				rageAt: 2, rageAll: true, phases: [
+				Bosses.P(1, {say: "*a breath of frost rolls over the ground*", move: "orbit",
+					attacks: [Bosses.syBreath(85, 5.0, 5), Bosses.sySpikes(5, 65, 1.6), Bosses.syLance(115, 3.4), Bosses.syTail(100, 4.0)]}),
+				Bosses.P(0.66, {say: "Run, little warm things. My pack is hungry.", banner: "Sylith calls her pack!", shield: 2,
+					summon: [{what: "ice_wolf", n: 3}], move: "orbit",
+					attacks: [Bosses.syBreath(90, 4.4, 6), Bosses.syStorm(10, 80, 6.5), Bosses.sySpikes(6, 70, 1.5), Bosses.syLance(120, 3.0), Bosses.syTail(105, 3.6), Bosses.sySummon(2, 12)]}),
+				Bosses.P(0.33, {say: "WINTER ETERNAL!", banner: "The ice storm rages!", shield: 1.5, move: "chase", speed: 1.25,
+					attacks: [Bosses.syBreath(100, 3.6, 7), Bosses.syStorm(12, 85, 5.5), Bosses.syLance(125, 2.6, 3), Bosses.syDive(130, 4.5), Bosses.sySpikes(7, 75, 1.4), Bosses.syTail(110, 3.2)]})
 			]}, ["frostfang", "wyrmscale"]);
+			
+			Bosses.mob("ice_wolf", {name: "Ice Wolf", spr: "ice_wolf", hp: 1300, def: 10, spd: 3.8, xp: 60, r: 0.45, keep: 1.2, col: Bosses.S_ICE, aggro: 14, range: 8,
+				attacks: [Bosses.aim(1, 0, 8, 55, 1.1, Bosses.S_ICE, {shape: "blade", r: 0.22, name: "frost bite"})]});
 
 			Bosses.boss("ev_king", {phases: [
 				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(3, 20, 8, 70, 1.0, 0x9aff7a, {eff: "bleeding"}), Bosses.summon("skeleton", 2, 6, 6)]}),
@@ -1790,6 +1801,32 @@ class Bosses {
 		}
 	static ghSummon(n, cd) { n = __int(n);
 			return Bosses.o(Bosses.summon("gore_spawn", n, cd, 5), {anim: "summon", animMs: 130});
+		}
+	static syBreath(dmg, cd, waves) { dmg = __int(dmg); waves = __int(waves);
+			return Bosses.aim(9, 46, 8.5, dmg, cd, Bosses.S_BREATH, {life: 1.35, shape: "blade", r: 0.24, eff: "slowed", waves: waves, gap: 0.14, wrot: 4,
+				lead: 1.0, leadN: 6, leadStep: 1.7, leadCol: Bosses.S_DEEP, anim: "breath", animMs: 110, animHit: 3, animHold: 1.0, name: "ice breath"});
+		}
+	static sySpikes(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.aim(n, 70, 9, dmg, cd, Bosses.S_WHITE, {shape: "spike", r: 0.24, life: 1.2, anim: "spikes", animMs: 100, animHit: 3, name: "frost spikes"});
+		}
+	static syLance(dmg, cd, n = 1) { dmg = __int(dmg); n = __int(n);
+			return Bosses.aim(n, 20, 16, dmg, cd, Bosses.S_WHITE, {life: 1.0, shape: "blade", r: 0.34, lead: 0.75, leadN: 8, leadStep: 1.6, leadCol: Bosses.S_DEEP,
+				anim: "lance", animMs: 100, animHit: 3, animHold: 0.75, name: "ice lance"});
+		}
+	static syTail(dmg, cd) { dmg = __int(dmg);
+			return Bosses.nova(3.4, 0.75, dmg, cd, Bosses.S_DEEP, {reach: 0.01, burst: 12, bspd: 5, blife: 0.9, shape: "blade", fx: "frost",
+				anim: "tail", animMs: 110, animHit: 3, animHold: 0.75, name: "tail swipe"});
+		}
+	static syStorm(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
+			return Bosses.rain(n, 7, dmg, cd, Bosses.S_DEEP, {reach: 0.01, radius: 1.5, delay: 1.2, stagger: 0.16, eff: "slowed", burst: 4, bspd: 3.5, blife: 0.7,
+				shape: "star", marker: "star", anim: "storm", animMs: 120, animHit: 2, animHold: 1.2, name: "ice storm"});
+		}
+	static sySummon(n, cd) { n = __int(n);
+			return Bosses.o(Bosses.summon("ice_wolf", n, cd, 5), {anim: "summon", animMs: 130});
+		}
+	static syDive(dmg, cd) { dmg = __int(dmg);
+			return Bosses.nova(2.8, 1.4, dmg, cd, Bosses.S_DEEP, {reach: 10, marker: "rune", burst: 14, bspd: 5.5, blife: 1.2, shape: "blade", land: "slam",
+				anim: "fly", animMs: 130, animHit: 4, animHold: 1.4, name: "frost dive"});
 		}
 	static siege() {
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
@@ -4197,6 +4234,7 @@ class Enemy {
 			var spin0 = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : this.spins[i];
 			this.shootAttack(a, ang, spin0, dist, g);
 			if (a.dash && a.wind) { this.windT = a.wind; this.windDash = a.dash; this.windA = ang; this.windSpd = a.dashSpd || 9; }
+			else if (a.lead) { this.windT = a.lead + (a.waves || 1) * (a.gap || 0.2); this.windDash = 0; }
 			else if (a.dash) { this.dashT = a.dash; this.dashA = ang; this.dashSpd = a.dashSpd || 9; }
 			if (a.blink) this.blinkAway(a.blink, g);
 			if (a.p == "ring" || a.p == "spiral" || a.p == "flower" || a.p == "implode") this.spins[i] += (a.rot || 0) * Enemy.DEG;
@@ -4207,9 +4245,17 @@ class Enemy {
 			var waves = __int(a.waves || 1);
 			if (a.sfx) g.soundAt(this.x, this.y, a.sfx, 0.7, a.sfxGap || 0.15);
 			this.startAnim(a);
+			
+			var lead = a.lead || 0;
+			if (lead > 0) {
+				for (var lk = __int(1); lk <= (a.leadN || 5); lk++) {
+					var ldd = lk * (a.leadStep || 1.6);
+					g.addMarker(this.x + Math.cos(ang) * ldd, this.y + Math.sin(ang) * ldd, 0.6 + lk * 0.18, lead, a.leadCol || a.col, null, null);
+				}
+			}
 			for (var w = __int(0); w < waves; w++) {
-				if (w == 0) this.shootWave(a, ang, spin0, dist, g, 0);
-				else g.later(w * (a.gap || 0.2), this.waveFn(a, ang, spin0, dist, g, w));
+				if (w == 0 && lead <= 0) this.shootWave(a, ang, spin0, dist, g, 0);
+				else g.later(lead + w * (a.gap || 0.2), this.waveFn(a, ang, spin0, dist, g, w));
 			}
 		}
 	waveFn(a, ang, spin0, dist, g, w) { w = __int(w);
@@ -5812,7 +5858,7 @@ Bosses.PRIMORDIAL_CHANCE = 0.025;
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
 			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},
-			ev_wyrm: {style: "frost", prop: "ice_obelisk", n: 3, r: 5.5, hint: "Ice Obelisks keep healing the Wyrm. Shatter them!"},
+			ev_wyrm: {style: "frost", prop: "ice_obelisk", n: 3, r: 5.5, hint: "Sylith's breath frosts the ground before it comes: get out of its path! Her ice obelisks keep healing her. Shatter them!"},
 			ev_king: {style: "throne", prop: "royal_effigy", n: 4, r: 5.5, ward: true, hint: "The Hollow King's royal effigies make him untouchable. Topple them!"},
 			ev_behemoth: {style: "bone", prop: "bone_stake", n: 6, r: 6.5, hint: "Gorehorn charges down a lane of red spikes: get out of it! Bait him into a bone stake and he's floored, open to every blow."},
 			ev_regent: {style: "ghost", prop: "spectral_candle", n: 4, r: 5.5, ward: true, hint: "Spectral candles bind the Regent to this world. Snuff them out to hurt him!"},
@@ -5842,6 +5888,10 @@ Bosses.V_GOLD = __uint(0xd8a030);
 Bosses.G_RED = __uint(0xd01420);
 Bosses.G_HOT = __uint(0xff3a2a);
 Bosses.G_BONE = __uint(0xe6cfa8);
+Bosses.S_ICE = __uint(0x9ad8ff);
+Bosses.S_WHITE = __uint(0xe8f8ff);
+Bosses.S_DEEP = __uint(0x2a5ad8);
+Bosses.S_BREATH = __uint(0x3a8cff);
 Bosses.H_CYAN = __uint(0x30d8ff);
 Bosses.H_PALE = __uint(0xb8f6ff);
 Bosses.H_DEEP = __uint(0x2050e0);

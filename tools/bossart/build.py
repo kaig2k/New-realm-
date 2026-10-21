@@ -30,14 +30,17 @@ out += tempestus.sequences()
 # Archon Vesper, Architect of Void-Time (see vesper.py)
 import vesper
 out += vesper.sequences()
-# Nerezza, the Tide Empress: the user's own art, kept as drawn (see nerezza.py)
+# Nerezza, the Tide Empress: after the user's own art, on the game's grid (see nerezza.py)
 import nerezza
 out += nerezza.sequences()
-# Gorehorn the Behemoth: the user's own art, kept as drawn (see gorehorn.py)
+# Gorehorn the Behemoth: after the user's own art, on the game's grid (see gorehorn.py)
 import gorehorn
 out += gorehorn.sequences()
+# Sylith the Frost Wyrm: after the user's own art and sheet, on the game's grid (see sylith.py)
+import sylith
+out += sylith.sequences()
 # sprites that reuse another's frames with a palette of their own (Nerezza's and Gorehorn's attacks in their rage colours)
-RECOLORS = nerezza.recolors() + gorehorn.recolors()
+RECOLORS = nerezza.recolors() + gorehorn.recolors() + sylith.recolors()
 
 if len(sys.argv) > 1:
     preview([(n, f, p) for n, f, p, s in out], sys.argv[1])

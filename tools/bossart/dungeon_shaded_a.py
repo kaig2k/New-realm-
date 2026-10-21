@@ -5,7 +5,7 @@ the Furnace Warden, the Living Flame, the Archdemon, the Sprite Queen and the Su
 """
 import math
 from sdfart import Model, rough, folds, scales, fur, vnoise
-from shaded_kit import g, glow, robe, torso, arm, legs, head, eyes, hood, crown, staff, wing, flame, designs, sheet
+from shaded_kit import g, glow, robe, torso, arm, held, legs, head, eyes, hood, crown, staff, wing, flame, designs, sheet
 
 BONE = g([0x3e3828, 0x6c6450, 0x9e967c, 0xcac4a8, 0xece8d4], spec=0.2)
 VOID = g([0x040306, 0x0a080e])
@@ -25,7 +25,9 @@ def lich_king(t):
     for s in (-1, 1):
         m.sphere((23 + s * 7, 18, 4), 3.2, 'robe')
         arm(m, (23 + s * 8, 19, 4), (23 + s * 11, 27, 6), (23 + s * 9, 33, 8), 2.0, 'robe', 'bone', 1.6)
+        held(m, x=23 + s * 9)
         m.capsule((23 + s * 9, 34, 9), (23 + s * 10, 37, 9), 0.5, 0.3, 'bone')
+        m.part(None)
     head(m, 23, 11, 5.2, 'bone')
     eyes(m, 23, 11, 2.0, 8.6, 'void', 1.1)
     eyes(m, 23, 11.2, 2.0, 9.3, 'eye', 0.5)
@@ -107,6 +109,8 @@ def tempest_seraph(t):
         d = (s * 0.86, -0.5)
         wing(m, root, d, 26, 'wing', 'wing', -4, n=6, droop=0.55, side=s)
         m.capsule((32 + s * 9, 14, -2), (32 + s * 26, 3, -2), 0.8, 0.5, 'blade')
+        m.anchor('hand' + ('R' if s > 0 else 'L') + 'w', (32 + s * 26, 3))
+    m.part(None)
     robe(m, 32, 22, 52, 5.5, 11, 'robe', tatter=False)
     torso(m, 32, 19, 30, 4.6, 'robe')
     for s in (-1, 1):
@@ -129,16 +133,23 @@ def living_flame(t):
     for k in range(9):                                         # tongues of flame licking up and out
         a = -math.pi / 2 + (k - 4) * 0.33
         ln = 20 - abs(k - 4) * 2 + ((k + t) % 2) * 2
+        m.part('hem%d' % (k % 2) if k not in (1, 7) else ('armL' if k == 1 else 'armR'), (25, 30))
         m.capsule((25, 30, 0), (25 + math.cos(a) * ln, 30 + math.sin(a) * ln, 0), 5.5 - abs(k - 4) * 0.4, 0.4, 'out')
+    m.part(None)
     m.sphere((25, 32, 2), 14, 'out', 1.0, 0.95, 0.9)
     m.sphere((25, 31, 6), 10, 'in', 1.0, 1.0, 0.8)
+    m.anchor('cast', (25, 36)); m.anchor('handL', (12, 16)); m.anchor('handR', (38, 16))
     # its face: blazing eyes and a jagged grin
     for s in (-1, 1):
         m.sphere((25 + s * 4.5, 27, 15.5), 2.0, 'void', 1.1, 0.8, 0.5)
+    m.part('jaw', (25, 34))
     m.sphere((25, 36.5, 15), 5.4, 'void', 1.25, 0.6, 0.5)
     for k in range(5):
+        m.part(None)
         m.capsule((20 + k * 2.5, 33.5, 17.1), (20 + k * 2.5, 35.5, 17.1), 0.6, 0.2, 'tooth')
+        m.part('jaw', (25, 34))
         m.capsule((21.2 + k * 2.5, 39.8, 16.9), (21.2 + k * 2.5, 38, 16.9), 0.6, 0.2, 'tooth')
+    m.part(None)
     for k in range(6):                                         # embers flying off it
         a = k * 1.1 + t
         m.sphere((25 + math.cos(a) * 20, 30 + math.sin(a) * 18, 14), 0.8, 'in')
@@ -152,12 +163,15 @@ def archdemon(t):
     m = Model(64, 58)
     for s in (-1, 1):                                          # bat wings
         sh, wr = (32 + s * 5, 18, -3), (32 + s * 26, 4, -3)
+        m.part('wingR' if s > 0 else 'wingL', sh[:2])
         m.capsule(sh, wr, 1.6, 1.0, 'horn')
         tips = [(32 + s * 30, 16), (32 + s * 27, 26), (32 + s * 19, 30)]
         m.membrane([(sh[0], sh[1]), (wr[0], wr[1]), tips[0], (32 + s * 25, 20), tips[1], (32 + s * 21, 25), tips[2], (32 + s * 8, 28)], -4, 'wing', (s * 0.3, -0.2))
         for tp in tips:
             m.capsule(wr, (tp[0], tp[1], -3.5), 0.8, 0.3, 'horn')
+    m.part('tail', (28, 40))
     m.chain([(28, 40, -2), (20, 46, -1), (14, 50, 0), (10, 47, 0)], [2.0, 1.6, 1.2, 0.6], 'skin')   # tail
+    m.part(None)
     legs(m, 32, 36, 56, 4.5, 3.8, 'skin')
     torso(m, 32, 18, 36, 8, 'skin', rough(0.08))
     for s in (-1, 1):
@@ -167,11 +181,14 @@ def archdemon(t):
     for x in (41, 44, 47):
         m.capsule((x, 6, 8.5), (x, 1, 8.5), 0.7, 0.3, 'iron')
     m.capsule((41, 6, 8.5), (47, 6, 8.5), 0.7, 0.7, 'iron')
+    m.part('head', (32, 17))
+    m.anchor('cast', (32, 14.5))
     m.sphere((32, 11, 4), 5.6, 'skin', 0.95, 1.0, 1, rough(0.06))
     eyes(m, 32, 11, 2.5, 9.0, 'eye', 1.0)
     m.capsule((29, 14.5, 10.4), (35, 14.5, 10.4), 0.5, 0.5, 'fire')
     for s in (-1, 1):
         m.chain([(32 + s * 4, 7, 5), (32 + s * 8, 3, 5), (32 + s * 7, -0.5, 4)], [1.6, 1.1, 0.3], 'horn')
+    m.part(None)
     return m, M
 
 
@@ -181,19 +198,24 @@ def sprite_queen(t):
          'hair': g([0x8a6a18, 0xc8a030, 0xf0d060]), 'glow': glow(0xff90e0, 0xffe0f8, 0xffffff), 'eye': g([0x2a1a3a, 0x4a2a6a])}
     m = Model(56, 50)
     for s in (-1, 1):                                          # butterfly wings, upper and lower
+        m.part('wingR' if s > 0 else 'wingL', (28 + s * 2, 22))
         m.sphere((28 + s * 12, 16, -4), 10, 'wing', 1.0, 0.85, 0.3)
         m.sphere((28 + s * 10, 31, -5), 7, 'wing', 1.0, 0.9, 0.3)
         m.sphere((28 + s * 14, 15, -0.8), 3.2, 'spot', 1, 1, 0.3)
         m.sphere((28 + s * 11, 32, -2.5), 2.2, 'spot', 1, 1, 0.3)
+    m.part(None)
     robe(m, 28, 24, 44, 3.5, 8, 'dress', tatter=True, seed=21)
     torso(m, 28, 21, 29, 3.2, 'dress')
     for s in (-1, 1):
         arm(m, (28 + s * 3.5, 21, 3), (28 + s * 6, 26, 4), (28 + s * 8, 22, 5), 1.0, 'skin', 'skin', 0.9)
+    held(m, 'R')
     m.sphere((36, 20.5 - t * 0.3, 6.5), 1.6, 'glow')            # a spark on her fingertip
+    m.anchor('cast', (36, 20.5))
     head(m, 28, 15, 3.6, 'skin')
     m.sphere((28, 13, 1.5), 4.4, 'hair', 1.05, 0.95, 1)
     eyes(m, 28, 15.2, 1.4, 6.9, 'eye', 0.5)
     crown(m, 28, 10.6, 3, 'hair', spikes=3, tall=2.5, z=4)
+    m.part(None)
     for k in range(6):
         a = k * 1.05 + t * 0.5
         m.sphere((28 + math.cos(a) * 22, 26 + math.sin(a) * 16, 8), 0.6, 'glow')
@@ -237,3 +259,11 @@ if __name__ == '__main__':
     import sys
     sheet(MODELS[:5], sys.argv[1])
     sheet(MODELS[5:], sys.argv[2])
+
+
+# how each moves (posed.py)
+RIG = {
+    'lich_king': {'legs': False}, 'serpent_queen': {'legs': False}, 'sorcerer': {'legs': False, 'cast': 'one', 'held': 'staff'},
+    'seraph': {'fly': True, 'flap': 1.4}, 'pyrelord': {'fly': True, 'arms': 0.5}, 'archdemon': {'flap': 1.3, 'held': 'staff'},
+    'sprite_queen': {'fly': True, 'flap': 1.6}, 'sun_king': {'legs': False, 'cast': 'one', 'held': 'staff'},
+}

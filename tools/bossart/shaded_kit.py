@@ -23,8 +23,10 @@ def glow(*c, base=0.2):
 def robe(m, cx, top, hem, w0, w1, mat, trim=None, tatter=True, seed=3):
     """A robe or gown from the shoulders (y=top, half-width w0) to the floor (y=hem, half-width w1)."""
     F = folds(0.14, 3.0, seed)
-    m.capsule((cx, top, 0), (cx, hem - 2, 0), w0, w1, mat, F)
-    m.sphere((cx, hem - 1, 0), w1, mat, 1.0, 0.28, 1.0, F)
+    # straight flared sides and a flat hem (the capsule runs on past the floor and is cut there)
+    over = w1 * 0.7
+    m.capsule((cx, top, 0), (cx, hem + over, 0), w0, w1 + (w1 - w0) * over / max(1, hem - top), mat, F, cut=hem)
+    m.sphere((cx, hem - 0.6, 0.5), w1 + 0.4, mat, 1.0, 0.16, 1.0, F)
     if tatter:
         n = int(w1 * 2 / 4) + 1
         for k in range(n):

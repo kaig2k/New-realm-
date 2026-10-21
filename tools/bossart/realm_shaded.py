@@ -7,6 +7,7 @@ makes the rest. build.py uses these in place of the older flat drawings in desig
 """
 import math
 from sdfart import Model, fur, rough, folds, scales, vnoise
+from shaded_kit import wing
 
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
@@ -79,8 +80,8 @@ def hollow_king(t):
     m = Model(48, 56)
     F = folds(0.14, 3.2, 3)
     # the robe, wide and tattered at the floor
-    m.capsule((24, 18, 0), (24, 48, 0), 6, 15, 'robe', F)
-    m.sphere((24, 49, 0), 15, 'robe', 1, 0.28, 1, F)
+    m.capsule((24, 18, 0), (24, 58, 0), 6, 16, 'robe', F, cut=50)
+    m.sphere((24, 49.4, 0.5), 14.6, 'robe', 1, 0.16, 1, F)
     for k in range(7):
         m.part('hem%d' % (k % 2), (11 + k * 4.3, 50))
         m.capsule((11 + k * 4.3, 50, 4), (11 + k * 4.3, 54 - (k % 2) * 2, 4), 1.6, 0.6, 'robe')
@@ -173,42 +174,77 @@ SPHINX = {
 
 
 def sand_sphinx(t):
-    m = Model(64, 44)
+    """Seated upright like a temple guardian, facing you: a lion's body on straight forelegs, great
+    falcon wings raised behind, a pharaoh's striped headdress and a broad gold collar."""
+    M = dict(SPHINX)
+    M['wing'] = g([0x4a3418, 0x7a5a2c, 0xa8844a, 0xd2b070, 0xf0d8a0])
+    M['tip'] = g([0x0c1a4a, 0x163276, 0x2450aa, 0x3a74d8])
+    M['claw'] = g([0x2a1a0c, 0x4a3420, 0x6a5030])
+    m = Model(64, 60)
     R = rough(0.08, 0.3, 5)
-    # lying down: a long lion body, paws stretched forward (to the right)
-    m.sphere((26, 30, 0), 14, 'body', 1.4, 0.62, 0.9, R)
-    m.sphere((12, 30, -2), 8, 'body', 1.0, 0.8, 1.0, R)                 # haunch
-    m.part('armL', (36, 37))
-    m.capsule((36, 37, -4), (52, 39, -4), 3.2, 2.8, 'stone')
-    m.part('armR', (36, 36))
-    m.capsule((36, 36, 5), (54, 38, 6), 3.4, 3.0, 'body', R)            # forepaws
-    m.sphere((55, 38.4, 7), 3.4, 'body', 1.3, 0.7, 1, R)
-    m.anchor('handR', (55, 38)); m.anchor('handL', (52, 39))
-    # tail curled at its side
-    m.part('tail', (10, 32))
-    m.chain([(6, 32, 4), (2, 36, 5), (6, 40, 6), (12, 40, 6)], [1.6, 1.4, 1.2, 1.0], 'body')
-    # the chest rising to a pharaoh's head
+    # great falcon wings raised behind it: a gold leading edge, feathers hanging from it, lapis at the tips
+    for sd in (-1, 1):
+        root = (32 + sd * 7, 25)
+        pts = wing(m, root, (sd * 0.72, -0.69), 31, 'wing', 'gold', -6, n=7, droop=0.62, side=sd)
+        m.membrane(pts, -7.5, 'wing', (sd * 0.25, -0.2), R)
+        m.anchor('hand' + ('R' if sd > 0 else 'L') + 'w', (root[0] + sd * 22, 3))
+
+    def tips(x, y, h):
+        if h[2] == 'wing' and abs(x - 32) > 20 and int((y + abs(x - 32) * 0.4) / 2.5) % 3 == 0:
+            return 'tip'
+        return None
+    m.paint(tips)
+    # haunches either side, the body sitting up between them
     m.part(None)
-    m.sphere((40, 24, 3), 8, 'body', 1, 1.1, 0.9, R)
-    m.part('head', (42, 26))
-    # the headdress: striped blue and gold, falling to the shoulders
-    m.capsule((44, 10, 2), (44, 26, 2), 7, 8.5, 'blue')
+    for sd in (-1, 1):
+        m.sphere((32 + sd * 10, 49, -1), 8.0, 'body', 1.05, 0.72, 0.8, R)     # haunches
+        m.sphere((32 + sd * 14, 55.5, 2), 3.8, 'body', 1.35, 0.5, 1.0, R)      # the hind paws
+    m.capsule((32, 28, 1), (32, 46, 2), 8.5, 9.5, 'body', R, cut=56)
+    m.part('tail', (40, 52))
+    m.chain([(40, 53, 6), (46, 57, 7), (52, 56, 7), (55, 52, 7)], [1.6, 1.4, 1.1, 0.8], 'body')
+    m.sphere((55.5, 50.5, 7.5), 1.6, 'claw')
+    # straight forelegs to big paws (the rig's arms: they rise to swipe)
+    for sd in (-1, 1):
+        S = 'R' if sd > 0 else 'L'
+        m.part('arm' + S, (32 + sd * 5.5, 32))
+        m.capsule((32 + sd * 5.5, 32, 6), (32 + sd * 5.5, 53, 8), 3.0, 2.6, 'body', R)
+        m.sphere((32 + sd * 5.5, 55, 9.5), 3.2, 'body', 1.15, 0.7, 1.0, R)
+        for c in (-1, 0, 1):
+            m.mark(32 + sd * 5.5 + c * 1.6, 56, 'claw')
+        m.anchor('hand' + S, (32 + sd * 5.5, 55))
+    m.part(None)
+    # a broad collar of gold and lapis on its chest
+    m.sphere((32, 27.5, 6), 8.5, 'gold', 1.0, 0.5, 0.7)
+
+    def collar(x, y, h):
+        if h[2] == 'gold' and 23 < y < 32 and abs(x - 32) > 1:
+            d = math.hypot(x - 32, (y - 23) * 1.6)
+            return 'blue' if int(d / 2.2) % 2 else None
+        return None
+    m.paint(collar)
+    # the head: a striped headdress falling to the shoulders, a calm face, the cobra on its brow
+    m.part('head', (32, 26))
+    m.capsule((32, 10, 1), (32, 17, 1), 6.2, 7.6, 'blue', cut=21)
+    for sd in (-1, 1):
+        m.capsule((32 + sd * 5.6, 14, 4), (32 + sd * 6.2, 24, 4.5), 2.3, 2.0, 'blue', cut=25)
 
     def stripes(x, y, h):
-        if h[2] == 'blue' and int(y / 2.2) % 2 == 0:
+        if h[2] == 'blue' and int(y / 1.8) % 2 == 0:
             return 'gold'
         return None
     m.paint(stripes)
-    m.sphere((44, 13.5, 9), 5.2, 'body', 0.95, 1.05, 0.8, R)            # face
-    m.capsule((38.6, 8.5, 6.5), (49.4, 8.5, 6.5), 1.3, 1.3, 'gold')     # the headband
-    m.capsule((44, 8.2, 7.4), (44, 4 + t * 0.3, 7.4), 1.0, 0.5, 'gold') # the cobra on its brow
-    m.capsule((38.6, 8.5, 9.5), (49.4, 8.5, 9.5), 1.3, 1.3, 'gold')     # the headband, in front
-    for ex in (42, 46):
-        m.mark(ex - 1, 12, None, 3, 1)                                    # the brow's shadow
-        m.mark(ex, 13, 'eye')
-    m.capsule((44, 18, 13), (44, 22.5, 12), 0.9, 0.6, 'gold')           # the beard
-    m.anchor('cast', (44, 5))
-    return m, SPHINX
+    m.sphere((32, 15, 7), 4.6, 'body', 0.9, 1.1, 1.1, R)                    # the face
+    m.capsule((27, 10, 7), (37, 10, 7), 1.1, 1.1, 'gold')                   # the headband
+    m.capsule((32, 9, 9.5), (32, 5 + t * 0.3, 9.5), 1.0, 0.5, 'gold')       # the cobra
+    m.sphere((32, 4.6 + t * 0.3, 9.8), 1.1, 'gold', 1.2, 0.8, 1)
+    for ex in (30, 34):
+        m.mark(ex - 1, 13, None, 3, 1)
+        m.mark(ex, 14, 'eye')
+    m.mark(31, 17.5, None, 3, 1)                                            # the mouth's shadow
+    m.capsule((32, 19.5, 11), (32, 23, 10.5), 0.9, 0.7, 'gold')             # the beard
+    m.anchor('cast', (32, 5))
+    m.part(None)
+    return m, M
 
 
 # ---------------------------------------------------------------- the Tide Hermit
@@ -384,7 +420,7 @@ RIG = {
     'boss': {'fly': True, 'arms': 0},
     'hollowking': {'legs': False, 'cast': 'one', 'held': 'staff'},
     'regent': {'fly': True, 'cast': 'one', 'held': 'staff'},
-    'sphinx': {'legs': False, 'arms': 0.3, 'heavy': True},
+    'sphinx': {'legs': False, 'arms': 0.5, 'flap': 1.3, 'heavy': True},
     'hermit': {'legs': True, 'arms': 0.5, 'heavy': True},
     'shrine': {'legs': False, 'still': True, 'heavy': True},
 }

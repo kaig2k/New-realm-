@@ -126,9 +126,11 @@ class Model:
         """An ellipsoid centred at c with radii r*sx, r*sy, r*sz."""
         self.shapes.append(('ell', self._p(c), (r * sx, r * sy, r * sz), mat, self._t(tex), self._fi))
 
-    def capsule(self, a, b, ra, rb, mat, tex=None):
-        """A tapered capsule from a (radius ra) to b (radius rb)."""
-        self.shapes.append(('cap', self._p(a), self._p(b), ra, rb, mat, self._t(tex), self._fi))
+    def capsule(self, a, b, ra, rb, mat, tex=None, cut=None):
+        """A tapered capsule from a (radius ra) to b (radius rb). cut: nothing below this y (a flat hem)."""
+        if cut is not None:
+            cut = self._p((b[0], cut))[1]
+        self.shapes.append(('cap', self._p(a), self._p(b), ra, rb, mat, self._t(tex), cut, self._fi))
 
     def chain(self, pts, radii, mat, tex=None):
         """Capsules through a list of points, the radius easing along them."""
@@ -232,6 +234,8 @@ class Model:
                 if r and (best is None or r[0] > best[0]):
                     best = (r[0], r[1], s[3], s[4], s[-1])
             elif s[0] == 'cap':
+                if s[7] is not None and y > s[7]:
+                    continue
                 r = self._cap(x, y, s[1], s[2], s[3], s[4])
                 if r and (best is None or r[0] > best[0]):
                     best = (r[0], r[1], s[5], s[6], s[-1])

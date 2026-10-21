@@ -14,7 +14,7 @@ strike, everything else casts.
 import math, colorsys
 import sdfart
 
-LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%&*+-=?@^~'   # (no digits: the frames are run-length packed)
 PAD = 14
 SEQ = [('idle', 4), ('move', 6), ('cast', 5), ('strike', 5), ('summon', 5), ('guard', 4), ('death', 6)]
 
@@ -162,8 +162,7 @@ def _dissolve(img, f, seed):
             if h < f:
                 px[x, y] = (0, 0, 0, 0)
             elif h < f + 0.06:
-                c = px[x, y]
-                px[x, y] = (min(255, c[0] + 90), min(255, c[1] + 90), min(255, c[2] + 90), 255)
+                px[x, y] = (255, 246, 220, 255)
     return img
 
 

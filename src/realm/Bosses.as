@@ -139,17 +139,33 @@ package realm {
 		 * attacks play the animation that fits them, and their last phase plays in rage colours.
 		 */
 		public static const POSED:Array = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord", "hermit", "shrine",
-			"colossus", "phoenix", "witch", "kraken"];
+			"colossus", "phoenix", "witch", "kraken",
+			"lich_king", "serpent_queen", "sorcerer", "seraph", "pyrelord", "archdemon", "sprite_queen", "sun_king", "moon_queen",
+			"shattered_seraph", "hex_queen", "star_prince", "pirate_king", "moth", "broodmother", "frost_warden", "flame_warden",
+			"vault_ignis", "warden", "blood_knight", "sentinel"];
 		public static const POSED_SEQ:Object = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 		/** Their own shots (tools/bossart/boss_shots.py): [from its strikes, from its casts], in place of the plain shapes. */
 		public static const POSED_SHOTS:Object = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
 			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],
-			"kraken": ["ink", "bubble"]};
+			"kraken": ["ink", "bubble"], "lich_king": ["skull", "soulorb"], "serpent_queen": ["fang", "venom"],
+			"sorcerer": ["starbolt", "potion"], "seraph": ["lightblade", "feather"], "pyrelord": ["ember", "pflame"],
+			"archdemon": ["trident", "hellfire"], "sprite_queen": ["sparkle", "petal"], "sun_king": ["sunray", "sunorb"],
+			"moon_queen": ["crescentmoon", "starlet"], "shattered_seraph": ["glassshard", "feather"], "hex_queen": ["thorn", "hex"],
+			"star_prince": ["starbolt", "starlet"], "pirate_king": ["cannonball", "coin"], "moth": ["dust", "eyespot"],
+			"broodmother": ["web", "egg"], "frost_warden": ["icicle", "snowflake"], "flame_warden": ["magma", "ember"],
+			"vault_ignis": ["flamesword", "ember"], "warden": ["lantern", "soulorb"], "blood_knight": ["bloodblade", "bloodorb"],
+			"sentinel": ["laser", "gearbit"]};
 		private static const SHOT_NOUNS:Object = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma ball", "ember": "ember", "skull": "skull",
 			"crownlet": "crown", "mask": "mask", "phantom": "phantom", "scarab": "scarab", "ankh": "ankh", "anchor": "anchor", "bubble": "bubble",
 			"claw": "claw", "shell": "shell", "skullfire": "burning skull", "candle": "candle flame", "boulder": "boulder", "voidshard": "void shard",
-			"feather": "feather", "pflame": "fireball", "potion": "potion", "hex": "hex", "ink": "ink blot"};
+			"feather": "feather", "pflame": "fireball", "potion": "potion", "hex": "hex", "ink": "ink blot", "soulorb": "soul", "fang": "fang",
+			"venom": "venom glob", "starbolt": "star bolt", "lightblade": "blade of light", "trident": "trident", "hellfire": "hellfire",
+			"sparkle": "sparkle", "petal": "petal", "sunray": "sunbeam", "sunorb": "sun orb", "crescentmoon": "crescent moon",
+			"starlet": "star", "glassshard": "glass shard", "thorn": "thorn", "cannonball": "cannonball", "coin": "cursed coin",
+			"dust": "moth dust", "eyespot": "eye", "web": "web", "egg": "egg", "icicle": "icicle", "snowflake": "snowflake",
+			"flamesword": "flame blade", "lantern": "lantern", "bloodblade": "blood blade", "bloodorb": "blood orb", "laser": "beam",
+			"gearbit": "gear"};
 		private static const PLAIN_SHAPES:Object = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
 
 		private static function posed():void {

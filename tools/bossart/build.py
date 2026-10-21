@@ -55,10 +55,7 @@ import re, posed
 from multiprocessing import Pool
 _src = open(os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'realm', 'Bosses.as')).read()
 POSED = re.findall(r'"(\w+)"', re.search(r'POSED:Array = \[([^\]]*)\]', _src).group(1))
-_RIGS = {}
-for _mod in (realm_shaded, dungeon_shaded_a, dungeon_shaded_b, raid_shaded, angular_shaded):
-    for _n, _fn in _mod.MODELS:
-        _RIGS[_n] = (_fn, getattr(_mod, 'RIG', {}).get(_n, {}))
+from build_rigs import RIGS as _RIGS
 
 
 def _pose_one(n):

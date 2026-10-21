@@ -191,23 +191,24 @@ class Model:
                     i += 1
                 c = ramp[min(i, len(ramp) - 1)]
                 px[x, y] = ((c >> 16) & 255, (c >> 8) & 255, c & 255, 255)
-        # an outline: the darkest tone where the silhouette meets nothing, and between depths that jump
+        # no outer outline (the game draws a thin black one round every sprite); only a soft seam where a
+        # nearer part overlaps a farther one: the farther part's second-darkest tone, not black
         out = img.copy()
         op = out.load()
-        oc = ((outline >> 16) & 255, (outline >> 8) & 255, outline & 255, 255)
         for y in range(H):
             for x in range(W):
-                if px[x, y][3]:
-                    h = depth[y][x]
-                    for dx, dy in ((1, 0), (0, 1)):
-                        q = depth[y + dy][x + dx] if x + dx < W and y + dy < H else None
-                        if q and h and abs(q[0] - h[0]) > 6 and q[0] < h[0] and not mats[q[2]].get('glow'):
-                            op[x + dx, y + dy] = oc
+                if not px[x, y][3]:
                     continue
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                    if 0 <= x + dx < W and 0 <= y + dy < H and px[x + dx, y + dy][3]:
-                        op[x, y] = oc
-                        break
+                h = depth[y][x]
+                for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+                    xx, yy = x + dx, y + dy
+                    if not (0 <= xx < W and 0 <= yy < H):
+                        continue
+                    q = depth[yy][xx]
+                    if q and h and q[0] < h[0] - 6 and not mats[q[2]].get('glow') and not mats[h[2]].get('glow'):
+                        ramp = mats[q[2]]['ramp']
+                        c = ramp[1 if len(ramp) > 2 else 0]
+                        op[xx, yy] = ((c >> 16) & 255, (c >> 8) & 255, c & 255, 255)
         return out
 
 

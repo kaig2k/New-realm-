@@ -38,12 +38,16 @@ def archivist(t):
     m.membrane([(19.5, 27), (25, 29), (30.5, 27), (30, 32), (25, 33.5), (20, 32)], 10.5, 'page', (0, -0.4))
     for k in range(4):
         m.sphere((22 + k * 2, 30 - (k % 2), 12), 0.6, 'glow')     # glowing runes lifting off its pages
+    m.anchor('cast', (25, 29))
+    m.part('heldR', (39, 30), 'armR')
     m.capsule((39, 8, 6), (39, 54, 6), 0.9, 0.9, 'wood')          # a lantern on a crook
     m.capsule((39, 8, 6), (42, 6, 6), 0.8, 0.8, 'wood')
     m.sphere((42, 9.5 + t * 0.3, 7), 1.9, 'glow')
+    m.part(None)
     head(m, 25, 11, 4.4, 'face')
     m.sphere((25, 8.6, 2.5), 5.2, 'hair', 1.05, 0.85, 1)
     eyes(m, 25, 11.4, 1.6, 7.6, 'glow', 0.6)
+    m.part(None)
     return m, M
 
 
@@ -67,12 +71,15 @@ def sovereign(t):
         m.capsule((27 + s * 4, 32, 6), (27 + s * 5, 40, 9), 2.2, 1.8, 'robe')   # knees
         m.capsule((27 + s * 5, 40, 9), (27 + s * 5, 47, 10), 1.2, 1.0, 'bone')
         arm(m, (27 + s * 7, 19, 3), (27 + s * 10, 26, 5), (27 + s * 12, 31, 7), 1.6, 'robe', 'bone', 1.3)
+    held(m, 'R')
     m.capsule((39, 10, 8), (39, 40, 8), 0.8, 0.8, 'gold')          # his sceptre
     m.sphere((39, 8.5 - t * 0.3, 9), 2.0, 'gem')
+    m.anchor('cast', (39, 8.5))
     head(m, 27, 12, 4.8, 'bone')
     eyes(m, 27, 12, 1.8, 7.6, 'void', 1.1)
     eyes(m, 27, 12.2, 1.8, 8.4, 'eye', 0.55)
     crown(m, 27, 7.6, 4, 'gold', spikes=5, tall=3, z=6, gem='gem')
+    m.part(None)
     return m, M
 
 
@@ -83,11 +90,16 @@ def astraeon(t):
     for k in range(8):                                             # eight points of light
         a = k * math.pi / 4 + t * 0.06
         ln = 26 if k % 2 == 0 else 17
+        m.part('hem%d' % (k % 2), (28, 28))
         m.capsule((28, 28, 0), (28 + math.cos(a) * ln, 28 + math.sin(a) * ln, 0), 5.5 if k % 2 == 0 else 4, 0.4, 'star')
+    m.part(None)
     m.sphere((28, 28, 2), 10, 'star', 1, 1, 0.9)
+    m.part('head', (28, 36))
     m.sphere((28, 28, 6), 7, 'face', 1, 1.05, 0.8)
+    m.anchor('cast', (28, 28)); m.anchor('handR', (54, 28)); m.anchor('handL', (2, 28))
     eyes(m, 28, 27, 2.6, 9.6, 'void', 0.9)
     m.capsule((25.8, 32, 11.6), (30.2, 32, 11.6), 0.5, 0.5, 'void')
+    m.part(None)
     for k in range(10):                                            # glints circling him
         a = k * math.pi / 5 + t * 0.3
         m.sphere((28 + math.cos(a) * 24, 28 + math.sin(a) * 24, 10), 0.8, 'glint')
@@ -104,14 +116,19 @@ def void_dragon(t):
     S = scales(2.3, 0.1)
     for s in (-1, 1):                                              # great spread wings
         sh, wr = (32 + s * 5, 20, -4), (32 + s * 24, 6, -4)
+        m.part('wingR' if s > 0 else 'wingL', sh[:2])
+        m.anchor('hand' + ('R' if s > 0 else 'L'), wr[:2])
         m.capsule(sh, wr, 1.8, 1.1, 'bone')
         tips = [(32 + s * 31, 16), (32 + s * 29, 27), (32 + s * 21, 32)]
         m.membrane([(sh[0], sh[1]), (wr[0], wr[1]), tips[0], (32 + s * 26, 21), tips[1], (32 + s * 23, 27), tips[2], (32 + s * 9, 30)], -5, 'wing', (s * 0.3, -0.2))
         for tp in tips:
             m.capsule(wr, (tp[0], tp[1], -4.5), 0.9, 0.35, 'bone')
+    m.part('tail', (32, 38))
     m.chain([(32, 38, 0), (36, 44, 1), (30, 49, 2), (24, 46, 2), (22, 51, 2)], [4.5, 3.6, 2.8, 2.0, 1.2], 'hide', S)   # tail
+    m.part(None)
     m.sphere((32, 28, 0), 9.5, 'hide', 1.0, 1.1, 0.9, S)
     m.capsule((32, 23, 8.8), (32, 36, 8.6), 2.6, 2.0, 'bone')     # belly plates
+    m.part('head', (32, 22))
     m.chain([(32, 20, 2), (32, 14, 4), (32, 10, 6)], [5, 4.2, 3.6], 'hide', S)   # neck
     m.sphere((32, 8, 7), 4.8, 'hide', 1.05, 0.9, 1)
     m.capsule((32, 10, 8), (32, 15, 11), 2.6, 1.6, 'hide')        # snout toward us
@@ -119,6 +136,8 @@ def void_dragon(t):
     m.capsule((30, 15, 12.4), (34, 15, 12.4), 0.6, 0.6, 'glow')
     for s in (-1, 1):
         m.chain([(32 + s * 3, 5, 5), (32 + s * 6, 1.5, 4), (32 + s * 7, -0.5, 3)], [1.3, 0.8, 0.3], 'horn')
+    m.anchor('cast', (32, 15))
+    m.part(None)
     return m, M
 
 
@@ -130,11 +149,16 @@ def zealot(t):
     torso(m, 22, 17, 30, 5.5, 'robe')
     for s in (-1, 1):
         arm(m, (22 + s * 6, 19, 3), (22 + s * 10, 23, 5), (22 + s * 13, 18, 7), 1.8, 'robe', 'skin', 1.3)
+        held(m, x=22 + s * 13)
         m.capsule((22 + s * 13, 17, 8), (22 + s * 14, 11, 8), 0.8, 0.3, 'steel')   # a curved knife in each hand
+        m.part(None)
     # a tall pointed hood
+    m.part('head', (22, 18))
+    m.anchor('cast', (22, 13))
     m.capsule((22, 12, 1), (22, -0.5, 0), 7, 0.6, 'robe', folds(0.1, 3, 7))
     m.sphere((22, 14, 4), 5, 'void', 0.95, 1.1, 0.7)
     eyes(m, 22, 13.6, 1.7, 6.6, 'eye', 0.6)
+    m.part(None)
     return m, M
 
 
@@ -185,6 +209,7 @@ def galecaller(t):
     m.sphere((26, 10, 2), 4.6, 'hair', 1.05, 0.9, 1)
     eyes(m, 26, 12.4, 1.5, 7.4, 'eye', 0.5)
     crown(m, 26, 8, 3.5, 'ice', spikes=5, tall=4.5, z=5)
+    m.part(None)
     return m, M
 
 
@@ -222,8 +247,14 @@ def gearmind(t):
     m = Model(54, 52)
     for s in (-1, 1):                                              # spidery mechanical legs
         for k in range(2):
+            S = 'R' if s > 0 else 'L'
+            m.part('arm' + S if k == 0 else 'leg' + S, (27 + s * 8, 30 + k * 4))
+            if k == 0:
+                m.anchor('hand' + S, (27 + s * 20, 48))
             m.capsule((27 + s * 8, 30 + k * 4, -2), (27 + s * (18 + k * 3), 38 + k * 2, -2), 1.4, 1.0, 'iron')
             m.capsule((27 + s * (18 + k * 3), 38 + k * 2, -2), (27 + s * (20 + k * 3), 48, -1), 1.0, 0.5, 'iron')
+    m.part(None)
+    m.anchor('cast', (27, 25))
     m.sphere((27, 25, 0), 14, 'brass', 1, 1, 0.5, rough(0.04))     # the great gear
     for k in range(12):
         a = k * math.pi / 6 + t * 0.12
@@ -247,11 +278,15 @@ def matron(t):
     for s in (-1, 1):                                              # a high collar like wings
         m.membrane([(27 + s * 4, 18), (27 + s * 14, 6), (27 + s * 13, 18)], 1, 'robe', (s * 0.5, -0.3))
         arm(m, (27 + s * 5, 19, 3), (27 + s * 9, 25, 5), (27 + s * 11, 20, 7), 1.7, 'robe', 'skin', 1.3)
+    held(m, 'R')
     m.sphere((38.5, 18 - t * 0.3, 8.5), 1.8, 'blood')              # a drop of blood held in her palm
+    m.anchor('cast', (38.5, 18))
+    m.part(None)
     m.capsule((27, 9, -1), (27, 26, -2), 5, 3.4, 'hair')
     head(m, 27, 12, 4.2, 'skin')
     eyes(m, 27, 12.4, 1.6, 7.8, 'eye', 0.55)
     crown(m, 27, 8, 3.6, 'gold', spikes=5, tall=3.5, z=6, gem='blood')
+    m.part(None)
     for k in range(5):
         m.sphere((14 + k * 6.5, 50 + (k % 2) * 2, 12), 0.8, 'blood')
     return m, M
@@ -303,6 +338,9 @@ if __name__ == '__main__':
 
 # how each moves (posed.py)
 RIG = {
+    'vault_archivist': {'legs': False}, 'vault_sovereign': {'legs': False, 'still': True, 'cast': 'one', 'held': 'staff', 'heavy': True},
+    'astraeon': {'fly': True, 'arms': 0}, 'void_dragon': {'fly': True, 'arms': 0, 'flap': 1.6}, 'zealot': {'legs': False},
+    'galecaller': {'legs': False, 'arms': 0.6}, 'gearmind': {'arms': 0.6, 'heavy': True}, 'matron': {'legs': False},
     'phoenix': {'fly': True, 'arms': 0, 'flap': 2},
     'witch': {'legs': False, 'cast': 'one', 'held': 'staff'},
     'kraken': {'legs': False, 'arms': 0.6, 'held': 'blade'},

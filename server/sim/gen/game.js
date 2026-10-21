@@ -5891,7 +5891,8 @@ Bosses.POSED = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord"
 			"colossus", "phoenix", "witch", "kraken",
 			"lich_king", "serpent_queen", "sorcerer", "seraph", "pyrelord", "archdemon", "sprite_queen", "sun_king", "moon_queen",
 			"shattered_seraph", "hex_queen", "star_prince", "pirate_king", "moth", "broodmother", "frost_warden", "flame_warden",
-			"vault_ignis", "warden", "blood_knight", "sentinel"];
+			"vault_ignis", "warden", "blood_knight", "sentinel",
+			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron"];
 Bosses.POSED_SEQ = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
@@ -5903,7 +5904,9 @@ Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "em
 			"star_prince": ["starbolt", "starlet"], "pirate_king": ["cannonball", "coin"], "moth": ["dust", "eyespot"],
 			"broodmother": ["web", "egg"], "frost_warden": ["icicle", "snowflake"], "flame_warden": ["magma", "ember"],
 			"vault_ignis": ["flamesword", "ember"], "warden": ["lantern", "soulorb"], "blood_knight": ["bloodblade", "bloodorb"],
-			"sentinel": ["laser", "gearbit"]};
+			"sentinel": ["laser", "gearbit"], "vault_archivist": ["page", "rune"], "vault_sovereign": ["bonespike", "soulorb"],
+			"astraeon": ["starbolt", "starlet"], "void_dragon": ["voidshard", "voidbreath"], "zealot": ["dagger", "bloodorb"],
+			"galecaller": ["windblade", "snowflake"], "gearmind": ["gearbit", "spark"], "matron": ["bloodblade", "blooddrop"]};
 Bosses.SHOT_NOUNS = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma ball", "ember": "ember", "skull": "skull",
 			"crownlet": "crown", "mask": "mask", "phantom": "phantom", "scarab": "scarab", "ankh": "ankh", "anchor": "anchor", "bubble": "bubble",
 			"claw": "claw", "shell": "shell", "skullfire": "burning skull", "candle": "candle flame", "boulder": "boulder", "voidshard": "void shard",
@@ -5913,7 +5916,8 @@ Bosses.SHOT_NOUNS = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma b
 			"starlet": "star", "glassshard": "glass shard", "thorn": "thorn", "cannonball": "cannonball", "coin": "cursed coin",
 			"dust": "moth dust", "eyespot": "eye", "web": "web", "egg": "egg", "icicle": "icicle", "snowflake": "snowflake",
 			"flamesword": "flame blade", "lantern": "lantern", "bloodblade": "blood blade", "bloodorb": "blood orb", "laser": "beam",
-			"gearbit": "gear"};
+			"gearbit": "gear", "rune": "rune", "page": "page", "bonespike": "bone spike", "voidbreath": "void breath",
+			"dagger": "dagger", "windblade": "wind blade", "spark": "spark", "blooddrop": "blood drop"};
 Bosses.PLAIN_SHAPES = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},

@@ -56,7 +56,15 @@ package realm {
 			bloodblade: ["..aC....", "...aCW..", "....aCW.", ".....CWH", "....aCW.", "...aCW..", "..aC....", "........"],
 			bloodorb: ["..aCCa..", ".aCCCCa.", "aCCWCCCa", "aCWCCCCa", "aCCCCCCa", ".aCCCCa.", "..aCCa..", "...aa..."],
 			laser: ["........", "........", "........", "aCWHHHHW", "aCWHHHHW", "........", "........", "........"],
-			gearbit: [".I.II.I.", "IIIIIIII", ".IiCCiI.", "IIiCCiII", ".IIIIII.", "IIIIIIII", ".I.II.I.", "........"]
+			gearbit: [".I.II.I.", "IIIIIIII", ".IiCCiI.", "IIiCCiII", ".IIIIII.", "IIIIIIII", ".I.II.I.", "........"],
+			rune: ["..IIII..", ".IiCCiI.", ".IiCiiI.", ".IiCCiI.", ".IiiCiI.", ".IiCCiI.", "..IIII..", "........"],
+			page: ["........", ".HHHHHH.", ".HCCCCH.", ".HHHHHH.", ".HCCCHH.", ".HHHHHH.", ".HCCHHH.", ".HHHHHH."],
+			bonespike: ["........", "bb......", "bBBBb...", "BBBBBBBH", "bBBBb...", "bb......", "........", "........"],
+			voidbreath: ["......C.", "a..aCKC.", ".aaCKKKC", "aaCKKWKC", ".aaCKKKC", "a..aCKC.", "......C.", "........"],
+			dagger: ["........", "........", "..G.....", "SSGiiiiH", "..G.....", "........", "........", "........"],
+			windblade: ["...W....", "....WW..", "aa...WC.", ".aaCCWWH", "aa...WC.", "....WW..", "...W....", "........"],
+			spark: ["....W...", "...CW...", "a.CWC...", "aCWHWCCW", "...CWC.a", "...WC...", "...W....", "........"],
+			blooddrop: ["........", "..aCC...", ".aCWCC..", "aCWWCCCC", "aCCCCCC.", ".aCCCC..", "..aaa...", "........"]
 		};
 	}
 }

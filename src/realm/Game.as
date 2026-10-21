@@ -3453,7 +3453,7 @@ package realm {
 			for each (var e:Enemy in enemies) {
 				var dx:Number = e.x - x, dy:Number = e.y - y;
 				if (dx * dx + dy * dy < radius * radius) {
-					e.stunT = e.isBoss ? secs * 0.4 : secs;
+					if (!e.stun(secs)) continue;
 					if (e.remote) sync.hit(e, 0, 0, secs);
 					n++;
 				}

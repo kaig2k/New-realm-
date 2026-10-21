@@ -230,7 +230,7 @@ package realm {
 					e = w.eById[d.id];
 					if (!e || e.dead || e.remote) return;
 					if (d.sl) e.slowT = Math.max(e.slowT, d.sl);
-					if (d.st) e.stunT = Math.max(e.stunT, e.isBoss ? d.st * 0.4 : d.st);
+					if (d.st) e.stun(d.st);
 					if (d.d > 0 && !e.immune) {
 						e.hp -= d.d;
 						e.hitT = 0.08;

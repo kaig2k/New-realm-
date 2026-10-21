@@ -391,7 +391,7 @@ package realm {
 				var gx:Number = p.x, gy:Number = p.y, keep:Number = 1.6;
 				if (t) { gx = t.x; gy = t.y; keep = wolf ? t.r + 0.45 : 4.5; }
 				var dx:Number = gx - m.x, dy:Number = gy - m.y, d:Number = Math.sqrt(dx * dx + dy * dy) || 1;
-				var spd:Number = wolf ? 7.5 : 3.8;
+				var spd:Number = wolf ? 7.5 : 5;
 				if (d > keep) {
 					var nx:Number = m.x + dx / d * spd * dt, ny:Number = m.y + dy / d * spd * dt;
 					if (g.world.canStand(nx, m.y, 0.3, false)) m.x = nx;
@@ -409,9 +409,10 @@ package realm {
 						g.burst(t.x, t.y, 0xb8e0ff, 6);
 					}
 				} else if (d < 6.5) {
-					m.cd = 0.8;
+					// skeletons fire faster the more Dexterity you have; their bone shards slow and pass through
+					m.cd = 0.65 / (1 + p.dex / 200);
 					if (!bone) bone = Sprites.projectile("blade", 0xe8e0c8, 3);
-					var s:Projectile = new Projectile(m.x, m.y - 0.3, Math.atan2(t.y - m.y, t.x - m.x), 9, 0.75, m.dmg, false, 0.3, bone, false, p.name, "shard");
+					var s:Projectile = new Projectile(m.x, m.y - 0.3, Math.atan2(t.y - m.y, t.x - m.x), 10, 0.75, m.dmg, false, 0.3, bone, true, p.name, "slow");
 					s.trailCol = 0xc8e0b0;
 					g.addShot(s);
 				}

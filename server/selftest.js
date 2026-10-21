@@ -559,6 +559,13 @@ async function run() {
     check('every item type (' + types.size + ') has a Primordial unique', !missing.length, missing.join(', '));
   }
   {
+    // no ability can hold a boss still (Bone Prison skipped whole phases)
+    const { Enemy: SE } = require('./sim/gen/game');
+    const boss = new SE('elder', 100, 100, 5), mob = new SE('skeleton', 100, 100, 1);
+    const first = boss.stun(5), held = boss.stunT, again = boss.stun(5);
+    check('a boss is stunned for a second at most, then shrugs stuns off for a while', first && held <= 1.0001 && !again && mob.stun(5) && mob.stunT === 5, held + ' ' + again);
+  }
+  {
     // the Discord bot: only its admins may restart, and the minutes are checked
     const { answer } = require('./discordbot');
     const got = [];

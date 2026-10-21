@@ -32,9 +32,11 @@ const ABILITY = {
   lullaby: [40, 5], timestop: [40, 5], hastefield: [40, 5]
 };
 /** Hits one cast can land on the same monster (volleys, damage over time, minions): 2 unless listed. */
-const HITS = { arrowstorm: 10, volley: 8, knives: 14, whirlwind: 12, sanctuary: 10, harvest: 6, raise: 12, wolf: 12, prison: 8,
+const HITS = { arrowstorm: 10, volley: 8, knives: 14, whirlwind: 12, sanctuary: 10, harvest: 6, raise: 40, wolf: 12, prison: 8,
   acidflask: 10, requiem: 4, snare: 4, explosive: 3, lightning: 3, ward: 6, smite: 3 };
 const HITS_PER_CAST = 12;
+/** Abilities whose power grows with Wisdom. */
+const WIS_SCALED = new Set(['harvest', 'sanctuary', 'smite', 'ward']);
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 
@@ -82,7 +84,8 @@ function caps(ch, pet, extra) {
   const id = a ? Data.abilityId(a) : '';
   const f = ABILITY[id] || [40, 5];
   const pow = a ? Math.max(1, num(a.power) || 1) : 1;
-  const abilityHit = (f[0] + f[1] * level) * pow;
+  // (Wisdom feeds the Necromancer's and the Priest's spells: Player.wisMult)
+  const abilityHit = (f[0] + f[1] * level) * pow * (WIS_SCALED.has(id) ? 1 + stat(ch, 'wis', extra) / 200 : 1);
   const cd = Math.max(1, num((Data.ABILITIES[id] || {}).cd) || 4) * (1 - Math.min(5, rank('channeling')) * 0.04);
   const abilityDps = abilityHit * (HITS[id] || 2) / cd;
   const petHit = pet && typeof pet === 'object' ? Data.petAttack(pet) : 0;

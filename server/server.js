@@ -891,7 +891,7 @@ function inWorld(world, except) {
  * secs: how long (else the cast's own length); r: everyone within r of it (at the target for a shield).
  */
 const GRACE = {
-  charge: { secs: 1 }, volley: { secs: 1 }, bash: { secs: 1 }, shadow: { secs: 1 }, rewind: { secs: 1.2 },
+  charge: { secs: 1.4 }, volley: { secs: 1 }, bash: { secs: 1.9 }, shadow: { secs: 1 }, rewind: { secs: 1.2 },
   shield: { r: 6, at: 'target' }, timestop: { r: 5 }, ward: { secs: 1 }, whirlwind: { secs: 0.5 }
 };
 

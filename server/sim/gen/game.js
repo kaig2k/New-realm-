@@ -520,26 +520,26 @@ class Data {
 				case "pierce": t = "One huge arrow that flies 14 tiles, going through every monster in its path for " + n(110, 12) + " damage, ignoring their defense."; break;
 				case "volley": t = "Leap back 3.5 tiles, untouchable in the air, firing a fan of 7 arrows forward for " + n(35, 4) + " each."; break;
 				case "shieldwall": t = "Plants your shield in front of you for " + (4 * sq).toFixed(1) + "s. Bullets from the front stop on it (it shields your party too). Behind it you take 60% less damage but move slower. The plant bashes and stuns enemies in front."; break;
-				case "bash": t = "Charge 3 tiles behind your shield: everything you hit takes " + n(50, 6) + " damage, is knocked back and stunned for " + (1.5 * sq).toFixed(1) + "s."; break;
+				case "bash": t = "Charge 3 tiles behind your shield: everything you hit takes " + n(50, 6) + " damage, is knocked back and stunned for " + (1.5 * sq).toFixed(1) + "s. You can't be hurt during the charge, and take half damage for 1.5s after."; break;
 				case "banner": t = "Plants a war banner for " + (6 * sq).toFixed(1) + "s. You and your allies within 4 tiles of it get +" + __int(10 * pw) + " Defense and heal " + n(4, 0.5) + " HP every half second."; break;
-				case "sanctuary": t = "Heals you " + n(40, 4) + " HP and consecrates a 3-tile circle for " + (5 * sq).toFixed(1) + "s. Standing in it heals " + n(10, 1.2) + " HP every half second; monsters inside burn for " + n(20, 2.5) + ". Works in the Nexus too."; break;
-				case "smite": t = "A pillar of light strikes the cursor: " + n(120, 14) + " damage in 1.8 tiles, and you and allies in it are healed " + n(30, 3) + " HP."; break;
-				case "ward": t = "Heals you and allies within 5 tiles " + n(60, 6) + " HP, clears bad effects, and wraps everyone in a ward that soaks up the next " + n(40, 5) + " damage for 6s."; break;
+				case "sanctuary": t = "Heals you " + n(34, 3.4) + " HP and consecrates a 3-tile circle for " + (5 * sq).toFixed(1) + "s. Standing in it heals " + n(8.5, 1) + " HP every half second; monsters inside burn for " + n(20, 2.5) + ". Grows with your Wisdom; heals can crit. Works in the Nexus too."; break;
+				case "smite": t = "A pillar of light strikes the cursor: " + n(120, 14) + " damage in 1.8 tiles, and you and allies in it are healed " + n(26, 2.6) + " HP. Grows with your Wisdom; the heal can crit."; break;
+				case "ward": t = "Heals you and allies within 5 tiles " + n(51, 5.1) + " HP (grows with your Wisdom, and can crit), clears bad effects, and wraps everyone in a ward that soaks up the next " + n(40, 5) + " damage for 6s."; break;
 				case "shadowstep": t = "Vanish in smoke and reappear at the cursor (up to 6 tiles, not through walls). You stay invisible for " + (2 * sq).toFixed(1) + "s and your next hit is a Backstab: a guaranteed crit with +50% damage."; break;
 				case "knives": t = "12 knives fly out all around you for " + n(30, 4) + " each and poison what they hit: " + n(16, 2.5) + " damage every half second for 4s that ignores Defense."; break;
 				case "smoke": t = "Drops a smoke cloud (3 tiles) for " + (5 * sq).toFixed(1) + "s. While you are inside you are invisible; monsters inside are slowed."; break;
-				case "charge": t = "Rush about 6 tiles toward the cursor, untouchable, hitting everything you pass for " + n(60, 8) + ". Then go berserk for " + (4 * sq).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
+				case "charge": t = "Rush about 6 tiles toward the cursor, taking a third less damage for a second, hitting everything you pass for " + n(60, 8) + ". Then go berserk for " + (4 * sq).toFixed(1) + "s: +50% fire rate, +25% speed."; break;
 				case "whirlwind": t = "Spin for 2s, hitting everything within 3.2 tiles for " + n(45, 5.5) + " five times a second. You move a little slower while spinning."; break;
 				case "warcry": t = "A roar that stuns monsters within 4.5 tiles for 1.5s (bosses briefly) and leaves them taking 25% more damage for 5s. You go berserk for 2s."; break;
-				case "harvest": t = "Blasts a 3-tile area at the cursor for " + n(70, 8) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * sq).toFixed(1) + "s, shooting the nearest monster for " + n(18, 2.5) + "."; break;
-				case "prison": t = "Bone spikes burst up in a ring at the cursor: monsters inside (2.5 tiles) are held in place for " + (2.5 * sq).toFixed(1) + "s and take " + n(16, 2) + " every half second for 3s."; break;
-				case "raise": t = "Three skeletons claw out of the ground and fight for you for " + (8 * sq).toFixed(1) + "s, throwing bones at monsters for " + n(20, 3) + "."; break;
+				case "harvest": t = "Blasts a 3-tile area at the cursor for " + n(70, 8) + " damage, healing 20 HP + 15 per enemy hit. Two spirit skulls circle you for " + (5 * sq).toFixed(1) + "s, shooting the nearest monster for " + n(18, 2.5) + ". All of it grows with your Wisdom."; break;
+				case "prison": t = "Bone spikes burst up in a ring at the cursor: monsters inside (2.5 tiles) are held in place for " + (2.5 * sq).toFixed(1) + "s (bosses for a second, then not again for 6s) and take " + n(16, 2) + " every half second for 3s."; break;
+				case "raise": t = "Three skeletons claw out of the ground and fight for you for " + (8 * sq).toFixed(1) + "s, throwing bones at monsters for " + n(20, 3) + " that slow them and pass through. They throw faster the more Dexterity you have."; break;
 				case "snare": t = "Throws a trap at the cursor. When a monster comes close, vines root everything nearby (bosses briefly), then it bursts into slowing shards for " + n(60, 7) + " damage."; break;
 				case "explosive": t = "Throws a trap at the cursor that blows up when a monster comes close: " + n(150, 16) + " damage in 3 tiles. No roots, just fire."; break;
 				case "valor": t = "A rousing ballad: you and every ally within 6 tiles deal +30% damage for " + (5 * sq).toFixed(1) + "s."; break;
 				case "lullaby": t = "A soft song at the cursor puts monsters within 3 tiles to sleep for " + (2.5 * sq).toFixed(1) + "s (bosses only nod off briefly)."; break;
 				case "requiem": t = "A wave of sound rolls out 5 tiles around you: " + n(95, 11) + " damage to everything it reaches, and they're slowed."; break;
-				case "acidflask": t = "Throws a flask at the cursor that bursts into an acid pool (2.5 tiles) for " + (4 * sq).toFixed(1) + "s. Monsters in it take " + n(28, 4) + " every half second, ignoring Defense."; break;
+				case "acidflask": t = "Throws a flask at the cursor that bursts into an acid pool (2 tiles, up to 3.2 on better flasks) for " + (4 * sq).toFixed(1) + "s. Monsters in it take " + n(28, 4) + " every half second, ignoring Defense."; break;
 				case "elixir": t = "Drink and share: heals you and allies within 5 tiles " + n(50, 5) + " HP at once, clears bad effects, and regenerates health quickly for 4s."; break;
 				case "philbomb": t = "Lobs a bomb at the cursor. After a 1.5 second fuse it levels everything within 3.2 tiles for " + n(260, 28) + " damage."; break;
 				case "rewind": t = "Snap back to where you were 3 seconds ago (up to 10 tiles), and get back the health you had then, up to " + n(80, 9) + " HP."; break;
@@ -3688,6 +3688,7 @@ class Enemy {
 		this.stunT = 0;
 		this.slowT = 0;
 		this.hitT = 0;
+		this.stunImmuneT = 0;
 		this.poisonT = 0;
 		this.poisonTick = 0;
 		this.poisonDmg = __int(0);
@@ -3766,6 +3767,13 @@ class Enemy {
 			} else this.setAttacks(this.def.attacks);
 		
 	}
+	stun(secs) {
+			if (!this.isBoss) { this.stunT = Math.max(this.stunT, secs); return true; }
+			if (this.stunImmuneT > 0) return false;
+			this.stunT = Math.max(this.stunT, Math.min(Enemy.BOSS_STUN_MAX, secs * 0.4));
+			this.stunImmuneT = Enemy.BOSS_STUN_IMMUNE;
+			return true;
+		}
 	static normalise(list) {
 			if (list.normalised) return list.normalised;
 			var out = [];
@@ -3855,6 +3863,7 @@ class Enemy {
 	get phaseCode() { return __int(this.phase + this.cycleK * 16); }
 	update(dt, g) {
 			if (this.hitT > 0) this.hitT -= dt;
+			if (this.stunImmuneT > 0) this.stunImmuneT -= dt;
 			if (this.slowT > 0) this.slowT -= dt;
 			if (this.shieldT > 0) this.shieldT -= dt;
 			if (this.remote) { this.follow(dt, g); return; }
@@ -6430,6 +6439,8 @@ Enemy.DEG = Math.PI / 180;
 Enemy.LEGACY_HP = [1, 0.66, 0.33];
 Enemy.FLYERS = ["ghost", "ghost_god", "sprite", "sprite_god", "harpy", "djinn", "gazer", "beholder",
 			"lich", "shade", "mothling", "cubelet", "crystal"];
+Enemy.BOSS_STUN_MAX = 1;
+Enemy.BOSS_STUN_IMMUNE = 6;
 Enemy.SURVIVE_K = __int(8);
 
 module.exports = { Data, Uniques, Godly, Bosses, World, SetPieces, Enemy };

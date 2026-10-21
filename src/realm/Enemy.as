@@ -39,6 +39,18 @@ package realm {
 		public var dead:Boolean = false;
 		public var isBoss:Boolean;
 		public var stunT:Number = 0, slowT:Number = 0, hitT:Number = 0;
+		/** Bosses shrug off stuns for a while after one (so no ability can hold a boss still and skip its phases). */
+		public var stunImmuneT:Number = 0;
+		public static const BOSS_STUN_MAX:Number = 1, BOSS_STUN_IMMUNE:Number = 6;
+
+		/** Stuns it for secs: a boss for at most a second, and then not again for a while. Returns whether it took. */
+		public function stun(secs:Number):Boolean {
+			if (!isBoss) { stunT = Math.max(stunT, secs); return true; }
+			if (stunImmuneT > 0) return false;
+			stunT = Math.max(stunT, Math.min(BOSS_STUN_MAX, secs * 0.4));
+			stunImmuneT = BOSS_STUN_IMMUNE;
+			return true;
+		}
 		/** Fan of Knives poison (time left, next tick, damage per tick) and War Cry vulnerability. */
 		public var poisonT:Number = 0, poisonTick:Number = 0, poisonDmg:int = 0, vulnT:Number = 0;
 		public var facingLeft:Boolean = false;
@@ -267,6 +279,7 @@ package realm {
 
 		public function update(dt:Number, g:Game):void {
 			if (hitT > 0) hitT -= dt;
+			if (stunImmuneT > 0) stunImmuneT -= dt;
 			if (slowT > 0) slowT -= dt;
 			if (shieldT > 0) shieldT -= dt;
 			if (remote) { follow(dt, g); return; }

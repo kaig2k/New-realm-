@@ -208,7 +208,7 @@ class WorldSim {
     if (dx * dx + dy * dy > 30 * 30) return;
     const sl = Math.min(5, Math.max(0, Number(d.sl) || 0)), st = Math.min(5, Math.max(0, Number(d.st) || 0));
     if (sl) e.slowT = Math.max(e.slowT, sl);
-    if (st) e.stunT = Math.max(e.stunT, e.isBoss ? st * 0.4 : st);
+    if (st) e.stun(st);
     // no bigger than the hero's own gear and stats allow (server/combat.js; admins have no caps)
     let dmg = Math.min(c.caps ? c.caps.hit : 6000, Math.max(0, Number(d.d) || 0));
     if (dmg > 0 && c.caps) {

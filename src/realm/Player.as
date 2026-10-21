@@ -367,6 +367,7 @@ package realm {
 			if (berserkT > 0) berserkT -= dt;
 			if (bloodT > 0) { bloodT -= dt; if (bloodT <= 0) bloodStacks = 0; }
 			if (lastStandT > 0) lastStandT -= dt;
+			if (guardT > 0) guardT -= dt;
 			if (shieldT > 0) shieldT -= dt;
 			if (hitT > 0) hitT -= dt;
 			if (shootT > 0) shootT -= dt;
@@ -659,12 +660,12 @@ package realm {
 					break;
 				case "sanctuary":
 					// Sanctuary: a holy circle that heals you while you stand in it and burns monsters inside
-					var amount:int = (40 + level * 4) * pow;
+					var amount:int = healCrit(int((34 + level * 3.4) * pow * wisMult), g);
 					var heal:int = Math.min(amount, maxHp - int(hp));
 					hp = Math.min(maxHp, hp + amount);
 					if (heal > 0) g.floatText(x, y - 1.2, "+" + heal, 0x60ff60);
 					var life:Number = 5 * Math.sqrt(pow);
-					g.abil.addZone(x, y, 3, life, (20 + level * 2.5) * pow, (10 + level * 1.2) * pow);
+					g.abil.addZone(x, y, 3, life, (20 + level * 2.5) * pow * wisMult, (8.5 + level * 1.0) * pow * wisMult);
 					g.abil.show("sanctuary", x, y, x, y, life, true);
 					break;
 				case "shadowstep":
@@ -690,17 +691,18 @@ package realm {
 					dashDmg = (60 + level * 8) * pow;
 					dashPow = pow;
 					dashHits = new Dictionary(true);
-					invulnT = Math.max(invulnT, 0.3);
+					// (no longer untouchable: it shrugs off a third of the damage while it rushes in, and a moment after)
+					guardCut = 0.35; guardT = 1;
 					g.abil.show("charge", x, y, x + dashVx * dashT, y + dashVy * dashT, 0, true);
 					break;
 				case "harvest":
 					// Soul Harvest: a draining blast, and two spirit skulls circle you and shoot
-					dmg = (70 + level * 8) * pow;
+					dmg = (70 + level * 8) * pow * wisMult;
 					var hits:int = g.blastAt(x + dx, y + dy, 3, dmg);
-					var drain:int = Math.min(maxHp - int(hp), 15 * hits + 20);
+					var drain:int = Math.min(maxHp - int(hp), int((15 * hits + 20) * wisMult));
 					hp = Math.min(maxHp, hp + drain);
 					if (drain > 0) g.floatText(x, y - 1.2, "+" + drain, 0x60ff60);
-					g.abil.addSpirits(2, 5 * Math.sqrt(pow), (18 + level * 2.5) * pow);
+					g.abil.addSpirits(2, 5 * Math.sqrt(pow), (18 + level * 2.5) * pow * wisMult);
 					g.abil.show("harvest", x, y, x + dx, y + dy, 0, true);
 					break;
 				case "snare":
@@ -760,7 +762,9 @@ package realm {
 					dashDmg = (50 + level * 6) * pow;
 					dashPow = pow;
 					dashHits = new Dictionary(true);
-					invulnT = Math.max(invulnT, 0.2);
+					// untouchable through the dash, and braced behind the shield a moment after (half damage)
+					invulnT = Math.max(invulnT, 0.25);
+					guardCut = 0.5; guardT = 1.5;
 					g.abil.show("bash", x, y, x + dashVx * dashT, y + dashVy * dashT, 0, true);
 					break;
 				case "banner":
@@ -768,8 +772,8 @@ package realm {
 					g.shake(0.15, 3);
 					break;
 				case "smite":
-					dmg = (120 + level * 14) * pow;
-					var sheal:int = (30 + level * 3) * pow;
+					dmg = (120 + level * 14) * pow * wisMult;
+					var sheal:int = healCrit(int((26 + level * 2.6) * pow * wisMult), g);
 					g.abil.show("smite", x, y, tx2, ty2, sheal, true);
 					g.abil.anim("land", tx2, ty2, 0.3, {fn: function():void {
 						g.blastAt(tx2, ty2, 1.8, dmg);
@@ -778,10 +782,10 @@ package realm {
 					}});
 					break;
 				case "ward":
-					var wheal:int = (60 + level * 6) * pow;
+					var wheal:int = healCrit(int((51 + level * 5.1) * pow * wisMult), g);
 					healBy(wheal, g);
 					for (var cs:String in status) status[cs] = 0;
-					wardHp = (40 + level * 5) * pow;
+					wardHp = (40 + level * 5) * pow * wisMult;
 					wardT = 6;
 					g.abil.show("ward", x, y, x, y, wheal, true);
 					break;
@@ -862,7 +866,9 @@ package realm {
 				case "acidflask":
 					var adm:int = int((28 + level * 4) * pow), alife:Number = 4 * sq;
 					g.abil.show("acid", x, y, tx2, ty2, alife, true);
-					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.addZone(tx2, ty2, 2.5, alife, adm, 0, true); }});
+					// (a better flask spills a wider pool: 2 tiles at T0, 3.2 at T6)
+					var arad:Number = Math.min(3.4, 2 + int(ability.tier || 0) * 0.2);
+					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.addZone(tx2, ty2, arad, alife, adm, 0, true); }});
 					break;
 				case "elixir":
 					var eheal:int = (50 + level * 5) * pow;
@@ -904,6 +910,17 @@ package realm {
 					break;
 			}
 		}
+
+		/** Wisdom feeds the healers' and the Necromancer's spells: +1% power for every 2 Wisdom. */
+		public function get wisMult():Number { return 1 + wis / 200; }
+		/** A heal can be a critical one (your crit chance, which Focus raises): half again as much. */
+		public function healCrit(amount:int, g:Game):int {
+			if (Math.random() >= critChance) return amount;
+			g.floatText(x, y - 1.7, "Critical heal!", 0xa0ffa0);
+			return int(amount * 1.5);
+		}
+		/** Damage reduction for a moment (Shield Bash, Berserker Charge): the share it takes off, and how long it lasts. */
+		public var guardCut:Number = 0, guardT:Number = 0;
 
 		/** Heals you (from your own or an ally's ability), with a green number. */
 		public function healBy(amount:int, g:Game):void {
@@ -1177,6 +1194,7 @@ package realm {
 			}
 			var d:int = Math.max(raw - def, int(raw * 0.15));
 			if (shielded) d = Math.max(1, int(d * 0.4));
+			if (guardT > 0) d = Math.max(1, int(d * (1 - guardCut)));
 			dmgTaken += d;
 			// Divine Ward soaks up damage first
 			if (wardHp > 0) {

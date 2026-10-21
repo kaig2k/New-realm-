@@ -1,3 +1,26 @@
+**📜 ELDMERE UPDATE: Class Changes**
+
+**💀 Necromancer**
+• **Bone Prison** (and every other stun) holds a boss for **1 second at most**, then the boss shrugs off stuns for 6 seconds: no more skipping a boss's phases by keeping it locked down
+• **Raise Dead** skeletons move faster and **throw faster the more Dexterity you have**; their bones now **slow** monsters and **pass through** them
+• **Soul Harvest** grows with your **Wisdom** (the blast, the healing and the spirit skulls)
+
+**✨ Priest**
+• **Sanctuary**, **Holy Smite** and **Divine Ward** grow with your **Wisdom**
+• Their heals can **crit** for 1.5x, using your crit chance (Focus raises it)
+• Base heals are 15% lower to make room for it: with good Wisdom you heal more than before
+
+**⚗️ Alchemist**
+• **Acid Flask**'s pool grows with the flask's tier: 2 tiles at T0 up to 3.2 at T6
+
+**🛡️ Knight & Warrior**
+• **Shield Bash**: untouchable through the charge, then **half damage for 1.5s** behind your shield
+• **Berserker Charge** is no longer untouchable: it takes **a third less damage** for a second instead
+
+(The stun change applies to every stun on bosses: Shield Wall, Frost Nova, War Cry, Lullaby, Time Stop and Snare too.)
+
+---
+
 **📜 ELDMERE UPDATE: Boss Maker 2.0**
 
 **👁️ See your boss as you build it**

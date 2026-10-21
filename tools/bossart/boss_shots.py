@@ -67,6 +67,13 @@ SHOTS = {
     'windblade': ["...W....", "....WW..", "aa...WC.", ".aaCCWWH", "aa...WC.", "....WW..", "...W....", "........"],
     'spark': ["....W...", "...CW...", "a.CWC...", "aCWHWCCW", "...CWC.a", "...WC...", "...W....", "........"],
     'blooddrop': ["........", "..aCC...", ".aCWCC..", "aCWWCCCC", "aCCCCCC.", ".aCCCC..", "..aaa...", "........"],
+    'prism': ["....W...", "...WCW..", "..aCWCW.", ".aCCWCCW", "aaCCCCCH", ".aaaCCC.", "..aaaa..", "........"],
+    'hammer': ["....IIII", "....IiiI", "SSSSIiCI", "SSSSIiCI", "....IiiI", "....IIII", "........", "........"],
+    'ghostblade': ["........", "......W.", "a...aCWH", "GGaCWWHH", "a...aCWH", "......W.", "........", "........"],
+    'sabre': ["........", "......HH", ".....HH.", "...iHH..", "G.iH....", "GGG.....", ".G......", "........"],
+    'pearl': ["........", "..aCCa..", ".aWHHWa.", ".CHHHHC.", ".CWHHWC.", ".aCWWCa.", "..aCCa..", "........"],
+    'scythe': ["..CCWW..", ".C....W.", "........", "......IW", "IIIIIII.", "........", "........", "........"],
+    'tidewave': ["...WW...", "..WCCW..", ".a..CCW.", "aa...CWH", "aa...CWH", ".a..CCW.", "..WCCW..", "...WW..."],
 }
 
 

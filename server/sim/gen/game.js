@@ -313,8 +313,11 @@ class Data {
 			if (!item || item.kind != "key" || String(item.sub).indexOf("dg_") != 0) return __int(-1);
 			return __int(Data.dungeonIndex(String(item.sub).substr(3)));
 		}
+	static theName(name) { return name.indexOf("The ") == 0 ? name : "the " + name; }
 	static keyPrice(idx) { idx = __int(idx);
 			var d = Data.DUNGEONS[idx];
+			
+			if (d.lair) return __int(-1);
 			if (d.hard) return __int(5000 + __int((d.hard - 1.5) * 30000 + 0.5));
 			return __int([300, 600, 1000, 1400, 1800][Math.min(4, d.tier)]);
 		}
@@ -1450,7 +1453,7 @@ class Bosses {
 				
 				
 				var realmEvent = id.indexOf("ev_") == 0;
-				var tough = realmEvent ? [7, 1.45] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				var tough = realmEvent ? [7, 1.45] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
 				
 				d.hp = __int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
 				var done0 = new Map();
@@ -1464,7 +1467,8 @@ class Bosses {
 						if (a0.cd > 0.5) a0.cd = a0.cd * 0.88;
 					}
 				}
-				var endgame = d.raid || d.finale || d.final || d.dtier >= 5;
+				
+				var endgame = !d.lairBoss && (d.raid || d.finale || d.final || d.dtier >= 5);
 				if (!endgame) continue;
 				
 				d.hp = __int(d.hp * (d.raid ? 2.6 : 1.9));
@@ -2115,11 +2119,11 @@ class Bosses {
 			]}, ["voidfang", "dragonscale"]);
 
 			var D = Data.DUNGEONS;
-			D.push({id: "drowned_throne", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
+			D.push({id: "drowned_throne", wall: "coral", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
 				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress"});
-			D.push({id: "clockwork_foundry", name: "The Clockwork Foundry", color: 0xffd060, floor: 6, accent: 13, tier: 4, hard: 1.5, layout: "grid", hazard: "lava",
+			D.push({id: "clockwork_foundry", wall: "brass", name: "The Clockwork Foundry", color: 0xffd060, floor: 6, accent: 13, tier: 4, hard: 1.5, layout: "grid", hazard: "lava",
 				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind"});
-			D.push({id: "void_rift", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
+			D.push({id: "void_rift", wall: "voidstone", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
 				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
 			
 			for (var lth of __vals( Lairs.DUNGEONS)) D.push(lth);
@@ -2170,11 +2174,11 @@ class Bosses {
 			
 			Bosses.lairBoss("glacia", {name: "Glacia, Mother of Wyrms", spr: "glacia", hp: 25000, spd: 1.8, r: 1.15, col: 0x80d8ff, phases: [
 				Bosses.P(1, {say: "*the cradle groans with frost*", move: "orbit",
-					attacks: [Bosses.aim(7, 60, 8, 75, 1.3, 0x80d8ff, {motion: "wave", name: "frost breath"}), Bosses.ring(12, 15, 5, 65, 1.6, 0xd0f0ff), Bosses.aim(1, 0, 6, 90, 2.2, 0xffffff, {motion: "home", r: 0.3})]}),
+					attacks: [Bosses.aim(7, 60, 8, 60, 1.3, 0x80d8ff, {motion: "wave", name: "frost breath"}), Bosses.ring(12, 15, 5, 52, 1.6, 0xd0f0ff), Bosses.aim(1, 0, 6, 72, 2.2, 0xffffff, {motion: "home", r: 0.3})]}),
 				Bosses.P(0.6, {say: "My children, wake!", banner: "Glacia calls her brood!", shield: 2, summon: [{what: "ice_wolf", n: 4}], move: "orbit",
-					attacks: [Bosses.rain(6, 6, 95, 2.0, 0xa0e8ff, {burst: 6, eff: "slowed"}), Bosses.aim(9, 80, 8, 70, 1.2, 0x80d8ff, {motion: "wave"}), Bosses.spiral(4, 14, 6, 65, 0.12, 0xd0f0ff)]}),
+					attacks: [Bosses.rain(6, 6, 95, 2.0, 0xa0e8ff, {burst: 6, eff: "slowed"}), Bosses.aim(9, 80, 8, 56, 1.2, 0x80d8ff, {motion: "wave"}), Bosses.spiral(4, 14, 6, 52, 0.12, 0xd0f0ff)]}),
 				Bosses.P(0.25, {say: "WINTER DOES NOT END.", move: "chase", speed: 1.2,
-					attacks: [Bosses.flower(28, 9, 6, 80, 0.9, 0xd0f0ff), Bosses.wall(21, 5, 90, 1.6, 0x80d8ff, {hole: 3, eff: "slowed"}), Bosses.aim(1, 0, 7, 110, 1.8, 0xffffff, {motion: "home", r: 0.32})]})
+					attacks: [Bosses.flower(28, 9, 6, 64, 0.9, 0xd0f0ff), Bosses.wall(21, 5, 90, 1.6, 0x80d8ff, {hole: 3, eff: "slowed"}), Bosses.aim(1, 0, 7, 88, 1.8, 0xffffff, {motion: "home", r: 0.32})]})
 			]});
 			Bosses.lairProp("cradle_obelisk", {name: "Ice Obelisk", spr: "ice_obelisk", hp: 8000, col: 0x80d8ff, lairShield: true,
 				attacks: [Bosses.ring(6, 25, 4.5, 55, 1.8, 0xd0f0ff, {eff: "slowed", name: "frost pulse"})]});
@@ -4739,9 +4743,9 @@ class Lairs {
 			}
 			if (L.boss && !L.waves) Lairs.master(w, L.boss, last.x + 0.5, last.y + 0.5, th.tier, api);
 		}
-	static placeShield(w, sh, last, zone, api) { zone = __int(zone);
+	static placeShield(w, sh, last, zone, api, n = 0) { zone = __int(zone); n = __int(n);
 			var rooms = w.rooms;
-			for (var k = __int(0); k < sh.n; k++) {
+			for (var k = __int(0); k < (n || sh.n); k++) {
 				var x = NaN, y = NaN;
 				if (sh.where == "rooms") {
 					
@@ -4778,7 +4782,7 @@ class Lairs {
 					if (Math.abs(p.x - last.x) < last.w / 2 && Math.abs(p.y - last.y) < last.h / 2) { st.woke = true; break; }
 				}
 				if (!st.woke) return;
-				api.say("The " + th.name + " stirs! Hold the den!", th.color, true);
+				api.say(th.name + " stirs! Hold the den!", th.color, true);
 				st.waveT = 1;
 			}
 			if (L.waves && st.pending) {
@@ -4817,7 +4821,8 @@ class Lairs {
 					st.regrowT += dt;
 					if (st.regrowT >= L.shield.regrow) {
 						st.regrowT = 0;
-						Lairs.placeShield(w, L.shield, last, th.tier, api);
+						
+						Lairs.placeShield(w, L.shield, last, th.tier, api, Math.max(2, Math.ceil(L.shield.n / 2)));
 						api.say(L.shield.text, th.color, true);
 					}
 				}
@@ -5865,24 +5870,24 @@ Data.EVENTS_PER_REALM = __int(8);
 Data.OVERLORD = "Azrakor the Dark Elder";
 Data.ELDER_CRYSTALS = [[-8, -5], [8, -5], [-8, 5], [8, 5]];
 Data.DUNGEONS = [
-			{id: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
-			{id: "depths", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
-			{id: "spire", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
+			{id: "crypt", wall: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
+			{id: "depths", wall: "basalt", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
+			{id: "spire", wall: "pale", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
 			{id: "cellar", layout: "grid", dark: true, name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
-			{id: "pirate_cove", layout: "cave", hazard: "water", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
-			{id: "forest_maze", layout: "maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
-			{id: "snake_pit", layout: "ring", hazard: "water", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
-			{id: "spider_den", layout: "maze", dark: true, name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
-			{id: "undead_lair", layout: "grid", dark: true, name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
-			{id: "abyss", layout: "islands", hazard: "lava", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
+			{id: "pirate_cove", wall: "driftwood", layout: "cave", hazard: "water", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
+			{id: "forest_maze", wall: "roots", layout: "maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
+			{id: "snake_pit", wall: "mossy", layout: "ring", hazard: "water", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
+			{id: "spider_den", wall: "roots", layout: "maze", dark: true, name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
+			{id: "undead_lair", wall: "bone", layout: "grid", dark: true, name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
+			{id: "abyss", wall: "hellstone", layout: "islands", hazard: "lava", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
 			
-			{id: "tomb", layout: "grid", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
+			{id: "tomb", wall: "sandstone", layout: "grid", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
 				mobs: ["scorpion", "great_snake", "lesser_demon", "ghost"], trio: ["sun_king", "moon_queen", "star_prince"]},
-			{id: "sanctum", layout: "ring", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
+			{id: "sanctum", wall: "blush", layout: "ring", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
 				mobs: ["sprite", "ghost", "lich", "djinn"], guardians: ["frost_warden", "flame_warden"], boss: "shattered_seraph"},
-			{id: "citadel", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
+			{id: "citadel", wall: "voidstone", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
-			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
+			{id: "sprite_world", wall: "coral_pastel", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
 Data.DEEP_CHEST_EVERY = __int(5);
 Data.DEEP_HERALD = __int(10);
@@ -6270,7 +6275,9 @@ Bosses.POSED = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord"
 			"lich_king", "serpent_queen", "sorcerer", "seraph", "pyrelord", "archdemon", "sprite_queen", "sun_king", "moon_queen",
 			"shattered_seraph", "hex_queen", "star_prince", "pirate_king", "moth", "broodmother", "frost_warden", "flame_warden",
 			"vault_ignis", "warden", "blood_knight", "sentinel",
-			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron"];
+			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
+			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan"];
 Bosses.POSED_SEQ = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
@@ -6284,7 +6291,12 @@ Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "em
 			"vault_ignis": ["flamesword", "ember"], "warden": ["lantern", "soulorb"], "blood_knight": ["bloodblade", "bloodorb"],
 			"sentinel": ["laser", "gearbit"], "vault_archivist": ["page", "rune"], "vault_sovereign": ["bonespike", "soulorb"],
 			"astraeon": ["starbolt", "starlet"], "void_dragon": ["voidshard", "voidbreath"], "zealot": ["dagger", "bloodorb"],
-			"galecaller": ["windblade", "snowflake"], "gearmind": ["gearbit", "spark"], "matron": ["bloodblade", "blooddrop"]};
+			"galecaller": ["windblade", "snowflake"], "gearmind": ["gearbit", "spark"], "matron": ["bloodblade", "blooddrop"],
+			"tesseract": ["prism", "cube_eye"], "forgemaster": ["hammer", "magma"], "glacia": ["icicle", "snowflake"],
+			"hollow_prince": ["ghostblade", "crownlet"], "rendmaw": ["fang", "bonespike"], "pharaoh": ["scarab", "ankh"],
+			"admiral": ["sabre", "cannonball"], "pearlmaw": ["pearl", "bubble"], "ossarion": ["scythe", "soulorb"],
+			"quarry_heart": ["glassshard", "boulder"], "ignaria": ["feather", "pflame"], "crone_bramble": ["thorn", "hex"],
+			"crone_bog": ["venom", "bubble"], "crone_ash": ["ember", "hex"], "leviathan": ["tidewave", "bubble"]};
 Bosses.SHOT_NOUNS = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma ball", "ember": "ember", "skull": "skull",
 			"crownlet": "crown", "mask": "mask", "phantom": "phantom", "scarab": "scarab", "ankh": "ankh", "anchor": "anchor", "bubble": "bubble",
 			"claw": "claw", "shell": "shell", "skullfire": "burning skull", "candle": "candle flame", "boulder": "boulder", "voidshard": "void shard",
@@ -6295,7 +6307,8 @@ Bosses.SHOT_NOUNS = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma b
 			"dust": "moth dust", "eyespot": "eye", "web": "web", "egg": "egg", "icicle": "icicle", "snowflake": "snowflake",
 			"flamesword": "flame blade", "lantern": "lantern", "bloodblade": "blood blade", "bloodorb": "blood orb", "laser": "beam",
 			"gearbit": "gear", "rune": "rune", "page": "page", "bonespike": "bone spike", "voidbreath": "void breath",
-			"dagger": "dagger", "windblade": "wind blade", "spark": "spark", "blooddrop": "blood drop"};
+			"dagger": "dagger", "windblade": "wind blade", "spark": "spark", "blooddrop": "blood drop", "prism": "prism",
+			"hammer": "hammer", "ghostblade": "ghost blade", "sabre": "sabre", "pearl": "pearl", "scythe": "scythe", "tidewave": "tidal wave"};
 Bosses.PLAIN_SHAPES = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
@@ -6435,6 +6448,42 @@ World.OBJ_NAMES = [null, "tree", "pine", "palm", "rock", "boulder", "deadtree", 
 			"startree", "starpine"];
 World.SHRINES = ["might", "haste", "fortune", "vigor", "arcana"];
 World.NEXUS_ZONE = __int(5);
+World.WALL_FORMS = {
+			blocks: ["LLLLLLLL", "TTTTTTTd", "TTTTTTTd", "dddddddd", "TTTdTTTT", "TTTdTTTT", "FFFFFFFF", "ffffffff"],
+			plates: ["LLLLLLLL", "TrTTTTrT", "TTTTTTTT", "TTTTTTTT", "dddddddd", "TrTTTTrT", "FFFFFFFF", "ffffffff"],
+			slab: ["LLLLLLLL", "TTTTTTgT", "TTTTTgTT", "TTTTgTTT", "TTTTTTTT", "TgTTTTTT", "FFFFFFFF", "ffffffff"],
+			ice: ["LLLLLLLL", "TTHTTTTT", "THTTTdTT", "TTTTdTTH", "TTTdTTHT", "dTTTTTTT", "FFFFFFFF", "ffffffff"],
+			bone: ["LLLLLLLL", "TTdTTTdT", "dTTTdTTT", "TTdKTdTT", "dTTTdTTT", "TTdTTTdT", "FFFFFFFF", "ffffffff"],
+			roots: ["LLLLLLLL", "TdTTdTTd", "TdTdTTdT", "dTTdTdTT", "TTdTTdTd", "TdTTdTTd", "FFFFFFFF", "ffffffff"],
+			coral: ["LLLLLLLL", "TTpTTTTp", "TpppTTpT", "TTpTTTTT", "pTTTTpTT", "TTTTpppT", "FFFFFFFF", "ffffffff"]
+		};
+World.WALL_STYLES = {
+			marble: ["blocks", {L: 0xf4f0e8, T: 0xd8d2c8, d: 0xa89e90, F: 0x8a8070, f: 0x5a5248}],
+			gilded: ["blocks", {L: 0xffd860, T: 0xe8e2d8, d: 0xb0a898, F: 0x8a8070, f: 0x5a5248}],
+			sandstone: ["blocks", {L: 0xf0d8a0, T: 0xd4b474, d: 0x9a7a44, F: 0x7a5c30, f: 0x4e3a1e}],
+			mossy: ["blocks", {L: 0x6a8a5a, T: 0x4a5a4c, d: 0x2a3a2c, F: 0x24302a, f: 0x141c18}],
+			crypt: ["blocks", {L: 0x8aa0c0, T: 0x4a5a74, d: 0x2a3446, F: 0x1e2636, f: 0x10141e}],
+			pale: ["blocks", {L: 0xfff0a0, T: 0xd8d0b0, d: 0xa09878, F: 0x786e54, f: 0x4a4434}],
+			blush: ["blocks", {L: 0xffd0ec, T: 0xe0b0cc, d: 0xa07890, F: 0x7a5468, f: 0x4a3240}],
+			driftwood: ["roots", {L: 0xc8a070, T: 0x8a6440, d: 0x5a3e24, F: 0x3e2a18, f: 0x24180c}],
+			metal_violet: ["plates", {L: 0xd080ff, T: 0x2a1a44, d: 0x140a24, F: 0x0e0618, f: 0x06020c, r: 0xc060ff}],
+			brass: ["plates", {L: 0xffe080, T: 0x8a6418, d: 0x4a340c, F: 0x3a2808, f: 0x201604, r: 0xffd060}],
+			basalt: ["slab", {L: 0x5a4a50, T: 0x221a1e, d: 0x140e12, F: 0x100a0c, f: 0x080406, g: 0xff6010}],
+			ash: ["slab", {L: 0x8a8484, T: 0x4a4444, d: 0x2a2626, F: 0x201c1c, f: 0x100e0e, g: 0xffa040}],
+			obsidian: ["slab", {L: 0x6a5a8a, T: 0x1a1428, d: 0x0e0a16, F: 0x0a0610, f: 0x040208, g: 0x9a6aff}],
+			spectral: ["slab", {L: 0xc0b0ff, T: 0x3a2a6a, d: 0x241848, F: 0x1a1236, f: 0x0e0a20, g: 0xd090ff}],
+			hellstone: ["slab", {L: 0x8a3a2a, T: 0x3a100a, d: 0x240806, F: 0x1a0604, f: 0x0e0302, g: 0xff3010}],
+			voidstone: ["slab", {L: 0x9a50d0, T: 0x1a0a28, d: 0x0e0418, F: 0x0a0210, f: 0x040008, g: 0xe070ff}],
+			ice: ["ice", {L: 0xffffff, T: 0x9ac8e8, d: 0x5a8ab4, F: 0x3e6a94, f: 0x2a4a6a, H: 0xe0f4ff}],
+			bone: ["bone", {L: 0xfff8e0, T: 0xd8ccac, d: 0x8a7c60, F: 0x6a5e48, f: 0x3a3426, K: 0x2a2018}],
+			bone_violet: ["bone", {L: 0xf0e8ff, T: 0xc8bcd8, d: 0x7a6a8a, F: 0x4a3e5a, f: 0x2a2236, K: 0x8040ff}],
+			bone_blood: ["bone", {L: 0xffe8d8, T: 0xd8b8a0, d: 0x8a4a3a, F: 0x6a2a20, f: 0x3a1410, K: 0xa01010}],
+			roots: ["roots", {L: 0x6a8a3a, T: 0x3a2a18, d: 0x22180c, F: 0x1a1208, f: 0x0e0a04}],
+			hexroots: ["roots", {L: 0x70e050, T: 0x2a2030, d: 0x161020, F: 0x100a16, f: 0x08040c}],
+			coral: ["coral", {L: 0xffb0d0, T: 0x2a6a6a, d: 0x184444, F: 0x103030, f: 0x081a1a, p: 0xff6aa0}],
+			coral_deep: ["coral", {L: 0xc080ff, T: 0x24124a, d: 0x140a2c, F: 0x0e0620, f: 0x060210, p: 0x8040c0}],
+			coral_pastel: ["coral", {L: 0xfff0ff, T: 0xe0a8d8, d: 0xa07098, F: 0x7a5070, f: 0x4a3046, p: 0x80e0ff}]
+		};
 World.customMap = null;
 World.EYE_CX = 100.5;
 World.EYE_CY = 96;
@@ -7001,60 +7050,60 @@ Enemy.BOSS_STUN_MAX = 1;
 Enemy.BOSS_STUN_IMMUNE = 6;
 Enemy.SURVIVE_K = __int(8);
 Lairs.DUNGEONS = [
-			{id: "tesseract", by: "ev_cube", name: "The Tesseract", color: 0xc040ff, layout: "grid", floor: 24, accent: 30, tier: 4, hard: 1.35, lair: {
+			{id: "tesseract", wall: "metal_violet", by: "ev_cube", name: "The Tesseract", color: 0xc040ff, layout: "grid", floor: 24, accent: 30, tier: 4, hard: 1.2, lair: {
 				boss: "tesseract", intro: "Four Prism Nodes feed the Tesseract its shield. Find them in the halls and shatter them.",
 				shield: {ids: ["prism_node"], n: 4, where: "rooms", text: "A Prism Node shatters! The Tesseract's shield flickers."}},
 				mobs: ["cubelet", "cube_shard", "gazer", "beholder"]},
-			{id: "titan_forge", by: "ev_titan", name: "Titan's Forge", color: 0xff6018, layout: "cave", hazard: "lava", floor: 20, accent: 7, tier: 4, hard: 1.35, lair: {
+			{id: "titan_forge", wall: "basalt", by: "ev_titan", name: "Titan's Forge", color: 0xff6018, layout: "cave", hazard: "lava", floor: 20, accent: 7, tier: 4, hard: 1.2, lair: {
 				boss: "forgemaster", intro: "The Forgemaster's bellows breathe fire into him. Silence them or he never tires.",
 				mend: {id: "forge_bellows", n: 3, r: 8, rate: 0.012}},
 				mobs: ["imp", "lesser_demon", "dwarf", "golem"]},
-			{id: "wyrm_cradle", by: "ev_wyrm", name: "The Wyrm Cradle", color: 0x80d8ff, layout: "ring", hazard: "water", floor: 19, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "wyrm_cradle", wall: "ice", by: "ev_wyrm", name: "The Wyrm Cradle", color: 0x80d8ff, layout: "ring", hazard: "water", floor: 19, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "glacia", intro: "Glacia sleeps inside a ring of ice obelisks. Break them, and keep breaking them: the cold grows them back.",
 				shield: {ids: ["cradle_obelisk"], n: 4, where: "boss", r: 8, regrow: 28, text: "The ice obelisks grow back! Glacia is warded again!"}},
 				mobs: ["ice_wolf", "ice_wolf", "ghost", "djinn"]},
-			{id: "hollow_court", by: "ev_king", name: "The Hollow Court", color: 0x9aff7a, layout: "grid", dark: true, floor: 33, accent: 11, tier: 4, hard: 1.35, lair: {
+			{id: "hollow_court", wall: "gilded", by: "ev_king", name: "The Hollow Court", color: 0x9aff7a, layout: "grid", dark: true, floor: 33, accent: 11, tier: 4, hard: 1.2, lair: {
 				boss: "hollow_prince", intro: "Three Crown Knights each keep a shard of the Hollow Prince's crown. He can't be touched while one stands.",
 				shield: {ids: ["crown_knight"], n: 3, where: "rooms", text: "A Crown Knight falls and its shard goes dark."}},
 				mobs: ["skeleton", "royal_guard", "shade", "grave_wraith"]},
-			{id: "bone_pit", by: "ev_behemoth", name: "The Bone Pit", color: 0xff3a30, layout: "cave", floor: 25, accent: 14, tier: 4, hard: 1.35, lair: {
+			{id: "bone_pit", wall: "bone_blood", by: "ev_behemoth", name: "The Bone Pit", color: 0xff3a30, layout: "cave", floor: 25, accent: 14, tier: 4, hard: 1.2, lair: {
 				boss: "rendmaw", intro: "Gorehorn's brood nests in the Pit. Survive their rush in the great den and their alpha comes for you.",
 				waves: {mobs: ["gore_spawn", "gore_spawn", "blood_hound", "minotaur"], n: 3, size: 7}},
 				mobs: ["gore_spawn", "blood_hound", "ogre", "minotaur"]},
-			{id: "phantom_court", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.35, lair: {
+			{id: "phantom_court", wall: "spectral", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.2, lair: {
 				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections. Shatter the echoes and the true Regent is laid bare.",
 				shield: {ids: ["regent_echo"], n: 3, where: "boss", r: 7, text: "An echo shatters into mist!"}},
 				mobs: ["shade", "ghost", "void_wisp", "grave_wraith"]},
-			{id: "tomb_of_riddles", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.35, lair: {
+			{id: "tomb_of_riddles", wall: "sandstone", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.2, lair: {
 				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze. While one is whole, he cannot die.",
 				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", text: "A canopic jar breaks! Ankhamun howls in his tomb."}},
 				mobs: ["temple_scorpion", "scorpion", "great_snake", "medusa"]},
-			{id: "drowned_keep", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "drowned_keep", wall: "mossy", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "admiral_brine", intro: "Admiral Brine drowned with his keep, and the sea will not let him stay dead.",
 				rebirth: {into: "admiral_drowned"}},
 				mobs: ["pirate", "pirate_brawler", "tide_spawn", "crab"]},
-			{id: "coral_grotto", by: "ev_hermit", name: "The Coral Grotto", color: 0x30c8b0, layout: "cave", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "coral_grotto", wall: "coral", by: "ev_hermit", name: "The Coral Grotto", color: 0x30c8b0, layout: "cave", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "pearlmaw", intro: "Pearlmaw's giant clams pour their pearls into it. Crack the clams or it heals faster than you can hurt it.",
 				mend: {id: "pearl_clam", n: 3, r: 8, rate: 0.014}},
 				mobs: ["crab", "tide_spawn", "snake", "great_snake"]},
-			{id: "ossuary", by: "ev_shrine", name: "The Ossuary", color: 0xb070ff, layout: "grid", dark: true, floor: 25, accent: 28, tier: 4, hard: 1.35, lair: {
+			{id: "ossuary", wall: "bone_violet", by: "ev_shrine", name: "The Ossuary", color: 0xb070ff, layout: "grid", dark: true, floor: 25, accent: 28, tier: 4, hard: 1.2, lair: {
 				boss: "ossarion", intro: "Ossarion is bound to five soulfire candles. Snuff them all, and keep them snuffed: they relight.",
 				shield: {ids: ["soul_candle"], n: 5, where: "boss", r: 8, regrow: 25, text: "The soulfire candles relight! Ossarion is warded again!"}},
 				mobs: ["skeleton", "bone_thrall", "lich", "ghost"]},
-			{id: "obsidian_quarry", by: "ev_colossus", name: "The Obsidian Quarry", color: 0x9060ff, layout: "cave", floor: 20, accent: 4, tier: 4, hard: 1.35, lair: {
+			{id: "obsidian_quarry", wall: "obsidian", by: "ev_colossus", name: "The Obsidian Quarry", color: 0x9060ff, layout: "cave", floor: 20, accent: 4, tier: 4, hard: 1.2, lair: {
 				boss: "quarry_heart", intro: "The Quarry Heart is a colossus of living glass. Break it and it breaks into more of itself."},
 				mobs: ["golem", "thunder_golem", "dwarf", "dwarf_king"]},
-			{id: "ashen_aerie", by: "ev_phoenix", name: "The Ashen Aerie", color: 0xff8a20, layout: "islands", hazard: "lava", floor: 27, accent: 7, tier: 4, hard: 1.35, lair: {
+			{id: "ashen_aerie", wall: "ash", by: "ev_phoenix", name: "The Ashen Aerie", color: 0xff8a20, layout: "islands", hazard: "lava", floor: 27, accent: 7, tier: 4, hard: 1.2, lair: {
 				boss: "ignaria", intro: "Ignaria, mother of phoenixes, rises from her own ashes. When she falls, break her egg before it hatches.",
 				rebirth: {egg: "ember_egg", t: 10, into: "ignaria_reborn"}},
 				mobs: ["imp", "harpy", "gale_harpy", "lesser_demon"]},
-			{id: "hexwood", by: "ev_witch", name: "The Hexwood", color: 0x60e040, layout: "maze", dark: true, floor: 22, accent: 29, tier: 4, hard: 1.35, lair: {
+			{id: "hexwood", wall: "hexroots", by: "ev_witch", name: "The Hexwood", color: 0x60e040, layout: "maze", dark: true, floor: 22, accent: 29, tier: 4, hard: 1.2, lair: {
 				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
 				trio: ["crone_bramble", "crone_bog", "crone_ash"],
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
-			{id: "krakens_maw", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "krakens_maw", wall: "coral_deep", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
-				shield: {ids: ["maw_tentacle"], n: 6, where: "boss", r: 9, regrow: 22, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
+				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 32, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
 				mobs: ["tide_spawn", "crab", "pirate", "cloud_serpent"]}
 		];
 

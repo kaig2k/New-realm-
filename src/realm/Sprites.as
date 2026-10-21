@@ -535,6 +535,8 @@ package realm {
 		public static const IDLE:int = 0, MOVE:int = 1, ATTACK:int = 2;
 		public static function anim(state:int, phase:int):int { return 10 + state * 2 + (phase & 1); }
 
+		public static function has(name:String):Boolean { return DEFS[name] != null; }
+
 		public static function get(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var d:Array = DEFS[name] || skinDef(name) || DEFS["cubelet"];
 			var frames:Array = d[0];

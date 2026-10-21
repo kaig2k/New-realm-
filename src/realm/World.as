@@ -57,6 +57,48 @@ package realm {
 			0x2c2642, 0xd0c8e0, 0x4a2070];
 		private static const STONE_PAT:Array = ["hhhmHHHm", "hSSmHSSm", "hSSmHSSm", "mmmmmmmm", "HHmhhhmH", "SSmhSSmS", "SSmhSSmS", "mmmmmmmm"];
 		private static const WALL_PAT:Array = ["LLLLLLLL", "LTTdLTTd", "LTTdLTTd", "dddddddd", "TdLTTdLT", "TdLTTdLT", "FFFFFFFF", "ffffffff"];
+		/**
+		 * A dungeon's own walls (theme.wall): a pattern (L its lit top, T its face, d its seams, F/f its foot,
+		 * and a mark of its own: r rivets, g glowing veins, H shine, K hollows, p growths) and its colours.
+		 * A dungeon without one keeps the plain grey stonework.
+		 */
+		private static const WALL_FORMS:Object = {
+			blocks: ["LLLLLLLL", "TTTTTTTd", "TTTTTTTd", "dddddddd", "TTTdTTTT", "TTTdTTTT", "FFFFFFFF", "ffffffff"],
+			plates: ["LLLLLLLL", "TrTTTTrT", "TTTTTTTT", "TTTTTTTT", "dddddddd", "TrTTTTrT", "FFFFFFFF", "ffffffff"],
+			slab: ["LLLLLLLL", "TTTTTTgT", "TTTTTgTT", "TTTTgTTT", "TTTTTTTT", "TgTTTTTT", "FFFFFFFF", "ffffffff"],
+			ice: ["LLLLLLLL", "TTHTTTTT", "THTTTdTT", "TTTTdTTH", "TTTdTTHT", "dTTTTTTT", "FFFFFFFF", "ffffffff"],
+			bone: ["LLLLLLLL", "TTdTTTdT", "dTTTdTTT", "TTdKTdTT", "dTTTdTTT", "TTdTTTdT", "FFFFFFFF", "ffffffff"],
+			roots: ["LLLLLLLL", "TdTTdTTd", "TdTdTTdT", "dTTdTdTT", "TTdTTdTd", "TdTTdTTd", "FFFFFFFF", "ffffffff"],
+			coral: ["LLLLLLLL", "TTpTTTTp", "TpppTTpT", "TTpTTTTT", "pTTTTpTT", "TTTTpppT", "FFFFFFFF", "ffffffff"]
+		};
+		/** style -> [form, {L, T, d, F, f, and its mark's colour}] */
+		public static const WALL_STYLES:Object = {
+			marble: ["blocks", {L: 0xf4f0e8, T: 0xd8d2c8, d: 0xa89e90, F: 0x8a8070, f: 0x5a5248}],
+			gilded: ["blocks", {L: 0xffd860, T: 0xe8e2d8, d: 0xb0a898, F: 0x8a8070, f: 0x5a5248}],
+			sandstone: ["blocks", {L: 0xf0d8a0, T: 0xd4b474, d: 0x9a7a44, F: 0x7a5c30, f: 0x4e3a1e}],
+			mossy: ["blocks", {L: 0x6a8a5a, T: 0x4a5a4c, d: 0x2a3a2c, F: 0x24302a, f: 0x141c18}],
+			crypt: ["blocks", {L: 0x8aa0c0, T: 0x4a5a74, d: 0x2a3446, F: 0x1e2636, f: 0x10141e}],
+			pale: ["blocks", {L: 0xfff0a0, T: 0xd8d0b0, d: 0xa09878, F: 0x786e54, f: 0x4a4434}],
+			blush: ["blocks", {L: 0xffd0ec, T: 0xe0b0cc, d: 0xa07890, F: 0x7a5468, f: 0x4a3240}],
+			driftwood: ["roots", {L: 0xc8a070, T: 0x8a6440, d: 0x5a3e24, F: 0x3e2a18, f: 0x24180c}],
+			metal_violet: ["plates", {L: 0xd080ff, T: 0x2a1a44, d: 0x140a24, F: 0x0e0618, f: 0x06020c, r: 0xc060ff}],
+			brass: ["plates", {L: 0xffe080, T: 0x8a6418, d: 0x4a340c, F: 0x3a2808, f: 0x201604, r: 0xffd060}],
+			basalt: ["slab", {L: 0x5a4a50, T: 0x221a1e, d: 0x140e12, F: 0x100a0c, f: 0x080406, g: 0xff6010}],
+			ash: ["slab", {L: 0x8a8484, T: 0x4a4444, d: 0x2a2626, F: 0x201c1c, f: 0x100e0e, g: 0xffa040}],
+			obsidian: ["slab", {L: 0x6a5a8a, T: 0x1a1428, d: 0x0e0a16, F: 0x0a0610, f: 0x040208, g: 0x9a6aff}],
+			spectral: ["slab", {L: 0xc0b0ff, T: 0x3a2a6a, d: 0x241848, F: 0x1a1236, f: 0x0e0a20, g: 0xd090ff}],
+			hellstone: ["slab", {L: 0x8a3a2a, T: 0x3a100a, d: 0x240806, F: 0x1a0604, f: 0x0e0302, g: 0xff3010}],
+			voidstone: ["slab", {L: 0x9a50d0, T: 0x1a0a28, d: 0x0e0418, F: 0x0a0210, f: 0x040008, g: 0xe070ff}],
+			ice: ["ice", {L: 0xffffff, T: 0x9ac8e8, d: 0x5a8ab4, F: 0x3e6a94, f: 0x2a4a6a, H: 0xe0f4ff}],
+			bone: ["bone", {L: 0xfff8e0, T: 0xd8ccac, d: 0x8a7c60, F: 0x6a5e48, f: 0x3a3426, K: 0x2a2018}],
+			bone_violet: ["bone", {L: 0xf0e8ff, T: 0xc8bcd8, d: 0x7a6a8a, F: 0x4a3e5a, f: 0x2a2236, K: 0x8040ff}],
+			bone_blood: ["bone", {L: 0xffe8d8, T: 0xd8b8a0, d: 0x8a4a3a, F: 0x6a2a20, f: 0x3a1410, K: 0xa01010}],
+			roots: ["roots", {L: 0x6a8a3a, T: 0x3a2a18, d: 0x22180c, F: 0x1a1208, f: 0x0e0a04}],
+			hexroots: ["roots", {L: 0x70e050, T: 0x2a2030, d: 0x161020, F: 0x100a16, f: 0x08040c}],
+			coral: ["coral", {L: 0xffb0d0, T: 0x2a6a6a, d: 0x184444, F: 0x103030, f: 0x081a1a, p: 0xff6aa0}],
+			coral_deep: ["coral", {L: 0xc080ff, T: 0x24124a, d: 0x140a2c, F: 0x0e0620, f: 0x060210, p: 0x8040c0}],
+			coral_pastel: ["coral", {L: 0xfff0ff, T: 0xe0a8d8, d: 0xa07098, F: 0x7a5070, f: 0x4a3046, p: 0x80e0ff}]
+		};
 
 		private static const PLAZA_PAT:Array = ["LLLMMLLL", "LLMLLMLL", "LMLDDLML", "MLDLLDLM", "MLDLLDLM", "LMLDDLML", "LLMLLMLL", "LLLMMLLL"];
 		private static const BRICK_PAT:Array = ["hhhaHHHb", "hAAaHBBb", "hAAaHBBb", "aaaabbbb", "HHHbhhha", "HBBbhAAa", "HBBbhAAa", "bbbbaaaa"];
@@ -1441,6 +1483,13 @@ package realm {
 							var wc:String = String(WALL_PAT[y]).charAt(x);
 							// the Nexus's ramparts: dark violet stone capped with gold
 							if (kind == "nexus") c = wc == "L" ? 0xd8b048 : wc == "T" ? 0x4a4068 : wc == "d" ? 0x342c4c : wc == "F" ? 0x221c34 : 0x14101e;
+							else if (theme && theme.wall && WALL_STYLES[theme.wall]) {
+								// this dungeon's own walls
+								var wst:Array = WALL_STYLES[theme.wall];
+								var wch:String = String(WALL_FORMS[wst[0]][y]).charAt(x);
+								c = wst[1][wch] != undefined ? wst[1][wch] : wst[1].T;
+								if (r < 0.1 && (wch == "T" || wch == "d")) c = Sprites.shade(c, 0.9);
+							}
 							else c = wc == "L" ? 0xc4c4cc : wc == "T" ? 0xa4a4ac : wc == "d" ? 0x7a7a82 : wc == "F" ? 0x55555c : 0x3a3a40;
 							break;
 						case CARPET:

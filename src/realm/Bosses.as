@@ -144,7 +144,9 @@ package realm {
 			"lich_king", "serpent_queen", "sorcerer", "seraph", "pyrelord", "archdemon", "sprite_queen", "sun_king", "moon_queen",
 			"shattered_seraph", "hex_queen", "star_prince", "pirate_king", "moth", "broodmother", "frost_warden", "flame_warden",
 			"vault_ignis", "warden", "blood_knight", "sentinel",
-			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron"];
+			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
+			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan"];
 		public static const POSED_SEQ:Object = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 		/** Their own shots (tools/bossart/boss_shots.py): [from its strikes, from its casts], in place of the plain shapes. */
 		public static const POSED_SHOTS:Object = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
@@ -159,7 +161,12 @@ package realm {
 			"vault_ignis": ["flamesword", "ember"], "warden": ["lantern", "soulorb"], "blood_knight": ["bloodblade", "bloodorb"],
 			"sentinel": ["laser", "gearbit"], "vault_archivist": ["page", "rune"], "vault_sovereign": ["bonespike", "soulorb"],
 			"astraeon": ["starbolt", "starlet"], "void_dragon": ["voidshard", "voidbreath"], "zealot": ["dagger", "bloodorb"],
-			"galecaller": ["windblade", "snowflake"], "gearmind": ["gearbit", "spark"], "matron": ["bloodblade", "blooddrop"]};
+			"galecaller": ["windblade", "snowflake"], "gearmind": ["gearbit", "spark"], "matron": ["bloodblade", "blooddrop"],
+			"tesseract": ["prism", "cube_eye"], "forgemaster": ["hammer", "magma"], "glacia": ["icicle", "snowflake"],
+			"hollow_prince": ["ghostblade", "crownlet"], "rendmaw": ["fang", "bonespike"], "pharaoh": ["scarab", "ankh"],
+			"admiral": ["sabre", "cannonball"], "pearlmaw": ["pearl", "bubble"], "ossarion": ["scythe", "soulorb"],
+			"quarry_heart": ["glassshard", "boulder"], "ignaria": ["feather", "pflame"], "crone_bramble": ["thorn", "hex"],
+			"crone_bog": ["venom", "bubble"], "crone_ash": ["ember", "hex"], "leviathan": ["tidewave", "bubble"]};
 		private static const SHOT_NOUNS:Object = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma ball", "ember": "ember", "skull": "skull",
 			"crownlet": "crown", "mask": "mask", "phantom": "phantom", "scarab": "scarab", "ankh": "ankh", "anchor": "anchor", "bubble": "bubble",
 			"claw": "claw", "shell": "shell", "skullfire": "burning skull", "candle": "candle flame", "boulder": "boulder", "voidshard": "void shard",
@@ -170,7 +177,8 @@ package realm {
 			"dust": "moth dust", "eyespot": "eye", "web": "web", "egg": "egg", "icicle": "icicle", "snowflake": "snowflake",
 			"flamesword": "flame blade", "lantern": "lantern", "bloodblade": "blood blade", "bloodorb": "blood orb", "laser": "beam",
 			"gearbit": "gear", "rune": "rune", "page": "page", "bonespike": "bone spike", "voidbreath": "void breath",
-			"dagger": "dagger", "windblade": "wind blade", "spark": "spark", "blooddrop": "blood drop"};
+			"dagger": "dagger", "windblade": "wind blade", "spark": "spark", "blooddrop": "blood drop", "prism": "prism",
+			"hammer": "hammer", "ghostblade": "ghost blade", "sabre": "sabre", "pearl": "pearl", "scythe": "scythe", "tidewave": "tidal wave"};
 		private static const PLAIN_SHAPES:Object = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
 
 		private static function posed():void {
@@ -261,7 +269,7 @@ package realm {
 				// and every boss is built for heroes who have it all: far more health, harder hits, faster
 				// attacks (the realm's event bosses most of all: they're meant to take a crowd)
 				var realmEvent:Boolean = id.indexOf("ev_") == 0;
-				var tough:Array = realmEvent ? [7, 1.45] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				var tough:Array = realmEvent ? [7, 1.45] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
 				// (bosses already built huge, like Sylith and Gorehorn, grow less)
 				d.hp = int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
 				var done0:Dictionary = new Dictionary();
@@ -275,7 +283,8 @@ package realm {
 						if (a0.cd > 0.5) a0.cd = a0.cd * 0.88;
 					}
 				}
-				var endgame:Boolean = d.raid || d.finale || d.final || d.dtier >= 5;
+				// (a lair's master is tuned as a whole with its lair: Lairs.as)
+				var endgame:Boolean = !d.lairBoss && (d.raid || d.finale || d.final || d.dtier >= 5);
 				if (!endgame) continue;
 				// raids are the hardest fights in the game
 				d.hp = int(d.hp * (d.raid ? 2.6 : 1.9));
@@ -1135,11 +1144,11 @@ package realm {
 			]}, ["voidfang", "dragonscale"]);
 
 			var D:Array = Data.DUNGEONS;
-			D.push({id: "drowned_throne", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
+			D.push({id: "drowned_throne", wall: "coral", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
 				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress"});
-			D.push({id: "clockwork_foundry", name: "The Clockwork Foundry", color: 0xffd060, floor: 6, accent: 13, tier: 4, hard: 1.5, layout: "grid", hazard: "lava",
+			D.push({id: "clockwork_foundry", wall: "brass", name: "The Clockwork Foundry", color: 0xffd060, floor: 6, accent: 13, tier: 4, hard: 1.5, layout: "grid", hazard: "lava",
 				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind"});
-			D.push({id: "void_rift", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
+			D.push({id: "void_rift", wall: "voidstone", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
 				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
 			// and every realm boss's own lair (Lairs.as)
 			for each (var lth:Object in Lairs.DUNGEONS) D.push(lth);
@@ -1198,11 +1207,11 @@ package realm {
 			// --- the Wyrm Cradle (Sylith's): Glacia, mother of wyrms, in her ring of obelisks
 			lairBoss("glacia", {name: "Glacia, Mother of Wyrms", spr: "glacia", hp: 25000, spd: 1.8, r: 1.15, col: 0x80d8ff, phases: [
 				P(1, {say: "*the cradle groans with frost*", move: "orbit",
-					attacks: [aim(7, 60, 8, 75, 1.3, 0x80d8ff, {motion: "wave", name: "frost breath"}), ring(12, 15, 5, 65, 1.6, 0xd0f0ff), aim(1, 0, 6, 90, 2.2, 0xffffff, {motion: "home", r: 0.3})]}),
+					attacks: [aim(7, 60, 8, 60, 1.3, 0x80d8ff, {motion: "wave", name: "frost breath"}), ring(12, 15, 5, 52, 1.6, 0xd0f0ff), aim(1, 0, 6, 72, 2.2, 0xffffff, {motion: "home", r: 0.3})]}),
 				P(0.6, {say: "My children, wake!", banner: "Glacia calls her brood!", shield: 2, summon: [{what: "ice_wolf", n: 4}], move: "orbit",
-					attacks: [rain(6, 6, 95, 2.0, 0xa0e8ff, {burst: 6, eff: "slowed"}), aim(9, 80, 8, 70, 1.2, 0x80d8ff, {motion: "wave"}), spiral(4, 14, 6, 65, 0.12, 0xd0f0ff)]}),
+					attacks: [rain(6, 6, 95, 2.0, 0xa0e8ff, {burst: 6, eff: "slowed"}), aim(9, 80, 8, 56, 1.2, 0x80d8ff, {motion: "wave"}), spiral(4, 14, 6, 52, 0.12, 0xd0f0ff)]}),
 				P(0.25, {say: "WINTER DOES NOT END.", move: "chase", speed: 1.2,
-					attacks: [flower(28, 9, 6, 80, 0.9, 0xd0f0ff), wall(21, 5, 90, 1.6, 0x80d8ff, {hole: 3, eff: "slowed"}), aim(1, 0, 7, 110, 1.8, 0xffffff, {motion: "home", r: 0.32})]})
+					attacks: [flower(28, 9, 6, 64, 0.9, 0xd0f0ff), wall(21, 5, 90, 1.6, 0x80d8ff, {hole: 3, eff: "slowed"}), aim(1, 0, 7, 88, 1.8, 0xffffff, {motion: "home", r: 0.32})]})
 			]});
 			lairProp("cradle_obelisk", {name: "Ice Obelisk", spr: "ice_obelisk", hp: 8000, col: 0x80d8ff, lairShield: true,
 				attacks: [ring(6, 25, 4.5, 55, 1.8, 0xd0f0ff, {eff: "slowed", name: "frost pulse"})]});

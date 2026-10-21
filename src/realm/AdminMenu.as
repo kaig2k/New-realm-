@@ -182,12 +182,12 @@ package realm {
 			for (var i:int = 0; i < Data.DUNGEONS.length; i++) {
 				var d:Object = Data.DUNGEONS[i];
 				var col:int = i % 2, row:int = int(i / 2);
-				var x:int = 14 + col * 262, y:int = y0 + row * 26;
-				label("<font color='" + Ui.hex(d.color) + "'>" + d.name + "</font>", x, y + 4, 0xffffff, 150);
-				btn("Portal", x + 146, y, 54, portalFn(i), 11, 22);
-				btn("Enter", x + 204, y, 50, enterFn(i), 11, 22);
+				var x:int = 14 + col * 262, y:int = y0 + row * 20;
+				label("<font color='" + Ui.hex(d.color) + "'>" + d.name + "</font>", x, y + 2, 0xffffff, 150);
+				btn("Portal", x + 146, y, 54, portalFn(i), 10, 18);
+				btn("Enter", x + 204, y, 50, enterFn(i), 10, 18);
 			}
-			var yy:int = y0 + Math.ceil(Data.DUNGEONS.length / 2) * 26 + 8;
+			var yy:int = y0 + Math.ceil(Data.DUNGEONS.length / 2) * 20 + 8;
 			for (var r:int = 0; r < Bosses.RAIDS.length; r++) {
 				btn("Raid: " + Bosses.RAIDS[r].name, 14 + r * 172, yy, 166, raidFn(r), 11, 26);
 				btn("Heroic", 14 + r * 172, yy + 30, 166, raidFn(r, true), 11, 22);

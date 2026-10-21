@@ -134,6 +134,24 @@ function setup(id) {
     targets = () => sim.w.raidStage === st ? sim.enemies.filter((e) => !e.dead && (e.isBoss || e.def.stageFoe || e.def.prop)) : [];
     tier = 'raid'; group = 4;
     label = rd.name + ' ' + (si + 1) + ': ' + rd.stages[si].map((x) => Data.ENEMIES[x].name).filter((v, i, a) => a.indexOf(v) === i).join(' + ');
+  } else if (Data.DUNGEONS.some((t) => t.lair && (t.lair.boss === id || (t.trio || []).indexOf(id) >= 0))) {
+    // a realm boss's lair (Lairs.as): the whole of it, its shields, menders, waves, eggs and splits
+    const di = Data.DUNGEONS.findIndex((t) => t.lair && (t.lair.boss === id || (t.trio || []).indexOf(id) >= 0));
+    const th = Data.DUNGEONS[di];
+    sim = new WorldSim('dg:' + di + ':4242');
+    const lairs = (e) => e.def.lairBoss || e.def.trio || e.def.prop || e.lairShield || e.def.lairShield || e.lairWave;
+    for (const e of sim.enemies) if (!lairs(e)) e.dead = true;
+    sim.enemies.splice(0, sim.enemies.length, ...sim.enemies.filter((e) => !e.dead));
+    // (between waves, or before its master comes, the bots hold its hall)
+    const hall = sim.w.rooms[sim.w.rooms.length - 1];
+    const wait = { id: -99, dead: false, immune: true, x: hall.x + 0.5, y: hall.y + 0.5, hp: 1, def: {} };
+    targets = () => {
+      if (sim.w.lair && sim.w.lair.done) return [];
+      const list = sim.enemies.filter((e) => !e.dead && lairs(e));
+      return list.length ? list : [wait];
+    };
+    tier = 'hard';
+    label = th.name + ' (lair)';
   } else {
     const di = Data.DUNGEONS.findIndex((t) => t.boss === id || (t.guardians || []).indexOf(id) >= 0 || (t.trio || []).indexOf(id) >= 0);
     const th = Data.DUNGEONS[di];
@@ -374,7 +392,7 @@ function bump(m, k) { m.set(k, (m.get(k) || 0) + 1); }
 function bossIds() {
   const ids = [];
   const add = (x) => { if (x && Data.ENEMIES[x] && ids.indexOf(x) < 0) ids.push(x); };
-  for (const d of Data.DUNGEONS) { for (const g of d.guardians || []) add(g); if (d.trio) add(d.trio[0]); add(d.boss); }
+  for (const d of Data.DUNGEONS) { for (const g of d.guardians || []) add(g); if (d.trio) add(d.trio[0]); add(d.boss); if (d.lair) add(d.lair.boss); }
   for (const e of Data.EVENTS) add(e);
   add('abyss_herald'); add('elder'); add('siege_warlord');
   for (const r of Bosses.RAIDS) for (const s of r.stages) add(s[0]);

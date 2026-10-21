@@ -699,9 +699,14 @@ package realm {
 			return dungeonIndex(String(item.sub).substr(3));
 		}
 
+		/** A dungeon's name after "to"/"into": "the Sunken Crypt", but "The Ossuary" stays as it is. */
+		public static function theName(name:String):String { return name.indexOf("The ") == 0 ? name : "the " + name; }
+
 		/** Key Merchant price: harder dungeons cost more. */
 		public static function keyPrice(idx:int):int {
 			var d:Object = DUNGEONS[idx];
+			// (a lair only opens from its realm boss's portal: no key for it)
+			if (d.lair) return -1;
 			if (d.hard) return 5000 + int((d.hard - 1.5) * 30000 + 0.5);
 			return [300, 600, 1000, 1400, 1800][Math.min(4, d.tier)];
 		}
@@ -2085,24 +2090,24 @@ package realm {
 		 * their own (`portal` on the enemy). tier: mob strength and loot, 0 (beach) .. 4 (godlands).
 		 */
 		public static const DUNGEONS:Array = [
-			{id: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
-			{id: "depths", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
-			{id: "spire", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
+			{id: "crypt", wall: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
+			{id: "depths", wall: "basalt", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
+			{id: "spire", wall: "pale", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
 			{id: "cellar", layout: "grid", dark: true, name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
-			{id: "pirate_cove", layout: "cave", hazard: "water", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
-			{id: "forest_maze", layout: "maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
-			{id: "snake_pit", layout: "ring", hazard: "water", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
-			{id: "spider_den", layout: "maze", dark: true, name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
-			{id: "undead_lair", layout: "grid", dark: true, name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
-			{id: "abyss", layout: "islands", hazard: "lava", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
+			{id: "pirate_cove", wall: "driftwood", layout: "cave", hazard: "water", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
+			{id: "forest_maze", wall: "roots", layout: "maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
+			{id: "snake_pit", wall: "mossy", layout: "ring", hazard: "water", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},
+			{id: "spider_den", wall: "roots", layout: "maze", dark: true, name: "Spider Den", color: 0xd0c040, floor: 3, accent: 4, tier: 2, mobs: ["spider", "spider", "spider", "great_snake"], boss: "spider_boss"},
+			{id: "undead_lair", wall: "bone", layout: "grid", dark: true, name: "Undead Lair", color: 0x9ab0d0, floor: 4, accent: 6, tier: 4, mobs: ["skeleton", "ghost", "shade", "skeleton"], boss: "lich_boss"},
+			{id: "abyss", wall: "hellstone", layout: "islands", hazard: "lava", name: "Abyss of Demons", color: 0xff3020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "lesser_demon", "imp", "lesser_demon"], boss: "demon_boss"},
 			// ---- hard multi-boss dungeons: elite monsters (hard = health/damage multiplier)
-			{id: "tomb", layout: "grid", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
+			{id: "tomb", wall: "sandstone", layout: "grid", name: "Tomb of the Three Kings", color: 0xffc040, floor: 1, accent: 6, tier: 4, hard: 1.5,
 				mobs: ["scorpion", "great_snake", "lesser_demon", "ghost"], trio: ["sun_king", "moon_queen", "star_prince"]},
-			{id: "sanctum", layout: "ring", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
+			{id: "sanctum", wall: "blush", layout: "ring", name: "The Shattered Sanctum", color: 0xff80d0, floor: 13, accent: 5, tier: 4, hard: 1.6,
 				mobs: ["sprite", "ghost", "lich", "djinn"], guardians: ["frost_warden", "flame_warden"], boss: "shattered_seraph"},
-			{id: "citadel", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
+			{id: "citadel", wall: "voidstone", name: "Azrakor's Citadel", color: 0xc060ff, floor: 9, accent: 14, tier: 4, hard: 1.7,
 				mobs: ["shade", "lesser_demon", "skeleton", "lich"], guardians: ["blood_knight", "hex_queen"], toElder: true},
-			{id: "sprite_world", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
+			{id: "sprite_world", wall: "coral_pastel", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
 		// ---- The Endless Abyss (/abyss): a wave arena for level 20 heroes (world key "deep:seed").
 		// Its monsters drop nothing; every DEEP_CHEST_EVERY waves cleared an Abyssal Chest appears instead,

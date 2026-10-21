@@ -2899,6 +2899,7 @@ async function run() {
         if (masters.length) ws.kill(masters[0]);
       }
       const cleared = !!(w.lair && w.lair.done) && msgs.some((m) => m.d && m.d.lairDone);
+      check('  ' + th.name + ' has no key for sale', LD.keyPrice(LD.dungeonIndex(th.id)) < 0);
       check('  ' + th.name + ': its rules hold and it can be cleared', cleared && (!L.shield || shielded) && (!(L.shield && L.shield.regrow) || regrew) &&
         (!L.waves || w.lair.wave === L.waves.n) && (!(L.rebirth && L.rebirth.egg) || egg), JSON.stringify({ cleared, shielded, regrew, egg, wave: w.lair && w.lair.wave }));
     }

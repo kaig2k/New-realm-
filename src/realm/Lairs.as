@@ -18,60 +18,60 @@ package realm {
 	public class Lairs {
 		/** The lairs (Bosses.init appends them to Data.DUNGEONS). by: the realm boss whose lair it is. */
 		public static const DUNGEONS:Array = [
-			{id: "tesseract", by: "ev_cube", name: "The Tesseract", color: 0xc040ff, layout: "grid", floor: 24, accent: 30, tier: 4, hard: 1.35, lair: {
+			{id: "tesseract", wall: "metal_violet", by: "ev_cube", name: "The Tesseract", color: 0xc040ff, layout: "grid", floor: 24, accent: 30, tier: 4, hard: 1.2, lair: {
 				boss: "tesseract", intro: "Four Prism Nodes feed the Tesseract its shield. Find them in the halls and shatter them.",
 				shield: {ids: ["prism_node"], n: 4, where: "rooms", text: "A Prism Node shatters! The Tesseract's shield flickers."}},
 				mobs: ["cubelet", "cube_shard", "gazer", "beholder"]},
-			{id: "titan_forge", by: "ev_titan", name: "Titan's Forge", color: 0xff6018, layout: "cave", hazard: "lava", floor: 20, accent: 7, tier: 4, hard: 1.35, lair: {
+			{id: "titan_forge", wall: "basalt", by: "ev_titan", name: "Titan's Forge", color: 0xff6018, layout: "cave", hazard: "lava", floor: 20, accent: 7, tier: 4, hard: 1.2, lair: {
 				boss: "forgemaster", intro: "The Forgemaster's bellows breathe fire into him. Silence them or he never tires.",
 				mend: {id: "forge_bellows", n: 3, r: 8, rate: 0.012}},
 				mobs: ["imp", "lesser_demon", "dwarf", "golem"]},
-			{id: "wyrm_cradle", by: "ev_wyrm", name: "The Wyrm Cradle", color: 0x80d8ff, layout: "ring", hazard: "water", floor: 19, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "wyrm_cradle", wall: "ice", by: "ev_wyrm", name: "The Wyrm Cradle", color: 0x80d8ff, layout: "ring", hazard: "water", floor: 19, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "glacia", intro: "Glacia sleeps inside a ring of ice obelisks. Break them, and keep breaking them: the cold grows them back.",
 				shield: {ids: ["cradle_obelisk"], n: 4, where: "boss", r: 8, regrow: 28, text: "The ice obelisks grow back! Glacia is warded again!"}},
 				mobs: ["ice_wolf", "ice_wolf", "ghost", "djinn"]},
-			{id: "hollow_court", by: "ev_king", name: "The Hollow Court", color: 0x9aff7a, layout: "grid", dark: true, floor: 33, accent: 11, tier: 4, hard: 1.35, lair: {
+			{id: "hollow_court", wall: "gilded", by: "ev_king", name: "The Hollow Court", color: 0x9aff7a, layout: "grid", dark: true, floor: 33, accent: 11, tier: 4, hard: 1.2, lair: {
 				boss: "hollow_prince", intro: "Three Crown Knights each keep a shard of the Hollow Prince's crown. He can't be touched while one stands.",
 				shield: {ids: ["crown_knight"], n: 3, where: "rooms", text: "A Crown Knight falls and its shard goes dark."}},
 				mobs: ["skeleton", "royal_guard", "shade", "grave_wraith"]},
-			{id: "bone_pit", by: "ev_behemoth", name: "The Bone Pit", color: 0xff3a30, layout: "cave", floor: 25, accent: 14, tier: 4, hard: 1.35, lair: {
+			{id: "bone_pit", wall: "bone_blood", by: "ev_behemoth", name: "The Bone Pit", color: 0xff3a30, layout: "cave", floor: 25, accent: 14, tier: 4, hard: 1.2, lair: {
 				boss: "rendmaw", intro: "Gorehorn's brood nests in the Pit. Survive their rush in the great den and their alpha comes for you.",
 				waves: {mobs: ["gore_spawn", "gore_spawn", "blood_hound", "minotaur"], n: 3, size: 7}},
 				mobs: ["gore_spawn", "blood_hound", "ogre", "minotaur"]},
-			{id: "phantom_court", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.35, lair: {
+			{id: "phantom_court", wall: "spectral", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.2, lair: {
 				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections. Shatter the echoes and the true Regent is laid bare.",
 				shield: {ids: ["regent_echo"], n: 3, where: "boss", r: 7, text: "An echo shatters into mist!"}},
 				mobs: ["shade", "ghost", "void_wisp", "grave_wraith"]},
-			{id: "tomb_of_riddles", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.35, lair: {
+			{id: "tomb_of_riddles", wall: "sandstone", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.2, lair: {
 				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze. While one is whole, he cannot die.",
 				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", text: "A canopic jar breaks! Ankhamun howls in his tomb."}},
 				mobs: ["temple_scorpion", "scorpion", "great_snake", "medusa"]},
-			{id: "drowned_keep", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "drowned_keep", wall: "mossy", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "admiral_brine", intro: "Admiral Brine drowned with his keep, and the sea will not let him stay dead.",
 				rebirth: {into: "admiral_drowned"}},
 				mobs: ["pirate", "pirate_brawler", "tide_spawn", "crab"]},
-			{id: "coral_grotto", by: "ev_hermit", name: "The Coral Grotto", color: 0x30c8b0, layout: "cave", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "coral_grotto", wall: "coral", by: "ev_hermit", name: "The Coral Grotto", color: 0x30c8b0, layout: "cave", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "pearlmaw", intro: "Pearlmaw's giant clams pour their pearls into it. Crack the clams or it heals faster than you can hurt it.",
 				mend: {id: "pearl_clam", n: 3, r: 8, rate: 0.014}},
 				mobs: ["crab", "tide_spawn", "snake", "great_snake"]},
-			{id: "ossuary", by: "ev_shrine", name: "The Ossuary", color: 0xb070ff, layout: "grid", dark: true, floor: 25, accent: 28, tier: 4, hard: 1.35, lair: {
+			{id: "ossuary", wall: "bone_violet", by: "ev_shrine", name: "The Ossuary", color: 0xb070ff, layout: "grid", dark: true, floor: 25, accent: 28, tier: 4, hard: 1.2, lair: {
 				boss: "ossarion", intro: "Ossarion is bound to five soulfire candles. Snuff them all, and keep them snuffed: they relight.",
 				shield: {ids: ["soul_candle"], n: 5, where: "boss", r: 8, regrow: 25, text: "The soulfire candles relight! Ossarion is warded again!"}},
 				mobs: ["skeleton", "bone_thrall", "lich", "ghost"]},
-			{id: "obsidian_quarry", by: "ev_colossus", name: "The Obsidian Quarry", color: 0x9060ff, layout: "cave", floor: 20, accent: 4, tier: 4, hard: 1.35, lair: {
+			{id: "obsidian_quarry", wall: "obsidian", by: "ev_colossus", name: "The Obsidian Quarry", color: 0x9060ff, layout: "cave", floor: 20, accent: 4, tier: 4, hard: 1.2, lair: {
 				boss: "quarry_heart", intro: "The Quarry Heart is a colossus of living glass. Break it and it breaks into more of itself."},
 				mobs: ["golem", "thunder_golem", "dwarf", "dwarf_king"]},
-			{id: "ashen_aerie", by: "ev_phoenix", name: "The Ashen Aerie", color: 0xff8a20, layout: "islands", hazard: "lava", floor: 27, accent: 7, tier: 4, hard: 1.35, lair: {
+			{id: "ashen_aerie", wall: "ash", by: "ev_phoenix", name: "The Ashen Aerie", color: 0xff8a20, layout: "islands", hazard: "lava", floor: 27, accent: 7, tier: 4, hard: 1.2, lair: {
 				boss: "ignaria", intro: "Ignaria, mother of phoenixes, rises from her own ashes. When she falls, break her egg before it hatches.",
 				rebirth: {egg: "ember_egg", t: 10, into: "ignaria_reborn"}},
 				mobs: ["imp", "harpy", "gale_harpy", "lesser_demon"]},
-			{id: "hexwood", by: "ev_witch", name: "The Hexwood", color: 0x60e040, layout: "maze", dark: true, floor: 22, accent: 29, tier: 4, hard: 1.35, lair: {
+			{id: "hexwood", wall: "hexroots", by: "ev_witch", name: "The Hexwood", color: 0x60e040, layout: "maze", dark: true, floor: 22, accent: 29, tier: 4, hard: 1.2, lair: {
 				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
 				trio: ["crone_bramble", "crone_bog", "crone_ash"],
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
-			{id: "krakens_maw", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.35, lair: {
+			{id: "krakens_maw", wall: "coral_deep", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
-				shield: {ids: ["maw_tentacle"], n: 6, where: "boss", r: 9, regrow: 22, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
+				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 32, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
 				mobs: ["tide_spawn", "crab", "pirate", "cloud_serpent"]}
 		];
 
@@ -94,9 +94,9 @@ package realm {
 			if (L.boss && !L.waves) master(w, L.boss, last.x + 0.5, last.y + 0.5, th.tier, api);
 		}
 
-		private static function placeShield(w:World, sh:Object, last:Object, zone:int, api:Object):void {
+		private static function placeShield(w:World, sh:Object, last:Object, zone:int, api:Object, n:int = 0):void {
 			var rooms:Array = w.rooms;
-			for (var k:int = 0; k < sh.n; k++) {
+			for (var k:int = 0; k < (n || sh.n); k++) {
 				var x:Number, y:Number;
 				if (sh.where == "rooms") {
 					// spread through the middle rooms, never in the first or the last
@@ -138,7 +138,7 @@ package realm {
 					if (Math.abs(p.x - last.x) < last.w / 2 && Math.abs(p.y - last.y) < last.h / 2) { st.woke = true; break; }
 				}
 				if (!st.woke) return;
-				api.say("The " + th.name + " stirs! Hold the den!", th.color, true);
+				api.say(th.name + " stirs! Hold the den!", th.color, true);
 				st.waveT = 1;
 			}
 			if (L.waves && st.pending) {
@@ -177,7 +177,8 @@ package realm {
 					st.regrowT += dt;
 					if (st.regrowT >= L.shield.regrow) {
 						st.regrowT = 0;
-						placeShield(w, L.shield, last, th.tier, api);
+						// (only half of them come back: the master can be worn down window by window)
+						placeShield(w, L.shield, last, th.tier, api, Math.max(2, Math.ceil(L.shield.n / 2)));
 						api.say(L.shield.text, th.color, true);
 					}
 				}

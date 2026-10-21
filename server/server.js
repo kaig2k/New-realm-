@@ -2019,6 +2019,7 @@ const handlers = {
       const di = num(m.dg) | 0;
       if (!Data.DUNGEONS[di]) return;
       price = Data.keyPrice(di);
+      if (!(price > 0)) return;   // (lairs have no keys)
       make = () => Data.makeDungeonKey(di);
     } else {
       const e = Data.SHOP.find((x) => x.id === what);

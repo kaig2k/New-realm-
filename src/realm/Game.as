@@ -888,7 +888,7 @@ package realm {
 			}
 			if (kind != "dungeon" || !Data.DUNGEONS[idx]) return;
 			addPortal(world, x, y, kind, idx, color, life, seed, false);
-			msg("A portal to the " + Data.DUNGEONS[idx].name + " has opened!", Data.DUNGEONS[idx].color);
+			msg("A portal to " + Data.theName(Data.DUNGEONS[idx].name) + " has opened!", Data.DUNGEONS[idx].color);
 		}
 
 		/** A realm event appeared on the host's game. */
@@ -1194,7 +1194,7 @@ package realm {
 
 		public function adminDungeonPortal(i:int):void {
 			addPortal(world, player.x + 1.5, player.y, "dungeon", i, Data.DUNGEONS[i].color, PORTAL_TIME);
-			msg("Opened a portal to the " + Data.DUNGEONS[i].name + ".", Data.DUNGEONS[i].color);
+			msg("Opened a portal to " + Data.theName(Data.DUNGEONS[i].name) + ".", Data.DUNGEONS[i].color);
 		}
 
 		public function adminRealmPortal():void {
@@ -2282,6 +2282,13 @@ package realm {
 			return lairApiObj;
 		}
 
+		/** What still shields a lair's master ("WARDED: 3 Ice Obelisks left"). */
+		private function lairShieldText():String {
+			var n:int = 0, name:String = "";
+			for each (var e:Enemy in enemies) if (!e.dead && (e.lairShield || e.def.lairShield)) { n++; name = e.def.name; }
+			return n ? "WARDED: " + n + " " + name + (n == 1 ? "" : "s") + " left" : "WARDED";
+		}
+
 		/** A lair is cleared (here, or the server says so): the way home opens. */
 		public function lairCleared(x:Number, y:Number):void {
 			if (!world.lair) world.lair = {done: true};
@@ -2428,7 +2435,7 @@ package realm {
 						var di:int = li >= 0 ? li : int(Math.random() * Data.EVENT_DUNGEONS);
 						if (li < 0 && e.def.hardDungeon && Math.random() < 0.35) di = Data.dungeonIndex(e.def.hardDungeon);
 						addPortal(world, e.x + 1.5, e.y, "dungeon", di, Data.DUNGEONS[di].color, PORTAL_TIME, 0, true, e.x, e.y);
-						msg(e.def.name + " dropped a portal to the " + Data.DUNGEONS[di].name + "! (30s)", Data.DUNGEONS[di].color);
+						msg(e.def.name + " dropped a portal to " + Data.theName(Data.DUNGEONS[di].name) + "! (30s)", Data.DUNGEONS[di].color);
 						tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 					}
 					say(SOVEREIGN, e.def.name + " has been killed! [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "][Realm: " + world.name + "]");
@@ -2447,7 +2454,7 @@ package realm {
 				if (pi >= 0) {
 					var dd:Object = Data.DUNGEONS[pi];
 					addPortal(world, e.x, e.y, "dungeon", pi, dd.color, PORTAL_TIME);
-					msg(e.def.name + " dropped a portal to the " + dd.name + "! (30s)", dd.color);
+					msg(e.def.name + " dropped a portal to " + Data.theName(dd.name) + "! (30s)", dd.color);
 					Sfx.play("portal", 0.6);
 					tip("dungeon", "Stand on the dungeon portal and press Enter before it closes!");
 				}
@@ -3910,7 +3917,7 @@ package realm {
 				info.y = y;
 				y += info.height + 8;
 				var order:Array = [];
-				for (i = 0; i < Data.DUNGEONS.length; i++) order.push(i);
+				for (i = 0; i < Data.DUNGEONS.length; i++) if (Data.keyPrice(i) > 0) order.push(i);
 				order.sort(function(a:int, b:int):int { return Data.keyPrice(a) - Data.keyPrice(b); });
 				for (i = 0; i < order.length; i++) {
 					var kd:Object = Data.DUNGEONS[order[i]];
@@ -6312,6 +6319,7 @@ package realm {
 
 		private function buyKey(idx:int):void {
 			var price:int = Data.keyPrice(idx);
+			if (price <= 0) return;
 			var key:Object = Data.makeDungeonKey(idx);
 			if (gold < price) { msg("Not enough gold for the " + key.name + " (" + Ui.commas(price) + "g).", 0xff8080); return; }
 			var slot:int = player.freeSlot();
@@ -6339,7 +6347,7 @@ package realm {
 			// the server takes the key and lets people through the portal
 			if (serverLoot) Online.send({t: "portalKey", sid: item.sid, k: "dungeon", i: i, s: seed});
 			if (inNexus && net.online) net.sendWorld("all", {t: "portal", x: Math.round(px * 100) / 100, y: Math.round(py * 100) / 100, k: "dungeon", i: i, c: d.color, l: PORTAL_TIME, s: seed});
-			msg("The " + item.name + " opened a portal to the " + d.name + "! (30 seconds)", d.color);
+			msg("The " + item.name + " opened a portal to " + Data.theName(d.name) + "! (30 seconds)", d.color);
 			ring(px, py, d.color, 24);
 			Sfx.play("portal");
 			closeStation();
@@ -6805,7 +6813,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : b.def.lairBoss ? lairShieldText() : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -7034,7 +7042,9 @@ package realm {
 					rlab.y = int(rtop - rlab.height - 4);
 					continue;
 				}
-				var pbd:BitmapData = Sprites.portal(p.color, int(time * 8));
+				// a lair's own gate (portal_<lair id>: tools/bossart/portal_shaded.py), else the plain ring
+				var lairGate:String = p.kind == "dungeon" && Data.DUNGEONS[p.idx] && Data.DUNGEONS[p.idx].lair ? "portal_" + Data.DUNGEONS[p.idx].id : null;
+				var pbd:BitmapData = lairGate && Sprites.has(lairGate) ? Sprites.get(lairGate, int(time * 7) % 4) : Sprites.portal(p.color, int(time * 8));
 				// a glow on the ground and motes drifting in; it flickers in its last seconds
 				var closing:Boolean = p.life > 0 && p.life < 5;
 				drawAura(pcx, pcy + TS * 0.4, p.color, closing ? 0.3 + Math.abs(Math.sin(time * 10)) * 0.5 : 0.6);
@@ -8050,7 +8060,7 @@ package realm {
 			if (parts[0] == "dg") {
 				var di:int = int(parts[1]), seed:uint = uint(parts[2]);
 				travel(function():void { enterDungeon(di, seed); });
-				msg("Following " + name + " into the " + Data.DUNGEONS[di].name + ".", Data.DUNGEONS[di].color);
+				msg("Following " + name + " into " + Data.theName(Data.DUNGEONS[di].name) + ".", Data.DUNGEONS[di].color);
 				return;
 			}
 			msg(name + " is somewhere you can't follow.", 0xff8080);

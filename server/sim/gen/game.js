@@ -1446,6 +1446,23 @@ class Bosses {
 				if (d.ai != "boss") continue;
 				
 				d.scales = true;
+				
+				
+				var realmEvent = id.indexOf("ev_") == 0;
+				var tough = realmEvent ? [7, 1.45] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				
+				d.hp = __int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
+				var done0 = new Map();
+				for (var ph0 of __vals( d.phases)) {
+					var lists0 = ph0  instanceof Array? [ph0] : (ph0.cycle || []).concat(ph0.attacks ? [ph0.attacks] : []).concat(ph0.dodge || []);
+					for (var list0 of __vals( lists0)) for (var a0 of __vals( list0)) {
+						if (done0.get(a0) || a0.p == "summon") continue;
+						done0.set(a0, true);
+						a0.dmg = __int(a0.dmg * tough[1]);
+						if (a0.split && a0.split.dmg) a0.split.dmg = __int(a0.split.dmg * tough[1]);
+						if (a0.cd > 0.5) a0.cd = a0.cd * 0.88;
+					}
+				}
 				var endgame = d.raid || d.finale || d.final || d.dtier >= 5;
 				if (!endgame) continue;
 				

@@ -257,6 +257,23 @@ package realm {
 				if (d.ai != "boss") continue;
 				// every boss gets tougher with more people fighting it (WorldSim.scaleBosses)
 				d.scales = true;
+				// and every boss is built for heroes who have it all: far more health, harder hits, faster
+				// attacks (the realm's event bosses most of all: they're meant to take a crowd)
+				var realmEvent:Boolean = id.indexOf("ev_") == 0;
+				var tough:Array = realmEvent ? [7, 1.45] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				// (bosses already built huge, like Sylith and Gorehorn, grow less)
+				d.hp = int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
+				var done0:Dictionary = new Dictionary();
+				for each (var ph0:Object in d.phases) {
+					var lists0:Array = ph0 is Array ? [ph0] : (ph0.cycle || []).concat(ph0.attacks ? [ph0.attacks] : []).concat(ph0.dodge || []);
+					for each (var list0:Array in lists0) for each (var a0:Object in list0) {
+						if (done0[a0] || a0.p == "summon") continue;
+						done0[a0] = true;
+						a0.dmg = int(a0.dmg * tough[1]);
+						if (a0.split && a0.split.dmg) a0.split.dmg = int(a0.split.dmg * tough[1]);
+						if (a0.cd > 0.5) a0.cd = a0.cd * 0.88;
+					}
+				}
 				var endgame:Boolean = d.raid || d.finale || d.final || d.dtier >= 5;
 				if (!endgame) continue;
 				// raids are the hardest fights in the game

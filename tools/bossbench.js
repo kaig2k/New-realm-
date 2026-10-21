@@ -189,7 +189,8 @@ function fight(id, opts) {
     c.x = x; c.y = y;
   }
   function hurt(b, raw, src) {
-    const d = Math.max(raw - H.def, Math.floor(raw * 0.15));
+    // (as Player.mitigate does for a boss's blows: half of Defense, at least 35%; minions are counted the same)
+    const d = Math.max(raw - Math.floor(H.def * 0.5), Math.floor(raw * 0.35));
     b.hp -= d; stats.dmg += d; stats.hits++;
     stats.by = stats.by || new Map(); stats.by.set(src || '?', (stats.by.get(src || '?') || 0) + d);
     if (b.hp <= 0) { stats.deaths++; b.hp = H.maxHp; } // (it gets right back up: we count, and fight on)

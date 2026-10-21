@@ -39,9 +39,9 @@ const Sfx = { play: noop };
 const Save = { data: {}, flush: noop };
 /** An enemy shot as the server sees it (the server follows them to know who should have been hit). */
 class Projectile {
-  constructor(x, y, angle, speed, life, dmg, enemy, r) {
+  constructor(x, y, angle, speed, life, dmg, enemy, r, frames, spin, owner) {
     this.x = x; this.y = y; this.angle = angle; this.speed = speed; this.life = life;
-    this.dmg = dmg; this.enemy = enemy; this.r = r || 0.3;
+    this.dmg = dmg; this.enemy = enemy; this.r = r || 0.3; this.owner = owner || '';
   }
 }
 const Game = { TS: 40 };

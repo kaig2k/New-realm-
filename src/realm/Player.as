@@ -1182,6 +1182,27 @@ package realm {
 		/** Damage those hits did (after Defense and shields, before Ward and Protection soak it up): the server checks it. */
 		public static var dmgTaken:Number = 0;
 
+		/**
+		 * How much of a hit gets through Defense. A boss's blows only half care about it and never do less
+		 * than BOSS_FLOOR of their force: no armour makes you safe standing in front of one.
+		 */
+		public static const BOSS_PIERCE:Number = 0.5;
+		public static const BOSS_FLOOR:Number = 0.35;
+		private static var bossNames:Object;
+
+		public static function isBossSource(src:String):Boolean {
+			if (!bossNames) {
+				bossNames = {};
+				for (var id:String in Data.ENEMIES) if (Data.ENEMIES[id].ai == "boss" && Data.ENEMIES[id].name) bossNames[Data.ENEMIES[id].name] = true;
+			}
+			return src && bossNames[src] == true;
+		}
+
+		public static function mitigate(raw:int, def:int, src:String):int {
+			if (isBossSource(src)) return Math.max(raw - int(def * (1 - BOSS_PIERCE)), int(raw * BOSS_FLOOR));
+			return Math.max(raw - def, int(raw * 0.15));
+		}
+
 		public function takeHit(raw:int, src:String, g:Game, effect:String = null, attack:String = ""):void {
 			if (invulnT > 0 || g.godMode) return;
 			hitsTaken++;
@@ -1192,7 +1213,7 @@ package realm {
 				}
 				status[effect] = STATUS_TIME[effect];
 			}
-			var d:int = Math.max(raw - def, int(raw * 0.15));
+			var d:int = mitigate(raw, def, src);
 			if (shielded) d = Math.max(1, int(d * 0.4));
 			if (guardT > 0) d = Math.max(1, int(d * (1 - guardCut)));
 			dmgTaken += d;

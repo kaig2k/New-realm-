@@ -31,6 +31,17 @@ let nextId = 1;
 /** Damage a second for a player the server knows nothing about yet (see maxDps in server.js), and seconds of it to hold for bursts. */
 const MAX_DPS = 20000, DPS_BURST = 3;
 
+
+/** Whether a monster's name is a boss's (their hits pierce Defense: Player.mitigate). */
+let bossNames = null;
+function isBossName(name) {
+  if (!bossNames) {
+    bossNames = new Set();
+    for (const id in Data.ENEMIES) if (Data.ENEMIES[id].ai === 'boss' && Data.ENEMIES[id].name) bossNames.add(Data.ENEMIES[id].name);
+  }
+  return !!name && bossNames.has(name);
+}
+
 class WorldSim {
   /** key: "realm:Name:seed", "dg:index:seed", "raid:index:seed" or "arena:seed". */
   constructor(key) {
@@ -354,7 +365,7 @@ class WorldSim {
     const to = new Set();
     for (const c of this.players.values()) if ((c.x - s.x) * (c.x - s.x) + (c.y - s.y) * (c.y - s.y) < FIRE_RANGE * FIRE_RANGE) to.add(c.id);
     this.shots.push({ to, x: s.x, y: s.y, a: s.angle, spd: s.speed, life: s.life, life0: s.life, r: s.r, motion: s.motion || '', accel: s.accel || 0, age: 0, back: false, walls: !s.passWalls,
-      dmg: Math.max(0, Number(s.dmg) || 0) });
+      dmg: Math.max(0, Number(s.dmg) || 0), boss: isBossName(s.owner) });
   }
 
   expectArea(x, y, r) {
@@ -388,7 +399,9 @@ class WorldSim {
             c.expHits = (c.expHits || 0) + 1;
             // the least this hit can have done to them: their Defense as the server knows it (with every
             // Defense boost there is), or 15% of it, whichever is more (Player.takeHit)
-            c.expDmg = (c.expDmg || 0) + Math.max(s.dmg - (c.defMax || 0), Math.floor(s.dmg * 0.15));
+            // (a boss's blows only half care about Defense and never do less than 35%: Player.mitigate)
+            c.expDmg = (c.expDmg || 0) + (s.boss ? Math.max(s.dmg - Math.floor((c.defMax || 0) * 0.5), Math.floor(s.dmg * 0.35))
+              : Math.max(s.dmg - (c.defMax || 0), Math.floor(s.dmg * 0.15)));
             gone = true;
             break;
           }

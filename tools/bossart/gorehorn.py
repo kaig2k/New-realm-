@@ -1,7 +1,7 @@
 """
-Gorehorn the Behemoth, from the user's own art (ref/gorehorn.png, cleaned from their picture
-ref/gorehorn.webp into its own palette; their design sheet is ref/gorehorn_sheet.webp). The
-sprite IS that picture: his animations move it (a breath, a heavy gallop, rearing up, the
+Gorehorn the Behemoth, after the user's own art (ref/gorehorn.png, cleaned from their picture
+ref/gorehorn.webp; their design sheet is ref/gorehorn_sheet.webp), redrawn on the game's grid
+by gorehorn_game.py so he sits with the other bosses. His animations move it (a breath, a heavy gallop, rearing up, the
 lean of a charge, the stagger of a stun) and lay his sheet's effects over and around it:
 the horn slam's spike eruption, the charge's blood streak and dust, the spike barrage, the
 ground pulse's rings, the blood spawn he calls, and his death. Past his rage his cracks burn
@@ -19,16 +19,19 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 CW, CH = 120, 100          # the canvas: his picture plus room for spikes and dust round him
 OX, OY = 26, 24            # where the picture sits in it
-SCALE = 2
+SCALE = 4                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
 
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 # his own colours (the picture's palette), then the effects'
 ART = [0x0a0508, 0x1c1018, 0x2e1e2c, 0x47313f, 0x664a56, 0x8a6a70, 0x7a5c4c, 0xb8987a, 0xe6cfa8,
        0x4a0810, 0x8c0c18, 0xd01420, 0xff3a2a]
+import gorehorn_game
+ART += [v for v in gorehorn_game.PAL.values() if v not in ART]
 FX = {'hot': 0xff7a4a, 'glow': 0xffc890, 'white': 0xffffff, 'dust': 0x6a5a52, 'dustl': 0x9a8878, 'star': 0xffe070}
 RED = [0x4a0810, 0x8c0c18, 0xd01420, 0xff3a2a]
 # rage: the cracks burn ember-orange, a little brighter
-RAGE = {0x4a0810: 0x7a1a08, 0x8c0c18: 0xc03010, 0xd01420: 0xff6020, 0xff3a2a: 0xffb040}
+RAGE = {0x4a0810: 0x7a1a08, 0x8c0c18: 0xc03010, 0xd01420: 0xff6020, 0xff3a2a: 0xffb040,
+        0x6e0c14: 0x7a1a08, 0xd01c24: 0xff6020, 0xff5a3a: 0xffb040}
 
 
 def rgb(v):
@@ -50,14 +53,22 @@ _pic = None
 def pic():
     global _pic
     if _pic is None:
-        _pic = Image.open(os.path.join(HERE, 'ref', 'gorehorn.png')).convert('RGBA')
+        # the game-grid drawing, each cell 2x2 canvas pixels
+        c = gorehorn_game.design()
+        im = Image.new('RGBA', (gorehorn_game.W, gorehorn_game.H), (0, 0, 0, 0))
+        px = im.load()
+        for y, row in enumerate(c.rows()):
+            for x, ch in enumerate(row):
+                if ch != '.':
+                    px[x, y] = rgb(gorehorn_game.PAL[ch])
+        _pic = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
     return _pic
 
 
-PW, PH = 67, 67
-EYES = (21, 36)            # between his eyes (picture pixels)
-HORN = (36, 30)            # the great horn's curve
-FEET = OY + PH - 1         # where his hooves meet the ground, on the canvas
+PW, PH = 68, 68
+EYES = (25, 34)            # between his eyes (picture pixels)
+HORN = (50, 24)            # the great horn's curve
+FEET = OY + 65             # where his claws meet the ground, on the canvas
 
 
 def him(dy=0, lean=0.0, sway=0.0, t=0.0, squash=0):
@@ -369,7 +380,30 @@ SEQ = [('idle', idle, 4), ('move', move, 6), ('slam', slam, 6), ('charge', charg
        ('pulse', pulse, 6), ('summon', summon, 5), ('stun', stun, 4), ('guard', guard, 4), ('death', death, 7)]
 
 
+def chunk(img):
+    """Halves a frame: each 2x2 block becomes one cell of its most common colour (if at least half is drawn),
+    so his frames and their effects keep the game's chunky grid."""
+    w, h = img.size
+    px = img.load()
+    out = Image.new('RGBA', (w // 2, h // 2), (0, 0, 0, 0))
+    op = out.load()
+    for y in range(h // 2):
+        for x in range(w // 2):
+            seen = {}
+            for dy in (0, 1):
+                for dx in (0, 1):
+                    p = px[x * 2 + dx, y * 2 + dy]
+                    if p[3] >= 128:
+                        k = nearest(p)
+                        seen[k] = seen.get(k, 0) + 1
+            if sum(seen.values()) >= 2:
+                k = max(seen, key=lambda c: seen[c])
+                op[x, y] = k + (255,)
+    return out
+
+
 def rows(img):
+    img = chunk(img)
     px = img.load()
     out = []
     for y in range(img.size[1]):

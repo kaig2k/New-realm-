@@ -1,117 +1,117 @@
 """
-Sylith the Frost Wyrm in Eldmere's boss style (ref/style/: small, dark, a few
-tones, one glowing accent), after the user's art and sheet (ref/sylith.webp,
-ref/sylith_sheet.webp). A classic dragon in profile, facing right: a horned head
-with an open jaw full of frost, an S-curved neck, a great bat wing raised over
-her back (finger bones fanning out, the membrane scalloped between them), four
-clawed legs and a long tail ending in a spade. Icy cyan light only in her eye,
-her jaws, the tips of her horns and spines, and her claws. sylith.py animates it.
+Sylith the Frost Wyrm, after the user's art and sheet (ref/sylith.webp, ref/sylith_sheet.webp),
+modelled in solids and rendered to shaded pixel art (sdfart.py): a dragon in profile facing
+right, a horned head with frost in its open jaws, an S-curved neck, a great bat wing raised over
+her back (finger bones fanning out, membrane between them), four clawed legs and a long tail
+ending in a spade. Dark ice-blue scales; icy cyan light only in her eye, jaws and spine tips.
+sylith.py animates this picture.
 """
-import math
-from canvas import Canvas
+from sdfart import Model, scales, rough, folds, to_rows
 
-W, H = 46, 36
-PAL = {
-    # scales: deepest, dark, mid, lit edge, rare highlight
-    'K': 0x080c16, 'D': 0x141e36, 'M': 0x24365e, 'L': 0x3a5890, 'H': 0x6a8cc8,
-    # wing membrane (dark, lit near the arm)
-    'w': 0x111a30, 'v': 0x1e2c4e,
-    # belly plates (base, lit)
-    'p': 0x3a4a6e, 'P': 0x5a6e98,
-    # horns and claws (bone-ice)
-    'h': 0x8ea4c8,
-    # the ice glow: deep, bright, white-hot
-    'c': 0x2aa8e0, 'C': 0x9ceeff, 'W': 0xffffff,
+W, H = 66, 58
+MATS = {
+    'hide': {'ramp': [0x080c18, 0x121c38, 0x1c2e5a, 0x284480, 0x3a60a8, 0x5a86cc], 'spec': 0.25},
+    'far': {'ramp': [0x060914, 0x0c1428, 0x141f40, 0x1e2e5a]},
+    'belly': {'ramp': [0x1e2640, 0x323e64, 0x4c5a86, 0x6e7caa, 0x93a2cc]},
+    'wing': {'ramp': [0x070b16, 0x0d1428, 0x15203e, 0x1f3058, 0x2c4474], 'rimk': 0.7},
+    'bone': {'ramp': [0x2a3858, 0x46608e, 0x6a8ac0, 0x9ab8e8], 'gamma': 1.0},
+    'horn': {'ramp': [0x3a4256, 0x626e88, 0x95a4c0, 0xcfdcf2]},
+    'glow': {'ramp': [0x1a90d0, 0x5ad0ff, 0xb8f4ff, 0xffffff], 'glow': True},
 }
 
 
-def tri(c, a, b, tip, col):
-    c.poly([a, b, tip], col)
+def wingshade(x, y, n):
+    # the membrane darkens away from the arm (toward its trailing edge), with faint folds between the fingers
+    import math
+    d = abs((x - 31) * 0.6 + (y - 28) * -0.8) / 18          # rough distance from the arm's line
+    return -0.28 * min(1.0, d) + 0.05 * math.sin((x * 0.9 + y * 0.5))
+
+
+def model():
+    m = Model(W, H)
+    S, R = scales(2.4, 0.11), rough(0.08)
+    # ---- the far wing, behind her back
+    m.membrane([(38, 27), (44, 12), (50, 7), (48, 16), (49, 22), (44, 26)], -10, 'wing', (0.2, -0.4), folds(0.08, 3))
+    m.capsule((38, 27, -9), (50, 7, -9), 1.4, 0.8, 'bone')
+    # ---- far legs (in shadow)
+    m.capsule((38, 38, -7), (37, 46, -7), 3.0, 2.4, 'far'); m.capsule((37, 46, -7), (38, 53, -7), 2.2, 1.8, 'far')
+    m.capsule((24, 40, -7), (27, 47, -7), 3.0, 2.2, 'far'); m.capsule((27, 47, -7), (26, 53, -7), 2.0, 1.8, 'far')
+    # ---- the tail: tapering, sweeping back and curling up into a spade
+    m.chain([(18, 37, 0), (11, 41, -1), (6, 46, -1), (4, 51, 0), (8, 54, 1), (13, 53, 1)], [5.5, 4.4, 3.4, 2.6, 2.0, 1.5], 'hide', S)
+    m.membrane([(12, 50), (18, 52), (14, 56)], 2, 'hide', (0.3, -0.4))
+    # ---- body and chest
+    m.sphere((29, 36, 0), 11, 'hide', 1.45, 0.82, 0.95, S)
+    m.sphere((40, 33, 2), 8.2, 'hide', 1.0, 1.0, 1.0, S)
+    m.sphere((33, 41, 3), 7.5, 'belly', 1.5, 0.45, 0.9, scales(2.0, 0.1))
+    # ---- the neck, an S-curve up to the head, belly plates down its front
+    m.chain([(42, 30, 2), (46, 23, 3), (47, 17, 3), (50, 12, 3)], [6.2, 5.0, 4.4, 4.0], 'hide', S)
+    m.chain([(45, 33, 6), (49, 25, 6), (50, 19, 5.5), (53, 14, 5)], [2.6, 2.3, 2.0, 1.6], 'belly', scales(1.6, 0.12))
+    # ---- the head: skull, a long snout, the jaw hanging open
+    m.sphere((53, 9, 4), 5.0, 'hide', 1.25, 0.85, 1.0, R)
+    m.capsule((55, 8.5, 4), (63, 10.5, 4), 3.4, 2.0, 'hide', R)
+    m.capsule((54, 12.5, 3), (61, 15.5, 3), 2.2, 1.3, 'hide', R)
+    m.capsule((56, 12.4, 7.5), (61, 13.8, 6), 1.1, 0.7, 'glow')         # frost in her jaws
+    for x, y in ((58, 11.4), (60, 12), (57, 13.6)):
+        m.sphere((x, y, 9), 0.7, 'horn')                                    # fangs
+    m.sphere((55.5, 7.6, 10.5), 1.2, 'glow')                               # her eye
+    m.capsule((52, 6.0, 9.5), (57.5, 5.8, 9.5), 1.0, 0.8, 'hide')           # the brow over it
+    # horns sweeping back
+    m.capsule((51, 5, 4), (44, 0.5, 3), 1.7, 0.4, 'horn')
+    m.capsule((52, 6.5, 1), (46, 3.5, 0), 1.3, 0.3, 'horn')
+    # ---- near legs: a coiled hind leg and a planted foreleg, with ice claws
+    m.sphere((21, 39, 6), 6.8, 'hide', 0.95, 1.0, 0.9, S)
+    m.capsule((22, 43, 7), (26, 49, 8), 3.2, 2.3, 'hide', S)
+    m.capsule((26, 49, 8), (24, 53, 9), 2.2, 1.9, 'hide')
+    m.capsule((41, 38, 7), (43, 46, 7), 3.6, 2.8, 'hide', S)
+    m.capsule((43, 46, 7), (42, 52.5, 8), 2.6, 2.1, 'hide')
+    for fx in (21.5, 24, 26.5, 39.5, 42, 44.5):
+        m.capsule((fx, 53.5, 10), (fx + 0.8, 56, 10), 0.9, 0.4, 'horn')
+    # ---- the near wing, raised high: arm bones, fingers fanning down-left, membrane between
+    sh, el, wr = (31, 28, 9), (25, 16, 11), (17, 4, 11)
+    tips = [(2, 9), (3, 20), (8, 29), (16, 33)]
+    m.membrane([(31, 28), (25, 16), (17, 4), tips[0], (7, 14), tips[1], (8, 24), tips[2], (13, 30), tips[3], (24, 32)],
+               9.5, 'wing', (-0.15, -0.35), wingshade)
+    m.capsule(sh, el, 2.4, 1.9, 'bone'); m.capsule(el, wr, 1.9, 1.3, 'bone')
+    for t in tips:
+        m.capsule(wr, (t[0], t[1], 10.5), 1.1, 0.45, 'bone')
+    m.capsule(wr, (15, 1, 11), 0.9, 0.3, 'horn')                            # the wrist claw
+    # ---- spines down her neck and back, their tips lit with ice
+    for (bx, by, tx, ty, z) in ((49, 12, 46, 8, 1), (47, 18, 43, 15, 1), (45, 24, 41, 22, 1), (38, 26, 36, 22, 1),
+                                (32, 26, 30, 22, 0), (25, 27, 23, 23, 0), (18, 31, 15, 28, -1), (11, 37, 8, 35, -2)):
+        m.capsule((bx, by, z + 4), (tx, ty, z + 4), 1.5, 0.35, 'horn')
+        m.sphere((tx, ty, z + 6), 0.65, 'glow')
+    return m
+
+
+_cache = None
+
+
+class _Pic:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def rows(self):
+        return list(self._rows)
+
+
+def image():
+    global _cache
+    if _cache is None:
+        _cache = model().render(MATS)
+    return _cache
 
 
 def design():
-    c = Canvas(W, H)
-    # ---- the far wing: just its top edge showing behind her back
-    c.poly([(24, 15), (28, 9), (31, 8), (29, 13), (27, 16)], 'w')
-    c.line(24, 15, 30, 8, 'D')
-    # ---- the near wing, raised high: the arm (shoulder -> elbow -> wrist), then fingers fanning down-left
-    shoulder, elbow, wrist = (22, 16), (20, 9), (15, 2)
-    tips = [(1, 5), (2, 12), (5, 17), (11, 19)]
-    # membrane: between the arm and each finger, with scalloped (concave) edges between the tips
-    c.poly([shoulder, elbow, wrist, tips[0], (5, 8), tips[1], (6, 14), tips[2], (10, 17), tips[3], (16, 18)], 'w')
-    c.poly([shoulder, elbow, wrist, (9, 6), (12, 12), (16, 16)], 'v')
-    # the bones
-    c.line(shoulder[0], shoulder[1], elbow[0], elbow[1], 'M', w=2)
-    c.line(elbow[0], elbow[1], wrist[0], wrist[1], 'M', w=2)
-    for tp in tips:
-        c.line(wrist[0], wrist[1], tp[0], tp[1], 'L')
-    c.put(wrist[0], wrist[1] - 1, 'h'); c.put(wrist[0] - 1, wrist[1] - 1, 'C')     # the wrist claw
-    # ---- the tail: from her rump, sweeping back and down, then curling up into a spade
-    c.line(15, 23, 9, 27, 'D', w=4)
-    c.line(9, 27, 4, 27, 'D', w=3)
-    c.line(4, 27, 2, 23, 'D', w=2)
-    tri(c, (0, 23), (5, 22), (2, 18), 'M')                                     # the spade
-    c.put(2, 19, 'C')
-    c.line(13, 23, 8, 26, 'M')                                                 # its lit top
-    # ---- the body: a deep chest and a long belly
-    c.ellipse(22, 22, 9, 5.5, 'K')
-    c.ellipse(22, 21.5, 8.2, 4.8, 'M')
-    c.ellipse(22, 24, 7, 2.5, 'D', only='M')                                   # the underside in shadow
-    # ---- legs: the far pair darker, the near pair in front
-    c.poly([(16, 24), (19, 24), (19, 31), (17, 32), (15, 31)], 'D')            # far hind leg
-    c.poly([(26, 24), (28, 24), (29, 31), (26, 32)], 'D')                      # far foreleg
-    c.poly([(13, 21), (19, 22), (20, 27), (18, 30), (20, 33), (15, 33), (15, 29), (12, 25)], 'M')   # near hind leg
-    c.line(14, 23, 17, 23, 'L')
-    c.poly([(28, 22), (31, 22), (32, 27), (31, 31), (33, 33), (28, 33), (28, 29)], 'M')             # near foreleg
-    c.line(29, 23, 31, 23, 'L')
-    # ---- the neck: an S-curve up from her chest to the head
-    for i in range(9):
-        t = i / 8
-        x = 28 + t * 7 + math.sin(t * math.pi) * 2
-        y = 19 - t * 11
-        c.ellipse(x, y, 2.6, 2.4, 'M')
-    for i in range(7):                                                          # belly plates down her throat
-        t = i / 6
-        x = 29.5 + t * 6 + math.sin(t * math.pi) * 2
-        y = 20 - t * 10
-        c.put(int(x) + 2, int(y), 'P' if i % 2 else 'p')
-    # ---- the head: a long wedge of a snout, the jaw open
-    c.poly([(33, 5), (37, 3), (41, 4), (45, 7), (44, 9), (39, 9), (35, 11), (32, 9)], 'M')        # skull and upper jaw
-    c.poly([(35, 11), (39, 10), (44, 11), (42, 13), (37, 13)], 'D')                                # lower jaw, hanging open
-    c.line(39, 10, 44, 10, 'c')                                                                    # frost in her jaws
-    c.put(42, 10, 'C')
-    c.put(41, 9, 'W'); c.put(43, 9, 'W'); c.put(40, 11, 'h'); c.put(42, 12, 'h')                   # fangs
-    c.line(34, 5, 41, 4, 'L')                                                                      # light along the top of her head
-    c.put(39, 6, 'C'); c.put(40, 6, 'W'); c.put(38, 6, 'c')                                        # her eye
-    c.line(37, 5, 41, 5, 'K')                                                                      # the brow over it
-    c.put(44, 7, 'K')                                                                              # nostril
-    # horns sweeping back from her head
-    c.line(35, 4, 31, 0, 'h'); c.put(31, 0, 'C')
-    c.line(34, 6, 29, 3, 'h'); c.put(29, 3, 'C')
-    # ---- spines down her neck and back
-    for x, y in ((33, 10), (31, 13), (30, 16), (26, 16), (22, 16), (18, 17), (14, 19)):
-        tri(c, (x - 1, y + 1), (x + 1, y + 1), (x - 1, y - 2), 'D')
-        c.put(x - 1, y - 2, 'c')
-    # ---- light along her back, a little
-    for x, y in ((17, 18), (18, 17), (20, 17), (23, 17), (25, 17), (27, 17)):
-        c.put(x, y, 'L')
-    c.put(21, 17, 'H')
-    # ---- claws of ice
-    for x in (15, 17, 19, 28, 30, 32):
-        c.put(x, 34, 'C')
-    for x in (16, 18, 29, 31):
-        c.put(x, 34, 'h')
-    return c
+    return _Pic(to_rows(image())[0])
+
+
+PAL = None
+
+
+def palette():
+    return to_rows(image())[1]
 
 
 if __name__ == '__main__':
     import sys
-    from PIL import Image
-    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    px = im.load()
-    for y, row in enumerate(design().rows()):
-        for x, ch in enumerate(row):
-            if ch != '.':
-                v = PAL[ch]
-                px[x, y] = ((v >> 16) & 255, (v >> 8) & 255, v & 255, 255)
-    im.save(sys.argv[1])
+    image().save(sys.argv[1])

@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CW, CH = 120, 100          # the canvas: his picture plus room for spikes and dust round him
-OX, OY = 26, 24            # where the picture sits in it
+OX, OY = 28, 36            # where the picture sits in it (his feet where the old picture's were)
 SCALE = 4                  # every frame is drawn at 2 canvas pixels a cell, then halved (chunk)
 
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -31,7 +31,7 @@ FX = {'hot': 0xff7a4a, 'glow': 0xffc890, 'white': 0xffffff, 'dust': 0x6a5a52, 'd
 RED = [0x4a0810, 0x8c0c18, 0xd01420, 0xff3a2a]
 # rage: the cracks burn ember-orange, a little brighter
 RAGE = {0x4a0810: 0x7a1a08, 0x8c0c18: 0xc03010, 0xd01420: 0xff6020, 0xff3a2a: 0xffb040,
-        0x6e0c14: 0x7a1a08, 0xd01c24: 0xff6020, 0xff5a3a: 0xffb040}
+        0x7a0e16: 0xa02a08, 0xd8242a: 0xff6020, 0xff7a54: 0xffc060}
 
 
 def rgb(v):
@@ -65,10 +65,10 @@ def pic():
     return _pic
 
 
-PW, PH = 68, 68
-EYES = (25, 34)            # between his eyes (picture pixels)
-HORN = (50, 24)            # the great horn's curve
-FEET = OY + 65             # where his claws meet the ground, on the canvas
+PW, PH = gorehorn_game.W * 2, gorehorn_game.H * 2
+EYES = (31, 20)            # between his eyes (picture pixels)
+HORN = (52, 8)             # his right horn's curve
+FEET = OY + PH - 1         # where his claws meet the ground, on the canvas
 
 
 def him(dy=0, lean=0.0, sway=0.0, t=0.0, squash=0):

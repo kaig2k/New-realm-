@@ -317,7 +317,7 @@ class Data {
 	static keyPrice(idx) { idx = __int(idx);
 			var d = Data.DUNGEONS[idx];
 			
-			if (d.lair) return __int(-1);
+			if (d.by) return __int(-1);
 			if (d.hard) return __int(5000 + __int((d.hard - 1.5) * 30000 + 0.5));
 			return __int([300, 600, 1000, 1400, 1800][Math.min(4, d.tier)]);
 		}
@@ -1487,6 +1487,24 @@ class Bosses {
 					}
 				}
 			}
+			
+			
+			for (var rid in Bosses.RAID_TUNE) {
+				var rdef = Data.ENEMIES[rid];
+				if (!rdef) continue;
+				var rt = Bosses.RAID_TUNE[rid];
+				rdef.hp = __int(rdef.hp * rt[0]);
+				if (rt[1] == 1) continue;
+				var rdone = new Map();
+				for (var rph of __vals( rdef.phases)) {
+					var rlists = rph  instanceof Array? [rph] : (rph.cycle || []).concat(rph.attacks ? [rph.attacks] : []).concat(rph.dodge || []);
+					for (var rl of __vals( rlists)) for (var ra of __vals( rl)) {
+						if (rdone.get(ra) || ra.p == "summon") continue;
+						rdone.set(ra, true);
+						ra.dmg = __int(ra.dmg * rt[1]);
+					}
+				}
+			}
 		}
 	static setPieceSpots(id, x, y, w) {
 			return SetPieces.spots(id, __int(x), __int(y));
@@ -2118,13 +2136,27 @@ class Bosses {
 					attacks: [Bosses.spiral(5, -11, 6.5, 85, 0.12, 0xff40ff), Bosses.nova(3.5, 1.5, 160, 2.8, 0xd040ff, {burst: 14}), Bosses.aim(5, 30, 11, 110, 1.0, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]})
 			]}, ["voidfang", "dragonscale"]);
 
+			
+			Bosses.mob("drowned_soul", {name: "Drowned Soul", spr: "drowned_soul", ai: "still", spd: 0, hp: 1800, def: 12, xp: 80, drop: 0, keep: 0, aggro: 14, range: 9, r: 0.55, col: Bosses.N_LIGHT,
+				attacks: [Bosses.ring(6, 0, 3.2, 45, 2.2, Bosses.N_LIGHT, {shape: "orb"})]});
+			Bosses.lairProp("power_core", {name: "Power Core", spr: "power_core", hp: 9000, def: 30, col: 0xffd060, r: 0.8,
+				attacks: [Bosses.ring(12, 15, 4.5, 70, 1.8, 0x60e0ff, {shape: "star"}), Bosses.aim(3, 14, 9, 75, 1.4, 0xffd060, {shape: "blade"})]});
+			Bosses.lairProp("rift_crystal", {name: "Rift Crystal", spr: "rift_crystal", hp: 12000, def: 26, col: 0xd040ff, r: 0.8,
+				attacks: [Bosses.spiral(3, 17, 5, 65, 0.16, 0xc080ff, {shape: "voidorb"}), Bosses.aim(1, 0, 6, 80, 1.6, 0xff40ff, {motion: "home", r: 0.3})]});
+
 			var D = Data.DUNGEONS;
 			D.push({id: "drowned_throne", wall: "coral", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
-				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress"});
+				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress", lair: {boss: "tide_empress", quiet: true,
+					intro: "Nerezza drinks the souls of the drowned. They drift to her throne out of the dark water: cut them down before they reach her, or she drinks them and mends.",
+					feed: {id: "drowned_soul", every: 10, n: 3, heal: 0.015, speed: 1.2, text: "A drowned soul reaches Nerezza, and she drinks it!"}}});
 			D.push({id: "clockwork_foundry", wall: "brass", name: "The Clockwork Foundry", color: 0xffd060, floor: 6, accent: 13, tier: 4, hard: 1.5, layout: "grid", hazard: "lava",
-				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind"});
+				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind", lair: {boss: "gearmind", quiet: true,
+					intro: "Four power cores round its hall keep Gearmind Omega shielded. Only the lit core can be broken: shut them down in turn, and mind that each one makes Gearmind run hotter.",
+					shield: {ids: ["power_core"], n: 4, where: "boss", r: 8, order: true, overclock: 0.08, text: "A power core goes dark and the next one lights! Gearmind runs hotter!"}}});
 			D.push({id: "void_rift", wall: "voidstone", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
-				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
+				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon", lair: {boss: "void_dragon", quiet: true,
+					intro: "Wound Vael'thrax and he rises into the rift, out of reach. Rift Crystals then open out on the islands: break them all to drag him back down.",
+					ascend: {ids: ["rift_crystal"], at: [0.66, 0.33], n: 3, text: "Vael'thrax rises into the rift! Break the Rift Crystals out on the islands to drag him down!"}}});
 			
 			for (var lth of __vals( Lairs.DUNGEONS)) D.push(lth);
 		}
@@ -2467,15 +2499,17 @@ class Bosses {
 			var raid = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			
 			Bosses.mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Blood Altar", spr: "blood_altar", hp: 40000, def: 30, col: 0xd8102a,
+				name: "Blood Altar", spr: "blood_altar", hp: 62000, def: 30, col: 0xd8102a,
 				attacks: [Bosses.ring(10, 18, 4.2, 80, 1.7, 0xd8102a, {shape: "orb", eff: "bleeding"}),
 					Bosses.rain(4, 3.5, 95, 2.6, 0xff3040, {radius: 1.4, delay: 1.1, fx: "spikes", name: "blood geyser"}),
-					Bosses.spiral(2, 21, 5, 70, 0.16, 0xff3040, {shape: "orb", name: "bleeding spiral"})]});
+					Bosses.spiral(2, 21, 5, 70, 0.16, 0xff3040, {shape: "orb", name: "bleeding spiral"}),
+					Bosses.aim(3, 18, 8, 90, 1.3, 0xff6070, {shape: "crescent", eff: "bleeding", name: "blood lash"}), Bosses.summon("blood_acolyte", 1, 9, 2)]});
 			Bosses.mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Lightning Rod", spr: "storm_rod", hp: 45000, def: 32, col: 0x80ffff,
+				name: "Lightning Rod", spr: "storm_rod", hp: 72000, def: 32, col: 0x80ffff,
 				attacks: [Bosses.aim(1, 0, 13, 90, 1.0, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
 					Bosses.rain(4, 5, 100, 2.4, 0x80ffff, {radius: 1.3, delay: 1.0, fx: "pillar", name: "lightning strike"}),
-					Bosses.ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"})]});
+					Bosses.ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"}),
+					Bosses.aim(3, 20, 10, 90, 1.4, 0x80ffff, {shape: "bolt", name: "arc bolts"}), Bosses.summon("storm_wisp", 1, 9, 2)]});
 			
 			Bosses.boss("zealot_a", Bosses.o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(3, 24, 8, 70, 0.9, 0xff3040, {eff: "bleeding", shape: "crescent", r: 0.3}),
@@ -2576,7 +2610,7 @@ class Bosses {
 				Bosses.P(0.6, {say: "Overdue. All of you.", shield: 2, move: "orbit", summon: [{what: "grave_wraith", n: 3}],
 					attacks: [Bosses.wall(15, 5, 85, 1.8, 0x40ffd0, {hole: 3}), Bosses.aim(1, 0, 6, 95, 1.4, 0xffffff, {motion: "home", eff: "slowed"}), Bosses.blinkRing(7, 0xa0fff0)]}),
 				Bosses.P(0.3, {say: "Let the tide take the pages!", move: "center",
-					attacks: [Bosses.spiral(6, 13, 6, 80, 0.1, 0x60c0a0, {motion: "wave"}), Bosses.lineRain(7, 110, 2.2, 0x40ffd0, "pillar", {name: "geyser"}),
+					attacks: [Bosses.spiral(4, 13, 6, 80, 0.14, 0x60c0a0, {motion: "wave"}), Bosses.lineRain(7, 110, 2.2, 0x40ffd0, "pillar", {name: "geyser"}),
 						Bosses.rain(6, 5, 110, 2, 0x40ffd0, {fx: "pillar"})]})
 			]}, raid), ["drowned_codex", "siren_lyre"]);
 			Bosses.boss("sovereign", Bosses.o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
@@ -2592,7 +2626,7 @@ class Bosses {
 			]}, raid), ["sovereign_signet"]);
 			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
 				Bosses.P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
-					attacks: [Bosses.spiral(4, 12, 6.5, 80, 0.13, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
+					attacks: [Bosses.spiral(3, 12, 6.5, 80, 0.15, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
 						Bosses.pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
 				Bosses.P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
 					cycle: [[Bosses.flower(24, 5.6, 5.5, 85, 0.85, 0xffd060)], [Bosses.wall(21, 5.5, 95, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7})],
@@ -2601,7 +2635,7 @@ class Bosses {
 					attacks: [Bosses.spiral(4, -11, 6, 90, 0.13, 0xffe080, {motion: "wave"}), Bosses.selfNova(5.5, 1.4, 180, 3.2, 0xffb040, {burst: 14, shape: "star", fx: "pillar", name: "supernova"}),
 						Bosses.blinkRing(6, 0xfff0a0), Bosses.pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), Bosses.eclipse(10, 4, 140, 24)]}),
 				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [Bosses.spiral(5, 9, 6.5, 95, 0.12, 0xffffff, {shape: "star"}), Bosses.aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
+					attacks: [Bosses.spiral(4, 9, 6.5, 95, 0.14, 0xffffff, {shape: "star"}), Bosses.aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
 						Bosses.selfNova(6, 1.5, 200, 2.8, 0xffe080, {burst: 16, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), Bosses.eclipse(12, 5, 160, 20)]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
@@ -4025,6 +4059,7 @@ class Enemy {
 		this.dmgMult = 1;
 		this.lairShield = false;
 		this.lairWave = false;
+		this.lairFeed = false;
 		this.eggT = 0;
 		this.playerHit = false;
 		this.id = __int(0);
@@ -4735,7 +4770,7 @@ class Lairs {
 	static populate(w, th, api) {
 			var L = th.lair;
 			var last = w.rooms[w.rooms.length - 1];
-			w.lair = {woke: !L.waves, wave: 0, regrowT: 0, eggs: [], shielded: false, done: false, pending: !!L.waves};
+			w.lair = {woke: !L.waves, wave: 0, regrowT: 0, eggs: [], shielded: false, done: false, pending: !!L.waves, order: [], feedT: 4, ascK: 0};
 			if (L.shield) Lairs.placeShield(w, L.shield, last, th.tier, api);
 			if (L.mend) for (var k = __int(0); k < L.mend.n; k++) {
 				var a = k * Math.PI * 2 / L.mend.n + 0.4;
@@ -4756,6 +4791,14 @@ class Lairs {
 					x = last.x + 0.5 + Math.cos(a) * sh.r; y = last.y + 0.5 + Math.sin(a) * sh.r;
 				}
 				var e = api.spawn(sh.ids[k % sh.ids.length], x, y, zone, true);
+				if (e) { e.lairShield = true; if (sh.order) w.lair.order.push(e); }
+			}
+		}
+	static placeAbroad(w, ids, n, zone, api) { n = __int(n); zone = __int(zone);
+			var rooms = w.rooms.slice(1, w.rooms.length - 1);
+			for (var k = __int(0); k < n && rooms.length; k++) {
+				var rm = rooms.splice(__int(Math.random() * rooms.length), 1)[0];
+				var e = api.spawn(ids[k % ids.length], rm.x + 0.5, rm.y + 0.5, zone, true);
 				if (e) e.lairShield = true;
 			}
 		}
@@ -4768,7 +4811,8 @@ class Lairs {
 			var st = w.lair;
 			if (!st || st.pending) return false;
 			for (var egg of __vals( st.eggs)) if (!egg.dead) return false;
-			for (var e of __vals( w.enemies)) if (!e.dead && (e.def.lairBoss || e.def.trio)) return false;
+			var L = w.theme && w.theme.lair;
+			for (var e of __vals( w.enemies)) if (!e.dead && (e.def.lairBoss || e.def.trio || (L && e.defId == L.boss))) return false;
 			return true;
 		}
 	static update(w, dt, api) {
@@ -4809,7 +4853,14 @@ class Lairs {
 			}
 			var boss = w.boss && !w.boss.dead ? w.boss : null;
 			
-			if (L.shield && boss) {
+			if (L.ascend && boss && !st.shielded && st.ascK < L.ascend.at.length && boss.hp <= boss.maxHp * L.ascend.at[st.ascK]) {
+				boss.hp = boss.maxHp * L.ascend.at[st.ascK];
+				st.ascK++;
+				Lairs.placeAbroad(w, L.ascend.ids, L.ascend.n, th.tier, api);
+				api.say(L.ascend.text, th.color, true);
+			}
+			
+			if ((L.shield || L.ascend) && boss) {
 				var up = __int(0);
 				for (e of __vals( w.enemies)) if (!e.dead && (e.lairShield || e.def.lairShield)) up++;
 				if (up > 0 && !st.shielded) { st.shielded = true; boss.invuln = true; }
@@ -4817,7 +4868,17 @@ class Lairs {
 					st.shielded = false; boss.invuln = false; st.regrowT = 0;
 					api.say(boss.def.name + " is vulnerable!", th.color, true);
 				}
-				if (up == 0 && L.shield.regrow) {
+				
+				if (st.order.length) {
+					var lit = false;
+					for (e of __vals( st.order)) {
+						if (e.dead) continue;
+						e.invuln = lit;
+						e.rateMult = lit ? 0 : 1;
+						lit = true;
+					}
+				}
+				if (up == 0 && L.shield && L.shield.regrow) {
 					st.regrowT += dt;
 					if (st.regrowT >= L.shield.regrow) {
 						st.regrowT = 0;
@@ -4825,6 +4886,32 @@ class Lairs {
 						Lairs.placeShield(w, L.shield, last, th.tier, api, Math.max(2, Math.ceil(L.shield.n / 2)));
 						api.say(L.shield.text, th.color, true);
 					}
+				}
+			}
+			
+			if (L.feed && boss) {
+				var near = false;
+				for (p of __vals( api.players)) if (Math.abs(p.x - last.x) < last.w / 2 + 2 && Math.abs(p.y - last.y) < last.h / 2 + 2) { near = true; break; }
+				if (near) st.feedT -= dt;
+				if (st.feedT <= 0) {
+					st.feedT = L.feed.every;
+					for (var fk = __int(0); fk < L.feed.n; fk++) {
+						var fa = Math.random() * Math.PI * 2, fr = Math.min(last.w, last.h) / 2 - 1.5;
+						var f = api.spawn(L.feed.id, boss.x + Math.cos(fa) * fr, boss.y + Math.sin(fa) * fr, th.tier, true);
+						if (f) f.lairFeed = true;
+					}
+				}
+				for (e of __vals( w.enemies)) {
+					if (e.dead || !e.lairFeed) continue;
+					var fdx = boss.x - e.x, fdy = boss.y - e.y, fd = Math.sqrt(fdx * fdx + fdy * fdy);
+					if (fd < 1.4) {
+						boss.hp = Math.min(boss.maxHp, boss.hp + boss.maxHp * L.feed.heal);
+						api.remove(e);
+						api.say(L.feed.text, th.color, false);
+						continue;
+					}
+					e.x += fdx / fd * L.feed.speed * dt;
+					e.y += fdy / fd * L.feed.speed * dt;
 				}
 			}
 			
@@ -4850,6 +4937,8 @@ class Lairs {
 			var th = w.theme, L = th && th.lair, st = w.lair;
 			if (!L || !st) return;
 			if (L.shield && e.lairShield && L.shield.text && !L.shield.regrow) api.say(L.shield.text, th.color, false);
+			
+			if (e.lairShield && st.order.length && L.shield.overclock && w.boss && !w.boss.dead) w.boss.rateMult *= 1 + L.shield.overclock;
 			var sp = e.def.splitInto;
 			if (sp) {
 				for (var k = __int(0); k < sp.n; k++) {
@@ -4874,8 +4963,10 @@ class Lairs {
 			}
 			if (!st.done && Lairs.cleared(w)) {
 				st.done = true;
-				api.say(th.name + " is cleared!", th.color, true);
-				api.done(e.x, e.y);
+				if (!L.quiet) {
+					api.say(th.name + " is cleared!", th.color, true);
+					api.done(e.x, e.y);
+				}
 			}
 		}
 }
@@ -6310,6 +6401,11 @@ Bosses.SHOT_NOUNS = {"cube_shard": "shard", "cube_eye": "eye", "magma": "magma b
 			"dagger": "dagger", "windblade": "wind blade", "spark": "spark", "blooddrop": "blood drop", "prism": "prism",
 			"hammer": "hammer", "ghostblade": "ghost blade", "sabre": "sabre", "pearl": "pearl", "scythe": "scythe", "tidewave": "tidal wave"};
 Bosses.PLAIN_SHAPES = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "bolt": 1};
+Bosses.RAID_TUNE = {
+			zealot_a: [1.9, 1.15], zealot_b: [1.9, 1.15], matron: [2.2, 1], archon: [1.7, 1],
+			sentinel_a: [1.6, 0.9], sentinel_b: [1.6, 0.9], sentinel_c: [1.6, 0.9], galecaller: [1.8, 0.75], tempestus: [1.5, 0.85],
+			ignis: [3.2, 1.1], archivist: [1.5, 0.85], sovereign: [1.8, 1], astraeon: [0.8, 0.85]
+		};
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
 			ev_titan: {style: "lava", prop: "lava_vent", n: 4, r: 5.5, hint: "Lava vents erupt around the Titan. Smash them to cool the arena."},
@@ -6376,20 +6472,20 @@ Bosses.RAIDS = [
 				places: ["the Zealots' chapels", "the Blood Rite", "the Matron's sanctum", "the Archon's altar"],
 				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels (together: kill one and the other drinks its blood) to break the first seal. " +
 					"Then break the four Blood Altars that keep the Matron's rite. Beware the blood pools.",
-				theme: {id: "conclave", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
+				theme: {id: "conclave", wall: "crimson", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
 					mobs: ["crimson_cultist", "crimson_cultist", "bone_thrall", "blood_hound", "blood_acolyte"]}},
 			{id: "storm", name: "Heart of the Storm", color: 0x80ffff,
 				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["storm_rod", "storm_rod", "storm_rod"], ["galecaller"], ["tempestus"]],
 				places: ["the three pylons", "the Lightning Rods", "the Galecaller's terrace", "the eye of the storm"],
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons (each one that falls charges the others) to raise the first bridge. " +
 					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand.",
-				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
+				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
 			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
-				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
+				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 World.DEFAULT_N = __int(200);
@@ -6482,6 +6578,9 @@ World.WALL_STYLES = {
 			hexroots: ["roots", {L: 0x70e050, T: 0x2a2030, d: 0x161020, F: 0x100a16, f: 0x08040c}],
 			coral: ["coral", {L: 0xffb0d0, T: 0x2a6a6a, d: 0x184444, F: 0x103030, f: 0x081a1a, p: 0xff6aa0}],
 			coral_deep: ["coral", {L: 0xc080ff, T: 0x24124a, d: 0x140a2c, F: 0x0e0620, f: 0x060210, p: 0x8040c0}],
+			crimson: ["blocks", {L: 0xe04a5a, T: 0x5a1420, d: 0x300a10, F: 0x200608, f: 0x100304}],
+			stormstone: ["slab", {L: 0xa0d8ff, T: 0x2a3a5a, d: 0x182438, F: 0x101828, f: 0x080c14, g: 0x80ffff}],
+			starstone: ["slab", {L: 0xffe080, T: 0x1c1a34, d: 0x10101e, F: 0x0a0a14, f: 0x05050a, g: 0xffd060}],
 			coral_pastel: ["coral", {L: 0xfff0ff, T: 0xe0a8d8, d: 0xa07098, F: 0x7a5070, f: 0x4a3046, p: 0x80e0ff}]
 		};
 World.customMap = null;

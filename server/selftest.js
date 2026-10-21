@@ -2905,6 +2905,53 @@ async function run() {
     }
   }
 
+  console.log('finales');
+  {
+    // the finales' own ways (Lairs.as): drowned souls that heal Nerezza if they reach her, Gearmind's cores
+    // that break only in turn, Vael'thrax rising out of reach until the Rift Crystals out on the islands break
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: FD } = require('./sim/gen/game');
+    for (const id of ['drowned_throne', 'clockwork_foundry', 'void_rift']) {
+      const di = FD.dungeonIndex(id), th = FD.DUNGEONS[di], L = th.lair;
+      const ws = new WorldSim('dg:' + di + ':4242'), w = ws.w, last = w.rooms[w.rooms.length - 1];
+      const msgs = [];
+      ws.join({ id: 1, x: last.x + 0.5, y: last.y + 3.5, maxDps: 1e9, send: (m) => msgs.push(m) });
+      const boss = w.boss;
+      const ok = { master: !!boss && boss.defId === L.boss && ws.enemies.filter((e) => !e.dead && e.defId === L.boss).length === 1 };
+      if (L.feed) {
+        boss.hp = boss.maxHp * 0.5;
+        for (let k = 0; k < 400 && !ok.healed; k++) { ws.tick(0.1); if (boss.hp > boss.maxHp * 0.5 + 1) ok.healed = true; }
+        ok.fed = msgs.some((m) => m.d && m.d.text === L.feed.text);
+        for (const e of ws.enemies) if (e.lairFeed) ws.kill(e);
+      }
+      if (L.shield && L.shield.order) {
+        ws.tick(0.1);
+        const cores = ws.enemies.filter((e) => !e.dead && e.lairShield);
+        ok.inTurn = cores.length === L.shield.n && cores.filter((e) => !e.invuln).length === 1 && boss.invuln;
+        const rate0 = boss.rateMult;
+        for (let k = 0; k < L.shield.n; k++) { const lit = ws.enemies.find((e) => !e.dead && e.lairShield && !e.invuln); if (lit) ws.kill(lit); ws.tick(0.1); }
+        ok.hotter = boss.rateMult > rate0 * 1.2;
+        ok.open = !boss.invuln;
+      }
+      if (L.ascend) {
+        ws.tick(0.1);
+        boss.hp = boss.maxHp * (L.ascend.at[0] - 0.05);
+        ws.tick(0.1);
+        const crystals = ws.enemies.filter((e) => !e.dead && e.lairShield);
+        ok.rose = boss.invuln && crystals.length === L.ascend.n && Math.abs(boss.hp - boss.maxHp * L.ascend.at[0]) < 2;
+        ok.abroad = crystals.every((c) => Math.abs(c.x - last.x) > last.w / 2 || Math.abs(c.y - last.y) > last.h / 2);
+        for (const c of crystals) ws.kill(c);
+        ws.tick(0.1);
+        ok.down = !boss.invuln;
+      }
+      ws.kill(boss);
+      ws.tick(0.1);
+      ok.quiet = !msgs.some((m) => m.d && m.d.lairDone);
+      check(th.name + ': its own way through works', Object.values(ok).every(Boolean), JSON.stringify(ok));
+      check('  ' + th.name + ' still has keys for sale', FD.keyPrice(di) > 0);
+    }
+  }
+
   check('no errors in the server log', !/error handling|TypeError|ReferenceError/.test(srvOut), (srvOut.match(/.*error.*/i) || [''])[0]);
   for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil, ws]) c.s.destroy();
   hook.close();

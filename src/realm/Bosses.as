@@ -303,7 +303,32 @@ package realm {
 					}
 				}
 			}
+			// each raid boss set against the others (tools/bossbench.js, four heroes in raid gear): its stage
+			// a real fight of a minute and a half or more, its last master the longest, none a wall of deaths
+			for (var rid:String in RAID_TUNE) {
+				var rdef:Object = Data.ENEMIES[rid];
+				if (!rdef) continue;
+				var rt:Array = RAID_TUNE[rid];
+				rdef.hp = int(rdef.hp * rt[0]);
+				if (rt[1] == 1) continue;
+				var rdone:Dictionary = new Dictionary();
+				for each (var rph:Object in rdef.phases) {
+					var rlists:Array = rph is Array ? [rph] : (rph.cycle || []).concat(rph.attacks ? [rph.attacks] : []).concat(rph.dodge || []);
+					for each (var rl:Array in rlists) for each (var ra:Object in rl) {
+						if (rdone[ra] || ra.p == "summon") continue;
+						rdone[ra] = true;
+						ra.dmg = int(ra.dmg * rt[1]);
+					}
+				}
+			}
 		}
+
+		/** raid boss -> [health, damage] on top of harden() (see there). */
+		private static const RAID_TUNE:Object = {
+			zealot_a: [1.9, 1.15], zealot_b: [1.9, 1.15], matron: [2.2, 1], archon: [1.7, 1],
+			sentinel_a: [1.6, 0.9], sentinel_b: [1.6, 0.9], sentinel_c: [1.6, 0.9], galecaller: [1.8, 0.75], tempestus: [1.5, 0.85],
+			ignis: [3.2, 1.1], archivist: [1.8, 0.85], sovereign: [1.8, 1], astraeon: [0.8, 0.85]
+		};
 
 		/** Pop-culture style skins (original designs, recoloured class sprites). */
 		private static function skins():void {
@@ -1143,13 +1168,27 @@ package realm {
 					attacks: [spiral(5, -11, 6.5, 85, 0.12, 0xff40ff), nova(3.5, 1.5, 160, 2.8, 0xd040ff, {burst: 14}), aim(5, 30, 11, 110, 1.0, 0xffffff, {shape: "blade", waves: 3, gap: 0.2})]})
 			]}, ["voidfang", "dragonscale"]);
 
+			// what the finales ask of you besides their masters (Lairs.as runs them: feed, shield in turn, ascend)
+			mob("drowned_soul", {name: "Drowned Soul", spr: "drowned_soul", ai: "still", spd: 0, hp: 1800, def: 12, xp: 80, drop: 0, keep: 0, aggro: 14, range: 9, r: 0.55, col: N_LIGHT,
+				attacks: [ring(6, 0, 3.2, 45, 2.2, N_LIGHT, {shape: "orb"})]});
+			lairProp("power_core", {name: "Power Core", spr: "power_core", hp: 9000, def: 30, col: 0xffd060, r: 0.8,
+				attacks: [ring(12, 15, 4.5, 70, 1.8, 0x60e0ff, {shape: "star"}), aim(3, 14, 9, 75, 1.4, 0xffd060, {shape: "blade"})]});
+			lairProp("rift_crystal", {name: "Rift Crystal", spr: "rift_crystal", hp: 12000, def: 26, col: 0xd040ff, r: 0.8,
+				attacks: [spiral(3, 17, 5, 65, 0.16, 0xc080ff, {shape: "voidorb"}), aim(1, 0, 6, 80, 1.6, 0xff40ff, {motion: "home", r: 0.3})]});
+
 			var D:Array = Data.DUNGEONS;
 			D.push({id: "drowned_throne", wall: "coral", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
-				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress"});
+				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress", lair: {boss: "tide_empress", quiet: true,
+					intro: "Nerezza drinks the souls of the drowned. They drift to her throne out of the dark water: cut them down before they reach her, or she drinks them and mends.",
+					feed: {id: "drowned_soul", every: 10, n: 3, heal: 0.015, speed: 1.2, text: "A drowned soul reaches Nerezza, and she drinks it!"}}});
 			D.push({id: "clockwork_foundry", wall: "brass", name: "The Clockwork Foundry", color: 0xffd060, floor: 6, accent: 13, tier: 4, hard: 1.5, layout: "grid", hazard: "lava",
-				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind"});
+				mobs: ["golem", "gear_drone", "dwarf", "cubelet"], boss: "gearmind", lair: {boss: "gearmind", quiet: true,
+					intro: "Four power cores round its hall keep Gearmind Omega shielded. Only the lit core can be broken: shut them down in turn, and mind that each one makes Gearmind run hotter.",
+					shield: {ids: ["power_core"], n: 4, where: "boss", r: 8, order: true, overclock: 0.08, text: "A power core goes dark and the next one lights! Gearmind runs hotter!"}}});
 			D.push({id: "void_rift", wall: "voidstone", name: "The Void Rift", color: 0xd040ff, floor: 14, accent: 8, tier: 4, hard: 1.6, layout: "islands",
-				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon"});
+				mobs: ["shade", "void_wisp", "lesser_demon", "ghost"], boss: "void_dragon", lair: {boss: "void_dragon", quiet: true,
+					intro: "Wound Vael'thrax and he rises into the rift, out of reach. Rift Crystals then open out on the islands: break them all to drag him back down.",
+					ascend: {ids: ["rift_crystal"], at: [0.66, 0.33], n: 3, text: "Vael'thrax rises into the rift! Break the Rift Crystals out on the islands to drag him down!"}}});
 			// and every realm boss's own lair (Lairs.as)
 			for each (var lth:Object in Lairs.DUNGEONS) D.push(lth);
 		}
@@ -1574,20 +1613,20 @@ package realm {
 				places: ["the Zealots' chapels", "the Blood Rite", "the Matron's sanctum", "the Archon's altar"],
 				intro: "The Conclave's blood rites have begun. Slay both Zealots in their chapels (together: kill one and the other drinks its blood) to break the first seal. " +
 					"Then break the four Blood Altars that keep the Matron's rite. Beware the blood pools.",
-				theme: {id: "conclave", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
+				theme: {id: "conclave", wall: "crimson", name: "The Crimson Conclave", color: 0xff3050, floor: 9, accent: 14, tier: 4, hard: 2.2, raid: true, layout: "conclave",
 					mobs: ["crimson_cultist", "crimson_cultist", "bone_thrall", "blood_hound", "blood_acolyte"]}},
 			{id: "storm", name: "Heart of the Storm", color: 0x80ffff,
 				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["storm_rod", "storm_rod", "storm_rod"], ["galecaller"], ["tempestus"]],
 				places: ["the three pylons", "the Lightning Rods", "the Galecaller's terrace", "the eye of the storm"],
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons (each one that falls charges the others) to raise the first bridge. " +
 					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand.",
-				theme: {id: "storm", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
+				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
 			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
-				theme: {id: "starfall", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
+				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 
@@ -1595,15 +1634,17 @@ package realm {
 			var raid:Object = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			// the raids' objectives (a stage of their own: it ends when they're all broken, see stageFoe)
 			mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Blood Altar", spr: "blood_altar", hp: 40000, def: 30, col: 0xd8102a,
+				name: "Blood Altar", spr: "blood_altar", hp: 62000, def: 30, col: 0xd8102a,
 				attacks: [ring(10, 18, 4.2, 80, 1.7, 0xd8102a, {shape: "orb", eff: "bleeding"}),
 					rain(4, 3.5, 95, 2.6, 0xff3040, {radius: 1.4, delay: 1.1, fx: "spikes", name: "blood geyser"}),
-					spiral(2, 21, 5, 70, 0.16, 0xff3040, {shape: "orb", name: "bleeding spiral"})]});
+					spiral(2, 21, 5, 70, 0.16, 0xff3040, {shape: "orb", name: "bleeding spiral"}),
+					aim(3, 18, 8, 90, 1.3, 0xff6070, {shape: "crescent", eff: "bleeding", name: "blood lash"}), summon("blood_acolyte", 1, 9, 2)]});
 			mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
-				name: "Lightning Rod", spr: "storm_rod", hp: 45000, def: 32, col: 0x80ffff,
+				name: "Lightning Rod", spr: "storm_rod", hp: 72000, def: 32, col: 0x80ffff,
 				attacks: [aim(1, 0, 13, 90, 1.0, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
 					rain(4, 5, 100, 2.4, 0x80ffff, {radius: 1.3, delay: 1.0, fx: "pillar", name: "lightning strike"}),
-					ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"})]});
+					ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"}),
+					aim(3, 20, 10, 90, 1.4, 0x80ffff, {shape: "bolt", name: "arc bolts"}), summon("storm_wisp", 1, 9, 2)]});
 			// ---- the Crimson Conclave: blood rising out of the floor, bones and bleeding blades
 			boss("zealot_a", o({bond: "The surviving Zealot drinks its twin's blood! It heals and rages!", name: "Zealot of Blood", spr: "zealot", hp: 18000, def: 22, spd: 2, xp: 1500, col: 0xd02030, phases: [
 				P(1, {move: "orbit", attacks: [aim(3, 24, 8, 70, 0.9, 0xff3040, {eff: "bleeding", shape: "crescent", r: 0.3}),
@@ -1704,7 +1745,7 @@ package realm {
 				P(0.6, {say: "Overdue. All of you.", shield: 2, move: "orbit", summon: [{what: "grave_wraith", n: 3}],
 					attacks: [wall(15, 5, 85, 1.8, 0x40ffd0, {hole: 3}), aim(1, 0, 6, 95, 1.4, 0xffffff, {motion: "home", eff: "slowed"}), blinkRing(7, 0xa0fff0)]}),
 				P(0.3, {say: "Let the tide take the pages!", move: "center",
-					attacks: [spiral(6, 13, 6, 80, 0.1, 0x60c0a0, {motion: "wave"}), lineRain(7, 110, 2.2, 0x40ffd0, "pillar", {name: "geyser"}),
+					attacks: [spiral(4, 13, 6, 80, 0.14, 0x60c0a0, {motion: "wave"}), lineRain(7, 110, 2.2, 0x40ffd0, "pillar", {name: "geyser"}),
 						rain(6, 5, 110, 2, 0x40ffd0, {fx: "pillar"})]})
 			]}, raid), ["drowned_codex", "siren_lyre"]);
 			boss("sovereign", o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
@@ -1720,7 +1761,7 @@ package realm {
 			]}, raid), ["sovereign_signet"]);
 			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
 				P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
-					attacks: [spiral(4, 12, 6.5, 80, 0.13, 0xffd060, {shape: "star"}), aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
+					attacks: [spiral(3, 12, 6.5, 80, 0.15, 0xffd060, {shape: "star"}), aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
 						pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
 				P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
 					cycle: [[flower(24, 5.6, 5.5, 85, 0.85, 0xffd060)], [wall(21, 5.5, 95, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7})],
@@ -1729,7 +1770,7 @@ package realm {
 					attacks: [spiral(4, -11, 6, 90, 0.13, 0xffe080, {motion: "wave"}), selfNova(5.5, 1.4, 180, 3.2, 0xffb040, {burst: 14, shape: "star", fx: "pillar", name: "supernova"}),
 						blinkRing(6, 0xfff0a0), pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), eclipse(10, 4, 140, 24)]}),
 				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [spiral(5, 9, 6.5, 95, 0.12, 0xffffff, {shape: "star"}), aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
+					attacks: [spiral(4, 9, 6.5, 95, 0.14, 0xffffff, {shape: "star"}), aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
 						selfNova(6, 1.5, 200, 2.8, 0xffe080, {burst: 16, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), eclipse(12, 5, 160, 20)]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}

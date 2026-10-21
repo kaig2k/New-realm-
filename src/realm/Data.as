@@ -706,7 +706,7 @@ package realm {
 		public static function keyPrice(idx:int):int {
 			var d:Object = DUNGEONS[idx];
 			// (a lair only opens from its realm boss's portal: no key for it)
-			if (d.lair) return -1;
+			if (d.by) return -1;
 			if (d.hard) return 5000 + int((d.hard - 1.5) * 30000 + 0.5);
 			return [300, 600, 1000, 1400, 1800][Math.min(4, d.tier)];
 		}

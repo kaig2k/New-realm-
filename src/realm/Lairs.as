@@ -12,6 +12,13 @@ package realm {
 	 *   waves:  {mobs, n, size}         the master's hall fills with waves first; it comes when they're done
 	 *   rebirth:{egg, t, into}          the master falls, then rises again: from an egg you can break in time,
 	 *                                   or (no egg) at once in its second form
+	 *   feed:   {id, every, n, heal, speed, text}  things drift in from the hall's edge toward the master and
+	 *                                   heal it if they reach it (cut them down on the way)
+	 *   shield.order: true             its shield breaks one piece at a time, in turn (only the lit one can be
+	 *                                   hurt); shield.overclock: each that breaks makes the master fire faster
+	 *   ascend: {ids, at, n, text}       at each fraction of its health in `at` the master rises out of reach,
+	 *                                   and n of these appear out in the dungeon's rooms to drag it back down
+	 *   quiet: true                      a finale: its master's own death opens the ways out (Game), not the lair
 	 *   (and on the master's def: splitInto {what, n}: it breaks into lesser copies that must all fall)
 	 * Trios (th.trio) share the last hall as in the other dungeons.
 	 */
@@ -85,7 +92,7 @@ package realm {
 		public static function populate(w:World, th:Object, api:Object):void {
 			var L:Object = th.lair;
 			var last:Object = w.rooms[w.rooms.length - 1];
-			w.lair = {woke: !L.waves, wave: 0, regrowT: 0, eggs: [], shielded: false, done: false, pending: !!L.waves};
+			w.lair = {woke: !L.waves, wave: 0, regrowT: 0, eggs: [], shielded: false, done: false, pending: !!L.waves, order: [], feedT: 4, ascK: 0};
 			if (L.shield) placeShield(w, L.shield, last, th.tier, api);
 			if (L.mend) for (var k:int = 0; k < L.mend.n; k++) {
 				var a:Number = k * Math.PI * 2 / L.mend.n + 0.4;
@@ -107,6 +114,16 @@ package realm {
 					x = last.x + 0.5 + Math.cos(a) * sh.r; y = last.y + 0.5 + Math.sin(a) * sh.r;
 				}
 				var e:Enemy = api.spawn(sh.ids[k % sh.ids.length], x, y, zone, true);
+				if (e) { e.lairShield = true; if (sh.order) w.lair.order.push(e); }
+			}
+		}
+
+		/** n of the ids out in the dungeon's rooms (not the first or the master's own), each in a different one. */
+		private static function placeAbroad(w:World, ids:Array, n:int, zone:int, api:Object):void {
+			var rooms:Array = w.rooms.slice(1, w.rooms.length - 1);
+			for (var k:int = 0; k < n && rooms.length; k++) {
+				var rm:Object = rooms.splice(int(Math.random() * rooms.length), 1)[0];
+				var e:Enemy = api.spawn(ids[k % ids.length], rm.x + 0.5, rm.y + 0.5, zone, true);
 				if (e) e.lairShield = true;
 			}
 		}
@@ -122,7 +139,8 @@ package realm {
 			var st:Object = w.lair;
 			if (!st || st.pending) return false;
 			for each (var egg:Enemy in st.eggs) if (!egg.dead) return false;
-			for each (var e:Enemy in w.enemies) if (!e.dead && (e.def.lairBoss || e.def.trio)) return false;
+			var L:Object = w.theme && w.theme.lair;
+			for each (var e:Enemy in w.enemies) if (!e.dead && (e.def.lairBoss || e.def.trio || (L && e.defId == L.boss))) return false;
 			return true;
 		}
 
@@ -164,8 +182,15 @@ package realm {
 				}
 			}
 			var boss:Enemy = w.boss && !w.boss.dead ? w.boss : null;
+			// rising out of reach: at each mark of its health it goes up, and what drags it down appears abroad
+			if (L.ascend && boss && !st.shielded && st.ascK < L.ascend.at.length && boss.hp <= boss.maxHp * L.ascend.at[st.ascK]) {
+				boss.hp = boss.maxHp * L.ascend.at[st.ascK];
+				st.ascK++;
+				placeAbroad(w, L.ascend.ids, L.ascend.n, th.tier, api);
+				api.say(L.ascend.text, th.color, true);
+			}
 			// shields: its master can't be hurt while one stands (and round its throne they grow back)
-			if (L.shield && boss) {
+			if ((L.shield || L.ascend) && boss) {
 				var up:int = 0;
 				for each (e in w.enemies) if (!e.dead && (e.lairShield || e.def.lairShield)) up++;
 				if (up > 0 && !st.shielded) { st.shielded = true; boss.invuln = true; }
@@ -173,7 +198,17 @@ package realm {
 					st.shielded = false; boss.invuln = false; st.regrowT = 0;
 					api.say(boss.def.name + " is vulnerable!", th.color, true);
 				}
-				if (up == 0 && L.shield.regrow) {
+				// in turn: only the first one still standing can be hurt (and only it fights)
+				if (st.order.length) {
+					var lit:Boolean = false;
+					for each (e in st.order) {
+						if (e.dead) continue;
+						e.invuln = lit;
+						e.rateMult = lit ? 0 : 1;
+						lit = true;
+					}
+				}
+				if (up == 0 && L.shield && L.shield.regrow) {
 					st.regrowT += dt;
 					if (st.regrowT >= L.shield.regrow) {
 						st.regrowT = 0;
@@ -181,6 +216,32 @@ package realm {
 						placeShield(w, L.shield, last, th.tier, api, Math.max(2, Math.ceil(L.shield.n / 2)));
 						api.say(L.shield.text, th.color, true);
 					}
+				}
+			}
+			// feeders: they drift in from the edge of its hall and heal it if they reach it
+			if (L.feed && boss) {
+				var near:Boolean = false;
+				for each (p in api.players) if (Math.abs(p.x - last.x) < last.w / 2 + 2 && Math.abs(p.y - last.y) < last.h / 2 + 2) { near = true; break; }
+				if (near) st.feedT -= dt;
+				if (st.feedT <= 0) {
+					st.feedT = L.feed.every;
+					for (var fk:int = 0; fk < L.feed.n; fk++) {
+						var fa:Number = Math.random() * Math.PI * 2, fr:Number = Math.min(last.w, last.h) / 2 - 1.5;
+						var f:Enemy = api.spawn(L.feed.id, boss.x + Math.cos(fa) * fr, boss.y + Math.sin(fa) * fr, th.tier, true);
+						if (f) f.lairFeed = true;
+					}
+				}
+				for each (e in w.enemies) {
+					if (e.dead || !e.lairFeed) continue;
+					var fdx:Number = boss.x - e.x, fdy:Number = boss.y - e.y, fd:Number = Math.sqrt(fdx * fdx + fdy * fdy);
+					if (fd < 1.4) {
+						boss.hp = Math.min(boss.maxHp, boss.hp + boss.maxHp * L.feed.heal);
+						api.remove(e);
+						api.say(L.feed.text, th.color, false);
+						continue;
+					}
+					e.x += fdx / fd * L.feed.speed * dt;
+					e.y += fdy / fd * L.feed.speed * dt;
 				}
 			}
 			// menders: they pour health into it while they stand
@@ -208,6 +269,8 @@ package realm {
 			var th:Object = w.theme, L:Object = th && th.lair, st:Object = w.lair;
 			if (!L || !st) return;
 			if (L.shield && e.lairShield && L.shield.text && !L.shield.regrow) api.say(L.shield.text, th.color, false);
+			// a piece of a shield in turn: the next one lights, and the master runs hotter
+			if (e.lairShield && st.order.length && L.shield.overclock && w.boss && !w.boss.dead) w.boss.rateMult *= 1 + L.shield.overclock;
 			var sp:Object = e.def.splitInto;
 			if (sp) {
 				for (var k:int = 0; k < sp.n; k++) {
@@ -232,8 +295,10 @@ package realm {
 			}
 			if (!st.done && cleared(w)) {
 				st.done = true;
-				api.say(th.name + " is cleared!", th.color, true);
-				api.done(e.x, e.y);
+				if (!L.quiet) {
+					api.say(th.name + " is cleared!", th.color, true);
+					api.done(e.x, e.y);
+				}
 			}
 		}
 	}

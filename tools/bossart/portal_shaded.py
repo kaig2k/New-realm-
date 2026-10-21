@@ -214,9 +214,117 @@ def tentacle_ring(t):
     return m, M
 
 
+# ---------------------------------------------------------------- the finales and the old endgame dungeons
+def throne_arch(t):
+    """The Drowned Throne: a trident-crowned arch of sea-worn marble, water spilling from its foot."""
+    M = {'v1': glow(0x0c3a8a, 0x2a80e0, base=0.25), 'v2': glow(0x9ae8ff, 0xffffff, base=0.4), 'heart': glow(0xffffff, 0xffffff),
+         'stone': g([0x2a4a5a, 0x4a7484, 0x78a2ae, 0xb0d0d6], facet=8), 'gold': g([0x5a420c, 0x9a7418, 0xd8a830, 0xffe080], spec=0.7),
+         'water': glow(0x1a5ab0, 0x50a8f0, 0xc0ecff, base=0.3)}
+    m = Model(W, H)
+    vortex(m, 10, 13, 'v1', 'v2', t)
+    for s in (-1, 1):
+        m.capsule((CX + s * 12, 39, 2), (CX + s * 12, 9, 2), 2.4, 2.0, 'stone', rough(0.06, 0.3, 4))
+    m.chain([(CX - 12, 9, 2), (CX - 6, 4, 2), (CX + 6, 4, 2), (CX + 12, 9, 2)], [2.0, 1.8, 1.8, 2.0], 'stone')
+    m.capsule((CX, 6, 5), (CX, 0.5, 5), 0.8, 0.8, 'gold')
+    for s in (-1, 1):
+        m.capsule((CX + s * 3, 3, 5), (CX + s * 3, 0.5, 5), 0.6, 0.4, 'gold')
+    m.capsule((CX - 3, 3, 5), (CX + 3, 3, 5), 0.6, 0.6, 'gold')
+    m.sphere((CX, 38, 5), 12, 'water', 1.0, 0.16, 0.5)
+    for k in range(3):
+        y = 33 + ((k * 0.33 + t) % 1.0) * 5
+        m.mark(CX - 6 + k * 6, int(y), 'v2')
+    return m, M
+
+
+def gear_gate(t):
+    """The Clockwork Foundry: a great brass cogwheel turning round the vortex, pistons either side."""
+    M = {'v1': glow(0x0c3a70, 0x2a90d8, base=0.25), 'v2': glow(0xa0f0ff, 0xffffff, base=0.4), 'heart': glow(0xffffff, 0xffffff),
+         'brass': g([0x3a2808, 0x6a4c12, 0xa87c20, 0xe0b040, 0xfff0a0], spec=0.7), 'iron': g([0x16161c, 0x26262e, 0x3a3a46, 0x5a5a68], spec=0.5)}
+    m = Model(W, H)
+    vortex(m, 9, 12, 'v1', 'v2', t)
+    for k in range(20):
+        a, a2 = k * math.pi / 10, (k + 1) * math.pi / 10
+        m.capsule((CX + math.cos(a) * 12, CY + math.sin(a) * 15, 3), (CX + math.cos(a2) * 12, CY + math.sin(a2) * 15, 3), 1.4, 1.4, 'brass')
+    for k in range(10):
+        a = k * math.pi / 5 + t * math.pi / 5
+        m.capsule((CX + math.cos(a) * 13.5, CY + math.sin(a) * 16.5, 3), (CX + math.cos(a) * 16, CY + math.sin(a) * 19, 3), 1.3, 1.0, 'brass')
+    for s in (-1, 1):
+        m.block(CX + s * 15 - 1.5, 26, CX + s * 15 + 1.5, 39, 1, 0.8, 'iron')
+        m.capsule((CX + s * 15, 26, 3), (CX + s * 15, 20 - t * 3, 3), 0.9, 0.9, 'brass')
+    return m, M
+
+
+def rift_tear(t):
+    """The Void Rift: a ragged tear in the air, shards of the world floating round it."""
+    M = {'v1': glow(0x3a0a6a, 0x9030e0, base=0.25), 'v2': glow(0xff80ff, 0xffffff, base=0.4), 'heart': glow(0xffffff, 0xffffff),
+         'cr': g([0x1a0a2e, 0x3a1868, 0x6a30b0, 0xa860f0, 0xe0b8ff], facet=7, spec=0.9), 'stone': g([0x0e0a12, 0x1c1622, 0x2c2436, 0x40364c])}
+    m = Model(W, H)
+    vortex(m, 8, 15, 'v1', 'v2', t)
+    # the torn edge: jagged dark teeth all round
+    for k in range(14):
+        a = k * math.pi / 7
+        x, y = CX + math.cos(a) * 9.5, CY + math.sin(a) * 15
+        spike(m, (x + math.cos(a) * 3, y + math.sin(a) * 3), (x - math.cos(a) * 1.5, y - math.sin(a) * 1.5), 1.6, 3, 'stone')
+    # pieces of the world drifting round it
+    for k in range(6):
+        a = k * math.pi / 3 + t * math.pi / 3
+        x, y = CX + math.cos(a) * 13, CY + math.sin(a) * 15
+        rock(m, x, y, 2.2, 5, 'cr' if k % 2 else 'stone', 11 + k, sides=5)
+    for s in (-1, 1):
+        rock(m, CX + s * 10, 37, 4, 2, 'stone', 5 + s, sides=6, squash=0.5)
+    return m, M
+
+
+def sarcophagus_gate(t):
+    """The Tomb of the Three Kings: three crowned sarcophagi lids leaning round the way in."""
+    M = {'v1': glow(0x8a6010, 0xe0a830, base=0.25), 'v2': glow(0xfff0a0, 0xffffff, base=0.4), 'heart': glow(0xffffff, 0xffffff),
+         'stone': g([0x5a4626, 0x846a3c, 0xae8e54, 0xd4b474], facet=8), 'gold': g([0x6a4808, 0xa87812, 0xe0b028, 0xfff09a], spec=0.7)}
+    m = Model(W, H)
+    vortex(m, 9, 12, 'v1', 'v2', t, z=2)
+    for s, x in ((-1, CX - 12), (1, CX + 12)):
+        m.slab([(x - 4, 39), (x + 4, 39), (x + 3, 10), (x - 3, 10)], 1, 1.4, 'stone')
+        m.capsule((x - 2, 10, 3), (x + 2, 10, 3), 0.9, 0.9, 'gold')
+    m.slab([(CX - 9, 7), (CX + 9, 7), (CX + 7, 1), (CX - 7, 1)], 3, 1.2, 'stone')
+    for k in range(3):
+        spike(m, (CX - 4 + k * 4, 2), (CX - 4 + k * 4, -1.5 if k == 1 else -0.5), 0.9, 4, 'gold')
+    return m, M
+
+
+def shard_halo(t):
+    """The Shattered Sanctum: a broken halo of rose glass, its pieces hanging apart."""
+    M = {'v1': glow(0xa0306a, 0xf070b0, base=0.25), 'v2': glow(0xffd0ec, 0xffffff, base=0.4), 'heart': glow(0xffffff, 0xffffff),
+         'glass': g([0x6a2a50, 0xa04a80, 0xd880b4, 0xffc0e4, 0xffffff], facet=6, spec=0.9)}
+    m = Model(W, H)
+    vortex(m, 10, 13, 'v1', 'v2', t)
+    for k in range(9):
+        a = k * math.pi * 2 / 9 - math.pi / 2
+        r = 12 + 0.8 * math.sin(t * math.pi * 2 + k * 1.7)
+        x, y = CX + math.cos(a) * r, CY + math.sin(a) * (r + 3)
+        rock(m, x, y, 2.8, 3, 'glass', 21 + k, sides=4)
+    return m, M
+
+
+def void_spire(t):
+    """Azrakor's Citadel (and his chamber): black spires round a violet vortex, a crown of void flame."""
+    M = {'v1': glow(0x3a0a6a, 0x8a30d8, base=0.25), 'v2': glow(0xd090ff, 0xffffff, base=0.4), 'heart': glow(0xffffff, 0xffffff),
+         'stone': g([0x0a0810, 0x16121e, 0x241e30, 0x362e46], facet=8), 'fire': glow(0x6010a0, 0xb040ff, 0xffd0ff, base=0.3)}
+    m = Model(W, H)
+    vortex(m, 10, 13, 'v1', 'v2', t)
+    for s in (-1, 1):
+        spike(m, (CX + s * 13, 39), (CX + s * 13, 3), 3.2, 2, 'stone')
+        spike(m, (CX + s * 9, 39), (CX + s * 8, 14), 2.0, 3, 'stone')
+        m.sphere((CX + s * 13, 4 - t, 4), 1.6 + t * 0.4, 'fire')
+    m.capsule((CX - 12, 8, 3), (CX + 12, 8, 3), 1.2, 1.2, 'stone')
+    for k in range(3):
+        m.capsule((CX - 4 + k * 4, 8, 5), (CX - 4 + k * 4, 2 - (k == 1) * 2 - t, 5), 1.0, 0.3, 'fire')
+    return m, M
+
+
 PORTALS = {'tesseract': cage, 'titan_forge': forge, 'wyrm_cradle': ice_arch, 'hollow_court': crown_arch, 'bone_pit': ribcage,
            'phantom_court': mirror, 'tomb_of_riddles': tomb_door, 'drowned_keep': anchor_ring, 'coral_grotto': coral_ring,
-           'ossuary': skull_maw, 'obsidian_quarry': obsidian_gate, 'ashen_aerie': flame_ring, 'hexwood': tree_arch, 'krakens_maw': tentacle_ring}
+           'ossuary': skull_maw, 'obsidian_quarry': obsidian_gate, 'ashen_aerie': flame_ring, 'hexwood': tree_arch, 'krakens_maw': tentacle_ring,
+           'drowned_throne': throne_arch, 'clockwork_foundry': gear_gate, 'void_rift': rift_tear, 'tomb': sarcophagus_gate,
+           'sanctum': shard_halo, 'citadel': void_spire, 'elder': void_spire}
 
 
 def sequences(scale=3):

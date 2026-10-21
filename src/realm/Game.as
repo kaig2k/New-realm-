@@ -1396,7 +1396,8 @@ package realm {
 					if (gi == 0) dungeonWorld.boss = e;
 				}
 			}
-			if (th.boss) {
+			// (a dungeon with lair rules places its master itself)
+			if (th.boss && !(th.lair && th.lair.boss)) {
 				dungeonWorld.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, th.tier);
 				if (dungeonWorld.boss.def.sealed) dungeonWorld.boss.invuln = true;
 				dungeonWorld.enemies.push(dungeonWorld.boss);
@@ -2280,6 +2281,12 @@ package realm {
 			}
 			lairApiObj.players = [player];
 			return lairApiObj;
+		}
+
+		/** A portal's own gate, if its dungeon has one drawn (portal_<id>: tools/bossart/portal_shaded.py); "" for the plain ring. */
+		private function gateOf(p:Object):String {
+			var id:String = p.kind == "dungeon" && Data.DUNGEONS[p.idx] ? Data.DUNGEONS[p.idx].id : p.kind == "elder" ? "elder" : "";
+			return id && Sprites.has("portal_" + id) ? "portal_" + id : "";
 		}
 
 		/** What still shields a lair's master ("WARDED: 3 Ice Obelisks left"). */
@@ -6813,7 +6820,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : b.def.lairBoss ? lairShieldText() : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : b.def.lairBoss || (world.theme && world.theme.lair) ? lairShieldText() : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -7042,9 +7049,9 @@ package realm {
 					rlab.y = int(rtop - rlab.height - 4);
 					continue;
 				}
-				// a lair's own gate (portal_<lair id>: tools/bossart/portal_shaded.py), else the plain ring
-				var lairGate:String = p.kind == "dungeon" && Data.DUNGEONS[p.idx] && Data.DUNGEONS[p.idx].lair ? "portal_" + Data.DUNGEONS[p.idx].id : null;
-				var pbd:BitmapData = lairGate && Sprites.has(lairGate) ? Sprites.get(lairGate, int(time * 7) % 4) : Sprites.portal(p.color, int(time * 8));
+				// a dungeon's own gate (gateOf), else the plain ring
+				if (p.gate == undefined) p.gate = gateOf(p);
+				var pbd:BitmapData = p.gate ? Sprites.get(p.gate, int(time * 7) % 4) : Sprites.portal(p.color, int(time * 8));
 				// a glow on the ground and motes drifting in; it flickers in its last seconds
 				var closing:Boolean = p.life > 0 && p.life < 5;
 				drawAura(pcx, pcy + TS * 0.4, p.color, closing ? 0.3 + Math.abs(Math.sin(time * 10)) * 0.5 : 0.6);

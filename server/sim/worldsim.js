@@ -303,7 +303,7 @@ class WorldSim {
         if (gi === 0) w.boss = e;
       });
     }
-    if (th.boss) {
+    if (th.boss && !(th.lair && th.lair.boss)) {
       w.boss = new Enemy(th.boss, last.x + 0.5, last.y + 0.5, th.tier);
       if (w.boss.def.sealed) w.boss.invuln = true;
       this.add(w.boss);

@@ -511,6 +511,26 @@ package realm {
 			if (d) DEFS[name] = [d[0], pal, scale || d[2]];
 		}
 
+		/**
+		 * A copy of base washed in colour col (amt 0..1), whatever its palette's letters: each colour keeps
+		 * its brightness and takes col's hue (the spirit wolf: a ghostly blue wolf).
+		 */
+		public static function tinted(name:String, base:String, col:uint, amt:Number = 0.7):void {
+			var d:Array = DEFS[base];
+			if (!d) return;
+			var pal:Object = {};
+			for (var k:String in d[1]) {
+				var c:uint = uint(d[1][k]);
+				var lum:Number = (((c >> 16) & 255) * 0.3 + ((c >> 8) & 255) * 0.59 + (c & 255) * 0.11) / 255;
+				var t:uint = lum > 0.5 ? tint(col, (lum - 0.5) * 1.6) : shade(col, 0.25 + lum * 1.5);
+				var r:int = ((c >> 16) & 255) * (1 - amt) + ((t >> 16) & 255) * amt;
+				var gr:int = ((c >> 8) & 255) * (1 - amt) + ((t >> 8) & 255) * amt;
+				var b:int = (c & 255) * (1 - amt) + (t & 255) * amt;
+				pal[k] = (r << 16) | (gr << 8) | b;
+			}
+			DEFS[name] = [d[0], pal, d[2]];
+		}
+
 		/** Puts a finished design in place: [frames], palette and scale (BossArt's bosses); replaces any older copy. */
 		public static function define(name:String, frames:Array, pal:Object, scale:int):void {
 			DEFS[name] = [frames, pal, scale];

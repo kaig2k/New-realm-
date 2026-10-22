@@ -32,7 +32,7 @@ package realm {
 		public function Abilities(g:Game) {
 			this.g = g;
 			Sprites.recolor("risen", "skeleton", {H: 0xc8e0b0, h: 0x7a9a68, S: 0xc8e0b0, E: 0x70ff60, B: 0x3a5a3a, b: 0x223a22, A: 0x60c060, L: 0x8aa878, W: 0xd8f0c8});
-			Sprites.recolor("spirit_wolf", "wolf", {W: 0xb8e0ff, w: 0x6a98d0, E: 0xffffff});
+			Sprites.tinted("spirit_wolf", "wolf", 0x9ad0ff, 0.75);
 		}
 
 		public function clear():void {

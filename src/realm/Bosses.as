@@ -147,7 +147,19 @@ package realm {
 			"vault_ignis", "warden", "blood_knight", "sentinel",
 			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
 			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
-			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan"];
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan",
+			"siege_warlord", "elder", "abyss_herald", "tempestus", "archon"];
+		/**
+		 * The bosses first drawn from the user's sheets (an animation for each of their attacks), rebuilt shaded
+		 * (tools/bossart/user_shaded.py): each of their own animations plays the posed one that fits it.
+		 */
+		private static const OWN_ANIMS:Object = {
+			"siege_warlord": {swing: "strike", smash: "strike", bash: "strike", barrage: "cast", warcry: "summon", charge: "strike"},
+			"elder": {blast: "cast", pillars: "cast", slam: "strike", summon: "summon", teleport: "cast", spread: "strike", explode: "cast", gravity: "cast", rift: "cast"},
+			"abyss_herald": {barrage: "strike", rain: "cast", summon: "summon", slam: "strike", teleport: "cast", spread: "strike", explode: "cast", gravity: "cast", rift: "cast"},
+			"tempestus": {slash: "strike", spread: "strike", strike: "cast", dash: "strike", radius: "cast", rain: "cast", guard: "guard"},
+			"archon": {lance: "strike", ranged: "strike", gravity: "cast", dash: "strike", cascade: "cast", brand: "cast", summon: "summon", guard: "guard"}
+		};
 		public static const POSED_SEQ:Object = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 		/** Their own shots (tools/bossart/boss_shots.py): [from its strikes, from its casts], in place of the plain shapes. */
 		public static const POSED_SHOTS:Object = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
@@ -187,7 +199,9 @@ package realm {
 			for each (var n:String in POSED) want[n] = true;
 			for (var id:String in Data.ENEMIES) {
 				var d:Object = Data.ENEMIES[id];
-				if (d.seq || !want[d.spr]) continue;
+				var own:Object = OWN_ANIMS[d.spr];
+				if ((d.seq && !own) || !want[d.spr]) continue;
+				if (own) ownAnims(d, own);
 				d.seq = POSED_SEQ;
 				d.rageAll = true;
 				var ph:Array = d.phases ? Enemy.phaseList(d.phases) : null;
@@ -199,6 +213,25 @@ package realm {
 					for each (var c:Array in p.cycle) poseAttacks(c, shots);
 					for each (var dg:Array in p.dodge) poseAttacks(dg, shots);
 				}
+			}
+		}
+
+		/** A boss's own animations (from its sheet) played as the posed ones that fit (OWN_ANIMS). */
+		private static function ownAnims(d:Object, map:Object):void {
+			var lists:Array = d.attacks ? [d.attacks] : [];
+			for each (var p:Object in (d.phases ? Enemy.phaseList(d.phases) : [])) {
+				if (p.attacks) lists.push(p.attacks);
+				for each (var c:Array in p.cycle) lists.push(c);
+				for each (var dg:Array in p.dodge) lists.push(dg);
+			}
+			// (attacks shared between phases are mapped once: Tempestus's "slash" becomes a strike, his own "strike" a cast)
+			var done:Dictionary = new Dictionary();
+			for each (var l:Array in lists) for each (var a:Object in l) {
+				if (!a || done[a] || !a.anim || !map[a.anim]) continue;
+				done[a] = true;
+				a.anim = map[a.anim];
+				// (a wind-up held on one of its frames: the posed animations have five, the guard four)
+				if (a.animHit > 4) a.animHit = 4;
 			}
 		}
 

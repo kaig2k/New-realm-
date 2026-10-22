@@ -22,6 +22,8 @@ package realm {
 		private var strip:Sprite = new Sprite();
 		private var flash:Shape = new Shape();
 		private var target:Number, t0:int, dur:Number, lastCell:int = -1;
+		/** Where the winning prize sits on the strip (the flash goes round it, wherever in its cell the reel stopped). */
+		private var winX:Number;
 		private var onDone:Function;
 		public var done:Boolean = false;
 
@@ -55,6 +57,7 @@ package realm {
 			}
 			// (where in its cell it stops: not always dead centre, like the real thing)
 			target = at * (CELL + GAP) + CELL / 2 - w / 2 + (Math.random() - 0.5) * (CELL * 0.6);
+			winX = at * (CELL + GAP);
 			strip.x = 0;
 			var marker:Shape = new Shape();
 			marker.graphics.beginFill(0xffd23a);
@@ -141,7 +144,7 @@ package realm {
 			for (var i:int = 1; i < prizes.length; i++) if (prizes[i].tier > prizes[best].tier) best = i;
 			var col:uint = Data.CRATE_TIERS[prizes[best].tier].col;
 			flash.graphics.lineStyle(3, col);
-			flash.graphics.drawRoundRect(w / 2 - CELL / 2 - 4, 8, CELL + 8, CELL + 8, 10, 10);
+			flash.graphics.drawRoundRect(strip.x + winX - 4, 8, CELL + 8, CELL + 8, 10, 10);
 			Sfx.play(prizes[best].tier >= 3 ? "fanfare" : prizes[best].tier >= 2 ? "rare" : "loot");
 			if (onDone != null) onDone();
 		}

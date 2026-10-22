@@ -3235,7 +3235,7 @@ function attach(c) {
     const h = handlers[m.t];
     if (h) {
       const t0 = SLOW_LOG ? Date.now() : 0;
-      try { h(c, m); } catch (e) { log('error handling', m.t, e.message); }
+      try { h(c, m); } catch (e) { log('error handling', m.t, e.message, (e.stack || '').split('\n').slice(1, 4).join(' | ')); }
       if (SLOW_LOG && Date.now() - t0 > 30) log('slow: ' + m.t + ' took ' + (Date.now() - t0) + ' ms');
     }
   };

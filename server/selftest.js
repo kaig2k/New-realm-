@@ -386,6 +386,18 @@ async function run() {
     for (let k = 0; k < 10; k++) A2.send({ t: 'w', to: 'host', d: { t: 'ehit', id: boss[0], d: 6000 } });
     await wait(300);
     check('hits from too far away are ignored', !A2.find((m) => m.t === 'w' && m.d.t === 'ekill' && m.d.id === boss[0]));
+    // the dungeon's boss falls (with the quest keeper and Oracle hooked up, as live): its loot reaches you
+    boss0.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'bk1', cls: 'wizard', name: 'Bk', level: 1, stats: { hp: 100, mp: 100, att: 10, def: 0, spd: 10, dex: 10, vit: 10, wis: 10 }, inv: [null, null, null, null, null, null, null, null] }] } });
+    await wait(300);
+    boss0.send({ t: 'enter', key: dg, cid: 'bk1', x: 100, y: 180 });
+    await wait(400);
+    boss0.clear();
+    boss0.send({ t: 'cmd', text: '/akill' });
+    await wait(1000);
+    const bl = boss0.msgs.filter((m) => m.t === 'w' && m.d.t === 'loot');
+    check('a dungeon boss drops its loot when it dies', bl.some((m) => m.d.n === require('./sim/gen/game').Data.ENEMIES[boss[1]].name && m.d.l.length) && !/error handling/.test(srvOut),
+      JSON.stringify(bl.map((m) => m.d.n)) + ' ' + (srvOut.match(/error handling.*/) || [''])[0]);
+    boss0.send({ t: 'enter', key: 'nexus', x: 100, y: 100 });
   }
   A2.send({ t: 'enter', key: 'nexus', x: 100, y: 100, cid: 'ca' });
   B.send({ t: 'enter', key: 'nexus', x: 101, y: 100, cid: 'cb' });

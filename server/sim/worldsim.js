@@ -891,7 +891,7 @@ class WorldSim {
         !this.enemies.some((o) => o !== e && !o.dead && o.isBoss)) evs.push('raid:' + this.w.raid.id);
       if (this.heroic && evs.includes('raid:' + this.w.raid.id)) evs.push('raidh:' + this.w.raid.id);
       if (e.def.final || e.def.finale) evs.push('elder');
-      else if (this.kind === 'dg' && this.theme && this.theme.lair) { if (w.lair && w.lair.done && !this.lairQuested) { this.lairQuested = true; evs.push('dungeon'); } }
+      else if (this.kind === 'dg' && this.theme && this.theme.lair) { if (this.w.lair && this.w.lair.done && !this.lairQuested) { this.lairQuested = true; evs.push('dungeon'); } }
       else if (this.kind === 'dg' && e.def.dungeon && !e.def.guardian && !(e.def.trio && this.enemies.some((o) => o !== e && !o.dead && o.def.trio))) evs.push('dungeon');
       else if (this.kind === 'realm' && e.def.setpiece) {
         evs.push('events', 'event:' + e.defId);

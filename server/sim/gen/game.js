@@ -1379,6 +1379,7 @@ class Bosses {
 			Bosses.harden();
 			Bosses.posed();
 			Bosses.fair();
+			Bosses.risen();
 			Godly.init();
 			
 		}
@@ -1505,6 +1506,15 @@ class Bosses {
 					}
 				}
 			}
+		}
+	static risen() {
+			var d = Data.ENEMIES.lich_boss, r = {};
+			for (var k in d) r[k] = d[k];
+			r.name = "Septorius Risen";
+			r.hp = __int(d.hp * 0.35);
+			r.rageAt = 0;
+			r.drop = 0;
+			Data.ENEMIES.lich_risen = r;
 		}
 	static setPieceSpots(id, x, y, w) {
 			return SetPieces.spots(id, __int(x), __int(y));
@@ -2144,7 +2154,41 @@ class Bosses {
 			Bosses.lairProp("rift_crystal", {name: "Rift Crystal", spr: "rift_crystal", hp: 12000, def: 26, col: 0xd040ff, r: 0.8,
 				attacks: [Bosses.spiral(3, 17, 5, 65, 0.16, 0xc080ff, {shape: "voidorb"}), Bosses.aim(1, 0, 6, 80, 1.6, 0xff40ff, {motion: "home", r: 0.3})]});
 
+			
+			Bosses.lairProp("crypt_seal", {name: "Crypt Seal", spr: "crypt_seal", hp: 6000, def: 16, col: 0x6ad0ff,
+				attacks: [Bosses.ring(8, 22, 4, 55, 2.0, 0x6ad0ff, {shape: "orb"}), Bosses.aim(1, 0, 6, 70, 1.6, 0xb0f0ff, {motion: "home", shape: "soul"})]});
+			Bosses.lairProp("magma_vent", {name: "Magma Vent", spr: "lava_vent", hp: 6500, def: 18, col: 0xff6020,
+				attacks: [Bosses.rain(3, 3, 70, 2.4, 0xff6020, {radius: 1.2, delay: 1.0, fx: "pillar", name: "magma burst"})]});
+			Bosses.lairProp("storm_pylon", {name: "Storm Pylon", spr: "storm_rod", hp: 6000, def: 18, col: 0xf0e040,
+				attacks: [Bosses.aim(1, 0, 12, 70, 1.2, 0xffffa0, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}), Bosses.ring(10, 18, 4.5, 55, 2.2, 0xf0e040, {shape: "bolt"})]});
+			Bosses.lairProp("arcane_ward", {name: "Arcane Ward", spr: "arcane_ward", hp: 7000, def: 20, col: 0x6090ff,
+				attacks: [Bosses.spiral(3, 19, 5, 60, 0.18, 0x6090ff, {shape: "star", name: "warding spiral"})]});
+			Bosses.lairProp("phylactery", {name: "Phylactery", spr: "phylactery", hp: 9000, def: 24, col: 0x9ab0d0,
+				attacks: [Bosses.ring(12, 15, 4.5, 70, 1.5, 0xb0ffd0, {shape: "soul", name: "soul ring"})]});
+			Bosses.mob("glimmer_mote", {name: "Glimmer Mote", spr: "glimmer_mote", ai: "still", spd: 0, hp: 1200, def: 6, xp: 50, drop: 0, keep: 0, aggro: 12, range: 7, r: 0.45, col: 0xff80d0,
+				attacks: [Bosses.ring(5, 0, 3.2, 40, 2.4, 0xffc0f0, {shape: "star"})]});
+			Sprites.recolor("crypt_seal", "crystal", {W: 0xe0fbff, C: 0x6ad0ff, c: 0x2a7aa0, D: 0x123a50, S: 0x0a1a24}, 6);
+			Sprites.recolor("arcane_ward", "crystal", {W: 0xe0e8ff, C: 0x6090ff, c: 0x3050c0, D: 0x182a6a, S: 0x0c1430}, 6);
+
 			var D = Data.DUNGEONS;
+			
+			var OLD = {
+				crypt: {boss: "warden", intro: "Three Crypt Seals hidden in the flooded halls bind the Warden's tomb. While one holds, he can't be hurt.",
+					shield: {ids: ["crypt_seal"], n: 3, where: "rooms", text: "A Crypt Seal cracks!"}},
+				depths: {boss: "pyrelord", intro: "Magma vents round Pyrelord Ignaar's hall pour fire into him. Choke them, or he burns forever.",
+					mend: {id: "magma_vent", n: 3, r: 7, rate: 0.007}},
+				spire: {boss: "seraph", intro: "Hurt the Tempest Seraph and she takes to the sky. Storm Pylons then wake out on the islands: break them to bring her down.",
+					ascend: {ids: ["storm_pylon"], at: [0.5], n: 3, text: "The Seraph soars out of reach! Break the Storm Pylons on the islands to bring her down!"}},
+				cellar: {boss: "sorcerer", intro: "Three Arcane Wards circle the Sorcerer. Only the glowing one can be broken: take them down in turn.",
+					shield: {ids: ["arcane_ward"], n: 3, where: "boss", r: 7, order: true, overclock: 0.1, text: "An Arcane Ward shatters and the next one glows!"}},
+				undead_lair: {boss: "lich_boss", intro: "Septorius keeps his soul in a phylactery. Strike him down, then break it before he rises again.",
+					rebirth: {egg: "phylactery", t: 12, into: "lich_risen", text: "Break the phylactery before his soul returns!", rise: " rises again from his phylactery!"}},
+				abyss: {boss: "demon_boss", intro: "The Abyss pours its legions at you first. Hold the pit and Malgoroth himself comes.",
+					waves: {mobs: ["imp", "imp", "lesser_demon", "lesser_demon"], n: 3, size: 5}},
+				sprite_world: {boss: "sprite_boss", intro: "Glimmer motes drift to Lumina and make her whole. Catch them before they reach her.",
+					feed: {id: "glimmer_mote", every: 9, n: 3, heal: 0.014, speed: 1.4, text: "A glimmer mote reaches Lumina and she shines anew!"}}
+			};
+			for (var oth of __vals( D)) if (OLD[oth.id]) oth.lair = OLD[oth.id];
 			D.push({id: "drowned_throne", wall: "coral", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
 				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress", lair: {boss: "tide_empress", quiet: true,
 					intro: "Nerezza drinks the souls of the drowned. They drift to her throne out of the dark water: cut them down before they reach her, or she drinks them and mends.",
@@ -4812,7 +4856,7 @@ class Lairs {
 			if (!st || st.pending) return false;
 			for (var egg of __vals( st.eggs)) if (!egg.dead) return false;
 			var L = w.theme && w.theme.lair;
-			for (var e of __vals( w.enemies)) if (!e.dead && (e.def.lairBoss || e.def.trio || (L && e.defId == L.boss))) return false;
+			for (var e of __vals( w.enemies)) if (!e.dead && (e.def.lairBoss || e.def.trio || (L && (e.defId == L.boss || (L.rebirth && e.defId == L.rebirth.into))))) return false;
 			return true;
 		}
 	static update(w, dt, api) {
@@ -4929,7 +4973,7 @@ class Lairs {
 					st.eggs.splice(i, 1);
 					api.remove(egg);
 					var reborn = Lairs.master(w, L.rebirth.into, egg.x, egg.y, th.tier, api);
-					if (reborn) api.say(reborn.def.name + " rises from the ashes!", th.color, true);
+					if (reborn) api.say(reborn.def.name + (L.rebirth.rise || " rises from the ashes!"), th.color, true);
 				}
 			}
 		}
@@ -4954,7 +4998,7 @@ class Lairs {
 					if (egg) {
 						egg.eggT = L.rebirth.t;
 						st.eggs.push(egg);
-						api.say("Break the egg before it hatches! (" + L.rebirth.t + "s)", th.color, true);
+						api.say((L.rebirth.text || "Break the egg before it hatches!") + " (" + L.rebirth.t + "s)", th.color, true);
 					}
 				} else {
 					var r = Lairs.master(w, L.rebirth.into, e.x, e.y, th.tier, api);
@@ -6404,7 +6448,7 @@ Bosses.PLAIN_SHAPES = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "b
 Bosses.RAID_TUNE = {
 			zealot_a: [1.9, 1.15], zealot_b: [1.9, 1.15], matron: [2.2, 1], archon: [1.7, 1],
 			sentinel_a: [1.6, 0.9], sentinel_b: [1.6, 0.9], sentinel_c: [1.6, 0.9], galecaller: [1.8, 0.75], tempestus: [1.5, 0.85],
-			ignis: [3.2, 1.1], archivist: [1.5, 0.85], sovereign: [1.8, 1], astraeon: [0.8, 0.85]
+			ignis: [3.2, 1.1], archivist: [1.8, 0.85], sovereign: [1.8, 1], astraeon: [0.8, 0.85]
 		};
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},

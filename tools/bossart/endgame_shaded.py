@@ -69,7 +69,36 @@ def rift_crystal(t):
     return m, M
 
 
-PROPS = [('drowned_soul', drowned_soul), ('power_core', power_core), ('rift_crystal', rift_crystal)]
+def phylactery(t):
+    """The Lich King's phylactery: a bone-and-silver reliquary with his soul burning green inside."""
+    M = {'bone': g([0x5a5444, 0x8a8268, 0xbab296, 0xe6e0c8]), 'silver': g([0x2a2e36, 0x4a5260, 0x7a8494, 0xc0c8d4], spec=0.8),
+         'soul': glow(0x0a5a2a, 0x30d070, 0xb0ffd0, base=0.25), 'void': VOID}
+    m = Model(22, 32)
+    m.capsule((11, 29, 0), (11, 30, 0), 7, 7.5, 'bone', cut=31)                        # the foot
+    m.capsule((11, 26, 0), (11, 22, 0), 2.2, 2.0, 'silver')
+    m.sphere((11, 14, 1), 7.0, 'silver', 0.95, 1.1, 0.9)                                # the reliquary
+    m.sphere((11, 14, 6), 4.2 + t * 0.4, 'soul')                                         # the soul in it
+    m.sphere((11, 13, 9), 1.4, 'void', 1.0, 1.2, 0.6)
+    for k in range(4):                                                                   # ribs of bone round it
+        x = 11 + (k - 1.5) * 3.6
+        m.chain([(11 + (x - 11) * 0.5, 6, 6), (x, 14, 7), (11 + (x - 11) * 0.5, 22, 6)], [0.8, 1.0, 0.8], 'bone')
+    m.sphere((11, 5, 3), 3.0, 'bone')                                                    # a skull for a lid
+    m.mark(10, 5, 'soul'); m.mark(12, 5, 'soul')
+    return m, M
+
+
+def glimmer_mote(t):
+    """A mote of Lumina's light: a tiny winged spark."""
+    M = {'light': glow(0x901060, 0xe040a0, 0xff90d0, 0xffe0f4, base=0.2), 'wing': glow(0x5a40a0, 0x9a80e0, 0xd8d0ff, base=0.3)}
+    m = Model(16, 16)
+    for s in (-1, 1):
+        m.sphere((8 + s * 4, 6 - t, 0), 3.0, 'wing', 1.0, 0.6 + t * 0.2, 0.4)
+    m.sphere((8, 8, 2), 3.2 + t * 0.3, 'light')
+    return m, M
+
+
+PROPS = [('drowned_soul', drowned_soul), ('power_core', power_core), ('rift_crystal', rift_crystal),
+         ('phylactery', phylactery), ('glimmer_mote', glimmer_mote)]
 
 
 def all_designs():

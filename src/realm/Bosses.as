@@ -130,6 +130,7 @@ package realm {
 			harden();
 			posed();
 			fair();
+			risen();
 			Godly.init();
 			skins();
 		}
@@ -321,6 +322,17 @@ package realm {
 					}
 				}
 			}
+		}
+
+		/** The Lich King risen from his phylactery (the Undead Lair): himself again, with less left of him. */
+		private static function risen():void {
+			var d:Object = Data.ENEMIES.lich_boss, r:Object = {};
+			for (var k:String in d) r[k] = d[k];
+			r.name = "Septorius Risen";
+			r.hp = int(d.hp * 0.35);
+			r.rageAt = 0;
+			r.drop = 0;
+			Data.ENEMIES.lich_risen = r;
 		}
 
 		/** raid boss -> [health, damage] on top of harden() (see there). */
@@ -1176,7 +1188,41 @@ package realm {
 			lairProp("rift_crystal", {name: "Rift Crystal", spr: "rift_crystal", hp: 12000, def: 26, col: 0xd040ff, r: 0.8,
 				attacks: [spiral(3, 17, 5, 65, 0.16, 0xc080ff, {shape: "voidorb"}), aim(1, 0, 6, 80, 1.6, 0xff40ff, {motion: "home", r: 0.3})]});
 
+			// --- the old endgame dungeons' own ways through (Data.DUNGEONS: crypt .. sprite_world; Lairs.as runs them)
+			lairProp("crypt_seal", {name: "Crypt Seal", spr: "crypt_seal", hp: 6000, def: 16, col: 0x6ad0ff,
+				attacks: [ring(8, 22, 4, 55, 2.0, 0x6ad0ff, {shape: "orb"}), aim(1, 0, 6, 70, 1.6, 0xb0f0ff, {motion: "home", shape: "soul"})]});
+			lairProp("magma_vent", {name: "Magma Vent", spr: "lava_vent", hp: 6500, def: 18, col: 0xff6020,
+				attacks: [rain(3, 3, 70, 2.4, 0xff6020, {radius: 1.2, delay: 1.0, fx: "pillar", name: "magma burst"})]});
+			lairProp("storm_pylon", {name: "Storm Pylon", spr: "storm_rod", hp: 6000, def: 18, col: 0xf0e040,
+				attacks: [aim(1, 0, 12, 70, 1.2, 0xffffa0, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}), ring(10, 18, 4.5, 55, 2.2, 0xf0e040, {shape: "bolt"})]});
+			lairProp("arcane_ward", {name: "Arcane Ward", spr: "arcane_ward", hp: 7000, def: 20, col: 0x6090ff,
+				attacks: [spiral(3, 19, 5, 60, 0.18, 0x6090ff, {shape: "star", name: "warding spiral"})]});
+			lairProp("phylactery", {name: "Phylactery", spr: "phylactery", hp: 9000, def: 24, col: 0x9ab0d0,
+				attacks: [ring(12, 15, 4.5, 70, 1.5, 0xb0ffd0, {shape: "soul", name: "soul ring"})]});
+			mob("glimmer_mote", {name: "Glimmer Mote", spr: "glimmer_mote", ai: "still", spd: 0, hp: 1200, def: 6, xp: 50, drop: 0, keep: 0, aggro: 12, range: 7, r: 0.45, col: 0xff80d0,
+				attacks: [ring(5, 0, 3.2, 40, 2.4, 0xffc0f0, {shape: "star"})]});
+			Sprites.recolor("crypt_seal", "crystal", {W: 0xe0fbff, C: 0x6ad0ff, c: 0x2a7aa0, D: 0x123a50, S: 0x0a1a24}, 6);
+			Sprites.recolor("arcane_ward", "crystal", {W: 0xe0e8ff, C: 0x6090ff, c: 0x3050c0, D: 0x182a6a, S: 0x0c1430}, 6);
+
 			var D:Array = Data.DUNGEONS;
+			// (Data made these before any monster existed: their rules are added here)
+			var OLD:Object = {
+				crypt: {boss: "warden", intro: "Three Crypt Seals hidden in the flooded halls bind the Warden's tomb. While one holds, he can't be hurt.",
+					shield: {ids: ["crypt_seal"], n: 3, where: "rooms", text: "A Crypt Seal cracks!"}},
+				depths: {boss: "pyrelord", intro: "Magma vents round Pyrelord Ignaar's hall pour fire into him. Choke them, or he burns forever.",
+					mend: {id: "magma_vent", n: 3, r: 7, rate: 0.007}},
+				spire: {boss: "seraph", intro: "Hurt the Tempest Seraph and she takes to the sky. Storm Pylons then wake out on the islands: break them to bring her down.",
+					ascend: {ids: ["storm_pylon"], at: [0.5], n: 3, text: "The Seraph soars out of reach! Break the Storm Pylons on the islands to bring her down!"}},
+				cellar: {boss: "sorcerer", intro: "Three Arcane Wards circle the Sorcerer. Only the glowing one can be broken: take them down in turn.",
+					shield: {ids: ["arcane_ward"], n: 3, where: "boss", r: 7, order: true, overclock: 0.1, text: "An Arcane Ward shatters and the next one glows!"}},
+				undead_lair: {boss: "lich_boss", intro: "Septorius keeps his soul in a phylactery. Strike him down, then break it before he rises again.",
+					rebirth: {egg: "phylactery", t: 12, into: "lich_risen", text: "Break the phylactery before his soul returns!", rise: " rises again from his phylactery!"}},
+				abyss: {boss: "demon_boss", intro: "The Abyss pours its legions at you first. Hold the pit and Malgoroth himself comes.",
+					waves: {mobs: ["imp", "imp", "lesser_demon", "lesser_demon"], n: 3, size: 5}},
+				sprite_world: {boss: "sprite_boss", intro: "Glimmer motes drift to Lumina and make her whole. Catch them before they reach her.",
+					feed: {id: "glimmer_mote", every: 9, n: 3, heal: 0.014, speed: 1.4, text: "A glimmer mote reaches Lumina and she shines anew!"}}
+			};
+			for each (var oth:Object in D) if (OLD[oth.id]) oth.lair = OLD[oth.id];
 			D.push({id: "drowned_throne", wall: "coral", name: "The Drowned Throne", color: 0x40d0ff, floor: 9, accent: 0, tier: 4, hard: 1.5, layout: "cave", hazard: "water",
 				mobs: ["slime", "tide_spawn", "great_snake", "medusa"], boss: "tide_empress", lair: {boss: "tide_empress", quiet: true,
 					intro: "Nerezza drinks the souls of the drowned. They drift to her throne out of the dark water: cut them down before they reach her, or she drinks them and mends.",

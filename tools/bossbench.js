@@ -139,7 +139,7 @@ function setup(id) {
     const di = Data.DUNGEONS.findIndex((t) => t.lair && (t.lair.boss === id || (t.trio || []).indexOf(id) >= 0));
     const th = Data.DUNGEONS[di];
     sim = new WorldSim('dg:' + di + ':4242');
-    const lairs = (e) => e.def.lairBoss || e.def.trio || e.def.prop || e.lairShield || e.def.lairShield || e.lairWave || e.lairFeed || e.defId === th.lair.boss;
+    const lairs = (e) => e.def.lairBoss || e.def.trio || e.def.prop || e.lairShield || e.def.lairShield || e.lairWave || e.lairFeed || e.defId === th.lair.boss || (th.lair.rebirth && e.defId === th.lair.rebirth.into);
     for (const e of sim.enemies) if (!lairs(e)) e.dead = true;
     sim.enemies.splice(0, sim.enemies.length, ...sim.enemies.filter((e) => !e.dead));
     // (between waves, or before its master comes, the bots hold its hall)
@@ -150,9 +150,9 @@ function setup(id) {
       const list = sim.enemies.filter((e) => !e.dead && lairs(e));
       return list.length ? list : [wait];
     };
-    tier = d.finale ? 'finale' : 'hard';
+    tier = d.finale ? 'finale' : d.lairBoss ? 'hard' : 'dungeon';
     if (d.finale) group = 3;
-    label = th.name + (d.finale ? ' (finale)' : ' (lair)');
+    label = th.name + (d.finale ? ' (finale)' : th.by ? ' (lair)' : '');
   } else {
     const di = Data.DUNGEONS.findIndex((t) => t.boss === id || (t.guardians || []).indexOf(id) >= 0 || (t.trio || []).indexOf(id) >= 0);
     const th = Data.DUNGEONS[di];

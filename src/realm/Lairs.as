@@ -10,7 +10,7 @@ package realm {
 	 *           ("rooms": hidden through the dungeon, find them all; "boss": round its throne, regrowing)
 	 *   mend:   {id, n, r, rate}        totems round the master that heal it while they stand
 	 *   waves:  {mobs, n, size}         the master's hall fills with waves first; it comes when they're done
-	 *   rebirth:{egg, t, into}          the master falls, then rises again: from an egg you can break in time,
+	 *   rebirth:{egg, t, into, text, rise}  the master falls, then rises again: from an egg you can break in time,
 	 *                                   or (no egg) at once in its second form
 	 *   feed:   {id, every, n, heal, speed, text}  things drift in from the hall's edge toward the master and
 	 *                                   heal it if they reach it (cut them down on the way)
@@ -140,7 +140,7 @@ package realm {
 			if (!st || st.pending) return false;
 			for each (var egg:Enemy in st.eggs) if (!egg.dead) return false;
 			var L:Object = w.theme && w.theme.lair;
-			for each (var e:Enemy in w.enemies) if (!e.dead && (e.def.lairBoss || e.def.trio || (L && e.defId == L.boss))) return false;
+			for each (var e:Enemy in w.enemies) if (!e.dead && (e.def.lairBoss || e.def.trio || (L && (e.defId == L.boss || (L.rebirth && e.defId == L.rebirth.into))))) return false;
 			return true;
 		}
 
@@ -259,7 +259,7 @@ package realm {
 					st.eggs.splice(i, 1);
 					api.remove(egg);
 					var reborn:Enemy = master(w, L.rebirth.into, egg.x, egg.y, th.tier, api);
-					if (reborn) api.say(reborn.def.name + " rises from the ashes!", th.color, true);
+					if (reborn) api.say(reborn.def.name + (L.rebirth.rise || " rises from the ashes!"), th.color, true);
 				}
 			}
 		}
@@ -286,7 +286,7 @@ package realm {
 					if (egg) {
 						egg.eggT = L.rebirth.t;
 						st.eggs.push(egg);
-						api.say("Break the egg before it hatches! (" + L.rebirth.t + "s)", th.color, true);
+						api.say((L.rebirth.text || "Break the egg before it hatches!") + " (" + L.rebirth.t + "s)", th.color, true);
 					}
 				} else {
 					var r:Enemy = master(w, L.rebirth.into, e.x, e.y, th.tier, api);

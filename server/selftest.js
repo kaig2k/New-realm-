@@ -2952,6 +2952,44 @@ async function run() {
     }
   }
 
+  console.log('old endgame dungeons');
+  {
+    // the tier-4 dungeons' own ways through (Bosses.finales: crypt seals, magma vents, storm pylons,
+    // arcane wards in turn, the phylactery, the demon waves, glimmer motes): each holds and can be cleared
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: OD } = require('./sim/gen/game');
+    for (const id of ['crypt', 'depths', 'spire', 'cellar', 'undead_lair', 'abyss', 'sprite_world']) {
+      const di = OD.dungeonIndex(id), th = OD.DUNGEONS[di], L = th.lair;
+      const ws = new WorldSim('dg:' + di + ':4242'), w = ws.w, last = w.rooms[w.rooms.length - 1];
+      const msgs = [];
+      ws.join({ id: 1, x: last.x + 0.5, y: last.y + 3.5, maxDps: 1e9, send: (m) => msgs.push(m) });
+      const seen = { guarded: false, egg: false, risen: false, waves: 0, rose: false };
+      const master = (e) => e.defId === L.boss || (L.rebirth && e.defId === L.rebirth.into);
+      for (let step = 0; step < 4000 && !(w.lair && w.lair.done); step++) {
+        ws.tick(0.1);
+        const live = ws.enemies.filter((e) => !e.dead);
+        const boss = live.find(master);
+        if (boss && boss.invuln) seen.guarded = true;
+        if (L.waves) seen.waves = w.lair.wave;
+        if (L.rebirth && live.some((e) => e.defId === L.rebirth.egg)) seen.egg = true;
+        if (L.rebirth && live.some((e) => e.defId === L.rebirth.into)) seen.risen = true;
+        // the egg: let it hatch once, to see the master rise again
+        if (seen.egg && !seen.risen) continue;
+        const next = live.find((e) => e.lairShield || e.lairWave || e.lairFeed || (L.mend && e.defId === L.mend.id));
+        if (next && !next.invuln) { ws.kill(next); continue; }
+        if (next) continue;
+        if (boss && !boss.invuln) {
+          if (L.ascend && w.lair.ascK < L.ascend.at.length) { boss.hp = boss.maxHp * L.ascend.at[w.lair.ascK] - 1; seen.rose = true; continue; }
+          ws.kill(boss);
+        }
+      }
+      const cleared = !!(w.lair && w.lair.done) && msgs.some((m) => m.d && m.d.lairDone);
+      const ok = cleared && (!L.shield || seen.guarded) && (!L.ascend || (seen.rose && seen.guarded)) && (!L.waves || seen.waves === L.waves.n) &&
+        (!L.rebirth || (seen.egg && seen.risen));
+      check(th.name + ': its own way through works and it can be cleared', ok, JSON.stringify(Object.assign({ cleared }, seen)));
+    }
+  }
+
   check('no errors in the server log', !/error handling|TypeError|ReferenceError/.test(srvOut), (srvOut.match(/.*error.*/i) || [''])[0]);
   for (const c of [A, A2, A3, B, old, dup, wrong, bad, evil, ws]) c.s.destroy();
   hook.close();

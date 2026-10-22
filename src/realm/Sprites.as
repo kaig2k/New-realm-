@@ -1078,8 +1078,8 @@ package realm {
 				cache[key] = bd;
 				return bd;
 			}
-			// a Godly piece with art drawn for it (GodlyArt): outlined, in its Godly frame
-			var gart:BitmapData = GodlyArt.icon(item);
+			// a Godly piece with art drawn for it (GodlyArt): outlined, in its Godly frame (only if the template can't draw it)
+			var gart:BitmapData = ItemForge.family(item) ? null : GodlyArt.icon(item);
 			if (gart) {
 				bd = new BitmapData(gart.width + 2, gart.height + 2, true, 0);
 				bd.copyPixels(gart, gart.rect, new Point(1, 1));
@@ -1187,7 +1187,8 @@ package realm {
 				if (j < w * (h - 1)) todo.push(j + w);
 			}
 			// solid border, then three glow passes getting fainter
-			var cols:Array = [0xfffff6e0, 0xfffff6e0, 0xb0fff0d0, 0x60ffe8c0, 0x28ffe0b0];
+			// (gold, so ivory Godly art stands out against it)
+			var cols:Array = [0xffffd860, 0xffe0a830, 0xb0ffd050, 0x60ffc840, 0x28ffc030];
 			for (var pass:int = 0; pass < cols.length; pass++) {
 				var copy:Vector.<uint> = px.concat();
 				for (var y:int = 1; y < h - 1; y++) {

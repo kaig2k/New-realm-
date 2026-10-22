@@ -275,7 +275,15 @@ package realm {
 				var rc:uint = Data.RARITY_COLORS[it.rarity] || 0xffffff;
 				metal = ramp(mix(metal[1], rc, 0.45));
 			}
-			if (it.rarity == "gd") { metal = [0xffffff, 0xfff0d0, 0xc8b080]; trim = TRIMS[0]; }
+			if (it.rarity == "gd") {
+				// Godly: ivory and gold, touched with its set's own colour, which fills its gems and its light
+				var gs:Object = Godly.SETS[String(it.set || "").substr(2)];
+				var gc:uint = gs ? uint(gs.weapon.col) : 0xffe080;
+				metal = [mix(0xffffff, gc, 0.08), mix(0xfff2d8, gc, 0.26), mix(0xb89860, gc, 0.4)];
+				trim = TRIMS[0];
+				gem = gc;
+				if (!el) fx = [tint(gc, 0.55), gc];
+			}
 			if (golden) trim = TRIMS[0];
 			// shafts of staves, wands and bows are their own wood unless an element runs through them
 			var shaft:Array = el && it.sub == "bow" ? [el.m[1], el.m[2], shade(el.m[2], 0.6)] : grip;
@@ -322,6 +330,11 @@ package realm {
 			else if (diag) dressWeapon(it, cells, skel, ring, put, core, shp, el, grand, h, fam);
 			else if (it.kind == "armor") dressArmour(it, cells, ring, put, el, grand, h, shp);
 			else dressSymmetric(it, cells, skel, ring, put, el, grand, h);
+			// Godly: a glint of divine light at its tip, or above it
+			if (it.rarity == "gd") {
+				if (diag) edgeMotif("star", cells, ring, put, 1, h);
+				else { put(0, 0, "z"); put(7, 0, "z"); put(1, 0, "x"); put(6, 0, "x"); }
+			}
 
 			// ---- shading: light from the top-left, five tones a part (glint, light, base, shade, deep)
 			var KEYS:Object = {m: ["A", "H", "B", "b", "a"], g: ["y", "Y", "W", "w", "v"], t: ["j", "J", "G", "g", "h"], e: ["E", "X", "R", "r", "c"],

@@ -366,18 +366,18 @@ function dailyLogin(c) {
 // ------------------------------------------------------------------ earned titles
 /** Gives account `key` an earned nameplate title (see Data.TITLES / Data.SLAYER) for good, and tells them if they're on. */
 function grantTitle(key, id) {
-  const t = Data.findTitle(id) || Data.findDye(id);
+  const t = Data.findTitle(id) || Data.findDye(id) || Data.findPetSkin(id);
   if (!key || !t || !t.earn) return false;
   const sv = onlineSave(key);
   if (!sv._titles || typeof sv._titles !== 'object') sv._titles = {};
   if (sv._titles[id]) return false;
   sv._titles[id] = Date.now();
   store.putSave(key, sv);
-  feat('title', { name: (accounts[key] && accounts[key].name) || key, title: t.name + (Data.findDye(id) ? ' dye' : ''), color: t.col });
+  feat('title', { name: (accounts[key] && accounts[key].name) || key, title: t.name + (Data.findDye(id) ? ' dye' : Data.findPetSkin(id) ? ' pet skin' : ''), color: t.col });
   const c = byName.get(key);
   if (c) {
     c.send({ t: 'title', id, earned: Object.keys(sv._titles) });
-    const kind = Data.findDye(id) ? 'Dye' : 'Title';
+    const kind = Data.findDye(id) ? 'Dye' : Data.findPetSkin(id) ? 'Pet skin' : 'Title';
     c.send({ t: 'banner', text: kind + ' earned: ' + t.name + '!', color: t.col || 0xff9a2e, msg: 'Wear it from the Fame Store in the Nexus.', sfx: 'fanfare' });
   }
   return true;
@@ -1046,6 +1046,8 @@ function applySave(c, data, cid) {
   graves.bury(data, fell, wallet.fameGain(prev, data));
   // and earned titles (the game's list is only a copy)
   if (prev._titles) data._titles = prev._titles; else delete data._titles;
+  // and the Fate Crate's chest, filters and bad-luck count, and the Fate Dust (all the server's)
+  if (prev._crate) data._crate = prev._crate; else delete data._crate;
   data.earned = Object.keys(data._titles || {});
   // admins' own new items join their ledger
   if (canTest(c)) items.eachItem(data, (it) => { if (!it.sid && !items.STARTERS.has(items.fingerprint(it))) items.issue(data, it); });
@@ -1091,6 +1093,84 @@ function setCaps(c) {
 }
 
 /** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
+// ------------------------------------------------------------------ the Fate Crate
+/** The account's crate state (sv._crate, the server's): the chest, filters, bad-luck count and Fate Dust. */
+function crateState(sv) {
+  let cr = sv._crate;
+  if (!cr || typeof cr !== 'object') cr = sv._crate = {};
+  if (!Array.isArray(cr.box)) cr.box = [];
+  if (!cr.filter || typeof cr.filter !== 'object') cr.filter = { stat: 'keep', gold: 'keep', aether: 'keep', reroll: 'keep' };
+  cr.pity = Math.max(0, cr.pity | 0);
+  cr.dust = Math.max(0, cr.dust | 0);
+  return cr;
+}
+/** What the game is told about it. */
+function crateView(cr) {
+  return { box: cr.box, filter: cr.filter, pity: cr.pity, dust: cr.dust, opened: cr.opened || 0 };
+}
+/** One crate: rolls its prize and puts it in the chest, unlocks it, or uses it at once (the filters). */
+function openCrate(c, sv, cr) {
+  const p = Data.crateRoll(cr.pity >= Data.CRATE_PITY - 1);
+  cr.pity = p.tier >= 2 ? 0 : cr.pity + 1;
+  const f = cr.filter;
+  const res = { id: p.id, tier: p.tier, name: p.name };
+  const keep = (it) => { cr.box.push(it); res.item = it; };
+  const gold = (n, why) => { sv.gold = (sv.gold || 0) + n; res.auto = why; };
+  switch (p.id) {
+    case 'stat': {
+      const it = Data.makePotion('stat', Data.randomStat());
+      res.name = it.name;
+      if (f.stat === 'sell') { res.item = it; gold(Data.sellValue(it), 'sold for ' + Data.sellValue(it) + ' gold'); } else keep(it);
+      break;
+    }
+    case 'gold': {
+      const amt = Math.round((Data.CRATE_GOLD[0] + Math.random() * (Data.CRATE_GOLD[1] - Data.CRATE_GOLD[0])) / 50) * 50;
+      const it = Data.makePouch('gold', amt);
+      res.name = 'Gold Pouch (' + amt.toLocaleString('en') + ' gold)';
+      if (f.gold === 'open') { res.item = it; gold(amt, 'opened: +' + amt.toLocaleString('en') + ' gold'); } else keep(it);
+      break;
+    }
+    case 'aether': {
+      const it = Data.makePouch('aether', Data.CRATE_AETHER);
+      res.name = 'Aether Vial (' + Data.CRATE_AETHER + ' Aether)';
+      if (f.aether === 'open') { res.item = it; sv.onrane = (sv.onrane || 0) + Data.CRATE_AETHER; res.auto = 'opened: +' + Data.CRATE_AETHER + ' Aether'; } else keep(it);
+      break;
+    }
+    case 'reroll': {
+      const it = Data.makeCharm('reroll');
+      res.name = it.name;
+      if (f.reroll === 'sell') { res.item = it; gold(Data.sellValue(it), 'sold for ' + Data.sellValue(it).toLocaleString('en') + ' gold'); } else keep(it);
+      break;
+    }
+    case 'sovereign': {
+      const it = Data.makeCharm('sovereign');
+      res.name = it.name;
+      keep(it);
+      broadcast('✦ ' + c.name + ' found a Sovereign Charm in a Fate Crate!', 0xffd23a);
+      break;
+    }
+    case 'ring': {
+      const it = Uniques.graded(Uniques.make(Uniques.LUCK_RING), Uniques.rollGrade(), 0);
+      res.name = Uniques.displayName(it);
+      keep(it);
+      feat('godly', { name: c.name, item: res.name, from: 'a Fate Crate' });
+      for (const o of clients.values()) if (o.authed && o !== c) o.send({ t: 'banner', text: c.name + ' found Fortune\'s Favour!', color: 0xfff6e0, msg: 'The Godly loot ring, from a Fate Crate.', sfx: 'fanfare' });
+      break;
+    }
+    case 'pet': case 'title': {
+      // a crate-only pet skin or title the account doesn't have yet (every one owned: gold instead)
+      const list = (p.id === 'pet' ? Data.PET_SKINS : Data.TITLES).filter((t) => t.crate && !(sv._titles && sv._titles[t.id]));
+      if (!list.length) { res.name = (p.id === 'pet' ? 'Pet skin' : 'Title') + ' (all owned)'; gold(25000, 'you have them all: 25,000 gold instead'); break; }
+      const t = list[Math.floor(Math.random() * list.length)];
+      res.name = (p.id === 'pet' ? 'Pet skin: ' : 'Title: ') + t.name;
+      res.cos = t.id;
+      grantTitle(c.key, t.id);
+      break;
+    }
+  }
+  return res;
+}
+
 function shopDone(c, sv, ch, extra) {
   sv.tradeSeq = (sv.tradeSeq || 0) + 1;
   store.putSave(c.key, sv);
@@ -2101,6 +2181,133 @@ const handlers = {
     ch.inv[slot] = lg;
     sv.onrane = (sv.onrane || 0) - Data.STARFORGE_AETHER;
     shopDone(c, sv, ch, { forged: lg.name, slot });
+  },
+
+  /**
+   * Grades at the Starforge (Uniques: grades D-SSS, forging +1..+5, Fate Dust). a:
+   *  salvage (slot): the item becomes Fate Dust;  reroll (slot): 10 Fate Dust, a new grade;
+   *  charm (slot, cs): a Reroll Charm (never lower) or Sovereign Charm (S or better);
+   *  fuse (slot, fs): a copy of the same item is forged in, +1 (+3% to everything).
+   * The item's forging is always kept; its new self takes a new ledger id.
+   */
+  grade(c, m) {
+    const now = Date.now();
+    if (now - (c.gradeAt || 0) < 250) return;
+    c.gradeAt = now;
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing changed.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!sv || !ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const cr = crateState(sv);
+    const slot = num(m.slot) | 0, item = ch.inv[slot];
+    if (!Uniques.gradeable(item)) return c.send({ t: 'shopFail', msg: 'Only UT, Legendary, Starforged and Primordial items have a grade.' });
+    const a = str(m.a, 12);
+    const was = Uniques.displayName(item);
+    let made = null, extra = {};
+    if (a === 'salvage') {
+      const d = Uniques.dustOf(item);
+      if (!d) return c.send({ t: 'shopFail', msg: 'That can\'t be salvaged.' });
+      if (item.locked) return c.send({ t: 'shopFail', msg: was + ' is locked. Unlock it first (right-click it).' });
+      ch.inv[slot] = null;
+      items.release(sv, item);
+      cr.dust += d;
+      log(c.name + ' salvaged ' + was + ' for ' + d + ' Fate Dust');
+      return shopDone(c, sv, ch, { graded: 'salvage', was, got: d, dust: cr.dust });
+    } else if (a === 'reroll') {
+      if (cr.dust < Uniques.REROLL_DUST) return c.send({ t: 'shopFail', msg: 'A reroll costs ' + Uniques.REROLL_DUST + ' Fate Dust (you have ' + cr.dust + '). Salvage items you don\'t need for it.' });
+      cr.dust -= Uniques.REROLL_DUST;
+      made = Uniques.graded(item, Uniques.rollGrade(), item.fg | 0);
+    } else if (a === 'charm') {
+      const cs = num(m.cs) | 0, charm = ch.inv[cs];
+      if (!charm || charm.kind !== 'charm') return c.send({ t: 'shopFail', msg: 'You need a Reroll Charm or a Sovereign Charm.' });
+      const min = charm.sub === 'sovereign' ? Uniques.GRADE_S : Uniques.gradeOf(item);
+      made = Uniques.graded(item, Uniques.rollGrade(min), item.fg | 0);
+      ch.inv[cs] = null;
+      items.release(sv, charm);
+      extra.charm = charm.name;
+    } else if (a === 'fuse') {
+      const fs = num(m.fs) | 0, copy = ch.inv[fs];
+      if (fs === slot || !Uniques.canFuse(item, copy)) return c.send({ t: 'shopFail', msg: (item.fg | 0) >= Uniques.FORGE_MAX ? was + ' is already +' + Uniques.FORGE_MAX + '.' : 'Forge in another copy of the same item.' });
+      if (copy.locked) return c.send({ t: 'shopFail', msg: Uniques.displayName(copy) + ' is locked. Unlock it first (right-click it).' });
+      made = Uniques.graded(item, Uniques.gradeOf(item), (item.fg | 0) + 1);
+      ch.inv[fs] = null;
+      items.release(sv, copy);
+    } else return;
+    items.release(sv, item);
+    ch.inv[slot] = items.issue(sv, made);
+    log(c.name + ' ' + a + ': ' + was + ' -> ' + Uniques.displayName(made));
+    shopDone(c, sv, ch, Object.assign({ graded: a, was, now: Uniques.displayName(made), slot, dust: cr.dust }, extra));
+  },
+
+  /** The Fate Crate: n = 1 or 10 crates, 5,000 fame each. Prizes go to the crate chest (or are used at once, by the player's filters). */
+  crate(c, m) {
+    const now = Date.now();
+    if (now - (c.crateAt || 0) < 400) return;
+    c.crateAt = now;
+    if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'open Fate Crates') });
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t open Fate Crates.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so no crate was opened.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!sv || !ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const n = (num(m.n) | 0) === 10 ? 10 : 1;
+    const cost = Data.CRATE_COST * n;
+    if ((sv.fame || 0) < cost) return c.send({ t: 'shopFail', msg: 'You need ' + cost.toLocaleString('en') + ' fame for ' + (n === 1 ? 'a crate' : n + ' crates') + ' (you have ' + (sv.fame || 0).toLocaleString('en') + ').' });
+    const cr = crateState(sv);
+    if (cr.box.length + n > Data.CRATE_BOX) return c.send({ t: 'shopFail', msg: 'Your crate chest is full. Take some prizes out first.' });
+    sv.fame -= cost;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(openCrate(c, sv, cr));
+    cr.opened = (cr.opened || 0) + n;
+    log(c.name + ' opened ' + n + ' Fate Crate' + (n === 1 ? '' : 's') + ': ' + out.map((r) => r.name).join(', '));
+    shopDone(c, sv, ch, { crate: out, fame: sv.fame, cr: crateView(cr) });
+  },
+
+  /** Takes prizes out of the crate chest into the inventory: i (one), or all. */
+  crateTake(c, m) {
+    if (modes.restricted(c.mode)) return c.send({ t: 'shopFail', msg: modes.nameOf(c.mode) + ' heroes can\'t take Fate Crate prizes.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was taken.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!sv || !ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const cr = crateState(sv);
+    const want = m.all ? cr.box.map((_, i) => i) : [num(m.i) | 0];
+    let took = 0;
+    for (const i of want.sort((a, b) => b - a)) {
+      const it = cr.box[i];
+      if (!it) continue;
+      const slot = ch.inv.indexOf(null);
+      if (slot < 0) break;
+      ch.inv[slot] = items.issue(sv, it);
+      cr.box.splice(i, 1);
+      took++;
+    }
+    if (!took) return c.send({ t: 'shopFail', msg: ch.inv.indexOf(null) < 0 ? 'Inventory full!' : 'Nothing to take.' });
+    shopDone(c, sv, ch, { crateTook: took, cr: crateView(cr) });
+  },
+
+  /** The crate chest and filters (when the station opens), and filter changes: f = {stat, gold, aether, reroll}. */
+  crateView(c, m) {
+    const sv = onlineSave(c.key);
+    if (!sv) return;
+    const cr = crateState(sv);
+    if (m && m.f && typeof m.f === 'object') {
+      const ok = { stat: ['keep', 'sell'], gold: ['keep', 'open'], aether: ['keep', 'open'], reroll: ['keep', 'sell'] };
+      for (const k in ok) if (ok[k].indexOf(m.f[k]) >= 0) cr.filter[k] = m.f[k];
+      store.putSave(c.key, sv);
+    }
+    c.send(Object.assign({ t: 'crateState', fame: sv.fame || 0 }, crateView(cr)));
+  },
+
+  /** Opens a Gold Pouch or Aether Vial from the inventory. */
+  pouch(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so it wasn\'t opened.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!sv || !ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const slot = num(m.slot) | 0, it = ch.inv[slot];
+    if (!it || it.kind !== 'pouch') return;
+    const amt = Math.max(0, Math.min(it.sub === 'aether' ? 1000 : 100000, it.amt | 0));
+    ch.inv[slot] = null;
+    items.release(sv, it);
+    if (it.sub === 'aether') sv.onrane = (sv.onrane || 0) + amt; else sv.gold = (sv.gold || 0) + amt;
+    shopDone(c, sv, ch, { pouch: it.sub === 'aether' ? 'aether' : 'gold', amt });
   },
 
   /** The player marketplace: what's for sale. */

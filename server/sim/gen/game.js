@@ -148,7 +148,7 @@ class Data {
 			
 			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
 				
-				var uq = it.rarity == "sf" && Uniques.FIXED[it.uid] ? Uniques.starforge(Uniques.make(it.uid)) : Uniques.make(it.uid);
+				var uq = Uniques.gradeable(it) ? Uniques.graded(it, Uniques.gradeOf(it), __int(it.fg)) : Uniques.make(it.uid);
 				if (!uq) return false;
 				for (var uk of __vals( Data.WEAPON_KEYS)) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
 				return true;
@@ -268,6 +268,8 @@ class Data {
 				out.push({name: Data.STAT_NAMES[st] + " Rune", k: "n", a: st});
 			}
 			out.push({name: "Star Shard", k: "m", a: "sor"}, {name: "Evolution Stone", k: "m", a: "stone"});
+			out.push({name: "Reroll Charm", k: "h", a: "reroll"}, {name: "Sovereign Charm", k: "h", a: "sovereign"},
+				{name: "Gold Pouch", k: "o", a: "gold"}, {name: "Aether Vial", k: "o", a: "aether"});
 			for (i = __int(0); i < Bosses.RAIDS.length; i++) out.push({name: Bosses.RAIDS[i].name + " Key", k: "k", a: i});
 			for (i = __int(0); i < Data.DUNGEONS.length; i++) out.push({name: Data.DUNGEONS[i].name + " Key", k: "d", a: i});
 			var slots = ["Weapon", "Ability", "Armor", "Ring"], tops = [7, 6, 7, 5];
@@ -294,6 +296,8 @@ class Data {
 				case "g": return Godly.make(e.a, e.b);
 				case "p": return e.a == "hp" || e.a == "mp" ? Data.makePotion(e.a) : Data.makePotion("stat", e.a);
 				case "m": return e.a == "sor" ? Data.makeSor() : Data.makeStone();
+				case "h": return Data.makeCharm(e.a);
+				case "o": return Data.makePouch(e.a, e.a == "aether" ? Data.CRATE_AETHER : Data.CRATE_GOLD[1]);
 				case "n": return Data.makeRune(e.a);
 				case "k": return Data.makeKey(e.a);
 				case "d": return Data.makeDungeonKey(e.a);
@@ -331,6 +335,23 @@ class Data {
 	static rollKey(def, items, boost) {
 			var c = def.final || def.finale ? 0.08 : def.raid ? 0.04 : def.dungeon && !def.guardian ? (def.dtier >= 5 ? 0.06 : 0.025) : def.ai == "boss" ? 0.02 : 0;
 			if (c > 0 && Math.random() < c * boost) items.push(Data.makeKey(__int(Math.random() * Bosses.RAIDS.length)));
+		}
+	static crateRoll(pity) {
+			var pool = [], total = __int(0), p = null;
+			for (p of __vals( Data.CRATE_PRIZES)) if (!pity || p.tier >= 2) { pool.push(p); total = __int(total + (p.w)); }
+			var r = Math.random() * total;
+			for (p of __vals( pool)) { r -= p.w; if (r < 0) return p; }
+			return pool[pool.length - 1];
+		}
+	static findCratePrize(id) {
+			for (var p of __vals( Data.CRATE_PRIZES)) if (p.id == id) return p;
+			return null;
+		}
+	static makeCharm(sub) {
+			return {kind: "charm", sub: sub == "sovereign" ? "sovereign" : "reroll", tier: 0, name: sub == "sovereign" ? "Sovereign Charm" : "Reroll Charm"};
+		}
+	static makePouch(sub, amt) { amt = __int(amt);
+			return sub == "aether" ? {kind: "pouch", sub: "aether", tier: 0, amt: amt, name: "Aether Vial"} : {kind: "pouch", sub: "gold", tier: 0, amt: amt, name: "Gold Pouch"};
 		}
 	static makeSor() {
 			return {kind: "material", sub: "sor", tier: 0, name: "Star Shard"};
@@ -507,7 +528,9 @@ class Data {
 		}
 	static sellValue(item) {
 			if (!item) return __int(0);
-			if (item.rarity) return __int({ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000, gd: 25000}[item.rarity]);
+			if (item.rarity) return __int({ut: 400, st: 600, fb: 1500, lg: 3000, sf: 6000, ar: 8000, gd: 25000}[item.rarity]);
+			if (item.kind == "charm") return __int(item.sub == "sovereign" ? 20000 : 2000);
+			if (item.kind == "pouch") return __int(1000);
 			if (item.curse) return __int(1500);
 			switch (item.kind) {
 				case "stat": return __int(250);
@@ -596,6 +619,14 @@ class Data {
 				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
 				case "stone": s += "Pets evolve with these at the Pet Yard.\nBosses drop them (raids and the Dark Elder most often).\n"; break;
 				case "rune": s += "Starforge: carry it when you reroll an item's bonus stats and " + Data.STAT_NAMES[item.sub] + " is sure to be one of them (the rune is used up).\n"; break;
+				case "charm":
+					s += item.sub == "sovereign" ? "Rerolls an item's grade at the Starforge: S, SS or SSS, never lower than S. Its forging is kept.\n"
+						: "Rerolls an item's grade at the Starforge, never lower than the grade it has. Its forging is kept.\n";
+					s += "<font color='#9a9aaa'>From the Fate Crate.</font>\n";
+					break;
+				case "pouch":
+					s += (item.sub == "aether" ? "Click to open: " + item.amt + " Aether." : "Click to open: " + Ui.commas(item.amt) + " gold.") + "\n";
+					break;
 			}
 			if (Data.isGear(item)) {
 				var on = "";
@@ -617,6 +648,8 @@ class Data {
 				s += "<font color='" + (ok ? "#9a9aaa" : "#ff6060") + "'>Usable by: " + Data.usableBy(item).join(", ") + (ok ? "" : " (not your class)") + "</font>\n";
 			}
 			s += "<font color='#888888'>Sells for " + Data.sellValue(item) + " gold</font>\n";
+			
+			if (Uniques.gradeable(item)) s += Uniques.qualityLine(item);
 			return s;
 		}
 	static fameBonuses(p, firstOfClass) {
@@ -863,7 +896,7 @@ class Data {
 			else for (var k = __int(0); k < Math.min(3, tier - 1); k++) items.push(Data.makeForSlot(lc, __int(Math.random() * 4), 7, null));
 			if (tier >= 2 && Math.random() < 0.1 + 0.08 * tier) items.push(Data.makeStone());
 			var uc = [0, 0, 0, 0.05, 0.12, 0.25, 0.5][tier] * rare;
-			if (Math.random() < uc) items.push(Uniques.make(Data.DEEP_UNIQUES[__int(Math.random() * Data.DEEP_UNIQUES.length)]));
+			if (Math.random() < uc) items.push(Uniques.dropped(Data.DEEP_UNIQUES[__int(Math.random() * Data.DEEP_UNIQUES.length)]));
 			items.push(Data.makePotion("hp"));
 			items.push(Data.makePotion("mp"));
 			return items;
@@ -964,13 +997,13 @@ class Data {
 			if (def.planned) {
 				for (var pid of __vals( def.uniques)) {
 					var pr = Uniques.rarityOf(pid);
-					if (Math.random() < Uniques.CHANCE[pr] * (pr == "ut" ? 1 : boost)) items.push(Uniques.make(pid));
+					if (Math.random() < Uniques.CHANCE[pr] * (pr == "ut" ? 1 : boost)) items.push(Uniques.dropped(pid));
 				}
 				return;
 			}
 			
 			var c = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
-			for (var id of __vals( def.uniques)) if (Math.random() < c * boost) items.push(Uniques.make(id));
+			for (var id of __vals( def.uniques)) if (Math.random() < c * boost) items.push(Uniques.dropped(id));
 		}
 	static rollLoot(def, zone, cls, fortune) { zone = __int(zone); fortune = __int(fortune);
 			
@@ -1270,8 +1303,12 @@ class Uniques {
 		}
 	static starforge(src) {
 			if (!Uniques.canStarforge(src)) return src;
-			var it = Uniques.makeFixed(src.uid);
-			var f = Uniques.FIXED[src.uid];
+			var it = Uniques.starforgeBase(src.uid);
+			return Uniques.gradeable(src) ? Uniques.graded(it, Uniques.gradeOf(src), __int(src.fg)) : it;
+		}
+	static starforgeBase(id) {
+			var it = Uniques.makeFixed(id);
+			var f = Uniques.FIXED[id];
 			it.rarity = "sf";
 			switch (it.kind) {
 				case "weapon":
@@ -1301,6 +1338,102 @@ class Uniques {
 			
 			if (it.kind == "weapon") it.sfb = Uniques.SF_BUMP;
 			return it;
+		}
+	static gradeable(it) {
+			if (it && it.gid && it.rarity == "gd") return Uniques.godlySlot(it) >= 0;
+			if (!it || !it.uid || !(Uniques.FIXED[it.uid] || Uniques.ALL[it.uid])) return false;
+			if (it.uid == Uniques.LUCK_RING) return true;
+			return it.rarity == "ut" || it.rarity == "lg" || it.rarity == "sf" || it.rarity == "ar";
+		}
+	static gradeOf(it) {
+			if (!it || it.g === undefined || it.g === null) return __int(Uniques.GRADE_B);
+			return __int(Math.max(0, Math.min(Uniques.GRADES.length - 1, __int(it.g))));
+		}
+	static quality(it) {
+			return Uniques.GRADE_MUL[Uniques.gradeOf(it)] + Uniques.FORGE_STEP * Math.max(0, Math.min(Uniques.FORGE_MAX, __int(it.fg)));
+		}
+	static rollGrade(min = 0) { min = __int(min);
+			var total = 0, i = 0;
+			for (i = __int(min); i < Uniques.GRADES.length; i++) total += Uniques.GRADE_ODDS[i];
+			var r = Math.random() * total;
+			for (i = __int(min); i < Uniques.GRADES.length; i++) {
+				r -= Uniques.GRADE_ODDS[i];
+				if (r < 0) return __int(i);
+			}
+			return __int(Uniques.GRADES.length - 1);
+		}
+	static godlySlot(it) {
+			var cls = Godly.classOf(it);
+			if (!cls || !Godly.SETS[cls]) return __int(-1);
+			var slot = __int(__int(String(it.gid).substr(cls.length)));
+			return __int(slot >= 0 && slot <= 3 ? slot : -1);
+		}
+	static idOf(it) {
+			return !it ? "" : it.gid && it.rarity == "gd" ? "gd:" + it.gid : it.uid ? "u:" + it.uid : "";
+		}
+	static baseOf(it) {
+			if (it.gid && it.rarity == "gd") return Godly.make(Godly.classOf(it), Uniques.godlySlot(it));
+			if (Uniques.FIXED[it.uid] && it.rarity == "sf") return Uniques.starforgeBase(it.uid);
+			return Uniques.make(it.uid);
+		}
+	static graded(it, g, fg) { g = __int(g); fg = __int(fg);
+			var b = Uniques.baseOf(it);
+			if (!b) return it;
+			g = __int(Math.max(0, Math.min(Uniques.GRADES.length - 1, g)));
+			fg = __int(Math.max(0, Math.min(Uniques.FORGE_MAX, fg)));
+			var q = Math.round((Uniques.GRADE_MUL[g] + Uniques.FORGE_STEP * fg) * 10000) / 10000;
+			var k = null;
+			if (b.kind == "weapon") { b.dmin = Math.round(b.dmin * q); b.dmax = Math.max(b.dmin, Math.round(b.dmax * q)); }
+			if (b.kind == "armor" && b.def) b.def = Math.round(b.def * q);
+			if (b.kind == "ability" && b.power) b.power = Math.round((1 + (b.power - 1) * q) * 100) / 100;
+			for (k of __vals( Data.STATS.concat(Data.GEAR_STATS))) {
+				if (k == "spd" && b.kind == "weapon") continue;
+				if (k == "def" && b.kind == "armor") continue;
+				if (b[k] > 0) b[k] = Math.round(b[k] * q);
+			}
+			
+			if (fg >= 3) {
+				if (b.abx) {
+					var bx = {};
+					for (k in b.abx) bx[k] = typeof b.abx[k] == "number" && k != "skulls" && k != "chain" && k != "cubes" ? Math.round(b.abx[k] * Uniques.AWAKEN_SPECIAL * 100) / 100 : b.abx[k];
+					b.abx = bx;
+				}
+				if (b.kind == "weapon") {
+					b.sfb = Math.round((b.sfb || 1) * Uniques.AWAKEN_SPECIAL * 100) / 100;
+					if (b.x && b.x.armor) b.x = {armor: Math.round(b.x.armor * Uniques.AWAKEN_SPECIAL)};
+					if (b.split) b.split = {n: b.split.n, spd: b.split.spd, life: b.split.life, sh: b.split.sh, mul: Math.round(b.split.mul * Uniques.AWAKEN_SPECIAL * 100) / 100};
+					if (b.boom) b.boom = {r: b.boom.r, mul: Math.round(b.boom.mul * Uniques.AWAKEN_SPECIAL * 100) / 100};
+				}
+			}
+			
+			if (fg >= Uniques.FORGE_MAX) { b.aw = 1; b.name = "Awakened " + b.name; }
+			b.g = g;
+			if (fg > 0) b.fg = fg;
+			if (it.locked) b.locked = true;
+			return b;
+		}
+	static dropped(id) {
+			var it = Uniques.make(id);
+			return Uniques.gradeable(it) ? Uniques.graded(it, Uniques.rollGrade(), 0) : it;
+		}
+	static displayName(it) {
+			if (!it) return "";
+			if (!Uniques.gradeable(it)) return it.name;
+			return it.name + " [" + Uniques.GRADES[Uniques.gradeOf(it)] + (__int(it.fg) > 0 ? "+" + __int(it.fg) : "") + "]";
+		}
+	static canFuse(it, copy) {
+			return Uniques.gradeable(it) && Uniques.gradeable(copy) && it !== copy && Uniques.idOf(it) == Uniques.idOf(copy) && __int(it.fg) < Uniques.FORGE_MAX;
+		}
+	static dustOf(it) {
+			if (!Uniques.gradeable(it) || it.uid == Uniques.LUCK_RING) return __int(0);
+			return __int(__int(Uniques.DUST[it.rarity] || 0));
+		}
+	static qualityLine(it) {
+			if (!Uniques.gradeable(it)) return "";
+			var fg = __int(__int(it.fg));
+			var g = __int(Uniques.gradeOf(it));
+			return "<font color='" + Ui.hex(Uniques.GRADE_COLORS[g]) + "'>Quality: " + Math.round(Uniques.quality(it) * 100) + "% (" + Uniques.GRADES[g] +
+				(fg > 0 ? ", +" + fg + " forge" + (fg == 1 ? "" : "s") : "") + ")" + (it.aw ? ", Awakened" : "") + "</font>\n";
 		}
 	static describe(it) {
 			var s = "";
@@ -1383,7 +1516,8 @@ class Godly {
 			var cls = String(it.set).substr(2);
 			var slot = __int(__int(String(it.gid).substr(cls.length)));
 			if (slot < 0 || slot > 3) return false;
-			var fresh = Godly.make(cls, slot);
+			
+			var fresh = it.g !== undefined || it.fg ? Uniques.graded(it, Uniques.gradeOf(it), __int(it.fg)) : Godly.make(cls, slot);
 			
 			for (var k of __vals( ["kind", "sub", "ab", "tier", "rarity", "set", "passive", "form", "motion", "shots", "dmin", "dmax", "rate", "life",
 					"arc", "parallel", "power", "pierce", "size", "shape", "col", "spd", "accel", "walls", "effect", "split", "boom", "name", "gv"].concat(Data.STATS).concat(Data.GEAR_STATS)))
@@ -1413,16 +1547,20 @@ class Godly {
 			
 			if (def.godly.length && Math.random() < Godly.CHANCE * boost) {
 				var d = def.godly[__int(Math.random() * def.godly.length)];
-				items.push(Godly.make(d[0], d[1]));
+				
+				var gp = Godly.make(d[0], d[1]);
+				items.push(Uniques.graded(gp, Uniques.rollGrade(), 0));
 			}
 		}
 	static describe(it) {
+			
+			if (!it.gid) return "";
 			var src = Godly.source[it.gid];
 			var s = "";
 			var x = Godly.wrathOf(it);
 			if (x) s += "<font color='#ffd860'><b>Divine Wrath — " + x.name + ":</b></font> every " + Godly.EVERY + "th volley " + x.desc + " (every " + Godly.WRATH_SET + "th with the full set).\n";
 			if (Godly.classOf(it)) s += "<font color='#ffd860'>Wearing it: a golden aura; the full set crowns you with a halo.</font>\n";
-			return s + "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ". Every drop is the same: no bad rolls.</font>\n";
+			return s + "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ". Every drop is the same piece; its grade is rolled, and copies forge into it.</font>\n";
 		}
 }
 
@@ -5658,6 +5796,23 @@ Data.SHOP = [
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
+Data.CRATE_COST = __int(5000);
+Data.CRATE_PITY = __int(30);
+Data.CRATE_BOX = __int(60);
+Data.CRATE_GOLD = [2000, 3000];
+Data.CRATE_AETHER = __int(150);
+Data.CRATE_TIERS = [{name: "Blue", col: 0x4a8cff}, {name: "Purple", col: 0xa060ff}, {name: "Pink", col: 0xff5ac8},
+			{name: "Red", col: 0xff3a3a}, {name: "Gold", col: 0xffd23a}];
+Data.CRATE_PRIZES = [
+			{id: "stat", tier: 0, w: 550, name: "Random stat potion"},
+			{id: "gold", tier: 1, w: 250, name: "Gold Pouch (2,000-3,000 gold)"},
+			{id: "aether", tier: 2, w: 100, name: "Aether Vial (150 Aether)"},
+			{id: "reroll", tier: 2, w: 60, name: "Reroll Charm"},
+			{id: "pet", tier: 3, w: 25, name: "Crate-only pet skin"},
+			{id: "title", tier: 3, w: 10, name: "Crate-only title"},
+			{id: "sovereign", tier: 4, w: 4, name: "Sovereign Charm"},
+			{id: "ring", tier: 4, w: 1, name: "Fortune's Favour (Godly loot ring)"}
+		];
 Data.CURSES = {
 			bloodbound: {name: "Bloodbound", boon: {att: 16, mgt: 14}, bane: {def: -10}, desc: "hits like a storm, guards like paper"},
 			hexed: {name: "Hexed", boon: {wis: 16, mp: 60}, bane: {hp: -50}, desc: "a well of magic that drinks your life"},
@@ -6159,6 +6314,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-grades", title: "What's new in Eldmere",
+				lines: ["<b>Every item rolls a grade</b>: UT, Legendary, Starforged, Primordial and Godly items drop D, C, B, A, S, SS or SSS, from 90% to 120% of their stats. The grade shows in the name (Titanbreaker [S+2]). Items you already had count as B.",
+					"<b>Forge copies together</b> at the Starforge's Grades & Forging tab: +3% each, up to +5. +3 strengthens the item's special; +5 Awakens it. Salvage items for <b>Fate Dust</b>: 10 rerolls a grade, keeping the forging.",
+					"<b>The Fate Crate</b>, in the Nexus west wing: 5,000 fame a crate, one or ten at once. Stat potions, Gold Pouches, Aether Vials, Reroll and Sovereign Charms, crate-only pet skins and titles, and once in a thousand <font color='#fff6e0'>Fortune's Favour</font>, a Godly loot ring. Never more than 30 crates without a pink prize."]},
 			{id: "2026-10-effects", title: "Weapon fixes",
 				lines: ["<b>Fifteen dungeon weapons had hidden effects</b> left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. They're gone. Each weapon now does exactly what its tooltip says.",
 					"Affected: <b>Moonlantern, Prismatic, Regent's Scepter, Hexbound, Bonechime</b> (wands), <b>Fang of Ssythra, Imp's Fang, Frostfang, Obsidian Shiv, Kraken's Grasp</b> (daggers), <b>Venomspit, Soulreaper, Cubic, Trident, Cinderfeather</b> (staves). Copies you own are updated, Starforged ones included.",
@@ -6304,7 +6463,11 @@ Data.BANNER_H = __int(10);
 Data.PET_SKINS = [
 			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
 			{id: "pskin_shadow", name: "Shadow", cost: 1200, col: 0x3a2a5a}, {id: "pskin_ember", name: "Ember", cost: 1200, col: 0xff5a20},
-			{id: "pskin_spectral", name: "Spectral", cost: 2500, col: 0x70ffd0}
+			{id: "pskin_spectral", name: "Spectral", cost: 2500, col: 0x70ffd0},
+			
+			{id: "pskin_rabbit", name: "Golden Rabbit", spr: "pet_skin_rabbit", earn: "Found in the Fate Crate", col: 0xf6c232, crate: true},
+			{id: "pskin_cat", name: "Fortune Cat", spr: "pet_skin_cat", earn: "Found in the Fate Crate", col: 0xd8302c, crate: true},
+			{id: "pskin_shoe", name: "Lucky Horseshoe", spr: "pet_skin_shoe", earn: "Found in the Fate Crate", col: 0x3aa8ff, crate: true}
 		];
 Data.TITLES = [
 			{id: "t_bold", name: "the Bold", cost: 500}, {id: "t_wanderer", name: "the Wanderer", cost: 500},
@@ -6332,7 +6495,11 @@ Data.TITLES = [
 			{id: "season_podium", name: "Season Medallist", earn: "Finish a season in the ladder's top three", col: 0xc0e8ff},
 			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a},
 			{id: "oracle5", name: "Oracle's Favoured", earn: "Complete 5 boss collections in the Oracle", col: 0xb9a9ff},
-			{id: "oracleall", name: "the All-Seeing", earn: "Complete every boss collection in the Oracle", col: 0xe0d0ff}
+			{id: "oracleall", name: "the All-Seeing", earn: "Complete every boss collection in the Oracle", col: 0xe0d0ff},
+			
+			{id: "t_favoured", name: "Fortune's Favoured", earn: "Found in the Fate Crate", col: 0xffd23a, crate: true},
+			{id: "t_highroller", name: "the High Roller", earn: "Found in the Fate Crate", col: 0xffb040, crate: true},
+			{id: "t_gilded", name: "Gilded", earn: "Found in the Fate Crate", col: 0xf0c030, crate: true}
 		];
 Data.SLAYER = {
 			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
@@ -6810,7 +6977,9 @@ Uniques.FIXED = {
 			star_prince_hourglass: {n: "Hourglass of the Star Prince", k: "ability", s: "hourglass", r: "lg", pw: 2.95, st: {wis: 8, dex: 6}, ab: "timestop", abx: {dur: 1}, txt: "Time Stop lasts 1s longer.", lore: "Astrel's toy. He never let the sand run out."},
 			frozen_choir_lyre: {n: "Lyre of the Frozen Choir", k: "ability", s: "lyre", r: "lg", pw: 2.95, st: {wis: 8, mp: 60}, ab: "lullaby", abx: {slowAfter: 2}, txt: "Monsters slept by Lullaby stay slowed for 2s after they wake.", lore: "Its strings are icicles that never melt."},
 			flamewarden_signet: {n: "Flamewarden's Signet", k: "ring", s: "mgt", r: "lg", st: {att: 8, mgt: 12, dex: 4}, txt: "The raw damage ring.", lore: "Ignivar's seal of office."},
-			shardglass_alembic: {n: "Shardglass Alembic", k: "ability", s: "flask", r: "lg", pw: 2.95, st: {att: 6, dex: 6}, ab: "philbomb", abx: {shards: true}, txt: "Philosopher's Bomb scatters glass shards outwards.", lore: "Blown from the Seraph's broken wings."}
+			shardglass_alembic: {n: "Shardglass Alembic", k: "ability", s: "flask", r: "lg", pw: 2.95, st: {att: 6, dex: 6}, ab: "philbomb", abx: {shards: true}, txt: "Philosopher's Bomb scatters glass shards outwards.", lore: "Blown from the Seraph's broken wings."},
+			
+			fortune_ring: {n: "Fortune's Favour", k: "ring", s: "frt", r: "gd", st: {frt: 25}, txt: "Luck only, no combat stats. Found only in the Fate Crate.", lore: "Found at the bottom of a Fate Crate, once in a thousand."}
 		};
 Uniques.DROPS = {
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
@@ -6879,6 +7048,19 @@ Uniques.SF_PASSIVES = {
 			sorcerers_seal: {id: "overflow", name: "Overflow", desc: "MP regenerated while already full fills your Ward shield instead."}
 		};
 Uniques.SF_BUMP = 1.25;
+Uniques.GRADES = ["D", "C", "B", "A", "S", "SS", "SSS"];
+Uniques.GRADE_MUL = [0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2];
+Uniques.GRADE_ODDS = [15, 20, 30, 20, 10, 4, 1];
+Uniques.GRADE_COLORS = [0x9a8a7a, 0xb8c0c8, 0xe8e8e8, 0x6ae08a, 0x5ab8ff, 0xd070ff, 0xffd23a];
+Uniques.GRADE_B = __int(2);
+Uniques.GRADE_S = __int(4);
+Uniques.FORGE_STEP = 0.03;
+Uniques.FORGE_MAX = __int(5);
+Uniques.AWAKEN_SPECIAL = 1.15;
+Uniques.AWAKEN_PASSIVE = 1.4;
+Uniques.DUST = {ut: 1, lg: 3, sf: 5, ar: 5};
+Uniques.REROLL_DUST = __int(10);
+Uniques.LUCK_RING = "fortune_ring";
 Godly.CHANCE = 1 / 1000;
 Godly.SETS = {
 			wizard: {name: "Astral Archmage", items: ["Staff of the Endless Cosmos", "Grimoire of Creation", "Robes of the Astral Archmage", "Ring of Infinite Stars"],

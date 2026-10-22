@@ -444,8 +444,8 @@ package realm {
 			if (it && it.gid) return Godly.upgrade(it);
 			// a unique weapon from before its numbers changed: remade as it drops now
 			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
-				// (a Starforged one is remade Starforged)
-				var uq:Object = it.rarity == "sf" && Uniques.FIXED[it.uid] ? Uniques.starforge(Uniques.make(it.uid)) : Uniques.make(it.uid);
+				// (its grade and forging kept)
+				var uq:Object = Uniques.gradeable(it) ? Uniques.graded(it, Uniques.gradeOf(it), int(it.fg)) : Uniques.make(it.uid);
 				if (!uq) return false;
 				for each (var uk:String in WEAPON_KEYS) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
 				return true;
@@ -635,6 +635,8 @@ package realm {
 				out.push({name: STAT_NAMES[st] + " Rune", k: "n", a: st});
 			}
 			out.push({name: "Star Shard", k: "m", a: "sor"}, {name: "Evolution Stone", k: "m", a: "stone"});
+			out.push({name: "Reroll Charm", k: "h", a: "reroll"}, {name: "Sovereign Charm", k: "h", a: "sovereign"},
+				{name: "Gold Pouch", k: "o", a: "gold"}, {name: "Aether Vial", k: "o", a: "aether"});
 			for (i = 0; i < Bosses.RAIDS.length; i++) out.push({name: Bosses.RAIDS[i].name + " Key", k: "k", a: i});
 			for (i = 0; i < DUNGEONS.length; i++) out.push({name: DUNGEONS[i].name + " Key", k: "d", a: i});
 			var slots:Array = ["Weapon", "Ability", "Armor", "Ring"], tops:Array = [7, 6, 7, 5];
@@ -666,6 +668,8 @@ package realm {
 				case "g": return Godly.make(e.a, e.b);
 				case "p": return e.a == "hp" || e.a == "mp" ? makePotion(e.a) : makePotion("stat", e.a);
 				case "m": return e.a == "sor" ? makeSor() : makeStone();
+				case "h": return makeCharm(e.a);
+				case "o": return makePouch(e.a, e.a == "aether" ? CRATE_AETHER : CRATE_GOLD[1]);
 				case "n": return makeRune(e.a);
 				case "k": return makeKey(e.a);
 				case "d": return makeDungeonKey(e.a);
@@ -726,6 +730,51 @@ package realm {
 		private static function rollKey(def:Object, items:Array, boost:Number):void {
 			var c:Number = def.final || def.finale ? 0.08 : def.raid ? 0.04 : def.dungeon && !def.guardian ? (def.dtier >= 5 ? 0.06 : 0.025) : def.ai == "boss" ? 0.02 : 0;
 			if (c > 0 && Math.random() < c * boost) items.push(makeKey(int(Math.random() * Bosses.RAIDS.length)));
+		}
+
+		// ---- the Fate Crate: 5,000 fame at its station in the Nexus (the server rolls every prize)
+		public static const CRATE_COST:int = 5000;
+		/** After this many crates without a pink prize or better, the next one is pink. */
+		public static const CRATE_PITY:int = 30;
+		/** The crate chest by the station holds this many prizes. */
+		public static const CRATE_BOX:int = 60;
+		public static const CRATE_GOLD:Array = [2000, 3000];
+		public static const CRATE_AETHER:int = 150;
+		/** Prize colours, blue (0) to gold (4). */
+		public static const CRATE_TIERS:Array = [{name: "Blue", col: 0x4a8cff}, {name: "Purple", col: 0xa060ff}, {name: "Pink", col: 0xff5ac8},
+			{name: "Red", col: 0xff3a3a}, {name: "Gold", col: 0xffd23a}];
+		/** The prizes: w is the chance in tenths of a percent (all add to 1,000). */
+		public static const CRATE_PRIZES:Array = [
+			{id: "stat", tier: 0, w: 550, name: "Random stat potion"},
+			{id: "gold", tier: 1, w: 250, name: "Gold Pouch (2,000-3,000 gold)"},
+			{id: "aether", tier: 2, w: 100, name: "Aether Vial (150 Aether)"},
+			{id: "reroll", tier: 2, w: 60, name: "Reroll Charm"},
+			{id: "pet", tier: 3, w: 25, name: "Crate-only pet skin"},
+			{id: "title", tier: 3, w: 10, name: "Crate-only title"},
+			{id: "sovereign", tier: 4, w: 4, name: "Sovereign Charm"},
+			{id: "ring", tier: 4, w: 1, name: "Fortune's Favour (Godly loot ring)"}
+		];
+		/** One prize from the table (pity: pink or better, with the same odds among those). */
+		public static function crateRoll(pity:Boolean):Object {
+			var pool:Array = [], total:int = 0, p:Object;
+			for each (p in CRATE_PRIZES) if (!pity || p.tier >= 2) { pool.push(p); total += p.w; }
+			var r:Number = Math.random() * total;
+			for each (p in pool) { r -= p.w; if (r < 0) return p; }
+			return pool[pool.length - 1];
+		}
+		public static function findCratePrize(id:String):Object {
+			for each (var p:Object in CRATE_PRIZES) if (p.id == id) return p;
+			return null;
+		}
+
+		/** A charm: "reroll" (never lower than the grade it has) or "sovereign" (S or better). */
+		public static function makeCharm(sub:String):Object {
+			return {kind: "charm", sub: sub == "sovereign" ? "sovereign" : "reroll", tier: 0, name: sub == "sovereign" ? "Sovereign Charm" : "Reroll Charm"};
+		}
+
+		/** A Gold Pouch or an Aether Vial: click it to open. */
+		public static function makePouch(sub:String, amt:int):Object {
+			return sub == "aether" ? {kind: "pouch", sub: "aether", tier: 0, amt: amt, name: "Aether Vial"} : {kind: "pouch", sub: "gold", tier: 0, amt: amt, name: "Gold Pouch"};
 		}
 
 		public static function makeSor():Object {
@@ -972,7 +1021,9 @@ package realm {
 		/** Gold value when selling at the marketplace. */
 		public static function sellValue(item:Object):int {
 			if (!item) return 0;
-			if (item.rarity) return {ut: 400, st: 600, fb: 1500, lg: 3000, ar: 8000, gd: 25000}[item.rarity];
+			if (item.rarity) return {ut: 400, st: 600, fb: 1500, lg: 3000, sf: 6000, ar: 8000, gd: 25000}[item.rarity];
+			if (item.kind == "charm") return item.sub == "sovereign" ? 20000 : 2000;
+			if (item.kind == "pouch") return 1000;
 			if (item.curse) return 1500;
 			switch (item.kind) {
 				case "stat": return 250;
@@ -1068,6 +1119,14 @@ package realm {
 				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
 				case "stone": s += "Pets evolve with these at the Pet Yard.\nBosses drop them (raids and the Dark Elder most often).\n"; break;
 				case "rune": s += "Starforge: carry it when you reroll an item's bonus stats and " + STAT_NAMES[item.sub] + " is sure to be one of them (the rune is used up).\n"; break;
+				case "charm":
+					s += item.sub == "sovereign" ? "Rerolls an item's grade at the Starforge: S, SS or SSS, never lower than S. Its forging is kept.\n"
+						: "Rerolls an item's grade at the Starforge, never lower than the grade it has. Its forging is kept.\n";
+					s += "<font color='#9a9aaa'>From the Fate Crate.</font>\n";
+					break;
+				case "pouch":
+					s += (item.sub == "aether" ? "Click to open: " + item.amt + " Aether." : "Click to open: " + Ui.commas(item.amt) + " gold.") + "\n";
+					break;
 			}
 			if (isGear(item)) {
 				var on:String = "";
@@ -1089,6 +1148,8 @@ package realm {
 				s += "<font color='" + (ok ? "#9a9aaa" : "#ff6060") + "'>Usable by: " + usableBy(item).join(", ") + (ok ? "" : " (not your class)") + "</font>\n";
 			}
 			s += "<font color='#888888'>Sells for " + sellValue(item) + " gold</font>\n";
+			// (an item's grade and forging, last: "Quality: 116% (S, +2 forges)")
+			if (Uniques.gradeable(item)) s += Uniques.qualityLine(item);
 			return s;
 		}
 
@@ -1618,6 +1679,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-grades", title: "What's new in Eldmere",
+				lines: ["<b>Every item rolls a grade</b>: UT, Legendary, Starforged, Primordial and Godly items drop D, C, B, A, S, SS or SSS, from 90% to 120% of their stats. The grade shows in the name (Titanbreaker [S+2]). Items you already had count as B.",
+					"<b>Forge copies together</b> at the Starforge's Grades & Forging tab: +3% each, up to +5. +3 strengthens the item's special; +5 Awakens it. Salvage items for <b>Fate Dust</b>: 10 rerolls a grade, keeping the forging.",
+					"<b>The Fate Crate</b>, in the Nexus west wing: 5,000 fame a crate, one or ten at once. Stat potions, Gold Pouches, Aether Vials, Reroll and Sovereign Charms, crate-only pet skins and titles, and once in a thousand <font color='#fff6e0'>Fortune's Favour</font>, a Godly loot ring. Never more than 30 crates without a pink prize."]},
 			{id: "2026-10-effects", title: "Weapon fixes",
 				lines: ["<b>Fifteen dungeon weapons had hidden effects</b> left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. They're gone. Each weapon now does exactly what its tooltip says.",
 					"Affected: <b>Moonlantern, Prismatic, Regent's Scepter, Hexbound, Bonechime</b> (wands), <b>Fang of Ssythra, Imp's Fang, Frostfang, Obsidian Shiv, Kraken's Grasp</b> (daggers), <b>Venomspit, Soulreaper, Cubic, Trident, Cinderfeather</b> (staves). Copies you own are updated, Starforged ones included.",
@@ -1864,7 +1929,11 @@ package realm {
 		public static const PET_SKINS:Array = [
 			{id: "pskin_golden", name: "Golden", cost: 600, col: 0xf0c030}, {id: "pskin_frost", name: "Frost", cost: 600, col: 0x80d8ff},
 			{id: "pskin_shadow", name: "Shadow", cost: 1200, col: 0x3a2a5a}, {id: "pskin_ember", name: "Ember", cost: 1200, col: 0xff5a20},
-			{id: "pskin_spectral", name: "Spectral", cost: 2500, col: 0x70ffd0}
+			{id: "pskin_spectral", name: "Spectral", cost: 2500, col: 0x70ffd0},
+			// (the Fate Crate's red pet skins: a whole new look, whatever the species: spr)
+			{id: "pskin_rabbit", name: "Golden Rabbit", spr: "pet_skin_rabbit", earn: "Found in the Fate Crate", col: 0xf6c232, crate: true},
+			{id: "pskin_cat", name: "Fortune Cat", spr: "pet_skin_cat", earn: "Found in the Fate Crate", col: 0xd8302c, crate: true},
+			{id: "pskin_shoe", name: "Lucky Horseshoe", spr: "pet_skin_shoe", earn: "Found in the Fate Crate", col: 0x3aa8ff, crate: true}
 		];
 		public static function findPetSkin(id:String):Object {
 			for each (var d:Object in PET_SKINS) if (d.id == id) return d;
@@ -1898,7 +1967,11 @@ package realm {
 			{id: "season_podium", name: "Season Medallist", earn: "Finish a season in the ladder's top three", col: 0xc0e8ff},
 			{id: "season_champion", name: "Season Champion", earn: "Win a season: first place on the ladder", col: 0xffe27a},
 			{id: "oracle5", name: "Oracle's Favoured", earn: "Complete 5 boss collections in the Oracle", col: 0xb9a9ff},
-			{id: "oracleall", name: "the All-Seeing", earn: "Complete every boss collection in the Oracle", col: 0xe0d0ff}
+			{id: "oracleall", name: "the All-Seeing", earn: "Complete every boss collection in the Oracle", col: 0xe0d0ff},
+			// (the Fate Crate's red titles)
+			{id: "t_favoured", name: "Fortune's Favoured", earn: "Found in the Fate Crate", col: 0xffd23a, crate: true},
+			{id: "t_highroller", name: "the High Roller", earn: "Found in the Fate Crate", col: 0xffb040, crate: true},
+			{id: "t_gilded", name: "Gilded", earn: "Found in the Fate Crate", col: 0xf0c030, crate: true}
 		];
 		/** Short names for the "<boss> Slayer" titles earned with a top-5 Records time. */
 		public static const SLAYER:Object = {
@@ -2264,7 +2337,7 @@ package realm {
 			else for (var k:int = 0; k < Math.min(3, tier - 1); k++) items.push(makeForSlot(lc, int(Math.random() * 4), 7, null));
 			if (tier >= 2 && Math.random() < 0.1 + 0.08 * tier) items.push(makeStone());
 			var uc:Number = [0, 0, 0, 0.05, 0.12, 0.25, 0.5][tier] * rare;
-			if (Math.random() < uc) items.push(Uniques.make(DEEP_UNIQUES[int(Math.random() * DEEP_UNIQUES.length)]));
+			if (Math.random() < uc) items.push(Uniques.dropped(DEEP_UNIQUES[int(Math.random() * DEEP_UNIQUES.length)]));
 			items.push(makePotion("hp"));
 			items.push(makePotion("mp"));
 			return items;
@@ -2526,13 +2599,13 @@ package realm {
 			if (def.planned) {
 				for each (var pid:String in def.uniques) {
 					var pr:String = Uniques.rarityOf(pid);
-					if (Math.random() < Uniques.CHANCE[pr] * (pr == "ut" ? 1 : boost)) items.push(Uniques.make(pid));
+					if (Math.random() < Uniques.CHANCE[pr] * (pr == "ut" ? 1 : boost)) items.push(Uniques.dropped(pid));
 				}
 				return;
 			}
 			// late-game items are meant to be hunted for (each unique the boss carries rolls on its own)
 			var c:Number = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
-			for each (var id:String in def.uniques) if (Math.random() < c * boost) items.push(Uniques.make(id));
+			for each (var id:String in def.uniques) if (Math.random() < c * boost) items.push(Uniques.dropped(id));
 		}
 
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {

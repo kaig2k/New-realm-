@@ -801,6 +801,7 @@ package realm {
 			stations.push({x: 127.5, y: 104.5, kind: "raids", spr: "raidtable", label: makeLabel("Raid Table", 0xff3050), w: "nexus"});
 			stations.push({x: 74.5, y: 88.5, kind: "skins", spr: "famekeeper", label: makeLabel("Fame Store", 0xff9a2e), w: "nexus"});
 			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
+			stations.push({x: 74.5, y: 98.5, kind: "crate", spr: "chest", label: makeLabel("Fate Crate", 0xffd23a), w: "nexus"});
 			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
 			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
 			// signposts by the entrance, for finding your way the first time
@@ -2101,7 +2102,7 @@ package realm {
 			// the Prismatic Wand's green shots heal you
 			if (effect == "heal2" && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 2);
 			// Tidebound (a Starforged Drowned Plate): +15% while you stand in water
-			if (!dot && p.hasSf("tidebound") && world.inWater(p.x, p.y)) raw = int(raw * 1.15);
+			if (!dot && p.hasSf("tidebound") && world.inWater(p.x, p.y)) raw = int(raw * (1 + 0.15 * p.sfPow("tidebound")));
 			if (p.leech > 0 && !dot) p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.08));
 			// Predator (bosses) and Ambush (untouched monsters)
@@ -2119,10 +2120,10 @@ package realm {
 			if (!dot) p.shotsHit++;
 			// Piercing Shot ignores defense
 			// (Titanbreaker's blades ignore 15 of it)
-			var edef:int = effect == "sunder" ? Math.max(0, e.defense - 15) : e.defense;
+			var edef:int = effect == "sunder" ? Math.max(0, e.defense - (p.weapon && p.weapon.x && p.weapon.x.armor ? int(p.weapon.x.armor) : 15)) : e.defense;
 			var d:int = effect == "true" || effect == "venom" ? Math.max(1, raw) : Math.max(1, raw - edef, int(raw * 0.15));
 			// Ignite (a Starforged Flamewarden's Signet): a crit burns for 2s, 20% of the hit again
-			if (crit && !dot && p.hasSf("ignite")) { e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, int(d * 0.05) + 1); e.poisonT = Math.max(e.poisonT, 2); }
+			if (crit && !dot && p.hasSf("ignite")) { e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, int(d * 0.05 * p.sfPow("ignite")) + 1); e.poisonT = Math.max(e.poisonT, 2); }
 			// a remote copy's health is only our guess: the host gets the full hit and caps it itself
 			if (!e.remote && d > e.hp) d = Math.ceil(e.hp);
 			e.hp = Math.max(0, e.hp - d);
@@ -3793,6 +3794,11 @@ package realm {
 				} else if (shift) {
 					p.inv[idx] = null;
 					dropAtPlayer(item);
+				} else if (item.kind == "pouch") {
+					if (shopWaiting || net.shopRequest({t: "pouch", slot: idx})) shopWaiting = true;
+					else msg("Pouches and vials are opened by the server: connect to open it.", 0xff8080);
+				} else if (item.kind == "charm") {
+					msg(item.name + ": use it on an item at the Starforge (its Grades tab).", 0xff9ad8);
 				} else {
 					p.useItem(idx, this);
 				}
@@ -3918,6 +3924,8 @@ package realm {
 			// the Guild Hall's stations each open their own page of it
 			if (st.mode) { hallMode = st.mode; if (net && net.online) Online.send({t: "ghView"}); }
 			if (st.kind == "groupstore" && net && net.online) Online.send({t: "gsView"});
+			// (the crate chest and Fate Dust are the server's: ask for them)
+			if ((st.kind == "crate" || st.kind == "forge") && net && net.online) Online.send({t: "crateView"});
 			openStation = st;
 			var why:String = STATION_TIPS[st.kind];
 			if (why) tip("st_" + st.kind, why);
@@ -3932,6 +3940,7 @@ package realm {
 			quests: "The Quest Board: three daily quests and a weekly one, for gold and Aether. The server counts your progress; claim rewards here.",
 			pets: "The Pet Yard: hatch a pet that follows you, heals you and shoots monsters. Feed it gold to level it up.",
 			skins: "The Fame Store: spend account fame (earned when heroes die) on skins, dyes, titles and pet skins.",
+			crate: "The Fate Crate: 5,000 fame a crate. Stat potions, gold, Aether, charms that reroll an item's grade, crate-only pet skins and titles, and once in a thousand a Godly loot ring.",
 			raids: "The Raid Table: use a raid key to open a raid, boss fights one after another for a group. The Starfall Vault changes every week.",
 			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes of this mode (Regular, Ironman, Hardcore and Group Ironman heroes each have their own).",
 			guildhall: "Your guild's shared bank, its weekly goals (finish all three for a new banner), its banners and the guild ranking.",
@@ -3939,6 +3948,7 @@ package realm {
 		};
 
 		private function closeStation():void {
+			if (crateReel && !crateReel.done) crateReel.stop();
 			openStation = null;
 			releaseArmed = false;
 			if (stationPanel) {
@@ -3956,8 +3966,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:Sprite = Ui.heading({keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: showAch ? "Achievements" : "Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage"}[openStation.kind],
-				21, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8}[openStation.kind], w);
+			var title:Sprite = Ui.heading({keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: showAch ? "Achievements" : "Quests", pets: "Pet Yard", skins: "Fame Store", crate: "Fate Crate", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage"}[openStation.kind],
+				21, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, crate: 0xffd23a, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8}[openStation.kind], w);
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -3965,8 +3975,11 @@ package realm {
 			info.x = 10;
 			sp.addChild(info);
 			var i:int;
-			if (openStation.kind == "forge") {
+			if (openStation.kind == "forge" && forgeMode == "grades") {
+				y = buildGradePanel(sp, info, y, w);
+			} else if (openStation.kind == "forge") {
 				// the Starforge: a Legendary + a Star Shard + Aether = its Starforged self (no more rerolls or Anvil)
+				y = forgeTabs(sp, y, w);
 				var sors:int = 0;
 				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
 				info.htmlText = "<font color='" + Ui.hex(Data.RARITY_COLORS.sf) + "'><b>Starforge</b></font> a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Legendary</b></font>: " +
@@ -4054,6 +4067,8 @@ package realm {
 				}
 			} else if (openStation.kind == "skins") {
 				y = buildSkinPanel(sp, info, y, w);
+			} else if (openStation.kind == "crate") {
+				y = buildCratePanel(sp, info, y, w);
 			} else if (openStation.kind == "pets") {
 				y = buildPetPanel(sp, info, y, w);
 			} else if (openStation.kind == "guildhall") {
@@ -6372,7 +6387,7 @@ package realm {
 
 		private function cosmeticOwned(id:String):Boolean {
 			if (Data.findSkin(id)) return Save.data.skins && Save.data.skins[id];
-			var t:Object = Data.findTitle(id) || Data.findDye(id);
+			var t:Object = Data.findTitle(id) || Data.findDye(id) || Data.findPetSkin(id);
 			if (t && t.earn) return earnedTitles()[id];
 			return Save.data.cosmetics && Save.data.cosmetics[id];
 		}
@@ -6504,6 +6519,326 @@ package realm {
 			return function():void { buy(e); };
 		}
 
+		// ------------------------------------------------------------- the Fate Crate and item grades
+		/** The server's crate state: {box, filter, pity, dust, opened}. */
+		private var crateInfo:Object;
+		/** The crate opening on screen (kept across panel rebuilds), and what it showed. */
+		private var crateReel:CrateReel;
+		private var crateLast:Array;
+		private var crateFilters:Boolean = false;
+		/** The item picked on the Starforge's Grades tab (its inventory slot), and when Salvage was armed. */
+		private var gradeSel:int = -1;
+		private var salvageArmed:int = 0;
+
+		/** The server sent the crate chest, filters and Fate Dust (the station opened, or a filter changed). */
+		public function crateState(m:Object):void {
+			crateInfo = {box: m.box || [], filter: m.filter || {}, pity: int(m.pity), dust: int(m.dust), opened: int(m.opened)};
+			if (m.fame !== undefined) Save.data.fame = int(m.fame);
+			if (openStation && (openStation.kind == "crate" || openStation.kind == "forge")) refreshStation();
+		}
+
+		private function crateOpen(n:int):void {
+			var fame:int = int(Save.data.fame || 0);
+			if (fame < Data.CRATE_COST * n) { msg("You need " + Ui.commas(Data.CRATE_COST * n) + " fame (you have " + Ui.commas(fame) + "). Fame is earned when heroes die.", 0xff8080); return; }
+			if (crateReel && !crateReel.done) return;
+			if (shopWaiting) return;
+			if (net.shopRequest({t: "crate", n: n})) { shopWaiting = true; return; }
+			msg("The Fate Crate is opened by the server: connect to a server to open one.", 0xff8080);
+		}
+
+		private function crateOpenFn(n:int):Function { return function():void { crateOpen(n); }; }
+
+		/** The server opened crates: show the reel, then the prizes. */
+		private function crateOpened(prizes:Array):void {
+			crateLast = prizes;
+			crateReel = new CrateReel(prizes, 420, crateRevealed);
+			Sfx.play("whoosh", 0.6);
+		}
+
+		private function crateRevealed():void {
+			if (!crateLast) return;
+			for each (var p:Object in crateLast) {
+				var col:uint = Data.CRATE_TIERS[p.tier].col;
+				msg("Fate Crate: " + p.name + (p.auto ? " (" + p.auto + ")" : p.item || p.id == "ring" || p.id == "sovereign" ? " (in your crate chest)" : ""), col);
+			}
+			var best:Object = crateLast[0];
+			for each (p in crateLast) if (p.tier > best.tier) best = p;
+			if (best.tier >= 3) showBanner(best.name + "!", Data.CRATE_TIERS[best.tier].col, 3);
+			if (best.id == "ring") burst(player.x, player.y, 0xfff6e0, 60);
+			refreshStation();
+		}
+
+		private function crateTakeFn(i:int):Function {
+			return function():void {
+				if (shopWaiting) return;
+				if (player.freeSlot() < 0) { msg("Inventory full!", 0xff8080); return; }
+				if (net.shopRequest(i < 0 ? {t: "crateTake", all: true} : {t: "crateTake", i: i})) shopWaiting = true;
+			};
+		}
+
+		private function crateFilterFn(k:String, v:String):Function {
+			return function():void {
+				if (!crateInfo) return;
+				crateInfo.filter[k] = v;
+				var f:Object = {};
+				for (var fk:String in crateInfo.filter) f[fk] = crateInfo.filter[fk];
+				if (net.online) Online.send({t: "crateView", f: f});
+				refreshStation();
+			};
+		}
+
+		private function buildCratePanel(sp:Sprite, info:TextField, y:int, w:int):int {
+			if (stationTip) stationTip.visible = false;
+			var fame:int = int(Save.data.fame || 0);
+			var ci:Object = crateInfo || {box: [], filter: {}, pity: 0, dust: 0};
+			var i:int;
+			info.htmlText = "A crate costs <font color='#ff9a2e'><b>" + Ui.commas(Data.CRATE_COST) + "</b></font> fame. You have <font color='#ff9a2e'><b>" + Ui.commas(fame) + "</b></font>.\n" +
+				"<font color='#9a9aaa'>A pink prize or better within " + Math.max(1, Data.CRATE_PITY - int(ci.pity)) + " more crate" + (Data.CRATE_PITY - int(ci.pity) == 1 ? "" : "s") + ", guaranteed.</font>";
+			info.y = y;
+			y += info.height + 6;
+			if (crateReel) {
+				crateReel.x = 10; crateReel.y = y;
+				sp.addChild(crateReel);
+				y += CrateReel.CELL + 30;
+				// what came out (after the reel stops): small icons, one per crate, hover for the item
+				if (crateReel.done && crateLast) {
+					var cw:int = 42;
+					var x0:int = int((w - crateLast.length * (cw + 2)) / 2);
+					for (i = 0; i < crateLast.length; i++) {
+						var pc:Sprite = CrateReel.cell(crateLast[i]);
+						pc.scaleX = pc.scaleY = cw / CrateReel.CELL;
+						pc.x = x0 + i * (cw + 2); pc.y = y;
+						sp.addChild(pc);
+					}
+					y += cw + 4;
+					if (crateLast.length == 1) {
+						var got:TextField = Ui.text(14, Data.CRATE_TIERS[crateLast[0].tier].col, true, "center", w - 20, true);
+						got.text = crateLast[0].name + (crateLast[0].auto ? " (" + crateLast[0].auto + ")" : "");
+						got.x = 10; got.y = y;
+						sp.addChild(got);
+						y += got.height + 4;
+					}
+				}
+			} else {
+				// before the first crate: what's inside
+				var odds:TextField = Ui.text(12, 0xdddddd, false, "left", w - 40, true);
+				var lines:Array = [];
+				for each (var pz:Object in Data.CRATE_PRIZES)
+					lines.push("<font color='" + Ui.hex(Data.CRATE_TIERS[pz.tier].col) + "'><b>" + Data.CRATE_TIERS[pz.tier].name + "</b></font>  " + pz.name + "  <font color='#9a9aaa'>" + (pz.w / 10) + "%</font>");
+				odds.htmlText = lines.join("\n");
+				odds.x = 24; odds.y = y;
+				sp.addChild(odds);
+				y += odds.height + 6;
+			}
+			var busy:Boolean = crateReel != null && !crateReel.done;
+			var b1:Sprite = Ui.button("Open (" + Ui.commas(Data.CRATE_COST) + ")", 190, 34, crateOpenFn(1), 14);
+			b1.x = w / 2 - 196; b1.y = y; b1.alpha = busy || fame < Data.CRATE_COST ? 0.5 : 1;
+			sp.addChild(b1);
+			var b10:Sprite = Ui.button("Open x10 (" + Ui.commas(Data.CRATE_COST * 10) + ")", 190, 34, crateOpenFn(10), 14);
+			b10.x = w / 2 + 6; b10.y = y; b10.alpha = busy || fame < Data.CRATE_COST * 10 ? 0.5 : 1;
+			sp.addChild(b10);
+			y += 44;
+			// the crate chest
+			var box:Array = ci.box || [];
+			var head:TextField = Ui.text(14, 0xffd23a, true, "left", 250);
+			head.text = "Crate chest (" + box.length + "/" + Data.CRATE_BOX + ")";
+			head.x = 14; head.y = y + 4;
+			sp.addChild(head);
+			if (box.length) {
+				var ta:Sprite = Ui.button("Take all", 90, 26, crateTakeFn(-1), 12);
+				ta.x = w - 210; ta.y = y;
+				sp.addChild(ta);
+			}
+			var fb:Sprite = Ui.button(crateFilters ? "Hide filters" : "Filters", 90, 26, function():void { crateFilters = !crateFilters; refreshStation(); }, 12);
+			fb.x = w - 110; fb.y = y;
+			sp.addChild(fb);
+			y += 32;
+			if (crateFilters) {
+				var rows:Array = [["stat", "Stat potions", [["keep", "Keep"], ["sell", "Sell"]]], ["gold", "Gold Pouches", [["keep", "Keep"], ["open", "Open"]]],
+					["aether", "Aether Vials", [["keep", "Keep"], ["open", "Open"]]], ["reroll", "Reroll Charms", [["keep", "Keep"], ["sell", "Sell"]]]];
+				for each (var r:Array in rows) {
+					var rl:TextField = Ui.text(13, 0xdddddd, false, "left", 160);
+					rl.text = r[1];
+					rl.x = 24; rl.y = y + 4;
+					sp.addChild(rl);
+					var cur:String = ci.filter && ci.filter[r[0]] ? ci.filter[r[0]] : "keep";
+					for (i = 0; i < r[2].length; i++) {
+						var fbt:Sprite = Ui.button((cur == r[2][i][0] ? "> " : "") + r[2][i][1], 90, 24, crateFilterFn(r[0], r[2][i][0]), 12);
+						fbt.x = 190 + i * 96; fbt.y = y;
+						fbt.alpha = cur == r[2][i][0] ? 1 : 0.6;
+						sp.addChild(fbt);
+					}
+					y += 28;
+				}
+				var always:TextField = Ui.text(11, 0x9a9aaa, false, "left", w - 40, true);
+				always.text = "Pet skins and titles unlock at once. Sovereign Charms and Fortune's Favour are always kept.";
+				always.x = 24; always.y = y;
+				sp.addChild(always);
+				y += always.height + 6;
+			}
+			if (!box.length) {
+				var none:TextField = Ui.text(12, 0x888888, false, "center", w - 20);
+				none.text = "Empty. Prizes wait here until you take them.";
+				none.x = 10; none.y = y;
+				sp.addChild(none);
+				y += 24;
+			} else {
+				for (i = 0; i < box.length; i++) marketItem(sp, box[i], 14 + (i % 8) * 52, y + int(i / 8) * 52, crateTakeFn(i), "Click to take it");
+				y += Math.ceil(box.length / 8) * 52 + 4;
+			}
+			return y;
+		}
+
+		/** The Starforge's two tabs. */
+		private function forgeTabs(sp:Sprite, y:int, w:int):int {
+			var tabs:Array = [["forge", "Starforge"], ["grades", "Grades & Forging"]];
+			for (var ti:int = 0; ti < tabs.length; ti++) {
+				var tb:Sprite = Ui.button((forgeMode == tabs[ti][0] ? "> " : "") + tabs[ti][1], 200, 26, forgeTabFn(tabs[ti][0]), 13);
+				tb.x = w / 2 - 204 + ti * 208; tb.y = y;
+				tb.alpha = forgeMode == tabs[ti][0] ? 1 : 0.7;
+				sp.addChild(tb);
+			}
+			return y + 34;
+		}
+
+		/** The first inventory slot holding a charm of this kind (-1 if none), and how many there are. */
+		private function charmSlot(sub:String):int {
+			for (var i:int = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "charm" && player.inv[i].sub == sub) return i;
+			return -1;
+		}
+		private function countKind(kind:String, sub:String):int {
+			var n:int = 0;
+			for each (var it:Object in player.inv) if (it && it.kind == kind && it.sub == sub) n++;
+			return n;
+		}
+
+		/** A copy of the item in slot `at` to forge in: the weakest unlocked one (so a good copy is never used up), or -1. */
+		private function fuseCopy(at:int):int {
+			var it:Object = player.inv[at], best:int = -1;
+			for (var i:int = 0; i < player.inv.length; i++) {
+				var c:Object = player.inv[i];
+				if (i == at || !Uniques.canFuse(it, c) || c.locked) continue;
+				if (best < 0 || Uniques.quality(c) < Uniques.quality(player.inv[best])) best = i;
+			}
+			return best;
+		}
+
+		private function gradeFn(a:String):Function {
+			return function():void { gradeAction(a); };
+		}
+
+		private function gradeAction(a:String):void {
+			var it:Object = gradeSel >= 0 ? player.inv[gradeSel] : null;
+			if (!Uniques.gradeable(it) || shopWaiting) return;
+			var req:Object = {t: "grade", a: a, slot: gradeSel};
+			var dust:int = crateInfo ? int(crateInfo.dust) : 0;
+			if (a == "reroll" && dust < Uniques.REROLL_DUST) { msg("A reroll costs " + Uniques.REROLL_DUST + " Fate Dust (you have " + dust + "). Salvage items you don't need for it.", 0xff8080); return; }
+			if (a == "charm" || a == "sovereign") {
+				var cs:int = charmSlot(a == "sovereign" ? "sovereign" : "reroll");
+				if (cs < 0) return;
+				req.a = "charm";
+				req.cs = cs;
+			}
+			if (a == "fuse") {
+				var fs:int = fuseCopy(gradeSel);
+				if (fs < 0) { msg("You need another (unlocked) copy of " + it.name + " in your inventory.", 0xff8080); return; }
+				req.fs = fs;
+			}
+			if (a == "salvage") {
+				if (it.locked) { msg(it.name + " is locked. Unlock it first (right-click it).", 0xffd75e); return; }
+				if (getTimer() - salvageArmed > 3000) { salvageArmed = getTimer(); msg("Click Salvage again to turn " + Uniques.displayName(it) + " into Fate Dust.", 0xffd75e); refreshStation(); return; }
+				salvageArmed = 0;
+			}
+			if (net.shopRequest(req)) shopWaiting = true;
+			else msg("Grades are handled by the server: connect to a server first.", 0xff8080);
+		}
+
+		/** The server changed an item's grade or forging, or salvaged it. */
+		private function gradeDone(m:Object):void {
+			if (m.graded == "salvage") {
+				msg("Salvaged " + m.was + " for " + m.got + " Fate Dust.", 0xd8b0ff);
+				Sfx.play("coin");
+				gradeSel = -1;
+				return;
+			}
+			gradeSel = int(m.slot);
+			var it:Object = player.inv[gradeSel];
+			var g:int = Uniques.gradeOf(it);
+			var col:uint = Uniques.GRADE_COLORS[g];
+			if (m.graded == "fuse") msg("Forged a copy into it: " + m.was + " is now " + m.now + ".", 0xffd23a);
+			else msg((m.charm ? "The " + m.charm + " glows... " : "The Fate Dust swirls... ") + m.was + " is now " + m.now + ".", col);
+			if (g >= Uniques.GRADE_S || (m.graded == "fuse" && it && int(it.fg) >= Uniques.FORGE_MAX)) {
+				showBanner(m.now + "!", col, 3);
+				Sfx.play("rare");
+				burst(player.x, player.y, col, 30);
+			} else Sfx.play("loot", 0.6);
+		}
+
+		private function gradeSelFn(i:int):Function {
+			return function():void { gradeSel = i; salvageArmed = 0; refreshStation(); };
+		}
+
+		private function buildGradePanel(sp:Sprite, info:TextField, y:int, w:int):int {
+			if (stationTip) stationTip.visible = false;
+			y = forgeTabs(sp, y, w);
+			var dust:int = crateInfo ? int(crateInfo.dust) : 0;
+			info.htmlText = "Every UT, Legendary, Starforged and Primordial item has a <b>grade</b>, from D (90% of its stats) to SSS (120%). " +
+				"Forge copies of the same item into it for <b>+3%</b> each, up to +5: +3 makes its special stronger, +5 <b>Awakens</b> it.\n" +
+				"You have <font color='#d8b0ff'><b>" + dust + "</b></font> Fate Dust. Salvage items you don't need for it.";
+			info.y = y;
+			y += info.height + 8;
+			var n:int = 0, i:int;
+			for (i = 0; i < player.inv.length; i++) {
+				var item:Object = player.inv[i];
+				if (!Uniques.gradeable(item)) continue;
+				var ib:Sprite = marketItem(sp, item, 20 + (n % 8) * 52, y + int(n / 8) * 52, gradeSelFn(i), "Click to pick it");
+				if (i == gradeSel) {
+					ib.graphics.lineStyle(2, 0xffd23a);
+					ib.graphics.drawRoundRect(-2, -2, 52, 52, 12, 12);
+				}
+				n++;
+			}
+			if (n == 0) {
+				var none:TextField = Ui.text(13, 0x888888, false, "center", w - 20);
+				none.text = "No graded items in your inventory.";
+				none.x = 10; none.y = y + 10;
+				sp.addChild(none);
+				return y + 50;
+			}
+			y += (int((n - 1) / 8) + 1) * 52 + 6;
+			var sel:Object = gradeSel >= 0 ? player.inv[gradeSel] : null;
+			if (!Uniques.gradeable(sel)) { gradeSel = -1; return y; }
+			var g:int = Uniques.gradeOf(sel), fg:int = int(sel.fg);
+			var nm:TextField = Ui.text(15, Uniques.GRADE_COLORS[g], true, "center", w - 20, true);
+			nm.htmlText = Ui.esc(Uniques.displayName(sel)) + "  <font size='12' color='#cccccc'>" + Math.round(Uniques.quality(sel) * 100) + "% of its stats" + (sel.aw ? ", Awakened" : "") + "</font>";
+			nm.x = 10; nm.y = y;
+			sp.addChild(nm);
+			y += nm.height + 6;
+			var acts:Array = [];
+			acts.push(["Reroll (" + Uniques.REROLL_DUST + " Dust)", "reroll", dust >= Uniques.REROLL_DUST]);
+			var rc:int = countKind("charm", "reroll"), sc:int = countKind("charm", "sovereign");
+			if (rc > 0) acts.push(["Reroll Charm (" + rc + ")", "charm", true]);
+			if (sc > 0) acts.push(["Sovereign Charm (" + sc + ")", "sovereign", true]);
+			if (fg < Uniques.FORGE_MAX) {
+				var copies:int = 0;
+				for (i = 0; i < player.inv.length; i++) if (i != gradeSel && Uniques.canFuse(sel, player.inv[i]) && !player.inv[i].locked) copies++;
+				acts.push(["Forge in a copy (" + copies + ")", "fuse", copies > 0]);
+			}
+			if (Uniques.dustOf(sel) > 0) acts.push([getTimer() - salvageArmed < 3000 ? "Sure? Salvage" : "Salvage (+" + Uniques.dustOf(sel) + " Dust)", "salvage", !sel.locked]);
+			for (i = 0; i < acts.length; i++) {
+				var ab:Sprite = Ui.button(acts[i][0], 136, 30, gradeFn(acts[i][1]), 12);
+				ab.x = 14 + (i % 3) * 140; ab.y = y + int(i / 3) * 36;
+				ab.alpha = acts[i][2] ? 1 : 0.45;
+				sp.addChild(ab);
+			}
+			y += Math.ceil(acts.length / 3) * 36 + 4;
+			var hint:TextField = Ui.text(11, 0x9a9aaa, false, "center", w - 20, true);
+			hint.text = "Rerolls keep the forging. A Reroll Charm never lowers the grade; a Sovereign Charm gives S or better.";
+			hint.x = 10; hint.y = y;
+			sp.addChild(hint);
+			return y + hint.height + 6;
+		}
+
 		/** Starforge: a Legendary + Star Shard + Aether -> its Starforged self. */
 		private function forge(slot:int):void {
 			var item:Object = player.inv[slot];
@@ -6593,6 +6928,10 @@ package realm {
 			Save.data.gold = int(m.gold);
 			Save.data.onrane = int(m.onrane);
 			Save.data.tradeSeq = int(m.seq);
+			// (the Fate Crate spends fame on the server; grades and the crate chest are the server's too)
+			if (m.fame !== undefined) Save.data.fame = int(m.fame);
+			if (m.cr) crateInfo = m.cr;
+			if (m.dust !== undefined) { if (!crateInfo) crateInfo = {box: [], filter: {}, pity: 0, dust: 0}; crateInfo.dust = int(m.dust); }
 			saveCharacter();
 			Save.flush();
 			if (m.stable) Save.data.stable = m.stable;
@@ -6619,6 +6958,16 @@ package realm {
 				Sfx.play("rare");
 				msg("The Starforge blazes... you forged " + m.forged + "!", Data.RARITY_COLORS.lg);
 				burst(player.x, player.y, 0xd8e040, 30);
+			} else if (m.crate) {
+				crateOpened(m.crate);
+			} else if (m.graded) {
+				gradeDone(m);
+			} else if (m.pouch) {
+				msg(m.pouch == "aether" ? "The vial held " + m.amt + " Aether." : "The pouch held " + Ui.commas(m.amt) + " gold.", m.pouch == "aether" ? 0x60f0ff : Ui.GOLD);
+				Sfx.play("coin");
+			} else if (m.crateTook) {
+				msg("Took " + m.crateTook + " prize" + (m.crateTook == 1 ? "" : "s") + " from your crate chest.", 0xffd23a);
+				Sfx.play("loot", 0.5);
 			} else if (m.market) {
 				msg(m.market, 0x6fe08f);
 				Sfx.play("coin");

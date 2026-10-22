@@ -1,3 +1,44 @@
+**📜 ELDMERE UPDATE: Item Grades & the Fate Crate**
+
+**🎲 Every item rolls a grade**
+• Every UT, Legendary, Starforged, Primordial and **Godly** item now drops with a grade: **D, C, B, A, S, SS or SSS**
+• The grade decides how strong your copy is, from **90%** of the item's stats (D) to **120%** (SSS)
+• Most drops land around B; an SSS is about **1 in 100**
+• The grade shows in the name, like **Titanbreaker [S+2]**, and the exact quality sits at the bottom of the tooltip
+• Items you already own count as **B**
+
+**🔨 Forge copies together**
+• The Starforge has a new **Grades & Forging** tab
+• Forge a copy of the same item into it for **+3%** to everything, up to **+5**. The copy can be any grade
+• **+3**: the item's special gets stronger
+• **+5**: the item is **Awakened**. Its name says so, and a Starforged armour's or ring's passive gets **40% stronger**
+• An SSS+5 item reaches **135%** of its base stats
+• Starforging keeps your grade and forging
+
+**✨ Fate Dust and rerolls**
+• **Salvage** items you don't need for **Fate Dust**: a UT gives 1, a Legendary 3, a Starforged or Primordial 5
+• **10 Fate Dust** rerolls an item's grade. Your forging is always kept
+
+**📦 The Fate Crate**
+• A new station in the Nexus west wing, between the Fame Store and the Pet Yard
+• **5,000 fame** a crate: spin the reel and see what you get. Open one, or **ten at once**
+• What's inside:
+  • Blue (55%): a random stat potion
+  • Purple (25%): a **Gold Pouch**, 2,000-3,000 gold
+  • Pink (10%): an **Aether Vial**, 150 Aether
+  • Pink (6%): a **Reroll Charm**: rerolls a grade, never lower than the one you have
+  • Red (2.5%): a crate-only **pet skin**: Golden Rabbit, Fortune Cat or Lucky Horseshoe
+  • Red (1%): a crate-only **title**: Fortune's Favoured, the High Roller or Gilded
+  • Gold (0.4%): a **Sovereign Charm**: rerolls a grade to S, SS or SSS
+  • Gold (0.1%): **Fortune's Favour**, a Godly loot ring with **+25 Luck**. It rolls a grade and can be forged, up to **+34 Luck**
+• Bad luck protection: never more than **30 crates** without a pink prize or better
+• No daily limit
+• Prizes wait in your **crate chest** by the station until you take them
+• **Filters**: sell stat potions and Reroll Charms, or open Gold Pouches and Aether Vials straight away. Sovereign Charms and Fortune's Favour are always kept
+• Gold prizes are announced to the whole server
+
+---
+
 **📜 ELDMERE UPDATE: Weapon Fixes**
 
 **🔧 Hidden effects removed**

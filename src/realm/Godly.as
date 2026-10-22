@@ -173,7 +173,8 @@ package realm {
 			var cls:String = String(it.set).substr(2);
 			var slot:int = int(String(it.gid).substr(cls.length));
 			if (slot < 0 || slot > 3) return false;
-			var fresh:Object = make(cls, slot);
+			// (its grade and forging kept)
+			var fresh:Object = it.g !== undefined || it.fg ? Uniques.graded(it, Uniques.gradeOf(it), int(it.fg)) : make(cls, slot);
 			// (everything that makes an item what it is goes; its sid, lock and the like stay)
 			for each (var k:String in ["kind", "sub", "ab", "tier", "rarity", "set", "passive", "form", "motion", "shots", "dmin", "dmax", "rate", "life",
 					"arc", "parallel", "power", "pierce", "size", "shape", "col", "spd", "accel", "walls", "effect", "split", "boom", "name", "gv"].concat(Data.STATS).concat(Data.GEAR_STATS))
@@ -216,17 +217,21 @@ package realm {
 			// one roll a kill, however many Godly items the boss can drop (then which one)
 			if (def.godly.length && Math.random() < CHANCE * boost) {
 				var d:Array = def.godly[int(Math.random() * def.godly.length)];
-				items.push(make(d[0], d[1]));
+				// (a grade rolled, like every named item: D to SSS)
+				var gp:Object = make(d[0], d[1]);
+				items.push(Uniques.graded(gp, Uniques.rollGrade(), 0));
 			}
 		}
 
 		public static function describe(it:Object):String {
+			// (Fortune's Favour, the Fate Crate's ring, isn't a set piece: its own lines say what it is)
+			if (!it.gid) return "";
 			var src:String = source[it.gid];
 			var s:String = "";
 			var x:Object = wrathOf(it);
 			if (x) s += "<font color='#ffd860'><b>Divine Wrath — " + x.name + ":</b></font> every " + EVERY + "th volley " + x.desc + " (every " + WRATH_SET + "th with the full set).\n";
 			if (classOf(it)) s += "<font color='#ffd860'>Wearing it: a golden aura; the full set crowns you with a halo.</font>\n";
-			return s + "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ". Every drop is the same: no bad rolls.</font>\n";
+			return s + "<font color='#fff6e0'>Godly: 1 in 1,000" + (src ? " from " + src : "") + ". Every drop is the same piece; its grade is rolled, and copies forge into it.</font>\n";
 		}
 	}
 }

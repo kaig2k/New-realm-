@@ -398,6 +398,10 @@ package realm {
 				case "shopFail":
 					g.shopResult(m);
 					break;
+				case "crateState":
+					// the Fate Crate's chest, filters and Fate Dust
+					g.crateState(m);
+					break;
 				case "tradeDone":
 					if (!trade) break;
 					if (m.inv) {

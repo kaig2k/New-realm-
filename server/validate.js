@@ -11,12 +11,13 @@
  * The limits are generous on purpose: honest players should never hit them.
  */
 
-const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key', 'stone', 'rune']);
+const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key', 'stone', 'rune', 'charm', 'pouch']);
 const RARITIES = new Set(['ut', 'st', 'fb', 'lg', 'sf', 'ar', 'gd']);
 const PASSIVES = new Set(['lifesteal', 'shards', 'frost', 'critical', 'rampage']);
 // (seek: a tiered weapon's signature shot that turns toward the nearest monster, Data.SIGS)
 const MOTIONS = new Set(['wave', 'return', 'accel', 'home', 'seek']);
-const STAT_CAP = { hp: 400, mp: 400, def: 130, frt: 40 };
+// (an SSS+5 Godly ring of Health reaches about 460)
+const STAT_CAP = { hp: 500, mp: 500, def: 130, frt: 40 };
 const STATS = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis', 'mgt', 'luc', 'prt', 'frt'];
 const LIMITS = {
   chars: 20, inv: 16, vault: 80,
@@ -44,14 +45,18 @@ function checkItem(it) {
     if (it[s] > cap || it[s] < -60) return s + ' too high on ' + (it.name || 'an item');
   }
   if (it.kind === 'weapon') {
-    if (!isNum(it.dmin) || !isNum(it.dmax) || it.dmin < 0 || it.dmax > 1100 || it.dmin > it.dmax) return 'impossible damage on ' + (it.name || 'a weapon');
+    if (!isNum(it.dmin) || !isNum(it.dmax) || it.dmin < 0 || it.dmax > 1400 || it.dmin > it.dmax) return 'impossible damage on ' + (it.name || 'a weapon');
     if (it.shots !== undefined && (!isNum(it.shots) || it.shots < 1 || it.shots > 9)) return 'impossible shot count';
     if (it.rate !== undefined && (!isNum(it.rate) || it.rate <= 0 || it.rate > 2.5)) return 'impossible fire rate';
     if (it.life !== undefined && (!isNum(it.life) || it.life > 3)) return 'impossible range';
     if (it.passive !== undefined && it.passive !== null && !PASSIVES.has(it.passive)) return 'unknown passive';
     if (it.motion !== undefined && it.motion !== null && !MOTIONS.has(it.motion)) return 'unknown shot motion';
   }
-  if (it.kind === 'ability' && it.power !== undefined && (!isNum(it.power) || it.power > 4)) return 'impossible ability power';
+  if (it.kind === 'ability' && it.power !== undefined && (!isNum(it.power) || it.power > 4.6)) return 'impossible ability power';
+  // (grades D-SSS and forging +0..+5)
+  if (it.g !== undefined && (!isNum(it.g) || it.g < 0 || it.g > 6)) return 'impossible grade';
+  if (it.fg !== undefined && (!isNum(it.fg) || it.fg < 0 || it.fg > 5)) return 'impossible forging';
+  if (it.kind === 'pouch' && (!isNum(it.amt) || it.amt < 0 || it.amt > 100000)) return 'impossible pouch';
   if (it.kind === 'ability' && it.ab !== undefined && it.ab !== null && !(ABILITY_TYPES[it.ab] && ABILITY_TYPES[it.ab] === it.sub)) return 'unknown ability';
   return null;
 }

@@ -251,7 +251,9 @@ package realm {
 			star_prince_hourglass: {n: "Hourglass of the Star Prince", k: "ability", s: "hourglass", r: "lg", pw: 2.95, st: {wis: 8, dex: 6}, ab: "timestop", abx: {dur: 1}, txt: "Time Stop lasts 1s longer.", lore: "Astrel's toy. He never let the sand run out."},
 			frozen_choir_lyre: {n: "Lyre of the Frozen Choir", k: "ability", s: "lyre", r: "lg", pw: 2.95, st: {wis: 8, mp: 60}, ab: "lullaby", abx: {slowAfter: 2}, txt: "Monsters slept by Lullaby stay slowed for 2s after they wake.", lore: "Its strings are icicles that never melt."},
 			flamewarden_signet: {n: "Flamewarden's Signet", k: "ring", s: "mgt", r: "lg", st: {att: 8, mgt: 12, dex: 4}, txt: "The raw damage ring.", lore: "Ignivar's seal of office."},
-			shardglass_alembic: {n: "Shardglass Alembic", k: "ability", s: "flask", r: "lg", pw: 2.95, st: {att: 6, dex: 6}, ab: "philbomb", abx: {shards: true}, txt: "Philosopher's Bomb scatters glass shards outwards.", lore: "Blown from the Seraph's broken wings."}
+			shardglass_alembic: {n: "Shardglass Alembic", k: "ability", s: "flask", r: "lg", pw: 2.95, st: {att: 6, dex: 6}, ab: "philbomb", abx: {shards: true}, txt: "Philosopher's Bomb scatters glass shards outwards.", lore: "Blown from the Seraph's broken wings."},
+			// ---- the Fate Crate's jackpot (no boss drops it): a Godly loot ring
+			fortune_ring: {n: "Fortune's Favour", k: "ring", s: "frt", r: "gd", st: {frt: 25}, txt: "Luck only, no combat stats. Found only in the Fate Crate.", lore: "Found at the bottom of a Fate Crate, once in a thousand."}
 		};
 
 		/** Which boss drops which of them (replacing what the bosses carried before). */
@@ -531,11 +533,17 @@ package realm {
 			return it && it.rarity == "lg" && it.uid && FIXED[it.uid] && FIXED[it.uid].r == "lg";
 		}
 
-		/** The Starforged version of a Legendary: same name, look and special, raised to its slot's target. */
+		/** The Starforged version of a Legendary: same name, look and special, raised to its slot's target (its grade and forging kept). */
 		public static function starforge(src:Object):Object {
 			if (!canStarforge(src)) return src;
-			var it:Object = makeFixed(src.uid);
-			var f:Object = FIXED[src.uid];
+			var it:Object = starforgeBase(src.uid);
+			return gradeable(src) ? graded(it, gradeOf(src), int(src.fg)) : it;
+		}
+
+		/** A Legendary's Starforged self at grade B, unforged. */
+		public static function starforgeBase(id:String):Object {
+			var it:Object = makeFixed(id);
+			var f:Object = FIXED[id];
 			it.rarity = "sf";
 			switch (it.kind) {
 				case "weapon":
@@ -565,6 +573,145 @@ package realm {
 			// (its weapon special a little stronger: Frostbite and the like read this)
 			if (it.kind == "weapon") it.sfb = SF_BUMP;
 			return it;
+		}
+
+		// ---- grades and forging: every UT and better rolls a grade when it drops (D 90% .. SSS 120% of its stats),
+		// and copies of the same item forged into it add +3% each, up to +5. +3 makes its special 15% stronger;
+		// +5 Awakens it (its name says so, and a Starforged armour's or ring's passive is 40% stronger).
+		public static const GRADES:Array = ["D", "C", "B", "A", "S", "SS", "SSS"];
+		public static const GRADE_MUL:Array = [0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2];
+		/** Drop odds of each grade, in percent. */
+		public static const GRADE_ODDS:Array = [15, 20, 30, 20, 10, 4, 1];
+		public static const GRADE_COLORS:Array = [0x9a8a7a, 0xb8c0c8, 0xe8e8e8, 0x6ae08a, 0x5ab8ff, 0xd070ff, 0xffd23a];
+		/** The grade an item has when it has none written (everything made before grades): B. */
+		public static const GRADE_B:int = 2, GRADE_S:int = 4;
+		public static const FORGE_STEP:Number = 0.03, FORGE_MAX:int = 5;
+		/** How much stronger a +3 item's special is, and a +5 (Awakened) Starforged passive. */
+		public static const AWAKEN_SPECIAL:Number = 1.15, AWAKEN_PASSIVE:Number = 1.4;
+		/** Fate Dust: what salvaging gives (by rarity), and what a grade reroll costs. */
+		public static const DUST:Object = {ut: 1, lg: 3, sf: 5, ar: 5};
+		public static const REROLL_DUST:int = 10;
+		public static const LUCK_RING:String = "fortune_ring";
+
+		/** Whether an item has a grade: the named items from UT up, Godly set pieces and Fortune's Favour (not tiered gear). */
+		public static function gradeable(it:Object):Boolean {
+			if (it && it.gid && it.rarity == "gd") return godlySlot(it) >= 0;
+			if (!it || !it.uid || !(FIXED[it.uid] || ALL[it.uid])) return false;
+			if (it.uid == LUCK_RING) return true;
+			return it.rarity == "ut" || it.rarity == "lg" || it.rarity == "sf" || it.rarity == "ar";
+		}
+
+		public static function gradeOf(it:Object):int {
+			if (!it || it.g === undefined || it.g === null) return GRADE_B;
+			return Math.max(0, Math.min(GRADES.length - 1, int(it.g)));
+		}
+
+		/** Its grade's share of its stats plus 3% a forge: 0.9 (D) to 1.35 (SSS+5). */
+		public static function quality(it:Object):Number {
+			return GRADE_MUL[gradeOf(it)] + FORGE_STEP * Math.max(0, Math.min(FORGE_MAX, int(it.fg)));
+		}
+
+		/** A random grade with the drop odds (min: the lowest it may be, for the charms). */
+		public static function rollGrade(min:int = 0):int {
+			var total:Number = 0, i:int;
+			for (i = min; i < GRADES.length; i++) total += GRADE_ODDS[i];
+			var r:Number = Math.random() * total;
+			for (i = min; i < GRADES.length; i++) {
+				r -= GRADE_ODDS[i];
+				if (r < 0) return i;
+			}
+			return GRADES.length - 1;
+		}
+
+		/** A Godly piece's slot (0 weapon .. 3 ring), or -1 if it isn't one. */
+		private static function godlySlot(it:Object):int {
+			var cls:String = Godly.classOf(it);
+			if (!cls || !Godly.SETS[cls]) return -1;
+			var slot:int = int(String(it.gid).substr(cls.length));
+			return slot >= 0 && slot <= 3 ? slot : -1;
+		}
+
+		/** What makes two items the same item (for forging copies in): its unique id, or its Godly piece. */
+		public static function idOf(it:Object):String {
+			return !it ? "" : it.gid && it.rarity == "gd" ? "gd:" + it.gid : it.uid ? "u:" + it.uid : "";
+		}
+
+		/** The item as it is at grade B, unforged (the base a grade is applied to). */
+		public static function baseOf(it:Object):Object {
+			if (it.gid && it.rarity == "gd") return Godly.make(Godly.classOf(it), godlySlot(it));
+			if (FIXED[it.uid] && it.rarity == "sf") return starforgeBase(it.uid);
+			return make(it.uid);
+		}
+
+		/** The item at grade g, forged fg times: its base with every number scaled (its lock kept). */
+		public static function graded(it:Object, g:int, fg:int):Object {
+			var b:Object = baseOf(it);
+			if (!b) return it;
+			g = Math.max(0, Math.min(GRADES.length - 1, g));
+			fg = Math.max(0, Math.min(FORGE_MAX, fg));
+			var q:Number = Math.round((GRADE_MUL[g] + FORGE_STEP * fg) * 10000) / 10000;
+			var k:String;
+			if (b.kind == "weapon") { b.dmin = Math.round(b.dmin * q); b.dmax = Math.max(b.dmin, Math.round(b.dmax * q)); }
+			if (b.kind == "armor" && b.def) b.def = Math.round(b.def * q);
+			if (b.kind == "ability" && b.power) b.power = Math.round((1 + (b.power - 1) * q) * 100) / 100;
+			for each (k in Data.STATS.concat(Data.GEAR_STATS)) {
+				if (k == "spd" && b.kind == "weapon") continue;
+				if (k == "def" && b.kind == "armor") continue;
+				if (b[k] > 0) b[k] = Math.round(b[k] * q);
+			}
+			// +3: its special 15% stronger
+			if (fg >= 3) {
+				if (b.abx) {
+					var bx:Object = {};
+					for (k in b.abx) bx[k] = typeof b.abx[k] == "number" && k != "skulls" && k != "chain" && k != "cubes" ? Math.round(b.abx[k] * AWAKEN_SPECIAL * 100) / 100 : b.abx[k];
+					b.abx = bx;
+				}
+				if (b.kind == "weapon") {
+					b.sfb = Math.round((b.sfb || 1) * AWAKEN_SPECIAL * 100) / 100;
+					if (b.x && b.x.armor) b.x = {armor: Math.round(b.x.armor * AWAKEN_SPECIAL)};
+					if (b.split) b.split = {n: b.split.n, spd: b.split.spd, life: b.split.life, sh: b.split.sh, mul: Math.round(b.split.mul * AWAKEN_SPECIAL * 100) / 100};
+					if (b.boom) b.boom = {r: b.boom.r, mul: Math.round(b.boom.mul * AWAKEN_SPECIAL * 100) / 100};
+				}
+			}
+			// +5: Awakened
+			if (fg >= FORGE_MAX) { b.aw = 1; b.name = "Awakened " + b.name; }
+			b.g = g;
+			if (fg > 0) b.fg = fg;
+			if (it.locked) b.locked = true;
+			return b;
+		}
+
+		/** One of a boss's items as it drops: a fresh grade rolled. */
+		public static function dropped(id:String):Object {
+			var it:Object = make(id);
+			return gradeable(it) ? graded(it, rollGrade(), 0) : it;
+		}
+
+		/** "Titanbreaker [S+2]": the name with its grade and forging. */
+		public static function displayName(it:Object):String {
+			if (!it) return "";
+			if (!gradeable(it)) return it.name;
+			return it.name + " [" + GRADES[gradeOf(it)] + (int(it.fg) > 0 ? "+" + int(it.fg) : "") + "]";
+		}
+
+		/** Whether `copy` can be forged into `it` (the same item, not yet +5). */
+		public static function canFuse(it:Object, copy:Object):Boolean {
+			return gradeable(it) && gradeable(copy) && it !== copy && idOf(it) == idOf(copy) && int(it.fg) < FORGE_MAX;
+		}
+
+		/** Fate Dust from salvaging an item (0: it can't be salvaged). */
+		public static function dustOf(it:Object):int {
+			if (!gradeable(it) || it.uid == LUCK_RING) return 0;
+			return int(DUST[it.rarity] || 0);
+		}
+
+		/** The tooltip's last line: "Quality: 116% (S, +2 forges)". */
+		public static function qualityLine(it:Object):String {
+			if (!gradeable(it)) return "";
+			var fg:int = int(it.fg);
+			var g:int = gradeOf(it);
+			return "<font color='" + Ui.hex(GRADE_COLORS[g]) + "'>Quality: " + Math.round(quality(it) * 100) + "% (" + GRADES[g] +
+				(fg > 0 ? ", +" + fg + " forge" + (fg == 1 ? "" : "s") : "") + ")" + (it.aw ? ", Awakened" : "") + "</font>\n";
 		}
 
 		/** Tooltip lines for a unique. */

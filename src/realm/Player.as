@@ -210,9 +210,9 @@ package realm {
 		public function get maxMp():int { return stat("mp"); }
 		public function get att():int { return stat("att"); }
 		/** (pets: Stone Guard, Bastion and Ash Guardian add Defense) */
-		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef + Data.petDef(Save.data.pet) + (hardenT > 0 ? 10 : 0); }
-		public function get spd():int { return riptide ? int(stat("spd") * 1.1) : stat("spd"); }
-		public function get dex():int { return riptide ? int(stat("dex") * 1.1) : stat("dex"); }
+		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef + Data.petDef(Save.data.pet) + (hardenT > 0 ? int(10 * sfPow("hardened")) : 0); }
+		public function get spd():int { return riptide ? int(stat("spd") * (1 + 0.1 * sfPow("riptide"))) : stat("spd"); }
+		public function get dex():int { return riptide ? int(stat("dex") * (1 + 0.1 * sfPow("riptide"))) : stat("dex"); }
 		public function get vit():int { return stat("vit"); }
 		public function get wis():int { return stat("wis"); }
 		public function get mgt():int { return stat("mgt"); }
@@ -245,6 +245,11 @@ package realm {
 		private var shieldRegen:Number = 0, dashFire:Boolean = false, fireDropT:Number = 0;
 		/** Your armour's or ring's Starforged passive is this one. */
 		public function hasSf(id:String):Boolean { return (armor != null && armor.sfp == id) || (ring != null && ring.sfp == id); }
+		/** How strong a Starforged passive is: 1, or 1.4 on an Awakened (+5) item. */
+		public function sfPow(id:String):Number {
+			var it:Object = armor != null && armor.sfp == id ? armor : ring != null && ring.sfp == id ? ring : null;
+			return it && it.aw ? Uniques.AWAKEN_PASSIVE : 1;
+		}
 		/** What your ability item does to its ability (Uniques.FIXED abx), 0 if nothing. */
 		private function abx(k:String):Number { return ability && ability.abx && ability.abx[k] ? Number(ability.abx[k]) : 0; }
 		/** A kill with Shifting Sands on. */
@@ -373,7 +378,7 @@ package realm {
 		}
 
 		public function get fireRate():Number {
-			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1) * (shiftT > 0 ? 1 + 0.03 * shiftN : 1);
+			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1) * (shiftT > 0 ? 1 + 0.03 * shiftN * sfPow("shifting") : 1);
 		}
 
 		public function update(dt:Number, g:Game):void {
@@ -455,7 +460,7 @@ package realm {
 				if (burnTick <= 0) {
 					burnTick = 0.5;
 					// (Lavawalker, a Starforged Magma Plate: 80% less)
-					var burn:int = hasSf("lavawalker") ? 3 : 15;
+					var burn:int = hasSf("lavawalker") ? Math.max(1, Math.round(3 / sfPow("lavawalker"))) : 15;
 					hp -= burn;
 					hitT = 0.1;
 					lastHitBy = underfoot == World.HEXFIRE ? "Cursed runes" : underfoot == World.VOIDFIRE ? "Void fire" : underfoot == World.SHOCK ? "Charged ground" : "Lava";
@@ -497,9 +502,9 @@ package realm {
 				bleedAcc += 18 * dt;
 				if (bleedAcc >= 6) { noteHit("Bleeding", "", int(bleedAcc)); bleedAcc -= int(bleedAcc); }
 			} else hp = Math.min(maxHp, hp + (1 + vit * 0.12) * dt);
-			var mpGain:Number = (0.5 + wis * 0.06) * dt * (hasSf("moonwell") && mp < maxMp * 0.25 ? 3 : 1);
+			var mpGain:Number = (0.5 + wis * 0.06) * dt * (hasSf("moonwell") && mp < maxMp * 0.25 ? 1 + 2 * sfPow("moonwell") : 1);
 			// Overflow (a Starforged Sorcerer's Seal): MP gained while full fills your Ward instead
-			if (mp >= maxMp && hasSf("overflow")) { wardHp = Math.min(maxMp * 0.5, wardHp + mpGain * 2); wardT = Math.max(wardT, 2); }
+			if (mp >= maxMp && hasSf("overflow")) { wardHp = Math.min(maxMp * 0.5, wardHp + mpGain * 2 * sfPow("overflow")); wardT = Math.max(wardT, 2); }
 			mp = Math.min(maxMp, mp + mpGain);
 			if (pt > maxPt) pt = maxPt;
 			// the ladder's timers
@@ -540,7 +545,7 @@ package realm {
 				}
 				var dmg:int = int((w.dmin + Math.random() * (w.dmax - w.dmin)) * mult);
 				// Kindling (a Starforged Cinderweave Robe): the shots after an ability hit 20% harder
-				if (kindleN > 0) dmg = int(dmg * 1.2);
+				if (kindleN > 0) dmg = int(dmg * (1 + 0.2 * sfPow("kindling")));
 				var eff:String = w.effect || null, sfr:Vector.<BitmapData> = frames;
 				if (w.x) {
 					if (w.x.hex) eff = "hex";
@@ -554,7 +559,7 @@ package realm {
 					}
 				}
 				var shot:Projectile = new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25 + (w.form == "heavy" ? 0.12 : 0), sfr, w.pierce, name, eff);
-				if (w.x && w.x.trail) shot.fireTrail = int(dmg * 0.12);
+				if (w.x && w.x.trail) shot.fireTrail = int(dmg * 0.12 * (w.sfb || 1));
 				shot.motion = w.motion;
 				// (the weapon's signature: speeding up, shards, an explosion, through walls)
 				if (w.accel) shot.accel = w.accel;
@@ -1307,7 +1312,7 @@ package realm {
 			var d:int = mitigate(raw, def, src);
 			// Last Bastion (a Starforged Colossus Core): below 30% HP, 25% less for 5s (once every 30s)
 			if (hasSf("bastion") && bastionCd <= 0 && hp < maxHp * 0.3) { bastionT = 5; bastionCd = 30; g.floatText(x, y - 1.6, "Last Bastion!", 0x8ae8ff); }
-			if (bastionT > 0) d = Math.max(1, int(d * 0.75));
+			if (bastionT > 0) d = Math.max(1, int(d * (1 - 0.25 * sfPow("bastion"))));
 			if (shielded) d = Math.max(1, int(d * 0.4));
 			if (guardT > 0) d = Math.max(1, int(d * (1 - guardCut)));
 			dmgTaken += d;

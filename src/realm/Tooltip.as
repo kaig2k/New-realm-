@@ -39,7 +39,8 @@ package realm {
 
 		public function show(item:Object, hintText:String, worn:Object = null):void {
 			icon.bitmapData = Sprites.icon(item);
-			title.text = item.name;
+			// (a graded item shows its grade and forging: "Titanbreaker [S+2]")
+			title.text = Uniques.displayName(item);
 			var label:String = Data.tierLabel(item);
 			tier.text = label;
 			tier.textColor = Data.tierColor(item);

@@ -2990,6 +2990,145 @@ async function run() {
     check('single-boss event dungeons are harder (about +40%)', ['crypt', 'depths', 'spire', 'cellar'].every((d) => LD.DUNGEONS.find((t) => t.id === d).hard === 1.4));
   }
 
+  console.log('item grades, forging and the Fate Crate');
+  {
+    const G = require('./sim/gen/game');
+    const GD = G.Data, GU = G.Uniques;
+    G.Bosses.init();
+    const v = require('./validate');
+    const its = require('./items');
+    const dps = (w) => (w.dmin + w.dmax) / 2 * w.shots * w.rate;
+    // the numbers
+    const base = GU.make('titanbreaker'), sss = GU.graded(base, 6, 0), d = GU.graded(base, 0, 0), max = GU.graded(base, 6, 5);
+    check('grades scale an item: D 90%, SSS 120%, SSS+5 135% (damage and stats)', d.dmin === Math.round(base.dmin * 0.9) && sss.dmin === Math.round(base.dmin * 1.2) &&
+      max.dmin === Math.round(base.dmin * 1.35) && max.att === Math.round(base.att * 1.35) && Math.abs(GU.quality(max) - 1.35) < 1e-9, [d.dmin, sss.dmin, max.dmin].join(','));
+    check('+5 Awakens an item (its name says so) and +3 makes its special stronger', max.aw === 1 && /^Awakened /.test(max.name) && GU.displayName(max) === 'Awakened Titanbreaker [SSS+5]' &&
+      GU.graded(base, 2, 3).x.armor > base.x.armor && GU.graded(GU.make('frostfang'), 2, 3).sfb > 1 && !GU.graded(base, 2, 2).aw &&
+      GU.graded(GU.make('rebirth_tome'), 2, 3).abx.heal > GU.make('rebirth_tome').abx.heal);
+    const old = GU.make('frostfang');
+    check('an item made before grades counts as B, +0', GU.gradeOf(old) === GU.GRADE_B && GU.quality(old) === 1 && GU.displayName(old) === 'Frostfang [B]');
+    check('tiered gear has no grade; Godly pieces and Fortune\'s Favour do', !GU.gradeable(GD.makeWeapon('sword', 7)) && GU.gradeable(G.Godly.make('wizard', 0)) &&
+      GU.gradeable(GU.make('fortune_ring')) && GU.make('fortune_ring').frt === 25 && GU.graded(GU.make('fortune_ring'), 6, 5).frt === 34);
+    const badG = [];
+    for (const id in GU.FIXED) {
+      const a = GU.make(id);
+      for (const it of [GU.graded(a, 6, 5), GU.graded(a, 0, 0)].concat(GU.canStarforge(a) ? [GU.graded(GU.starforge(a), 6, 5)] : [])) if (v.checkItem(it)) badG.push(id + ': ' + v.checkItem(it));
+    }
+    check('every item at D and at SSS+5 (and Starforged at SSS+5) passes the save checks', !badG.length, badG.join(', '));
+    const sfg = GU.starforge(GU.graded(GU.make('cubic_staff'), 5, 2));
+    check('Starforging keeps an item\'s grade and forging', sfg.rarity === 'sf' && sfg.g === 5 && sfg.fg === 2 && Math.abs(dps(sfg) - 345 * 1.21) < 8, dps(sfg));
+    check('a grade is part of what the ledger knows an item by', its.fingerprint(GU.graded(base, 2, 0)) !== its.fingerprint(GU.graded(base, 6, 0)) &&
+      its.fingerprint(GU.graded(base, 2, 0)) !== its.fingerprint(GU.graded(base, 2, 1)));
+    const cnt = [0, 0, 0, 0, 0, 0, 0];
+    const NG = 200000;
+    for (let k = 0; k < NG; k++) cnt[GU.rollGrade()]++;
+    check('grades drop with their odds (D 15%, B 30%, SSS about 1%)', Math.abs(cnt[0] / NG - 0.15) < 0.01 && Math.abs(cnt[2] / NG - 0.3) < 0.01 && Math.abs(cnt[6] / NG - 0.01) < 0.002, cnt.join(','));
+    let low = 0;
+    for (let k = 0; k < 20000; k++) { if (GU.rollGrade(GU.GRADE_S) < GU.GRADE_S) low++; if (GU.rollGrade(3) < 3) low++; }
+    check('a charm\'s reroll never lands below its floor', low === 0);
+    let graded = 0, ungraded = 0;
+    for (let k = 0; k < 20000; k++) for (const it of GD.rollLoot(GD.ENEMIES.cove_boss, 0, GD.CLASSES.knight, 0)) if (it.uid) { if (it.g !== undefined) graded++; else ungraded++; }
+    check('a boss\'s items drop with a grade rolled', graded > 0 && ungraded === 0, graded + '/' + ungraded);
+    check('Fate Dust: a UT salvages for 1, a Legendary 3, a Starforged 5; Fortune\'s Favour can\'t be salvaged', GU.dustOf(GU.make('saltbeard_cutlass')) === 1 &&
+      GU.dustOf(base) === 3 && GU.dustOf(GU.starforge(base)) === 5 && GU.dustOf(GU.make('fortune_ring')) === 0);
+    check('only copies of the same item forge in, up to +5', GU.canFuse(base, GU.make('titanbreaker')) && !GU.canFuse(base, GU.make('frostfang')) && !GU.canFuse(max, GU.make('titanbreaker')));
+    // Godly pieces roll grades and forge too (a copy of the same piece only)
+    const gw = G.Godly.make('wizard', 0), badGd = [];
+    for (const cls in GD.CLASSES) for (let s = 0; s < 4; s++) { const it = GU.graded(G.Godly.make(cls, s), 6, 5); if (v.checkItem(it)) badGd.push(cls + s + ': ' + v.checkItem(it)); }
+    check('Godly pieces grade like the rest (SSS+5 is 135%), and every one passes the save checks maxed', GU.graded(gw, 6, 5).dmin === Math.round(gw.dmin * 1.35) &&
+      GU.graded(gw, 6, 5).gid === gw.gid && /^Awakened /.test(GU.graded(gw, 6, 5).name) && !badGd.length, badGd.join(', '));
+    check('only a copy of the same Godly piece forges into it', GU.canFuse(gw, G.Godly.make('wizard', 0)) && !GU.canFuse(gw, G.Godly.make('wizard', 1)) &&
+      !GU.canFuse(gw, G.Godly.make('archer', 0)) && GU.dustOf(gw) === 0);
+    let gdg = 0;
+    for (let k = 0; k < 400000 && gdg < 3; k++) for (const it of GD.rollLoot(GD.ENEMIES.elder, 4, GD.CLASSES.wizard, 0)) if (it.rarity === 'gd' && it.g !== undefined) gdg++;
+    check('Godly pieces drop with a grade rolled', gdg > 0);
+    // the crate's table
+    const tally = {};
+    const NC = 200000;
+    for (let k = 0; k < NC; k++) { const p = GD.crateRoll(false); tally[p.id] = (tally[p.id] || 0) + 1; }
+    check('the crate\'s odds: stat potion 55%, gold 25%, Reroll Charm 6%, Fortune\'s Favour about 0.1%', Math.abs(tally.stat / NC - 0.55) < 0.01 && Math.abs(tally.gold / NC - 0.25) < 0.01 &&
+      Math.abs(tally.reroll / NC - 0.06) < 0.004 && tally.ring > NC * 0.0004 && tally.ring < NC * 0.0018 && GD.CRATE_PRIZES.reduce((s, p) => s + p.w, 0) === 1000, JSON.stringify(tally));
+    check('the bad-luck roll is pink or better', Array.from({ length: 5000 }, () => GD.crateRoll(true)).every((p) => p.tier >= 2));
+    check('charms and pouches pass the save checks', !v.checkItem(GD.makeCharm('reroll')) && !v.checkItem(GD.makeCharm('sovereign')) && !v.checkItem(GD.makePouch('gold', 2500)) &&
+      v.checkItem(Object.assign(GD.makePouch('gold', 2500), { amt: 9e9 })) !== null && v.checkItem(Object.assign(GU.graded(base, 6, 0), { g: 9 })) !== null);
+
+    // through the server
+    const nm = 'Tgr' + n;
+    const P = await login(nm, { password: 'pass1234', register: true });
+    for (let k = 0; k < 40 && !P.find((m) => m.t === 'welcome'); k++) await wait(100);
+    check('the grades test player is logged in', !!P.find((m) => m.t === 'welcome'), JSON.stringify(P.msgs.slice(0, 3)));
+    const ph = { id: 'gh1', cls: 'knight', name: 'Grader', level: 1, stats: clone(GD.CLASSES.knight.base), inv: [null, null, null, null, null, null, null, null] };
+    P.send({ t: 'save', data: { gold: 0, fame: 0, chars: [ph] } });
+    await wait(400);
+    P.send({ t: 'enter', key: 'nexus', cid: 'gh1', x: 100, y: 100 });
+    await wait(300);
+    const boss = await login('TestBoss', { password: 'pass1234' });
+    for (let k = 0; k < 40 && !boss.find((m) => m.t === 'welcome'); k++) await wait(100);
+    let seq = 0, gold = 0, fame = 0;
+    const take = (r) => { if (r) { if (r.seq !== undefined) seq = r.seq; if (r.gold !== undefined) gold = r.gold; if (r.fame !== undefined) fame = r.fame; if (r.inv) ph.inv = r.inv; } return r; };
+    const data = () => ({ gold, fame, chars: [clone(ph)], tradeSeq: seq });
+    const ask = async (msg) => { P.clear(); P.send(Object.assign({ data: data(), cid: 'gh1' }, msg)); await wait(350); return take(P.find((m) => m.t === 'shopDone')) || P.find((m) => m.t === 'shopFail'); };
+    const give = async (what) => { P.clear(); boss.send({ t: 'cmd', text: '/give ' + nm + ' ' + what }); await wait(400); take(P.find((m) => m.t === 'shopDone') || P.find((m) => m.t === 'given')); };
+    await give('3 titanbreaker');
+    const tb = () => ph.inv.map((it, i) => (it && it.uid === 'titanbreaker' ? i : -1)).filter((i) => i >= 0);
+    check('/give hands out graded items (B unless rolled)', tb().length === 3, JSON.stringify(ph.inv) + ' boss: ' + JSON.stringify(boss.msgs.slice(-3)) + ' player: ' + JSON.stringify(P.msgs.slice(-3)));
+    const r0 = await ask({ t: 'grade', a: 'reroll', slot: tb()[0] });
+    check('a reroll needs 10 Fate Dust', r0 && r0.t === 'shopFail' && /Fate Dust/.test(r0.msg), JSON.stringify(r0));
+    const fu = await ask({ t: 'grade', a: 'fuse', slot: tb()[0], fs: tb()[1] });
+    const f1 = ph.inv[tb()[0]];
+    check('forging a copy in: +1, the copy is used up', fu && fu.graded === 'fuse' && f1 && f1.fg === 1 && tb().length === 2 && f1.sid, JSON.stringify(fu));
+    const sv1 = await ask({ t: 'grade', a: 'salvage', slot: tb()[1] });
+    check('salvaging a Legendary gives 3 Fate Dust', sv1 && sv1.graded === 'salvage' && sv1.dust === 3 && tb().length === 1, JSON.stringify(sv1));
+    await give('reroll charm');
+    const cs = ph.inv.findIndex((it) => it && it.kind === 'charm');
+    const g0 = GU.gradeOf(ph.inv[tb()[0]]);
+    const ch1 = await ask({ t: 'grade', a: 'charm', slot: tb()[0], cs });
+    const after = ph.inv[tb()[0]];
+    check('a Reroll Charm rerolls the grade, never lower, and keeps the forging', ch1 && ch1.graded === 'charm' && GU.gradeOf(after) >= g0 && after.fg === 1 &&
+      !ph.inv.some((it) => it && it.kind === 'charm'), JSON.stringify(ch1));
+    // a game that edits an item's grade keeps the server's
+    P.clear();
+    const tampered = clone(ph);
+    tampered.inv[tb()[0]] = Object.assign(clone(after), { g: 6 });
+    P.send({ t: 'save', data: { gold, fame, chars: [tampered], tradeSeq: seq } });
+    await wait(400);
+    const rj = P.find((m) => m.t === 'saveRejected');
+    check('a save that raises an item\'s grade is refused', !!rj, JSON.stringify(P.msgs.slice(-2)));
+    // the crate
+    const poor = await ask({ t: 'crate', n: 1 });
+    check('a crate needs 5,000 fame', poor && poor.t === 'shopFail' && /fame/.test(poor.msg), JSON.stringify(poor));
+    await give('60000 fame');
+    const c1 = await ask({ t: 'crate', n: 1 });
+    check('opening a crate: 5,000 fame, one prize, the server tells the game', c1 && Array.isArray(c1.crate) && c1.crate.length === 1 && fame === 55000 && c1.cr && c1.cr.opened === 1, JSON.stringify(c1));
+    await wait(450);
+    const c10 = await ask({ t: 'crate', n: 10 });
+    check('...and ten at once (50,000)', c10 && c10.crate && c10.crate.length === 10 && fame === 5000, JSON.stringify(c10 && c10.crate.map((p) => p.id)));
+    const kept = c10 ? c10.cr.box.length : 0;
+    await wait(450);
+    const c2 = await ask({ t: 'crate', n: 10 });
+    check('it won\'t open what you can\'t afford', c2 && c2.t === 'shopFail', JSON.stringify(c2));
+    P.clear();
+    P.send({ t: 'crateView', f: { gold: 'open', stat: 'sell', bogus: 'x' } });
+    await wait(300);
+    const cv = P.find((m) => m.t === 'crateState');
+    check('crate filters are kept (unknown ones ignored)', cv && cv.filter.gold === 'open' && cv.filter.stat === 'sell' && !cv.filter.bogus, JSON.stringify(cv));
+    // empty the inventory a little, then take the prizes
+    ph.inv = ph.inv.map((it) => (it && it.uid === 'titanbreaker' ? it : null));
+    const tk = await ask({ t: 'crateTake', all: true });
+    const fromCrate = ph.inv.filter((it) => it && (it.kind === 'stat' || it.kind === 'pouch' || it.kind === 'charm' || it.uid === 'fortune_ring'));
+    check('prizes come out of the crate chest into the inventory, with ledger ids', tk && tk.crateTook > 0 && fromCrate.length > 0 && fromCrate.every((it) => it.sid), JSON.stringify(tk) + ' kept ' + kept);
+    P.clear();
+    P.send({ t: 'save', data: data() });
+    await wait(400);
+    check('...and a save holding them (and graded gear) is accepted', !P.find((m) => m.t === 'saveRejected'), JSON.stringify(P.find((m) => m.t === 'saveRejected')));
+    await give('gold pouch');
+    const pi = ph.inv.findIndex((it) => it && it.kind === 'pouch' && it.sub === 'gold');
+    const amt = pi >= 0 ? ph.inv[pi].amt : 0, gb = gold;
+    const po = await ask({ t: 'pouch', slot: pi });
+    check('a Gold Pouch opens into gold on the server', po && po.pouch === 'gold' && gold === gb + amt && !ph.inv[pi], JSON.stringify(po));
+    for (const c of [P, boss]) c.s.destroy();
+  }
+
   console.log('health and damage the game reports');
   {
     const nm = 'Th' + n;

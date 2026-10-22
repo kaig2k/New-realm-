@@ -218,8 +218,33 @@ package realm {
 		private static const PET_WISP_B:Array = [["...L..L...", "..LWWW.L..", ".WWCCCW...", "WCCECCECW.", "WCCCCCCCWL", ".WCCCCCW..", "L.WCCCW...", "...WCW.L..", "..L.W.....", "....L....."]];
 		private static const PET_GOLEM_A:Array = [["..hHHHHh..", ".hHHHHHHh.", ".hHEHHEHh.", "..hHHHHh..", "DDBBBBBBB.", "DdDBBAABBB", "DdDBBBBBBB", "DDBBBBBBB.", "..LLL.LLL.", "..LL...LL."]];
 		private static const PET_GOLEM_B:Array = [["...hHHh...", "..hHHHHh..", ".hHEHHEHh.", ".hHHHHHHh.", "BBbBBBBbBB", "BMBBBBBBMB", "BBBBMBBBBB", ".BBBBBBBB.", "..LL..LL..", ".LLL..LLL."]];
+		// ---- the Fate Crate's pet skins (16x16, drawn at 2x like the 8x8 pets at 4x): idle, move and attack, two frames each
+		private static const PET_SKIN_RABBIT:Array = [
+			["................", "................", "....KK...KK.....", ".S.KLYK.KLYK....", "...KLYK.KLYK....", "...KLYK.KYyK....", "..KYYYKKKYYYK.S.", "..KYLYYYYYYYYK..", "..KYYEYYYYEYYK..", "..KYYYYYpYYYYK..", "...KRRRRRRRRK...", "..KYrRRRRRrKKK..", ".KYYYYYrrYYKCCK.", ".KYLYYYYYYYKcCK.", ".KyYYYYYYYYKCCK.", "..KKyyK.KyyKKK.."],
+			["................", "................", ".............S..", "....KK...KK.....", "...KLYK.KLYK....", "...KLYK.KLYK....", "...KLYK.KYyK....", "..KYYYKKKYYYK...", "..KYLYYYYYYYYK..", "S.KYYEYYYYEYYK..", "..KYYYYYpYYYYK..", "...KRRRRRRRRK...", "..KYrRRRRRrKKK..", ".KYYYYYrrYYKCCK.", ".KYLYYYYYYYKcCK.", "..KKyyK.KyyKKK.."],
+			["................", "....KK...KK.....", "...KLYK.KLYK.S..", "...KLYK.KLYK....", "...KLYK.KYyK....", "..KYYYKKKYYYK...", "..KYLYYYYYYYYK..", "..KYYEYYYYEYYK..", "..KYYYYYpYYYYK..", "S..KRRRRRRRRK...", "..KYrRRRRRrKKK..", ".KYYYYYrrYYKCCK.", ".KYLYYYYYYYKcCK.", ".KyYYYYYYYYKCCK.", "...KyyK.KyyKKK..", "................"],
+			["....KK...KK.....", "..SKLYK.KLYK....", "...KLYK.KLYK....", "...KLYK.KYyK....", "..KYYYKKKYYYK...", "..KYLYYYYYYYYK..", "..KYYEYYYYEYYK..", "..KYYYYYpYYYYK..", "...KRRRRRRRRK...", "..KYrRRRRRrKKK..", ".KYYYYYrrYYKCCKS", ".KYLYYYYYYYKcCK.", ".KyYYYYYYYYKCCK.", "...KyyK.KyyKKK..", "................", "................"],
+			["................", "................", "....KK...KK.....", ".S.KLYK.KLYK....", "...KLYK.KLYK....", "...KLYK.KYyK....", "..KYYYKKKYYYK.S.", "..KYLYYYYYYYYK..", "..KYYEYYYYEYYK..", "..KYYYYYpYYYYK..", "...KRRRRRRRRK...", "..KYrRRRRRrKKK..", ".KYYYYYrrYYKCCK.", ".KYLYYYYYYYKcCK.", ".KyYYYYYYYYKCCK.", "..KKyyK.KyyKKK.."],
+			["................", "..S.............", "....KK...KK.....", "...KLYK.KLYK....", "...KLYK.KLYK....", "...KLYK.KYyK....", "..KYYYKKKYYYK...", "..KYLYYYYYYYYK..", "..KYYKYYYYKYYK..", "..KYYYYYpYYYYK..", "...KRRRRRRRRK..S", "..KYrRRRRRrKKK..", ".KYYYYYrrYYKCCK.", ".KYLYYYYYYYKcCK.", ".KyYYYYYYYYKCCK.", "..KKyyK.KyyKKK.."]];
+		private static const PET_SKIN_CAT:Array = [
+			["................", "................", "..KK.....KK..KK.", ".KRWK...KRWK.KWK", ".KRWWKKKWRWK.KWK", ".KWWWWWWWWWK.KWK", ".KWEEWWWEEWKKWWK", ".KPWWWKWWWPKKWK.", "..KWWWWWWWWKKWK.", "..KRRRGGRRRKWK..", ".KWWRrGgRrWWWK..", ".KWWWWGGWWWWK...", ".KWwWWWWWWwWK...", ".KWWwWWWWwWWK...", "..KWWKKKKWWK....", "...KK....KK....."],
+			["................", "................", "..KK.....KK..S..", ".KRWK...KRWK....", ".KRWWKKKWRWK....", ".KWWWWWWWWWK....", ".KWEEWWWEEWK.KK.", ".KPWWWKWWWPKKWWK", "..KWWWWWWWWKKWWK", "S.KRRRGGRRRKKWK.", ".KWWRrGgRrWWWK..", ".KWWWWGGWWWWK...", ".KWwWWWWWWwWK...", ".KWWwWWWWwWWK...", "..KWWKKKKWWK....", "...KK....KK....."],
+			["................", "..KK.....KK.....", ".KRWK...KRWK.S..", ".KRWWKKKWRWK....", ".KWWWWWWWWWK....", ".KWEEWWWEEWK.KK.", ".KPWWWKWWWPKKWWK", "..KWWWWWWWWKKWWK", "..KRRRGGRRRKKWK.", "SKWWRrGgRrWWWK..", ".KWWWWGGWWWWK...", ".KWwWWWWWWwWK...", ".KWWwWWWWwWWK...", "..KWWKKKKWWK....", "..KK.....KKK....", "................"],
+			["................", "..S.............", "..KK.....KK..KK.", ".KRWK...KRWK.KWK", ".KRWWKKKWRWK.KWK", ".KWWWWWWWWWK.KWK", ".KWEEWWWEEWKKWWK", ".KPWWWKWWWPKKWK.", "..KWWWWWWWWKKWK.", "..KRRRGGRRRKWK..", ".KWWRrGgRrWWWK.S", ".KWWWWGGWWWWK...", ".KWwWWWWWWwWK...", ".KWWwWWWWwWWK...", "..KWWKKKKWWK....", "...KKK....KK...."],
+			["................", "................", "..KK.....KK..KK.", ".KRWK...KRWK.KWK", ".KRWWKKKWRWK.KWK", ".KWWWWWWWWWK.KWK", ".KWEEWWWEEWKKWWK", ".KPWWWKWWWPKKWK.", "..KWWWWWWWWKKWK.", "..KRRRGGRRRKWK..", ".KWWRrGgRrWWWK..", ".KWWWWGGWWWWK...", ".KWwWWWWWWwWK...", ".KWWwWWWWwWWK...", "..KWWKKKKWWK....", "...KK....KK....."],
+			["................", "..S.............", "..KK.....KK..KK.", ".KRWK...KRWK.KWK", ".KRWWKKKWRWK.KWK", ".KWWWWWWWWWK.KWK", ".KWKKWWWKKWKKWWK", ".KPWWWKWWWPKKWK.", "..KWWWWWWWWKKWK.", "..KRRRGGRRRKWK..", ".KWWRrGgRrWWWK.S", ".KWWWWGGWWWWK...", ".KWwWWWWWWwWK...", ".KWWwWWWWwWWK...", "..KWWKKKKWWK....", "...KK....KK....."]];
+		private static const PET_SKIN_SHOE:Array = [
+			["................", "................", "................", ".SKKKK....KKKK..", ".KLYYK....KYYYK.", ".KLYYK....KYYyK.", ".KLYK..KK..KYyK.", ".KYYK.KwbK.KYyK.", ".KYYKKBwBbKKYyK.", "GKYYKKBBBbKKYyKG", "GgKYYKKbbKKYyKgG", "GGKYYYKKKKYYyKGG", ".gGKYYYYYYYyKGg.", "..GgKYYYYYyKgG..", "...g.KKKKKK.g...", "................"],
+			["................", "................", "..KKKK....KKKK..", ".KLYYK....KYYYK.", ".KLYYK....KYYyK.", ".KLYK..KK..KYyK.", ".KYYK.KwbK.KYyK.", ".KYYKKBwBbKKYyK.", "GKYYKKBBBbKKYyKG", "GgKYYKKbbKKYyKgG", "GGKYYYKKKKYYyKGG", ".gGKYYYYYYYyKGg.", "..GgKYYYYYyKgG..", "...g.KKKKKK.g...", "................", "................"],
+			["................", "................", "..KKKK....KKKK..", ".KLYYK....KYYYK.", ".KLYYK....KYYyK.", ".KLYK..KK..KYyK.", ".KYYK.KwbK.KYyK.", ".KYYKKBwBbKKYyK.", "GKYYKKBBBbKKYyKG", "GgKYYKKbbKKYyKgG", "GGKYYYKKKKYYyKGG", ".gGKYYYYYYYyKGg.", "..GgKYYYYYyKgG..", "...g.KKKKKK.g...", "................", "................"],
+			["................", "..S.............", "................", "...KKKK....KKKK.", "..KLYYK....KYYYK", "..KLYYK....KYYyK", "..KLYK..KK..KYyK", "..KYYK.KwbK.KYyK", "..KYYKKBwBbKKYyK", ".GKYYKKBBBbKKYyK", ".GgKYYKKbbKKYyKg", ".GGKYYYKKKKYYyKG", "..gGKYYYYYYYyKGg", "...GgKYYYYYyKgG.", "....g.KKKKKK.g..", "................"],
+			["................", "................", "................", ".SKKKK....KKKK..", ".KLYYK....KYYYK.", ".KLYYK....KYYyK.", ".KLYK..KK..KYyK.", ".KYYK.KwbK.KYyK.", ".KYYKKBwBbKKYyK.", "GKYYKKBBBbKKYyKG", "GgKYYKKbbKKYyKgG", "GGKYYYKKKKYYyKGG", ".gGKYYYYYYYyKGg.", "..GgKYYYYYyKgG..", "...g.KKKKKK.g...", "................"],
+			["................", "..KKKK....KKKK..", ".KLYYK....KYYYK.", ".KLYYK....KYYyK.", ".KLYK..KK..KYyK.", ".KYYK.KwwK.KYyK.", ".KYYKKBwwbKKYyK.", "GKYYKKBBBbKKYyKG", "GgKYYKKbbKKYyKgG", "GGKYYYKKKKYYyKGG", ".gGKYYYYYYYyKGgS", "..GgKYYYYYyKgG..", "...g.KKKKKK.g...", "................", "................", "................"]];
 		private static const ICON_STONE:Array = [["...WW...", "..WGGg..", ".WGGGGg.", ".GGHGGg.", ".GGGGgg.", ".gGGGgg.", "..gggg..", "........"]];
 		private static const ICON_RUNE:Array = [["..BBBB..", ".BbbbbB.", ".BbRRbB.", ".BbRbbB.", ".BbRRbB.", ".BbbRbB.", ".BbRRbB.", "..BBBB.."]];
+		private static const ICON_CHARM:Array = [["..GGGG..", ".G....G.", "..G..G..", "...CC...", "..CWCC..", ".CWCCCc.", "..CCcc..", "...cc..."]];
+		private static const ICON_POUCH:Array = [["..G..G..", "...GG...", "..BBBB..", ".BbBBbB.", "BBBYYBBb", "BBYYYYBb", ".BBYYBb.", "..bbbb.."]];
+		private static const ICON_VIAL:Array = [["...WW...", "...GG...", "...GG...", "..GHCG..", ".GCHCCG.", ".GCCCcG.", ".GCCccG.", "..GGGG.."]];
 		private static const ICON_SOR:Array = [["...CC...", "..CWCC..", ".CWCCCc.", "CWCCCCcc", ".CCCCcc.", "..CCcc..", "...cc...", "........"]];
 		private static const ICON_TIERS:Array = [{B: 0x9a9aa2, b: 0x5a5a62, H: 0xd8d8e0, G: 0x8a6a3a, g: 0x5a4422, R: 0xa0a0a8, W: 0x8a5a2a, w: 0x5a3a18, P: 0x6a6a72, S: 0xd8d8d8}, {B: 0xb8c8dc, b: 0x6a7a90, H: 0xf0f8ff, G: 0xa8a8b4, g: 0x6a6a78, R: 0x60c0ff, W: 0x7a4a24, w: 0x4a2a10, P: 0x9a9aa8, S: 0xe8e8e8}, {B: 0xd8d8e8, b: 0x8a8aa0, H: 0xffffff, G: 0xf0c030, g: 0xa07810, R: 0xff4040, W: 0x6a3a1a, w: 0x3a2010, P: 0xf0c030, S: 0xf0f0f0}, {B: 0x9ad8f0, b: 0x4a8aa8, H: 0xf0ffff, G: 0x8040c0, g: 0x502080, R: 0x60ffd0, W: 0x3a2a4a, w: 0x201428, P: 0x8040c0, S: 0xf0ffff}];
 		private static const ICON_ABIL:Object = {spell: [0x6a3a8a, 0xe8e0c8], quiver: [0x8a5a2a, 0xc0c0c0], shield: [0x5a6a9a, 0xd8d8e0], tome: [0x9a2a2a, 0xe8e0c8], cloak: [0x4a2a6a, 0xc8c8c8], helm: [0x9a9aa6, 0xe0e0e8], skull: [0x8a8070, 0xe8e0c8], trap: [0x5a5a62, 0xa0a0a8]};
@@ -363,6 +388,9 @@ package realm {
 			pet_golem: [BRUTE, {H: 0x9a9aa0, h: 0x6a6a70, E: 0x60ff90, B: 0x8a8a90, b: 0x5a5a60, A: 0x60ff90, L: 0x4a4a50, W: 0x8a8a90, S: 0x9a9aa0}, 4],
 			pet_pup_a: [PET_PUP_A, {W: 0xc89a5a, w: 0x8a6430, E: 0x101010, K: 0x8a5a2a, k: 0xf0c030, Y: 0xf0c030, n: 0x301810}, 4],
 			pet_pup_b: [PET_PUP_B, {W: 0x5a5a62, w: 0x3a3a40, A: 0x8a2a2a, S: 0xd0d0d8, E: 0xff3030, T: 0xffffff}, 4],
+			pet_skin_rabbit: [PET_SKIN_RABBIT, {K: 0x5a2c06, Y: 0xf6c232, y: 0xd08a1a, L: 0xfff1a0, R: 0xd8282c, r: 0x8e1418, C: 0xffd84a, c: 0xb87810, E: 0x1a0c04, p: 0xff8a9a, S: 0xfff6c0}, 2],
+			pet_skin_cat: [PET_SKIN_CAT, {K: 0x5a1c18, W: 0xfff7ea, w: 0xe6cdb2, R: 0xd8302c, r: 0x941c1a, G: 0xf8c432, g: 0xb87c12, E: 0x2a1010, P: 0xff9aa4, S: 0xfff6c0}, 2],
+			pet_skin_shoe: [PET_SKIN_SHOE, {K: 0x5a3000, Y: 0xf6c232, y: 0xc4800e, L: 0xfff1a0, B: 0x3aa8ff, b: 0x1a4cc8, w: 0xe8f8ff, G: 0x44c84a, g: 0x1e7a2c, S: 0xfff6c0, T: 0x8af0ff}, 2],
 			pet_slime_a: [PET_SLIME_A, {B: 0xff80c0, b: 0xc04080, W: 0xffd0ea, E: 0x401030, Y: 0xffd040}, 4],
 			pet_slime_b: [PET_SLIME_B, {B: 0x70e030, b: 0x3a8a18, G: 0xc8ff80, E: 0x102008, D: 0x90ff40}, 4],
 			pet_owl_a: [PET_OWL_A, {B: 0xe0e8ff, c: 0x6a80d0, S: 0x60f0ff, W: 0xffffff, E: 0x2040a0, Y: 0xf0c030}, 4],
@@ -724,6 +752,8 @@ package realm {
 		 * form, brighter ("pet_drake_a_x"). Then the pet skin, if any.
 		 */
 		public static function petForm(pet:Object, skin:String):String {
+			var own:Object = skin ? Data.findPetSkin(skin) : null;
+			if (own && own.spr && DEFS[own.spr]) return own.spr;
 			var path:String = Data.petPath(pet);
 			if (!path || !DEFS["pet_" + pet.species + "_" + path]) return petSprite(pet.species, skin);
 			var base:String = "pet_" + pet.species + "_" + path;
@@ -737,6 +767,8 @@ package realm {
 
 		/** The sprite id for a pet species in a pet skin ("" for none). */
 		public static function petSprite(species:String, skin:String):String {
+			var own:Object = skin ? Data.findPetSkin(skin) : null;
+			if (own && own.spr && DEFS[own.spr]) return own.spr;
 			return "pet_" + species + (skin && Data.findPetSkin(skin) ? "~" + skin : "");
 		}
 
@@ -1135,6 +1167,14 @@ package realm {
 					var rcol:uint = Data.STAT_COLORS[item.sub] || 0xffd040;
 					rows = ICON_RUNE[0];
 					pal = {B: 0x5a5a66, b: 0x8a8a96, R: rcol};
+					break;
+				case "charm":
+					rows = ICON_CHARM[0];
+					pal = item.sub == "sovereign" ? {G: 0xf0c030, C: 0xffd23a, c: 0xb88a10, W: 0xfff6c0} : {G: 0xd8d8e0, C: 0xff5ac8, c: 0xa02a80, W: 0xffd8f0};
+					break;
+				case "pouch":
+					if (item.sub == "aether") { rows = ICON_VIAL[0]; pal = {W: 0x8a5a2a, G: 0xc8c8d0, H: 0xffffff, C: 0x60f0ff, c: 0x2a90c0}; }
+					else { rows = ICON_POUCH[0]; pal = {G: 0xc8a050, B: 0x9a6a3a, b: 0x5a3a1a, Y: 0xffd23a}; }
 					break;
 				case "material":
 					rows = ICON_SOR[0];

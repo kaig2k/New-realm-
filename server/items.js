@@ -19,7 +19,9 @@ const CORE = ['kind', 'sub', 'ab', 'tier', 'rarity', 'uid', 'set', 'passive', 'f
   // (a tiered weapon's signature shot: Data.SIGS)
   'accel', 'walls', 'effect', 'split', 'boom',
   // (the item ladder: an ability item's special, a weapon's own code, a Starforged passive and bump)
-  'abx', 'x', 'sfp', 'sfb'].concat(STATS);
+  'abx', 'x', 'sfp', 'sfb',
+  // (grades and forging: an item's grade, forge level and Awakening, and a Gold Pouch's or Aether Vial's amount)
+  'g', 'fg', 'aw', 'amt'].concat(STATS);
 /** Most entries one ledger keeps (old entries for items no longer held are dropped first). */
 const LEDGER_MAX = 4000;
 

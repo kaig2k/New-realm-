@@ -2186,12 +2186,29 @@ class Bosses {
 				attacks: [Bosses.ring(12, 15, 4.5, 70, 1.5, 0xb0ffd0, {shape: "soul", name: "soul ring"})]});
 			Bosses.mob("glimmer_mote", {name: "Glimmer Mote", spr: "glimmer_mote", ai: "still", spd: 0, hp: 1200, def: 6, xp: 50, drop: 0, keep: 0, aggro: 12, range: 7, r: 0.45, col: 0xff80d0,
 				attacks: [Bosses.ring(5, 0, 3.2, 40, 2.4, 0xffc0f0, {shape: "star"})]});
+			
+			Bosses.lairProp("moth_cocoon", {name: "Glowing Cocoon", spr: "moth_cocoon", hp: 1400, def: 4, col: 0xd8e870, xp: 60,
+				attacks: [Bosses.ring(6, 0, 3.4, 18, 2.6, 0xe8f080, {shape: "orb", name: "cocoon dust"})]});
+			Bosses.lairProp("venom_font", {name: "Venom Font", spr: "venom_font", hp: 2600, def: 6, col: 0x60d040, xp: 80,
+				attacks: [Bosses.rain(2, 2.5, 26, 3.2, 0x60d040, {radius: 1.1, delay: 1.2, eff: "poisoned", name: "venom spit"})]});
+			Bosses.mob("spiderling", {name: "Spiderling", spr: "spiderling", ai: "still", spd: 0, hp: 500, def: 2, xp: 20, drop: 0, keep: 0, aggro: 12, range: 6, r: 0.4, col: 0x8a2020,
+				attacks: [Bosses.aim(1, 0, 6, 18, 1.8, 0xa04040, {shape: "orb"})]});
+			Sprites.recolor("moth_cocoon", "crystal", {W: 0xffffe0, C: 0xe8f080, c: 0xa0b040, D: 0x5a6a20, S: 0x2a3010}, 5);
+			Sprites.recolor("venom_font", "crystal", {W: 0xe0ffd0, C: 0x60d040, c: 0x2a8a20, D: 0x14501a, S: 0x0a2a0e}, 5);
 			Sprites.recolor("crypt_seal", "crystal", {W: 0xe0fbff, C: 0x6ad0ff, c: 0x2a7aa0, D: 0x123a50, S: 0x0a1a24}, 6);
 			Sprites.recolor("arcane_ward", "crystal", {W: 0xe0e8ff, C: 0x6090ff, c: 0x3050c0, D: 0x182a6a, S: 0x0c1430}, 6);
 
 			var D = Data.DUNGEONS;
 			
 			var OLD = {
+				pirate_cove: {boss: "cove_boss", intro: "Saltbeard's crew hold the cove. Beat back two waves of them in his hall and the captain himself comes for you.",
+					waves: {mobs: ["pirate", "pirate", "pirate_brawler"], n: 2, size: 1}},
+				forest_maze: {boss: "moth_boss", intro: "Three glowing cocoons hidden in the maze keep Mother Mothwing safe. Find them and break them.",
+					shield: {ids: ["moth_cocoon"], n: 3, where: "rooms", text: "A glowing cocoon bursts!"}},
+				snake_pit: {boss: "serpent_boss", intro: "Venom fonts round the pit slowly heal Ssythra. Smash them, or the fight drags on.",
+					mend: {id: "venom_font", n: 2, r: 6, rate: 0.006}},
+				spider_den: {boss: "spider_boss", intro: "Spiderlings crawl to the Broodmother to feed her. Squash them before they reach her.",
+					feed: {id: "spiderling", every: 11, n: 2, heal: 0.01, speed: 1.3, text: "A spiderling reaches the Broodmother!"}},
 				crypt: {boss: "warden", intro: "Three Crypt Seals hidden in the flooded halls bind the Warden's tomb. While one holds, he can't be hurt.",
 					shield: {ids: ["crypt_seal"], n: 3, where: "rooms", text: "A Crypt Seal cracks!"}},
 				depths: {boss: "pyrelord", intro: "Magma vents round Pyrelord Ignaar's hall pour fire into him. Choke them, or he burns forever.",

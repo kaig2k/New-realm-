@@ -2534,12 +2534,39 @@ class Bosses {
 			e.hp = e.maxHp;
 			e.dmgMult *= boss ? Bosses.HEROIC.dmg : Bosses.HEROIC.guardDmg;
 			if (boss) e.rateMult *= Bosses.HEROIC.rate;
+			
+			
+			if (boss && th && th.heroicAtk && !e.def.stageFoe && !e.def.prop) {
+				var ha = th.heroicAtk;
+				if (e.def.bond) {
+					ha = [];
+					for (var a0 of __vals( th.heroicAtk)) { var a1 = Bosses.o({}, a0); a1.cd = a0.cd * 2.6; ha.push(a1); }
+				}
+				e.addAttacks(ha);
+			}
 		}
 	static raidName(i, heroic) { i = __int(i);
 			var rd = Bosses.RAIDS[i];
 			return rd ? (heroic ? "Heroic " : "") + rd.name : "";
 		}
+	static heroicRules() {
+			var R = {
+				conclave: ["Blood Moon: lines of blood geysers chase whoever its bosses fight.",
+					Bosses.lineRain(6, 140, 6.5, 0xff2030, "spikes", {name: "blood moon", eff: "bleeding"})],
+				storm: ["Eye of the Storm: lightning falls on every one of you, again and again.",
+					Bosses.rain(3, 1.2, 150, 5.5, 0xe0ffff, {radius: 1.5, delay: 1.2, fx: "pillar", eff: "paralyzed", name: "the storm's eye"})],
+				starfall: ["Falling Stars: stars rain down over the whole chamber.",
+					Bosses.rain(6, 7, 160, 6, 0xffd060, {radius: 1.8, delay: 1.5, fx: "pillar", name: "falling star"})]
+			};
+			for (var rd of __vals( Bosses.RAIDS)) {
+				var r = R[rd.id];
+				if (!r) continue;
+				rd.heroicDesc = r[0];
+				rd.theme.heroicAtk = [r[1]];
+			}
+		}
 	static raids() {
+			Bosses.heroicRules();
 			var raid = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			
 			Bosses.mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
@@ -4143,6 +4170,8 @@ class Enemy {
 		this.orbitDir = NaN;
 		this.orbitA = 0;
 		this.blinkT = 2 + Math.random() * 2;
+		this.extraAttacks = null;
+		this.baseAttacks = null;
 		this.lastAttack = __int(-100000);
 		this.anim = "";
 		this.animAt = __int(0);
@@ -4208,7 +4237,13 @@ class Enemy {
 			if (p.cycle) return p.cycle[k % p.cycle.length];
 			return p.attacks || [];
 		}
+	addAttacks(list) {
+			this.extraAttacks = list;
+			this.setAttacks(this.baseAttacks || []);
+		}
 	setAttacks(list) {
+			this.baseAttacks = list;
+			if (this.extraAttacks) list = list.concat(this.extraAttacks);
 			this.attacks = list;
 			this.timers = [];
 			this.spins = [];
@@ -6509,7 +6544,7 @@ Bosses.N_LIGHT = __uint(0xa8e4ff);
 Bosses.N_VIOLET = __uint(0xb070ff);
 Bosses.A_RED = __uint(0xff2a3a);
 Bosses.A_PALE = __uint(0xffa8b0);
-Bosses.HEROIC = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
+Bosses.HEROIC = {hp: 1.35, dmg: 1.1, rate: 1.0, guardHp: 1.4, guardDmg: 1.15, luck: 60};
 Bosses.RAIDS = [
 			{id: "conclave", name: "The Crimson Conclave", color: 0xff3050,
 				stages: [["zealot_a", "zealot_b"], ["blood_altar", "blood_altar", "blood_altar", "blood_altar"], ["matron"], ["archon"]],
@@ -6529,7 +6564,7 @@ Bosses.RAIDS = [
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
-				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
+				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.25, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 World.DEFAULT_N = __int(200);

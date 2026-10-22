@@ -704,8 +704,11 @@ async function run() {
     const gid = norm.enemies.find((e) => !e.isBoss && hero.enemies.some((h) => !h.isBoss && h.defId === e.defId)).defId;
     const gmax = (ws) => Math.max(...ws.enemies.filter((e) => !e.isBoss && e.defId === gid).map((e) => e.maxHp));
     check('a Heroic raid knows it is (its world key ends in :h), and its bosses and guards are tougher and fiercer',
-      hero.heroic && !norm.heroic && hero.w.boss.maxHp > norm.w.boss.maxHp * 1.5 && hero.w.boss.dmgMult > norm.w.boss.dmgMult * 1.2 &&
-      gmax(hero) > gmax(norm) * 1.4 && norm.week === hero.week && norm.week > 0, [hero.w.boss.maxHp, norm.w.boss.maxHp, gmax(hero), gmax(norm)].join(' '));
+      hero.heroic && !norm.heroic && hero.w.boss.maxHp > norm.w.boss.maxHp * 1.3 && hero.w.boss.dmgMult > norm.w.boss.dmgMult * 1.05 &&
+      gmax(hero) > gmax(norm) * 1.3 && norm.week === hero.week && norm.week > 0, [hero.w.boss.maxHp, norm.w.boss.maxHp, gmax(hero), gmax(norm)].join(' '));
+    // and the raid's own Heroic rule: every boss in it carries the raid's Heroic attack (none in the normal raid)
+    const hatk = (ws) => ws.enemies.filter((e) => e.isBoss && !e.dead).every((e) => (e.attacks || []).some((a) => a.name === hero.w.raid.theme.heroicAtk[0].name));
+    check('  a Heroic raid\'s bosses use its Heroic rule (' + hero.w.raid.heroicDesc.split(':')[0] + '), the normal raid\'s don\'t', hatk(hero) && !norm.enemies.some((e) => e.isBoss && (e.attacks || []).some((a) => a.name === hero.w.raid.theme.heroicAtk[0].name)));
     // the final boss: the first clear of the week rolls its loot again; not the second
     const fc = new WorldSim('raid:1:555:h');
     const asked = [], got = [];

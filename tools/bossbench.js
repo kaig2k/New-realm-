@@ -130,6 +130,9 @@ function setup(id) {
       sim.enemies.splice(0, sim.enemies.length, ...sim.enemies.filter((e) => !e.dead));
     }
     sim.players.delete(-1);
+    // --heroic 1: the Heroic raid (Bosses.heroicEnemy: tougher, and the raid's own Heroic attack)
+    if (opt('heroic') === 'plain') rd.theme.heroicAtk = null;
+    if (opt('heroic')) { sim.heroic = true; for (const e of sim.enemies) if (!e.dead) Bosses.heroicEnemy(e, e.isBoss, rd.theme); }
     const st = sim.w.raidStage;
     targets = () => sim.w.raidStage === st ? sim.enemies.filter((e) => !e.dead && (e.isBoss || e.def.stageFoe || e.def.prop)) : [];
     tier = 'raid'; group = 4;

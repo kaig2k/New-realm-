@@ -168,7 +168,17 @@ package realm {
 			return p.attacks || [];
 		}
 
+		/** Attacks it uses on top of its own in every phase (a Heroic raid's: Bosses.heroicEnemy). */
+		public var extraAttacks:Array;
+		private var baseAttacks:Array;
+		public function addAttacks(list:Array):void {
+			extraAttacks = list;
+			setAttacks(baseAttacks || []);
+		}
+
 		private function setAttacks(list:Array):void {
+			baseAttacks = list;
+			if (extraAttacks) list = list.concat(extraAttacks);
 			attacks = list;
 			timers = [];
 			spins = [];

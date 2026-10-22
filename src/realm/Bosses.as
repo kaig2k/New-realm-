@@ -1635,7 +1635,7 @@ package realm {
 		 * fiercer, its guards too, and better loot (luck on every boss, see worldsim
 		 * dropLoot). Every raid has a weekly first clear of its own on each difficulty.
 		 */
-		public static const HEROIC:Object = {hp: 1.6, dmg: 1.25, rate: 1.1, guardHp: 1.5, guardDmg: 1.2, luck: 60};
+		public static const HEROIC:Object = {hp: 1.35, dmg: 1.1, rate: 1.0, guardHp: 1.4, guardDmg: 1.15, luck: 60};
 
 		/** Makes a raid monster heroic (its boss or one of its guards). */
 		public static function heroicEnemy(e:Enemy, boss:Boolean, th:Object = null):void {
@@ -1645,6 +1645,16 @@ package realm {
 			e.hp = e.maxHp;
 			e.dmgMult *= boss ? HEROIC.dmg : HEROIC.guardDmg;
 			if (boss) e.rateMult *= HEROIC.rate;
+			// and the raid's own Heroic rule: an attack every one of its bosses adds to its own (not its objectives)
+			// (bosses fought together, the bonded pairs and trios, share it out: each uses it less often)
+			if (boss && th && th.heroicAtk && !e.def.stageFoe && !e.def.prop) {
+				var ha:Array = th.heroicAtk;
+				if (e.def.bond) {
+					ha = [];
+					for each (var a0:Object in th.heroicAtk) { var a1:Object = o({}, a0); a1.cd = a0.cd * 2.6; ha.push(a1); }
+				}
+				e.addAttacks(ha);
+			}
 		}
 
 		/** A raid's name as its portal and banners show it. */
@@ -1672,11 +1682,30 @@ package realm {
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
 				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
-				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.6, layout: "starfall",
+				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.25, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
 
+		/** Each raid's Heroic rule (Bosses.heroicEnemy): what every boss in it does besides its own attacks. */
+		private static function heroicRules():void {
+			var R:Object = {
+				conclave: ["Blood Moon: lines of blood geysers chase whoever its bosses fight.",
+					lineRain(6, 140, 6.5, 0xff2030, "spikes", {name: "blood moon", eff: "bleeding"})],
+				storm: ["Eye of the Storm: lightning falls on every one of you, again and again.",
+					rain(3, 1.2, 150, 5.5, 0xe0ffff, {radius: 1.5, delay: 1.2, fx: "pillar", eff: "paralyzed", name: "the storm's eye"})],
+				starfall: ["Falling Stars: stars rain down over the whole chamber.",
+					rain(6, 7, 160, 6, 0xffd060, {radius: 1.8, delay: 1.5, fx: "pillar", name: "falling star"})]
+			};
+			for each (var rd:Object in RAIDS) {
+				var r:Array = R[rd.id];
+				if (!r) continue;
+				rd.heroicDesc = r[0];
+				rd.theme.heroicAtk = [r[1]];
+			}
+		}
+
 		private static function raids():void {
+			heroicRules();
 			var raid:Object = {gold: 800, onrane: 10, raid: true, aggro: 20, range: 16};
 			// the raids' objectives (a stage of their own: it ends when they're all broken, see stageFoe)
 			mob("blood_altar", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 14, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,

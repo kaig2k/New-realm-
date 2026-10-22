@@ -3899,7 +3899,8 @@ package realm {
 				for (i = 0; i < Bosses.RAIDS.length; i++) {
 					var rd:Object = Bosses.RAIDS[i];
 					var rt:TextField = Ui.text(14, rd.color, true, "left", w - 212, true);
-					rt.htmlText = rd.name + "\n<font size='11' color='#aaaaaa'>" + raidBossNames(rd) + "</font>";
+					rt.htmlText = rd.name + "\n<font size='11' color='#aaaaaa'>" + raidBossNames(rd) + "</font>" +
+						(rd.heroicDesc ? "\n<font size='11' color='#ffb040'>Heroic: " + rd.heroicDesc + "</font>" : "");
 					rt.x = 16; rt.y = y;
 					sp.addChild(rt);
 					var keys:int = keyCount(i);
@@ -4810,7 +4811,7 @@ package realm {
 			lightningT = 6;
 			showBanner(Bosses.raidName(i, heroic), heroic ? 0xffb040 : rd.color, 4);
 			msg(rd.intro, rd.color);
-			if (heroic) msg("HEROIC: its bosses are far tougher and fiercer, and its loot is better.", 0xffb040);
+			if (heroic) msg("HEROIC: its bosses are far tougher and fiercer, and its loot is better." + (rd.heroicDesc ? " " + rd.heroicDesc : ""), 0xffb040);
 			Sfx.play("portal");
 		}
 

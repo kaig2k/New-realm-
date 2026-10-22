@@ -270,8 +270,11 @@ package realm {
 				// and every boss is built for heroes who have it all: far more health, harder hits, faster
 				// attacks (the realm's event bosses most of all: they're meant to take a crowd)
 				var realmEvent:Boolean = id.indexOf("ev_") == 0;
-				var tough:Array = realmEvent ? [7, 1.45] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
-				// (bosses already built huge, like Sylith and Gorehorn, grow less)
+				// (the Siege is sized for the whole realm already, and grows with every hero who joins it)
+				var tough:Array = realmEvent ? [7, 1.45] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				// (bosses already built huge, like Sylith and Gorehorn, grow less; the three kings are fought
+				// all at once and the Seraph has four phases, so they grow less too)
+				if (d.trio && !d.lairBoss) tough[0] *= 0.6; else if (id == "shattered_seraph") tough[0] *= 0.65;
 				d.hp = int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
 				var done0:Dictionary = new Dictionary();
 				for each (var ph0:Object in d.phases) {
@@ -780,13 +783,13 @@ package realm {
 					attacks: [spiral(5, 13, 6, 65, 0.12, 0x80ff60), wall(13, 5, 80, 2.2, 0xff80ff, {eff: "armorbroken"})]})
 			]}, ["hexbound_wand", "witchs_brew"]);
 
-			boss("ev_kraken", {name: "The Reef Kraken", spr: "kraken", hp: 15000, def: 26, spd: 1.0, xp: 1900, col: 0xff6080,
+			boss("ev_kraken", {name: "The Reef Kraken", spr: "kraken", hp: 12000, def: 22, spd: 1.0, xp: 1900, col: 0xff6080,
 				gold: 500, onrane: 5, r: 1.0, phases: [
-				P(1, {move: "still", attacks: [ring(8, 22, 4, 65, 0.7, 0xff6080, {motion: "wave"}), aim(1, 0, 9, 90, 1.0, 0x6a3a8a, {r: 0.3})]}),
+				P(1, {move: "still", attacks: [ring(8, 22, 4, 65, 1.0, 0xff6080, {motion: "wave"}), aim(1, 0, 9, 90, 1.0, 0x6a3a8a, {r: 0.3})]}),
 				P(0.66, {say: "*tentacles burst from the water*", shield: 2, summon: [{what: "slime", n: 4}], move: "still",
 					attacks: [flower(16, 11, 4, 65, 1.0, 0xff80a0, {motion: "return"}), rain(5, 5, 90, 2.4, 0x40a0ff, {burst: 6})]}),
 				P(0.3, {say: "*the Kraken thrashes*", banner: "The Kraken is enraged!", move: "wander",
-					attacks: [spiral(8, 11, 6, 70, 0.11, 0xff6080), wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
+					attacks: [spiral(5, 11, 6, 70, 0.13, 0xff6080), wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
 			]}, ["krakens_grasp", "abyssal_mail"]);
 			for each (var ev:String in ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"]) Data.EVENTS.push(ev);
 		}
@@ -998,11 +1001,11 @@ package realm {
 				P(1, {move: "orbit", attacks: [hBarrage(85, 2.2), hSpread(7, 70, 1.6), hSlam(100, 4.6), hTeleport(9)]}),
 				P(0.6, {say: "...Deeper. Always deeper.", shield: 2.5, summon: [{what: "abyss_spawn", n: 4}], move: "center", every: 5,
 					cycle: [[hRain(8, 95, 1.8), hSpread(9, 70, 1.4)],
-						[hGravity(14, 75, 3.2), hBarrage(85, 2.0)],
+						[hGravity(12, 70, 3.6), hBarrage(85, 2.2)],
 						[hExplode(120, 4.0, 5.5), hSummon(2, 8)]]}),
 				P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald calls the deep! It is enraged!", move: "orbit", speed: 1.3,
-					attacks: [hRift(115, 3.4), hGravity(16, 80, 4.2), hSlam(110, 2.6), hRain(10, 100, 2.2), hTeleport(5),
-						spiral(6, -10, 6.5, 80, 0.1, H_PALE, {shape: "voidorb"})]})
+					attacks: [hRift(115, 3.4), hGravity(14, 70, 4.6), hSlam(105, 3.2), hRain(8, 95, 2.4), hTeleport(5),
+						spiral(4, -10, 6.5, 75, 0.12, H_PALE, {shape: "voidorb"})]})
 			]}, ["voidrend", "abyssal_crown", "depthstone"]);
 		}
 
@@ -1014,7 +1017,7 @@ package realm {
 					attacks: [spiral(5, 8, 6, 70, 0.13, 0xffd040), nova(2.5, 1.3, 120, 2.6, 0xff9020, {burst: 8})]})
 			]}, ["solar_crown", "sunfire_staff"]);
 			boss("moon_queen", {phases: [
-				P(1, {move: "orbit", attacks: [aim(5, 64, 7, 70, 1.15, 0xb0c0ff, {motion: "wave"}), ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
+				P(1, {move: "orbit", attacks: [aim(5, 64, 7, 70, 1.4, 0xb0c0ff, {motion: "wave"}), ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
 				P(0.5, {say: "The night is mine.", move: "teleport",
 					attacks: [spiral(4, -14, 6, 70, 0.12, 0xd0d8ff), rain(5, 4, 100, 2.4, 0x6a7ac0, {eff: "slowed"})]})
 			]}, ["moonlight_bow", "lunar_robe"]);
@@ -1024,7 +1027,7 @@ package realm {
 					attacks: [rain(8, 6, 90, 2, 0xc070ff, {burst: 4}), spiral(3, 23, 7, 70, 0.1, 0xfff060)]})
 			]}, ["starfall_dagger", "astral_cloak"]);
 			boss("frost_warden", {phases: [
-				P(1, {move: "wander", attacks: [spiral(4, 10, 5, 70, 0.14, 0x80e0ff, {eff: "slowed"}), aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
+				P(1, {move: "wander", attacks: [spiral(4, 10, 5, 65, 0.16, 0x80e0ff), aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
 					ring(10, 18, 3.5, 60, 2.4, 0xc0e8ff, {name: "frost ring"})]}),
 				P(0.5, {say: "The cold takes everything.", shield: 2, move: "center",
 					attacks: [wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3, eff: "slowed"}), rain(5, 5, 85, 2.6, 0x80f0ff, {delay: 1.3})]})
@@ -1432,7 +1435,7 @@ package realm {
 			]});
 			lairBoss("ignaria_reborn", {name: "Ignaria Reborn", spr: "ignaria", hp: 13000, spd: 2.6, r: 1.1, col: 0xffd060, rageAt: 0, phases: [
 				P(1, {say: "FROM ASH, I RISE!", move: "chase",
-					attacks: [spiral(6, 18, 7, 75, 0.09, 0xffd060), aim(7, 70, 10, 85, 0.9, 0xff8a20), nova(3.2, 1.0, 140, 2.2, 0xff4010, {burst: 16})]})
+					attacks: [spiral(5, 18, 7, 70, 0.11, 0xffd060), aim(7, 70, 10, 80, 1.0, 0xff8a20), nova(3.2, 1.0, 125, 2.4, 0xff4010, {burst: 12})]})
 			]});
 			lairProp("ember_egg", {name: "Ember Egg", spr: "ember_nest", hp: 9000, col: 0xff8a20,
 				attacks: [ring(8, 20, 4.5, 60, 1.4, 0xffd060, {name: "egg's heat"})]});
@@ -1451,13 +1454,13 @@ package realm {
 			// --- the Kraken's Maw (the Reef Kraken's): the Leviathan beneath its tentacles
 			lairBoss("leviathan", {name: "The Leviathan", spr: "leviathan", hp: 26000, spd: 1.2, r: 1.25, col: 0x8040c0, phases: [
 				P(1, {say: "*the water churns*", move: "center",
-					attacks: [wall(19, 5, 85, 1.8, 0x8040c0, {hole: 3, motion: "wave"}), aim(5, 40, 9, 80, 1.0, 0xb060ff), ring(16, 12, 5, 70, 1.4, 0x40a0ff)]}),
+					attacks: [wall(17, 5, 80, 2.3, 0x8040c0, {hole: 4, motion: "wave"}), aim(5, 40, 9, 80, 1.0, 0xb060ff), ring(16, 12, 5, 70, 1.4, 0x40a0ff)]}),
 				P(0.55, {say: "*a roar from the deep*", banner: "The Leviathan surfaces!", shield: 2, move: "center",
-					attacks: [rain(7, 7, 110, 1.8, 0x40a0ff, {burst: 8}), spiral(5, 14, 6, 70, 0.12, 0xb060ff), aim(1, 0, 6, 110, 1.8, 0xffffff, {motion: "home", r: 0.34})]}),
+					attacks: [rain(5, 7, 100, 2.1, 0x40a0ff, {burst: 6}), spiral(5, 14, 6, 70, 0.12, 0xb060ff), aim(1, 0, 6, 110, 1.8, 0xffffff, {motion: "home", r: 0.34})]}),
 				P(0.2, {say: "*it thrashes in fury*", move: "center",
-					attacks: [flower(28, 9, 6, 85, 0.85, 0x8040c0), wall(21, 5, 95, 1.5, 0x40a0ff, {hole: 2, waves: 2, gap: 0.5}), nova(4, 1.2, 150, 2.2, 0xb060ff, {burst: 18})]})
+					attacks: [flower(28, 9, 6, 85, 0.85, 0x8040c0), wall(19, 5, 90, 1.9, 0x40a0ff, {hole: 3, waves: 2, gap: 0.6}), nova(4, 1.2, 135, 2.6, 0xb060ff, {burst: 12})]})
 			]});
-			lairProp("maw_tentacle", {name: "Maw Tentacle", spr: "kraken_tentacle", hp: 6500, col: 0x8040c0, lairShield: true,
+			lairProp("maw_tentacle", {name: "Maw Tentacle", spr: "kraken_tentacle", hp: 5500, col: 0x8040c0, lairShield: true,
 				attacks: [aim(3, 30, 7, 60, 1.6, 0xb060ff, {name: "tentacle lash"})]});
 
 			// each realm boss now drops a portal to its own lair

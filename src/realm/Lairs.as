@@ -78,7 +78,7 @@ package realm {
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
 			{id: "krakens_maw", wall: "coral_deep", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
-				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 32, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
+				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 45, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
 				mobs: ["tide_spawn", "crab", "pirate", "cloud_serpent"]}
 		];
 

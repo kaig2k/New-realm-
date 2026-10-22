@@ -1602,6 +1602,11 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-outliers", title: "What's new in Eldmere",
+				lines: ["<b>Boss fixes</b>: after the big health boost a few bosses went too far, and they're brought back in line.",
+					"<b>Realm Siege</b>: Vorgath the Siege Warlord had been given far too much health and hit harder than he should. A full camp of heroes now brings him down in about a quarter of an hour, not most of an hour.",
+					"<b>Gentler</b>: the Reef Kraken (slower ink rings, fewer spiral arms, less health), Ignaria Reborn in the Ashen Aerie, the Leviathan and its tentacles in the Kraken's Maw, the Abyssal Herald's last phase, and Glacius's snowflake spiral (no longer slows you).",
+					"<b>Quicker</b>: the Tomb of the Three Kings and the Shattered Seraph no longer drag on as long."]},
 			{id: "2026-10-realmleaders", title: "What's new in Eldmere",
 				lines: ["<b>Realm Leaders</b>: the shrines and the Godlands Spires are gone. Every realm boss your guild helps kill counts for it, and each Monday the guild with the most is crowned Realm Leaders for the week: +15 loot luck and +10% XP for its members, and a Realm Leader title. <b>/leaders</b> shows the race.",
 					"<b>Every realm boss has its own lair</b>: they always drop a portal to a dungeon built in their image, with its own way through (shields to break, menders to smash, waves to hold, eggs to break, tentacles that grow back) and its master at the end.",

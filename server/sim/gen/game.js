@@ -1454,8 +1454,11 @@ class Bosses {
 				
 				
 				var realmEvent = id.indexOf("ev_") == 0;
-				var tough = realmEvent ? [7, 1.45] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
 				
+				var tough = realmEvent ? [7, 1.45] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				
+				
+				if (d.trio && !d.lairBoss) tough[0] *= 0.6; else if (id == "shattered_seraph") tough[0] *= 0.65;
 				d.hp = __int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
 				var done0 = new Map();
 				for (var ph0 of __vals( d.phases)) {
@@ -1824,13 +1827,13 @@ class Bosses {
 					attacks: [Bosses.spiral(5, 13, 6, 65, 0.12, 0x80ff60), Bosses.wall(13, 5, 80, 2.2, 0xff80ff, {eff: "armorbroken"})]})
 			]}, ["hexbound_wand", "witchs_brew"]);
 
-			Bosses.boss("ev_kraken", {name: "The Reef Kraken", spr: "kraken", hp: 15000, def: 26, spd: 1.0, xp: 1900, col: 0xff6080,
+			Bosses.boss("ev_kraken", {name: "The Reef Kraken", spr: "kraken", hp: 12000, def: 22, spd: 1.0, xp: 1900, col: 0xff6080,
 				gold: 500, onrane: 5, r: 1.0, phases: [
-				Bosses.P(1, {move: "still", attacks: [Bosses.ring(8, 22, 4, 65, 0.7, 0xff6080, {motion: "wave"}), Bosses.aim(1, 0, 9, 90, 1.0, 0x6a3a8a, {r: 0.3})]}),
+				Bosses.P(1, {move: "still", attacks: [Bosses.ring(8, 22, 4, 65, 1.0, 0xff6080, {motion: "wave"}), Bosses.aim(1, 0, 9, 90, 1.0, 0x6a3a8a, {r: 0.3})]}),
 				Bosses.P(0.66, {say: "*tentacles burst from the water*", shield: 2, summon: [{what: "slime", n: 4}], move: "still",
 					attacks: [Bosses.flower(16, 11, 4, 65, 1.0, 0xff80a0, {motion: "return"}), Bosses.rain(5, 5, 90, 2.4, 0x40a0ff, {burst: 6})]}),
 				Bosses.P(0.3, {say: "*the Kraken thrashes*", banner: "The Kraken is enraged!", move: "wander",
-					attacks: [Bosses.spiral(8, 11, 6, 70, 0.11, 0xff6080), Bosses.wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
+					attacks: [Bosses.spiral(5, 11, 6, 70, 0.13, 0xff6080), Bosses.wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
 			]}, ["krakens_grasp", "abyssal_mail"]);
 			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"])) Data.EVENTS.push(ev);
 		}
@@ -1988,11 +1991,11 @@ class Bosses {
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.hBarrage(85, 2.2), Bosses.hSpread(7, 70, 1.6), Bosses.hSlam(100, 4.6), Bosses.hTeleport(9)]}),
 				Bosses.P(0.6, {say: "...Deeper. Always deeper.", shield: 2.5, summon: [{what: "abyss_spawn", n: 4}], move: "center", every: 5,
 					cycle: [[Bosses.hRain(8, 95, 1.8), Bosses.hSpread(9, 70, 1.4)],
-						[Bosses.hGravity(14, 75, 3.2), Bosses.hBarrage(85, 2.0)],
+						[Bosses.hGravity(12, 70, 3.6), Bosses.hBarrage(85, 2.2)],
 						[Bosses.hExplode(120, 4.0, 5.5), Bosses.hSummon(2, 8)]]}),
 				Bosses.P(0.3, {say: "THE ABYSS STARES BACK", banner: "The Herald calls the deep! It is enraged!", move: "orbit", speed: 1.3,
-					attacks: [Bosses.hRift(115, 3.4), Bosses.hGravity(16, 80, 4.2), Bosses.hSlam(110, 2.6), Bosses.hRain(10, 100, 2.2), Bosses.hTeleport(5),
-						Bosses.spiral(6, -10, 6.5, 80, 0.1, Bosses.H_PALE, {shape: "voidorb"})]})
+					attacks: [Bosses.hRift(115, 3.4), Bosses.hGravity(14, 70, 4.6), Bosses.hSlam(105, 3.2), Bosses.hRain(8, 95, 2.4), Bosses.hTeleport(5),
+						Bosses.spiral(4, -10, 6.5, 75, 0.12, Bosses.H_PALE, {shape: "voidorb"})]})
 			]}, ["voidrend", "abyssal_crown", "depthstone"]);
 		}
 	static hardDungeons() {
@@ -2002,7 +2005,7 @@ class Bosses {
 					attacks: [Bosses.spiral(5, 8, 6, 70, 0.13, 0xffd040), Bosses.nova(2.5, 1.3, 120, 2.6, 0xff9020, {burst: 8})]})
 			]}, ["solar_crown", "sunfire_staff"]);
 			Bosses.boss("moon_queen", {phases: [
-				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(5, 64, 7, 70, 1.15, 0xb0c0ff, {motion: "wave"}), Bosses.ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
+				Bosses.P(1, {move: "orbit", attacks: [Bosses.aim(5, 64, 7, 70, 1.4, 0xb0c0ff, {motion: "wave"}), Bosses.ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
 				Bosses.P(0.5, {say: "The night is mine.", move: "teleport",
 					attacks: [Bosses.spiral(4, -14, 6, 70, 0.12, 0xd0d8ff), Bosses.rain(5, 4, 100, 2.4, 0x6a7ac0, {eff: "slowed"})]})
 			]}, ["moonlight_bow", "lunar_robe"]);
@@ -2012,7 +2015,7 @@ class Bosses {
 					attacks: [Bosses.rain(8, 6, 90, 2, 0xc070ff, {burst: 4}), Bosses.spiral(3, 23, 7, 70, 0.1, 0xfff060)]})
 			]}, ["starfall_dagger", "astral_cloak"]);
 			Bosses.boss("frost_warden", {phases: [
-				Bosses.P(1, {move: "wander", attacks: [Bosses.spiral(4, 10, 5, 70, 0.14, 0x80e0ff, {eff: "slowed"}), Bosses.aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
+				Bosses.P(1, {move: "wander", attacks: [Bosses.spiral(4, 10, 5, 65, 0.16, 0x80e0ff), Bosses.aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
 					Bosses.ring(10, 18, 3.5, 60, 2.4, 0xc0e8ff, {name: "frost ring"})]}),
 				Bosses.P(0.5, {say: "The cold takes everything.", shield: 2, move: "center",
 					attacks: [Bosses.wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3, eff: "slowed"}), Bosses.rain(5, 5, 85, 2.6, 0x80f0ff, {delay: 1.3})]})
@@ -2389,7 +2392,7 @@ class Bosses {
 			]});
 			Bosses.lairBoss("ignaria_reborn", {name: "Ignaria Reborn", spr: "ignaria", hp: 13000, spd: 2.6, r: 1.1, col: 0xffd060, rageAt: 0, phases: [
 				Bosses.P(1, {say: "FROM ASH, I RISE!", move: "chase",
-					attacks: [Bosses.spiral(6, 18, 7, 75, 0.09, 0xffd060), Bosses.aim(7, 70, 10, 85, 0.9, 0xff8a20), Bosses.nova(3.2, 1.0, 140, 2.2, 0xff4010, {burst: 16})]})
+					attacks: [Bosses.spiral(5, 18, 7, 70, 0.11, 0xffd060), Bosses.aim(7, 70, 10, 80, 1.0, 0xff8a20), Bosses.nova(3.2, 1.0, 125, 2.4, 0xff4010, {burst: 12})]})
 			]});
 			Bosses.lairProp("ember_egg", {name: "Ember Egg", spr: "ember_nest", hp: 9000, col: 0xff8a20,
 				attacks: [Bosses.ring(8, 20, 4.5, 60, 1.4, 0xffd060, {name: "egg's heat"})]});
@@ -2408,13 +2411,13 @@ class Bosses {
 			
 			Bosses.lairBoss("leviathan", {name: "The Leviathan", spr: "leviathan", hp: 26000, spd: 1.2, r: 1.25, col: 0x8040c0, phases: [
 				Bosses.P(1, {say: "*the water churns*", move: "center",
-					attacks: [Bosses.wall(19, 5, 85, 1.8, 0x8040c0, {hole: 3, motion: "wave"}), Bosses.aim(5, 40, 9, 80, 1.0, 0xb060ff), Bosses.ring(16, 12, 5, 70, 1.4, 0x40a0ff)]}),
+					attacks: [Bosses.wall(17, 5, 80, 2.3, 0x8040c0, {hole: 4, motion: "wave"}), Bosses.aim(5, 40, 9, 80, 1.0, 0xb060ff), Bosses.ring(16, 12, 5, 70, 1.4, 0x40a0ff)]}),
 				Bosses.P(0.55, {say: "*a roar from the deep*", banner: "The Leviathan surfaces!", shield: 2, move: "center",
-					attacks: [Bosses.rain(7, 7, 110, 1.8, 0x40a0ff, {burst: 8}), Bosses.spiral(5, 14, 6, 70, 0.12, 0xb060ff), Bosses.aim(1, 0, 6, 110, 1.8, 0xffffff, {motion: "home", r: 0.34})]}),
+					attacks: [Bosses.rain(5, 7, 100, 2.1, 0x40a0ff, {burst: 6}), Bosses.spiral(5, 14, 6, 70, 0.12, 0xb060ff), Bosses.aim(1, 0, 6, 110, 1.8, 0xffffff, {motion: "home", r: 0.34})]}),
 				Bosses.P(0.2, {say: "*it thrashes in fury*", move: "center",
-					attacks: [Bosses.flower(28, 9, 6, 85, 0.85, 0x8040c0), Bosses.wall(21, 5, 95, 1.5, 0x40a0ff, {hole: 2, waves: 2, gap: 0.5}), Bosses.nova(4, 1.2, 150, 2.2, 0xb060ff, {burst: 18})]})
+					attacks: [Bosses.flower(28, 9, 6, 85, 0.85, 0x8040c0), Bosses.wall(19, 5, 90, 1.9, 0x40a0ff, {hole: 3, waves: 2, gap: 0.6}), Bosses.nova(4, 1.2, 135, 2.6, 0xb060ff, {burst: 12})]})
 			]});
-			Bosses.lairProp("maw_tentacle", {name: "Maw Tentacle", spr: "kraken_tentacle", hp: 6500, col: 0x8040c0, lairShield: true,
+			Bosses.lairProp("maw_tentacle", {name: "Maw Tentacle", spr: "kraken_tentacle", hp: 5500, col: 0x8040c0, lairShield: true,
 				attacks: [Bosses.aim(3, 30, 7, 60, 1.6, 0xb060ff, {name: "tentacle lash"})]});
 
 			
@@ -5825,6 +5828,11 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-outliers", title: "What's new in Eldmere",
+				lines: ["<b>Boss fixes</b>: after the big health boost a few bosses went too far, and they're brought back in line.",
+					"<b>Realm Siege</b>: Vorgath the Siege Warlord had been given far too much health and hit harder than he should. A full camp of heroes now brings him down in about a quarter of an hour, not most of an hour.",
+					"<b>Gentler</b>: the Reef Kraken (slower ink rings, fewer spiral arms, less health), Ignaria Reborn in the Ashen Aerie, the Leviathan and its tentacles in the Kraken's Maw, the Abyssal Herald's last phase, and Glacius's snowflake spiral (no longer slows you).",
+					"<b>Quicker</b>: the Tomb of the Three Kings and the Shattered Seraph no longer drag on as long."]},
 			{id: "2026-10-realmleaders", title: "What's new in Eldmere",
 				lines: ["<b>Realm Leaders</b>: the shrines and the Godlands Spires are gone. Every realm boss your guild helps kill counts for it, and each Monday the guild with the most is crowned Realm Leaders for the week: +15 loot luck and +10% XP for its members, and a Realm Leader title. <b>/leaders</b> shows the race.",
 					"<b>Every realm boss has its own lair</b>: they always drop a portal to a dungeon built in their image, with its own way through (shields to break, menders to smash, waves to hold, eggs to break, tentacles that grow back) and its master at the end.",
@@ -7286,7 +7294,7 @@ Lairs.DUNGEONS = [
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
 			{id: "krakens_maw", wall: "coral_deep", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
-				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 32, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
+				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 45, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
 				mobs: ["tide_spawn", "crab", "pirate", "cloud_serpent"]}
 		];
 

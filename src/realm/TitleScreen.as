@@ -438,8 +438,7 @@ package realm {
 			var w:int = 420, h:int = 150 + labels.length * 62;
 			var px:int = (Ui.W - w) / 2, py:int = (Ui.H - h) / 2;
 			Ui.panel(dialog.graphics, px, py, w, h, 0x26262c, 0x7a7a8a, 0.98);
-			var tt:TextField = Ui.text(24, Ui.GOLD, true, "center", w, true);
-			tt.text = title;
+			var tt:Sprite = Ui.heading(title, 24, Ui.GOLD, w);
 			tt.x = px; tt.y = py + 12;
 			dialog.addChild(tt);
 			fields = [];

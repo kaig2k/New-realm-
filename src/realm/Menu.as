@@ -669,8 +669,7 @@ package realm {
 			confirmLayer.graphics.drawRect(0, 0, Ui.W, Ui.H);
 			confirmLayer.graphics.endFill();
 			Ui.panel(confirmLayer.graphics, px, py, w, h, 0x24181a, 0xc04040, 0.98);
-			var t:TextField = Ui.text(22, 0xff8080, true, "center", w, true);
-			t.text = "Delete " + c.name + "?";
+			var t:Sprite = Ui.heading("Delete " + c.name + "?", 22, 0xff8080, w);
 			t.x = px; t.y = py + 14;
 			confirmLayer.addChild(t);
 			var body:TextField = Ui.text(14, 0xdddddd, false, "center", w - 40);

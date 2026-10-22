@@ -35,8 +35,7 @@ package realm {
 			W = colW * 2 + 90;
 			H = 176 + rows * (ItemSlot.SIZE + GAP);
 			Ui.panel(graphics, 0, 0, W, H, 0x1e1e24, 0x8a6aff, 0.97);
-			var title:TextField = Ui.text(20, 0xd0b8ff, true, "center", W, true);
-			title.text = "Trading with " + s.partner.name;
+			var title:Sprite = Ui.heading("Trading with " + s.partner.name, 20, 0xd0b8ff, W);
 			title.y = 8;
 			addChild(title);
 			// divider

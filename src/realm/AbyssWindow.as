@@ -25,10 +25,8 @@ package realm {
 			graphics.beginGradientFill(GradientType.LINEAR, [0x1e1030, 0x08040e], [0.97, 0.97], [0, 255], m);
 			graphics.drawRoundRect(0, 0, W, H, 18, 18);
 			graphics.endFill();
-			var t:TextField = Ui.text(26, 0xd080ff, true, "center", W, true);
-			t.text = "The Endless Abyss";
+			var t:Sprite = Ui.heading("The Endless Abyss", 26, 0xd080ff, W);
 			t.y = 10;
-			t.filters = [new GlowFilter(0x8030ff, 0.9, 14, 14, 2)];
 			addChild(t);
 			var close:Sprite = Ui.button("X", 32, 28, function():void { g.toggleAbyss(); }, 14);
 			close.x = W - 46; close.y = 12;

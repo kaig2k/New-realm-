@@ -19,10 +19,8 @@ package realm {
 			graphics.beginGradientFill(GradientType.LINEAR, [0x1e1030, 0x0a0614], [0.95, 0.95], [0, 255], m);
 			graphics.drawRoundRect(0, 0, W, H, 16, 16);
 			graphics.endFill();
-			var t:TextField = Ui.text(20, 0xd080ff, true, "center", W, true);
-			t.text = "Wave " + wave + " cleared!";
+			var t:Sprite = Ui.heading("Wave " + wave + " cleared!", 20, 0xd080ff, W);
 			t.y = 10;
-			t.filters = [new GlowFilter(0x8030ff, 0.8, 10, 10, 2)];
 			addChild(t);
 			var s:TextField = Ui.text(12, 0xc8b8e0, false, "center", W, true);
 			s.text = "Choose a boon for the rest of this run. The next wave is coming...";

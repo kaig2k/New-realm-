@@ -8,7 +8,9 @@ package realm {
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
 	import flash.events.MouseEvent;
+	import flash.filters.DropShadowFilter;
 	import flash.filters.GlowFilter;
+	import flash.geom.Matrix;
 	import flash.system.ApplicationDomain;
 	import flash.system.LoaderContext;
 	import flash.text.AntiAliasType;
@@ -31,7 +33,8 @@ package realm {
 		public static const GOLD:uint = 0xffd75e;
 		public static const NPC:uint = 0xff9a2e;
 
-		public static const OUTLINE:Array = [new GlowFilter(0x000000, 1, 2, 2, 6)];
+		/** Text on the game: a dark rim to read on anything, and a soft shadow under it so it stands off the ground. */
+		public static const OUTLINE:Array = [new GlowFilter(0x07040c, 1, 2.5, 2.5, 5), new DropShadowFilter(2, 90, 0x000000, 0.55, 3, 3, 1)];
 		public static const OUTLINE_SOFT:Array = [new GlowFilter(0x000000, 0.8, 3, 3, 3)];
 
 		[Embed(source="../../assets/fonts/RealmFonts.swf", mimeType="application/octet-stream")]
@@ -94,13 +97,55 @@ package realm {
 			return tf;
 		}
 
-		/** Rounded panel like the RotMG sidebar boxes. */
+		/** A window's heading: lit words (BannerFx.lit) centred in w, with gold-tipped rules either side. */
+		public static function heading(words:String, size:int, color:uint, w:Number, withRules:Boolean = true):Sprite {
+			var sp:Sprite = new Sprite();
+			sp.mouseEnabled = sp.mouseChildren = false;
+			var b:flash.display.Bitmap = BannerFx.lit(words, size, color, 0.7);
+			b.x = int((w - b.width) / 2);
+			sp.addChild(b);
+			var len:Number = Math.min(70, (w - b.width) / 2 - 22);
+			if (withRules && len > 14) {
+				var r:Shape = new Shape();
+				BannerFx.rules(r.graphics, b.width, len, color);
+				r.x = w / 2; r.y = int(b.height / 2);
+				sp.addChildAt(r, 0);
+			}
+			return sp;
+		}
+
+		/**
+		 * A rounded panel in the HUD's look: dark glass lit from above, a thin rim, a faint sheen along the
+		 * top. Plain greys (the old look most windows still ask for) become the HUD's violet; a panel asked
+		 * for in a colour keeps it.
+		 */
 		public static function panel(g:*, x:Number, y:Number, w:Number, h:Number, fill:uint = PANEL_DARK, edge:uint = PANEL_EDGE, alpha:Number = 1):void {
-			g.lineStyle(2, edge, alpha);
-			g.beginFill(fill, alpha);
+			var f:uint = violet(fill), e:uint = edgeOf(edge);
+			var m:Matrix = new Matrix();
+			m.createGradientBox(w, h, Math.PI / 2, x, y);
+			g.lineStyle(1, 0x05030a, alpha);
+			g.beginGradientFill("linear", [Sprites.tint(f, 0.08), Sprites.shade(f, 0.72)], [alpha, alpha], [0, 255], m);
 			g.drawRoundRect(x, y, w, h, 12, 12);
 			g.endFill();
+			g.lineStyle(1, e, 0.9 * alpha);
+			g.drawRoundRect(x + 1, y + 1, w - 2, h - 2, 10, 10);
+			g.lineStyle(1, 0xffffff, 0.07 * alpha);
+			g.moveTo(x + 8, y + 2.5); g.lineTo(x + w - 8, y + 2.5);
 			g.lineStyle();
+		}
+
+		/** A plain grey turned the HUD's violet of the same depth; anything with a colour of its own kept. */
+		private static function violet(c:uint):uint {
+			var r:int = (c >> 16) & 255, gr:int = (c >> 8) & 255, b:int = c & 255;
+			if (Math.max(r, gr, b) - Math.min(r, gr, b) > 14) return c;
+			var l:Number = (r + gr + b) / 3 / 0x2a;
+			return (Math.min(255, int(0x22 * l)) << 16) | (Math.min(255, int(0x1a * l)) << 8) | Math.min(255, int(0x38 * l));
+		}
+		/** Grey rims become the HUD's violet edge, white ones (hover) its bright gold. */
+		private static function edgeOf(c:uint):uint {
+			var r:int = (c >> 16) & 255, gr:int = (c >> 8) & 255, b:int = c & 255;
+			if (Math.max(r, gr, b) - Math.min(r, gr, b) > 14) return c;
+			return r > 0xd0 ? Hud.GOLD_HI : Hud.EDGE;
 		}
 
 		/** A one-line text box. */
@@ -133,9 +178,22 @@ package realm {
 			b.addChild(tf);
 			b.buttonMode = true;
 			b.mouseChildren = false;
+			// the HUD's buttons: violet lit from above, a gold rim (brighter, and the face lifted, under the mouse)
+			var r:Number = Math.min(h, 12);
 			var draw:Function = function(hover:Boolean):void {
-				bg.graphics.clear();
-				panel(bg.graphics, 0, 0, w, h, hover ? 0x5a5a5a : 0x3e3e3e, hover ? 0xffffff : 0x6a6a6a);
+				var g:* = bg.graphics;
+				g.clear();
+				var m:Matrix = new Matrix();
+				m.createGradientBox(w, h, Math.PI / 2);
+				g.lineStyle(1, 0x05030a);
+				g.beginGradientFill("linear", hover ? [0x4a3878, 0x221a38] : [0x2e2448, 0x140f22], [1, 1], [0, 255], m);
+				g.drawRoundRect(0, 0, w, h, r, r);
+				g.endFill();
+				g.lineStyle(1, hover ? Hud.GOLD_HI : Hud.GOLD, hover ? 1 : 0.85);
+				g.drawRoundRect(1, 1, w - 2, h - 2, r - 2, r - 2);
+				g.lineStyle(1, 0xffffff, hover ? 0.16 : 0.08);
+				g.moveTo(r / 2 + 2, 2.5); g.lineTo(w - r / 2 - 2, 2.5);
+				g.lineStyle();
 			};
 			draw(false);
 			b.addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { draw(true); });

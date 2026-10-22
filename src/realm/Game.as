@@ -113,7 +113,7 @@ package realm {
 		private var chatLines:Array = [];
 		private var lastZone:int = -2;
 		private var lastSite:Object;
-		private var banner:TextField;
+		private var banner:BannerFx;
 		private var bannerT:Number = 0;
 		private var bossPanel:Sprite;
 		private var bossName:TextField, bossInfo:TextField;
@@ -276,9 +276,9 @@ package realm {
 			chat.x = 8;
 			addChild(chat);
 
-			banner = Ui.text(30, Ui.GOLD, true, "center", VIEW_W, true);
-			banner.y = 110;
-			banner.visible = false;
+			banner = new BannerFx(VIEW_W);
+			banner.x = VIEW_W / 2;
+			banner.y = 132;
 			addChild(banner);
 
 			buildCounters();
@@ -540,7 +540,7 @@ package realm {
 			if (Save.data.tips[id]) return;
 			Save.data.tips[id] = true;
 			Save.flush();
-			msg("[Tip] " + text, 0x8fd0ff);
+			pushChat("<font color='#5ee08a'><b>TIP</b></font><font color='#4a6a8a'>  |  </font><font color='#a8d8ff'>" + text + "</font>");
 		}
 
 		/** Screen shake (can be turned off in Menu > Settings). */
@@ -604,8 +604,7 @@ package realm {
 			gr.clear();
 			var w:int = menuPage == "controls" ? 640 : MENU_W;
 			var x0:int = int((VIEW_W - w) / 2);
-			var title:TextField = Ui.text(26, 0xffffff, true, "center", w, true);
-			title.text = {main: "Menu", settings: "Settings", controls: "Controls"}[menuPage];
+			var title:Sprite = Ui.heading({main: "Menu", settings: "Settings", controls: "Controls"}[menuPage], 26, 0xe8dcff, w);
 			title.x = x0; title.y = 50;
 			pauseButtons.addChild(title);
 			var sub:TextField = Ui.text(12, 0x9a9a9a, false, "center", w - 20);
@@ -1737,9 +1736,9 @@ package realm {
 			}
 			if (bannerT > 0) {
 				bannerT -= dt;
-				banner.alpha = Math.min(1, bannerT);
-				if (bannerT <= 0) banner.visible = false;
+				if (bannerT <= 0) banner.hide();
 			}
+			banner.tick(dt);
 
 			var here:Object = world.kind == "realm" ? world.siteAt(player.x, player.y, 3) : null;
 			if (here != lastSite) {
@@ -3481,8 +3480,7 @@ package realm {
 			if (noticePanel && noticePanel.parent) noticePanel.parent.removeChild(noticePanel);
 			var sp:Sprite = new Sprite();
 			var w:int = 560;
-			var t:TextField = Ui.text(22, col, true, "center", w, true);
-			t.text = title;
+			var t:Sprite = Ui.heading(title, 22, col, w);
 			t.y = 14;
 			sp.addChild(t);
 			var body:TextField = Ui.text(14, 0xdddddd, false, "left", w - 40);
@@ -3761,8 +3759,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:TextField = Ui.text(20, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8}[openStation.kind], true, "center", w, true);
-			title.text = {keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: "Daily Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage"}[openStation.kind];
+			var title:Sprite = Ui.heading({keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: showAch ? "Achievements" : "Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage"}[openStation.kind],
+				21, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8}[openStation.kind], w);
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -3958,7 +3956,6 @@ package realm {
 			} else if (openStation.kind == "groupstore") {
 				y = buildGroupStore(sp, info, y, w);
 			} else if (openStation.kind == "quests" && showAch) {
-				title.text = "Achievements";
 				var ast0:Object = achState();
 				info.htmlText = "Account-wide goals. Each pays out once, automatically.";
 				info.y = y;
@@ -3983,7 +3980,6 @@ package realm {
 				sp.addChild(bk);
 				y += 36;
 			} else if (openStation.kind == "quests") {
-				title.text = "Quests";
 				info.htmlText = "Complete these with any character. New daily quests in <font color='#ffd75e'>" + questTimeLeft(false) +
 					"</font>, a new weekly one in <font color='#d090ff'>" + questTimeLeft(true) + "</font>.";
 				info.y = y;
@@ -6633,10 +6629,7 @@ package realm {
 
 		public function showBanner(text:String, color:uint, secs:Number):void {
 			if (revealing) { pendingBanner = [text, color, secs]; return; }
-			banner.text = text;
-			banner.textColor = color;
-			banner.visible = true;
-			banner.alpha = 1;
+			banner.show(text, color, secs);
 			bannerT = secs;
 		}
 

@@ -1602,6 +1602,11 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-itemart", title: "What's new in Eldmere",
+				lines: ["<b>Every item redrawn</b>: weapons, armour, abilities, rings, uniques and Godly gear all have new art, built on one set of shapes so they read clearly at a glance: swords with crossguards, daggers hilt-up, wands and staves with glowing orb heads, bows with their strings.",
+					"<b>They look like what they're called</b>: Flame weapons burn, Frost ones grow crystals, Void and Shadow ones trail wisps, Star ones glint, Blood and Venom drip. Rusty is rusty, Mithril is pale blue, Bone is bone. The Powder Keg is a keg, the Crowns are crowns, the Trident is a trident.",
+					"<b>New shading</b>: light falls on every item from the top-left, with a glint on its blade, gem and gold.",
+					"<b>Godly gear</b> is ivory and gold touched with its set's own colour, in a new gold frame."]},
 			{id: "2026-10-godlytrim", title: "What's new in Eldmere",
 				lines: ["<b>Godly sets toned down</b>: a full Godly set with a maxed skill tree dealt far too much damage. Each piece trades damage stats for Health (stats 16/14/13/12, was 24/20/16/14; +200 Health, was +120), the set bonus gives half the Attack, Dexterity and Might, and with the full set Divine Wrath comes every 5th volley (was every 4th). Pieces you own update by themselves, and Godly still beats Primordial on every piece.",
 					"<b>Skill tree</b>: Brutality +2% damage a rank (was 3%), Predator +3% (was 4%), Ferocity +0.05x crit damage (was 0.08x), Apex Predator +15% on boss crits (was 25%).",

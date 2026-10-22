@@ -268,11 +268,17 @@ package realm {
 					if (d.rs != undefined && w.raid && d.rs >= 0) g.raidStageReached(Math.min(d.rs, w.raid.stages.length - 1));
 					if (d.ct > 0 && w.closeT <= 0) w.closeT = d.ct;
 					if (d.tc > 0) g.trialCleared(int(d.tc), false);
+					if (d.tg is Array) for each (var tgk:* in d.tg) g.trialSeal(int(tgk), false);
 					break;
 				case "trial":
 					// a trial chamber was beaten: its portal on opens
 					if (from != 0 || isHost) return;
 					g.trialCleared(int(d.c), true);
+					break;
+				case "tgate":
+					// a trial dungeon's guards are dead: the seal to its master breaks
+					if (from != 0 || isHost) return;
+					g.trialSeal(int(d.k), true);
 					break;
 				case "warp":
 					// through a trial's portal: the server put us in the next chamber

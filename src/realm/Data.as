@@ -1616,6 +1616,13 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-trial2", title: "The Starfall Trial's dungeons",
+				lines: ["<b>Each Starfall master now has a dungeon of its own</b>, built in its style: no more set pieces rising out of the floor.",
+					"<b>Ignis</b>: a lava river with two bridges under fire from magma vents, Cinder Imps and Ash Fiends, lava in the arena's corners.",
+					"<b>The Drowned Archivist</b>: a flooded library of shelf-pillars and drowned souls, and an arena whose rim lies under water.",
+					"<b>Morvath the Bone Sovereign</b>: a graveyard of Crypt Archers and Bone Thralls, and an ossuary stained with blood.",
+					"<b>Astraeon</b>: halls striped with starfire, Comet Wisps and Star Guards, and round his dais a ring of starfire his gravity drags you into.",
+					"Each dungeon's guards hold the seal to its master's arena: clear the halls, step into the arena, and the master wakes."]},
 			{id: "2026-10-trial", title: "The Starfall Trial",
 				lines: ["<b>The Starfall Vault is now a trial</b>: no more halls to walk. You arrive straight in the first of four sealed chambers and its master wakes. Beat it and a portal opens where it fell; step through when you're ready and the next master wakes as you land.",
 					"<b>Astraeon, the Fallen Star</b> waits in the last chamber, and he is now the hardest fight in Eldmere: five phases, far more health, and four things nothing else does.",

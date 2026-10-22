@@ -1721,6 +1721,15 @@ class Bosses {
 				attacks: [Bosses.aim(2, 20, 10, 55, 0.9, 0xc0ff60, {eff: "slowed"})]});
 			Bosses.mob("star_pylon", Bosses.o(Bosses.o({}, still), {name: "Star Pylon", spr: "star_pylon", hp: 4000, def: 22, col: 0xffd060, ward: true,
 				attacks: [Bosses.ring(8, 22, 5, 80, 1.6, 0xffd060, {shape: "star"}), Bosses.aim(2, 14, 9, 70, 1.2, 0xfff0a0)]}));
+			
+			Bosses.mob("cinder_imp", {name: "Cinder Imp", spr: "imp", hp: 2600, def: 18, spd: 4.2, xp: 140, col: 0xff7020, ai: "orbit", keep: 4,
+				attacks: [Bosses.aim(3, 24, 9, 85, 0.8, 0xff7020, {shape: "fire"})]});
+			Bosses.mob("ash_fiend", {name: "Ash Fiend", spr: "lesser_demon", hp: 4200, def: 24, spd: 2.2, xp: 180, col: 0xff5010, keep: 2,
+				attacks: [Bosses.ring(10, 0, 5, 90, 1.6, 0xff5010, {shape: "fire"}), Bosses.aim(1, 0, 7, 110, 1.2, 0xffb040, {motion: "home", shape: "fire"})]});
+			Bosses.mob("crypt_archer", {name: "Crypt Archer", spr: "skeleton", hp: 2600, def: 18, spd: 2.6, xp: 140, col: 0xe8e0c8, ai: "orbit", keep: 6,
+				attacks: [Bosses.aim(3, 12, 11, 95, 1.0, 0xe8e0c8, {shape: "spike"}), Bosses.aim(1, 0, 12, 120, 2.2, 0xff4060, {shape: "spike", eff: "bleeding"})]});
+			Bosses.mob("comet_wisp", {name: "Comet Wisp", spr: "glimmer_mote", hp: 2200, def: 16, spd: 4.5, xp: 140, col: 0xffe080, ai: "orbit", keep: 4,
+				attacks: [Bosses.aim(1, 0, 8, 90, 0.9, 0xffe080, {motion: "home", shape: "star"}), Bosses.ring(8, 0, 5, 70, 2.4, 0xfff0a0, {shape: "star"})]});
 			Bosses.mob("star_guard", {name: "Star Guard", spr: "star_guard", hp: 3600, def: 26, spd: 2.6, xp: 160, col: 0xffd060, keep: 2,
 				attacks: [Bosses.aim(3, 22, 9, 85, 1.2, 0xfff0a0, {shape: "blade"}), Bosses.ring(10, 0, 5, 70, 2.6, 0xffd060, {shape: "star"})]});
 			for (var id in Bosses.SETPIECES) Data.ENEMIES[id].setpiece = Bosses.SETPIECES[id];
@@ -2846,7 +2855,7 @@ class Bosses {
 			]}, raid), ["heart_of_storm", "stormbreaker", "tempest_eye", "stormweave_jerkin", "rolling_thunder", "squall_crown", "cyclone_snare", "galeband", "stormwall_ring", "lightning_rod"]);
 
 			
-			Bosses.boss("ignis", Bosses.o({name: "Ignis, Warden of Embers", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
+			Bosses.boss("ignis", Bosses.o({name: "Ignis, Warden of Embers", hint: "Ignis burns hotter as he weakens: keep out of the lava, and away from his blazing charge.", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
 				Bosses.P(1, {say: "Who disturbs the vault?", move: "orbit",
 					attacks: [Bosses.aim(3, 26, 8, 80, 0.9, 0xffb040, {shape: "fire"}), Bosses.ring(14, 13, 4.5, 70, 1.8, 0xff6020, {shape: "fire"}),
 						Bosses.pillars(5, 100, 3.2, 0xff7020, {name: "fire column"})]}),
@@ -2857,7 +2866,7 @@ class Bosses {
 					attacks: [Bosses.flower(24, 7, 5.5, 85, 0.8, 0xffb040, {shape: "fire"}), Bosses.selfNova(5, 1.2, 150, 3.4, 0xff6020, {burst: 16, shape: "fire", fx: "pillar", name: "ember burst"}),
 						Bosses.lineRain(6, 110, 2.6, 0xff7020, "pillar", {name: "fire column"})]})
 			]}, raid), ["ignis_brand", "everburning_flask"]);
-			Bosses.boss("archivist", Bosses.o({name: "The Drowned Archivist", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
+			Bosses.boss("archivist", Bosses.o({name: "The Drowned Archivist", hint: "The whirlpool drags you in and the flooded rim slows you: fight from the dry middle, behind the pillars.", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
 				Bosses.P(1, {say: "Silence in the archive.", move: "orbit",
 					attacks: [Bosses.aim(5, 50, 7, 75, 1.1, 0x40ffd0, {motion: "wave"}), Bosses.ring(12, 0, 4, 70, 2, 0xa0fff0, {motion: "return"}),
 						Bosses.pull(14, 75, 3.8, 0x40ffd0, {eff: "slowed", name: "the whirlpool"})]}),
@@ -2867,7 +2876,7 @@ class Bosses {
 					attacks: [Bosses.spiral(4, 13, 6, 80, 0.14, 0x60c0a0, {motion: "wave"}), Bosses.lineRain(7, 110, 2.2, 0x40ffd0, "pillar", {name: "geyser"}),
 						Bosses.rain(6, 5, 110, 2, 0x40ffd0, {fx: "pillar"})]})
 			]}, raid), ["drowned_codex", "siren_lyre"]);
-			Bosses.boss("sovereign", Bosses.o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
+			Bosses.boss("sovereign", Bosses.o({name: "Morvath the Bone Sovereign", hint: "The Sovereign raises thralls as he weakens: kill them fast, and use the skull pillars for cover.", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
 				Bosses.P(1, {say: "Kneel before the Sovereign.", move: "orbit",
 					attacks: [Bosses.aim(4, 30, 8, 85, 1.0, 0xe8e0c8, {shape: "blade"}), Bosses.ring(16, 11, 4, 75, 1.7, 0xc060ff),
 						Bosses.lineRain(6, 100, 3.4, 0xe8e0c8, "spikes", {name: "bone spikes"})]}),
@@ -2882,7 +2891,7 @@ class Bosses {
 			
 			
 			
-			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 112000, def: 34, spd: 1.8, xp: 9000, col: 0xffd060, gold: 3000, onrane: 40, r: 1.1, phases: [
+			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", hint: "Stand between his constellation's lines, fight his gravity (it drags you into the starfire), watch the falling stars in the eclipse, and when he goes supernova get into a pool of starlight!", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 112000, def: 34, spd: 1.8, xp: 9000, col: 0xffd060, gold: 3000, onrane: 40, r: 1.1, phases: [
 				Bosses.P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
 					attacks: [Bosses.spiral(4, 12, 6.5, 95, 0.15, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 112, 1.2, 0xffffff, {shape: "crescent", r: 0.3, name: "star blades"}),
 						Bosses.pillars(6, 120, 3.0, 0xffe080, {name: "starfall"}), Bosses.constellation(4, 160, 6.0)]}),
@@ -2934,6 +2943,8 @@ class World {
 		this.chambers = null;
 		this.trialArrive = null;
 		this.trialExits = null;
+		this.trialArenas = null;
+		this.trialProps = null;
 		this.trialCleared = __int(0);
 		this.treasure = null;
 		this.theme = null;
@@ -3585,29 +3596,113 @@ class World {
 				{x: 74, y: 141, w: 10, h: 7, n: 3}, {x: 126, y: 141, w: 10, h: 7, n: 3}, {x: 100, y: 114, w: 15, h: 10, n: 6}];
 		}
 	layoutStarfall(th) {
-			var F = __int(th.floor), A = __int(th.accent);
-			
-			var cs = [[52, 150, 31], [148, 150, 31], [52, 52, 31], [146, 54, 33]];
-			this.chambers = []; this.trialArrive = []; this.trialExits = []; this.stageSpots = []; this.mobRooms = [];
-			for (var k = __int(0); k < cs.length; k++) {
-				var cx = __int(cs[k][0]), cy = __int(cs[k][1]), sz = __int(cs[k][2]), h = __int(__int(sz / 2));
-				var room = this.hall(cx, cy, sz, sz, F);
-				this.chambers.push(room);
+			var styles = ["fire", "sunken", "skull", "star"];
+			var orig = [[8, 104], [104, 104], [8, 6], [104, 6]];
+			this.chambers = []; this.trialArrive = []; this.trialExits = []; this.trialArenas = []; this.trialProps = []; this.stageSpots = []; this.mobRooms = [];
+			var x = 0, y = 0, i = 0, a = 0, d = NaN;
+			for (var k = __int(0); k < 4; k++) {
+				var st = SetPieces.STYLES[styles[k]];
+				var F = __int(st.floor), ALT = __int(st.alt), HZ = __int(st.hz);
+				var RUN = __int(SetPieces.safeFloor(st.trim) ? st.trim : ALT);
+				var ox = __int(orig[k][0]), oy = __int(orig[k][1]), cx = __int(ox + 44);
+				var asz = __int(k == 3 ? 33 : 29), ah = __int(__int(asz / 2)), acy = __int(oy + 20);
+				var side = __int(k % 2 == 0 ? 1 : -1);
+				var ax = __int(cx - side * 9), bx = __int(cx + side * 9);
+				var ay = __int(oy + 68), by = __int(oy + 50), ly = __int(oy + 84);
 				
-				for (var t = __int(-h + 1); t <= h - 1; t++) {
-					if ((t + 100) % 3 == 0) continue;
-					this.carve(cx + t, cy - h + 1, 1, 1, A); this.carve(cx + t, cy + h - 1, 1, 1, A);
-					this.carve(cx - h + 1, cy + t, 1, 1, A); this.carve(cx + h - 1, cy + t, 1, 1, A);
+				var arena = this.hall(cx, acy, asz, asz, F);
+				this.hall(ax, ay, 23, 11, F);
+				this.hall(bx, by, 23, 11, F);
+				this.hall(cx, ly, 9, 5, F);
+				this.corridor(cx, ly, ax, ay, F);
+				this.corridor(ax, ay, bx, by, F);
+				this.corridor(bx, by, cx, acy + ah, F);
+				
+				for (var rr of __vals( [[ax, ay, 23, 11], [bx, by, 23, 11]])) {
+					for (x = __int(rr[0] - 11); x <= rr[0] + 11; x++) { this.setT(x, rr[1] - 5, ALT); this.setT(x, rr[1] + 5, ALT); }
+					for (y = __int(rr[1] - 5); y <= rr[1] + 5; y++) { this.setT(rr[0] - 11, y, ALT); this.setT(rr[0] + 11, y, ALT); }
 				}
-				this.carve(cx - 2, cy + h - 4, 5, 3, A);
+				this.carve(cx - 3, ly - 1, 7, 3, RUN);
 				
-				for (var b of __vals( [[-1, -1], [1, -1], [-1, 1], [1, 1]])) this.objs[(cy + b[1] * (h - 2)) * this.N + cx + b[0] * (h - 2)] = 7;
-				this.trialArrive.push([cx + 0.5, cy + h - 2.5]);
-				this.trialExits.push([cx + 0.5, cy + 3.5]);
-				this.stageSpots.push([[cx + 0.5, cy - 1.5]]);
+				for (y = __int(-ah); y <= ah; y++) for (x = __int(-ah); x <= ah; x++) {
+					d = Math.sqrt(x * x + y * y);
+					if (Math.abs(d - (ah - 3)) < 0.55) this.setT(cx + x, acy + y, RUN);
+					else if (d < 2.6) this.setT(cx + x, acy + y, ALT);
+					else if (Math.abs(x) == ah || Math.abs(y) == ah) this.setT(cx + x, acy + y, ALT);
+				}
+				for (a = __int(0); a < 8; a++) this.setO(cx + Math.round(Math.cos(a * Math.PI / 4) * (ah - 1.5)), acy + Math.round(Math.sin(a * Math.PI / 4) * (ah - 1.5)), st.c);
+				
+				if (k == 0) {
+					
+					
+					for (x = __int(ax - 11); x <= ax + 11; x++) for (y = __int(ay - 1); y <= ay; y++) this.setT(x, y, Math.abs(x - (ax - 6)) <= 1 || Math.abs(x - (ax + 6)) <= 1 ? World.BRIDGE : HZ);
+					this.trialProps.push({id: "magma_vent", x: ax - 8.5, y: ay - 3.5}, {id: "magma_vent", x: ax + 9.5, y: ay - 3.5});
+					for (var lp of __vals( [[-6, -2], [6, -2], [-6, 2], [6, 2]])) this.pool2(bx + lp[0], by + lp[1], 1.4, HZ);
+					for (var cp of __vals( [[-1, -1], [1, -1], [-1, 1], [1, 1]])) this.pool2(cx + cp[0] * (ah - 4), acy + cp[1] * (ah - 4), 2.2, HZ);
+					for (x = __int(-8); x <= 8; x = __int(x + (4))) { this.setO(ax + x, ay - 4, 7); this.setO(ax + x, ay + 4, 7); }
+				} else if (k == 1) {
+					
+					
+					for (x = __int(ax - 8); x <= ax + 8; x = __int(x + (4))) for (y = __int(ay - 4); y <= ay + 4; y++) if (y != ay) this.setO(x, y, 8);
+					for (x = __int(ax - 10); x <= ax + 10; x++) for (y = __int(ay + 3); y <= ay + 4; y++) if (this.objs[y * this.N + x] == 0) this.setT(x, y, HZ);
+					this.pool2(bx, by, 3, HZ);
+					for (var cr of __vals( [[-8, -3], [8, -3], [-8, 3], [8, 3]])) this.setO(bx + cr[0], by + cr[1], 27);
+					for (y = __int(-ah + 1); y <= ah - 1; y++) for (x = __int(-ah + 1); x <= ah - 1; x++) if (Math.sqrt(x * x + y * y) > ah - 1.6 && Math.abs(x) < ah && Math.abs(y) < ah) this.setT(cx + x, acy + y, HZ);
+					for (a = __int(0); a < 6; a++) this.setO(cx + Math.round(Math.cos(a * Math.PI / 3 + 0.5) * 8), acy + Math.round(Math.sin(a * Math.PI / 3 + 0.5) * 8), 8);
+				} else if (k == 2) {
+					
+					for (x = __int(ax - 9); x <= ax + 9; x = __int(x + (3))) for (y = __int(ay - 3); y <= ay + 3; y = __int(y + (3))) if (y != ay) this.setO(x, y, 11);
+					for (var bp of __vals( [[-6, 0], [6, 0], [0, -2], [0, 2]])) this.pool2(bx + bp[0], by + bp[1], 1.3, World.BLOODSTONE);
+					for (var sk of __vals( [[-10, -4], [10, -4], [-10, 4], [10, 4]])) this.setO(bx + sk[0], by + sk[1], st.a);
+					for (a = __int(0); a < 8; a++) this.setO(cx + Math.round(Math.cos(a * Math.PI / 4 + 0.39) * 8.5), acy + Math.round(Math.sin(a * Math.PI / 4 + 0.39) * 8.5), st.a);
+					for (x = __int(-ah + 1); x <= ah - 1; x++) { this.setT(cx + x, acy, World.BLOODSTONE); this.setT(cx, acy + x, World.BLOODSTONE); }
+				} else {
+					
+					
+					for (x = __int(ax - 10); x <= ax + 10; x++) for (y = __int(ay - 4); y <= ay + 4; y++) if ((x + y + 1000) % 6 == 0) this.setT(x, y, HZ);
+					for (x = __int(bx - 8); x <= bx + 8; x++) this.setT(x, by, RUN);
+					for (x = __int(bx - 8); x <= bx + 8; x = __int(x + (4))) { this.setO(x, by - 3, st.a); this.setO(x, by + 3, st.a); }
+					for (y = __int(-ah + 1); y <= ah - 1; y++) for (x = __int(-ah + 1); x <= ah - 1; x++) {
+						d = Math.sqrt(x * x + y * y);
+						var gap = Math.abs(x) <= 1 || Math.abs(y) <= 1;
+						if (d >= 4.5 && d <= 5.8 && !gap) this.setT(cx + x, acy + y, HZ);
+					}
+					for (a = __int(0); a < 6; a++) this.setO(cx + Math.round(Math.cos(a * Math.PI / 3 + 0.3) * 11), acy + Math.round(Math.sin(a * Math.PI / 3 + 0.3) * 11), st.a);
+				}
+				
+				for (y = __int(oy); y < oy + 90; y++) for (x = __int(ox); x < ox + 88; x++) {
+					i = __int(y * this.N + x);
+					if (x > 2 && y > 2 && x < this.N - 2 && y < this.N - 2 && this.tiles[i] == F && this.rnd() < 0.09) this.tiles[i] = k == 2 ? World.SAND : ALT;
+				}
+				this.setO(cx - 3, ly - 2, 7); this.setO(cx + 3, ly - 2, 7);
+				for (y = __int(acy + ah + 2); y <= by - 7; y = __int(y + (3))) for (var bxs of __vals( [cx - 2, cx + 2])) { this.setT(bxs, y, ALT); this.setO(bxs, y, 7); }
+				
+				this.gateRows(k, cx, acy + ah + 4, acy + ah + 5, World.WALL);
+				this.chambers.push({x: cx, y: oy + 45, w: 88, h: 90});
+				this.trialArenas.push(arena);
+				this.trialArrive.push([cx + 0.5, ly + 0.5]);
+				this.trialExits.push([cx + 0.5, acy + 3.5]);
+				this.stageSpots.push([[cx + 0.5, acy - 1.5]]);
+				this.mobRooms.push({x: ax, y: ay, w: 19, h: 7, n: 6, k: k}, {x: bx, y: by, w: 19, h: 7, n: 6, k: k});
+				if (k == 0) this.rooms.unshift({x: cx, y: ly, w: 9, h: 3});
 			}
-			
-			this.rooms.unshift({x: cs[0][0], y: cs[0][1] + __int(cs[0][2] / 2) - 3, w: 5, h: 3});
+		}
+	setT(x, y, t) { x = __int(x); y = __int(y); t = __int(t);
+			if (x < 2 || y < 2 || x >= this.N - 2 || y >= this.N - 2) return;
+			this.tiles[y * this.N + x] = t;
+			this.zones[y * this.N + x] = World.DUNGEON_ZONE;
+		}
+	setO(x, y, o) { x = __int(x); y = __int(y); o = __int(o);
+			if (x < 2 || y < 2 || x >= this.N - 2 || y >= this.N - 2 || this.tiles[y * this.N + x] == World.VOID) return;
+			this.objs[y * this.N + x] = o;
+		}
+	pool2(cx, cy, r, t) { cx = __int(cx); cy = __int(cy); t = __int(t);
+			var ri = __int(Math.ceil(r));
+			for (var y = __int(-ri); y <= ri; y++) for (var x = __int(-ri); x <= ri; x++) if (x * x + y * y <= r * r) this.setT(cx + x, cy + y, t);
+		}
+	inTrialArena(k, x, y) { k = __int(k);
+			var r = this.trialArenas ? this.trialArenas[k] : null;
+			return r && Math.abs(x - (r.x + 0.5)) <= r.w / 2 && Math.abs(y - (r.y + 0.5)) <= r.h / 2;
 		}
 	chamberAt(x, y) {
 			if (!this.chambers) return __int(-1);
@@ -4356,6 +4451,7 @@ class Enemy {
 		this.animHit = __int(0);
 		this.animHold = __int(0);
 		this.bonded = null;
+		this.trialRoom = __int(-1);
 		this.bondDead = __int(0);
 		this.dashT = 0;
 		this.dashA = 0;
@@ -6059,6 +6155,13 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-trial2", title: "The Starfall Trial's dungeons",
+				lines: ["<b>Each Starfall master now has a dungeon of its own</b>, built in its style: no more set pieces rising out of the floor.",
+					"<b>Ignis</b>: a lava river with two bridges under fire from magma vents, Cinder Imps and Ash Fiends, lava in the arena's corners.",
+					"<b>The Drowned Archivist</b>: a flooded library of shelf-pillars and drowned souls, and an arena whose rim lies under water.",
+					"<b>Morvath the Bone Sovereign</b>: a graveyard of Crypt Archers and Bone Thralls, and an ossuary stained with blood.",
+					"<b>Astraeon</b>: halls striped with starfire, Comet Wisps and Star Guards, and round his dais a ring of starfire his gravity drags you into.",
+					"Each dungeon's guards hold the seal to its master's arena: clear the halls, step into the arena, and the master wakes."]},
 			{id: "2026-10-trial", title: "The Starfall Trial",
 				lines: ["<b>The Starfall Vault is now a trial</b>: no more halls to walk. You arrive straight in the first of four sealed chambers and its master wakes. Beat it and a portal opens where it fell; step through when you're ready and the next master wakes as you land.",
 					"<b>Astraeon, the Fallen Star</b> waits in the last chamber, and he is now the hardest fight in Eldmere: five phases, far more health, and four things nothing else does.",
@@ -6894,7 +6997,7 @@ Bosses.PLAIN_SHAPES = {"orb": 1, "dart": 1, "blade": 1, "star": 1, "ring": 1, "b
 Bosses.RAID_TUNE = {
 			zealot_a: [1.9, 1.15], zealot_b: [1.9, 1.15], matron: [2.2, 1], archon: [1.7, 1],
 			sentinel_a: [1.6, 0.9], sentinel_b: [1.6, 0.9], sentinel_c: [1.6, 0.9], galecaller: [1.8, 0.75], tempestus: [1.5, 0.85],
-			ignis: [3.2, 1.1], archivist: [1.8, 0.85], sovereign: [1.8, 1], astraeon: [0.8, 0.85]
+			ignis: [2.6, 1.8], archivist: [2.2, 1.1], sovereign: [2.0, 1.15], astraeon: [0.8, 0.85]
 		};
 Bosses.SETPIECES = {
 			ev_cube: {style: "cube", prop: "cube_pylon", n: 4, r: 5.5, ward: true, hint: "Four Cube Pylons shield the Overlord. Destroy them to break the shield!"},
@@ -6917,12 +7020,8 @@ Bosses.SETPIECES = {
 			matron: {style: "blood", prop: "blood_altar", n: 0, r: 6, hint: "The Matron's sanctum runs with blood: its channels will overflow, then its edges drown. Keep to the bone dais!"},
 			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground. Whoever he brands in blood must leave the group before it bursts."},
 			galecaller: {style: "gale", prop: "storm_rod", n: 0, r: 6, hint: "The Galecaller's terrace will charge with lightning: off the runes when they crackle, and away from the edge!"},
-			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."},
+			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."}
 			
-			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
-			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
-			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
-			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons: shatter them. Stand between his constellation's lines, fight his gravity, watch the falling stars in the eclipse, and when he goes supernova get into a pool of starlight!"}
 		};
 Bosses.V_RED = __uint(0xff2a3a);
 Bosses.V_GOLD = __uint(0xd8a030);
@@ -6971,12 +7070,14 @@ Bosses.RAIDS = [
 					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand. Spread out: chain lightning leaps from one of you to the next.",
 				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true, trial: true,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, twists: true, trial: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
-				intro: "The Starfall Trial: four sealed chambers, one master in each, and no way between them but the portal each master leaves when it falls. Break what feeds them, mind the floor, and save your strength for the Star Throne.",
+				intro: "The Starfall Trial: four small dungeons sealed off from each other, one master in each. Fight through its halls (their guards hold the seal to the master's arena), beat the master, and take the portal it leaves to the next. Save your strength for the Star Throne.",
 				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.25, layout: "starfall",
-					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
+					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"],
+					
+					trialMobs: [["cinder_imp", "ash_fiend", "cinder_imp"], ["drowned_soul", "grave_wraith", "tide_spawn"], ["bone_thrall", "crypt_archer", "grave_wraith"], ["star_guard", "comet_wisp", "cube_shard"]]}}
 		];
 World.DEFAULT_N = __int(200);
 World.REALM_N = __int(512);

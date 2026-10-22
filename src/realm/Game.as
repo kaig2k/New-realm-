@@ -4920,14 +4920,21 @@ package realm {
 			if (world != w) return;
 			var th:Object = w.raid.theme;
 			for each (var rm:Object in w.mobRooms) {
+				// (a trial dungeon's halls have their own guards, and they hold its seal)
+				var mobs:Array = rm.k != undefined && th.trialMobs ? th.trialMobs[rm.k] : th.mobs;
 				for (var k:int = 0; k < rm.n; k++) {
-					var e:Enemy = spawnEnemy(th.mobs[int(Math.random() * th.mobs.length)], rm.x + (Math.random() - 0.5) * rm.w, rm.y + (Math.random() - 0.5) * rm.h, th.tier);
+					var e:Enemy = spawnEnemy(mobs[int(Math.random() * mobs.length)], rm.x + (Math.random() - 0.5) * rm.w, rm.y + (Math.random() - 0.5) * rm.h, th.tier);
 					if (!e) continue;
+					if (rm.k != undefined) e.trialRoom = rm.k;
 					e.maxHp *= th.hard;
 					e.hp = e.maxHp;
 					e.dmgMult = 1 + (th.hard - 1) * 0.6;
 					if (w.heroic) Bosses.heroicEnemy(e, false, th);
 				}
+			}
+			for each (var tp:Object in w.trialProps || []) {
+				var te:Enemy = spawnEnemy(tp.id, tp.x, tp.y, th.tier);
+				if (te) { te.maxHp *= th.hard; te.hp = te.maxHp; }
 			}
 			msg("Raid: everything here is far tougher than anywhere else. Bring friends.", 0xff8080);
 			saveCharacter();
@@ -4950,6 +4957,16 @@ package realm {
 				}
 			}
 			w.trialCleared = n;
+		}
+
+		/** Trial dungeon k's guards are all dead: the seal to its master's arena breaks. */
+		public function trialSeal(k:int, fresh:Boolean):void {
+			var w:World = world;
+			if (!w.trialArenas || !w.openGate(k) || !fresh) return;
+			showBanner("The seal breaks! " + Data.ENEMIES[w.raid.stages[k][0]].name + " awaits.", w.raid.color, 3.5);
+			msg("The guards are dead and the seal to " + w.raid.places[k] + " breaks. Its master wakes when you step into the arena.", w.raid.color);
+			Sfx.play("portal");
+			shake(0.5, 6);
 		}
 
 		/** Through chamber k's portal: online the server moves us (trialWarp), offline we go at once. */
@@ -4978,13 +4995,23 @@ package realm {
 		private function updateRaid(dt:Number):void {
 			var w:World = world;
 			var rd:Object = w.raid;
-			if (!rd || w.raidStage >= rd.stages.length) return;
+			if (!rd) return;
+			if (rd.trial && w.trialArenas) {
+				// a trial dungeon whose guards are all dead: its seal breaks
+				for (var sk:int = 0; sk < w.gates.length; sk++) {
+					if (!w.gates[sk] || !w.gates[sk].length) continue;
+					var held:Boolean = false;
+					for each (var ge:Enemy in enemies) if (!ge.dead && ge.trialRoom == sk) { held = true; break; }
+					if (!held) trialSeal(sk, true);
+				}
+			}
+			if (w.raidStage >= rd.stages.length) return;
 			// (a stage ends when its bosses, and any objectives it has, are all down)
 			if (w.raidStage >= 0) for each (var e:Enemy in enemies) if (!e.dead && (e.isBoss || e.def.stageFoe)) return;
 			if (rd.trial) {
-				// a trial: the beaten chamber's portal opens, and the next master waits for you in its own
+				// a trial: the beaten chamber's portal opens, and the next master waits for you in its arena
 				if (w.raidStage >= 0 && w.trialCleared <= w.raidStage) trialCleared(w.raidStage + 1, true);
-				if (w.raidStage + 1 < rd.stages.length && w.chamberAt(player.x, player.y) != w.raidStage + 1) { w.raidT = 3; return; }
+				if (w.raidStage + 1 < rd.stages.length && !w.inTrialArena(w.raidStage + 1, player.x, player.y)) { w.raidT = 2; return; }
 			}
 			w.raidT -= dt;
 			if (w.raidT > 0) return;
@@ -5056,6 +5083,10 @@ package realm {
 		/** The colour the light takes in each place: warm beach, dim forests, violet Godlands, red raids... */
 		private function atmoTarget():Array {
 			if (world.raid && world.raidTint >= 0) return [Sprites.shade(world.raidTint, 0.45), 0.2];
+			if (world.raid && world.chambers) {
+				var tk:int = world.chamberAt(player.x, player.y);
+				if (tk >= 0) return [[0x501000, 0x003038, 0x300038, 0x302400][tk], 0.2];
+			}
 			if (world.raid) return world.raid.id == "storm" ? [0x001030, 0.18] : [0x500010, 0.16];
 			if (world.kind == "dungeon") return [0x000010, 0.12];
 			if (world.kind == "arena") return [0x300008, 0.12];
@@ -5544,6 +5575,7 @@ package realm {
 			if (!rd || !rd.stages[n]) return;
 			var nm:String = Data.ENEMIES[rd.stages[n][0]].name;
 			showBanner((n == rd.stages.length - 1 ? "Final stage: " : "Stage " + (n + 1) + ": ") + nm, rd.color, 3.5);
+			if (Data.ENEMIES[rd.stages[n][0]].hint) msg(Data.ENEMIES[rd.stages[n][0]].hint, 0xffb0ff);
 			Sfx.play("boss");
 			shake(0.4, 6);
 		}

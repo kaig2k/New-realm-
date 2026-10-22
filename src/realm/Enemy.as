@@ -205,6 +205,8 @@ package realm {
 		 * quarter of their health and fight harder (see checkBond).
 		 */
 		public var bonded:Array;
+		/** A Starfall Trial guard: the dungeon (0..) whose seal it holds (-1 none). */
+		public var trialRoom:int = -1;
 		private var bondDead:int = 0;
 
 		private function checkBond():void {

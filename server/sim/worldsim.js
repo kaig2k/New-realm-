@@ -213,7 +213,8 @@ class WorldSim {
       const list = [];
       for (const e of this.enemies) if (!e.dead) list.push(this.entry(e));
       this.send(c, { t: 'espawn', l: list, n: 0 });
-      this.send(c, { t: 'wstate', ev: this.w.eventsDone, ct: r2(this.closeT), rs: this.w.raidStage, tc: this.w.trialCleared || 0 });
+      this.send(c, { t: 'wstate', ev: this.w.eventsDone, ct: r2(this.closeT), rs: this.w.raidStage, tc: this.w.trialCleared || 0,
+        tg: this.w.trialArenas ? this.w.gates.map((g, k) => (g && g.length ? -1 : k)).filter((k) => k >= 0) : undefined });
     } else if (d.t === 'ehit') {
       this.hit(c, d);
     } else if (d.t === 'trial') {
@@ -373,15 +374,35 @@ class WorldSim {
     const w = this.w, th = w.raid.theme;
     const tw = this.twist;
     for (const rm of w.mobRooms) {
+      // (a trial dungeon's halls have their own guards, and they hold its seal)
+      const mobs = rm.k !== undefined && th.trialMobs ? th.trialMobs[rm.k] : th.mobs;
       for (let k = 0; k < rm.n * (tw && tw.guards ? tw.guards : 1); k++) {
-        const e = this.spawn(th.mobs[Math.floor(Math.random() * th.mobs.length)], rm.x + (Math.random() - 0.5) * rm.w, rm.y + (Math.random() - 0.5) * rm.h, th.tier);
+        const e = this.spawn(mobs[Math.floor(Math.random() * mobs.length)], rm.x + (Math.random() - 0.5) * rm.w, rm.y + (Math.random() - 0.5) * rm.h, th.tier);
         if (!e) continue;
+        if (rm.k !== undefined) e.trialRoom = rm.k;
         e.maxHp *= th.hard;
         e.hp = e.maxHp;
         e.dmgMult = 1 + (th.hard - 1) * 0.6;
         Bosses.twistEnemy(e, tw, false);
         if (this.heroic) Bosses.heroicEnemy(e, false, th);
       }
+    }
+    // a trial dungeon's turrets (magma vents over Ignis's lava river)
+    for (const tp of w.trialProps || []) {
+      const e = this.spawn(tp.id, tp.x, tp.y, th.tier, true);
+      if (e) { e.maxHp *= th.hard; e.hp = e.maxHp; }
+    }
+  }
+
+  /** A trial dungeon whose guards are all dead: its seal breaks (for everyone). */
+  trialSeals() {
+    const w = this.w;
+    if (!w.trialArenas) return;
+    for (let k = 0; k < w.gates.length; k++) {
+      if (!w.gates[k] || !w.gates[k].length) continue;
+      if (this.enemies.some((e) => !e.dead && e.trialRoom === k)) continue;
+      w.openGate(k);
+      this.all({ t: 'tgate', k });
     }
   }
 
@@ -743,6 +764,7 @@ class WorldSim {
 
   updateRaid(dt) {
     const w = this.w, rd = w.raid;
+    if (rd.trial) this.trialSeals();
     if (w.raidStage >= rd.stages.length) return;
     // (a stage ends when its bosses, and any objectives it has, are all down)
     if (w.raidStage >= 0 && this.enemies.some((e) => !e.dead && (e.isBoss || e.def.stageFoe))) return;
@@ -753,7 +775,7 @@ class WorldSim {
         this.all({ t: 'trial', c: w.trialCleared });
       }
       const nx = w.raidStage + 1;
-      if (nx < rd.stages.length && ![...this.players.values()].some((c) => c.alive !== false && w.chamberAt(c.x, c.y) === nx)) { w.raidT = 3; return; }
+      if (nx < rd.stages.length && ![...this.players.values()].some((c) => c.alive !== false && w.inTrialArena(nx, c.x, c.y))) { w.raidT = 2; return; }
     }
     w.raidT -= dt;
     if (w.raidT > 0) return;

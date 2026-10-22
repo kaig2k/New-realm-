@@ -126,7 +126,7 @@ function setup(id) {
     sim.players.set(-1, fake);
     for (let s = 0; s <= si; s++) {
       // (a trial's master only wakes with someone in its chamber)
-      if (sim.w.trialArrive) { fake.x = sim.w.trialArrive[s][0]; fake.y = sim.w.trialArrive[s][1]; sim.updateRaid(DT); }
+      if (sim.w.trialArenas) { sim.w.openGate(s); fake.x = sim.w.stageSpots[s][0][0]; fake.y = sim.w.stageSpots[s][0][1] + 6; sim.updateRaid(DT); }
       sim.w.raidT = 0;
       sim.updateRaid(DT);
       if (s < si) for (const e of sim.enemies) e.dead = true;

@@ -624,7 +624,7 @@ package realm {
 
 		// ------------------------------------------------------------ takeovers
 		/** Tiles a set piece may lay across a whole dungeon (nothing that burns, drowns or blocks). */
-		private static function safeFloor(t:int):Boolean {
+		public static function safeFloor(t:int):Boolean {
 			return t != World.LAVA && t != World.WATER && t != World.HEXFIRE && t != World.SHOCK && t != World.VOIDFIRE && t != World.WALL && t != World.VOID && t != World.FOUNTAIN;
 		}
 

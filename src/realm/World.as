@@ -167,6 +167,9 @@ package realm {
 		public var chambers:Array;
 		public var trialArrive:Array;
 		public var trialExits:Array;
+		/** Each trial dungeon's master's arena {x, y, w, h}, and its fixed turrets {id, x, y}. */
+		public var trialArenas:Array;
+		public var trialProps:Array;
 		public var trialCleared:int = 0;
 		/** Dungeon side room holding a treasure chest (or null). */
 		public var treasure:Object;
@@ -918,34 +921,128 @@ package realm {
 		 * are plain stone halls (with braziers and side alcoves) until then.
 		 */
 		/**
-		 * The Starfall Trial: four chambers sealed off from each other, floating in the
-		 * dark. You arrive in the first; each master that falls opens a portal to the
-		 * next. The last, the Star Throne, is the biggest.
+		 * The Starfall Trial: four small dungeons, sealed off from each other and each built
+		 * in its master's style. You land on a pad, fight through two guard halls (each with
+		 * its own trouble: a lava river under fire from magma vents, a flooded library, a
+		 * graveyard, stripes of starfire), and the seal to the master's arena breaks once its
+		 * guards are dead. A beaten master leaves a portal to the next dungeon.
 		 */
 		private function layoutStarfall(th:Object):void {
-			var F:int = th.floor, A:int = th.accent;
-			// [centre x, centre y, size]
-			var cs:Array = [[52, 150, 31], [148, 150, 31], [52, 52, 31], [146, 54, 33]];
-			chambers = []; trialArrive = []; trialExits = []; stageSpots = []; mobRooms = [];
-			for (var k:int = 0; k < cs.length; k++) {
-				var cx:int = cs[k][0], cy:int = cs[k][1], sz:int = cs[k][2], h:int = int(sz / 2);
-				var room:Object = hall(cx, cy, sz, sz, F);
-				chambers.push(room);
-				// a gold border just inside the walls, and the landing pad at the south edge
-				for (var t:int = -h + 1; t <= h - 1; t++) {
-					if ((t + 100) % 3 == 0) continue;
-					carve(cx + t, cy - h + 1, 1, 1, A); carve(cx + t, cy + h - 1, 1, 1, A);
-					carve(cx - h + 1, cy + t, 1, 1, A); carve(cx + h - 1, cy + t, 1, 1, A);
+			var styles:Array = ["fire", "sunken", "skull", "star"];
+			var orig:Array = [[8, 104], [104, 104], [8, 6], [104, 6]];
+			chambers = []; trialArrive = []; trialExits = []; trialArenas = []; trialProps = []; stageSpots = []; mobRooms = [];
+			var x:int, y:int, i:int, a:int, d:Number;
+			for (var k:int = 0; k < 4; k++) {
+				var st:Object = SetPieces.STYLES[styles[k]];
+				var F:int = st.floor, ALT:int = st.alt, HZ:int = st.hz;
+				var RUN:int = SetPieces.safeFloor(st.trim) ? st.trim : ALT;
+				var ox:int = orig[k][0], oy:int = orig[k][1], cx:int = ox + 44;
+				var asz:int = k == 3 ? 33 : 29, ah:int = int(asz / 2), acy:int = oy + 20;
+				var side:int = k % 2 == 0 ? 1 : -1;
+				var ax:int = cx - side * 9, bx:int = cx + side * 9;
+				var ay:int = oy + 68, by:int = oy + 50, ly:int = oy + 84;
+				// the master's arena, two guard halls and the landing pad, and the way between them
+				var arena:Object = hall(cx, acy, asz, asz, F);
+				hall(ax, ay, 23, 11, F);
+				hall(bx, by, 23, 11, F);
+				hall(cx, ly, 9, 5, F);
+				corridor(cx, ly, ax, ay, F);
+				corridor(ax, ay, bx, by, F);
+				corridor(bx, by, cx, acy + ah, F);
+				// halls trimmed in the style's second stone, the pad and the path in its trim
+				for each (var rr:Array in [[ax, ay, 23, 11], [bx, by, 23, 11]]) {
+					for (x = rr[0] - 11; x <= rr[0] + 11; x++) { setT(x, rr[1] - 5, ALT); setT(x, rr[1] + 5, ALT); }
+					for (y = rr[1] - 5; y <= rr[1] + 5; y++) { setT(rr[0] - 11, y, ALT); setT(rr[0] + 11, y, ALT); }
 				}
-				carve(cx - 2, cy + h - 4, 5, 3, A);
-				// braziers in the corners, outside where the set piece will rise
-				for each (var b:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) objs[(cy + b[1] * (h - 2)) * N + cx + b[0] * (h - 2)] = 7;
-				trialArrive.push([cx + 0.5, cy + h - 2.5]);
-				trialExits.push([cx + 0.5, cy + 3.5]);
-				stageSpots.push([[cx + 0.5, cy - 1.5]]);
+				carve(cx - 3, ly - 1, 7, 3, RUN);
+				// the arena: a ring of trim, a dais in the middle, braziers round the edge
+				for (y = -ah; y <= ah; y++) for (x = -ah; x <= ah; x++) {
+					d = Math.sqrt(x * x + y * y);
+					if (Math.abs(d - (ah - 3)) < 0.55) setT(cx + x, acy + y, RUN);
+					else if (d < 2.6) setT(cx + x, acy + y, ALT);
+					else if (Math.abs(x) == ah || Math.abs(y) == ah) setT(cx + x, acy + y, ALT);
+				}
+				for (a = 0; a < 8; a++) setO(cx + Math.round(Math.cos(a * Math.PI / 4) * (ah - 1.5)), acy + Math.round(Math.sin(a * Math.PI / 4) * (ah - 1.5)), st.c);
+				// each master's own trouble
+				if (k == 0) {
+					// Ignis: a lava river across the first hall with two bridges, magma vents firing from beyond it;
+					// pools of lava in the second; lava in the arena's corners
+					for (x = ax - 11; x <= ax + 11; x++) for (y = ay - 1; y <= ay; y++) setT(x, y, Math.abs(x - (ax - 6)) <= 1 || Math.abs(x - (ax + 6)) <= 1 ? BRIDGE : HZ);
+					trialProps.push({id: "magma_vent", x: ax - 8.5, y: ay - 3.5}, {id: "magma_vent", x: ax + 9.5, y: ay - 3.5});
+					for each (var lp:Array in [[-6, -2], [6, -2], [-6, 2], [6, 2]]) pool2(bx + lp[0], by + lp[1], 1.4, HZ);
+					for each (var cp:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pool2(cx + cp[0] * (ah - 4), acy + cp[1] * (ah - 4), 2.2, HZ);
+					for (x = -8; x <= 8; x += 4) { setO(ax + x, ay - 4, 7); setO(ax + x, ay + 4, 7); }
+				} else if (k == 1) {
+					// the Archivist: a drowned library (rows of shelf-pillars, the floor flooding toward the back),
+					// a pool in the reading room, the arena's rim under water and pillars to hide behind
+					for (x = ax - 8; x <= ax + 8; x += 4) for (y = ay - 4; y <= ay + 4; y++) if (y != ay) setO(x, y, 8);
+					for (x = ax - 10; x <= ax + 10; x++) for (y = ay + 3; y <= ay + 4; y++) if (objs[y * N + x] == 0) setT(x, y, HZ);
+					pool2(bx, by, 3, HZ);
+					for each (var cr:Array in [[-8, -3], [8, -3], [-8, 3], [8, 3]]) setO(bx + cr[0], by + cr[1], 27);
+					for (y = -ah + 1; y <= ah - 1; y++) for (x = -ah + 1; x <= ah - 1; x++) if (Math.sqrt(x * x + y * y) > ah - 1.6 && Math.abs(x) < ah && Math.abs(y) < ah) setT(cx + x, acy + y, HZ);
+					for (a = 0; a < 6; a++) setO(cx + Math.round(Math.cos(a * Math.PI / 3 + 0.5) * 8), acy + Math.round(Math.sin(a * Math.PI / 3 + 0.5) * 8), 8);
+				} else if (k == 2) {
+					// the Sovereign: a graveyard of headstones, pools of blood in the ossuary, skull pillars round the arena
+					for (x = ax - 9; x <= ax + 9; x += 3) for (y = ay - 3; y <= ay + 3; y += 3) if (y != ay) setO(x, y, 11);
+					for each (var bp:Array in [[-6, 0], [6, 0], [0, -2], [0, 2]]) pool2(bx + bp[0], by + bp[1], 1.3, BLOODSTONE);
+					for each (var sk:Array in [[-10, -4], [10, -4], [-10, 4], [10, 4]]) setO(bx + sk[0], by + sk[1], st.a);
+					for (a = 0; a < 8; a++) setO(cx + Math.round(Math.cos(a * Math.PI / 4 + 0.39) * 8.5), acy + Math.round(Math.sin(a * Math.PI / 4 + 0.39) * 8.5), st.a);
+					for (x = -ah + 1; x <= ah - 1; x++) { setT(cx + x, acy, BLOODSTONE); setT(cx, acy + x, BLOODSTONE); }
+				} else {
+					// Astraeon: stripes of starfire across the first hall, gold pillars down the second, and round
+					// his dais a ring of starfire with four ways through (his gravity drags you toward it)
+					for (x = ax - 10; x <= ax + 10; x++) for (y = ay - 4; y <= ay + 4; y++) if ((x + y + 1000) % 6 == 0) setT(x, y, HZ);
+					for (x = bx - 8; x <= bx + 8; x++) setT(x, by, RUN);
+					for (x = bx - 8; x <= bx + 8; x += 4) { setO(x, by - 3, st.a); setO(x, by + 3, st.a); }
+					for (y = -ah + 1; y <= ah - 1; y++) for (x = -ah + 1; x <= ah - 1; x++) {
+						d = Math.sqrt(x * x + y * y);
+						var gap:Boolean = Math.abs(x) <= 1 || Math.abs(y) <= 1;
+						if (d >= 4.5 && d <= 5.8 && !gap) setT(cx + x, acy + y, HZ);
+					}
+					for (a = 0; a < 6; a++) setO(cx + Math.round(Math.cos(a * Math.PI / 3 + 0.3) * 11), acy + Math.round(Math.sin(a * Math.PI / 3 + 0.3) * 11), st.a);
+				}
+				// the floor is worn: a scatter of the second stone everywhere, braziers along the way up
+				for (y = oy; y < oy + 90; y++) for (x = ox; x < ox + 88; x++) {
+					i = y * N + x;
+					if (x > 2 && y > 2 && x < N - 2 && y < N - 2 && tiles[i] == F && rnd() < 0.09) tiles[i] = k == 2 ? SAND : ALT;
+				}
+				setO(cx - 3, ly - 2, 7); setO(cx + 3, ly - 2, 7);
+				for (y = acy + ah + 2; y <= by - 7; y += 3) for each (var bxs:int in [cx - 2, cx + 2]) { setT(bxs, y, ALT); setO(bxs, y, 7); }
+				// the seal on the way up to the arena (it breaks when the halls' guards are dead)
+				gateRows(k, cx, acy + ah + 4, acy + ah + 5, WALL);
+				chambers.push({x: cx, y: oy + 45, w: 88, h: 90});
+				trialArenas.push(arena);
+				trialArrive.push([cx + 0.5, ly + 0.5]);
+				trialExits.push([cx + 0.5, acy + 3.5]);
+				stageSpots.push([[cx + 0.5, acy - 1.5]]);
+				mobRooms.push({x: ax, y: ay, w: 19, h: 7, n: 6, k: k}, {x: bx, y: by, w: 19, h: 7, n: 6, k: k});
+				if (k == 0) rooms.unshift({x: cx, y: ly, w: 9, h: 3});
 			}
-			// rooms[0] is where you come in: the first chamber's landing pad
-			rooms.unshift({x: cs[0][0], y: cs[0][1] + int(cs[0][2] / 2) - 3, w: 5, h: 3});
+		}
+
+		/** Sets one floor tile (and keeps its zone). */
+		private function setT(x:int, y:int, t:int):void {
+			if (x < 2 || y < 2 || x >= N - 2 || y >= N - 2) return;
+			tiles[y * N + x] = t;
+			zones[y * N + x] = DUNGEON_ZONE;
+		}
+
+		/** Puts an object down (on floor only). */
+		private function setO(x:int, y:int, o:int):void {
+			if (x < 2 || y < 2 || x >= N - 2 || y >= N - 2 || tiles[y * N + x] == VOID) return;
+			objs[y * N + x] = o;
+		}
+
+		/** A round pool of tile t. */
+		private function pool2(cx:int, cy:int, r:Number, t:int):void {
+			var ri:int = Math.ceil(r);
+			for (var y:int = -ri; y <= ri; y++) for (var x:int = -ri; x <= ri; x++) if (x * x + y * y <= r * r) setT(cx + x, cy + y, t);
+		}
+
+		/** Is (x, y) inside trial dungeon k's master's arena? */
+		public function inTrialArena(k:int, x:Number, y:Number):Boolean {
+			var r:Object = trialArenas ? trialArenas[k] : null;
+			return r && Math.abs(x - (r.x + 0.5)) <= r.w / 2 && Math.abs(y - (r.y + 0.5)) <= r.h / 2;
 		}
 
 		/** The trial chamber (0..) a spot is in, or -1. */

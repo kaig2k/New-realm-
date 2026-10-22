@@ -344,7 +344,7 @@ package realm {
 		private static const RAID_TUNE:Object = {
 			zealot_a: [1.9, 1.15], zealot_b: [1.9, 1.15], matron: [2.2, 1], archon: [1.7, 1],
 			sentinel_a: [1.6, 0.9], sentinel_b: [1.6, 0.9], sentinel_c: [1.6, 0.9], galecaller: [1.8, 0.75], tempestus: [1.5, 0.85],
-			ignis: [3.2, 1.1], archivist: [1.8, 0.85], sovereign: [1.8, 1], astraeon: [0.8, 0.85]
+			ignis: [2.6, 1.8], archivist: [2.2, 1.1], sovereign: [2.0, 1.15], astraeon: [0.8, 0.85]
 		};
 
 		/** Pop-culture style skins (original designs, recoloured class sprites). */
@@ -399,12 +399,8 @@ package realm {
 			matron: {style: "blood", prop: "blood_altar", n: 0, r: 6, hint: "The Matron's sanctum runs with blood: its channels will overflow, then its edges drown. Keep to the bone dais!"},
 			archon: {style: "sanctum", prop: "blood_altar", n: 0, r: 6, hint: "Archon Vesper's altar answers him: its runes will bleed, then the floor floods. The golden circle is safe ground. Whoever he brands in blood must leave the group before it bursts."},
 			galecaller: {style: "gale", prop: "storm_rod", n: 0, r: 6, hint: "The Galecaller's terrace will charge with lightning: off the runes when they crackle, and away from the edge!"},
-			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."},
-			// the Starfall Vault (a raid): each chamber is a set piece of its own
-			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
-			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
-			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
-			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons: shatter them. Stand between his constellation's lines, fight his gravity, watch the falling stars in the eclipse, and when he goes supernova get into a pool of starlight!"}
+			tempestus: {style: "storm", prop: "storm_rod", n: 0, r: 6, hint: "The eye of the storm closes as Tempestus weakens: its arms crackle, then its edge, and at the end only its heart is safe."}
+			// (the Starfall Trial's masters have none: each has a dungeon built in its style instead, World.layoutStarfall)
 		};
 
 		/** Where a boss's set-piece pieces stand: the P tiles of its layout (x, y is the boss's tile centre). */
@@ -460,6 +456,15 @@ package realm {
 				attacks: [aim(2, 20, 10, 55, 0.9, 0xc0ff60, {eff: "slowed"})]});
 			mob("star_pylon", o(o({}, still), {name: "Star Pylon", spr: "star_pylon", hp: 4000, def: 22, col: 0xffd060, ward: true,
 				attacks: [ring(8, 22, 5, 80, 1.6, 0xffd060, {shape: "star"}), aim(2, 14, 9, 70, 1.2, 0xfff0a0)]}));
+			// the Starfall Trial's guards (its other halls use grave wraiths, drowned souls, bone thralls, star guards and cube shards)
+			mob("cinder_imp", {name: "Cinder Imp", spr: "imp", hp: 2600, def: 18, spd: 4.2, xp: 140, col: 0xff7020, ai: "orbit", keep: 4,
+				attacks: [aim(3, 24, 9, 85, 0.8, 0xff7020, {shape: "fire"})]});
+			mob("ash_fiend", {name: "Ash Fiend", spr: "lesser_demon", hp: 4200, def: 24, spd: 2.2, xp: 180, col: 0xff5010, keep: 2,
+				attacks: [ring(10, 0, 5, 90, 1.6, 0xff5010, {shape: "fire"}), aim(1, 0, 7, 110, 1.2, 0xffb040, {motion: "home", shape: "fire"})]});
+			mob("crypt_archer", {name: "Crypt Archer", spr: "skeleton", hp: 2600, def: 18, spd: 2.6, xp: 140, col: 0xe8e0c8, ai: "orbit", keep: 6,
+				attacks: [aim(3, 12, 11, 95, 1.0, 0xe8e0c8, {shape: "spike"}), aim(1, 0, 12, 120, 2.2, 0xff4060, {shape: "spike", eff: "bleeding"})]});
+			mob("comet_wisp", {name: "Comet Wisp", spr: "glimmer_mote", hp: 2200, def: 16, spd: 4.5, xp: 140, col: 0xffe080, ai: "orbit", keep: 4,
+				attacks: [aim(1, 0, 8, 90, 0.9, 0xffe080, {motion: "home", shape: "star"}), ring(8, 0, 5, 70, 2.4, 0xfff0a0, {shape: "star"})]});
 			mob("star_guard", {name: "Star Guard", spr: "star_guard", hp: 3600, def: 26, spd: 2.6, xp: 160, col: 0xffd060, keep: 2,
 				attacks: [aim(3, 22, 9, 85, 1.2, 0xfff0a0, {shape: "blade"}), ring(10, 0, 5, 70, 2.6, 0xffd060, {shape: "star"})]});
 			for (var id:String in SETPIECES) Data.ENEMIES[id].setpiece = SETPIECES[id];
@@ -1714,12 +1719,14 @@ package realm {
 					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand. Spread out: chain lightning leaps from one of you to the next.",
 				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true, trial: true,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, twists: true, trial: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
-				intro: "The Starfall Trial: four sealed chambers, one master in each, and no way between them but the portal each master leaves when it falls. Break what feeds them, mind the floor, and save your strength for the Star Throne.",
+				intro: "The Starfall Trial: four small dungeons sealed off from each other, one master in each. Fight through its halls (their guards hold the seal to the master's arena), beat the master, and take the portal it leaves to the next. Save your strength for the Star Throne.",
 				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.25, layout: "starfall",
-					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
+					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"],
+					// each trial dungeon's guards
+					trialMobs: [["cinder_imp", "ash_fiend", "cinder_imp"], ["drowned_soul", "grave_wraith", "tide_spawn"], ["bone_thrall", "crypt_archer", "grave_wraith"], ["star_guard", "comet_wisp", "cube_shard"]]}}
 		];
 
 		/** Each raid's Heroic rule (Bosses.heroicEnemy): what every boss in it does besides its own attacks. */
@@ -1841,7 +1848,7 @@ package realm {
 			]}, raid), ["heart_of_storm", "stormbreaker", "tempest_eye", "stormweave_jerkin", "rolling_thunder", "squall_crown", "cyclone_snare", "galeband", "stormwall_ring", "lightning_rod"]);
 
 			// ---- the Starfall Vault: four chambers, each a set piece that changes as you fight
-			boss("ignis", o({name: "Ignis, Warden of Embers", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
+			boss("ignis", o({name: "Ignis, Warden of Embers", hint: "Ignis burns hotter as he weakens: keep out of the lava, and away from his blazing charge.", spr: "vault_ignis", hp: 30000, def: 24, spd: 1.6, xp: 3000, col: 0xffb040, phases: [
 				P(1, {say: "Who disturbs the vault?", move: "orbit",
 					attacks: [aim(3, 26, 8, 80, 0.9, 0xffb040, {shape: "fire"}), ring(14, 13, 4.5, 70, 1.8, 0xff6020, {shape: "fire"}),
 						pillars(5, 100, 3.2, 0xff7020, {name: "fire column"})]}),
@@ -1852,7 +1859,7 @@ package realm {
 					attacks: [flower(24, 7, 5.5, 85, 0.8, 0xffb040, {shape: "fire"}), selfNova(5, 1.2, 150, 3.4, 0xff6020, {burst: 16, shape: "fire", fx: "pillar", name: "ember burst"}),
 						lineRain(6, 110, 2.6, 0xff7020, "pillar", {name: "fire column"})]})
 			]}, raid), ["ignis_brand", "everburning_flask"]);
-			boss("archivist", o({name: "The Drowned Archivist", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
+			boss("archivist", o({name: "The Drowned Archivist", hint: "The whirlpool drags you in and the flooded rim slows you: fight from the dry middle, behind the pillars.", spr: "vault_archivist", hp: 32000, def: 24, spd: 1.4, xp: 3000, col: 0x40ffd0, phases: [
 				P(1, {say: "Silence in the archive.", move: "orbit",
 					attacks: [aim(5, 50, 7, 75, 1.1, 0x40ffd0, {motion: "wave"}), ring(12, 0, 4, 70, 2, 0xa0fff0, {motion: "return"}),
 						pull(14, 75, 3.8, 0x40ffd0, {eff: "slowed", name: "the whirlpool"})]}),
@@ -1862,7 +1869,7 @@ package realm {
 					attacks: [spiral(4, 13, 6, 80, 0.14, 0x60c0a0, {motion: "wave"}), lineRain(7, 110, 2.2, 0x40ffd0, "pillar", {name: "geyser"}),
 						rain(6, 5, 110, 2, 0x40ffd0, {fx: "pillar"})]})
 			]}, raid), ["drowned_codex", "siren_lyre"]);
-			boss("sovereign", o({name: "Morvath the Bone Sovereign", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
+			boss("sovereign", o({name: "Morvath the Bone Sovereign", hint: "The Sovereign raises thralls as he weakens: kill them fast, and use the skull pillars for cover.", spr: "vault_sovereign", hp: 34000, def: 28, spd: 1.3, xp: 3200, col: 0xc060ff, phases: [
 				P(1, {say: "Kneel before the Sovereign.", move: "orbit",
 					attacks: [aim(4, 30, 8, 85, 1.0, 0xe8e0c8, {shape: "blade"}), ring(16, 11, 4, 75, 1.7, 0xc060ff),
 						lineRain(6, 100, 3.4, 0xe8e0c8, "spikes", {name: "bone spikes"})]}),
@@ -1877,7 +1884,7 @@ package realm {
 			// something new: the constellation (lines of starlight to stand between), the star's gravity (it
 			// drags you toward him, and into his starfire), the eclipse (dark, lit only by falling stars), the
 			// supernova (only the pools of starlight are safe) and, at the end, all of it at once
-			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 112000, def: 34, spd: 1.8, xp: 9000, col: 0xffd060, gold: 3000, onrane: 40, r: 1.1, phases: [
+			boss("astraeon", o({name: "Astraeon, the Fallen Star", hint: "Stand between his constellation's lines, fight his gravity (it drags you into the starfire), watch the falling stars in the eclipse, and when he goes supernova get into a pool of starlight!", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 112000, def: 34, spd: 1.8, xp: 9000, col: 0xffd060, gold: 3000, onrane: 40, r: 1.1, phases: [
 				P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
 					attacks: [spiral(4, 12, 6.5, 95, 0.15, 0xffd060, {shape: "star"}), aim(5, 40, 10, 112, 1.2, 0xffffff, {shape: "crescent", r: 0.3, name: "star blades"}),
 						pillars(6, 120, 3.0, 0xffe080, {name: "starfall"}), constellation(4, 160, 6.0)]}),

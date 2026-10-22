@@ -672,7 +672,8 @@ async function run() {
   console.log('raids');
   {
     const { WorldSim } = require('./sim/worldsim');
-    for (const r of [0, 1, 2]) {
+    // (the Starfall Trial is played through in its own section)
+    for (const r of [0, 1]) {
       const ws = new WorldSim('raid:' + r + ':777');
       const arenas = [];
       const got = [];
@@ -703,10 +704,7 @@ async function run() {
       check('raid ' + r + ' (' + ws.w.raid.name + '): every stage starts and every wall opens', !err && got.filter((m) => m.t === 'rstage').length === nst && ws.w.gates.every((g) => !g.length), err || '');
       if (r !== 2) check(ws.w.raid.name + ': its last two bosses raise arenas that change as they weaken (' + (r === 0 ? 'blood sanctum and altar' : 'terrace and the eye') + ')',
         arenas.length === 2 && got.filter((m) => m.t === 'sphase' && m.go).length >= (r === 0 ? 4 : 5), arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
-      if (r === 2) check('the Starfall Vault: every chamber raises its set piece, and the Star Throne changes three times',
-        arenas.length === 4 && got.filter((m) => m.t === 'sphase' && m.go).length >= 3 + 2 + 1 + 1, arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
-      if (r === 2) check('each Starfall master remakes its own chamber in its style',
-        new Set(themes).size === 4 && themes.every((t) => t !== 9), themes.join(','));
+
     }
   }
 
@@ -1237,30 +1235,41 @@ async function run() {
       }
     }
     const reach = (k) => seen.has(Math.floor(w.trialArrive[k][1]) * w.N + Math.floor(w.trialArrive[k][0]));
-    check('the Starfall Trial: four chambers sealed from each other, you start in the first', w.chambers.length === 4 && w.chamberAt(w.spawnX, w.spawnY) === 0 && reach(0) && !reach(1) && !reach(2) && !reach(3));
+    check('the Starfall Trial: four dungeons sealed from each other, you start in the first', w.chambers.length === 4 && w.chamberAt(w.spawnX, w.spawnY) === 0 && reach(0) && !reach(1) && !reach(2) && !reach(3));
     const msgs = [];
     const c = { id: 1, x: w.spawnX, y: w.spawnY, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => msgs.push(m.d) };
     ws.join(c);
-    let early = false, wrongRoom = false;
-    for (let step = 0; step < 20000 && w.raidStage < 4; step++) {
+    let early = false, wrongRoom = false, sealEarly = false;
+    const guards0 = ws.enemies.filter((e) => e.trialRoom === 0).length;
+    for (let step = 0; step < 30000 && w.raidStage < 4; step++) {
       ws.tick(0.05);
-      for (const e of ws.enemies.slice()) if (!e.dead && (e.isBoss || e.def.prop || e.def.stageFoe)) {
-        if (w.chamberAt(e.x, e.y) !== w.chamberAt(c.x, c.y)) wrongRoom = true;
-        ws.hit(c, { id: e.id, d: 6000 });
-      }
+      if (step % 10) continue;
       const k = w.chamberAt(c.x, c.y);
-      if (k >= 0 && k < w.trialCleared && k + 1 < w.chambers.length && step % 40 === 0) {
-        // not from far away, and not a chamber still unbeaten
-        ws.onClient(c, { t: 'trial', k });
+      // a seal never breaks while its guards live, and no master wakes behind a shut seal
+      for (let s = 0; s < 4; s++) if (!w.gates[s].length && ws.enemies.some((e) => !e.dead && e.trialRoom === s)) sealEarly = true;
+      if (w.raidStage > k && w.raidStage < 4 && w.gates[w.raidStage].length) sealEarly = true;
+      const foes = ws.enemies.filter((e) => !e.dead && (e.trialRoom === k || e.isBoss));
+      for (const e of foes) if (w.chamberAt(e.x, e.y) !== k) wrongRoom = true;
+      const target = foes.find((e) => e.trialRoom === k) || foes.find((e) => e.isBoss);
+      if (target) { c.x = target.x; c.y = target.y + 1.5; ws.hit(c, { id: target.id, d: 6000 }); continue; }
+      // the halls are clear: up into the arena (the master wakes), and once it falls through its portal
+      if (!w.gates[k].length && w.raidStage < k) { c.x = w.stageSpots[k][0][0]; c.y = w.stageSpots[k][0][1] + 6; }
+      if (k < w.trialCleared && k + 1 < w.chambers.length) {
         ws.onClient(c, { t: 'trial', k: k + 1 });
         if (w.chamberAt(c.x, c.y) !== k) early = true;
         const ex = w.trialExits[k]; c.x = ex[0]; c.y = ex[1];
         ws.onClient(c, { t: 'trial', k });
       }
     }
-    check('...each master falls, its portal opens, and the next master wakes only once you step through', w.raidStage === 4 && !early && !wrongRoom &&
+    check('...each dungeon has its own guards holding the seal to its master\'s arena, and the seal only breaks when they\'re dead',
+      guards0 >= 8 && !sealEarly && msgs.filter((m) => m.t === 'tgate').map((m) => m.k).join() === '0,1,2,3', [guards0, sealEarly, msgs.filter((m) => m.t === 'tgate').map((m) => m.k).join()].join(' '));
+    check('...each master falls, its portal opens, and the next dungeon begins only once you step through', w.raidStage === 4 && !early && !wrongRoom &&
       msgs.filter((m) => m.t === 'trial').map((m) => m.c).join() === '1,2,3,4' && msgs.filter((m) => m.t === 'warp').map((m) => m.k).join() === '1,2,3' &&
       msgs.filter((m) => m.t === 'loot').length >= 4, [w.raidStage, early, wrongRoom].join(' '));
+    // each dungeon in its master's style, and no set pieces any more
+    const floorOf = (k) => w.tiles[w.trialArenas[k].y * w.N + w.trialArenas[k].x + 6];
+    check('...each dungeon is built in its master\'s style (no set pieces)', new Set([0, 1, 2, 3].map(floorOf)).size === 4 &&
+      ['ignis', 'archivist', 'sovereign', 'astraeon'].every((id) => !require('./sim/gen/game').Data.ENEMIES[id].setpiece), [0, 1, 2, 3].map(floorOf).join(','));
     const ast = TB.RAIDS.find((r) => r.id === 'starfall');
     const A = require('./sim/gen/game').Data.ENEMIES.astraeon;
     const kinds = new Set(); for (const ph of A.phases) for (const a of (ph.attacks || []).concat(...(ph.cycle || []))) kinds.add(a.p);
@@ -1278,8 +1287,9 @@ async function run() {
       ws.enemies.length = 0;
       ws.populateRaid();
       const guards = ws.enemies.length;
-      // (a trial's master wakes with someone in its chamber)
-      ws.players.set(9, { id: 9, x: ws.w.trialArrive[0][0], y: ws.w.trialArrive[0][1], send() {} });
+      // (a trial's master wakes once its halls' guards are dead and someone steps into its arena)
+      for (const e of ws.enemies) if (e.trialRoom === 0) e.dead = true;
+      ws.players.set(9, { id: 9, x: ws.w.stageSpots[0][0][0], y: ws.w.stageSpots[0][0][1] + 6, send() {} });
       ws.updateRaid(0.1); ws.w.raidT = 0; ws.updateRaid(0.1);
       ws.players.delete(9);
       return { ws, guards, master: ws.w.boss, all: ws.enemies.length };

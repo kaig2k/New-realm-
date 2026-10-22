@@ -1388,9 +1388,7 @@ class Bosses {
 			for (var n of __vals( Bosses.POSED)) want[n] = true;
 			for (var id in Data.ENEMIES) {
 				var d = Data.ENEMIES[id];
-				var own = Bosses.OWN_ANIMS[d.spr];
-				if ((d.seq && !own) || !want[d.spr]) continue;
-				if (own) Bosses.ownAnims(d, own);
+				if (d.seq || !want[d.spr]) continue;
 				d.seq = Bosses.POSED_SEQ;
 				d.rageAll = true;
 				var ph = d.phases ? Enemy.phaseList(d.phases) : null;
@@ -1402,23 +1400,6 @@ class Bosses {
 					for (var c of __vals( p.cycle)) Bosses.poseAttacks(c, shots);
 					for (var dg of __vals( p.dodge)) Bosses.poseAttacks(dg, shots);
 				}
-			}
-		}
-	static ownAnims(d, map) {
-			var lists = d.attacks ? [d.attacks] : [];
-			for (var p of __vals( (d.phases ? Enemy.phaseList(d.phases) : []))) {
-				if (p.attacks) lists.push(p.attacks);
-				for (var c of __vals( p.cycle)) lists.push(c);
-				for (var dg of __vals( p.dodge)) lists.push(dg);
-			}
-			
-			var done = new Map();
-			for (var l of __vals( lists)) for (var a of __vals( l)) {
-				if (!a || done.get(a) || !a.anim || !map[a.anim]) continue;
-				done.set(a, true);
-				a.anim = map[a.anim];
-				
-				if (a.animHit > 4) a.animHit = 4;
 			}
 		}
 	static poseAttacks(list, shots) {
@@ -6463,15 +6444,7 @@ Bosses.POSED = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord"
 			"vault_ignis", "warden", "blood_knight", "sentinel",
 			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
 			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
-			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan",
-			"siege_warlord", "elder", "abyss_herald", "tempestus", "archon"];
-Bosses.OWN_ANIMS = {
-			"siege_warlord": {swing: "strike", smash: "strike", bash: "strike", barrage: "cast", warcry: "summon", charge: "strike"},
-			"elder": {blast: "cast", pillars: "cast", slam: "strike", summon: "summon", teleport: "cast", spread: "strike", explode: "cast", gravity: "cast", rift: "cast"},
-			"abyss_herald": {barrage: "strike", rain: "cast", summon: "summon", slam: "strike", teleport: "cast", spread: "strike", explode: "cast", gravity: "cast", rift: "cast"},
-			"tempestus": {slash: "strike", spread: "strike", strike: "cast", dash: "strike", radius: "cast", rain: "cast", guard: "guard"},
-			"archon": {lance: "strike", ranged: "strike", gravity: "cast", dash: "strike", cascade: "cast", brand: "cast", summon: "summon", guard: "guard"}
-		};
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan"];
 Bosses.POSED_SEQ = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],

@@ -1160,6 +1160,8 @@ package realm {
 				var x:Number = player.x + Math.cos(a) * d + (boss ? 0 : (Math.random() - 0.5) * 2);
 				var y:Number = player.y + Math.sin(a) * d + (boss ? 0 : (Math.random() - 0.5) * 2);
 				if (!world.canStand(x, y, 0.4, true)) continue;
+				// online the server runs the monsters (and rolls their loot): it spawns it for everyone
+				if (serverLoot) { net.serverCommand("/aspawn " + id + " " + (Math.round(x * 100) / 100) + " " + (Math.round(y * 100) / 100)); return; }
 				var e:Enemy = new Enemy(id, x, y, Math.max(0, Math.min(World.GOD_ZONE, world.zoneAt(x, y))));
 				if (boss) {
 					e.homeX = x; e.homeY = y;
@@ -1173,6 +1175,7 @@ package realm {
 		}
 
 		public function adminKillAll():void {
+			if (serverLoot) { net.serverCommand("/akill"); return; }
 			for each (var e:Enemy in enemies.concat()) if (!e.dead) killEnemy(e);
 		}
 
@@ -1186,6 +1189,7 @@ package realm {
 		public function adminSpawnEvent():void {
 			if (world.kind != "realm") { msg("Only works inside a realm.", 0xff8080); return; }
 			if (world.boss) { msg("A boss is already alive here.", 0xff8080); return; }
+			if (serverLoot) { net.serverCommand("/aevent"); return; }
 			spawnEvent();
 		}
 

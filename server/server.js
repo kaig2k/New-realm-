@@ -2373,6 +2373,40 @@ const handlers = {
         log(c.name + ' announced: ' + text);
         return;
       }
+      case '/aspawn': {
+        // (admins, the Admin menu: a monster or boss the server runs, so it drops real loot)
+        const sm = sims && sims.get(c.world);
+        if (!sm) return c.note('Nothing can be spawned here.');
+        const id = String(parts[1] || ''), x = Number(parts[2]), y = Number(parts[3]);
+        if (!Data.ENEMIES[id]) return c.note('No monster called ' + id + '.');
+        if (!isFinite(x) || !isFinite(y) || (x - c.x) * (x - c.x) + (y - c.y) * (y - c.y) > 30 * 30) return c.note('Spawn closer to you.');
+        const z = Math.max(0, Math.min(World.GOD_ZONE, sm.w.zoneAt(x, y)));
+        if (!sm.spawn(id, x, y, z)) return c.note('No room to spawn there (safe zones and walls block monsters).');
+        log(c.name + ' spawned ' + id + ' in ' + c.world);
+        return;
+      }
+      case '/akill': {
+        // (admins: everything here dies, and you get the loot)
+        const sm = sims && sims.get(c.world);
+        if (!sm) return c.note('Nothing to kill here.');
+        let n = 0;
+        for (const e of sm.enemies.slice()) {
+          if (e.dead) continue;
+          e.hitters.set(c.id, Math.max(1, e.hitters.get(c.id) || 0) + Math.ceil(e.hp));
+          sm.kill(e);
+          n++;
+        }
+        log(c.name + ' killed ' + n + ' monsters in ' + c.world);
+        return c.note('Killed ' + n + ' monsters.', 0x80ff80);
+      }
+      case '/aevent': {
+        // (admins: the realm's next event now)
+        const sm = sims && sims.get(c.world);
+        if (!sm || sm.kind !== 'realm') return c.note('Only works inside a realm.');
+        if (sm.w.boss && !sm.w.boss.dead) return c.note('A boss is already alive here.');
+        sm.w.eventT = 0;
+        return c.note('An event is on its way.', 0x80ff80);
+      }
       case '/siege': {
         // (admins: a Realm Siege now, in the realm you're in or the busiest one)
         const why = startSiege(realms.some((r) => realmKey(r) === c.world) ? c.world : '');

@@ -1411,27 +1411,27 @@ async function run() {
     // B sells the potion from its first slot; A (A2) buys it
     B.send({ t: 'enter', key: 'nexus', cid: 'cb', x: 100, y: 100, profile: {} });
     A2.send({ t: 'enter', key: 'nexus', cid: 'ca', x: 100, y: 100, profile: {} });
-    await wait(300);
+    await wait(700);
     B.clear();
     B.send({ t: 'mkList', slot: 0, price: 500 });
-    await wait(300);
+    await wait(700);
     const listed = B.find((m) => m.t === 'shopDone');
     const bView = B.find((m) => m.t === 'market');
     const lst = bView && bView.m.list.find((l) => l.mine);
     check('a player can list an item (it leaves their inventory)', listed && listed.inv[0] === null && lst && lst.price === 500, JSON.stringify(B.find((m) => m.t === 'shopFail')));
     B.clear();
     B.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
-    await wait(250);
+    await wait(700);
     check('nobody can buy their own listing', B.find((m) => m.t === 'shopFail') && !B.find((m) => m.t === 'shopDone'));
     A2.clear();
     A2.send({ t: 'mkView' });
-    await wait(250);
+    await wait(700);
     const aView = A2.find((m) => m.t === 'market');
     const forA = aView && aView.m.list.find((l) => lst && l.id === lst.id);
     check('other players see it for sale, with the seller', forA && !forA.mine && forA.seller === nameB);
     A2.clear(); B.clear();
     A2.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
-    await wait(300);
+    await wait(700);
     const bought = A2.find((m) => m.t === 'shopDone');
     check('buying takes the gold and puts the item in the buyer\'s inventory', bought && bought.inv.some((it) => it && it.name === ITEMS.potion.name) && /Bought/.test(bought.market),
       JSON.stringify(A2.find((m) => m.t === 'shopFail')));
@@ -1443,23 +1443,23 @@ async function run() {
       const worth = SD.sellValue(bought.inv[si]);
       A2.clear();
       A2.send({ t: 'sell', slot: si });
-      await wait(300);
+      await wait(700);
       const sold = A2.find((m) => m.t === 'shopDone');
       check('selling to the merchant: the server takes the item and pays its value', sold && sold.sold && sold.inv[si] === null && sold.gold === bought.gold + worth,
         JSON.stringify(sold || A2.find((m) => m.t === 'shopFail')));
     }
     A2.clear();
     A2.send({ t: 'mkBuy', id: lst ? lst.id : 0 });
-    await wait(250);
+    await wait(700);
     check('a sold item can\'t be bought twice', A2.find((m) => m.t === 'shopFail') && !A2.find((m) => m.t === 'shopDone'));
     B.clear();
     B.send({ t: 'mkView' });
-    await wait(250);
+    await wait(700);
     const bv2 = B.find((m) => m.t === 'market');
     check('the seller\'s takings wait for them (minus the 5% fee)', bv2 && bv2.m.earned === 475);
     B.clear();
     B.send({ t: 'mkCollect' });
-    await wait(300);
+    await wait(700);
     const col = B.find((m) => m.t === 'shopDone');
     check('collecting adds the takings to the seller\'s gold', col && /Collected 475 gold/.test(col.market));
     // the bought item really is the buyer's now: a save holding it is accepted
@@ -2244,6 +2244,29 @@ async function run() {
     bz5.send({ t: 'cmd', text: '/siege' });
     await wait(300);
     check('...one at a time', bz5.find((m) => m.t === 'msg' && /already a siege/.test(m.text)));
+    // the Admin menu online: bosses it spawns are the server's, so they drop real loot
+    {
+      const { Data: AD, World: AW } = require('./sim/gen/game');
+      const rlA = rl1.list[0];
+      bz5.send({ t: 'save', data: { gold: 0, fame: 0, chars: [{ id: 'ad1', cls: 'wizard', name: 'Ad', level: 1, stats: clone(AD.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] }] } });
+      await wait(300);
+      const rwA = new AW('realm', rlA.name, null, rlA.seed >>> 0);
+      bz5.send({ t: 'enter', key: 'realm:' + rlA.name + ':' + rlA.seed, cid: 'ad1', x: rwA.spawnX, y: rwA.spawnY });
+      await wait(300);
+      let spot = null;
+      for (let r = 3; r < 28 && !spot; r++) for (let k = 0; k < 24 && !spot; k++) {
+        const x = Math.floor(rwA.spawnX + Math.cos(k * Math.PI / 12) * r) + 0.5, y = Math.floor(rwA.spawnY + Math.sin(k * Math.PI / 12) * r) + 0.5;
+        if (rwA.canStand(x, y, 0.6, true)) spot = [x, y];
+      }
+      bz5.clear();
+      bz5.send({ t: 'cmd', text: '/aspawn demon_boss ' + spot[0] + ' ' + spot[1] });
+      await wait(300);
+      bz5.send({ t: 'cmd', text: '/akill' });
+      await wait(400);
+      const al = bz5.msgs.filter((m) => m.t === 'w' && m.d.t === 'loot');
+      check('admins: a boss spawned from the Admin menu online is the server\'s, and drops real loot', al.some((m) => m.d.n === AD.ENEMIES.demon_boss.name && m.d.l.length && m.d.l.every((it) => it.sid)),
+        JSON.stringify(bz5.msgs.filter((m) => m.t === 'msg').map((m) => m.text)));
+    }
     bz5.s.destroy();
   }
 

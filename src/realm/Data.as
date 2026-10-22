@@ -1616,6 +1616,11 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-storm", title: "Heart of the Storm reworked",
+				lines: ["<b>No more stun-locks</b>: once a paralysis wears off you can't be paralyzed again for 3 seconds, and a new hit no longer restarts one. This holds everywhere in the game.",
+					"<b>Thunder Sentinels</b> fire a fan of static bolts and <b>overcharge</b>: a rune circle under them, then a burst. Step out of it.",
+					"<b>Lightning Rods</b> cast true chain lightning: a marked strike that leaps to anyone standing close. Spread out.",
+					"<b>Tempestus</b>: only his Heavy Lightning Strike stuns now, and only the marked bolt itself, not its sparks. His chain lightning and the storm's radius just hurt. Thunder Golems and Heroic's storm eye slow instead of stunning."]},
 			{id: "2026-10-ladder", title: "What's new in Eldmere",
 				lines: ["<b>One item ladder</b>: above T7 every item is now a named one with fixed stats and a special of its own: <font color='#b070ff'>UT</font>, <font color='#ffd23a'>Legendary</font>, <font color='#8ae8ff'>Starforged</font>, <font color='#ff5533'>Primordial</font> and <font color='#fff6e0'>Godly</font>, each step clearly stronger. No random rolls: the same item every time.",
 					"<b>Every boss has its own</b>: the early dungeons three UTs each, the Godlands dungeons three UTs and a Legendary, every realm event a UT and one or two Legendaries, the event dungeons Legendaries. A UT drops 1 in 50 (luck doesn't change it), a Legendary 1 in 100. Over 30 new items, from Swashbuckler's Tunic to the Shardglass Alembic.",

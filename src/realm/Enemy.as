@@ -824,7 +824,7 @@ package realm {
 				var m:int = a.burst || 0;
 				for (var k:int = 0; k < m; k++) {
 					var t:Number = base + k * Math.PI * 2 / m;
-					var bs:Projectile = new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, int(dmg * 0.6), true, 0.2, bd, false, def.name, a.eff || null, spinning);
+					var bs:Projectile = new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, int(dmg * 0.6), true, 0.2, bd, false, def.name, a.beff == "none" ? null : (a.eff || null), spinning);
 					bs.attack = "blast shards";
 					g.addShot(bs);
 				}

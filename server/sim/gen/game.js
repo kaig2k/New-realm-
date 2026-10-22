@@ -1751,7 +1751,7 @@ class Bosses {
 			Bosses.mob("gale_harpy", {name: "Gale Harpy", spr: "gale_harpy", hp: 2400, def: 12, spd: 4, xp: 140, col: 0x6ab0e0, ai: "orbit", keep: 4.5,
 				attacks: [Bosses.aim(3, 30, 9.5, 85, 0.9, 0x80ffff, {motion: "wave"})]});
 			Bosses.mob("thunder_golem", {name: "Thunder Golem", spr: "thunder_golem", hp: 5200, def: 30, spd: 1.4, xp: 200, col: 0xffff60, keep: 2,
-				attacks: [Bosses.ring(12, 15, 5, 90, 1.9, 0xffff60, {eff: "paralyzed"}), Bosses.aim(1, 0, 13, 110, 1.4, 0xffffff, {shape: "blade"})]});
+				attacks: [Bosses.ring(12, 15, 5, 90, 1.9, 0xffff60, {eff: "slowed"}), Bosses.aim(1, 0, 13, 110, 1.4, 0xffffff, {shape: "blade"})]});
 			Bosses.mob("cloud_serpent", {name: "Cloud Serpent", spr: "cloud_serpent", hp: 3000, def: 14, spd: 2.8, xp: 150, col: 0xd0f0ff, ai: "orbit", keep: 4,
 				attacks: [Bosses.spiral(2, 40, 6.5, 80, 0.22, 0xe8f4ff), Bosses.aim(3, 40, 7, 80, 1.6, 0x40c0ff)]});
 			Bosses.mob("storm_wisp", {name: "Storm Wisp", spr: "sprite", hp: 1000, def: 8, spd: 3.6, xp: 70, col: 0xffff60, ai: "orbit", keep: 3.5,
@@ -2591,12 +2591,12 @@ class Bosses {
 			return Bosses.aim(n, 76, 7.5, dmg, cd, Bosses.T_VIOLET, {shape: "voidorb", r: 0.3, anim: "spread", animMs: 100, name: "storm orbs"});
 		}
 	static tStrike(dmg, cd) { dmg = __int(dmg);
-			return Bosses.nova(2.6, 1.1, dmg, cd, Bosses.T_PALE, {burst: 10, bspd: 5, blife: 1.0, shape: "bolt", fx: "pillar", eff: "paralyzed",
+			return Bosses.nova(2.6, 1.1, dmg, cd, Bosses.T_PALE, {burst: 10, bspd: 5, blife: 1.0, shape: "bolt", fx: "pillar", eff: "paralyzed", beff: "none",
 				anim: "strike", animMs: 110, animHit: 3, animHold: 1.1, name: "heavy lightning strike"});
 		}
 	static tChain(jumps, dmg, cd) { jumps = __int(jumps); dmg = __int(dmg);
 			return {p: "chain", n: jumps, jump: 4.5, radius: 1.3, delay: 0.9, stagger: 0.22, dmg: dmg, cd: cd, r: 0.22, col: Bosses.T_PALE, fx: "pillar",
-				burst: 0, eff: "paralyzed", anim: "strike", animMs: 110, animHit: 3, animHold: 0.9, name: "chain lightning"};
+				burst: 0, anim: "strike", animMs: 110, animHit: 3, animHold: 0.9, name: "chain lightning"};
 		}
 	static tDash(dmg, cd) { dmg = __int(dmg);
 			return Bosses.aim(5, 50, 10, dmg, cd, Bosses.T_VIOLET, {shape: "crescent", r: 0.38, life: 1.0, dash: 0.5, dashSpd: 11, anim: "dash", animMs: 100, name: "storm dash"});
@@ -2605,7 +2605,7 @@ class Bosses {
 			return Bosses.ring(10, 18, 4, 60, cd, Bosses.T_PALE, {shape: "star", life: 2.0, blink: 6, anim: "dash", animMs: 100, name: "storm step"});
 		}
 	static tRadius(dmg, cd, radius) { dmg = __int(dmg);
-			return Bosses.nova(radius, 1.3, dmg, cd, Bosses.T_VIOLET, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 6, blife: 1.4, shape: "bolt", fx: "pillar", eff: "paralyzed",
+			return Bosses.nova(radius, 1.3, dmg, cd, Bosses.T_VIOLET, {reach: 0.01, marker: "rune", radius: radius, burst: 20, bspd: 6, blife: 1.4, shape: "bolt", fx: "pillar",
 				anim: "radius", animMs: 120, animHit: 3, animHold: 1.3, name: "the storm's radius"});
 		}
 	static tRain(n, dmg, cd) { n = __int(n); dmg = __int(dmg);
@@ -2725,7 +2725,7 @@ class Bosses {
 				conclave: ["Blood Moon: lines of blood geysers chase whoever its bosses fight.",
 					Bosses.lineRain(6, 140, 6.5, 0xff2030, "spikes", {name: "blood moon", eff: "bleeding"})],
 				storm: ["Eye of the Storm: lightning falls on every one of you, again and again.",
-					Bosses.rain(3, 1.2, 150, 5.5, 0xe0ffff, {radius: 1.5, delay: 1.2, fx: "pillar", eff: "paralyzed", name: "the storm's eye"})],
+					Bosses.rain(3, 1.2, 150, 5.5, 0xe0ffff, {radius: 1.5, delay: 1.2, fx: "pillar", eff: "slowed", name: "the storm's eye"})],
 				starfall: ["Falling Stars: stars rain down over the whole chamber.",
 					Bosses.rain(6, 7, 160, 6, 0xffd060, {radius: 1.8, delay: 1.5, fx: "pillar", name: "falling star"})]
 			};
@@ -2748,7 +2748,8 @@ class Bosses {
 					Bosses.aim(3, 18, 8, 90, 1.3, 0xff6070, {shape: "crescent", eff: "bleeding", name: "blood lash"}), Bosses.summon("blood_acolyte", 1, 9, 2)]});
 			Bosses.mob("storm_rod", {ai: "still", spd: 0, r: 0.8, aggro: 16, range: 15, drop: 0, xp: 300, keep: 0, prop: true, stageFoe: true,
 				name: "Lightning Rod", spr: "storm_rod", hp: 72000, def: 32, col: 0x80ffff,
-				attacks: [Bosses.aim(1, 0, 13, 90, 1.0, 0xe0ffff, {shape: "bolt", r: 0.26, eff: "paralyzed", name: "chain lightning"}),
+				attacks: [{p: "chain", n: 2, jump: 4.5, radius: 1.3, delay: 1.0, stagger: 0.22, dmg: 110, cd: 3.2, r: 0.22, col: 0xe0ffff, fx: "pillar", burst: 0, name: "chain lightning"},
+					Bosses.aim(1, 0, 13, 80, 1.2, 0xe0ffff, {shape: "bolt", r: 0.26, name: "static bolt"}),
 					Bosses.rain(4, 5, 100, 2.4, 0x80ffff, {radius: 1.3, delay: 1.0, fx: "pillar", name: "lightning strike"}),
 					Bosses.ring(12, 15, 4.5, 75, 1.9, 0xe0ffff, {shape: "bolt", name: "static ring"}),
 					Bosses.aim(3, 20, 10, 90, 1.4, 0x80ffff, {shape: "bolt", name: "arc bolts"}), Bosses.summon("storm_wisp", 1, 9, 2)]});
@@ -2798,10 +2799,12 @@ class Bosses {
 			]}, raid), ["vesper_staff", "crimson_crown", "vesper_kiss", "bloodsworn_bulwark", "red_mass_codex", "first_zealot_skull", "vesper_shroud", "heartblood_signet", "unbleeding_ring", "archon_brand"]);
 
 			
+			
 			for (var sid of __vals( ["sentinel_a", "sentinel_b", "sentinel_c"])) {
 				Bosses.boss(sid, Bosses.o({bond: "A Sentinel falls! Its charge surges into the others!", name: "Thunder Sentinel", spr: "sentinel", hp: 14000, def: 24, spd: 1.8, xp: 1200, col: 0xffff60, phases: [
-					Bosses.P(1, {move: sid == "sentinel_b" ? "orbit" : "wander", attacks: [Bosses.aim(1, 0, 13, 90, 0.8, 0xffffff, {shape: "bolt", eff: "paralyzed", r: 0.26}),
-						Bosses.ring(10, 18, 5, 60, 1.6, 0xffff60), Bosses.pillars(3, 95, 3.6, 0xffff60, {name: "lightning strike"})]}),
+					Bosses.P(1, {move: sid == "sentinel_b" ? "orbit" : "wander", attacks: [Bosses.aim(3, 18, 13, 75, 1.0, 0xffffff, {shape: "bolt", r: 0.26, name: "static bolts"}),
+						Bosses.ring(10, 18, 5, 60, 1.6, 0xffff60), Bosses.pillars(3, 95, 3.6, 0xffff60, {name: "lightning strike"}),
+						Bosses.selfNova(3.2, 1.2, 110, 5.5, 0xffff60, {fx: "pillar", shape: "bolt", burst: 10, name: "overcharge"})]}),
 					Bosses.P(0.4, {say: "*crackles*", shield: 1, move: "chase", attacks: [Bosses.spiral(2, 37, 7, 70, 0.1, 0xffff80), Bosses.dashAt(85, 4.0, 0xffff60, {shape: "bolt"})]})
 				]}, raid));
 			}
@@ -4960,7 +4963,7 @@ class Enemy {
 				var m = __int(a.burst || 0);
 				for (var k = __int(0); k < m; k++) {
 					var t = base + k * Math.PI * 2 / m;
-					var bs = new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, __int(dmg * 0.6), true, 0.2, bd, false, this.def.name, a.eff || null, spinning);
+					var bs = new Projectile(nx, ny, t, a.bspd || 4, a.blife || 1.5, __int(dmg * 0.6), true, 0.2, bd, false, this.def.name, a.beff == "none" ? null : (a.eff || null), spinning);
 					bs.attack = "blast shards";
 					g.addShot(bs);
 				}
@@ -5983,6 +5986,11 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-storm", title: "Heart of the Storm reworked",
+				lines: ["<b>No more stun-locks</b>: once a paralysis wears off you can't be paralyzed again for 3 seconds, and a new hit no longer restarts one. This holds everywhere in the game.",
+					"<b>Thunder Sentinels</b> fire a fan of static bolts and <b>overcharge</b>: a rune circle under them, then a burst. Step out of it.",
+					"<b>Lightning Rods</b> cast true chain lightning: a marked strike that leaps to anyone standing close. Spread out.",
+					"<b>Tempestus</b>: only his Heavy Lightning Strike stuns now, and only the marked bolt itself, not its sparks. His chain lightning and the storm's radius just hurt. Thunder Golems and Heroic's storm eye slow instead of stunning."]},
 			{id: "2026-10-ladder", title: "What's new in Eldmere",
 				lines: ["<b>One item ladder</b>: above T7 every item is now a named one with fixed stats and a special of its own: <font color='#b070ff'>UT</font>, <font color='#ffd23a'>Legendary</font>, <font color='#8ae8ff'>Starforged</font>, <font color='#ff5533'>Primordial</font> and <font color='#fff6e0'>Godly</font>, each step clearly stronger. No random rolls: the same item every time.",
 					"<b>Every boss has its own</b>: the early dungeons three UTs each, the Godlands dungeons three UTs and a Legendary, every realm event a UT and one or two Legendaries, the event dungeons Legendaries. A UT drops 1 in 50 (luck doesn't change it), a Legendary 1 in 100. Over 30 new items, from Swashbuckler's Tunic to the Shardglass Alembic.",
@@ -6880,7 +6888,7 @@ Bosses.RAIDS = [
 				stages: [["sentinel_a", "sentinel_b", "sentinel_c"], ["storm_rod", "storm_rod", "storm_rod"], ["galecaller"], ["tempestus"]],
 				places: ["the three pylons", "the Lightning Rods", "the Galecaller's terrace", "the eye of the storm"],
 				intro: "Climb into the eye of the storm. Destroy the three Thunder Sentinels on their pylons (each one that falls charges the others) to raise the first bridge. " +
-					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand.",
+					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand. Spread out: chain lightning leaps from one of you to the next.",
 				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
 			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,

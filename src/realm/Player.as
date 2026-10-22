@@ -106,6 +106,9 @@ package realm {
 		/** Status effect timers (RotMG-style conditions). */
 		public var status:Object = {slowed: 0, paralyzed: 0, confused: 0, armorbroken: 0, bleeding: 0};
 		public static const STATUS_TIME:Object = {slowed: 3, paralyzed: 1.2, confused: 2.5, armorbroken: 4, bleeding: 3};
+		/** After a paralysis wears off you can't be paralyzed again for this long (no stun-locks). */
+		public static const PARALYZE_GUARD:Number = 3;
+		public var paraGuardT:Number = 0;
 		private static const STAT_SHORT:Object = {hp: "HP", mp: "MP", att: "ATT", def: "DEF", spd: "SPD", dex: "DEX", vit: "VIT", wis: "WIS", mgt: "FUR", luc: "FOC", prt: "WRD"};
 		public static const STATUS_NAMES:Object = {slowed: "Slowed", paralyzed: "Paralyzed", confused: "Confused", armorbroken: "Armor Broken", bleeding: "Bleeding"};
 		public static const STATUS_COLORS:Object = {slowed: 0x6090ff, paralyzed: 0xffe040, confused: 0xd060ff, armorbroken: 0xb0b0b0, bleeding: 0xff3030};
@@ -391,6 +394,7 @@ package realm {
 			if (wardT > 0) { wardT -= dt; if (wardT <= 0) wardHp = 0; }
 			if (spinT > 0) updateSpin(dt, g);
 			for (var st:String in status) if (status[st] > 0) status[st] -= dt;
+			if (paraGuardT > 0) paraGuardT -= dt;
 			for (var bf:String in buffs) if (buffs[bf] > 0) buffs[bf] -= dt;
 			// Rewind: where you were and how healthy, ten times a second for the last 3.5 seconds
 			histT -= dt;
@@ -1287,6 +1291,9 @@ package realm {
 		public function takeHit(raw:int, src:String, g:Game, effect:String = null, attack:String = ""):void {
 			if (invulnT > 0 || g.godMode) return;
 			hitsTaken++;
+			// a paralysis doesn't refresh, and once it ends you're shielded from the next for a while
+			if (effect == "paralyzed" && (status.paralyzed > 0 || paraGuardT > 0)) effect = null;
+			if (effect == "paralyzed") paraGuardT = STATUS_TIME.paralyzed + PARALYZE_GUARD;
 			if (effect && STATUS_TIME[effect] != undefined) {
 				if (status[effect] <= 0) {
 					g.floatText(x, y - 1.5, STATUS_NAMES[effect], STATUS_COLORS[effect]);

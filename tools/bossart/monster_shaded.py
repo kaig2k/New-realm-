@@ -103,8 +103,8 @@ def snake(t, big=False):
     return m, mm
 
 
-def scorpion(t):
-    mm = M(shell=g([0x3a1c08, 0x6a3a14, 0xa06424, 0xd89c4c], spec=0.6), eye=glow(0x400000, 0xff3030))
+def scorpion(t, shellc=(0x3a1c08, 0x6a3a14, 0xa06424, 0xd89c4c)):
+    mm = M(shell=g(list(shellc), spec=0.6), eye=glow(0x400000, 0xff3030))
     m = Model(28, 22)
     m.sphere((12, 15, 2), 6.0, 'shell', 1.2, 0.75, 1, rough(0.05))
     for k in range(3):                                                                       # legs
@@ -215,8 +215,8 @@ def bandit(t, leader=False):
     return m, mm
 
 
-def wolf(t):
-    mm = M(fur=g([0x2a2a30, 0x4a4a56, 0x76768a, 0xb0b0c4]), eye=glow(0x806000, 0xffe040), nose=g([0x060608, 0x101014]))
+def wolf(t, furc=(0x2a2a30, 0x4a4a56, 0x76768a, 0xb0b0c4)):
+    mm = M(fur=g(list(furc)), eye=glow(0x806000, 0xffe040), nose=g([0x060608, 0x101014]))
     m = Model(30, 22)
     m.capsule((8, 11, 1), (20, 11, 1), 4.2, 4.6, 'fur', fur(0.1, 3))                          # body
     for x, s in ((9, -1), (11, 1), (19, -1), (21, 1)):                                        # legs, striding
@@ -307,9 +307,9 @@ def spider(t, queen=False):
 
 
 # ================================================================== the highlands
-def golem(t):
-    mm = M(stone=g([0x2a2622, 0x4a443c, 0x76705e, 0xa8a088], facet=7), dark=g([0x1a1714, 0x2e2a24, 0x48423a]), moss=g([0x1a3a10, 0x2e5a1c, 0x4a8030]),
-           rune=glow(0x0a5a8a, 0x40c0ff, 0xc0f0ff))
+def golem(t, stonec=(0x2a2622, 0x4a443c, 0x76705e, 0xa8a088), runec=(0x0a5a8a, 0x40c0ff, 0xc0f0ff), mossy=True):
+    mm = M(stone=g(list(stonec), facet=7), dark=g([stonec[0], stonec[1], stonec[2]]), moss=g([0x1a3a10, 0x2e5a1c, 0x4a8030]),
+           rune=glow(*runec))
     m = Model(30, 30)
     for s in (-1, 1):                                                                         # stumpy legs
         m.capsule((15 + s * 3.6, 21, 0), (15 + s * 4, 27, 0), 2.8, 2.6, 'dark', rough(0.08))
@@ -326,12 +326,13 @@ def golem(t):
 
     def moss(x, y, h):
         return 'moss' if h[2] == 'stone' and vnoise(x * 0.45, y * 0.45, 5) > 0.86 and y < 12 else None
-    m.paint(moss)
+    if mossy:
+        m.paint(moss)
     return m, mm
 
 
-def harpy(t):
-    mm = M(skin=PALE, feather=g([0x3a2a1a, 0x6a4a2a, 0x9a7040, 0xc8a070]), hair=g([0x2a0e0a, 0x4a1c14, 0x6e2e20]), talon=BONE,
+def harpy(t, feath=(0x3a2a1a, 0x6a4a2a, 0x9a7040, 0xc8a070)):
+    mm = M(skin=PALE, feather=g(list(feath)), hair=g([0x2a0e0a, 0x4a1c14, 0x6e2e20]), talon=BONE,
            eye=glow(0x806000, 0xffe040))
     m = Model(30, 26)
     for s in (-1, 1):
@@ -578,6 +579,268 @@ MODELS = [
     ('ogre', ogre), ('minotaur', minotaur),
     ('medusa', medusa), ('djinn', djinn), ('ent', ent), ('beholder', beholder), ('lich', lich), ('ghost_god', ghost_god),
     ('demon', demon), ('sprite_god', sprite_god), ('slime_god', slime_god),
+]
+
+
+# ================================================================== the dungeons' and raids' own
+def bone_thrall(t):
+    """A hulk stitched together from bones: a ribcage chest, thick bone arms, a skull with red sparks for eyes."""
+    mm = M(eye=glow(0x800000, 0xff3020))
+    m = Model(30, 30)
+    legs(m, 15, 20, 29, 3.4, 2.2, 'bone')
+    m.sphere((15, 15, 1), 5.4, 'void', 1.0, 0.95, 0.6)                                       # dark inside the ribs
+    for k in range(4):
+        for s in (-1, 1):
+            m.chain([(15, 10 + k * 2.6, 4), (15 + s * 6.5, 11 + k * 2.6, 3), (15 + s * 7, 13.5 + k * 2.4, 1)], [0.9, 0.9, 0.6], 'bone')
+    m.capsule((15, 9, 5), (15, 21, 5), 1.0, 1.0, 'bone')                                    # the spine
+    for s in (-1, 1):
+        m.sphere((15 + s * 8, 9.5, 3), 2.8, 'bone')
+        m.capsule((15 + s * 9, 11, 3), (15 + s * 11, 19 - t, 4), 2.0, 2.2, 'bone')
+        m.sphere((15 + s * 11, 20.5 - t, 4.5), 2.2, 'bone', 1, 1, 1, rough(0.1))
+    head(m, 15, 6, 3.4, 'bone')
+    eyes(m, 15, 6, 1.3, 6, 'eye')
+    m.capsule((13, 8.6, 6), (17, 8.6, 6), 0.5, 0.5, 'void')
+    m.part(None)
+    return m, mm
+
+
+def cloud_serpent(t):
+    """A sky serpent: a long white-and-blue body coiling through the air, feathered fins, a crest."""
+    mm = M(body=g([0x2a4a7a, 0x4a72a8, 0x7aa4d4, 0xc0dcf4], spec=0.7), fin=glow(0x4a8ad0, 0x9ad0ff, 0xe8f8ff, base=0.3), eye=glow(0x204080, 0x60c0ff))
+    m = Model(32, 26)
+    pts = []
+    for k in range(10):
+        a = k / 9
+        pts.append((3 + a * 22, 18 - math.sin(a * math.pi * 1.6 + t) * 5 - a * 6, 1))
+    m.chain(pts, [1.6 + a * 1.8 for a in [k / 9 for k in range(10)]], 'body', scales(0.06, 1.4))
+    for k in (3, 6):
+        x, y, _ = pts[k]
+        spike(m, (x, y - 1), (x - 2, y - 5 + t), 1.4, 3, 'fin')
+    hx, hy = pts[-1][0] + 2.5, pts[-1][1] - 1
+    m.sphere((hx, hy, 2), 2.8, 'body', 1.3, 0.9, 1)
+    spike(m, (hx - 1, hy - 2), (hx - 4, hy - 6), 1.2, 3, 'fin')                              # its crest
+    m.mark(int(hx + 1), int(hy - 1), 'eye')
+    return m, mm
+
+
+def cube_shard(t):
+    """A shard broken off the Cube Overlord: a pink crystal tumbling, a light burning in it."""
+    mm = M(cr=g([0x6a1a5a, 0xa03a90, 0xd870c8, 0xffc0f0, 0xffffff], facet=6, spec=0.9), core=glow(0xff40a0, 0xffd0f0, 0xffffff))
+    m = Model(20, 22)
+    m.slab([(10, 2 + t), (17, 9), (13, 20), (4, 15 - t), (3, 7)], 2, 2.2, 'cr')
+    m.sphere((10, 11, 6), 1.6 + t * 0.4, 'core')
+    return m, mm
+
+
+def cubelet(t):
+    """A little cube of violet glass with a red eye, hovering (the Cube Overlord's, the Foundry's drones)."""
+    mm = M(glass=g([0x2a0a4a, 0x4a1a7a, 0x7a3ab0, 0xb070e8], facet=4, spec=0.8), eye=glow(0xa00010, 0xff3040, 0xffd0d0))
+    m = Model(20, 22)
+    m.slab([(4, 6 - t), (16, 6 - t), (16, 17 - t), (4, 17 - t)], 2, 2.4, 'glass')
+    m.slab([(4, 6 - t), (8, 2.5 - t), (19, 2.5 - t), (16, 6 - t)], 1, 1.2, 'glass')          # its top, seen from above
+    m.sphere((10, 11.5 - t, 6), 2.0, 'eye')
+    m.sphere((10, 21, -2), 4.0, 'void', 1.2, 0.2, 0.2)                                         # its shadow below
+    return m, mm
+
+
+def cultist(t):
+    """A robed cultist in red, a gold sigil on the chest, a hooked staff."""
+    mm = M(robe=g([0x3a0408, 0x660a10, 0x941820, 0xc02a30]), skin=PALE, eye=glow(0xa06000, 0xffe040))
+    m = Model(24, 30)
+    robe(m, 12, 11, 29, 3.6, 6.4, 'robe', seed=3)
+    m.sphere((12, 16, 5), 1.4, 'gold')
+    m.capsule((10, 17, 5), (14, 17, 5), 0.4, 0.4, 'gold')
+    for s in (-1, 1):
+        arm(m, (12 + s * 3.4, 12, 1.5), (12 + s * 5.5, 16, 2.5), (12 + s * 5.5, 19, 4), 1.2, 'robe', 'skin', 0.9)
+    staff(m, 18.5, 4, 28, 'wood', z=5, r=0.6)
+    m.chain([(18.5, 4, 5), (20.5, 2.5, 5), (21.5, 4.5 + t, 5)], [0.6, 0.6, 0.5], 'gold')
+    m.part(None)
+    head(m, 12, 8, 3.2, 'skin')
+    hood(m, 12, 7.5, 4.2, 'robe', 'void')
+    eyes(m, 12, 9, 1.2, 6, 'eye')
+    m.part(None)
+    return m, mm
+
+
+def ghost(t):
+    """A pale ghost: a sheet of light trailing away to nothing, hollow eyes and a moaning mouth."""
+    mm = M(sheet=glow(0x6a7a9a, 0xb0c0e0, 0xf0f8ff, base=0.35))
+    m = Model(22, 26)
+    m.chain([(11, 7 + t, 0), (11, 14 + t, 0), (13, 20 + t, 0), (9, 25, 0)], [5.6, 5.8, 3.4, 0.8], 'sheet')
+    for s in (-1, 1):
+        m.capsule((11 + s * 4.5, 12 + t, 1), (11 + s * 8, 15 + t - s * t, 2), 1.6, 0.6, 'sheet')
+    for ex in (9, 13):
+        m.mark(ex, int(8 + t), 'void', 1, 2)
+    m.mark(10, int(12 + t), 'void', 3, 2)
+    return m, mm
+
+
+def grave_wraith(t):
+    """A wraith of the grave: a tattered blue hood, a face of void, a scythe."""
+    mm = M(robe=glow(0x0e1a4a, 0x2a4a90, 0x5a80c8, base=0.2), eye=glow(0x40a0ff, 0xd0f0ff))
+    m = Model(26, 30)
+    m.chain([(13, 10, 0), (13, 20, 0), (14, 26 + t, 0), (12, 29, 0)], [4.6, 5.6, 4.0, 1.0], 'robe', folds(0.12, 3, 4))
+    for k in range(3):
+        spike(m, (9 + k * 4, 26), (8.5 + k * 4.4, 29.5 + (k % 2)), 1.4, 2, 'robe')
+    for s in (-1, 1):
+        arm(m, (13 + s * 4, 12, 1.5), (13 + s * 6.5, 16, 2.5), (13 + s * 6, 19, 4), 1.3, 'robe', 'bone', 0.8)
+    held(m, 'R')                                                                                  # the scythe
+    m.capsule((19, 26, 6), (20, 4 - t, 6), 0.6, 0.6, 'wood')
+    m.chain([(20, 4.5 - t, 6.5), (16, 2.5 - t, 6.5), (13, 4 - t, 6.5)], [1.0, 0.8, 0.3], 'steel')
+    m.part(None)
+    head(m, 13, 8, 3.6, 'robe')
+    hood(m, 13, 7.5, 4.4, 'robe', 'void')
+    eyes(m, 13, 9, 1.3, 6, 'eye')
+    m.part(None)
+    return m, mm
+
+
+def imp(t):
+    """A little fire imp: orange-red, bat wings, horns and a pointed tail, flames at its fingertips."""
+    mm = M(skin=g([0x6a1404, 0xa82a08, 0xe05a14, 0xff9a40]), wingm=g([0x3a0804, 0x5a1206, 0x8a200c]), horn=g([0x1a1008, 0x3a2a14, 0x5e4422]),
+           eye=glow(0xa06000, 0xffff60), fire=glow(0xa02a00, 0xff8a20, 0xfff0a0))
+    m = Model(26, 24)
+    for s in (-1, 1):
+        wing(m, (13 + s * 2, 10), (s * 0.9, -0.3 + t * 0.6), 8, 'wingm', 'horn', -1, n=3, droop=0.4, side=s)
+    m.part(None)
+    m.capsule((13, 10, 1), (13, 16, 1), 3.0, 2.4, 'skin')
+    legs(m, 13, 15, 22, 1.6, 1.2, 'skin')
+    m.chain([(13, 16, -1), (17, 19, -1), (20, 17 + t, -1)], [0.8, 0.6, 0.3], 'skin')
+    spike(m, (20, 17 + t), (22, 15.5 + t), 0.9, -1, 'horn')
+    for s in (-1, 1):
+        m.capsule((13 + s * 3, 11, 2), (13 + s * 5, 15 - t, 3), 0.9, 0.8, 'skin')
+        m.sphere((13 + s * 5, 15.5 - t, 4), 1.1, 'fire')
+    head(m, 13, 6.5, 3.2, 'skin')
+    eyes(m, 13, 7, 1.2, 6, 'eye')
+    for s in (-1, 1):
+        spike(m, (13 + s * 2, 4), (13 + s * 3.5, 0.5), 0.8, 5, 'horn')
+    m.part(None)
+    return m, mm
+
+
+def lesser_demon(t):
+    """A hunched crimson demon running on all fours: horns, a spined back, claws."""
+    mm = M(skin=g([0x3a0606, 0x6a0e0a, 0xa01e12, 0xd8402a]), horn=g([0x0a0806, 0x1e1810, 0x3a3020]), eye=glow(0x806000, 0xffe040))
+    m = Model(30, 24)
+    m.capsule((8, 12, 1), (19, 10, 1), 4.0, 4.8, 'skin', rough(0.05))
+    for k in range(4):
+        spike(m, (9 + k * 3, 8 - k * 0.3), (8.5 + k * 3, 4.5 - k * 0.5), 1.2, 2, 'horn')
+    for x, s in ((8, -1), (10, 1), (18, -1), (20, 1)):
+        m.capsule((x, 14, s), (x + s * (1.2 - t * 2.4), 21, s), 1.4, 1.0, 'skin')
+        spike(m, (x + s * (1.2 - t * 2.4), 21), (x + s * (1.2 - t * 2.4) + 1.6, 22.5), 0.6, 3, 'horn')
+    m.chain([(5, 11, 0), (2, 9 - t, 0), (1.5, 6 - t, 0)], [1.2, 0.8, 0.4], 'skin')
+    m.sphere((23, 9, 2), 3.6, 'skin')
+    for s in (-1, 1):
+        m.chain([(22 + s, 6.5, 3), (24 + s * 0.5, 3, 3), (27, 2.5, 3)], [1.0, 0.6, 0.3], 'horn')
+    m.mark(24, 8, 'eye'); m.mark(26, 8, 'eye')
+    m.capsule((24, 11.5, 5), (27, 11, 5), 0.5, 0.5, 'void')
+    return m, mm
+
+
+def mothling(t):
+    """A moth the size of a cat: dusty patterned wings with eye-spots, fuzzy body, feathered feelers."""
+    mm = M(wingc=g([0x3a3020, 0x6a5a3c, 0x9a8a62, 0xc8b88a]), fuzz=g([0x4a3a24, 0x7a6640, 0xa89060]), spot=glow(0x6a0a0a, 0xff6040, 0xffd0a0), eye=VOID)
+    m = Model(28, 22)
+    for s in (-1, 1):
+        m.sphere((14 + s * 7, 8 - t, 0), 6.4, 'wingc', 1.0, 0.85 - t * 0.15, 0.3)
+        m.sphere((14 + s * 6, 15, 0), 4.2, 'wingc', 1.0, 0.8, 0.3)
+        m.sphere((14 + s * 8, 8 - t, 2), 1.6, 'spot')
+    m.capsule((14, 5, 3), (14, 17, 3), 2.2, 1.6, 'fuzz', fur(0.1, 2))
+    for s in (-1, 1):
+        m.chain([(14 + s, 4, 4), (14 + s * 3, 1.5, 4), (14 + s * 5, 1, 4)], [0.4, 0.4, 0.3], 'fuzz')
+        m.mark(14 + s, 5, 'eye')
+    return m, mm
+
+
+def guard(t, armour=(0x6a0a14, 0xa01828, 0xd0303a), plume=True, gold_trim=True):
+    """A soldier in a helm and tabard with a halberd (the royal guard, the Vault's star guard, Vorgath's soldiers)."""
+    mm = M(cloth=g(list(armour)), skin=SKIN, eye=glow(0x101010, 0x302010))
+    m = Model(26, 30)
+    hy = biped(m, 13, 13, 29, 3.8, 'cloth', 'steel', 'steel', 'skin', 3.8)
+    chest(m, 13, 12.5, 19, 4.2, 3.8, 3.5, 'steel', bevel=1.4)
+    m.capsule((13, 15, 6.5), (13, 24, 6.5), 2.0, 2.4, 'cloth', cut=25)
+    if gold_trim:
+        m.capsule((10.5, 19.5, 7), (15.5, 19.5, 7), 0.6, 0.6, 'gold')
+    held(m, 'R')                                                                                 # the halberd
+    m.capsule((17.5, 27, 6), (19.5, 3 - t, 6), 0.6, 0.6, 'wood')
+    m.sphere((20, 5 - t, 6.5), 2.4, 'steel', 0.6, 1.1, 0.5)
+    spike(m, (19.5, 3.5 - t), (19.8, 0 - t), 0.8, 7, 'steel')
+    m.part(None)
+    head(m, 13, hy, 3.8, 'skin')
+    m.sphere((13, hy - 1, 3.5), 4.2, 'steel', 1.0, 0.9, 1.0)                                    # helm
+    m.capsule((10.5, hy + 0.5, 7.5), (15.5, hy + 0.5, 7.5), 0.7, 0.7, 'void')                   # its visor slit
+    if plume:
+        m.chain([(13, hy - 4.5, 3), (11, hy - 7, 2), (8.5, hy - 6, 1)], [1.2, 1.0, 0.5], 'cloth')
+    m.part(None)
+    return m, mm
+
+
+def shade(t):
+    """A shade: a hunched violet shadow with long clawed arms and glowing eyes."""
+    mm = M(dark=glow(0x1a0a2e, 0x4a2a7a, 0x8a5ac0, base=0.2), eye=glow(0xa06000, 0xffff60))
+    m = Model(26, 26)
+    m.chain([(13, 8, 0), (13, 15, 0), (15, 21, 0), (11, 25, 0)], [4.6, 5.2, 3.4, 1.0], 'dark', folds(0.12, 3, 7))
+    for s in (-1, 1):
+        m.chain([(13 + s * 4, 11, 2), (13 + s * 8, 15 - t, 3), (13 + s * 9, 20 - t, 4)], [1.4, 1.0, 0.6], 'dark')
+        for k in range(3):
+            spike(m, (13 + s * 9, 20 - t), (13 + s * (9 + k * 0.8), 22.5 - t), 0.4, 5, 'dark')
+    m.sphere((13, 7, 2), 3.8, 'dark', 1.0, 1.0, 1.0)
+    m.mark(11, 7, 'eye'); m.mark(14, 7, 'eye')
+    return m, mm
+
+
+def skeleton(t):
+    """A skeleton warrior: bones, a round wooden shield and a rusty spear."""
+    mm = M(eye=glow(0x800000, 0xff3020), rust=g([0x3a1a0a, 0x6a3418, 0x9a5426]))
+    m = Model(24, 30)
+    legs(m, 12, 17, 29, 1.8, 0.9, 'bone')
+    m.capsule((12, 10, 2), (12, 17, 2), 0.8, 0.8, 'bone')
+    for k in range(3):
+        m.capsule((9.5, 11 + k * 2, 3), (14.5, 11 + k * 2, 3), 0.55, 0.55, 'bone')
+    m.capsule((10, 17, 2), (14, 17, 2), 1.0, 1.0, 'bone')
+    for s in (-1, 1):
+        arm(m, (12 + s * 3, 10, 2), (12 + s * 4.5, 14, 3), (12 + s * 4.5, 17.5, 4), 0.6, 'bone', 'bone', 0.7)
+    held(m, 'R')
+    m.capsule((16.5, 26, 6), (18.5, 3 - t, 6), 0.5, 0.5, 'wood')
+    spike(m, (18.4, 4 - t), (18.8, 0 - t), 1.0, 6.5, 'rust')
+    m.part(None)
+    held(m, 'L')
+    m.sphere((6.5, 16, 7), 4.0, 'wood', 0.9, 1.0, 0.35)                                        # a round shield
+    m.sphere((6.5, 16, 8.4), 1.0, 'rust')
+    m.part(None)
+    head(m, 12, 6.5, 3.2, 'bone')
+    eyes(m, 12, 6, 1.2, 6, 'void', 1.0)
+    m.mark(12, 9, 'void')
+    m.part(None)
+    return m, mm
+
+
+def sprite(t):
+    """A forest sprite: a tiny green figure on dragonfly wings, glowing."""
+    mm = M(skin=glow(0x1a6a2a, 0x50c060, 0xc0ffc8, base=0.3), wingc=glow(0x4a9a8a, 0xa0f0e0, 0xffffff, base=0.35), eye=VOID, hair=g([0x0e5a1a, 0x1e8a2c, 0x40b04a]))
+    m = Model(24, 22)
+    for s in (-1, 1):
+        m.sphere((12 + s * 6, 7 - t, -1), 4.6, 'wingc', 1.1, 0.5 + t * 0.2, 0.2)
+        m.sphere((12 + s * 5, 12, -1), 3.4, 'wingc', 1.0, 0.45, 0.2)
+    m.capsule((12, 9, 2), (12, 16, 2), 1.8, 1.2, 'skin')
+    m.chain([(12, 16, 2), (11, 19, 2), (12.5, 21, 2)], [1.0, 0.7, 0.3], 'skin')
+    head(m, 12, 6, 2.6, 'skin')
+    m.sphere((12, 4.6, 2), 2.8, 'hair', 1.0, 0.7, 0.9, fur(0.1, 2))
+    m.mark(11, 6, 'eye'); m.mark(13, 6, 'eye')
+    m.part(None)
+    return m, mm
+
+
+MODELS += [
+    ('blood_hound', lambda t: wolf(t, (0x3a0606, 0x6a0e0a, 0xa01e12, 0xd8402a))), ('bone_thrall', bone_thrall),
+    ('cloud_serpent', cloud_serpent), ('cube_shard', cube_shard), ('cubelet', cubelet), ('cultist', cultist),
+    ('gale_harpy', lambda t: harpy(t, (0x2a2a5a, 0x4a4a8a, 0x7a7ab8, 0xb0b0e8))), ('ghost', ghost), ('grave_wraith', grave_wraith),
+    ('imp', imp), ('lesser_demon', lesser_demon), ('mothling', mothling),
+    ('royal_guard', guard), ('star_guard', lambda t: guard(t, (0x2a1a6a, 0x4a2aa8, 0x6a4ad0))),
+    ('siege_soldier', lambda t: guard(t, (0x3a0a06, 0x5a140c, 0x7a2012), plume=False, gold_trim=False)),
+    ('shade', shade), ('skeleton', skeleton), ('sprite', sprite),
+    ('temple_scorpion', lambda t: scorpion(t, (0x5a420c, 0x9a7418, 0xd8a830, 0xffe080))),
+    ('thunder_golem', lambda t: golem(t, (0x14141c, 0x26263a, 0x3e3e5a, 0x5e5e80), (0x8a7000, 0xffe040, 0xffffc0), mossy=False)),
 ]
 
 

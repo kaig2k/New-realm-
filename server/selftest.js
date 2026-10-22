@@ -2944,7 +2944,7 @@ async function run() {
     // arcane wards in turn, the phylactery, the demon waves, glimmer motes): each holds and can be cleared
     const { WorldSim } = require('./sim/worldsim');
     const { Data: OD } = require('./sim/gen/game');
-    for (const id of ['crypt', 'depths', 'spire', 'cellar', 'undead_lair', 'abyss', 'sprite_world']) {
+    for (const id of ['pirate_cove', 'forest_maze', 'snake_pit', 'spider_den', 'crypt', 'depths', 'spire', 'cellar', 'undead_lair', 'abyss', 'sprite_world']) {
       const di = OD.dungeonIndex(id), th = OD.DUNGEONS[di], L = th.lair;
       const ws = new WorldSim('dg:' + di + ':4242'), w = ws.w, last = w.rooms[w.rooms.length - 1];
       const msgs = [];

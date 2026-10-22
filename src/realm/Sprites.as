@@ -531,6 +531,12 @@ package realm {
 			DEFS[name] = [d[0], pal, d[2]];
 		}
 
+		/** A copy of base drawn at a smaller scale (the Spider Den's spiderlings: its spiders, small). */
+		public static function smaller(name:String, base:String, scale:int):void {
+			var d:Array = DEFS[base];
+			if (d) DEFS[name] = [d[0], d[1], scale];
+		}
+
 		/** Puts a finished design in place: [frames], palette and scale (BossArt's bosses); replaces any older copy. */
 		public static function define(name:String, frames:Array, pal:Object, scale:int):void {
 			DEFS[name] = [frames, pal, scale];

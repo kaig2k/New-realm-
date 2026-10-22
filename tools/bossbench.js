@@ -153,7 +153,7 @@ function setup(id) {
       const list = sim.enemies.filter((e) => !e.dead && lairs(e));
       return list.length ? list : [wait];
     };
-    tier = d.finale ? 'finale' : d.lairBoss ? 'hard' : 'dungeon';
+    tier = d.finale ? 'finale' : d.lairBoss ? 'hard' : d.dtier === 0 ? 'starter' : d.dtier === 1 ? 'early' : d.dtier === 2 ? 'mid' : 'dungeon';
     if (d.finale) group = 3;
     label = th.name + (d.finale ? ' (finale)' : th.by ? ' (lair)' : '');
   } else {

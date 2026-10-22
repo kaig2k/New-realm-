@@ -773,14 +773,14 @@ async function run() {
     check('every raid boss fights with the new kit (lines of blasts, pulls, blinks, charges, rune circles, columns)', !bad.length, bad.join(','));
   }
   {
-    // Tempestus, after his design sheet: an animation for every attack, and chain lightning that jumps between players who crowd together
+    // Tempestus (shaded and posed now, user_shaded.py): his attacks play his strikes and casts, and chain lightning that jumps between players who crowd together
     const { WorldSim } = require('./sim/worldsim');
     const { Data: TD } = require('./sim/gen/game');
     const TP = TD.ENEMIES.tempestus;
     const tAll = [].concat(...TP.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
     check('every one of Tempestus\'s attacks but his spirals and flowers has an animation he has frames for, and he guards behind his shields',
       tAll.filter((a) => a.p !== 'spiral' && a.p !== 'flower').every((a) => a.anim && TP.seq[a.anim]) && TP.seq.guard && TP.phases.some((p) => p.shield) &&
-      ['slash', 'spread', 'strike', 'dash', 'radius', 'rain'].every((k) => tAll.some((a) => a.anim === k)), tAll.map((a) => a.anim).join(','));
+      ['strike', 'cast'].every((k) => tAll.some((a) => a.anim === k)), tAll.map((a) => a.anim).join(','));
     const ws = new WorldSim('raid:1:1357');
     const t = ws.spawn('tempestus', 100, 90, 5, true);
     const P = (id, x, y) => { const c = { id, x, y, maxDps: 1e9, send: () => {} }; ws.join(c); c.x = x; c.y = y; return c; };
@@ -805,13 +805,13 @@ async function run() {
       nAll.map((a) => a.anim).join(','));
   }
   {
-    // Archon Vesper, after his design sheet: an animation for every attack
+    // Archon Vesper (shaded and posed now): his attacks play his strikes, casts and summons
     const { Data: AD } = require('./sim/gen/game');
     const AV = AD.ENEMIES.archon;
     const aAll = [].concat(...AV.phases.map((p) => (p.attacks || []).concat(...(p.cycle || []))));
     check('every one of Archon Vesper\'s attacks but his spirals has an animation he has frames for, and he guards behind his shield',
       aAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && AV.seq[a.anim]) && AV.seq.guard && AV.phases.some((p) => p.shield) &&
-      ['lance', 'ranged', 'gravity', 'dash', 'cascade', 'brand', 'summon'].every((k) => aAll.some((a) => a.anim === k)) && aAll.some((a) => a.marker === 'clock'),
+      ['strike', 'cast', 'summon'].every((k) => aAll.some((a) => a.anim === k)) && aAll.some((a) => a.marker === 'clock'),
       aAll.map((a) => a.anim).join(','));
   }
   {
@@ -981,11 +981,11 @@ async function run() {
     check('a siege that isn\'t beaten in 15 minutes ends (the Warlord leaves)', r2 === 'fail' && !ws2.siege && !ws2.enemies.some((o) => !o.dead && (o.defId === 'siege_warlord' || o.defId === 'siege_soldier' || o.defId === 'siege_ballista')));
     check('...and his camp comes down with him, the land as it was', camp2.every((k) => ws2.w.tiles[k.i] === k.t && ws2.w.objs[k.i] === k.o));
     check('the Warlord has three Starforged uniques and the titles exist', SD.bossUniques('siege_warlord').length === 3 && SD.findTitle('siege') && SD.findTitle('siegeguard'));
-    // his attacks from the design sheet: each plays its own animation, and the charge really lunges
+    // his attacks (shaded and posed now): each plays a strike, cast or summon he has frames for, and the charge really lunges
     const VD = SD.ENEMIES.siege_warlord;
     const vAll = [].concat(...VD.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
     check('every one of Vorgath\'s attacks but his last-stand spiral has an animation he has frames for', vAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && VD.seq[a.anim]) &&
-      ['swing', 'smash', 'bash', 'barrage', 'warcry', 'charge'].every((k) => vAll.some((a) => a.anim === k)), vAll.map((a) => a.anim).join(','));
+      ['strike', 'cast', 'summon'].every((k) => vAll.some((a) => a.anim === k)), vAll.map((a) => a.anim).join(','));
     const ws3 = new WorldSim('realm:Siegetest3:4545');
     ws3.join({ id: 81, name: 'R', x: 10, y: 10, send: () => {} });
     ws3.startSiege();
@@ -1001,7 +1001,7 @@ async function run() {
     const ED = SD.ENEMIES.elder;
     const eAll = [].concat(...ED.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
     check('every one of the Dark Elder\'s attacks but his last spiral has an animation he has frames for', eAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && ED.seq[a.anim]) &&
-      ['blast', 'pillars', 'slam', 'spread', 'explode', 'gravity', 'teleport', 'summon', 'rift'].every((k) => eAll.some((a) => a.anim === k)), eAll.map((a) => a.anim).join(','));
+      ['strike', 'cast', 'summon'].every((k) => eAll.some((a) => a.anim === k)), eAll.map((a) => a.anim).join(','));
     const wa = new WorldSim('arena:elder-test');
     const N = wa.w.N, at = (x, y) => wa.w.tiles[Math.floor(y) * N + Math.floor(x)];
     let walls = 0, floor = 0;
@@ -1028,7 +1028,7 @@ async function run() {
     const HD = SD.ENEMIES.abyss_herald;
     const hAll = [].concat(...HD.phases.map((p) => p.attacks || [].concat(...(p.cycle || []))));
     check('every one of the Abyssal Herald\'s attacks but its last spiral has an animation it has frames for, and it calls its own spawn',
-      hAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && HD.seq[a.anim]) && ['barrage', 'rain', 'slam', 'spread', 'explode', 'gravity', 'teleport', 'summon', 'rift'].every((k) => hAll.some((a) => a.anim === k)) &&
+      hAll.filter((a) => a.p !== 'spiral').every((a) => a.anim && HD.seq[a.anim]) && ['strike', 'cast', 'summon'].every((k) => hAll.some((a) => a.anim === k)) &&
       SD.ENEMIES.abyss_spawn && !SD.ENEMIES.abyss_spawn.drop && hAll.some((a) => a.p === 'summon' && a.what === 'abyss_spawn'), hAll.map((a) => a.anim).join(','));
     // online the server runs his crystal phase, and his chamber burns as he weakens
     const el2 = new WorldSim('arena:elder-test2');

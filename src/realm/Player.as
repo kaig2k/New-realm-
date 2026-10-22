@@ -221,7 +221,7 @@ package realm {
 		/** Base 5%, +1% per 10 Luck (and +10% from the Executioner passive). */
 		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon && weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
 		/** Base x1.5, +0.1 per 10 Might. */
-		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.08; }
+		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.05; }
 		/** Arcana: Arcane Surge turns max MP into damage (+1% per 20, up to +30%), Clarity rewards staying topped up. */
 		public function get manaMult():Number {
 			var m:Number = 1;
@@ -229,7 +229,7 @@ package realm {
 			if (rank("clarity") > 0 && mp > maxMp * 0.75) m += rank("clarity") * 0.03;
 			return m;
 		}
-		public function get damageMult():Number { return (1 + rank("brutality") * 0.03) * manaMult * (buffs.might > 0 ? 1.3 : 1) * (bloodT > 0 ? 1 + bloodStacks * 0.06 : 1); }
+		public function get damageMult():Number { return (1 + rank("brutality") * 0.02) * manaMult * (buffs.might > 0 ? 1.3 : 1) * (bloodT > 0 ? 1 + bloodStacks * 0.06 : 1); }
 		/** Bloodlust stacks (from kills) and how long they last. */
 		public var bloodStacks:int = 0, bloodT:Number = 0;
 		public var lastStandT:Number = 0;
@@ -526,7 +526,7 @@ package realm {
 				var flash:int = 2 + Math.max(0, tierFx) / 2;
 				for (k = 0; k < flash; k++) g.parts.push(new Particle(x + Math.cos(ang) * 0.45, y + Math.sin(ang) * 0.45, Math.cos(ang + (Math.random() - 0.5)) * (3 + k), Math.sin(ang + (Math.random() - 0.5)) * (3 + k), 0.1 + k * 0.015, mf));
 			}
-			// Divine Wrath: every 6th volley of a Godly weapon (every 4th with the full set)
+			// Divine Wrath: every 6th volley of a Godly weapon (every 5th with the full set)
 			if (gcls && ++wrathN >= (activeSet == w.set ? Godly.WRATH_SET : Godly.EVERY)) {
 				wrathN = 0;
 				divineWrath(g, w, gcls, ang, mult);

@@ -1602,6 +1602,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-godlytrim", title: "What's new in Eldmere",
+				lines: ["<b>Godly sets toned down</b>: a full Godly set with a maxed skill tree dealt far too much damage. Each piece trades damage stats for Health (stats 16/14/13/12, was 24/20/16/14; +200 Health, was +120), the set bonus gives half the Attack, Dexterity and Might, and with the full set Divine Wrath comes every 5th volley (was every 4th). Pieces you own update by themselves, and Godly still beats Primordial on every piece.",
+					"<b>Skill tree</b>: Brutality +2% damage a rank (was 3%), Predator +3% (was 4%), Ferocity +0.05x crit damage (was 0.08x), Apex Predator +15% on boss crits (was 25%).",
+					"There are no caps: every point of every stat still counts in full."]},
 			{id: "2026-10-outliers", title: "What's new in Eldmere",
 				lines: ["<b>Boss fixes</b>: after the big health boost a few bosses went too far, and they're brought back in line.",
 					"<b>Realm Siege</b>: Vorgath the Siege Warlord had been given far too much health and hit harder than he should. A full camp of heroes now brings him down in about a quarter of an hour, not most of an hour.",
@@ -2277,9 +2281,9 @@ package realm {
 		public static const SKILL_TIER_REQ:Array = [0, 4, 12, 22];
 		public static const SKILLS:Array = [
 			// ---- Might
-			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+3% damage", max: 5},
+			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+2% damage", max: 5},
 			{id: "precision", b: 0, t: 0, name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.08x crit damage", max: 5},
+			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.05x crit damage", max: 5},
 			{id: "honed", b: 0, t: 1, name: "Honed Edge", desc: "+2 Attack", max: 5},
 			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+8% damage to monsters under 30% HP", max: 3},
 			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+2 Might", max: 3},
@@ -2311,11 +2315,11 @@ package realm {
 			// ---- Hunt
 			{id: "swiftness", b: 4, t: 0, name: "Swiftness", desc: "+4 Speed", max: 5},
 			{id: "keeneye", b: 4, t: 0, name: "Keen Eye", desc: "+3 Dexterity", max: 5},
-			{id: "predator", b: 4, t: 1, name: "Predator", desc: "+4% damage to bosses", max: 5},
+			{id: "predator", b: 4, t: 1, name: "Predator", desc: "+3% damage to bosses", max: 5},
 			{id: "relentless", b: 4, t: 1, name: "Relentless", desc: "+2 Dexterity and +2 Speed", max: 5},
 			{id: "ambush", b: 4, t: 2, name: "Ambush", desc: "+10% damage to monsters at full health", max: 3},
 			{id: "tenacity", b: 4, t: 2, name: "Tenacity", desc: "+4 Vitality", max: 3},
-			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +25% more", max: 1, cap: true, cost: 6}
+			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +15% more", max: 1, cap: true, cost: 6}
 		];
 		public static const SKILL_STATS:Object = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5},
 			honed: {att: 2}, overwhelm: {mgt: 2}, stoneskin: {def: 3, hp: 25}, luckystar: {luc: 4}, favor: {luc: 3, frt: 3}, treasure: {frt: 8},

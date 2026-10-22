@@ -44,7 +44,7 @@ package realm {
 			"<font size='15' color='#fff6e0'><b>Godly sets</b></font>\n" +
 			"Every class has a four-piece Godly set. Each piece drops 1 in 1,000 from the boss that carries it (a little more with Luck), " +
 			"and <b>every drop is the same</b>: the best stats in the game, no bad rolls. Godly weapons hit 35% harder than Primordial ones " +
-			"and every 6th volley unleash their class's <b>Divine Wrath</b> (every 4th with the full set). Wearing Godly gives you a golden aura; " +
+			"and every 6th volley unleash their class's <b>Divine Wrath</b> (every 5th with the full set). Wearing Godly gives you a golden aura; " +
 			"the full set crowns you with a halo. The Bosses tabs show which boss drops which piece.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Boss uniques</b></font>\n" +
 			"Every boss has its own unique items, and their rarity matches the boss: Runed from the early dungeons, Eldritch from the " +

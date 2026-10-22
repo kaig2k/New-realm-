@@ -14,10 +14,10 @@ package realm {
 		 */
 		public static const SETS:Object = {
 			wizard: {name: "Astral Archmage", items: ["Staff of the Endless Cosmos", "Grimoire of Creation", "Robes of the Astral Archmage", "Ring of Infinite Stars"],
-				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 18, wis: 15, dex: 10, frt: 15},
+				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 9, wis: 15, dex: 5, frt: 15},
 				focus: ["att", "wis", "dex", "mgt"], ring: "att", ab: "lightning"},
 			archer: {name: "Skypiercer", items: ["Skypiercer, Bow of Dawn", "Quiver of the Last Light", "Skypiercer Mantle", "Ring of the Falcon King"],
-				weapon: {shots: 5, arc: 24, pierce: true, passive: "critical", col: 0xffe080}, bonus: {hp: 120, att: 15, dex: 18, spd: 10, frt: 15},
+				weapon: {shots: 5, arc: 24, pierce: true, passive: "critical", col: 0xffe080}, bonus: {hp: 120, att: 7, dex: 9, spd: 10, frt: 15},
 				focus: ["dex", "att", "luc", "spd"], ring: "dex", ab: "pierce"},
 			knight: {name: "Aegis Eternal", items: ["Blade of the Eternal Oath", "The Unbroken Aegis", "Bastion Plate", "Ring of the Unyielding"],
 				weapon: {shots: 3, arc: 30, pierce: true, passive: "lifesteal", col: 0xc0e0ff}, bonus: {hp: 250, def: 25, vit: 15, prt: 20, frt: 15},
@@ -26,35 +26,35 @@ package realm {
 				weapon: {shots: 3, arc: 16, motion: "wave", passive: "frost", col: 0xfff6c0}, bonus: {hp: 150, mp: 150, wis: 20, vit: 12, frt: 15},
 				focus: ["wis", "vit", "att", "luc"], ring: "wis", ab: "smite"},
 			rogue: {name: "Nightfall", items: ["Kris of the Eclipse", "Shroud of Nightfall", "Eclipse Hide", "Ring of Whispers"],
-				weapon: {shots: 3, arc: 14, rate: 1.2, passive: "critical", col: 0x9a60ff}, bonus: {hp: 120, dex: 18, spd: 18, mgt: 15, frt: 15},
+				weapon: {shots: 3, arc: 14, rate: 1.2, passive: "critical", col: 0x9a60ff}, bonus: {hp: 120, dex: 9, spd: 18, mgt: 7, frt: 15},
 				focus: ["dex", "mgt", "spd", "att"], ring: "dex", ab: "knives"},
 			warrior: {name: "Titanslayer", items: ["Titanslayer Greatsword", "Crown of the Warlord", "Titanforged Plate", "Ring of Rage"],
-				weapon: {size: 6, pierce: true, passive: "rampage", col: 0xff6040}, bonus: {hp: 200, att: 20, vit: 15, mgt: 15, frt: 15},
+				weapon: {size: 6, pierce: true, passive: "rampage", col: 0xff6040}, bonus: {hp: 200, att: 10, vit: 15, mgt: 7, frt: 15},
 				focus: ["att", "mgt", "vit", "prt"], ring: "att", ab: "whirlwind"},
 			necromancer: {name: "Soulforge", items: ["Staff of a Thousand Souls", "Skull of the Lich Emperor", "Shroud of the Soulforge", "Ring of the Grave"],
-				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 15, wis: 18, mgt: 12, frt: 15},
+				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 7, wis: 18, mgt: 6, frt: 15},
 				focus: ["att", "wis", "mgt", "vit"], ring: "wis", ab: "raise"},
 			huntress: {name: "Wildheart Eternal", items: ["Bow of the Wild Hunt", "Snare of the World Tree", "Hide of the Primal Beast", "Ring of the Pack"],
-				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15},
+				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 7, dex: 7, spd: 12, frt: 15},
 				focus: ["att", "dex", "spd", "luc"], ring: "att", ab: "wolf"},
 			bard: {name: "Choir Eternal", items: ["Harpstring of the Choir", "Lyre of the Last Verse", "Mantle of the Grand Chorus", "Ring of Perfect Pitch"],
 				weapon: {shots: 3, arc: 14, motion: "wave", pierce: true, passive: "frost", col: 0xffe090}, bonus: {hp: 120, mp: 120, wis: 15, luc: 20, frt: 15},
 				focus: ["wis", "luc", "att", "vit"], ring: "luc", ab: "requiem"},
 			alchemist: {name: "Magnum Opus", items: ["Kris of Quicksilver", "Flask of the Great Work", "Apron of the Red Stone", "Ring of Transmutation"],
-				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 15, vit: 18, mgt: 15, frt: 15},
+				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 7, vit: 18, mgt: 7, frt: 15},
 				focus: ["vit", "dex", "mgt", "att"], ring: "vit", ab: "philbomb"},
 			chronomancer: {name: "Endless Hour", items: ["Wand of the Endless Hour", "Hourglass of Eternity", "Robes of Stopped Time", "Ring of the Last Second"],
-				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 15, dex: 15, wis: 18, frt: 15},
+				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 7, dex: 7, wis: 18, frt: 15},
 				focus: ["wis", "dex", "att", "luc"], ring: "wis", ab: "timestop"}
 		};
 
 		/** What a piece's four focus stats are worth (its lead stat first), and every piece's Health and Luck. */
-		public static const AMOUNTS:Array = [24, 20, 16, 14];
-		public static const HP:int = 120, LUCK:int = 15;
+		public static const AMOUNTS:Array = [16, 14, 13, 12];
+		public static const HP:int = 200, LUCK:int = 15;
 		/** A Godly weapon deals this much more than a Primordial one of its type (before its Divine Wrath). */
 		public static const POWER:Number = 1.35;
 		/** The version of the fixed pieces: anything made before it is remade (upgrade). */
-		public static const GV:int = 2;
+		public static const GV:int = 3;
 
 		/**
 		 * Divine Wrath: every EVERY-th volley (WRATH_SET with the full set on) a Godly weapon
@@ -62,7 +62,7 @@ package realm {
 		 * "aim" one shot that flies to the cursor and bursts there. mul: each shot's share of a
 		 * weapon hit; boom: a burst where it ends; slam: a shockwave round you.
 		 */
-		public static const EVERY:int = 6, WRATH_SET:int = 4;
+		public static const EVERY:int = 6, WRATH_SET:int = 5;
 		public static const WRATH:Object = {
 			wizard: {name: "Meteor", pat: "aim", n: 1, mul: 2, spd: 11, life: 0.9, boom: {r: 3, mul: 3}, desc: "a meteor falls where you aim and bursts in a huge blast"},
 			archer: {name: "Sunbeam", pat: "fan", n: 5, arc: 5, mul: 1.5, spd: 24, life: 0.55, pc: true, desc: "five beams of dawn pierce everything in a line"},

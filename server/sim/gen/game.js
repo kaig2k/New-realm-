@@ -5828,6 +5828,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-godlytrim", title: "What's new in Eldmere",
+				lines: ["<b>Godly sets toned down</b>: a full Godly set with a maxed skill tree dealt far too much damage. Each piece trades damage stats for Health (stats 16/14/13/12, was 24/20/16/14; +200 Health, was +120), the set bonus gives half the Attack, Dexterity and Might, and with the full set Divine Wrath comes every 5th volley (was every 4th). Pieces you own update by themselves, and Godly still beats Primordial on every piece.",
+					"<b>Skill tree</b>: Brutality +2% damage a rank (was 3%), Predator +3% (was 4%), Ferocity +0.05x crit damage (was 0.08x), Apex Predator +15% on boss crits (was 25%).",
+					"There are no caps: every point of every stat still counts in full."]},
 			{id: "2026-10-outliers", title: "What's new in Eldmere",
 				lines: ["<b>Boss fixes</b>: after the big health boost a few bosses went too far, and they're brought back in line.",
 					"<b>Realm Siege</b>: Vorgath the Siege Warlord had been given far too much health and hit harder than he should. A full camp of heroes now brings him down in about a quarter of an hour, not most of an hour.",
@@ -6126,9 +6130,9 @@ Data.SKILL_COSTS = [1, 2, 3, 6];
 Data.SKILL_TIER_REQ = [0, 4, 12, 22];
 Data.SKILLS = [
 			
-			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+3% damage", max: 5},
+			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+2% damage", max: 5},
 			{id: "precision", b: 0, t: 0, name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.08x crit damage", max: 5},
+			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.05x crit damage", max: 5},
 			{id: "honed", b: 0, t: 1, name: "Honed Edge", desc: "+2 Attack", max: 5},
 			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+8% damage to monsters under 30% HP", max: 3},
 			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+2 Might", max: 3},
@@ -6160,11 +6164,11 @@ Data.SKILLS = [
 			
 			{id: "swiftness", b: 4, t: 0, name: "Swiftness", desc: "+4 Speed", max: 5},
 			{id: "keeneye", b: 4, t: 0, name: "Keen Eye", desc: "+3 Dexterity", max: 5},
-			{id: "predator", b: 4, t: 1, name: "Predator", desc: "+4% damage to bosses", max: 5},
+			{id: "predator", b: 4, t: 1, name: "Predator", desc: "+3% damage to bosses", max: 5},
 			{id: "relentless", b: 4, t: 1, name: "Relentless", desc: "+2 Dexterity and +2 Speed", max: 5},
 			{id: "ambush", b: 4, t: 2, name: "Ambush", desc: "+10% damage to monsters at full health", max: 3},
 			{id: "tenacity", b: 4, t: 2, name: "Tenacity", desc: "+4 Vitality", max: 3},
-			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +25% more", max: 1, cap: true, cost: 6}
+			{id: "apex", b: 4, t: 3, name: "Apex Predator", desc: "Critical hits on bosses deal +15% more", max: 1, cap: true, cost: 6}
 		];
 Data.SKILL_STATS = {vigor: {hp: 40}, bulwark: {def: 4}, aegis: {prt: 5}, swiftness: {spd: 4}, fortune: {frt: 5},
 			honed: {att: 2}, overwhelm: {mgt: 2}, stoneskin: {def: 3, hp: 25}, luckystar: {luc: 4}, favor: {luc: 3, frt: 3}, treasure: {frt: 8},
@@ -6372,10 +6376,10 @@ Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 Godly.CHANCE = 1 / 1000;
 Godly.SETS = {
 			wizard: {name: "Astral Archmage", items: ["Staff of the Endless Cosmos", "Grimoire of Creation", "Robes of the Astral Archmage", "Ring of Infinite Stars"],
-				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 18, wis: 15, dex: 10, frt: 15},
+				weapon: {shots: 4, arc: 20, passive: "shards", col: 0x80a0ff}, bonus: {mp: 150, att: 9, wis: 15, dex: 5, frt: 15},
 				focus: ["att", "wis", "dex", "mgt"], ring: "att", ab: "lightning"},
 			archer: {name: "Skypiercer", items: ["Skypiercer, Bow of Dawn", "Quiver of the Last Light", "Skypiercer Mantle", "Ring of the Falcon King"],
-				weapon: {shots: 5, arc: 24, pierce: true, passive: "critical", col: 0xffe080}, bonus: {hp: 120, att: 15, dex: 18, spd: 10, frt: 15},
+				weapon: {shots: 5, arc: 24, pierce: true, passive: "critical", col: 0xffe080}, bonus: {hp: 120, att: 7, dex: 9, spd: 10, frt: 15},
 				focus: ["dex", "att", "luc", "spd"], ring: "dex", ab: "pierce"},
 			knight: {name: "Aegis Eternal", items: ["Blade of the Eternal Oath", "The Unbroken Aegis", "Bastion Plate", "Ring of the Unyielding"],
 				weapon: {shots: 3, arc: 30, pierce: true, passive: "lifesteal", col: 0xc0e0ff}, bonus: {hp: 250, def: 25, vit: 15, prt: 20, frt: 15},
@@ -6384,34 +6388,34 @@ Godly.SETS = {
 				weapon: {shots: 3, arc: 16, motion: "wave", passive: "frost", col: 0xfff6c0}, bonus: {hp: 150, mp: 150, wis: 20, vit: 12, frt: 15},
 				focus: ["wis", "vit", "att", "luc"], ring: "wis", ab: "smite"},
 			rogue: {name: "Nightfall", items: ["Kris of the Eclipse", "Shroud of Nightfall", "Eclipse Hide", "Ring of Whispers"],
-				weapon: {shots: 3, arc: 14, rate: 1.2, passive: "critical", col: 0x9a60ff}, bonus: {hp: 120, dex: 18, spd: 18, mgt: 15, frt: 15},
+				weapon: {shots: 3, arc: 14, rate: 1.2, passive: "critical", col: 0x9a60ff}, bonus: {hp: 120, dex: 9, spd: 18, mgt: 7, frt: 15},
 				focus: ["dex", "mgt", "spd", "att"], ring: "dex", ab: "knives"},
 			warrior: {name: "Titanslayer", items: ["Titanslayer Greatsword", "Crown of the Warlord", "Titanforged Plate", "Ring of Rage"],
-				weapon: {size: 6, pierce: true, passive: "rampage", col: 0xff6040}, bonus: {hp: 200, att: 20, vit: 15, mgt: 15, frt: 15},
+				weapon: {size: 6, pierce: true, passive: "rampage", col: 0xff6040}, bonus: {hp: 200, att: 10, vit: 15, mgt: 7, frt: 15},
 				focus: ["att", "mgt", "vit", "prt"], ring: "att", ab: "whirlwind"},
 			necromancer: {name: "Soulforge", items: ["Staff of a Thousand Souls", "Skull of the Lich Emperor", "Shroud of the Soulforge", "Ring of the Grave"],
-				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 15, wis: 18, mgt: 12, frt: 15},
+				weapon: {shots: 2, parallel: true, pierce: true, motion: "wave", passive: "lifesteal", col: 0x60ffb0}, bonus: {mp: 150, att: 7, wis: 18, mgt: 6, frt: 15},
 				focus: ["att", "wis", "mgt", "vit"], ring: "wis", ab: "raise"},
 			huntress: {name: "Wildheart Eternal", items: ["Bow of the Wild Hunt", "Snare of the World Tree", "Hide of the Primal Beast", "Ring of the Pack"],
-				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 15, dex: 15, spd: 12, frt: 15},
+				weapon: {shots: 3, arc: 10, motion: "return", pierce: true, passive: "shards", col: 0x80ff60}, bonus: {hp: 150, att: 7, dex: 7, spd: 12, frt: 15},
 				focus: ["att", "dex", "spd", "luc"], ring: "att", ab: "wolf"},
 			bard: {name: "Choir Eternal", items: ["Harpstring of the Choir", "Lyre of the Last Verse", "Mantle of the Grand Chorus", "Ring of Perfect Pitch"],
 				weapon: {shots: 3, arc: 14, motion: "wave", pierce: true, passive: "frost", col: 0xffe090}, bonus: {hp: 120, mp: 120, wis: 15, luc: 20, frt: 15},
 				focus: ["wis", "luc", "att", "vit"], ring: "luc", ab: "requiem"},
 			alchemist: {name: "Magnum Opus", items: ["Kris of Quicksilver", "Flask of the Great Work", "Apron of the Red Stone", "Ring of Transmutation"],
-				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 15, vit: 18, mgt: 15, frt: 15},
+				weapon: {shots: 3, arc: 18, motion: "return", passive: "lifesteal", col: 0xff5a3a}, bonus: {hp: 160, dex: 7, vit: 18, mgt: 7, frt: 15},
 				focus: ["vit", "dex", "mgt", "att"], ring: "vit", ab: "philbomb"},
 			chronomancer: {name: "Endless Hour", items: ["Wand of the Endless Hour", "Hourglass of Eternity", "Robes of Stopped Time", "Ring of the Last Second"],
-				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 15, dex: 15, wis: 18, frt: 15},
+				weapon: {shots: 2, parallel: true, motion: "accel", passive: "critical", col: 0x80e0ff}, bonus: {mp: 160, att: 7, dex: 7, wis: 18, frt: 15},
 				focus: ["wis", "dex", "att", "luc"], ring: "wis", ab: "timestop"}
 		};
-Godly.AMOUNTS = [24, 20, 16, 14];
-Godly.HP = __int(120);
+Godly.AMOUNTS = [16, 14, 13, 12];
+Godly.HP = __int(200);
 Godly.LUCK = __int(15);
 Godly.POWER = 1.35;
-Godly.GV = __int(2);
+Godly.GV = __int(3);
 Godly.EVERY = __int(6);
-Godly.WRATH_SET = __int(4);
+Godly.WRATH_SET = __int(5);
 Godly.WRATH = {
 			wizard: {name: "Meteor", pat: "aim", n: 1, mul: 2, spd: 11, life: 0.9, boom: {r: 3, mul: 3}, desc: "a meteor falls where you aim and bursts in a huge blast"},
 			archer: {name: "Sunbeam", pat: "fan", n: 5, arc: 5, mul: 1.5, spd: 24, life: 0.55, pc: true, desc: "five beams of dawn pierce everything in a line"},

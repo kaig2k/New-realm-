@@ -329,8 +329,8 @@ package realm {
 				case "deepBoard":
 					g.deepBoard(m);
 					break;
-				case "spires":
-					g.setSpires(m.l as Array);
+				case "leaders":
+					g.setLeaders(m.l);
 					break;
 				case "siege":
 					g.siegeUpdate(m);

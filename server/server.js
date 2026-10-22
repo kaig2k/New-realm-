@@ -185,6 +185,9 @@ const clock = (ms) => { const s = ms / 1000; return Math.floor(s / 60) + ':' + (
 /** A realm event boss died: put the team on the board if they were quick, and tell people. */
 function eventKilled(id, ms, team) {
   if (ms < 1000) return; // nothing real dies that fast
+  // the Realm Leaders race: the boss counts once for every guild whose members fought it
+  leaderEvents(leaders.kill(team.map((c) => c.guild && guilds[c.guild] ? c.guild : '')));
+  for (const gk of new Set(team.map((c) => c.guild).filter(Boolean))) for (const o of byName.values()) if (o.guild === gk) sendLeaders(o);
   const names = team.map((c) => c.name).filter(Boolean).slice(0, 8);
   if (!names.length) return;
   const list = records[id] || (records[id] = []);
@@ -288,6 +291,7 @@ function finishLogin(c, acc, key, session) {
   if (Object.keys(itemArt).length) c.send({ t: 'itemArt', art: itemArt, all: true });
   sendGuild(c.guild);
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
+  sendLeaders(c);
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
 }
 
@@ -557,7 +561,7 @@ function vaultCleared(d) {
   if (place === 1) feat('vaultrecord', { names, time: clock(d.ms), twist: d.twist });
 }
 // every kill the server decides credits the gold and fame it can pay (see wallet.js)
-if (sims) sims.onEarn = (c, e, near) => { if (c.authed && c.key && c.meta) wallet.credit(c.meta, onlineSave(c.key), c.charId, e, Date.now(), near); };
+if (sims) sims.onEarn = (c, e, near) => { if (c.authed && c.key && c.meta) wallet.credit(c.meta, onlineSave(c.key), c.charId, e, Date.now(), near, leaders.xp(c.guild)); };
 
 // ------------------------------------------------------------------ player marketplace
 const market = new Market(load, save);
@@ -866,8 +870,7 @@ function feat(kind, d) {
   else if (kind === 'siege') discord.post(d.won ? '⚔️ **The Realm Siege is broken!** ' + dnames(d.names) + ' brought down Vorgath the Siege Warlord in ' + desc(d.realm) + (d.mvp ? '. MVP: **' + desc(d.mvp) + '** (' + d.pct + '%)' : '') + '.' : '⚔️ Vorgath withdrew from ' + desc(d.realm) + ' undefeated.', 0xffa020);
   else if (kind === 'deep') discord.post('🕳️ **' + desc(d.name) + '** leads the ' + desc(d.cls) + 's in the Endless Abyss: wave **' + d.wave + '**!', 0xa060ff);
   else if (kind === 'deepweek') discord.post('🕳️ **The Endless Abyss\'s champions this week:** ' + d.champs.map(desc).join(', ') + '.', 0xa060ff);
-  else if (kind === 'spire') discord.post('🏰 **' + desc(d.guild) + '** has taken the **' + desc(d.spire) + '**' + (d.from ? ' from ' + desc(d.from) : '') + '!', 0x7fd8ff);
-  else if (kind === 'spireweek') discord.post('👑 **' + desc(d.guild) + '** are this week\'s **Lords of the Godlands**, holding the Spires for ' + d.hours + ' hours!', 0xffd75e);
+  else if (kind === 'leaders') discord.post('👑 **' + desc(d.guild) + '** are this week\'s **Realm Leaders**, with ' + d.kills + ' realm bosses slain last week!', 0xffd75e);
   else if (kind === 'siegestart') discord.post('⚔️ **A Realm Siege has begun!** Vorgath the Siege Warlord marches on the Godlands of ' + desc(d.realm) + '. 15 minutes to break it.', 0xffa020);
   else if (kind === 'ascend') discord.post('✦ **' + desc(d.name) + '**\'s ' + desc(d.hero) + ' has **Ascended**' + (d.n > 1 ? ' (×' + d.n + ')' : '') + '!', 0xffd75e);
   else if (kind === 'oracle') discord.post('👁️ **' + desc(d.name) + '** completed the Oracle\'s collection for **' + desc(d.boss) + '**!', 0xb9a9ff);
@@ -1247,7 +1250,6 @@ const handlers = {
     c.expDmg = 0; c.expDmgBase = 0; c.dmgBase = c.dmgRep || 0;
     if (c.heroDead) { c.heroDead = false; c.grace = 0; }
     c.grace = Math.max(c.grace || 0, Date.now() + 3500);
-    c.spireJson = null; // (a new world: its Spires are sent again)
     deepEnter(c, world);
     setCaps(c);
     c.mode = modes.modeOf(serverChar(c));
@@ -1559,8 +1561,9 @@ const handlers = {
       if ((g.bank || []).some(Boolean)) return c.note('Empty the guild bank (Guild Hall, Nexus) before disbanding the guild.');
       // the founder leaving disbands the guild
       delete guilds[gk];
-      terr.forget(gk);
-      spireLuck();
+      leaders.forget(gk);
+      leaderLuck();
+      save('leaders.json', leaders.s);
       for (const o of byName.values()) if (o.guild === gk) { o.guild = null; o.note(g.name + ' was disbanded.', 0x80ff80); o.send({ t: 'guild', guild: null }); reshowOne(o); }
     } else {
       delete g.members[c.key];
@@ -2305,12 +2308,11 @@ const handlers = {
         (v.members.length === 1 ? ' While nobody has joined, /group leave gives the group up.' : '');
       return c.note('Group ' + v.name + ' (founded by ' + v.leader + '): ' + v.members.map((x) => x.name + (x.on ? ' (online)' : '')).join(', ') + '. ' + left, 0x7fd8a8);
     }
-    if (cmd === '/spires') {
-      const lines = SPIRE_NAMES.map((n, i) => { const h = terr.holder(i); return n + ': ' + (h && guilds[h] ? guilds[h].name : 'nobody'); });
-      const st = terr.standings().slice(0, 3).map((r, i) => (i + 1) + '. ' + (guilds[r[0]] ? guilds[r[0]].name : r[0]) + ' ' + (r[1] >= 60 ? Math.floor(r[1] / 60) + 'h ' : '') + (r[1] % 60) + 'm');
-      c.note('Godlands Spires: ' + lines.join(' · '), 0x7fd8ff);
-      c.note(st.length ? 'This week: ' + st.join('   ') : 'Nobody has held a Spire this week yet.', 0x7fd8ff);
-      if (c.guild && terr.count(c.guild)) c.note('Your guild holds ' + terr.count(c.guild) + ': +' + terr.luck(c.guild) + ' loot luck for its members.', 0x80ff80);
+    if (cmd === '/leaders' || cmd === '/spires') {
+      const lv = leaders.view(guildInfo, c.guild);
+      c.note('Realm Leaders: ' + (lv.name || 'nobody yet') + (lv.me ? ' (your guild! +' + lv.luck + ' loot luck, +' + lv.xp + '% XP)' : ''), 0xffd75e);
+      c.note(lv.top.length ? 'This week (realm bosses): ' + lv.top.map((r, i) => (i + 1) + '. ' + r.name + ' ' + r.kills).join('   ') : 'No guild has killed a realm boss this week yet.', 0xffd75e);
+      if (c.guild) c.note('Your guild this week: ' + lv.kills + ' realm boss' + (lv.kills === 1 ? '' : 'es') + '.', 0x80ff80);
       return;
     }
     // VIP perks
@@ -3172,7 +3174,8 @@ function sendGuild(gk) {
       const m = g.members[k], on = byName.get(k);
       members.push({ name: m.name, rank: m.rank, cls: m.cls, level: m.level, fame: m.fame, online: !!on, world: on ? on.world : '', id: on ? on.id : 0 });
     }
-    o.send({ t: 'guild', guild: { name: g.name, myRank: g.members[o.key].rank, members, banner: g.banner || '', spires: terr.count(gk) } });
+    o.send({ t: 'guild', guild: { name: g.name, myRank: g.members[o.key].rank, members, banner: g.banner || '', leader: leaders.isLeader(gk) } });
+    sendLeaders(o);
   }
 }
 
@@ -3443,95 +3446,36 @@ setInterval(() => {
 // ------------------------------------------------------------------ console
 const HELP = 'Commands: list | stats | worlds | say <message> | kick <name> | ban <name> [hours] [reason] | unban <name> | whois <name|#n> | setpassword <name|#n> <password> | realms (new realms) | stop';
 function online() { return [...byName.values()]; }
-// ------------------------------------------------------------------ guild territory
-const { Territory, NAMES: SPIRE_NAMES, REACH: SPIRE_REACH, WEEK_FAME, FIGHT_REACH: SPIRE_FIGHT, fighting: spireFighting } = require('./territory');
-const terr = new Territory(load('territory.json', {}));
+// ------------------------------------------------------------------ Realm Leaders
+const { Leaders, WEEK_FAME: LEADER_FAME } = require('./leaders');
+const leaders = new Leaders(load('leaders.json', {}));
 const guildInfo = (gk) => guilds[gk] ? { name: guilds[gk].name || gk, banner: guilds[gk].banner || '' } : null;
-/** Each guild's loot luck from its Spires (WorldSim.dropLoot reads it). */
-function spireLuck() {
-  const m = {};
-  for (const gk in guilds) { const l = terr.luck(gk); if (l) m[gk] = l; }
-  WorldSim.guildLuck = m;
+/** The leaders' loot luck (WorldSim.dropLoot reads it). */
+function leaderLuck() {
+  WorldSim.guildLuck = leaders.leader ? { [leaders.leader]: leaders.luck(leaders.leader) } : {};
 }
-spireLuck();
-function territoryTick() {
-  if (!sims) return;
-  const present = SPIRE_NAMES.map(() => new Map());
-  const worlds = [];
-  const now = Date.now();
-  for (const sm of sims.map.values()) {
-    if (sm.kind !== 'realm' || !sm.players.size) continue;
-    const spots = Territory.spots(sm.w, World);
-    const idle = spots.map(() => false), sieged = spots.map(() => false);
-    worlds.push([sm, spots, idle]);
-    for (const c of sm.players.values()) {
-      if (!c.guild || c.hidden || !guilds[c.guild]) continue;
-      for (let i = 0; i < spots.length; i++) {
-        const dx = c.x - spots[i].x, dy = c.y - spots[i].y;
-        if (dx * dx + dy * dy > SPIRE_REACH * SPIRE_REACH) continue;
-        const holder = terr.holder(i) === c.guild;
-        // (holders defend by being there; attackers only count while fighting nearby)
-        if (holder || spireFighting(c, spots[i], now)) present[i].set(c.guild, (present[i].get(c.guild) || 0) + 1);
-        else {
-          idle[i] = true;
-          if (!c.spireHintAt || now - c.spireHintAt > 45000) {
-            c.spireHintAt = now;
-            c.send({ t: 'msg', text: 'The ' + SPIRE_NAMES[i] + ' is taken in battle: fight the monsters around it to fill the bar.', color: 0xffa020 });
-          }
-        }
-        if (!holder) sieged[i] = true;
-      }
-    }
-    spireWardens(sm, spots, sieged, now);
-  }
-  const evs = terr.tick(1, present);
+leaderLuck();
+/** Everyone online hears who leads, and their guild's count this week. */
+function sendLeaders(c) { if (c && c.authed) c.send({ t: 'leaders', l: leaders.view(guildInfo, c.guild && guilds[c.guild] ? c.guild : '') }); }
+function sendLeadersAll() { for (const o of byName.values()) sendLeaders(o); }
+/** The week turned: the new leaders are crowned. */
+function leaderEvents(evs) {
   for (const ev of evs) {
-    if (ev.kind === 'capture') {
-      const g = guilds[ev.g], from = ev.from && guilds[ev.from];
-      if (!g) continue;
-      broadcast((g.name) + ' has taken the ' + SPIRE_NAMES[ev.i] + (from ? ' from ' + from.name : '') + '! (' + terr.count(ev.g) + '/4 Spires: +' + terr.luck(ev.g) + ' loot luck for its members)', 0x7fd8ff);
-      log(g.name + ' took the ' + SPIRE_NAMES[ev.i] + (from ? ' from ' + from.name : ''));
-      feat('spire', { guild: g.name, spire: SPIRE_NAMES[ev.i], from: from ? from.name : '' });
-    } else if (ev.kind === 'week' && ev.winner && guilds[ev.winner]) {
-      const g = guilds[ev.winner];
-      g.fame = (Number(g.fame) || 0) + WEEK_FAME;
+    if (ev.kind !== 'crown') continue;
+    const g = guilds[ev.g];
+    if (g) {
+      g.fame = (Number(g.fame) || 0) + LEADER_FAME;
       save('guilds.json', guilds);
-      for (const k in g.members) grantTitle(k, 'spirelord');
-      broadcast(g.name + ' held the Godlands Spires longest this week (' + Math.round(ev.minutes / 60) + ' hours): they are the Lords of the Godlands! (+' + WEEK_FAME + ' guild fame)', 0xffd75e);
-      feat('spireweek', { guild: g.name, hours: Math.round(ev.minutes / 60) });
-    }
+      for (const k in g.members) grantTitle(k, 'realmlord');
+      broadcast('👑 ' + g.name + ' killed the most realm bosses last week (' + ev.kills + '): they are the Realm Leaders! Their members find more loot and gain more XP all week. (+' + LEADER_FAME + ' guild fame)', 0xffd75e);
+      log(g.name + ' crowned Realm Leaders (' + ev.kills + ' realm bosses)');
+      feat('leaders', { guild: g.name, kills: ev.kills });
+    } else broadcast('A new week: nobody holds the realms. Kill realm bosses with your guild to be crowned Realm Leaders!', 0xffd75e);
   }
-  if (evs.length) {
-    spireLuck();
-    save('territory.json', terr.s);
-    // every member everywhere learns how many Spires their guild holds (their luck counts them wherever they are)
-    for (const gk of new Set([...byName.values()].map((o) => o.guild).filter(Boolean))) sendGuild(gk);
-  }
-  else if (terr.minuteT > 59) save('territory.json', terr.s);
-  // each realm's players see its Spires (sent again only when something changes)
-  for (const [sm, spots, idle] of worlds) {
-    const json = JSON.stringify(terr.view(spots, guildInfo, idle));
-    for (const c of sm.players.values()) if (c.spireJson !== json) { c.spireJson = json; c.send({ t: 'spires', l: JSON.parse(json) }); }
-  }
+  if (evs.length) { leaderLuck(); sendLeadersAll(); }
+  save('leaders.json', leaders.s);
 }
-/** A Spire under siege calls its wardens: Godlands monsters to fight, when none are near it (every few seconds at most). */
-function spireWardens(sm, spots, sieged, now) {
-  const wt = sm.spireWardAt || (sm.spireWardAt = spots.map(() => 0));
-  for (let i = 0; i < spots.length; i++) {
-    if (!sieged[i] || now < wt[i] || sm.closeT > 0 || sm.w.closed) continue;
-    const sp = spots[i];
-    let near = 0;
-    for (const e of sm.enemies) if (!e.dead && !e.def.prop && (e.x - sp.x) * (e.x - sp.x) + (e.y - sp.y) * (e.y - sp.y) < SPIRE_FIGHT * SPIRE_FIGHT) near++;
-    if (near >= 2) continue;
-    wt[i] = now + 6000;
-    const list = Data.ZONE_SPAWNS[World.GOD_ZONE];
-    for (let k = 0, n = 2 + Math.floor(Math.random() * 2); k < n; k++) {
-      const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 3;
-      sm.spawn(list[Math.floor(Math.random() * list.length)], sp.x + Math.cos(a) * r, sp.y + Math.sin(a) * r, World.GOD_ZONE);
-    }
-  }
-}
-setInterval(territoryTick, 1000).unref();
+setInterval(() => { const evs = leaders.turn(); if (evs.length) leaderEvents(evs); }, 60000).unref();
 
 // ------------------------------------------------------------------ the Endless Abyss
 /** The week's highest waves cleared, per class: deep.cls[cls] = [{key, name, hero, wave, at}] (top DEEP_KEEP). */

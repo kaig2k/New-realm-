@@ -167,8 +167,8 @@ package realm {
 		private var abyssWin:AbyssWindow, boonPicker:BoonPicker;
 		/** The Endless Abyss run this hero is on ({wave, boons}, the server's), or null. */
 		public var abyssRunInfo:Object = null;
-		/** The Godlands Spires in this realm (the server's "spires"), and their name plates. */
-		private var spires:Array = null, spiresWorld:World = null, spireTags:Array = [];
+		/** Who leads the realms (the server's "leaders": Realm Leaders, server/leaders.js). */
+		public var leaders:Object = null;
 		private var petWin:PetWindow;
 		private var bugsWin:BugsWindow;
 		/** Frames a second, smoothed (sent with bug reports). */
@@ -380,7 +380,7 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /abyss  /ascend  /spires  /bug what happened", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /abyss  /ascend  /leaders  /bug what happened", 0x8fd0ff);
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)  Group Ironman: /group", 0x8fd0ff);
 					var myRole:String = net.online && Online.welcome ? String(Online.welcome.role || "") : "";
@@ -432,7 +432,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
+				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/spires": case "/leaders": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -1698,7 +1698,6 @@ package realm {
 			updateAtmosphere(dt);
 			updateAmbient(dt);
 			updateStreak(dt);
-			updateShrines(dt);
 			if (world.kind == "realm" && sync.isHost) updateGoblin(dt);
 			if (sync.isHost) updateElites(dt);
 			if (sync.isHost) scaleBosses(dt);
@@ -2359,7 +2358,7 @@ package realm {
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
 			if (mine || near) {
 				// (Ascendant Wisdom: more XP; Ascendant Bond: more for the pet)
-				p.gainXp(int(e.def.xp * xpMult * (1 + Data.ascRank(Save.data.asc, "wisdom") * 0.04)), this);
+				p.gainXp(int(e.def.xp * xpMult * (1 + Data.ascRank(Save.data.asc, "wisdom") * 0.04 + leaderXp())), this);
 				// your pet grows with the XP you earn
 				if (!e.def.crate && !e.def.prop) petGainXp(Data.petKillXp(e.def.xp * xpMult, Save.data.asc));
 			}
@@ -5224,13 +5223,13 @@ package realm {
 		public function luckParts():Array {
 			var p:Player = player;
 			var out:Array = [["Luck on gear and skills", p.frt], ["Kill streak", streakBonus()],
-				["Shrine of Fortune", p.buffs.fortune > 0 ? 25 : 0], ["Pet", Data.petLuck(pet)]];
+				["Blessings", p.buffs.fortune > 0 ? 25 : 0], ["Pet", Data.petLuck(pet)]];
 			var md:Object = p.mode ? Data.findMode(p.mode) : null;
 			if (md && md.luck) out.push([md.name + " hero", int(md.luck)]);
 			if (net && net.online) {
 				if (Online.welcome && Online.welcome.vip) out.push(["VIP", 15]);
 				out.push(["Ascendant Fortune", Data.ascRank(Save.data.asc, "fortune") * 3]);
-				out.push(["Your guild's Spires", spireLuck()]);
+				out.push(["Realm Leaders", leaderLuck()]);
 				if (Player.deepBoons) out.push(["Abyss boons", Data.deepBoonLuck(Player.deepBoons)]);
 			}
 			return out;
@@ -5245,59 +5244,19 @@ package realm {
 			for (i = 0; i < 4; i++) rep += int(parts[i][1]);
 			return n + Math.max(0, Math.min(LUCK_REPORTED_MAX, rep));
 		}
-		/** +5 loot luck for each Godlands Spire your guild holds (the server says how many, wherever you are). */
-		private function spireLuck():int {
-			if (!net || !net.guild) return 0;
-			if (net.guild.spires != undefined) return int(net.guild.spires) * 5;
-			if (!spires) return 0;
-			var n:int = 0;
-			for each (var sp:Object in spires) if (sp.g && sp.g == net.guild.name) n++;
-			return n * 5;
+		/** The Realm Leaders' loot luck, when your guild leads (the server says so, wherever you are). */
+		private function leaderLuck():int { return leaders && leaders.me ? int(leaders.luck) : 0; }
+		/** The Realm Leaders' extra XP (0.1 = +10%). */
+		public function leaderXp():Number { return leaders && leaders.me ? Number(leaders.xp) / 100 : 0; }
+
+		/** The server says who leads the realms (and when it changes hands, everyone hears). */
+		public function setLeaders(l:Object):void {
+			var was:Boolean = leaders && leaders.me;
+			leaders = l;
+			if (l && l.me && !was) { Sfx.play("fanfare"); showBanner("Your guild leads the realms!", 0xffd75e, 4); }
 		}
 
 		private function lootLuck():int { return streakBonus() + (player.buffs.fortune > 0 ? 25 : 0) + Data.petLuck(pet); }
-
-		/** Touch a shrine for a 60-second blessing; each shrine rests 2 minutes after blessing you. */
-		private function updateShrines(dt:Number):void {
-			if (world.kind == "realm") {
-				for each (var s:Object in world.shrines) {
-					if (s.cd > 0) { s.cd -= dt; continue; }
-					var dx:Number = s.x - player.x, dy:Number = s.y - player.y;
-					if (dx * dx + dy * dy > 2.3 * 2.3 || player.hp <= 0) continue;
-					s.cd = 120;
-					var bl:Array = BLESSINGS[s.kind];
-					player.buffs[s.kind] = 60;
-					showBanner(bl[0] + ": " + bl[1], bl[2], 3);
-					msg(bl[0] + " blesses you: " + bl[1] + " for 60 seconds.", bl[2]);
-					ring(player.x, player.y, bl[2], 30);
-					burst(s.x, s.y - 0.5, bl[2], 24);
-					Sfx.play("level", 0.7);
-				}
-			}
-			var parts2:Array = [];
-			for (var k:String in BLESSINGS) {
-				var t:Number = player.buffs[k];
-				if (t > 0) parts2.push("<font color='" + Ui.hex(BLESSINGS[k][2]) + "'>" + BLESSINGS[k][0].replace("Shrine of ", "") + " " + Math.ceil(t) + "s</font>");
-			}
-			var txt:String = parts2.join("   ");
-			if (buffTf.htmlText.length == 0 && !txt) return;
-			if (txt != lastBuffTxt) { lastBuffTxt = txt; buffTf.htmlText = txt; }
-			buffTf.y = streakN >= 3 ? 116 : 84;
-		}
-		private var lastBuffTxt:String = "";
-
-		/** A glow under every ready shrine, with motes rising off it. */
-		private function drawShrineGlow():void {
-			if (world.kind != "realm") return;
-			for each (var s:Object in world.shrines) {
-				if (s.cd > 0) continue;
-				var sx:Number = scrX(s.x, s.y), sy:Number = scrY(s.x, s.y);
-				if (sx < -60 || sy < -60 || sx > vw + 60 || sy > vh + 60) continue;
-				var col:uint = BLESSINGS[s.kind][2];
-				drawAura(sx, sy + TS * 0.4, col, 0.9);
-				if (Math.random() < 0.25 && opt("parts")) parts.push(new Particle(s.x + (Math.random() - 0.5) * 0.6, s.y - 0.8, 0, -1.2, 0.8, Sprites.glow(col)));
-			}
-		}
 
 		// ------------------------------------------------------------ crates and mimics
 		/** A crate breaks; one in eight was a Mimic all along (the world host decides). */
@@ -6694,78 +6653,6 @@ package realm {
 			if (m.won) { Sfx.play("fanfare"); showBanner("THE SIEGE IS BROKEN!", 0xffa020, 4); }
 		}
 
-		/** Guild territory: where this realm's four Spires stand and who holds them (ServerNet). */
-		public function setSpires(l:Array):void {
-			// (a capture just happened: a flourish if it's ours)
-			if (spires && spiresWorld == world && net.guild) {
-				for each (var sp:Object in l) {
-					var was:Object = spires[sp.i];
-					if (was && was.g != sp.g && sp.g == net.guild.name) { Sfx.play("fanfare"); burst(sp.x, sp.y, 0x7fd8ff, 50); }
-				}
-			}
-			spires = l;
-			spiresWorld = world;
-			while (spireTags.length < l.length) {
-				var tf:TextField = Ui.text(12, 0xffffff, true, "center", 220, true);
-				tf.visible = false;
-				tagLayer.addChild(tf);
-				spireTags.push(tf);
-			}
-		}
-
-		/** The Spires' ground: a ring for the capture area, filling while a guild takes it. */
-		private function drawSpireGround():void {
-			if (!spires || spiresWorld != world) return;
-			var g:* = auraShape.graphics;
-			for each (var sp:Object in spires) {
-				var sx:Number = scrX(sp.x, sp.y), sy:Number = scrY(sp.x, sp.y);
-				var r:Number = TS * 5;
-				if (sx < -r || sy < -r || sx > vw + r || sy > vh + r) continue;
-				var col:uint = sp.g ? 0x7fd8ff : 0xb0b0b0;
-				g.clear();
-				g.beginFill(col, 0.06 + (Math.sin(time * 2 + sp.i) + 1) * 0.02);
-				g.drawCircle(0, 0, r);
-				g.endFill();
-				g.lineStyle(2, col, 0.5);
-				g.drawCircle(0, 0, r);
-				if (sp.cp > 0) {
-					// the attackers' bar, as an arc around the ring
-					g.lineStyle(5, 0xffa020, 0.9);
-					var a1:Number = -Math.PI / 2 + Math.PI * 2 * Math.min(1, sp.cp);
-					g.moveTo(0, -r + 4);
-					for (var a:Number = -Math.PI / 2; a <= a1; a += 0.08) g.lineTo(Math.cos(a) * (r - 4), Math.sin(a) * (r - 4));
-				}
-				g.lineStyle();
-				auraMtx.tx = sx; auraMtx.ty = sy;
-				canvas.draw(auraShape, auraMtx);
-			}
-		}
-
-		private function drawSpire(sp:Object):void {
-			var sx:Number = scrX(sp.x, sp.y), sy:Number = scrY(sp.x, sp.y);
-			drawAura(sx, sy + TS * 0.4, sp.g ? 0x7fd8ff : 0x9a9a9a, 1.2);
-			var top:Number = drawEntity(Sprites.get("godspire"), sx, sy, 0);
-			// the holder's banner, flying from the top
-			var fl:BitmapData = sp.b ? Sprites.bannerFlag(sp.b) : null;
-			if (fl) {
-				var big:BitmapData = scaledSprite(fl, "spireflag|" + sp.b, 3);
-				pt.x = int(sx - 2);
-				pt.y = int(top - big.height + 10 + Math.sin(time * 3 + sp.i) * 2);
-				canvas.copyPixels(big, big.rect, pt, null, null, true);
-				top = pt.y;
-			}
-			var tf:TextField = spireTags[sp.i];
-			if (!tf) return;
-			// (only when it changes: setting htmlText lays the text out again)
-			var html:String = "<font color='#7fd8ff'>" + sp.name + "</font><br>" + (sp.g ? "<font color='#ffffff'>" + Ui.esc(sp.g) + "</font>" : "<font color='#a0a0a0'>unclaimed</font>") +
-				(sp.cp > 0 ? "<br><font size='11' color='#ffa020'>" + Ui.esc(sp.cg) + " taking it: " + int(sp.cp * 100) + "%</font>" : "") +
-				(sp.idle ? "<br><font size='11' color='#ff8060'>fight here to capture</font>" : "");
-			if (tf.name != html) { tf.name = html; tf.htmlText = html; }
-			tf.x = int(sx - tf.width / 2);
-			tf.y = int(top - tf.height - 2);
-			tf.visible = true;
-		}
-
 		private function tickSiege():void {
 			if (!siegePanel) return;
 			siegePanel.quiet += frameDt;
@@ -7103,9 +6990,6 @@ package realm {
 
 			drawMarkers();
 			abil.drawGround(canvas);
-			drawShrineGlow();
-			drawSpireGround();
-			for each (var stf:TextField in spireTags) stf.visible = false;
 			// y-sorted: world objects, enemies, player
 			drawList.length = 0;
 			drawN = 0;
@@ -7136,21 +7020,12 @@ package realm {
 				rdi.r = rp;
 				drawList.push(rdi);
 			}
-			if (spires && spiresWorld == world) for each (var spo:Object in spires) {
-				var spy:Number = scrY(spo.x, spo.y), spx:Number = scrX(spo.x, spo.y);
-				if (spx < -100 || spy < -60 || spx > vw + 100 || spy > vh + 200) continue;
-				var sdi:Object = drawItem(spy, -3, 0, null, false);
-				sdi.r = spo;
-				drawList.push(sdi);
-			}
 			drawList.push(drawItem(scrY(player.x, player.y), 0, 0, null, true));
 			if (pet) drawList.push(drawItem(scrY(petX, petY), -1, 0, null, false));
 			drawList.sortOn("y", Array.NUMERIC);
 
 			for each (var d:Object in drawList) {
-				if (d.o == -3) {
-					drawSpire(d.r);
-				} else if (d.o == -2) {
+				if (d.o == -2) {
 					drawRemote(d.r);
 				} else if (d.o < 0) {
 					// evolved pets are bigger and glow (Ascended ones sparkle too)

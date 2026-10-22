@@ -360,7 +360,7 @@ package realm {
 			y += 34;
 			btn("Pets window", col[0], y, w, function():void { g.toggleAdmin(); g.togglePet(); });
 			btn("+200 pet XP", col[1], y, w, function():void { g.runCommand("/give " + g.player.name + " 200 petxp"); });
-			btn("Godlands Spires", col[2], y, w, function():void { g.runCommand("/spires"); });
+			btn("Realm Leaders", col[2], y, w, function():void { g.runCommand("/leaders"); });
 			y += 40;
 			label("Moderation", 14, y, 0xffd75e);
 			y += 22;

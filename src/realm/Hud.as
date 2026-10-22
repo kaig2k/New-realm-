@@ -797,12 +797,11 @@ package realm {
 				petTf.htmlText = "<font color='#6a5c90'>No pet</font>";
 			}
 			petTf.x = pet ? 44 : 12;
-			var bl:Array = [];
-			for (var k:String in Game.BLESSINGS) {
-				var t:Number = p.buffs[k];
-				if (t > 0) bl.push("<font color='" + Ui.hex(Game.BLESSINGS[k][2]) + "'>" + Game.BLESSINGS[k][0].replace("Shrine of ", "") + " " + Math.ceil(t) + "s</font>");
-			}
-			blessTf.htmlText = bl.length ? bl.join("  ") : "<font color='#6a5c90'>No blessing - touch a shrine</font>";
+			// who leads the realms (the guild with the most realm bosses last week), and what it gives yours
+			var ld:Object = g.leaders;
+			blessTf.htmlText = !ld || !ld.name ? "<font color='#8a7cb0'>Realm Leaders: </font><font color='#6a5c90'>none yet</font>"
+				: ld.me ? "<font color='#ffd75e'>Your guild leads the realms</font>  <font color='#b8a8e0'>+" + ld.luck + " luck +" + ld.xp + "% XP</font>"
+				: "<font color='#8a7cb0'>Realm Leaders: </font><font color='#ffd75e'>" + Ui.esc(ld.name) + "</font>";
 			var st:int = g.killStreak;
 			luckTf.htmlText = "Loot luck <font color='#ffe080'>+" + g.totalLuck() + "</font>" + (st >= 3 ? "     Streak <font color='#ff9a50'>x" + st + "</font>" : "");
 		}
@@ -857,7 +856,7 @@ package realm {
 				out += (v > 0 ? "<font color='#ffe080'>+" + v + "</font>  " : "<font color='#777777'>+0</font>  ") + "<font color='" + (v > 0 ? "#eeeeee" : "#888888") + "'>" + pt[0] + "</font><br>";
 			}
 			out += "<font size='11' color='#a8a8a8'>More common drops: +" + g.totalLuck() + "%. Rarest drops (uniques, Godly): +" +
-				Math.round(Math.min(160, g.totalLuck()) / 4) + "% (at most +40%). Gear, streak, shrine and pet count up to " + Game.LUCK_REPORTED_MAX + " together.</font>";
+				Math.round(Math.min(160, g.totalLuck()) / 4) + "% (at most +40%). Gear, streak, blessings and pet count up to " + Game.LUCK_REPORTED_MAX + " together.</font>";
 			luckTipTf.htmlText = out;
 			var w:int = 250, h:int = int(luckTipTf.height) + 16;
 			luckTip.graphics.clear();

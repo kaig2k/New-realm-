@@ -1062,53 +1062,37 @@ async function run() {
     check('...then the window closes: he can be hurt again and fights as usual', !E2.surviving && !E2.immune && fired > 40, [E2.surviving, E2.immune, fired].join(' '));
   }
 
-  console.log('guild territory');
+  console.log('realm leaders');
   {
-    const { Territory, weekOf } = require('./territory');
-    const NOW = Date.now();
-    const T = new Territory({});
-    const at = (g, n) => [new Map(g ? [[g, n]] : []), new Map(), new Map(), new Map()];
-    let ev = [];
-    for (let k = 0; k < 59; k++) ev = ev.concat(T.tick(1, at('alpha', 1), NOW));
-    check('one member alone hasn\'t taken a Spire in 59 seconds...', !ev.length && T.holder(0) === '' && T.cap[0].g === 'alpha');
-    ev = T.tick(1.5, at('alpha', 1), NOW);
-    check('...and has at 60: the guild holds it, +5 loot luck', ev.length === 1 && ev[0].kind === 'capture' && T.holder(0) === 'alpha' && T.luck('alpha') === 5);
-    // three members are three times as fast; more don't help
-    const T3 = new Territory({});
-    for (let k = 0; k < 21; k++) ev = T3.tick(1, at('beta', 6), NOW);
-    check('three or more members take it in 20 seconds', T3.holder(0) === 'beta');
-    // a defender stops them
-    for (let k = 0; k < 120; k++) T.tick(1, [new Map([['alpha', 1], ['beta', 3]]), new Map(), new Map(), new Map()], NOW);
-    check('a single defender on the Spire holds off any number of attackers', T.holder(0) === 'alpha' && T.cap[0].p === 0);
-    // two attacking guilds and nobody defending: contested
-    const T4 = new Territory({});
-    for (let k = 0; k < 120; k++) T4.tick(1, [new Map([['a', 2], ['b', 2]]), new Map(), new Map(), new Map()], NOW);
-    check('two guilds fighting over an empty Spire: neither takes it', T4.holder(0) === '');
-    // the week: minutes held, a winner on Monday, then a fresh week
-    const T5 = new Territory({ week: weekOf(Date.UTC(2026, 9, 14)) });
-    T5.s.spires[0].g = 'gamma'; T5.s.spires[1].g = 'gamma'; T5.s.spires[2].g = 'delta';
-    for (let k = 0; k < 180; k++) T5.tick(1, [], Date.UTC(2026, 9, 14));
-    const wk = T5.tick(1, [], Date.UTC(2026, 9, 19, 1));
-    check('each week the guild that held the Spires longest is crowned, then the count starts over', wk.some((e) => e.kind === 'week' && e.winner === 'gamma' && e.minutes === 6) && !Object.keys(T5.s.held).length, JSON.stringify(wk));
-    T5.forget('gamma');
-    check('a disbanded guild\'s Spires stand empty', T5.holder(0) === '' && T5.holder(1) === '' && T5.holder(2) === 'delta');
-    const { WorldSim: TW } = require('./sim/worldsim');
-    const { World: TWW } = require('./sim/gen/game');
-    const tw = new TW('realm:Spiretest:5151');
-    const sp = Territory.spots(tw.w, TWW);
-    check('the four Spires stand in the Godlands, one each way, apart from each other', sp.length === 4 && sp.every((p) => tw.w.zoneAt(p.x, p.y) === TWW.GOD_ZONE) &&
-      Math.hypot(sp[0].x - sp[2].x, sp[0].y - sp[2].y) > 20, JSON.stringify(sp));
-    // Spires are taken in battle: only a recent blow near the Spire counts
-    const { fighting } = require('./territory');
-    const spot = { x: 50, y: 50 };
-    check('standing at a Spire without fighting doesn\'t count toward taking it', !fighting({}, spot, NOW) && !fighting({ fightAt: NOW - 20000, fightX: 50, fightY: 50 }, spot, NOW));
-    check('a blow on a monster near the Spire in the last few seconds does', fighting({ fightAt: NOW - 2000, fightX: 56, fightY: 48 }, spot, NOW));
-    check('...but not one far from it', !fighting({ fightAt: NOW - 2000, fightX: 80, fightY: 50 }, spot, NOW));
-    const fc = { id: 'f1', x: sp[0].x, y: sp[0].y, send() {} };
-    tw.players.set(fc.id, fc);
-    const fe = tw.spawn(require('./sim/gen/game').Data.ZONE_SPAWNS[TWW.GOD_ZONE][0], sp[0].x + 3, sp[0].y, TWW.GOD_ZONE, true);
-    tw.hit(fc, { id: fe.id, d: 1 });
-    check('a landed hit marks where (and when) a player last fought', fc.fightAt && Math.abs(fc.fightX - fe.x) < 0.01 && fighting(fc, sp[0]), JSON.stringify([fc.fightAt, fc.fightX, fe.x]));
+    // realm bosses count for the guilds that fought them (once each); Monday crowns the week's top guild
+    const { Leaders, weekOf, LUCK, XP } = require('./leaders');
+    const MON = Date.UTC(2026, 9, 19, 1), WED = Date.UTC(2026, 9, 14);
+    const L = new Leaders({ week: weekOf(WED) });
+    L.kill(['alpha', 'alpha', 'beta'], WED);
+    L.kill(['alpha'], WED);
+    L.kill(['beta', ''], WED);
+    L.kill(['gamma'], WED);
+    L.kill(['beta'], WED);
+    check('a realm boss counts once for each guild that fought it, however many of its members did', L.s.kills.alpha === 2 && L.s.kills.beta === 3 && L.s.kills.gamma === 1);
+    check('...and the week\'s race reads most first', L.standings()[0][0] === 'beta' && L.standings().length === 3);
+    check('nobody leads before the first week turns', !L.leader && L.luck('beta') === 0 && L.xp('beta') === 0);
+    const ev = L.kill(['alpha'], MON);
+    check('on Monday the guild with the most realm bosses is crowned Realm Leaders, and the new week starts from nothing (bar the kill that turned it)',
+      ev.length === 1 && ev[0].kind === 'crown' && ev[0].g === 'beta' && ev[0].kills === 3 && L.leader === 'beta' && L.s.kills.alpha === 1 && !L.s.kills.beta, JSON.stringify(ev));
+    check('the leaders\' members find more loot and gain more XP; nobody else does', L.luck('beta') === LUCK && L.xp('beta') === XP && L.luck('alpha') === 0 && L.xp('alpha') === 0 && LUCK > 0 && XP > 0);
+    const v = L.view((gk) => ({ name: gk.toUpperCase(), banner: '' }), 'beta');
+    check('everyone is told who leads and how the race stands', v.name === 'BETA' && v.me && v.top[0].name === 'ALPHA' && v.top[0].kills === 1 && v.ends > MON);
+    L.forget('beta');
+    check('a disbanded guild loses the crown', !L.leader && L.luck('beta') === 0);
+    const L2 = new Leaders({ week: weekOf(WED) });
+    check('a week nobody killed a realm boss in crowns nobody', L2.turn(MON)[0].g === '' && !L2.leader);
+    const { credit } = require('./wallet');
+    const sa = {}, sb = {}, ma = {}, mb = {};
+    const { Data: WD } = require('./sim/gen/game');
+    const foe = { def: WD.ENEMIES.ev_king, isBoss: true };
+    credit(ma, sa, 'h1', foe, WED, false, 0);
+    credit(mb, sb, 'h1', foe, WED, false, XP);
+    check('the server lets the leaders\' heroes gain their extra XP', sb._xpb.h1 > sa._xpb.h1 * 1.05, [sa._xpb.h1, sb._xpb.h1].join(' '));
   }
 
   console.log('the endless abyss (world)');
@@ -2287,12 +2271,11 @@ async function run() {
     G2.clear();
     G2.send({ t: 'enter', key: 'realm:' + rl.name + ':' + rl.seed, cid: 'gl1', x: gp ? gp.x : rw.spawnX, y: gp ? gp.y : rw.spawnY });
     await wait(1300);
-    const spm = G2.msgs.filter((m) => m.t === 'spires').pop();
-    check('players in a realm are shown its four Godlands Spires', spm && spm.l.length === 4 && spm.l.every((sp) => rw.zoneAt(sp.x, sp.y) === GW.GOD_ZONE && sp.name), JSON.stringify(spm && spm.l));
+    check('the Godlands have no Spires any more (Realm Leaders took their place)', !G2.msgs.some((m) => m.t === 'spires'));
     G2.clear();
-    G2.send({ t: 'cmd', text: '/spires' });
+    G2.send({ t: 'cmd', text: '/leaders' });
     await wait(300);
-    check('/spires: who holds each Spire', G2.find((m) => m.t === 'msg' && /North Spire: nobody/.test(m.text)), JSON.stringify(G2.msgs));
+    check('/leaders: who leads the realms and how the week\'s race stands', G2.find((m) => m.t === 'msg' && /Realm Leaders: /.test(m.text)), JSON.stringify(G2.msgs));
     G2.s.destroy();
   }
 

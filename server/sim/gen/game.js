@@ -2946,27 +2946,6 @@ class World {
 				}
 			}
 			this.makeSites(hx, hy);
-			this.makeShrines(hx, hy);
-		}
-	makeShrines(hx, hy) { hx = __int(hx); hy = __int(hy);
-			var want = __int(__int(this.N / 40));
-			for (var tries = __int(0); tries < 2000 && this.shrines.length < want; tries++) {
-				var x = __int(12 + __int(this.rnd() * (this.N - 24))), y = __int(12 + __int(this.rnd() * (this.N - 24)));
-				var z = __int(this.zones[y * this.N + x]);
-				if (z < World.LOW_ZONE || z > World.GOD_ZONE || this.tiles[y * this.N + x] == World.WATER) continue;
-				if ((x - hx) * (x - hx) + (y - hy) * (y - hy) < 30 * 30 || this.siteAt(x, y, 6)) continue;
-				var ok = true;
-				for (var o of __vals( this.shrines)) if ((o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < 40 * 40) { ok = false; break; }
-				if (!ok) continue;
-				var k = __int(__int(this.rnd() * World.SHRINES.length));
-				
-				for (var dy = __int(-2); dy <= 2; dy++) for (var dx = __int(-2); dx <= 2; dx++) {
-					var i = __int((y + dy) * this.N + x + dx);
-					if (dx * dx + dy * dy <= 5 && this.tiles[i] != World.WATER) { this.objs[i] = 0; this.tiles[i] = World.RUIN; }
-				}
-				this.objs[y * this.N + x] = 14 + k;
-				this.shrines.push({x: x + 0.5, y: y + 0.5, kind: World.SHRINES[k], cd: 0});
-			}
 		}
 	makeSites(hx, hy) { hx = __int(hx); hy = __int(hy);
 			var per = __int(Math.max(2, __int(this.N / 110)));
@@ -5938,7 +5917,8 @@ Data.TITLES = [
 			{id: "deep10", name: "the Abyssal", earn: "Clear wave 10 of the Endless Abyss", col: 0xa060ff},
 			{id: "deep25", name: "Voidwalker", earn: "Clear wave 25 of the Endless Abyss", col: 0xd080ff},
 			{id: "deepking", name: "Abyss Champion", earn: "Reach the highest wave of your class in the Endless Abyss in a week", col: 0xff60ff},
-			{id: "spirelord", name: "Lord of the Godlands", earn: "Be in the guild that held the Godlands Spires longest in a week", col: 0x7fd8ff},
+			{id: "realmlord", name: "Realm Leader", earn: "Be in the guild crowned Realm Leaders (the most realm bosses slain in a week)", col: 0xffd75e},
+			{id: "spirelord", name: "Lord of the Godlands", earn: "Held the old Godlands Spires longest in a week (no longer earned)", col: 0x7fd8ff},
 			{id: "siegeguard", name: "Realm Defender", earn: "Help beat back a Realm Siege", col: 0xd09060},
 			{id: "merchant", name: "Merchant Prince", earn: "Sell 10 items on the Marketplace", col: 0x6fe08f},
 			{id: "questor", name: "Questmaster", earn: "Claim 4 weekly quests", col: 0xf0d080},

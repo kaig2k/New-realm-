@@ -61,11 +61,11 @@ function heroFame(c) {
   return Math.min(5000000, n('totalXp') / 8 + n('kills') * 0.5 + n('bossKills') * 150 + n('potsDrunk') * 5);
 }
 
-/** Player (meta, save, hero id) took part in killing e; near: only close by (XP, so fame, but no gold). */
-function credit(meta, sv, charId, e, now, near) {
+/** Player (meta, save, hero id) took part in killing e; near: only close by (XP, so fame, but no gold); xpBonus: the Realm Leaders' extra XP (0.1). */
+function credit(meta, sv, charId, e, now, near, xpBonus) {
   const v = killValue(e);
-  // (Ascendant Wisdom: the account's tree gives more XP)
-  v.xp = Math.ceil(v.xp * (1 + Data.ascRank(sv.asc, 'wisdom') * 0.04));
+  // (Ascendant Wisdom: the account's tree gives more XP, and so does leading the realms)
+  v.xp = Math.ceil(v.xp * (1 + Data.ascRank(sv.asc, 'wisdom') * 0.04 + (Number(xpBonus) || 0)));
   if (!near) {
     const w = state(meta);
     w.gold.push({ n: v.gold, at: now || Date.now() });

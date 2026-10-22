@@ -323,23 +323,52 @@ package realm {
 			else if (it.kind == "armor") dressArmour(it, cells, ring, put, el, grand, h, shp);
 			else dressSymmetric(it, cells, skel, ring, put, el, grand, h);
 
-			// ---- shading: light from the top-left
+			// ---- shading: light from the top-left, five tones a part (glint, light, base, shade, deep)
+			var KEYS:Object = {m: ["A", "H", "B", "b", "a"], g: ["y", "Y", "W", "w", "v"], t: ["j", "J", "G", "g", "h"], e: ["E", "X", "R", "r", "c"],
+				x: ["N", "M", "M", "m", "n"], f: ["F", "K", "k", "q", "Q"], s: ["S", "S", "S", "S", "S"], o: ["O", "O", "O", "O", "O"],
+				z: ["Z", "Z", "Z", "Z", "Z"], d: ["b", "b", "b", "a", "a"]};
+			pal.A = tint(pal.H, 0.55); pal.a = shade(pal.b, 0.6); pal.y = tint(pal.Y, 0.4); pal.v = shade(pal.w, 0.6);
+			pal.j = tint(pal.J, 0.55); pal.h = shade(pal.g, 0.6); pal.E = tint(pal.X, 0.6); pal.c = shade(pal.r, 0.6);
+			pal.F = tint(pal.K, 0.4); pal.Q = shade(pal.q, 0.6); pal.N = tint(pal.M, 0.45); pal.n = shade(pal.m, 0.6);
+			pal.R = uint(pal.R); pal.X = uint(pal.X);
+			// the light falls across the whole drawing: brighter toward its top-left, darker toward its foot
+			var bx0:int = 8, by0:int = 8, bx1:int = -1, by1:int = -1;
+			for (y = 0; y < 8; y++) for (x = 0; x < 8; x++) if (cells[y][x] != "") { bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); }
+			var mid:Number = (bx0 + bx1 + by0 + by1) / 2, span:Number = Math.max(2, (bx1 - bx0 + by1 - by0) / 2);
+			var open:Function = function(x:int, y:int):Boolean { return x < 0 || y < 0 || x > 7 || y > 7 || cells[y][x] == "" || cells[y][x] == "o"; };
+			var score:Array = [];
+			var best:Object = {};   // each part's brightest cell takes the glint
+			for (y = 0; y < 8; y++) {
+				score.push([0, 0, 0, 0, 0, 0, 0, 0]);
+				for (x = 0; x < 8; x++) {
+					var part:String = cells[y][x];
+					if (part == "") continue;
+					var sc:Number = 0.5 * (mid - x - y) / span;
+					// rim light on the edges facing the light, core shadow on the edges turned from it
+					if (open(x, y - 1)) sc += 0.7;
+					if (open(x - 1, y)) sc += 0.5;
+					if (open(x, y + 1)) sc -= 0.7;
+					if (open(x + 1, y)) sc -= 0.5;
+					// a part sitting under another is in its shadow (a blade under its guard, a gem in its setting)
+					if (y > 0 && cells[y - 1][x] != "" && cells[y - 1][x] != part && part != "e") sc -= 0.35;
+					if (x > 0 && cells[y][x - 1] != "" && cells[y][x - 1] != part && part != "e") sc -= 0.2;
+					// a blade's spine catches the light
+					if (part == "m" && diag && skel[y][x]) sc += 0.9;
+					score[y][x] = sc;
+					if (!best[part] || sc > best[part][2]) best[part] = [x, y, sc];
+				}
+			}
 			var rows:Array = [];
-			var KEYS:Object = {m: ["H", "B", "b"], g: ["Y", "W", "w"], t: ["J", "G", "g"], e: ["X", "R", "r"], x: ["M", "M", "m"], s: ["S", "S", "S"],
-				o: ["O", "O", "O"], z: ["Z", "Z", "Z"], f: ["K", "k", "q"], d: ["b", "b", "b"]};
 			for (y = 0; y < 8; y++) {
 				var row:String = "";
 				for (x = 0; x < 8; x++) {
-					var part:String = cells[y][x];
-					if (part == "") { row += "."; continue; }
-					var k:Array = KEYS[part] || KEYS.m;
-					var upEmpty:Boolean = y == 0 || cells[y - 1][x] == "" || x == 0 || cells[y][x - 1] == "";
-					var downEmpty:Boolean = y == 7 || cells[y + 1][x] == "" || x == 7 || cells[y][x + 1] == "";
-					var lit:Boolean = upEmpty && !downEmpty;
-					var dark:Boolean = downEmpty && !upEmpty;
-					// a blade's spine catches the light
-					if (part == "m" && diag && skel[y][x]) lit = true;
-					row += lit ? k[0] : dark ? k[2] : k[1];
+					var pt:String = cells[y][x];
+					if (pt == "") { row += "."; continue; }
+					var k:Array = KEYS[pt] || KEYS.m;
+					var v:Number = score[y][x];
+					var b:Array = best[pt];
+					var glint:Boolean = b && b[0] == x && b[1] == y && (pt == "e" || ((pt == "m" || pt == "t" || pt == "f") && v >= 1.1));
+					row += glint ? k[0] : v >= 0.8 ? k[1] : v >= -0.5 ? k[2] : v >= -1.3 ? k[3] : k[4];
 				}
 				rows.push(row);
 			}

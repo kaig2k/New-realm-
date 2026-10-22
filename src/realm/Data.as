@@ -428,19 +428,6 @@ package realm {
 		/** An older tiered weapon brought up to its tier's signature (same weapon, same form; true if it changed). */
 		/** Siege weapons from before its rebalance (+35% damage, full fire rate) are brought in line once. */
 		public static const SIEGE_V:int = 2;
-		// ---- what Attack, Dexterity, Might and Luck do to a hero's damage (Player, the server's checks, the bench)
-		/** Past this much Attack or Dexterity, each point counts for only STAT_PAST of one (gear stacked on a maxed hero). */
-		public static const STAT_KNEE:int = 80;
-		public static const STAT_PAST:Number = 0.25;
-		public static function softStat(v:Number):Number { return v <= STAT_KNEE ? v : STAT_KNEE + (v - STAT_KNEE) * STAT_PAST; }
-		/** A shot's damage multiplier from Attack. */
-		public static function attMult(att:Number):Number { return 0.5 + softStat(att) / 50; }
-		/** Shots a second from Dexterity (before the weapon's own rate). */
-		public static function dexRate(dex:Number):Number { return 1.5 + 6.5 * softStat(dex) / 75; }
-		/** The most a crit can be: CRIT_CAP chance; x1.5, +0.1 per 25 Might, +0.04 per rank of Ferocity. */
-		public static const CRIT_CAP:Number = 0.3;
-		public static function critMult(mgt:Number, ferocity:int):Number { return 1.5 + mgt / 250 + ferocity * 0.04; }
-
 		/** A weapon's damage a second on one target (both ends of its roll, every shot, its extras). */
 		public static function weaponDps(w:Object):Number {
 			if (!w) return 0;
@@ -1615,10 +1602,6 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
-			{id: "2026-10-softcaps", title: "What's new in Eldmere",
-				lines: ["<b>Damage soft caps</b>: a hero in a full Godly set with a maxed skill tree could deal well over a hundred thousand damage a second, enough to melt any boss. Attack and Dexterity past 80 now count for a quarter each.",
-					"<b>Crits</b>: crit chance tops out at 30%, Might adds +0.1x crit damage per 25 (was per 10), and Ferocity gives +0.04x a rank (was +0.08x).",
-					"Heroes in ordinary gear are hardly touched: this only reins in gear stacked far past a maxed hero."]},
 			{id: "2026-10-outliers", title: "What's new in Eldmere",
 				lines: ["<b>Boss fixes</b>: after the big health boost a few bosses went too far, and they're brought back in line.",
 					"<b>Realm Siege</b>: Vorgath the Siege Warlord had been given far too much health and hit harder than he should. A full camp of heroes now brings him down in about a quarter of an hour, not most of an hour.",
@@ -2296,7 +2279,7 @@ package realm {
 			// ---- Might
 			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+3% damage", max: 5},
 			{id: "precision", b: 0, t: 0, name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.04x crit damage", max: 5},
+			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.08x crit damage", max: 5},
 			{id: "honed", b: 0, t: 1, name: "Honed Edge", desc: "+2 Attack", max: 5},
 			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+8% damage to monsters under 30% HP", max: 3},
 			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+2 Might", max: 3},

@@ -62,8 +62,8 @@ function hero(cls, g) {
     maxHp: Math.round(st.hp + add('hp')), def: Math.round(st.def + add('def')),
     regen: 1 + (st.vit + add('vit')) * 0.12,
     speed: 4 + 5.6 * (spd / 75),
-    fireRate: Data.dexRate(dex) * (w.rate || 1),
-    mult: Data.attMult(att),
+    fireRate: (1.5 + 6.5 * dex / 75) * (w.rate || 1),
+    mult: 0.5 + att / 50,
     range: (w.spd || 10) * (w.life || 0.6)
   };
 }

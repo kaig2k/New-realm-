@@ -218,10 +218,10 @@ package realm {
 		public function get frt():int { return bonus("frt"); }
 		/** Every +1 Protection gives about +3 PT. */
 		public function get maxPt():int { return prt * 3; }
-		/** Base 5%, +1% per 10 Luck (and +10% from the Critical passive), at most Data.CRIT_CAP. */
-		public function get critChance():Number { return Math.min(Data.CRIT_CAP, 0.05 + luc / 1000 + (weapon && weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02); }
-		/** Base x1.5, +0.1 per 25 Might (Data.critMult). */
-		public function get critMult():Number { return Data.critMult(mgt, rank("ferocity")); }
+		/** Base 5%, +1% per 10 Luck (and +10% from the Executioner passive). */
+		public function get critChance():Number { return 0.05 + luc / 1000 + (weapon && weapon.passive == "critical" ? 0.1 : 0) + rank("precision") * 0.02; }
+		/** Base x1.5, +0.1 per 10 Might. */
+		public function get critMult():Number { return 1.5 + mgt / 100 + rank("ferocity") * 0.08; }
 		/** Arcana: Arcane Surge turns max MP into damage (+1% per 20, up to +30%), Clarity rewards staying topped up. */
 		public function get manaMult():Number {
 			var m:Number = 1;
@@ -355,7 +355,7 @@ package realm {
 		}
 
 		public function get fireRate():Number {
-			return Data.dexRate(dex) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1);
+			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1);
 		}
 
 		public function update(dt:Number, g:Game):void {
@@ -485,7 +485,7 @@ package realm {
 			if (!w) { shootT = 0.5; g.tip("noweapon", "You have no weapon equipped. Click or drag one into your weapon slot."); return; }
 			shootT = 1 / fireRate;
 			var ang:Number = Math.atan2(aimY - y, aimX - x);
-			var mult:Number = Data.attMult(att);
+			var mult:Number = 0.5 + att / 50;
 			// its own shot (a tiered weapon's for its tier, a rarity weapon's its type's best in its rarity's colour)
 			// (uniques and Godly weapons keep the shots they were made with)
 			// (a Godly weapon fires its set's own shot: Sprites.godlyShot)

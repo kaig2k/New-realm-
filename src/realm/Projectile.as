@@ -38,6 +38,8 @@ package realm {
 		public var split:Object;
 		/** Explodes where it hits or lands (Fireball): {r, dmg}. */
 		public var boom:Object;
+		/** The Phoenix Quill: damage of the burning ground it leaves behind, and when it next drops some. */
+		public var fireTrail:int = 0, fireTrailT:Number = 0;
 		/** Ghosts' shots drift through walls. */
 		public var passWalls:Boolean = false;
 		/** Time Stop: seconds this enemy bullet still hangs frozen in the air. */

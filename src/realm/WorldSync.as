@@ -104,10 +104,18 @@ package realm {
 		}
 
 		/** You hit a remote copy: tell the host (it decides when the monster dies). */
-		public function hit(e:Enemy, dmg:int, slow:Number, stun:Number):void {
+		public function hit(e:Enemy, dmg:int, slow:Number, stun:Number, hex:Boolean = false):void {
 			if (!active || !e.remote || !e.id) return;
 			e.ownHitAt = getTimer();
-			send("host", {t: "ehit", id: e.id, d: dmg, sl: slow, st: stun});
+			var m:Object = {t: "ehit", id: e.id, d: dmg, sl: slow, st: stun};
+			if (hex) m.hx = 1;
+			send("host", m);
+		}
+
+		/** A Cloak of Mirrors' decoy: the host's monsters aim at it for a moment. */
+		public function decoy(x:Number, y:Number, secs:Number):void {
+			if (!active) return;
+			send("host", {t: "decoy", x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, s: secs});
 		}
 
 		/** A dungeon portal appeared (only the host rolls drops). */

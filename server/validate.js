@@ -44,7 +44,7 @@ function checkItem(it) {
     if (it[s] > cap || it[s] < -60) return s + ' too high on ' + (it.name || 'an item');
   }
   if (it.kind === 'weapon') {
-    if (!isNum(it.dmin) || !isNum(it.dmax) || it.dmin < 0 || it.dmax > 800 || it.dmin > it.dmax) return 'impossible damage on ' + (it.name || 'a weapon');
+    if (!isNum(it.dmin) || !isNum(it.dmax) || it.dmin < 0 || it.dmax > 1100 || it.dmin > it.dmax) return 'impossible damage on ' + (it.name || 'a weapon');
     if (it.shots !== undefined && (!isNum(it.shots) || it.shots < 1 || it.shots > 9)) return 'impossible shot count';
     if (it.rate !== undefined && (!isNum(it.rate) || it.rate <= 0 || it.rate > 2.5)) return 'impossible fire rate';
     if (it.life !== undefined && (!isNum(it.life) || it.life > 3)) return 'impossible range';

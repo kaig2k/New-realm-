@@ -95,7 +95,9 @@ function caps(ch, pet, extra) {
   const rate = Math.ceil((weaponDps + abilityDps + petHit * 1.5 * petVolley + (8 + level) * pow * 2) * boost * 1.25) + 50;
   // (and what it can take: its Defense with the best Defense aura there is, and its health)
   // (pets: Stone Guard, Bastion and Ash Guardian add Defense)
-  return { hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def', extra) + AURA_DEF + (pet && typeof pet === 'object' ? Data.petDef(pet) : 0), maxHp: stat(ch, 'hp', extra) };
+  // (the item ladder: a Hexbound Wand can hex, a Cloak of Mirrors can leave a decoy)
+  const hex = !!(w && w.x && w.x.hex), decoy = !!(a && a.abx && a.abx.decoy);
+  return { hex, decoy, hit, rate, burst: hit * HITS_PER_CAST + rate * 2, def: stat(ch, 'def', extra) + AURA_DEF + (pet && typeof pet === 'object' ? Data.petDef(pet) : 0), maxHp: stat(ch, 'hp', extra) };
 }
 /** The most Defense a Warrior's banner (Abilities: 10 x its power) gives everyone near it. */
 const AURA_DEF = 30;

@@ -1710,6 +1710,7 @@ package realm {
 			}
 			updateNexus(dt);
 			updateTraps(dt);
+			updateDecoy(dt);
 			updateAfflictions(dt);
 			abil.update(dt);
 			introBosses();
@@ -1889,7 +1890,7 @@ package realm {
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
-					tip("event", "Event bosses drop Runed and Bonded gear, Star Shards and dungeon portals. Kill " + Data.EVENTS_PER_REALM + " to face the Dark Elder.");
+					tip("event", "Event bosses drop their own UT and Legendary items, tier 6-7 gear and dungeon portals. Kill " + Data.EVENTS_PER_REALM + " to face the Dark Elder.");
 					return;
 				}
 			}
@@ -1928,6 +1929,11 @@ package realm {
 				s.life -= dt;
 				// your own shots leave their weapon's trail
 				if (!s.enemy && !s.bot && parts.length < 420 && opt("parts")) shotTrail(s);
+				// the Phoenix Quill's arrows leave a short trail of fire
+				if (!s.enemy && s.fireTrail > 0) {
+					s.fireTrailT -= dt;
+					if (s.fireTrailT <= 0) { s.fireTrailT = 0.12; abil.addZone(s.x, s.y, 0.7, 1.4, s.fireTrail, 0); }
+				}
 				var remove:Boolean = s.life <= 0;
 				if (remove && s.split) splitShot(s);
 				if (remove && s.boom) abil.explode(s);
@@ -2080,6 +2086,14 @@ package realm {
 			raw = int(raw * p.damageMult);
 			// War Cry: shaken monsters take a quarter more
 			if (e.vulnT > 0) raw = int(raw * 1.25);
+			// a mark (Bonebind Snare's roots, the Warden's Lantern) and a Hexbound Wand's hex (10% more from everyone)
+			if (e.markT > 0) raw = int(raw * (1 + e.markMul));
+			if (e.hexT > 0) raw = int(raw * 1.1);
+			if (effect == "hex") e.hexT = 3;
+			// the Prismatic Wand's green shots heal you
+			if (effect == "heal2" && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 2);
+			// Tidebound (a Starforged Drowned Plate): +15% while you stand in water
+			if (!dot && p.hasSf("tidebound") && world.inWater(p.x, p.y)) raw = int(raw * 1.15);
 			if (p.leech > 0 && !dot) p.hp = Math.min(p.maxHp, p.hp + p.leech);
 			if (e.hp < e.maxHp * 0.3) raw = int(raw * (1 + p.rank("executioner") * 0.08));
 			// Predator (bosses) and Ambush (untouched monsters)
@@ -2096,7 +2110,11 @@ package realm {
 			if (crit) raw = int(raw * p.critMult * (e.isBoss && p.rank("apex") > 0 ? 1.15 : 1));
 			if (!dot) p.shotsHit++;
 			// Piercing Shot ignores defense
-			var d:int = effect == "true" || effect == "venom" ? Math.max(1, raw) : Math.max(1, raw - e.defense, int(raw * 0.15));
+			// (Titanbreaker's blades ignore 15 of it)
+			var edef:int = effect == "sunder" ? Math.max(0, e.defense - 15) : e.defense;
+			var d:int = effect == "true" || effect == "venom" ? Math.max(1, raw) : Math.max(1, raw - edef, int(raw * 0.15));
+			// Ignite (a Starforged Flamewarden's Signet): a crit burns for 2s, 20% of the hit again
+			if (crit && !dot && p.hasSf("ignite")) { e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, int(d * 0.05) + 1); e.poisonT = Math.max(e.poisonT, 2); }
 			// a remote copy's health is only our guess: the host gets the full hit and caps it itself
 			if (!e.remote && d > e.hp) d = Math.ceil(e.hp);
 			e.hp = Math.max(0, e.hp - d);
@@ -2109,7 +2127,7 @@ package realm {
 				if (world.canStand(e.x + kx / kd * push, e.y + ky / kd * push, e.r * 0.8, true)) { e.x += kx / kd * push; e.y += ky / kd * push; }
 			}
 			if (e.isBoss) p.bossDmg += d;
-			if (e.remote) sync.hit(e, d, effect == "slow" ? 3 : 0, 0);
+			if (e.remote) sync.hit(e, d, effect == "slow" ? 3 : 0, 0, effect == "hex");
 			if (opt("dmg")) floatText(e.x, e.y - e.r - 0.6, crit ? d + "!" : String(d), crit ? 0xffe040 : 0xff4040);
 			if (effect == "slow") e.slowT = 3;
 			if (effect == "poison" && e.hp > 0) {
@@ -2125,7 +2143,7 @@ package realm {
 						p.hp = Math.min(p.maxHp, p.hp + 4);
 						break;
 					case "frost":
-						if (Math.random() < 0.12) e.slowT = 2;
+						if (Math.random() < 0.12 * (p.weapon.sfb || 1)) e.slowT = 2;
 						break;
 					case "shards":
 						if (Math.random() < 0.06) {
@@ -2160,6 +2178,8 @@ package realm {
 		private function updateAfflictions(dt:Number):void {
 			for each (var e:Enemy in enemies.concat()) {
 				if (e.vulnT > 0) e.vulnT -= dt;
+				if (e.markT > 0) e.markT -= dt;
+				if (e.hexT > 0) e.hexT -= dt;
 				if (e.poisonT <= 0 || e.dead) continue;
 				e.poisonT -= dt;
 				e.poisonTick -= dt;
@@ -2198,8 +2218,9 @@ package realm {
 		}
 
 		/** Huntress trap: lands at the target, arms, then bursts (Snare: vines and slowing shards; Explosive: fire). */
-		public function throwTrap(fx:Number, fy:Number, tx:Number, ty:Number, dmg:int, kind:String = "snare"):void {
-			traps.push({x: tx, y: ty, t: 0.5, life: 6, dmg: dmg, kind: kind});
+		/** mark: rooted monsters take that much more damage (Bonebind Snare); cloud: it leaves poison (Witch's Brew). */
+		public function throwTrap(fx:Number, fy:Number, tx:Number, ty:Number, dmg:int, kind:String = "snare", mark:Number = 0, cloud:Boolean = false):void {
+			traps.push({x: tx, y: ty, t: 0.5, life: 6, dmg: dmg, kind: kind, mark: mark, cloud: cloud});
 			burst(tx, ty, 0xc0a060, 8);
 		}
 
@@ -2225,6 +2246,11 @@ package realm {
 				if (fire) {
 					// Snare: vines root everything close, then the trap bursts
 					var rooted:int = stunAround(t.x, t.y, 2.6, 1.6);
+					if (t.mark > 0) for each (var me:Enemy in enemies) {
+						var mdx:Number = me.x - t.x, mdy:Number = me.y - t.y;
+						if (!me.dead && mdx * mdx + mdy * mdy < 2.6 * 2.6) { me.markT = 1.6; me.markMul = t.mark; }
+					}
+					if (t.cloud) abil.addZone(t.x, t.y, 2.4, 3, int(t.dmg * 0.25), 0, true);
 					abil.show("vines", t.x, t.y, 0, 0, 2.6, false);
 					if (rooted > 0) floatText(t.x, t.y - 1, "Rooted x" + rooted, 0x80e060);
 					var fr:Vector.<BitmapData> = Sprites.projectile("dart", 0xe0c070, 3);
@@ -2345,6 +2371,8 @@ package realm {
 				else if (e.def.dungeon && !e.def.guardian && !(e.def.trio && aliveWith("trio") > 0) && !(world.theme && world.theme.lair)) { questEvent("dungeon"); p.dungeons++; }
 				else if (e.isBoss) questEvent("events");
 				p.kills++;
+				// Shifting Sands (a Starforged Sandglass Ring): each kill quickens your fire
+				if (p.hasSf("shifting")) p.shifted();
 			}
 			if (mine && !e.def.treasure && !e.def.crate) addStreak(e);
 			// Clarity: mana back from every kill
@@ -3097,12 +3125,32 @@ package realm {
 			}
 		}
 
+		/** A Cloak of Mirrors' mirror image: {x, y, t}, or null. */
+		public var decoy:Object = null;
+		public function addDecoy(x:Number, y:Number, secs:Number):void {
+			decoy = {x: x, y: y, t: secs};
+			sync.decoy(x, y, secs);
+			burst(x, y, 0xc0a0ff, 16);
+		}
+		private function updateDecoy(dt:Number):void {
+			if (!decoy) return;
+			decoy.t -= dt;
+			if (decoy.t <= 0) { burst(decoy.x, decoy.y, 0xc0a0ff, 10); decoy = null; return; }
+			if (opt("parts") && parts.length < 400 && Math.random() < 0.6)
+				parts.push(new Particle(decoy.x + (Math.random() - 0.5) * 0.6, decoy.y - 0.3 - Math.random() * 0.6, 0, -0.6, 0.4, Sprites.glow(Math.random() < 0.5 ? 0xc0a0ff : 0xffffff)));
+		}
+
 		/** The nearest player a monster can see (others count online). */
 		public function aggroTarget(e:Enemy):Object {
 			var best:Object = null, bd:Number = 1e9;
 			if (player.hp > 0 && player.invisT <= 0 && !world.isSafe(player.x, player.y) && dyingT <= 0) {
 				bd = (player.x - e.x) * (player.x - e.x) + (player.y - e.y) * (player.y - e.y);
 				best = player;
+			}
+			// a Cloak of Mirrors' decoy draws their fire while it lasts
+			if (decoy && decoy.t > 0) {
+				var dd:Number = (decoy.x - e.x) * (decoy.x - e.x) + (decoy.y - e.y) * (decoy.y - e.y);
+				if (dd < bd + 9) { bd = dd; best = decoy; }
 			}
 			if (net.online) for each (var rp:RemotePlayer in net.players) {
 				if (world.isSafe(rp.x, rp.y)) continue;
@@ -3736,7 +3784,7 @@ package realm {
 		/** What each Nexus station is for, told the first time you open it. */
 		private static const STATION_TIPS:Object = {
 			keys: "The Key Merchant sells dungeon keys (a portal right where you stand), potions and Star Shards, for gold.",
-			forge: "The Starforge turns a Runed, Bonded or Eldritch item into a Starforged one (with a Star Shard and Aether), and rerolls prefixes and bonus stats.",
+			forge: "The Starforge turns a Legendary into its Starforged self (with a Star Shard and Aether).",
 			market: "The Marketplace: buy what other players list, and sell your own items for gold. Sales wait for you even when you're offline. Shift-click an item here to sell it to the merchant.",
 			quests: "The Quest Board: three daily quests and a weekly one, for gold and Aether. The server counts your progress; claim rewards here.",
 			pets: "The Pet Yard: hatch a pet that follows you, heals you and shoots monsters. Feed it gold to level it up.",

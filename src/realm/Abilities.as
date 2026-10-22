@@ -336,11 +336,11 @@ package realm {
 		}
 
 		/** Lightning Strike lands: the nearest monster, then up to 3 jumps. */
-		public function lightning(x:Number, y:Number, dmg:int):void {
+		public function lightning(x:Number, y:Number, dmg:int, more:int = 0):void {
 			var hit:Array = [];
 			var cur:Enemy = nearestEnemy(x, y, 1.8, hit);
 			var px:Number = x, py:Number = y;
-			for (var j:int = 0; j < 4 && cur; j++) {
+			for (var j:int = 0; j < 4 + more && cur; j++) {
 				if (j > 0) anim("chain", px, py, 0.3, {tx: cur.x, ty: cur.y, seed: Math.random() * 100});
 				g.hurtEnemy(cur, dmg, null, cur.x, cur.y);
 				g.burst(cur.x, cur.y, 0xc0d8ff, 6);
@@ -441,8 +441,9 @@ package realm {
 			}
 		}
 
-		public function addZone(x:Number, y:Number, r:Number, life:Number, dmg:int, heal:int, venom:Boolean = false):void {
-			zones.push({x: x, y: y, r: r, life: life, tick: 0, dmg: dmg, heal: heal, venom: venom});
+		/** mark: monsters inside take that much more damage (the Warden's Lantern). */
+		public function addZone(x:Number, y:Number, r:Number, life:Number, dmg:int, heal:int, venom:Boolean = false, mark:Number = 0):void {
+			zones.push({x: x, y: y, r: r, life: life, tick: 0, dmg: dmg, heal: heal, venom: venom, mark: mark});
 		}
 
 		public function addSpirits(n:int, life:Number, dmg:int):void {
@@ -507,6 +508,7 @@ package realm {
 						for each (e in g.enemies.concat()) {
 							dx = e.x - z.x; dy = e.y - z.y;
 							if (!e.dead && dx * dx + dy * dy < z.r * z.r) {
+								if (z.mark > 0) { e.markT = 0.6; e.markMul = Math.max(e.markT > 0 ? e.markMul : 0, z.mark); }
 								g.hurtEnemy(e, z.dmg, z.venom ? "venom" : "shard", e.x, e.y);
 								g.burst(e.x, e.y, 0xfff0a0, 3);
 							}

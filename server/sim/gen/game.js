@@ -1119,9 +1119,9 @@ class Uniques {
 				return "lg";
 			}
 			if (d.final || d.finale) return "lg";
-			if (d.dungeon) return d.dtier >= 5 ? "lg" : d.dtier != undefined && d.dtier <= 2 ? "ut" : "fb";
+			if (d.dungeon) return d.dtier != undefined && d.dtier <= 2 ? "ut" : "lg";
 			
-			return d.xp >= 1800 ? "lg" : "fb";
+			return d.xp >= 1800 ? "lg" : "ut";
 		}
 	static make(id) {
 			if (Uniques.FIXED[id]) return Uniques.makeFixed(id);
@@ -4272,6 +4272,9 @@ class Enemy {
 		this.poisonTick = 0;
 		this.poisonDmg = __int(0);
 		this.vulnT = 0;
+		this.markT = 0;
+		this.markMul = 0;
+		this.hexT = 0;
 		this.facingLeft = false;
 		this.props = null;
 		this.spMask = __int(0);
@@ -5980,6 +5983,14 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-ladder", title: "What's new in Eldmere",
+				lines: ["<b>One item ladder</b>: above T7 every item is now a named one with fixed stats and a special of its own: <font color='#b070ff'>UT</font>, <font color='#ffd23a'>Legendary</font>, <font color='#8ae8ff'>Starforged</font>, <font color='#ff5533'>Primordial</font> and <font color='#fff6e0'>Godly</font>, each step clearly stronger. No random rolls: the same item every time.",
+					"<b>Every boss has its own</b>: the early dungeons three UTs each, the Godlands dungeons three UTs and a Legendary, every realm event a UT and one or two Legendaries, the event dungeons Legendaries. A UT drops 1 in 50 (luck doesn't change it), a Legendary 1 in 100. Over 30 new items, from Swashbuckler's Tunic to the Shardglass Alembic.",
+					"<b>Specials</b>: the Prismatic Wand's three colours, the Hexbound Wand's hex (+10% damage from your whole party), Titanbreaker's blades that ignore 15 defense, the Phoenix Quill's fire trail, the Cloak of Mirrors' decoy, a third spirit skull, chain lightning and more.",
+					"<b>The Starforge</b> now upgrades a Legendary: it + a Star Shard + 100 Aether = its Starforged self, same name and special, raised to the top of its slot. Armour and rings gain a passive (Tidebound, Lavawalker, Moonwell, Riptide, Last Bastion, Ignite...).",
+					"<b>Star Shards</b> drop only from the last boss of a multi-boss dungeon (the Tomb of the Three Kings, the Shattered Sanctum), 1 in 150 for each player. The Marketplace, goblins and mimics no longer have them.",
+					"<b>Gone</b>: Runed, Bonded and Eldritch random gear, class sets, rerolls, Fortune's Anvil and random weapon forms. Items you already have keep working. Cursed gear stays, now in green.",
+					"<b>Harder</b>: the Sunken Crypt, Ember Depths, Storm Spire and Forgotten Cellar have about 40% more health and hit harder."]},
 			{id: "2026-10-itemart", title: "What's new in Eldmere",
 				lines: ["<b>Every item redrawn</b>: weapons, armour, abilities, rings, uniques and Godly gear all have new art, built on one set of shapes so they read clearly at a glance: swords with crossguards, daggers hilt-up, wands and staves with glowing orb heads, bows with their strings.",
 					"<b>They look like what they're called</b>: Flame weapons burn, Frost ones grow crystals, Void and Shadow ones trail wisps, Star ones glint, Blood and Venom drip. Rusty is rusty, Mithril is pale blue, Bone is bone. The Powder Keg is a keg, the Crowns are crowns, the Trident is a trident.",
@@ -6214,10 +6225,10 @@ Data.EVENTS_PER_REALM = __int(8);
 Data.OVERLORD = "Azrakor the Dark Elder";
 Data.ELDER_CRYSTALS = [[-8, -5], [8, -5], [-8, 5], [8, 5]];
 Data.DUNGEONS = [
-			{id: "crypt", wall: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
-			{id: "depths", wall: "basalt", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
-			{id: "spire", wall: "pale", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
-			{id: "cellar", layout: "grid", dark: true, name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
+			{id: "crypt", hard: 1.4, wall: "crypt", layout: "cave", hazard: "water", dark: true, name: "Sunken Crypt", color: 0x6ad0ff, floor: 9, accent: 4, tier: 4, mobs: ["skeleton", "skeleton", "shade", "gazer"], boss: "warden"},
+			{id: "depths", hard: 1.4, wall: "basalt", layout: "cave", hazard: "lava", name: "Ember Depths", color: 0xff6020, floor: 6, accent: 7, tier: 4, mobs: ["imp", "imp", "orc", "goblin"], boss: "pyrelord"},
+			{id: "spire", hard: 1.4, wall: "pale", layout: "islands", name: "Storm Spire", color: 0xf0e040, floor: 13, accent: 14, tier: 4, mobs: ["djinn", "elf", "elf", "hobbit"], boss: "seraph"},
+			{id: "cellar", hard: 1.4, layout: "grid", dark: true, name: "Forgotten Cellar", color: 0x6090ff, floor: 4, accent: 9, tier: 4, mobs: ["bandit", "hobbit", "gazer", "elf"], boss: "sorcerer"},
 			{id: "pirate_cove", wall: "driftwood", layout: "cave", hazard: "water", name: "Pirate Cove", color: 0xe0b060, floor: 1, accent: 16, tier: 0, small: true, mobs: ["pirate", "pirate", "pirate_brawler", "scorpion"], boss: "cove_boss"},
 			{id: "forest_maze", wall: "roots", layout: "maze", name: "Forest Maze", color: 0x40c040, floor: 2, accent: 3, tier: 1, small: true, mobs: ["green_slime", "wolf", "goblin", "hobbit"], boss: "moth_boss"},
 			{id: "snake_pit", wall: "mossy", layout: "ring", hazard: "water", name: "Snake Pit", color: 0x60d060, floor: 6, accent: 1, tier: 2, mobs: ["great_snake", "snake", "great_snake", "spider"], boss: "serpent_boss"},

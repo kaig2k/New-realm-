@@ -21,11 +21,11 @@ package realm {
 		/** The server's fastest event kills: records[eventId] = [{ms, names}] (null until it has answered). */
 		public static var records:Object = null;
 		private static const LOOT:Array = [
-			"Event uniques are Eldritch; the biggest events (1,800+ XP) drop Starforged ones. Also: tier 6-7 gear, stat potions, dungeon portals.",
-			"Uniques: Runed from the early dungeons, Eldritch from the rest. Also: tiered or Bonded set gear, stat potions.",
-			"Uniques here are Starforged. Also: Bonded and Eldritch gear, stat potions, a chance of Starforged. GD items: 1 in 1,000.",
-			"Finale uniques are Starforged. Also: Eldritch gear, stat potions, Starforged / Primordial chance. GD items: 1 in 1,000.",
-			"Raid uniques: Starforged, and Primordial from each raid's final boss. Also the best SF / PR odds. GD items: 1 in 1,000.",
+			"Each event has a UT (1 in 50) and one or two Legendaries (1 in 100 each). Also: tier 6-7 gear, stat potions, dungeon portals.",
+			"Early dungeons: three UTs each. Godlands dungeons: three UTs and a Legendary. Event dungeons: Legendaries; the last boss of a multi-boss one can drop a Star Shard. Also: tiered gear, stat potions.",
+			"Legendaries here, and the last boss's Star Shard (1 in 150 each). Also: tier 7 gear, stat potions. GD items: 1 in 1,000.",
+			"Finale uniques are Legendary. Also: tier 7 gear, stat potions. GD items: 1 in 1,000.",
+			"Raid uniques: Legendary, and Primordial from each raid's final boss. Also: tier 7 gear. GD items: 1 in 1,000.",
 			"A Primordial unique for every item there is, all from the raids' final bosses. Hover one for its stats and where it drops.",
 			"Ability items drop holding one of their class's three abilities. Hover an icon for its full description.",
 			"",
@@ -36,10 +36,10 @@ package realm {
 		/** The Guide tab, one page at a time. */
 		private static const GUIDE:Array = [
 			"<font size='15' color='#ffd75e'><b>Item rarities</b></font>\n" +
-			"Tiered gear goes from T0 to T7. Above that, from common to rarest: " +
-			"<font color='#6aa8ff'>Runed</font>, <font color='#4ee08a'>Bonded</font> (class sets, 4-piece bonus), " +
-			"<font color='#c85cff'>Eldritch</font>, <font color='#ffc23a'>Starforged</font>, <font color='#ff5533'>Primordial</font> and " +
-			"<font color='#fff6e0'>Godly</font>.\n" +
+			"Tiered gear goes from T0 to T7. Above that one ladder of named items, each step clearly stronger: " +
+			"<font color='#b070ff'>UT</font> (Untiered), <font color='#ffd23a'>Legendary</font>, <font color='#8ae8ff'>Starforged</font> (a Legendary upgraded at the Starforge), " +
+			"<font color='#ff5533'>Primordial</font> (raids and finales only) and <font color='#fff6e0'>Godly</font>.\n" +
+			"Every one of them is a named item with fixed stats and a special of its own: the same item every time it drops.\n" +
 			"Each tier of a weapon fires its own shot, and each is a clear step up from the one before.\n\n" +
 			"<font size='15' color='#fff6e0'><b>Godly sets</b></font>\n" +
 			"Every class has a four-piece Godly set. Each piece drops 1 in 1,000 from the boss that carries it (a little more with Luck), " +
@@ -47,15 +47,14 @@ package realm {
 			"and every 6th volley unleash their class's <b>Divine Wrath</b> (every 5th with the full set). Wearing Godly gives you a golden aura; " +
 			"the full set crowns you with a halo. The Bosses tabs show which boss drops which piece.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Boss uniques</b></font>\n" +
-			"Every boss has its own unique items, and their rarity matches the boss: Runed from the early dungeons, Eldritch from the " +
-			"other dungeons and realm events, Starforged from the biggest events, endgame dungeons, realm finales and raid bosses, and " +
-			"Primordial from the final boss of each raid. Rarer uniques have stronger stats and damage. Uniques never change: they " +
-			"can't be forged or rerolled.",
+			"Every boss has its own named items. Each rolls on its own: a UT 1 in 50 (luck doesn't change it), a Legendary 1 in 100. " +
+			"UTs come from the early dungeons, the Godlands dungeons and realm events; Legendaries from realm events, the Godlands dungeons " +
+			"and everything after; Primordial from the final boss of each raid.",
 
 			"<font size='15' color='#ffd75e'><b>The Starforge (Nexus, east)</b></font>\n" +
-			"<b>Forge</b>: a Runed, Bonded or Eldritch item + 1 Star Shard + 100 Aether = a Starforged item of the same kind.\n" +
-			"<b>New prefix</b>: 400 gold gives any weapon a different prefix (Swift, Farshot, Scattershot...); the rest of the weapon stays.\n" +
-			"<b>Reroll stats</b>: 60 Aether rolls the bonus stats (and a weapon's passive) of special-rarity gear again.\n\n" +
+			"A <b>Legendary</b> + 1 Star Shard + 100 Aether = its <b>Starforged</b> self: same name, look and special, raised to the top of its slot " +
+			"(every Starforged weapon of a type reaches the same damage, less for long reach and more for short; armour and rings gain a passive of their own). " +
+			"Star Shards drop only from the last boss of a multi-boss dungeon (the Tomb of the Three Kings, the Shattered Sanctum), 1 in 150 for each player.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Abilities</b></font>\n" +
 			"Every class has three abilities (see the Abilities tab). An ability item holds one of them: its name says which, " +
 			"like a <i>Comet Spell of Storms</i> (Lightning Strike). Each ability costs MP and has its own cooldown, shown on your ability " +

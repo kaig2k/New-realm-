@@ -210,7 +210,7 @@ async function run() {
   await wait(400);
   sd = A.find((m) => m.t === 'shopDone');
   const key = sd && sd.inv.find((it) => it && it.kind === 'key' && /^dg_/.test(it.sub) && it.sid && !invA.some((o) => o && o.sid === it.sid));
-  check('the Key Merchant sells through the server, at the right price', key && sd.gold === gA - 1800, sd ? sd.gold : 'no reply');
+  check('the Key Merchant sells through the server, at the right price', key && sd.gold === gA - require('./sim/gen/game').Data.keyPrice(0), sd ? sd.gold : 'no reply');
   if (sd) { invA = sd.inv; gA = sd.gold; seqA = sd.seq; }
   A.clear();
   A.send({ t: 'buy', what: 'key', dg: 12, data: withInv() });
@@ -223,18 +223,15 @@ async function run() {
   A.clear();
   A.send({ t: 'forge', slot: invA.indexOf(invA.find((it) => it && it.kind === 'stat')), data: withInv() });
   await wait(400);
-  check('the Starforge on the server refuses items that cannot be forged', A.find((m) => m.t === 'shopFail' && /cannot be forged/.test(m.msg)));
+  check('the Starforge on the server refuses anything but a Legendary', A.find((m) => m.t === 'shopFail' && /Only a Legendary/.test(m.msg)));
   const wi = invA.findIndex((it) => it && it.kind === 'weapon');
   check('test setup: a weapon to reroll', wi >= 0);
   if (wi >= 0) {
     A.clear();
     A.send({ t: 'reroll', slot: wi, what: 'form', data: withInv() });
     await wait(400);
-    sd = A.find((m) => m.t === 'shopDone');
-    const nw = sd && sd.inv[wi];
-    check('a new weapon prefix on the server: new id, new prefix, gold taken', nw && sd.rerolled && nw.sid && nw.sid !== invA[wi].sid && nw.form && nw.form !== invA[wi].form && sd.gold === gA - 400,
-      sd ? JSON.stringify({ g: sd.gold, f: nw && nw.form }) : JSON.stringify(A.find((m) => m.t === 'shopFail')));
-    if (sd) { invA = sd.inv; gA = sd.gold; seqA = sd.seq; }
+    // (rerolls are gone with the item ladder: every named item is fixed, and weapons drop plain)
+    check('the server refuses a weapon prefix reroll now', !A.find((m) => m.t === 'shopDone') && A.find((m) => m.t === 'shopFail' && /cannot be rerolled/.test(m.msg)));
   }
   const gi = invA.findIndex((it) => it && it.rarity === 'gd');
   if (gi >= 0) {
@@ -1172,7 +1169,8 @@ async function run() {
       const tough = { id: 11, x: room.x + 0.5, y: room.y + 0.5, maxDps: 1e9, defMax: 10, send: () => {} };
       const ws2 = new WorldSim('dg:6:31');
       ws2.join(tough);
-      for (let i = 0; i < 400; i++) ws2.tick(0.05);
+      // (long enough that some of the hits are big enough to get past its Defense)
+      for (let i = 0; i < 800; i++) ws2.tick(0.05);
       check('the server adds up the damage of the clean hits (' + (tough.expHits || 0) + ' hits, at least ' + Math.round(tough.expDmg || 0) + ' damage)', (tough.expHits || 0) > 0 && tough.expDmg > 0, String(tough.expDmg));
       check('a game reporting far less damage than those hits did (edited Defense, ignored hits) is caught; an honest one is not',
         damageVerdict(30, 2000, 300) && !damageVerdict(30, 2000, 1800) && !damageVerdict(30, 2000, 2600) && !damageVerdict(10, 2000, 0) && !damageVerdict(30, 200, 0));
@@ -2799,8 +2797,71 @@ async function run() {
     await wait(400);
     check('/give name 1 cursed bloodbound hands one out, and a save holding it is kept', ci >= 0 && !E.find((m) => m.t === 'saveRejected'), JSON.stringify(E.find((m) => m.t === 'saveRejected') || eh.inv));
     const curA = await ask({ t: 'anvil', slot: ci });
-    check('...and the server\'s Anvil refuses it', curA && curA.t === 'shopFail' && /curse/.test(curA.msg), JSON.stringify(curA));
+    check('...and the server\'s Anvil refuses it (the Anvil is cold now)', curA && curA.t === 'shopFail' && /Anvil/.test(curA.msg), JSON.stringify(curA));
     for (const c of [E, bz6]) c.s.destroy();
+  }
+
+  console.log('the item ladder (UT, Legendary, Starforged, Primordial, Godly)');
+  {
+    const G = require('./sim/gen/game');
+    const LD = G.Data, LU = G.Uniques;
+    G.Bosses.init();
+    const v = require('./validate');
+    const its = require('./items');
+    const ids = Object.keys(LU.FIXED);
+    const bad = [];
+    for (const id of ids) {
+      const a = LU.make(id), b = LU.make(id);
+      if (!a || its.fingerprint(a) !== its.fingerprint(b)) bad.push(id + ' not fixed');
+      else if (v.checkItem(a)) bad.push(id + ': ' + v.checkItem(a));
+      else if (a.rarity !== LU.FIXED[id].r || a.name !== LU.FIXED[id].n) bad.push(id + ' wrong rarity/name');
+    }
+    check('every UT and Legendary of the plan is the same every time, named, and a valid item', ids.length >= 70 && !bad.length, ids.length + ' ' + bad.join(', '));
+    const dps = (w) => (w.dmin + w.dmax) / 2 * w.shots * w.rate;
+    const cut = LU.make('saltbeard_cutlass'), hell = LU.make('hellfire_blade'), cube = LU.make('cubic_staff');
+    check('weapons match the plan (Saltbeard\'s Cutlass 3 blades 36-50; Hellfire 560-760 at 0.45; Cubic Staff splits)', cut.shots === 3 && cut.dmin === 36 && cut.dmax === 50 &&
+      hell.dmin === 560 && hell.rate === 0.45 && hell.pierce && cube.split && cube.split.n === 4);
+    const carried = [];
+    for (const k in LD.ENEMIES) for (const u of LD.ENEMIES[k].uniques || []) if (LU.RETIRED.indexOf(u) >= 0) carried.push(k + ':' + u);
+    check('no boss carries a retired item, and every planned boss carries its list', !carried.length && LD.ENEMIES.cove_boss.uniques.join() === LU.DROPS.cove_boss.join() &&
+      LD.ENEMIES.ev_shrine.uniques.length === 3, carried.join(','));
+    // drops: only the boss's own list, at its rates; never random named gear; no Star Shards from loot rolls
+    let ut = 0, named = 0, shards = 0;
+    const N = 20000;
+    for (let k = 0; k < N; k++) for (const it of LD.rollLoot(LD.ENEMIES.cove_boss, 0, LD.CLASSES.knight, 0)) {
+      if (it.uid && LU.rarityOf(it.uid) === 'ut') ut++;
+      if (it.rarity && !it.uid && !it.gid) named++;
+      if (it.kind === 'material') shards++;
+    }
+    let evNamed = 0, evShard = 0;
+    for (const bid of ['ev_cube', 'demon_boss', 'warden', 'sun_king', 'shattered_seraph', 'elder']) for (let k = 0; k < 2000; k++) for (const it of LD.rollLoot(LD.ENEMIES[bid], 4, LD.CLASSES.wizard, 160)) {
+      if (it.rarity && !it.uid && !it.gid) evNamed++;
+      if (it.kind === 'material') evShard++;
+    }
+    check('a UT drops about 1 in 50 per item, whatever the luck (Pirate Cove: 3 of them)', ut > N * 3 * 0.014 && ut < N * 3 * 0.026, ut + ' in ' + N);
+    check('no random named gear and no Star Shards from any loot roll', named === 0 && shards === 0 && evNamed === 0 && evShard === 0, [named, shards, evNamed, evShard].join(','));
+    check('Star Shards: only the Shattered Seraph and the last king of the Tomb', LD.shardKill(LD.ENEMIES.shattered_seraph, 0) && LD.shardKill(LD.ENEMIES.sun_king, 0) &&
+      !LD.shardKill(LD.ENEMIES.sun_king, 1) && !LD.shardKill(LD.ENEMIES.warden, 0) && !LD.shardKill(LD.ENEMIES.ev_cube, 0) && !LD.SHOP.some((e) => e.id === 'sor'));
+    // the Starforge
+    const sfW = LU.starforge(LU.make('cubic_staff')), sfH = LU.starforge(LU.make('hellfire_blade')), sfT = LU.starforge(LU.make('titanbreaker'));
+    const sfA = LU.starforge(LU.make('drowned_plate')), sfR = LU.starforge(LU.make('sandglass_ring')), sfB = LU.starforge(LU.make('rebirth_tome'));
+    check('Starforged weapons reach their slot\'s target (reach costs damage: Hellfire less, Titanbreaker more)', sfW.rarity === 'sf' && Math.abs(dps(sfW) - 345) < 6 &&
+      Math.abs(dps(sfH) - 405 * 0.85) < 8 && Math.abs(dps(sfT) - 405 * 1.15) < 8 && sfW.name === 'Cubic Staff' && LU.statTotal(sfW) >= 11.5, [dps(sfW), dps(sfH), dps(sfT)].join(','));
+    check('Starforged armour, rings and abilities reach theirs, and armour and rings gain their passive', sfA.def === 46 && sfA.sfp === 'tidebound' && Math.abs(LU.statTotal(sfR) - 30) <= 1.5 &&
+      sfR.sfp === 'shifting' && sfB.power === 3.05 && sfB.abx.heal > 0.25 && !v.checkItem(sfW) && !v.checkItem(sfA));
+    check('only a Legendary can be Starforged', !LU.canStarforge(LU.make('saltbeard_cutlass')) && !LU.canStarforge(sfW) && !LU.canStarforge(LD.makeWeapon('staff', 7)) &&
+      !LU.canStarforge(G.Godly.make('wizard', 0)) && LU.canStarforge(LU.make('frostfang')));
+    // Starforging every Legendary gives a valid item that's never weaker
+    const weaker = [];
+    for (const id of ids) {
+      if (LU.FIXED[id].r !== 'lg') continue;
+      const a = LU.make(id), b = LU.starforge(a);
+      if (v.checkItem(b) || LU.statTotal(b) < LU.statTotal(a) - 0.01 || (a.kind === 'weapon' && dps(b) < dps(a)) || (a.kind === 'ability' && b.power < a.power)) weaker.push(id);
+    }
+    check('every Legendary Starforges into a valid item that\'s never weaker', !weaker.length, weaker.join(','));
+    check('rerolls and the Anvil are gone; weapons drop without random forms', !LD.canRerollForm(LD.makeWeapon('bow', 6)) && !LD.canRerollStats(LU.make('frostfang')) &&
+      LD.anvilBlock(LD.makeArmor('heavy', 3)) !== null && Array.from({ length: 200 }, () => LD.makeForSlot(LD.CLASSES.archer, 0, 6, null)).every((w) => !w.form));
+    check('single-boss event dungeons are harder (about +40%)', ['crypt', 'depths', 'spire', 'cellar'].every((d) => LD.DUNGEONS.find((t) => t.id === d).hard === 1.4));
   }
 
   console.log('health and damage the game reports');

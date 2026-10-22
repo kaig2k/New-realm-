@@ -207,9 +207,9 @@ package realm {
 		public function get maxMp():int { return stat("mp"); }
 		public function get att():int { return stat("att"); }
 		/** (pets: Stone Guard, Bastion and Ash Guardian add Defense) */
-		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef + Data.petDef(Save.data.pet); }
-		public function get spd():int { return stat("spd"); }
-		public function get dex():int { return stat("dex"); }
+		public function get def():int { return status.armorbroken > 0 ? 0 : stat("def") + auraDef + Data.petDef(Save.data.pet) + (hardenT > 0 ? 10 : 0); }
+		public function get spd():int { return riptide ? int(stat("spd") * 1.1) : stat("spd"); }
+		public function get dex():int { return riptide ? int(stat("dex") * 1.1) : stat("dex"); }
 		public function get vit():int { return stat("vit"); }
 		public function get wis():int { return stat("wis"); }
 		public function get mgt():int { return stat("mgt"); }
@@ -233,6 +233,21 @@ package realm {
 		/** Bloodlust stacks (from kills) and how long they last. */
 		public var bloodStacks:int = 0, bloodT:Number = 0;
 		public var lastStandT:Number = 0;
+		// ---- the item ladder's specials and Starforged passives
+		/** Kindling: shots left at +20%. Shifting Sands: stacks and how long they last. */
+		public var kindleN:int = 0, shiftN:int = 0, shiftT:Number = 0;
+		/** Hardened: +10 Defense left / until it can trigger again. Last Bastion: active / cooldown. Riptide: seconds unhit. */
+		public var hardenT:Number = 0, hardenCd:Number = 0, bastionT:Number = 0, bastionCd:Number = 0, calmT:Number = 0;
+		/** Aegis of the Sun King: the share of your HP Shield Wall heals a second. Infernal Helm: the charge burns. */
+		private var shieldRegen:Number = 0, dashFire:Boolean = false, fireDropT:Number = 0;
+		/** Your armour's or ring's Starforged passive is this one. */
+		public function hasSf(id:String):Boolean { return (armor != null && armor.sfp == id) || (ring != null && ring.sfp == id); }
+		/** What your ability item does to its ability (Uniques.FIXED abx), 0 if nothing. */
+		private function abx(k:String):Number { return ability && ability.abx && ability.abx[k] ? Number(ability.abx[k]) : 0; }
+		/** A kill with Shifting Sands on. */
+		public function shifted():void { shiftN = Math.min(5, shiftN + 1); shiftT = 4; }
+		/** Riptide: calm long enough (5s unhit). */
+		public function get riptide():Boolean { return calmT >= 5 && hasSf("riptide"); }
 		/** High Stakes is switched on (needs the skill). */
 		public var highStakes:Boolean = false;
 		/** Characters made before the skill tree rework get their level-up points once. */
@@ -355,7 +370,7 @@ package realm {
 		}
 
 		public function get fireRate():Number {
-			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1);
+			return (1.5 + 6.5 * dex / 75) * (weapon ? weapon.rate : 1) * (berserkT > 0 ? 1.5 : 1) * (buffs.quick > 0 ? 1.4 : 1) * (shiftT > 0 ? 1 + 0.03 * shiftN : 1);
 		}
 
 		public function update(dt:Number, g:Game):void {
@@ -407,7 +422,7 @@ package realm {
 			}
 			if (status.paralyzed > 0) { mx = 0; my = 0; }
 			if (dashT > 0) { mx = 0; my = 0; updateDash(dt, g); }
-			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (spinT > 0 ? 0.75 : 1) * (shielded ? 0.55 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) ? 0.5 : 1);
+			var speed:Number = (4 + 5.6 * (spd / 75)) * (berserkT > 0 ? 1.25 : 1) * (spinT > 0 ? 0.75 : 1) * (shielded ? 0.55 : 1) * (buffs.haste > 0 ? 1.35 : 1) * (status.slowed > 0 ? 0.5 : 1) * (w.inWater(x, y) && !hasSf("tidebound") ? 0.5 : 1);
 			if (mx != 0) {
 				var nx:Number = x + mx * speed * dt;
 				if (w.canStand(nx, y, R, false)) x = nx;
@@ -435,12 +450,14 @@ package realm {
 				burnTick -= dt;
 				if (burnTick <= 0) {
 					burnTick = 0.5;
-					hp -= 15;
+					// (Lavawalker, a Starforged Magma Plate: 80% less)
+					var burn:int = hasSf("lavawalker") ? 3 : 15;
+					hp -= burn;
 					hitT = 0.1;
 					lastHitBy = underfoot == World.HEXFIRE ? "Cursed runes" : underfoot == World.VOIDFIRE ? "Void fire" : underfoot == World.SHOCK ? "Charged ground" : "Lava";
 					lastHitWith = "";
-					noteHit(lastHitBy, "", 15);
-					g.floatText(x, y - 1, "-15", 0xff8030);
+					noteHit(lastHitBy, "", burn);
+					g.floatText(x, y - 1, "-" + burn, 0xff8030);
 				}
 			}
 
@@ -476,8 +493,20 @@ package realm {
 				bleedAcc += 18 * dt;
 				if (bleedAcc >= 6) { noteHit("Bleeding", "", int(bleedAcc)); bleedAcc -= int(bleedAcc); }
 			} else hp = Math.min(maxHp, hp + (1 + vit * 0.12) * dt);
-			mp = Math.min(maxMp, mp + (0.5 + wis * 0.06) * dt);
+			var mpGain:Number = (0.5 + wis * 0.06) * dt * (hasSf("moonwell") && mp < maxMp * 0.25 ? 3 : 1);
+			// Overflow (a Starforged Sorcerer's Seal): MP gained while full fills your Ward instead
+			if (mp >= maxMp && hasSf("overflow")) { wardHp = Math.min(maxMp * 0.5, wardHp + mpGain * 2); wardT = Math.max(wardT, 2); }
+			mp = Math.min(maxMp, mp + mpGain);
 			if (pt > maxPt) pt = maxPt;
+			// the ladder's timers
+			if (shiftT > 0) { shiftT -= dt; if (shiftT <= 0) shiftN = 0; }
+			if (hardenT > 0) hardenT -= dt;
+			if (hardenCd > 0) hardenCd -= dt;
+			if (bastionT > 0) bastionT -= dt;
+			if (bastionCd > 0) bastionCd -= dt;
+			calmT += dt;
+			if (shieldT > 0 && shieldRegen > 0 && hp > 0) hp = Math.min(maxHp, hp + maxHp * shieldRegen * dt);
+			if (shieldT <= 0) shieldRegen = 0;
 		}
 
 		private function shoot(g:Game):void {
@@ -506,7 +535,22 @@ package realm {
 					}
 				}
 				var dmg:int = int((w.dmin + Math.random() * (w.dmax - w.dmin)) * mult);
-				var shot:Projectile = new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25 + (w.form == "heavy" ? 0.12 : 0), frames, w.pierce, name, w.effect || null);
+				// Kindling (a Starforged Cinderweave Robe): the shots after an ability hit 20% harder
+				if (kindleN > 0) dmg = int(dmg * 1.2);
+				var eff:String = w.effect || null, sfr:Vector.<BitmapData> = frames;
+				if (w.x) {
+					if (w.x.hex) eff = "hex";
+					if (w.x.armor) eff = "sunder";
+					// the Prismatic Wand: red shots hit 25% harder, blue ones slow, green ones heal you
+					if (w.x.prism) {
+						var pc:int = k % 3;
+						sfr = Sprites.projectile(w.shape, [0xff5050, 0x50a0ff, 0x60ff80][pc], w.size || 3);
+						if (pc == 0) dmg = int(dmg * 1.25);
+						eff = pc == 1 ? "slow" : pc == 2 ? "heal2" : eff;
+					}
+				}
+				var shot:Projectile = new Projectile(x + ox, y + oy, a, w.spd, w.life, dmg, false, 0.25 + (w.form == "heavy" ? 0.12 : 0), sfr, w.pierce, name, eff);
+				if (w.x && w.x.trail) shot.fireTrail = int(dmg * 0.12);
 				shot.motion = w.motion;
 				// (the weapon's signature: speeding up, shards, an explosion, through walls)
 				if (w.accel) shot.accel = w.accel;
@@ -518,6 +562,7 @@ package realm {
 				g.addShot(shot);
 				shotsFired++;
 			}
+			if (kindleN > 0) kindleN--;
 			g.net.shoot(ang);
 			// muzzle flash at the tip of the weapon
 			if (Game.opt("parts") && g.parts.length < 400) {
@@ -614,6 +659,7 @@ package realm {
 			castN++;
 			if (free) g.floatText(x, y - 1.4, "Arcane Surge!", 0xc080ff);
 			abilityT = abilityCd = ab.cd * (1 - rank("channeling") * 0.04);
+			if (hasSf("kindling")) kindleN = 3;
 			Sfx.play("ability", 0.5);
 			attackT = 0.3;
 			var pow:Number = ability.power;
@@ -633,6 +679,8 @@ package realm {
 						Sprites.projectile("fire", 0xff7020, 5), false, name, null);
 					fb.ghost = true;
 					fb.boom = {r: 2.6 * Math.sqrt(pow), dmg: dmg};
+					// the Cubic Grimoire: it bursts into little cubes too
+					if (abx("cubes") > 0) fb.split = {n: int(abx("cubes")), spd: 6, life: 0.4, dmg: int(dmg * 0.3), shape: "star", col: 0x80c0ff};
 					g.addShot(fb);
 					g.abil.show("fireball", x, y, x + dx, y + dy, 0, true);
 					break;
@@ -643,14 +691,15 @@ package realm {
 					g.abil.show("storm", x, y, cxs, cys, 0, true);
 					for (i = 0; i < 6; i++) {
 						var ra:Number = Math.random() * Math.PI * 2, rr:Number = Math.sqrt(Math.random()) * 2.2;
-						var ao:Object = {dmg: dmg};
+						var ao:Object = {dmg: dmg, poison: abx("poison") > 0 ? int(dmg * 0.25) : 0, slow: abx("slow")};
 						ao.fn = arrowHit(g, ao);
 						g.abil.anim("arrow", cxs + Math.cos(ra) * rr, cys + Math.sin(ra) * rr, 0.3 + i * 0.12, ao);
 					}
 					break;
 				case "shieldwall":
 					// Shield Wall: plant the shield; bullets from the front stop on it, you take less damage behind it but move slower
-					shieldT = 4 * Math.sqrt(pow);
+					shieldT = 4 * Math.sqrt(pow) + abx("dur");
+					shieldRegen = abx("regen");
 					shieldX = x + Math.cos(ang) * 0.9;
 					shieldY = y + Math.sin(ang) * 0.9;
 					g.abil.show("shield", x, y, shieldX, shieldY, shieldT, true);
@@ -660,12 +709,13 @@ package realm {
 					break;
 				case "sanctuary":
 					// Sanctuary: a holy circle that heals you while you stand in it and burns monsters inside
-					var amount:int = healCrit(int((34 + level * 3.4) * pow * wisMult), g);
+					var amount:int = healCrit(int((34 + level * 3.4) * pow * wisMult * (1 + abx("heal"))), g);
+					if (abx("cure") > 0) for (var scs:String in status) status[scs] = 0;
 					var heal:int = Math.min(amount, maxHp - int(hp));
 					hp = Math.min(maxHp, hp + amount);
 					if (heal > 0) g.floatText(x, y - 1.2, "+" + heal, 0x60ff60);
 					var life:Number = 5 * Math.sqrt(pow);
-					g.abil.addZone(x, y, 3, life, (20 + level * 2.5) * pow * wisMult, (8.5 + level * 1.0) * pow * wisMult);
+					g.abil.addZone(x, y, 3, life, (20 + level * 2.5) * pow * wisMult, (8.5 + level * 1.0) * pow * wisMult * (1 + abx("heal")), false, abx("vuln"));
 					g.abil.show("sanctuary", x, y, x, y, life, true);
 					break;
 				case "shadowstep":
@@ -678,14 +728,17 @@ package realm {
 						x = sx0 + stx * st;
 						y = sy0 + sty * st;
 					}
-					invisT = 2 * Math.sqrt(pow);
+					invisT = 2 * Math.sqrt(pow) + abx("invis");
 					critNext = true;
+					// the Cloak of Mirrors: a mirror image where you stood draws their fire
+					if (abx("decoy") > 0) g.addDecoy(sx0, sy0, abx("decoy"));
 					g.abil.show("shadow", sx0, sy0, x, y, 0, true);
 					break;
 				case "charge":
 					// Berserker Charge: rush forward through monsters, then go berserk
 					dashKind = "charge";
-					dashT = 0.3;
+					dashT = 0.3 * (1 + abx("reach"));
+					dashFire = abx("fireTrail") > 0;
 					dashVx = Math.cos(ang) * 22;
 					dashVy = Math.sin(ang) * 22;
 					dashDmg = (60 + level * 8) * pow;
@@ -698,11 +751,11 @@ package realm {
 				case "harvest":
 					// Soul Harvest: a draining blast, and two spirit skulls circle you and shoot
 					dmg = (70 + level * 8) * pow * wisMult;
-					var hits:int = g.blastAt(x + dx, y + dy, 3, dmg);
+					var hits:int = g.blastAt(x + dx, y + dy, 3 * (1 + abx("wide")), dmg);
 					var drain:int = Math.min(maxHp - int(hp), int((15 * hits + 20) * wisMult));
 					hp = Math.min(maxHp, hp + drain);
 					if (drain > 0) g.floatText(x, y - 1.2, "+" + drain, 0x60ff60);
-					g.abil.addSpirits(2, 5 * Math.sqrt(pow), (18 + level * 2.5) * pow * wisMult);
+					g.abil.addSpirits(abx("skulls") > 0 ? int(abx("skulls")) : 2, 5 * Math.sqrt(pow), (18 + level * 2.5) * pow * wisMult);
 					g.abil.show("harvest", x, y, x + dx, y + dy, 0, true);
 					break;
 				case "snare":
@@ -710,14 +763,16 @@ package realm {
 					g.abil.show("snare", x, y, x + dx, y + dy, 0, true);
 					var tdmg:int = int((60 + level * 7) * pow);
 					var tx:Number = x + dx, ty:Number = y + dy;
-					g.abil.anim("land", tx, ty, 0.35, {fn: function():void { g.throwTrap(tx, ty, tx, ty, tdmg); }});
+					var tmark:Number = abx("rootVuln"), tcloud:Boolean = abx("cloud") > 0;
+					g.abil.anim("land", tx, ty, 0.35, {fn: function():void { g.throwTrap(tx, ty, tx, ty, tdmg, "snare", tmark, tcloud); }});
 					break;
 
 				// ---- the second and third ability of each class
 				case "lightning":
 					dmg = (160 + level * 18) * pow;
 					g.abil.show("lightning", x, y, tx2, ty2, 0, true);
-					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.lightning(tx2, ty2, dmg); }});
+					var chain:int = int(abx("chain"));
+					g.abil.anim("land", tx2, ty2, 0.35, {fn: function():void { g.abil.lightning(tx2, ty2, dmg, chain); }});
 					break;
 				case "frostnova":
 					dmg = (90 + level * 10) * pow;
@@ -843,12 +898,17 @@ package realm {
 				// ---- Bard (Lyre)
 				case "valor":
 					// Ballad of Valor: +30% damage for you and everyone near (their games apply it from the cast)
-					buffs.might = Math.max(buffs.might || 0, 5 * sq);
-					g.abil.show("valor", x, y, x, y, 5 * sq, true);
+					buffs.might = Math.max(buffs.might || 0, 5 * sq + abx("dur"));
+					g.abil.show("valor", x, y, x, y, 5 * sq + abx("dur"), true);
 					g.floatText(x, y - 1.4, "Ballad of Valor!", 0xffd060);
 					break;
 				case "lullaby":
 					var slept:int = g.stunAround(tx2, ty2, 3, 2.5 * sq);
+					// the Lyre of the Frozen Choir: still slowed for a while after they wake
+					if (abx("slowAfter") > 0) for each (var le:Enemy in g.enemies) {
+						var ldx:Number = le.x - tx2, ldy:Number = le.y - ty2;
+						if (!le.dead && ldx * ldx + ldy * ldy < 9) le.slowT = Math.max(le.slowT, 2.5 * sq + abx("slowAfter"));
+					}
 					g.abil.show("lullaby", x, y, tx2, ty2, 3, true);
 					if (slept > 0) g.floatText(tx2, ty2 - 1, "Zzz x" + slept, 0xc0b0ff);
 					break;
@@ -864,7 +924,7 @@ package realm {
 
 				// ---- Alchemist (Flask)
 				case "acidflask":
-					var adm:int = int((28 + level * 4) * pow), alife:Number = 4 * sq;
+					var adm:int = int((28 + level * 4) * pow), alife:Number = 4 * sq + abx("dur");
 					g.abil.show("acid", x, y, tx2, ty2, alife, true);
 					// (a better flask spills a wider pool: 2 tiles at T0, 3.2 at T6)
 					var arad:Number = Math.min(3.4, 2 + int(ability.tier || 0) * 0.2);
@@ -880,7 +940,15 @@ package realm {
 				case "philbomb":
 					var bdmg:int = int((260 + level * 28) * pow);
 					g.abil.show("philbomb", x, y, tx2, ty2, 0, true);
-					g.abil.anim("land", tx2, ty2, 1.85, {fn: function():void { g.blastAt(tx2, ty2, 3.2, bdmg); g.shake(0.4, 8); }});
+					var glass:Boolean = abx("shards") > 0;
+					g.abil.anim("land", tx2, ty2, 1.85, {fn: function():void {
+						g.blastAt(tx2, ty2, 3.2, bdmg); g.shake(0.4, 8);
+						// the Shardglass Alembic: glass shards fly out of the blast
+						if (glass) {
+							var gfr:Vector.<BitmapData> = Sprites.projectile("star", 0xc0f0ff, 3);
+							for (var gk:int = 0; gk < 12; gk++) g.addShot(new Projectile(tx2, ty2, gk * Math.PI / 6, 9, 0.55, int(bdmg * 0.12), false, 0.25, gfr, true, name, null));
+						}
+					}});
 					break;
 
 				// ---- Chronomancer (Hourglass)
@@ -896,13 +964,14 @@ package realm {
 					x = back.x; y = back.y;
 					var regain:int = Math.min(int(back.hp - hp), int((80 + level * 9) * pow));
 					if (regain > 0) healBy(regain, g);
+					if (abx("invis") > 0) invisT = Math.max(invisT, abx("invis"));
 					hist.length = 0;
 					invulnT = Math.max(invulnT, 0.4);
 					g.abil.show("rewind", fromX, fromY, x, y, 0, true);
 					break;
 				case "timestop":
 					g.abil.show("timestop", x, y, x, y, 2.5 * sq, true);
-					var held:int = g.stunAround(x, y, 4, 1.2 * sq);
+					var held:int = g.stunAround(x, y, 4, 1.2 * sq + abx("dur"));
 					if (held > 0) g.floatText(x, y - 1.6, "Time Stop! x" + held, 0x9ad8ff);
 					break;
 				case "hastefield":
@@ -948,6 +1017,13 @@ package realm {
 		private function arrowHit(g:Game, af:Object):Function {
 			return function():void {
 				g.blastAt(af.x, af.y, 1.3, af.dmg, "slow");
+				// Venomtip Quiver: poison that eats through armour; Tidecaller Quiver: a longer slow
+				if (af.poison > 0 || af.slow > 0) for each (var ae:Enemy in g.enemies) {
+					var adx:Number = ae.x - af.x, ady:Number = ae.y - af.y;
+					if (ae.dead || adx * adx + ady * ady > 1.3 * 1.3) continue;
+					if (af.poison > 0) { ae.poisonDmg = Math.max(ae.poisonT > 0 ? ae.poisonDmg : 0, af.poison); ae.poisonT = Math.max(ae.poisonT, 3); }
+					if (af.slow > 0) ae.slowT = Math.max(ae.slowT, 3 + af.slow);
+				}
 				g.burst(af.x, af.y, 0xffffa0, 6);
 			};
 		}
@@ -968,6 +1044,11 @@ package realm {
 				x = nx; y = ny;
 			}
 			if (Game.opt("parts") && g.parts.length < 420) g.parts.push(new Particle(x, y, 0, 0, 0.25, Sprites.glow(dashKind == "leap" ? 0xc0ffa0 : dashKind == "bash" ? 0xffe0a0 : 0xff5030)));
+			// the Infernal Helm: the charge leaves a trail of fire
+			if (dashFire && dashKind == "charge") {
+				fireDropT -= dt;
+				if (fireDropT <= 0) { fireDropT = 0.05; g.abil.addZone(x, y, 0.9, 2.5, int(dashDmg * 0.12), 0); }
+			}
 			if (dashDmg > 0) for each (var e:Enemy in g.enemies.concat()) {
 				if (e.dead || dashHits[e]) continue;
 				var ex:Number = e.x - x, ey:Number = e.y - y, er:Number = e.r + 0.7;
@@ -1213,7 +1294,13 @@ package realm {
 				}
 				status[effect] = STATUS_TIME[effect];
 			}
+			calmT = 0;
+			// Hardened (a Starforged Basalt Hide): +10 Defense for 3s when hit, every 8s at most
+			if (hasSf("hardened") && hardenCd <= 0) { hardenT = 3; hardenCd = 8; }
 			var d:int = mitigate(raw, def, src);
+			// Last Bastion (a Starforged Colossus Core): below 30% HP, 25% less for 5s (once every 30s)
+			if (hasSf("bastion") && bastionCd <= 0 && hp < maxHp * 0.3) { bastionT = 5; bastionCd = 30; g.floatText(x, y - 1.6, "Last Bastion!", 0x8ae8ff); }
+			if (bastionT > 0) d = Math.max(1, int(d * 0.75));
 			if (shielded) d = Math.max(1, int(d * 0.4));
 			if (guardT > 0) d = Math.max(1, int(d * (1 - guardCut)));
 			dmgTaken += d;

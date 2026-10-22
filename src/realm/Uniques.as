@@ -338,9 +338,9 @@ package realm {
 				return "lg";
 			}
 			if (d.final || d.finale) return "lg";
-			if (d.dungeon) return d.dtier >= 5 ? "lg" : d.dtier != undefined && d.dtier <= 2 ? "ut" : "fb";
+			if (d.dungeon) return d.dtier != undefined && d.dtier <= 2 ? "ut" : "lg";
 			// realm events: the biggest ones (worth 1,800 XP and more) give Starforged
-			return d.xp >= 1800 ? "lg" : "fb";
+			return d.xp >= 1800 ? "lg" : "ut";
 		}
 
 		/** How much stronger each rarity makes a unique (stats, then weapon damage). */

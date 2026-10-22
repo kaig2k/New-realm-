@@ -117,6 +117,15 @@ class WorldSim {
       const d = (c.x - e.x) * (c.x - e.x) + (c.y - e.y) * (c.y - e.y);
       if (d < bd) { bd = d; best = c; }
     }
+    // a Cloak of Mirrors' decoy draws their fire while it lasts
+    if (this.decoys && this.decoys.length) {
+      const now = Date.now();
+      for (const k of this.decoys) {
+        if (k.until <= now) continue;
+        const d = (k.x - e.x) * (k.x - e.x) + (k.y - e.y) * (k.y - e.y);
+        if (d < bd + 9) { bd = d; best = k; }
+      }
+    }
     return best;
   }
 
@@ -207,6 +216,13 @@ class WorldSim {
       this.send(c, { t: 'wstate', ev: this.w.eventsDone, ct: r2(this.closeT), rs: this.w.raidStage });
     } else if (d.t === 'ehit') {
       this.hit(c, d);
+    } else if (d.t === 'decoy') {
+      // a Cloak of Mirrors' mirror image (only from a hero wearing one; it lasts a few seconds at most)
+      if (!c.caps || !c.caps.decoy) return;
+      const x = Number(d.x), y = Number(d.y);
+      if (!isFinite(x) || !isFinite(y) || (x - c.x) * (x - c.x) + (y - c.y) * (y - c.y) > 12 * 12) return;
+      this.decoys = (this.decoys || []).filter((k) => k.until > Date.now() && k.owner !== c.id);
+      this.decoys.push({ x, y, owner: c.id, until: Date.now() + Math.min(4, Math.max(0, Number(d.s) || 0)) * 1000 });
     }
   }
 
@@ -246,6 +262,9 @@ class WorldSim {
       dmg = Math.min(dmg, b.left);
       b.left -= dmg;
     }
+    // a Hexbound Wand's hex: for 3s the monster takes 10% more from everyone
+    if (d.hx && c.caps && c.caps.hex) e.hexUntil = Date.now() + 3000;
+    if (dmg > 0 && e.hexUntil > Date.now()) dmg = Math.round(dmg * 1.1);
     // an event's clock (for the fastest-kill records) starts at the first hit on the boss or its set piece
     if (dmg > 0 && this.kind === 'realm' && this.w.boss && !this.w.boss.firstHit && (e === this.w.boss || e.def.prop)) this.w.boss.firstHit = Date.now();
     // (the Godlands Spires are taken in battle: server.js territoryTick reads where you last fought)

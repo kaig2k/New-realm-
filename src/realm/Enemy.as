@@ -53,6 +53,8 @@ package realm {
 		}
 		/** Fan of Knives poison (time left, next tick, damage per tick) and War Cry vulnerability. */
 		public var poisonT:Number = 0, poisonTick:Number = 0, poisonDmg:int = 0, vulnT:Number = 0;
+		/** A mark (Bonebind Snare's roots, the Warden's Lantern's Sanctuary: +markMul damage taken) and a Hexbound Wand's hex. */
+		public var markT:Number = 0, markMul:Number = 0, hexT:Number = 0;
 		public var facingLeft:Boolean = false;
 		/** A realm event boss's set-piece pieces (wards, menders, hazards), set by whoever runs it. */
 		public var props:Array;

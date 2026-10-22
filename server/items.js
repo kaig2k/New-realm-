@@ -17,7 +17,9 @@ const STATS = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis', 'mgt', 'luc
 const CORE = ['kind', 'sub', 'ab', 'tier', 'rarity', 'uid', 'set', 'passive', 'form', 'motion', 'shots', 'dmin', 'dmax', 'rate', 'life',
   'arc', 'parallel', 'power', 'pierce', 'size', 'shape', 'col', 'curse',
   // (a tiered weapon's signature shot: Data.SIGS)
-  'accel', 'walls', 'effect', 'split', 'boom'].concat(STATS);
+  'accel', 'walls', 'effect', 'split', 'boom',
+  // (the item ladder: an ability item's special, a weapon's own code, a Starforged passive and bump)
+  'abx', 'x', 'sfp', 'sfb'].concat(STATS);
 /** Most entries one ledger keeps (old entries for items no longer held are dropped first). */
 const LEDGER_MAX = 4000;
 

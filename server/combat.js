@@ -66,16 +66,16 @@ function caps(ch, pet, extra) {
   const level = Math.max(1, Math.min(20, num(ch.level) || 1));
   // every boost at once (Player.damageMult, Game.hurtEnemy, Player.critMult)
   const boost = (1 + rank('brutality') * 0.03) * 1.3 * (1 + 5 * 0.06) * 1.25 * (1 + rank('executioner') * 0.08) * 1.5 *
-    (1.5 + stat(ch, 'mgt', extra) / 100 + rank('ferocity') * 0.08) *
+    Data.critMult(stat(ch, 'mgt', extra), rank('ferocity')) *
     // (Arcana: Arcane Surge's max-MP damage, Clarity while topped up)
     (1 + (rank('arcanesurge') > 0 ? Math.min(0.3, stat(ch, 'mp', extra) / 2000) : 0) + rank('clarity') * 0.03) *
     // (Predator on bosses, Ambush on untouched monsters, Apex Predator crits on bosses)
     (1 + rank('predator') * 0.04) * (1 + rank('ambush') * 0.1) * (rank('apex') > 0 ? 1.25 : 1);
-  const mult = 0.5 + stat(ch, 'att', extra) / 50;
+  const mult = Data.attMult(stat(ch, 'att', extra));
   const w = ch.weapon && typeof ch.weapon === 'object' ? ch.weapon : null;
   const weaponHit = w ? num(w.dmax) * mult : 0;
   const shots = w ? Math.max(1, Math.min(9, num(w.shots) || 1)) : 0;
-  const fireRate = (1.5 + 6.5 * stat(ch, 'dex', extra) / 75) * (w ? Math.min(2.5, num(w.rate) || 1) : 1) * 1.5 * 1.4;
+  const fireRate = Data.dexRate(stat(ch, 'dex', extra)) * (w ? Math.min(2.5, num(w.rate) || 1) : 1) * 1.5 * 1.4;
   // (Rampage: a ring of ten every twelfth shot)
   // (a signature shot's shards and explosions on top: the most they could add, Data.weaponExtra)
   // (a returning shot hits each monster twice: on the way out and on the way back)

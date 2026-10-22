@@ -893,7 +893,7 @@ async function run() {
       const me2 = { id: 5, x: hb.x, y: hb.y + 1, maxDps: 1e9, caps: combat.caps(late, null), send: () => {} };
       hw.join(me2);
       const att = combat.stat(late, 'att'), dex = combat.stat(late, 'dex'), w7 = late.weapon;
-      const perSec = (1.5 + 6.5 * dex / 75) * w7.rate * w7.shots * 1.5 * 1.4;
+      const perSec = require('./sim/gen/game').Data.dexRate(dex) * w7.rate * w7.shots * 1.5 * 1.4;
       const t1 = Date.now();
       let fakeT = 0;
       const realNow = Date.now;
@@ -901,7 +901,7 @@ async function run() {
       try {
         for (let k = 0; k < Math.ceil(perSec * 8); k++) {
           fakeT = Math.floor(k / perSec * 1000);
-          let dmg = Math.floor((w7.dmin + Math.random() * (w7.dmax - w7.dmin)) * (0.5 + att / 50) * 1.15 * 1.3);
+          let dmg = Math.floor((w7.dmin + Math.random() * (w7.dmax - w7.dmin)) * require('./sim/gen/game').Data.attMult(att) * 1.15 * 1.3);
           if (Math.random() < 0.15) dmg = Math.floor(dmg * 1.7);
           hw.hit(me2, { id: hb.id, d: dmg });
           // and its ability on cooldown

@@ -137,6 +137,10 @@ class Data {
 	static isTieredWeapon(it) {
 			return it && it.kind == "weapon" && !it.rarity && !it.uid && !it.curse && Data.SIGS[it.sub] && it.tier >= 0 && it.tier <= 7;
 		}
+	static softStat(v) { return v <= Data.STAT_KNEE ? v : Data.STAT_KNEE + (v - Data.STAT_KNEE) * Data.STAT_PAST; }
+	static attMult(att) { return 0.5 + Data.softStat(att) / 50; }
+	static dexRate(dex) { return 1.5 + 6.5 * Data.softStat(dex) / 75; }
+	static critMult(mgt, ferocity) { ferocity = __int(ferocity); return 1.5 + mgt / 250 + ferocity * 0.04; }
 	static weaponDps(w) {
 			if (!w) return 0;
 			return (w.dmin + w.dmax) / 2 * Math.max(1, w.shots || 1) * (w.rate || 1) * Data.weaponExtra(w) * (w.motion == "return" ? 1.5 : 1);
@@ -5275,6 +5279,9 @@ Data.SIGS = {
 		};
 Data.TIER_DPS = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [29, 110], dagger: [30, 188]};
 Data.SIEGE_V = __int(2);
+Data.STAT_KNEE = __int(80);
+Data.STAT_PAST = 0.25;
+Data.CRIT_CAP = 0.3;
 Data.WEAPON_KEYS = ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "passive", "uv", "fv"];
 Data.ABILITIES = {
 			fireball: {type: "spell", name: "Fireball", cost: 30, cd: 3, col: 0},
@@ -5828,6 +5835,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-softcaps", title: "What's new in Eldmere",
+				lines: ["<b>Damage soft caps</b>: a hero in a full Godly set with a maxed skill tree could deal well over a hundred thousand damage a second, enough to melt any boss. Attack and Dexterity past 80 now count for a quarter each.",
+					"<b>Crits</b>: crit chance tops out at 30%, Might adds +0.1x crit damage per 25 (was per 10), and Ferocity gives +0.04x a rank (was +0.08x).",
+					"Heroes in ordinary gear are hardly touched: this only reins in gear stacked far past a maxed hero."]},
 			{id: "2026-10-outliers", title: "What's new in Eldmere",
 				lines: ["<b>Boss fixes</b>: after the big health boost a few bosses went too far, and they're brought back in line.",
 					"<b>Realm Siege</b>: Vorgath the Siege Warlord had been given far too much health and hit harder than he should. A full camp of heroes now brings him down in about a quarter of an hour, not most of an hour.",
@@ -6128,7 +6139,7 @@ Data.SKILLS = [
 			
 			{id: "brutality", b: 0, t: 0, name: "Brutality", desc: "+3% damage", max: 5},
 			{id: "precision", b: 0, t: 0, name: "Precision", desc: "+2% crit chance", max: 5},
-			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.08x crit damage", max: 5},
+			{id: "ferocity", b: 0, t: 1, name: "Ferocity", desc: "+0.04x crit damage", max: 5},
 			{id: "honed", b: 0, t: 1, name: "Honed Edge", desc: "+2 Attack", max: 5},
 			{id: "executioner", b: 0, t: 2, name: "Executioner", desc: "+8% damage to monsters under 30% HP", max: 3},
 			{id: "overwhelm", b: 0, t: 2, name: "Overwhelm", desc: "+2 Might", max: 3},

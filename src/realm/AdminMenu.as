@@ -248,15 +248,40 @@ package realm {
 			});
 			btn("Random unique", 14, y2, 150, function():void {
 				var ids:Array = [];
-				for (var u:String in Uniques.ALL) ids.push(u);
+				for (var u:String in Uniques.ALL) if (Uniques.RETIRED.indexOf(u) < 0) ids.push(u);
 				g.giveItem(Uniques.make(ids[int(Math.random() * ids.length)]));
 			});
+			y2 += 34;
+			// the item ladder: everything of a rarity for your class, and the Starforge in one click
+			label("Ladder", 14, y2 + 5, 0xffd75e, 60);
+			btn("My UTs", 70, y2, 96, function():void { ladderFor(cls, "ut", false); }, 11, 28);
+			btn("My Legendaries", 170, y2, 120, function():void { ladderFor(cls, "lg", false); }, 11, 28);
+			btn("My Starforged", 294, y2, 112, function():void { ladderFor(cls, "lg", true); }, 11, 28);
+			btn("Starforge my bag", 410, y2, 116, function():void {
+				var n:int = 0;
+				for (var si:int = 0; si < g.player.inv.length; si++) if (Uniques.canStarforge(g.player.inv[si])) { g.player.inv[si] = Uniques.starforge(g.player.inv[si]); n++; }
+				g.msg(n ? "Starforged " + n + " Legendar" + (n == 1 ? "y" : "ies") + "." : "No Legendaries in your inventory.", Data.RARITY_COLORS.sf);
+			}, 11, 28);
 			y2 += 40;
 			label("Stat potions", 14, y2, 0xffd75e);
 			y2 += 22;
 			for (var i:int = 0; i < Data.STATS.length; i++) {
 				btn(Data.STAT_SHORT[Data.STATS[i]], 14 + (i % 6) * 86, y2 + int(i / 6) * 32, 82, statFn(Data.STATS[i]), 12, 28);
 			}
+		}
+
+		/** Every item of the ladder of one rarity your class can use (Starforged if asked). */
+		private function ladderFor(cls:Object, rar:String, forged:Boolean):void {
+			var subs:Array = [cls.weapon, cls.abilityType, cls.armor];
+			var n:int = 0;
+			for (var id:String in Uniques.FIXED) {
+				var f:Object = Uniques.FIXED[id];
+				if (f.r != rar || (f.k != "ring" && subs.indexOf(f.s) < 0)) continue;
+				var it:Object = Uniques.make(id);
+				g.giveItem(forged ? Uniques.starforge(it) : it);
+				n++;
+			}
+			g.msg("Gave " + n + " " + (forged ? Data.RARITY_NAMES.sf : Data.RARITY_NAMES[rar]) + " item" + (n == 1 ? "" : "s") + " for your " + cls.name + ".", Data.RARITY_COLORS[forged ? "sf" : rar]);
 		}
 
 		// ------------------------------------------------------------ Give: any item by name, to you or a player
@@ -276,7 +301,7 @@ package realm {
 		private var results:Sprite;
 
 		private function buildGive():void {
-			label("Any item by name: uniques, Godly, potions, runes, keys, <b>T7 Armor</b>, <b>Starforged Ring</b>...", 14, 0, 0xcccccc, 512);
+			label("Any item by name: UTs, Legendaries, Godly, potions, keys, <b>T7 Armor</b>, <b>Phoenix Quill</b>...", 14, 0, 0xcccccc, 512);
 			label("Item", 14, 34, 0xffd75e, 60);
 			var q:TextField = field(60, 32, 290, query, 40, function(t:String):void { query = t; listResults(); });
 			if (!tester) {
@@ -294,7 +319,7 @@ package realm {
 			var y:int = 306;
 			label("Quick", 14, y + 5, 0xffd75e, 60);
 			btn("Evolution Stone", 60, y, 116, function():void { g.giveItem(Data.makeStone()); }, 11, 26);
-			btn("Random rune", 180, y, 100, function():void { g.giveItem(Data.makeRune(Data.STATS[int(Math.random() * Data.STATS.length)])); }, 11, 26);
+			btn("Random UT", 180, y, 100, function():void { g.giveItem(Data.makeForSlot(g.player.cls, int(Math.random() * 4), 7, "ut")); }, 11, 26);
 			btn("Cursed gear", 284, y, 100, function():void { g.giveItem(Data.makeCursed(g.player.cls)); }, 11, 26);
 			btn("Star Shard", 388, y, 90, function():void { g.giveItem(Data.makeSor()); }, 11, 26);
 			y += 30;

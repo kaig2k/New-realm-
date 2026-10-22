@@ -14,7 +14,7 @@ package realm {
 		public static const W:int = 640, H:int = 560;
 		private static const PER_PAGE:int = 6;
 		private static const ROW:int = 66;
-		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Primordial", "Abilities", "Guide", "Records", "Season"];
+		private static const TABS:Array = ["Events", "Dungeons", "Hard Dgns", "Finales", "Raids", "Items", "Abilities", "Guide", "Records", "Season"];
 		private static const PRIM_TAB:int = 5, ABILITY_TAB:int = 6, GUIDE_TAB:int = 7, RECORDS_TAB:int = 8, SEASON_TAB:int = 9;
 		/** The season ladder from the server: {name, ends, top: [{name, pts, deaths, best}], you, players, mult, last} (null until asked). */
 		public static var season:Object = null;
@@ -26,7 +26,7 @@ package realm {
 			"Legendaries here, and the last boss's Star Shard (1 in 150 each). Also: tier 7 gear, stat potions. GD items: 1 in 1,000.",
 			"Finale uniques are Legendary. Also: tier 7 gear, stat potions. GD items: 1 in 1,000.",
 			"Raid uniques: Legendary, and Primordial from each raid's final boss. Also: tier 7 gear. GD items: 1 in 1,000.",
-			"A Primordial unique for every item there is, all from the raids' final bosses. Hover one for its stats and where it drops.",
+			"",
 			"Ability items drop holding one of their class's three abilities. Hover an icon for its full description.",
 			"",
 			"Fastest kills of each realm event, from the first hit on the boss or its set piece to its death. Everyone who fought is listed.",
@@ -82,7 +82,7 @@ package realm {
 			"<font color='#b8c4d8'><b>Ironman</b></font>: no trading, no Marketplace and no guild bank: everything you use, you found. " +
 			"The merchant and the Key Merchant still sell to you. In return: <b>+30 loot luck</b>.\n\n" +
 			"<font color='#ff5a4a'><b>Hardcore</b></font>: Ironman's rules, and you climb the tiers. In each slot (weapon, ability, armor, ring) " +
-			"you must use a T1 before a T2, a T2 before a T3 and so on; special rarities (Runed and up, uniques) open up once you have used the top tier in that slot (T7 weapons and armor, T6 abilities, T5 rings). " +
+			"you must use a T1 before a T2, a T2 before a T3 and so on; named items (UT and up) open up once you have used the top tier in that slot (T7 weapons and armor, T6 abilities, T5 rings). " +
 			"In return: <b>+60 loot luck</b> and <b>+5 to every stat</b> (+30 HP, +20 MP).\n\n" +
 			"<font color='#7fd8a8'><b>Group Ironman</b></font>: Ironman with friends. Make a group with <b>/group create Name</b> and bring in up to 4 friends with " +
 			"<b>/group invite name</b> (they type /group accept). Group Ironman heroes in the same group can trade with each other and share the " +
@@ -169,7 +169,7 @@ package realm {
 				recs.unshift({rec: "rb:" + Bosses.RAIDS[ri].id + ":" + week()});
 			}
 			recs.unshift({rec: "vault:" + week()});
-			return [events, dungeons, hard, finales, raids, [1], abilities, guidePages(), recs, [1]];
+			return [events, dungeons, hard, finales, raids, ITEM_PAGES, abilities, guidePages(), recs, [1]];
 		}
 
 		/**
@@ -214,14 +214,14 @@ package realm {
 			body.graphics.clear();
 			tip.visible = false;
 			var list:Array = lists[tab];
-			var per:int = tab == GUIDE_TAB ? 1 : PER_PAGE;
+			var per:int = tab == GUIDE_TAB || tab == PRIM_TAB ? 1 : PER_PAGE;
 			var pages:int = Math.max(1, Math.ceil(list.length / per));
 			if (page >= pages) page = pages - 1;
 			if (tab == SEASON_TAB) {
 				seasonPage();
 				return;
 			}
-			if (tab == PRIM_TAB) primordialPage();
+			if (tab == PRIM_TAB) itemsPage(ITEM_PAGES[page]);
 			if (tab == GUIDE_TAB) {
 				var gt:TextField = Ui.text(12, 0xd8d8e0, false, "left", W - 36);
 				gt.htmlText = guidePages()[page];
@@ -235,7 +235,7 @@ package realm {
 				else row(list[idx], k * ROW);
 			}
 			var note:TextField = Ui.text(12, 0x9a9aaa, true, "left", W - 32, true);
-			note.text = LOOT[tab];
+			note.text = tab == PRIM_TAB ? ITEM_NOTES[ITEM_PAGES[page]] : LOOT[tab];
 			note.x = 16; note.y = PER_PAGE * ROW + 4;
 			body.addChild(note);
 			if (pages > 1) {
@@ -421,6 +421,8 @@ package realm {
 			var drops:Array = [];
 			for each (var uid:String in ids) { var u:Object = Uniques.make(uid); if (u) drops.push(u); }
 			for each (var gd:Array in d.godly || []) drops.push(Godly.make(gd[0], gd[1]));
+			// (the last boss of a multi-boss dungeon: a Star Shard, 1 in 150 for each player)
+			if (d.shard) drops.push(Data.makeSor());
 			if (!drops.length) {
 				var none:TextField = Ui.text(11, 0x707078, true, "right", 200, true);
 				none.text = "No unique drops";
@@ -447,9 +449,17 @@ package realm {
 			}
 		}
 
-		/** Every Primordial unique, by the kind of item it is (each item type has at least one). */
-		private function primordialPage():void {
-			var groups:Array = [["Weapons", "weapon"], ["Armor", "armor"], ["Abilities", "ability"], ["Rings", "ring"]];
+		/** The Items tab's pages: the ladder, one rarity a page. */
+		private static const ITEM_PAGES:Array = ["ut", "lg", "sf", "ar"];
+		private static const ITEM_NOTES:Object = {
+			ut: "UT: early dungeons, the Godlands dungeons and realm events. Each drops 1 in 50 from its boss (luck doesn't change it).",
+			lg: "Legendary: realm events, the Godlands dungeons and everything after. 1 in 100 each. Hover one for its special.",
+			sf: "Starforged: a Legendary + a Star Shard + 100 Aether at the Starforge. Same item, raised to the top of its slot.",
+			ar: "Primordial: only the final boss of each raid. Never crafted."};
+
+		/** Every item of one rarity of the ladder, by kind (weapons, armour, abilities, rings). */
+		private function itemsPage(rar:String):void {
+			var groups:Array = [["Weapons", "weapon"], ["Armour", "armor"], ["Abilities", "ability"], ["Rings", "ring"]];
 			var order:Object = {};
 			var n:int = 0;
 			for each (var cid:String in Data.CLASS_ORDER) {
@@ -457,38 +467,43 @@ package realm {
 				for each (var sub:String in [c.weapon, c.armor, c.abilityType]) if (order[sub] == undefined) order[sub] = n++;
 			}
 			for each (var st:String in Data.STATS) order["ring:" + st] = n++;
-			var y:int = 0;
+			var head:TextField = Ui.text(15, Data.RARITY_COLORS[rar], true, "left", 0, true);
+			head.text = Data.RARITY_NAMES[rar];
+			head.x = 18; head.y = 0;
+			body.addChild(head);
+			var y:int = 22;
+			var step:int = 46, perRow:int = int((W - 36) / step);
 			for each (var gr:Array in groups) {
 				var items:Array = [];
 				for (var id:String in Uniques.ALL) {
-					var u:Array = Uniques.ALL[id];
-					if (u[1] != gr[1] || Uniques.rarityOf(id) != "ar") continue;
-					items.push(Uniques.make(id));
+					if (Uniques.ALL[id][1] != gr[1] || Uniques.RETIRED.indexOf(id) >= 0) continue;
+					var want:String = rar == "sf" ? "lg" : rar;
+					if (Uniques.rarityOf(id) != want) continue;
+					// (the ladder's own items, and the raid masters' Primordials)
+					if (rar != "ar" && !Uniques.FIXED[id]) continue;
+					var it:Object = Uniques.make(id);
+					items.push(rar == "sf" ? Uniques.starforge(it) : it);
 				}
+				if (!items.length) continue;
 				items.sort(function(a:Object, b:Object):int {
 					var ka:int = order[a.kind == "ring" ? "ring:" + a.sub : a.sub], kb:int = order[b.kind == "ring" ? "ring:" + b.sub : b.sub];
 					return ka != kb ? ka - kb : a.name < b.name ? -1 : 1;
 				});
-				var h:TextField = Ui.text(13, Data.RARITY_COLORS.ar, true, "left", 0, true);
-				h.text = gr[0];
+				var h:TextField = Ui.text(12, 0xc8c8d0, true, "left", 0, true);
+				h.text = gr[0] + " (" + items.length + ")";
 				h.x = 18; h.y = y;
 				body.addChild(h);
-				y += 20;
+				y += 17;
 				for (var i:int = 0; i < items.length; i++) {
-					var it:Object = items[i];
-					var sx:int = 18 + i * 55;
 					var sl:ItemSlot = new ItemSlot(i);
-					sl.setItem(it);
-					sl.x = sx; sl.y = y;
+					sl.setItem(items[i]);
+					sl.scaleX = sl.scaleY = 0.86;
+					sl.x = 18 + (i % perRow) * step; sl.y = y + int(i / perRow) * step;
 					sl.addEventListener(MouseEvent.ROLL_OVER, over);
 					sl.addEventListener(MouseEvent.ROLL_OUT, function(ev:MouseEvent):void { tip.visible = false; });
 					body.addChild(sl);
-					var lab:TextField = Ui.text(9, 0xb0b0b8, true, "center", 54, true);
-					lab.text = it.kind == "ring" ? Data.STAT_SHORT[it.sub] : String(it.sub).charAt(0).toUpperCase() + String(it.sub).substr(1);
-					lab.x = sx - 3; lab.y = y + 49;
-					body.addChild(lab);
 				}
-				y += 70;
+				y += (int((items.length - 1) / perRow) + 1) * step + 4;
 			}
 		}
 

@@ -68,6 +68,12 @@ package realm {
 		public static const CORAL:Array = [".x.x..x.", ".x.xx.x.", "..xx.xx.", "...x.x..", "...xx...", "...x....", "..ttt...", ".ttttt.."];
 		public static const STONE:Array = ["...mm...", "..mmzm..", ".mmeemm.", "mmeeeemm", "mmeeeemm", ".mmeemm.", "..mmmm..", "...mm..."];
 		public static const PHYLACTERY:Array = ["...tt...", "..tzzt..", ".teeeet.", ".teeeet.", ".teeeet.", "..tttt..", "...tt...", "..tttt.."];
+		// gear the template has no family for, drawn whole the same way
+		public static const ROBE_D:Array = [".mmoomm.", "mmmttmmm", "mmmmmmmm", "tmmmmmmt", ".tteett.", ".mmddmm.", "mmmddmmm", "mmmddmmm"];
+		public static const CLOAK_D:Array = ["...mm...", "..mmmm..", ".mmoomm.", ".mmoomm.", "mmmtemmm", "mmmmmmmm", "mmdmmdmm", "mdmmmmdm"];
+		public static const HOURGLASS_D:Array = ["tttttttt", ".feeeef.", ".fxxxxf.", ".f.xx.f.", ".f.ex.f.", ".f.ee.f.", ".fxxxxf.", "tttttttt"];
+		public static const QUIVER_D:Array = ["..z.z.z.", "..x.x.x.", ".tttttt.", ".gggggg.", ".ggeegg.", ".gggggg.", ".tttttt.", "..gggg.."];
+		private static const DRAWN:Object = {robe: ROBE_D, cloak: CLOAK_D, hourglass: HOURGLASS_D, quiver: QUIVER_D};
 		/** [the words, the drawing, "w" for weapons only, "n" for anything but weapons]. */
 		private static const NOUNS:Array = [
 			[["keg", "barrel", "powder"], BARREL, "n"], [["lantern"], LANTERN, "n"], [["crown"], CROWN, "n"], [["halo"], HALO, "n"],
@@ -95,7 +101,7 @@ package realm {
 			{w: ["void", "abyss", "umbra", "rift", "eclipse", "unmade", "nether", "eldritch", "chaos", "vael"],
 				m: [0x9a7ad0, 0x4a2a7a, 0x1e1030], gem: 0xd060ff, fx: [0xe0a0ff, 0x8030c0], motif: "wisp"},
 			{w: ["star", "astral", "cosmo", "nebula", "comet", "celestial", "nova", "galax", "meteor", "zenith", "astraeon", "heaven"],
-				m: [0xe8eaff, 0x6a7ad8, 0x2a2a6a], gem: 0xfff0a0, fx: [0xffffff, 0xfff0a0], motif: "star"},
+				m: [0xe8eaff, 0x6a7ad8, 0x2a2a6a], gem: 0x7aa8ff, fx: [0xffffff, 0xfff0a0], motif: "star"},
 			{w: ["blood", "crimson", "vampir", "sanguine", "gore", "carnage", "scarlet", "kael", "slaughter"],
 				m: [0xff9090, 0xc02030, 0x5a0a14], gem: 0xff3040, fx: [0xff4050, 0x900818], motif: "drip"},
 			{w: ["venom", "viper", "serpent", "snake", "poison", "toxic", "hydra", "naga", "ssythra", "asp", "cobra", "plague", "blight"],
@@ -130,7 +136,7 @@ package realm {
 			{w: ["titan", "obsidian", "onyx", "black"], m: [0x8a8aa0, 0x3a3a4a, 0x14141c]},
 			{w: ["copper", "bronze", "brass"], m: [0xffd0a0, 0xc0783a, 0x6a3a18]},
 			{w: ["leather", "hide", "vest", "ranger"], m: [0xd8a070, 0x8a5a2a, 0x4a2a12]},
-			{w: ["cloth", "silk", "apprentice", "robe"], m: [0xd0c0f0, 0x6a5aa0, 0x2a2050]}
+			{w: ["silk"], m: [0xd0c0f0, 0x6a5aa0, 0x2a2050]}
 		];
 		/** Shape words: what they do to the drawing. */
 		private static const SHAPES:Array = [
@@ -173,15 +179,25 @@ package realm {
 			return (r << 16) | (g << 8) | bl;
 		}
 		private static function ramp(c:uint):Array { return [tint(c, 0.45), c, shade(c, 0.5)]; }
+		/** Where word w starts a word in name (-1 if it doesn't): "oak" isn't in "cloak". */
+		private static function wordAt(name:String, w:String):int {
+			var i:int = name.indexOf(w);
+			while (i >= 0) {
+				var c:String = i > 0 ? name.charAt(i - 1) : " ";
+				if (c < "a" || c > "z") return i;
+				i = name.indexOf(w, i + 1);
+			}
+			return -1;
+		}
 		private static function has(name:String, words:Array):Boolean {
-			for each (var w:String in words) if (name.indexOf(w) >= 0) return true;
+			for each (var w:String in words) if (wordAt(name, w) >= 0) return true;
 			return false;
 		}
 		/** The first element named (or null). */
 		private static function elementOf(name:String):Object {
 			var best:Object = null, at:int = 9999;
 			for each (var e:Object in ELEMENTS) for each (var w:String in e.w) {
-				var i:int = name.indexOf(w);
+				var i:int = wordAt(name, w);
 				if (i >= 0 && i < at) { at = i; best = e; }
 			}
 			return best;
@@ -226,6 +242,9 @@ package realm {
 			// something named for what it is (a keg, a crown, a trident...) is drawn as that
 			var noun:Array = null;
 			for each (var nn:Array in NOUNS) if ((nn[2] == "w") == (it.kind == "weapon") && has(name, nn[0])) { noun = nn[1]; break; }
+			// (robes, cloaks, hourglasses and quivers are drawn whole)
+			var drawn:Boolean = !noun && DRAWN[it.sub] != null;
+			if (drawn) noun = DRAWN[it.sub];
 			if (noun) fam = ringed(noun);
 			// (crowns, halos and chalices are gold whatever else they are)
 			var golden:Boolean = noun == CROWN || noun == HALO || noun == CHALICE;
@@ -235,7 +254,7 @@ package realm {
 			var named:Boolean = it.rarity != null && it.rarity != undefined;
 			var el:Object = elementOf(name);
 			var shp:Object = shapesOf(name);
-			var diag:Boolean = it.kind == "weapon" || it.sub == "quiver";
+			var diag:Boolean = it.kind == "weapon";
 			// how grand it is: plain tiers grow with tier, named gear is grand
 			var grand:int = named ? 3 + (it.rarity == "lg" || it.rarity == "ar" || it.rarity == "gd" ? 1 : 0) : t < 2 ? 0 : t < 4 ? 1 : t < 6 ? 2 : 3;
 
@@ -248,6 +267,9 @@ package realm {
 			if (!named && t < 3) grip = GRIPS[0];
 			var gem:uint = it.kind == "ring" ? uint(STAT_GEMS[it.sub] || 0xffffff) : el ? uint(el.gem) : TIER_GEM[t];
 			var fx:Array = el ? el.fx : [tint(gem, 0.5), gem];
+			// (an hourglass's sand is sand, a quiver's fletching red and white, unless an element says otherwise)
+			if (!el && it.sub == "hourglass") fx = [0xfff0b0, 0xd8b060];
+			if (!el && it.sub == "quiver") fx = [0xffffff, 0xd04040];
 			if (named && !el) {
 				// named gear with no element: leans toward its rarity's colour
 				var rc:uint = Data.RARITY_COLORS[it.rarity] || 0xffffff;
@@ -256,9 +278,16 @@ package realm {
 			if (it.rarity == "gd") { metal = [0xffffff, 0xfff0d0, 0xc8b080]; trim = TRIMS[0]; }
 			if (golden) trim = TRIMS[0];
 			// shafts of staves, wands and bows are their own wood unless an element runs through them
-			var shaft:Array = el && (it.sub == "staff" || it.sub == "wand" || it.sub == "bow") ? [el.m[1], el.m[2], shade(el.m[2], 0.6)] : grip;
+			var shaft:Array = el && it.sub == "bow" ? [el.m[1], el.m[2], shade(el.m[2], 0.6)] : grip;
+			// a wand's or staff's shaft is never shiny metal (it would read as a blade): wood, bone, ebony or pale ash
+			if (it.sub == "wand" || it.sub == "staff") {
+				shaft = has(name, ["bone", "grave", "skull", "lich", "death", "soul"]) ? [0xf0e8d0, 0xc8bc9c, 0x7a6e58]
+					: has(name, ["radian", "holy", "saint", "seraph", "light", "dawn", "sun", "penance"]) ? [0xfff8e0, 0xe0d0a8, 0x9a8458]
+					: has(name, ["void", "shadow", "eldritch", "night", "hex", "abyss", "dusk"]) ? [0x5a4a6a, 0x2e2238, 0x140e1a]
+					: [[0xb07a48, 0x744a26, 0x40260f], [0x9a6a50, 0x5e3a28, 0x321c12], [0x8a7a5a, 0x5a4a32, 0x30261a]][(h >>> 5) % 3];
+			}
 			var pal:Object = {H: metal[0], B: metal[1], b: metal[2], Y: grip[0], W: grip[1], w: grip[2], J: trim[0], G: trim[1], g: trim[2],
-				X: tint(gem, 0.6), R: gem, r: shade(gem, 0.55), M: fx[0], m: fx[1], S: 0xf0f0e8, O: 0x101018, Z: 0xffffff,
+				X: tint(gem, 0.35), R: gem, r: shade(gem, 0.55), M: fx[0], m: fx[1], S: 0xf0f0e8, O: 0x101018, Z: 0xffffff,
 				K: shaft[0], k: shaft[1], q: shaft[2]};
 
 			// ---- which cells: the core, and what of the ring the item grows into
@@ -288,6 +317,7 @@ package realm {
 			var core:Function = function(x:int, y:int):Boolean { var c:String = String(fam[y]).charAt(x); return c == "#" || c == "@"; };
 
 			// along the "/" axis: p 0 at the tail (bottom-left) to 1 at the tip, q across it (+ below-right)
+			if (drawn) dressDrawn(it.sub, cells, put, el, grand, h);
 			if (noun) { if (el) { if (diag) edgeMotif(el.motif, cells, ring, put, grand, h); else motif(el.motif, cells, ring, put, false, h, ""); } }
 			else if (diag) dressWeapon(it, cells, skel, ring, put, core, shp, el, grand, h, fam);
 			else if (it.kind == "armor") dressArmour(it, cells, ring, put, el, grand, h, shp);
@@ -314,6 +344,18 @@ package realm {
 				rows.push(row);
 			}
 			return {rows: rows, pal: pal};
+		}
+
+		/** The drawn gear's details by grandeur and name: gems, hems, tattered edges. */
+		private static function dressDrawn(sub:String, cells:Array, put:Function, el:Object, grand:int, h:uint):void {
+			var x:int, y:int;
+			// plain ones have no gem
+			if (grand < 1) for (y = 0; y < 8; y++) for (x = 0; x < 8; x++) if (cells[y][x] == "e" && sub != "hourglass") cells[y][x] = sub == "quiver" ? "g" : sub == "robe" ? "t" : "t";
+			if (sub == "robe" && grand >= 2) for (x = 0; x < 8; x++) cells[7][x] = "t";
+			if (sub == "robe" && grand >= 3) { put(0, 0, "t"); put(7, 0, "t"); }
+			if (sub == "cloak" && el && (el.motif == "wisp")) { cells[7][1] = cells[7][4] = cells[7][6] = ""; }
+			if (sub == "cloak" && grand >= 2) { cells[5][0] = cells[5][7] = "t"; }
+			if (sub == "quiver" && grand >= 2) { put(0, 2, "t"); put(7, 2, "t"); }
 		}
 
 		/** A drawing as a family: its cells the core, one cell round it the ring. */
@@ -359,8 +401,7 @@ package realm {
 				p = (x + 7 - y) / 14; q = x + y - 7;
 				if (sub == "sword") cells[y][x] = p < 0.12 ? "t" : p < 0.24 ? "g" : "m";
 				else if (sub == "dagger") cells[y][x] = p > 0.88 ? "t" : p > 0.72 ? "g" : "m";
-				else if (sub == "wand") cells[y][x] = x + y == 7 && x >= 6 ? "e" : p > 0.72 ? "t" : (x + y) % 3 == 0 && p > 0.3 && p < 0.6 ? "t" : "f";
-				else if (sub == "staff") cells[y][x] = p > 0.78 ? "e" : p > 0.64 ? "t" : "f";
+				else if (sub == "wand" || sub == "staff") cells[y][x] = "f";
 				else if (sub == "bow") cells[y][x] = x + y == 6 && x > 0 && y > 0 ? "s" : (p > 0.4 && p < 0.6 ? "g" : "f");
 				else if (sub == "quiver") cells[y][x] = p > 0.8 ? "z" : (Math.abs(p - 0.3) < 0.04 || Math.abs(p - 0.6) < 0.04) ? "t" : "g";
 			}
@@ -387,19 +428,28 @@ package realm {
 				if (shp.curve) { put(1, 5, "m"); put(2, 4, "m"); }
 				if (grand >= 2) cells[0][7] = "e";
 			}
-			if (sub == "staff") {
-				// its head: a big gem cradled in prongs of trim, more of them on grander staves
-				put(5, 0, "t"); put(7, 2, "t");
-				if (grand >= 2) { put(4, 0, "t"); put(7, 3, "t"); }
-				if (grand >= 3) { put(4, 1, "t"); put(6, 3, "t"); }
-			}
-			if (sub == "wand") {
-				if (grand >= 2) { put(5, 0, "t"); put(7, 2, "t"); }
+			if (sub == "wand" || sub == "staff") {
+				// the head: an orb of the gem (a plus round (6,1)) on a collar of trim, capped, and held in
+				// claws that curl round it; a staff's claws are long horns, and it has a crystal on top
+				// (the template's head is a solid wedge in the corner, which reads as a blade's tip: carved
+				// round, an orb with air about it)
+				cells[0][7] = cells[2][5] = "";
+				cells[0][6] = cells[1][5] = cells[1][6] = cells[1][7] = cells[2][6] = "e";
+				cells[2][4] = "t";
+				// a staff: a crystal point above the orb and two short claws holding it (long horns across
+				// the shaft read as a pick); a wand is just the orb
+				if (sub == "staff") { cells[0][7] = "e"; put(5, 0, "t"); put(7, 2, "t"); if (grand >= 2) cells[2][5] = "t"; }
+				// wraps round the shaft, and a cap at its foot
+				cells[4][3] = "t";
+				if (grand >= 2) cells[6][1] = "t";
+				cells[7][0] = grand >= 1 ? "e" : "t";
 			}
 			if (shp.twin && sub == "bow") { put(1, 6, "f"); put(6, 1, "f"); }
 			// the element's motif, in the ring round the tip and head
-			if (el) edgeMotif(el.motif, cells, ring, put, grand, h);
-			else if (grand >= 3) edgeMotif("glint", cells, ring, put, grand, h);
+			// (a wand's or staff's head keeps its shape: one spark of its element at most)
+			var head:Boolean = sub == "wand" || sub == "staff";
+			if (el && !head) edgeMotif(el.motif, cells, ring, put, grand, h);
+			else if (grand >= 3 && !head) edgeMotif("glint", cells, ring, put, grand, h);
 		}
 
 		/** Armour: the slab, then pauldrons, belt and emblem by its name. */
@@ -549,6 +599,7 @@ package realm {
 					else { put(0, top, "z"); put(7, top, "z"); put(3, top, "z"); }
 					break;
 				case "rune":
+					if (!weapon) { put(0, 3, "x"); put(7, 3, "x"); break; }
 					for (y = 0; y < 8; y++) for (x = 0; x < 8; x++) if (cells[y][x] == "m" && (x * 5 + y * 3 + int(h % 5)) % 9 == 0) cells[y][x] = "x";
 					break;
 				case "glint":

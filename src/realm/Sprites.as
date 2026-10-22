@@ -1088,8 +1088,8 @@ package realm {
 				cache[key] = bd;
 				return bd;
 			}
-			// gear and stat potions: every item has its own drawing (ItemArt)
-			var art:Object = ItemArt.art(item);
+			// gear: drawn from the item template by what it's called (ItemForge); stat potions and the rest (ItemArt)
+			var art:Object = ItemForge.art(item) || ItemArt.art(item);
 			if (art) {
 				bd = build(art.rows, art.pal, 4, 2);
 				if (rar == "gd") bd = godlyFrame(bd);

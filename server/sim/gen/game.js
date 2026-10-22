@@ -2945,6 +2945,7 @@ class World {
 		this.trialExits = null;
 		this.trialArenas = null;
 		this.trialProps = null;
+		this.skyRect = null;
 		this.trialCleared = __int(0);
 		this.treasure = null;
 		this.theme = null;
@@ -3375,6 +3376,7 @@ class World {
 				for (x = __int(1); x < this.N - 1; x++) {
 					i = __int(y * this.N + x);
 					if (this.tiles[i] != World.VOID) continue;
+					if (this.inSky(x, y)) continue;
 					for (var dy = __int(-1); dy <= 1; dy++) {
 						for (var dx = __int(-1); dx <= 1; dx++) {
 							var t = __int(this.tiles[(y + dy) * this.N + x + dx]);
@@ -3601,6 +3603,7 @@ class World {
 			this.chambers = []; this.trialArrive = []; this.trialExits = []; this.trialArenas = []; this.trialProps = []; this.stageSpots = []; this.mobRooms = [];
 			var x = 0, y = 0, i = 0, a = 0, d = NaN;
 			for (var k = __int(0); k < 4; k++) {
+				if (k == 3) { this.buildThrone(orig[k][0], orig[k][1]); continue; }
 				var st = SetPieces.STYLES[styles[k]];
 				var F = __int(st.floor), ALT = __int(st.alt), HZ = __int(st.hz);
 				var RUN = __int(SetPieces.safeFloor(st.trim) ? st.trim : ALT);
@@ -3686,6 +3689,74 @@ class World {
 				this.mobRooms.push({x: ax, y: ay, w: 19, h: 7, n: 6, k: k}, {x: bx, y: by, w: 19, h: 7, n: 6, k: k});
 				if (k == 0) this.rooms.unshift({x: cx, y: ly, w: 9, h: 3});
 			}
+		}
+	buildThrone(ox, oy) { ox = __int(ox); oy = __int(oy);
+			var cx = __int(ox + 44), acy = __int(oy + 18), ly = __int(oy + 84), lx = __int(cx + 18);
+			var ax = __int(cx - 17), ay = __int(oy + 72), bx = __int(cx), by = __int(oy + 57);
+			var x = 0, y = 0, a = 0, d = NaN;
+			this.skyRect = {x0: ox - 4, y0: 0, x1: this.N - 1, y1: oy + 94};
+			
+			this.blob(lx, ly, 4.6, World.STARSTONE);
+			this.carve(lx - 2, ly - 1, 5, 3, World.MARBLE);
+			this.blob(ax, ay, 9.5, World.STARSTONE);
+			this.blob(ax, ay, 3.2, World.MARBLE);
+			this.blob(bx, by, 9.5, World.MARBLE);
+			this.blob(bx, by, 6.5, World.STARSTONE);
+			
+			for (y = __int(-17); y <= 17; y++) for (x = __int(-17); x <= 17; x++) {
+				d = Math.sqrt(x * x + y * y);
+				if (d > 16.6) continue;
+				var t = __int(d > 15.4 ? World.GOLD : d > 13.4 ? World.MARBLE : World.STARSTONE);
+				var axis = x == 0 || y == 0 || Math.abs(x) == Math.abs(y);
+				if (d > 2.6 && d < 13.4 && axis) t = __int(World.RUNNER);
+				if (d < 2.6) t = __int(World.GOLD);
+				if (d >= 4.5 && d <= 5.8 && Math.abs(x) > 1 && Math.abs(y) > 1) t = __int(World.LAVA);
+				if (Math.abs(d - 9) < 0.5 && !axis) t = __int(World.MARBLE);
+				this.setT(cx + x, acy + y, t);
+			}
+			
+			this.starBridge(lx - 4, ly - 1, ax + 8, ay + 3, -1);
+			this.starBridge(ax + 6, ay - 6, bx - 7, by + 4, -1);
+			this.starBridge(bx, by - 9, cx, acy + 16, 3);
+			
+			for (a = __int(0); a < 5; a++) this.pool2(ax + Math.round(Math.cos(a * 1.256 + 0.4) * 5.5), ay + Math.round(Math.sin(a * 1.256 + 0.4) * 5.5), 1.2, World.LAVA);
+			for (a = __int(0); a < 4; a++) this.setO(ax + Math.round(Math.cos(a * 1.57 + 1.1) * 7.6), ay + Math.round(Math.sin(a * 1.57 + 1.1) * 7.6), 20);
+			
+			var stars = [[-6, -3], [-2, -6], [3, -4], [6, 1], [1, 5], [-5, 3]];
+			for (var sI = __int(0); sI < stars.length; sI++) {
+				var p0 = stars[sI], p1 = stars[(sI + 1) % stars.length];
+				var steps = __int(Math.max(Math.abs(p1[0] - p0[0]), Math.abs(p1[1] - p0[1])));
+				for (var n = __int(0); n <= steps; n++) this.setT(bx + p0[0] + Math.round((p1[0] - p0[0]) * n / steps), by + p0[1] + Math.round((p1[1] - p0[1]) * n / steps), World.GOLD);
+			}
+			for (var sp of __vals( stars)) this.setO(bx + sp[0], by + sp[1], 23);
+			
+			for (a = __int(0); a < 8; a++) this.setO(cx + Math.round(Math.cos(a * Math.PI / 4 + 0.39) * 11), acy + Math.round(Math.sin(a * Math.PI / 4 + 0.39) * 11), 23);
+			for (a = __int(0); a < 8; a++) this.setO(cx + Math.round(Math.cos(a * Math.PI / 4 + 0.39) * 14.4), acy + Math.round(Math.sin(a * Math.PI / 4 + 0.39) * 14.4), 25);
+			for (var cr of __vals( [[-7, -12], [7, -12], [-12, -7], [12, -7]])) this.setO(cx + cr[0], acy + cr[1], 20);
+			this.setO(lx - 3, ly - 1, 25); this.setO(lx + 3, ly - 1, 25);
+			this.chambers.push({x: cx, y: oy + 45, w: 88, h: 90});
+			this.trialArenas.push({x: cx, y: acy, w: 33, h: 33});
+			this.trialArrive.push([lx + 0.5, ly + 0.5]);
+			this.trialExits.push([cx + 0.5, acy + 3.5]);
+			this.stageSpots.push([[cx + 0.5, acy - 1.5]]);
+			this.mobRooms.push({x: ax, y: ay, w: 12, h: 12, n: 6, k: 3}, {x: bx, y: by, w: 12, h: 12, n: 6, k: 3});
+		}
+	starBridge(x0, y0, x1, y1, gate) { x0 = __int(x0); y0 = __int(y0); x1 = __int(x1); y1 = __int(y1); gate = __int(gate);
+			if (gate >= 0) while (this.gates.length <= gate) this.gates.push([]);
+			var steps = __int(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)));
+			for (var n = __int(0); n <= steps; n++) {
+				var x = __int(x0 + Math.round((x1 - x0) * n / steps)), y = __int(y0 + Math.round((y1 - y0) * n / steps));
+				for (var oy = __int(-1); oy <= 1; oy++) for (var ox = __int(-1); ox <= 1; ox++) {
+					var i = __int((y + oy) * this.N + x + ox);
+					if (this.tiles[i] != World.VOID) continue;
+					var t = __int(ox == 0 && oy == 0 ? World.RUNNER : World.MARBLE);
+					if (gate >= 0) this.gates[gate].push({i: i, t: t});
+					else { this.tiles[i] = t; this.zones[i] = World.DUNGEON_ZONE; }
+				}
+			}
+		}
+	inSky(x, y) { x = __int(x); y = __int(y);
+			return this.skyRect && x >= this.skyRect.x0 && x <= this.skyRect.x1 && y >= this.skyRect.y0 && y <= this.skyRect.y1;
 		}
 	setT(x, y, t) { x = __int(x); y = __int(y); t = __int(t);
 			if (x < 2 || y < 2 || x >= this.N - 2 || y >= this.N - 2) return;
@@ -6155,6 +6226,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-throne", title: "The Star Throne",
+				lines: ["<b>Astraeon's dungeon is rebuilt</b>: islands of star-stone and marble adrift in a nebula, shooting stars streaking overhead, joined by bridges with a gold runner.",
+					"Cross the <b>Falling Field</b> (starfire craters and star crystals) and the <b>Hall of Constellations</b>; the last bridge, up to the throne, only forms when their guards are dead.",
+					"<b>The throne</b>: a great round platform with a gold rim, spokes of gold and blue braziers, and round his dais a ring of white-hot starfire. Mind the edge: there's nothing below but stars."]},
 			{id: "2026-10-trial2", title: "The Starfall Trial's dungeons",
 				lines: ["<b>Each Starfall master now has a dungeon of its own</b>, built in its style: no more set pieces rising out of the floor.",
 					"<b>Ignis</b>: a lava river with two bridges under fire from magma vents, Cinder Imps and Ash Fiends, lava in the arena's corners.",

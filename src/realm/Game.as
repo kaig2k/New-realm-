@@ -1702,6 +1702,7 @@ package realm {
 			if (world.raid && sync.isHost) updateRaid(dt);
 			if (world.lair && sync.isHost) Lairs.update(world, dt, lairApi());
 			updateLightning(dt);
+			updateStarSky(dt);
 			updateAtmosphere(dt);
 			updateAmbient(dt);
 			updateStreak(dt);
@@ -5085,7 +5086,7 @@ package realm {
 			if (world.raid && world.raidTint >= 0) return [Sprites.shade(world.raidTint, 0.45), 0.2];
 			if (world.raid && world.chambers) {
 				var tk:int = world.chamberAt(player.x, player.y);
-				if (tk >= 0) return [[0x501000, 0x003038, 0x300038, 0x302400][tk], 0.2];
+				if (tk >= 0) return [[0x501000, 0x003038, 0x300038, 0x1a0c38][tk], tk == 3 ? 0.14 : 0.2];
 			}
 			if (world.raid) return world.raid.id == "storm" ? [0x001030, 0.18] : [0x500010, 0.16];
 			if (world.kind == "dungeon") return [0x000010, 0.12];
@@ -5552,6 +5553,24 @@ package realm {
 			if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, null));
 			for each (var it:Object in Data.rollLoot(Data.ENEMIES.loot_goblin, zone, player.cls, player.frt + 40)) out.push(it);
 			return out;
+		}
+
+		/** The Star Throne's sky: shooting stars streak past, and motes of starlight drift up off the islands. */
+		private var shootT:Number = 0;
+		private function updateStarSky(dt:Number):void {
+			if (!world.skyRect || !world.inSky(int(player.x), int(player.y)) || !opt("parts") || parts.length > 340) return;
+			shootT -= dt;
+			if (shootT <= 0) {
+				shootT = 0.5 + Math.random() * 1.4;
+				var sx:Number = player.x + (Math.random() - 0.5) * 26, sy:Number = player.y - 9 - Math.random() * 4;
+				var va:Number = 0.6 + Math.random() * 0.5, sp:Number = 12 + Math.random() * 8;
+				var head:BitmapData = Sprites.glow(0xfff6d0), tail:BitmapData = Sprites.glow(0xc8b0ff);
+				for (var k:int = 0; k < 7; k++) parts.push(new Particle(sx - Math.cos(va) * k * 0.35, sy - Math.sin(va) * k * 0.35, Math.cos(va) * sp, Math.sin(va) * sp, 0.7 - k * 0.07, k == 0 ? head : tail));
+			}
+			if (Math.random() < 0.35) {
+				var mx:Number = player.x + (Math.random() - 0.5) * 22, my:Number = player.y + (Math.random() - 0.5) * 14;
+				if (world.walkable(mx, my)) parts.push(new Particle(mx, my, 0, -0.5 - Math.random() * 0.5, 1.2, Sprites.glow(Math.random() < 0.5 ? 0xffe8a0 : 0xd8c8ff)));
+			}
 		}
 
 		/** Heart of the Storm: lightning keeps striking near you (dodge the circles). */

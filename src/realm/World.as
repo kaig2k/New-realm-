@@ -170,6 +170,8 @@ package realm {
 		/** Each trial dungeon's master's arena {x, y, w, h}, and its fixed turrets {id, x, y}. */
 		public var trialArenas:Array;
 		public var trialProps:Array;
+		/** The Star Throne floats in a night sky (tiles x0..x1, y0..y1): no walls, a nebula round it, starfire burning gold. */
+		public var skyRect:Object;
 		public var trialCleared:int = 0;
 		/** Dungeon side room holding a treasure chest (or null). */
 		public var treasure:Object;
@@ -670,6 +672,7 @@ package realm {
 				for (x = 1; x < N - 1; x++) {
 					i = y * N + x;
 					if (tiles[i] != VOID) continue;
+					if (inSky(x, y)) continue;
 					for (var dy:int = -1; dy <= 1; dy++) {
 						for (var dx:int = -1; dx <= 1; dx++) {
 							var t:int = tiles[(y + dy) * N + x + dx];
@@ -933,6 +936,7 @@ package realm {
 			chambers = []; trialArrive = []; trialExits = []; trialArenas = []; trialProps = []; stageSpots = []; mobRooms = [];
 			var x:int, y:int, i:int, a:int, d:Number;
 			for (var k:int = 0; k < 4; k++) {
+				if (k == 3) { buildThrone(orig[k][0], orig[k][1]); continue; }
 				var st:Object = SetPieces.STYLES[styles[k]];
 				var F:int = st.floor, ALT:int = st.alt, HZ:int = st.hz;
 				var RUN:int = SetPieces.safeFloor(st.trim) ? st.trim : ALT;
@@ -1018,6 +1022,87 @@ package realm {
 				mobRooms.push({x: ax, y: ay, w: 19, h: 7, n: 6, k: k}, {x: bx, y: by, w: 19, h: 7, n: 6, k: k});
 				if (k == 0) rooms.unshift({x: cx, y: ly, w: 9, h: 3});
 			}
+		}
+
+		/**
+		 * The Star Throne, Astraeon's: islands of star-stone and marble adrift in a night sky, joined
+		 * by bridges with a gold runner. You land on a small island, cross the Falling Field (starfire
+		 * craters and star crystals) and the Hall of Constellations (gold pillars joined by lines of
+		 * gold), and the last bridge, to the throne, only forms once their guards are dead. The throne:
+		 * a great round platform with a gold rim, marble ring, gold spokes, blue braziers and pillars, and
+		 * round the golden dais a ring of starfire with four ways through.
+		 */
+		private function buildThrone(ox:int, oy:int):void {
+			var cx:int = ox + 44, acy:int = oy + 18, ly:int = oy + 84, lx:int = cx + 18;
+			var ax:int = cx - 17, ay:int = oy + 72, bx:int = cx, by:int = oy + 57;
+			var x:int, y:int, a:int, d:Number;
+			skyRect = {x0: ox - 4, y0: 0, x1: N - 1, y1: oy + 94};
+			// the islands
+			blob(lx, ly, 4.6, STARSTONE);
+			carve(lx - 2, ly - 1, 5, 3, MARBLE);
+			blob(ax, ay, 9.5, STARSTONE);
+			blob(ax, ay, 3.2, MARBLE);
+			blob(bx, by, 9.5, MARBLE);
+			blob(bx, by, 6.5, STARSTONE);
+			// the throne
+			for (y = -17; y <= 17; y++) for (x = -17; x <= 17; x++) {
+				d = Math.sqrt(x * x + y * y);
+				if (d > 16.6) continue;
+				var t:int = d > 15.4 ? GOLD : d > 13.4 ? MARBLE : STARSTONE;
+				var axis:Boolean = x == 0 || y == 0 || Math.abs(x) == Math.abs(y);
+				if (d > 2.6 && d < 13.4 && axis) t = RUNNER;
+				if (d < 2.6) t = GOLD;
+				if (d >= 4.5 && d <= 5.8 && Math.abs(x) > 1 && Math.abs(y) > 1) t = LAVA;
+				if (Math.abs(d - 9) < 0.5 && !axis) t = MARBLE;
+				setT(cx + x, acy + y, t);
+			}
+			// bridges, and the last one only when the seal breaks
+			starBridge(lx - 4, ly - 1, ax + 8, ay + 3, -1);
+			starBridge(ax + 6, ay - 6, bx - 7, by + 4, -1);
+			starBridge(bx, by - 9, cx, acy + 16, 3);
+			// the Falling Field: starfire craters and star crystals
+			for (a = 0; a < 5; a++) pool2(ax + Math.round(Math.cos(a * 1.256 + 0.4) * 5.5), ay + Math.round(Math.sin(a * 1.256 + 0.4) * 5.5), 1.2, LAVA);
+			for (a = 0; a < 4; a++) setO(ax + Math.round(Math.cos(a * 1.57 + 1.1) * 7.6), ay + Math.round(Math.sin(a * 1.57 + 1.1) * 7.6), 20);
+			// the Hall of Constellations: gold pillars at the stars, lines of gold between them
+			var stars:Array = [[-6, -3], [-2, -6], [3, -4], [6, 1], [1, 5], [-5, 3]];
+			for (var sI:int = 0; sI < stars.length; sI++) {
+				var p0:Array = stars[sI], p1:Array = stars[(sI + 1) % stars.length];
+				var steps:int = Math.max(Math.abs(p1[0] - p0[0]), Math.abs(p1[1] - p0[1]));
+				for (var n:int = 0; n <= steps; n++) setT(bx + p0[0] + Math.round((p1[0] - p0[0]) * n / steps), by + p0[1] + Math.round((p1[1] - p0[1]) * n / steps), GOLD);
+			}
+			for each (var sp:Array in stars) setO(bx + sp[0], by + sp[1], 23);
+			// round the throne: gold pillars between the spokes, blue braziers on the marble ring, crystals between
+			for (a = 0; a < 8; a++) setO(cx + Math.round(Math.cos(a * Math.PI / 4 + 0.39) * 11), acy + Math.round(Math.sin(a * Math.PI / 4 + 0.39) * 11), 23);
+			for (a = 0; a < 8; a++) setO(cx + Math.round(Math.cos(a * Math.PI / 4 + 0.39) * 14.4), acy + Math.round(Math.sin(a * Math.PI / 4 + 0.39) * 14.4), 25);
+			for each (var cr:Array in [[-7, -12], [7, -12], [-12, -7], [12, -7]]) setO(cx + cr[0], acy + cr[1], 20);
+			setO(lx - 3, ly - 1, 25); setO(lx + 3, ly - 1, 25);
+			chambers.push({x: cx, y: oy + 45, w: 88, h: 90});
+			trialArenas.push({x: cx, y: acy, w: 33, h: 33});
+			trialArrive.push([lx + 0.5, ly + 0.5]);
+			trialExits.push([cx + 0.5, acy + 3.5]);
+			stageSpots.push([[cx + 0.5, acy - 1.5]]);
+			mobRooms.push({x: ax, y: ay, w: 12, h: 12, n: 6, k: 3}, {x: bx, y: by, w: 12, h: 12, n: 6, k: 3});
+		}
+
+		/** A 3-wide marble bridge with a gold runner down its middle; gate >= 0: missing until that gate opens. */
+		private function starBridge(x0:int, y0:int, x1:int, y1:int, gate:int):void {
+			if (gate >= 0) while (gates.length <= gate) gates.push([]);
+			var steps:int = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+			for (var n:int = 0; n <= steps; n++) {
+				var x:int = x0 + Math.round((x1 - x0) * n / steps), y:int = y0 + Math.round((y1 - y0) * n / steps);
+				for (var oy:int = -1; oy <= 1; oy++) for (var ox:int = -1; ox <= 1; ox++) {
+					var i:int = (y + oy) * N + x + ox;
+					if (tiles[i] != VOID) continue;
+					var t:int = ox == 0 && oy == 0 ? RUNNER : MARBLE;
+					if (gate >= 0) gates[gate].push({i: i, t: t});
+					else { tiles[i] = t; zones[i] = DUNGEON_ZONE; }
+				}
+			}
+		}
+
+		/** Is tile (x, y) in the Star Throne's sky? */
+		public function inSky(x:int, y:int):Boolean {
+			return skyRect && x >= skyRect.x0 && x <= skyRect.x1 && y >= skyRect.y0 && y <= skyRect.y1;
 		}
 
 		/** Sets one floor tile (and keeps its zone). */
@@ -1562,6 +1647,13 @@ package realm {
 								var sv:Number = wash(gx * 3, gy * 3);
 								c = sv > 1.03 ? 0x140f2a : sv > 0.98 ? 0x0e0b20 : 0x090716;
 								if (mark(gx, gy, 23, hs) && r < 0.6) c = r < 0.15 ? 0xffffff : r < 0.35 ? 0xc8b8ff : 0x6a5aa0;
+							} else if (inSky(tx, ty)) {
+								// round the Star Throne, a nebula: violet clouds lit gold where the star fell, thick with stars
+								var nv:Number = wash(gx * 2, gy * 2), nw:Number = wash(gx * 3 + 4000, gy * 3 + 2500);
+								c = nv > 1.045 ? 0x2c1850 : nv > 1.01 ? 0x1e1038 : nv > 0.97 ? 0x130a26 : 0x090514;
+								if (nw > 1.05) c = nv > 1.0 ? 0x4a3018 : 0x2c1c10;
+								else if (nw > 1.035) c = Sprites.shade(c, 1.25);
+								if (mark(gx, gy, 11, hs) && r < 0.75) c = r < 0.12 ? 0xffffff : r < 0.3 ? 0xfff0b0 : r < 0.5 ? 0xc8b8ff : 0x7a6aa8;
 							} else c = 0x000000;
 							break;
 						case STONE:
@@ -1693,6 +1785,14 @@ package realm {
 							break;
 						case LAVA:
 							var ls:int = (gx + gy) & 3;
+							// (round the Star Throne it burns as starfire: molten gold and white)
+							if (inSky(tx, ty)) {
+								// white-hot at its heart, flaring orange: nothing like the gold floor it burns through
+								var sf:int = (gx * 5 + gy * 3 + (gy >> 1)) % 7;
+								c = sf == 0 ? 0xffffff : sf < 3 ? 0xfff2c0 : (gx + gy) % 4 == 0 ? 0xff6a20 : 0xffa040;
+								if (r < 0.06) c = 0xffffff;
+								break;
+							}
 							c = ls == 0 ? 0x8a1a0e : ls == 1 ? 0xe04a22 : 0xc0301a;
 							if (r < 0.05) c = 0xff8a30;
 							break;

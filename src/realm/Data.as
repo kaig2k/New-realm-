@@ -1616,6 +1616,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-throne", title: "The Star Throne",
+				lines: ["<b>Astraeon's dungeon is rebuilt</b>: islands of star-stone and marble adrift in a nebula, shooting stars streaking overhead, joined by bridges with a gold runner.",
+					"Cross the <b>Falling Field</b> (starfire craters and star crystals) and the <b>Hall of Constellations</b>; the last bridge, up to the throne, only forms when their guards are dead.",
+					"<b>The throne</b>: a great round platform with a gold rim, spokes of gold and blue braziers, and round his dais a ring of white-hot starfire. Mind the edge: there's nothing below but stars."]},
 			{id: "2026-10-trial2", title: "The Starfall Trial's dungeons",
 				lines: ["<b>Each Starfall master now has a dungeon of its own</b>, built in its style: no more set pieces rising out of the floor.",
 					"<b>Ignis</b>: a lava river with two bridges under fire from magma vents, Cinder Imps and Ash Fiends, lava in the arena's corners.",

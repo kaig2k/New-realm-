@@ -293,6 +293,7 @@ package realm {
 			trackerTf.x = VIEW_W - 416; trackerTf.y = 80;
 			trackerTf.mouseEnabled = false;
 			trackerBg = new Shape();
+			trackerBg.cacheAsBitmap = true;
 			addChild(trackerBg);
 			addChild(netTf);
 			addChild(trackerTf);
@@ -715,6 +716,7 @@ package realm {
 			var tfs:Array = [];
 			// each counter sits in a small glass pill, the icon in a dark socket at its right end
 			var pills:Shape = new Shape();
+			pills.cacheAsBitmap = true;
 			addChild(pills);
 			for (var i:int = 0; i < 4; i++) {
 				var col:int = i % 2, row:int = int(i / 2);
@@ -6586,6 +6588,7 @@ package realm {
 			chat.y = VIEW_H - chat.height - (open ? 36 : 6);
 			if (!chatBg) {
 				chatBg = new Shape();
+				chatBg.cacheAsBitmap = true;
 				addChildAt(chatBg, getChildIndex(chat));
 			}
 			chatBg.graphics.clear();

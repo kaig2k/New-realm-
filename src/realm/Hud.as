@@ -343,6 +343,22 @@ package realm {
 
 			tip = new Tooltip();
 			addChild(tip);
+			// the panel's vector art drawn once into bitmaps: re-rasterised every frame, the gradients and
+			// lattice cost more than the whole game view (only what's redrawn often stays vector)
+			bake(this);
+			for (var ci:int = 0; ci < numChildren; ci++) {
+				var cs:Shape = getChildAt(ci) as Shape;
+				if (cs && cs != miniDots && cs != medalFx) cs.cacheAsBitmap = true;
+			}
+		}
+
+		/** Moves what's drawn on a sprite's own graphics into a child shape kept as a bitmap. */
+		public static function bake(sp:Sprite):void {
+			var bg:Shape = new Shape();
+			bg.graphics.copyFrom(sp.graphics);
+			sp.graphics.clear();
+			bg.cacheAsBitmap = true;
+			sp.addChildAt(bg, 0);
 		}
 
 		private var bagY:int;
@@ -677,7 +693,8 @@ package realm {
 			var i:int;
 			if (!p.backpack) p.packPage = 0;
 			packBtn.visible = p.backpack;
-			packTf.text = p.packPage == 0 ? "Inventory  1 / 2" : "Backpack  2 / 2";
+			var pk:String = p.packPage == 0 ? "Inventory  1 / 2" : "Backpack  2 / 2";
+			if (packTf.text != pk) packTf.text = pk;
 			for (i = 0; i < 8; i++) {
 				invSlots[i].idx = p.packPage * 8 + i;
 				invSlots[i].setItem(p.inv[p.packPage * 8 + i]);
@@ -733,10 +750,13 @@ package realm {
 		}
 
 		/** Low HP makes the HP bar and the medallion rim throb red; a level-up rings gold and throws sparks. */
+		private var medalDrawn:Boolean = false;
 		private function tickMedalFx(p:Player):void {
 			var low:Boolean = p.hp > 0 && p.hp < p.maxHp * 0.3;
 			var throb:Number = low ? 0.5 + 0.5 * Math.sin(getTimer() / 120) : 0;
 			hpBar.setPulse(throb);
+			if (!low && lvlFlash <= 0 && !sparks.length && !medalDrawn) return;
+			medalDrawn = low || lvlFlash > 0 || sparks.length > 0;
 			var gr:* = medalFx.graphics;
 			gr.clear();
 			if (low) {
@@ -1082,6 +1102,7 @@ class Bar extends Sprite {
 		labelTf = Ui.text(size, 0xffffff, true, "left", 0, true);
 		labelTf.x = 5;
 		addChild(labelTf);
+		Hud.bake(this);
 		valueTf = Ui.text(size, 0xffffff, true, valueAlign, valueAlign == "center" ? w : 0, true);
 		addChild(valueTf);
 		mouseChildren = false;
@@ -1102,8 +1123,19 @@ class Bar extends Sprite {
 		pulse.visible = a > 0;
 		pulse.scaleX = fill.scaleX;
 		pulse.alpha = a * 0.35;
-		filters = a > 0 ? [new GlowFilter(0xff3040, a * 0.9, 10, 10, 2)] : [];
+		// (a filter set every frame redraws the bar every frame: only while it throbs, and one filter reused)
+		if (a > 0) {
+			if (!glowF) glowF = new GlowFilter(0xff3040, 0.9, 10, 10, 2);
+			glowF.alpha = a * 0.9;
+			filters = [glowF];
+			glowOn = true;
+		} else if (glowOn) {
+			filters = [];
+			glowOn = false;
+		}
 	}
+	private var glowF:GlowFilter;
+	private var glowOn:Boolean = false;
 
 	/** Blend a toward b by t (0..1). */
 	public static function mix(a:uint, b:uint, t:Number):uint {
@@ -1149,9 +1181,14 @@ class Slot extends Sprite {
 	private var tierTf:TextField;
 	private var numTf:TextField;
 
+	/** The slot's face (drawBack), kept as a bitmap: it changes only with the item. */
+	private var back:Shape = new Shape();
+
 	public function Slot(kind:String, idx:int, numbered:Boolean) {
 		this.kind = kind;
 		this.idx = idx;
+		back.cacheAsBitmap = true;
+		addChild(back);
 		drawBack(null, false);
 		// empty gear slots show a faint mark of what goes there
 		var mark:Array = MARKS[kind];
@@ -1178,7 +1215,7 @@ class Slot extends Sprite {
 		fx = new Shape();
 		addChild(fx);
 		hoverFx = new Shape();
-		addChildAt(hoverFx, 0);
+		addChildAt(hoverFx, 1);
 		mouseChildren = false;
 		buttonMode = true;
 		addEventListener(MouseEvent.ROLL_OVER, function(e:MouseEvent):void { drawHover(1); });
@@ -1243,11 +1280,11 @@ class Slot extends Sprite {
 		m.createGradientBox(48, 48, Math.PI / 2);
 		var top:uint = bad ? 0x5a2430 : kind == "bag" ? 0x33281c : 0x2a2244;
 		var bot:uint = bad ? 0x2a0e14 : kind == "bag" ? 0x17110a : 0x130f20;
-		graphics.clear();
-		graphics.lineStyle(1, 0x05030a);
-		graphics.beginGradientFill("linear", [top, bot], [1, 1], [0, 255], m);
-		graphics.drawRoundRect(0, 0, 48, 48, 12, 12);
-		graphics.endFill();
+		back.graphics.clear();
+		back.graphics.lineStyle(1, 0x05030a);
+		back.graphics.beginGradientFill("linear", [top, bot], [1, 1], [0, 255], m);
+		back.graphics.drawRoundRect(0, 0, 48, 48, 12, 12);
+		back.graphics.endFill();
 		rim = it && it.rarity ? Data.tierColor(it) : kind == "bag" ? 0x6a5434 : Hud.EDGE;
 		shimmer = it && (it.rarity == "lg" || it.rarity == "ar" || it.rarity == "gd");
 		if (!shimmer && fx) fx.graphics.clear();
@@ -1255,15 +1292,15 @@ class Slot extends Sprite {
 			// a soft glow of the rarity colour from the bottom
 			var gm:Matrix = new Matrix();
 			gm.createGradientBox(60, 48, 0, -6, 18);
-			graphics.beginGradientFill("radial", [rim, rim], [0.32, 0], [0, 255], gm);
-			graphics.drawRoundRect(1, 1, 46, 46, 11, 11);
-			graphics.endFill();
+			back.graphics.beginGradientFill("radial", [rim, rim], [0.32, 0], [0, 255], gm);
+			back.graphics.drawRoundRect(1, 1, 46, 46, 11, 11);
+			back.graphics.endFill();
 		}
-		graphics.lineStyle(it && it.rarity ? 1.5 : 1, rim, it && it.rarity ? 0.95 : 0.8);
-		graphics.drawRoundRect(1, 1, 46, 46, 11, 11);
-		graphics.lineStyle(1, 0xffffff, 0.07);
-		graphics.moveTo(7, 2.5); graphics.lineTo(41, 2.5);
-		graphics.lineStyle();
+		back.graphics.lineStyle(it && it.rarity ? 1.5 : 1, rim, it && it.rarity ? 0.95 : 0.8);
+		back.graphics.drawRoundRect(1, 1, 46, 46, 11, 11);
+		back.graphics.lineStyle(1, 0xffffff, 0.07);
+		back.graphics.moveTo(7, 2.5); back.graphics.lineTo(41, 2.5);
+		back.graphics.lineStyle();
 	}
 
 	private var upArrow:Shape;
@@ -1271,6 +1308,7 @@ class Slot extends Sprite {
 	private var cdTf:TextField;
 	private var cdLast:Number = 0;
 	private var readyGlow:Number = 0;
+	private var cdDrawn:Boolean = false;
 
 	/** Ability cooldown: a dark sweep that empties clockwise, the seconds left, and a flash when ready. */
 	public function setCooldown(frac:Number, secs:Number):void {
@@ -1282,6 +1320,9 @@ class Slot extends Sprite {
 			addChild(cdTf);
 		}
 		if (frac <= 0 && cdLast > 0) readyGlow = 1;
+		// (nothing to draw and nothing drawn: leave it be, a cleared shape still redraws its corner of the screen)
+		if (frac <= 0 && cdLast <= 0 && readyGlow <= 0 && !cdDrawn) return;
+		cdDrawn = frac > 0 || readyGlow > 0;
 		cdLast = frac;
 		var g:* = cdShape.graphics;
 		g.clear();
@@ -1407,6 +1448,7 @@ class PotSlot extends Sprite {
 		addChild(key);
 		buttonMode = true;
 		mouseChildren = false;
+		Hud.bake(this);
 	}
 
 	public function setCount(n:int, k:String):void {

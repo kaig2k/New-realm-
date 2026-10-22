@@ -1602,6 +1602,14 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-realmleaders", title: "What's new in Eldmere",
+				lines: ["<b>Realm Leaders</b>: the shrines and the Godlands Spires are gone. Every realm boss your guild helps kill counts for it, and each Monday the guild with the most is crowned Realm Leaders for the week: +15 loot luck and +10% XP for its members, and a Realm Leader title. <b>/leaders</b> shows the race.",
+					"<b>Every realm boss has its own lair</b>: they always drop a portal to a dungeon built in their image, with its own way through (shields to break, menders to smash, waves to hold, eggs to break, tentacles that grow back) and its master at the end.",
+					"<b>Dungeons with a way of their own</b>: the finales, the old endgame dungeons and the early ones now ask something of you besides the boss: drowned souls to cut down before Nerezza drinks them, Gearmind's cores to break in turn, a phylactery to smash before the Lich King rises again, cocoons hidden in the Forest Maze, and more.",
+					"<b>Bosses hit back</b>: boss attacks pierce half your Defense (at least 35% always gets through) and every boss has far more health. Raids were retuned stage by stage.",
+					"<b>Heroic raids have rules of their own</b>: Blood Moon in the Conclave, the Eye of the Storm, Falling Stars in the Vault. Heroic's flat boosts are gentler to make room for them.",
+					"<b>New look</b>: bosses animate (walking, casting, striking, summoning, raging, dying) and fire shots of their own; realm and dungeon monsters are redrawn to match; raids and dungeons have walls and gates of their own; banners, headings, buttons and panels have a new style.",
+					"<b>Smoother</b>: big boss sprites and the HUD no longer slow the game down."]},
 			{id: "2026-10-nexus", title: "What's new in Eldmere",
 				lines: ["<b>A new Nexus</b>: the Nexus is now a starstone citadel adrift among the stars, with a great star well and its floating shard at its heart, a marble Realm Gate, violet gardens with star trees and ponds, a Treasury and a War Quarter.",
 					"<b>Everything is where it was</b>: every portal, merchant and station stands in the same spot, so your way around hasn't changed."]},

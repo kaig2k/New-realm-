@@ -9,9 +9,9 @@ from raidprops import PROPS
 # bosses first, then every monster that used to share another's drawing, then the raids' objectives
 DESIGNS = DESIGNS + MA + MB + MC + PROPS
 # the realm's event bosses, shaded from solids (realm_shaded.py), replace their older flat drawings
-import realm_shaded, dungeon_shaded_a, dungeon_shaded_b, raid_shaded, angular_shaded, lair_shaded, endgame_shaded, monster_shaded, user_shaded
+import realm_shaded, dungeon_shaded_a, dungeon_shaded_b, raid_shaded, angular_shaded, lair_shaded, endgame_shaded, monster_shaded
 # (the armoured and stone bosses come last: their hard-edged versions replace the rounder ones)
-_shaded = realm_shaded.designs() + dungeon_shaded_a.all_designs() + dungeon_shaded_b.all_designs() + raid_shaded.all_designs() + angular_shaded.all_designs() + lair_shaded.all_designs() + endgame_shaded.all_designs() + user_shaded.all_designs()
+_shaded = realm_shaded.designs() + dungeon_shaded_a.all_designs() + dungeon_shaded_b.all_designs() + raid_shaded.all_designs() + angular_shaded.all_designs() + lair_shaded.all_designs() + endgame_shaded.all_designs()
 # the realm's monsters, shaded too (monster_shaded.py; their old drawings go: nothing recolours them by name)
 _monsters = monster_shaded.all_designs()
 _mnames = {d[0] for d in _monsters}
@@ -25,11 +25,21 @@ out = []
 for name, fn, pal, scale in DESIGNS:
     frames, pal = animate(fn, pal)
     out.append((name, frames, pal, scale))
-# Vorgath, the Dark Elder, the Abyssal Herald, Tempestus and Archon Vesper were drawn from the user's sheets with an
-# animation per attack (vorgath.py, elder.py, herald.py, tempestus.py, vesper.py); they're shaded and posed now
-# (user_shaded.py, Bosses.POSED), and only the Herald's spawn is still drawn from there
+# Vorgath: an animation for each of his attacks (see vorgath.py)
+from vorgath import sequences
+out += sequences()
+# the Dark Elder: the same (see elder.py)
+import elder
+out += elder.sequences()
+# the Abyssal Herald and its spawn (see herald.py)
 import herald
-out += [x for x in herald.sequences() if x[0] == 'abyss_spawn']
+out += herald.sequences()
+# Tempestus, Heart of the Storm (see tempestus.py)
+import tempestus
+out += tempestus.sequences()
+# Archon Vesper, Architect of Void-Time (see vesper.py)
+import vesper
+out += vesper.sequences()
 # Nerezza, the Tide Empress: after the user's own art, on the game's grid (see nerezza.py)
 import nerezza
 out += nerezza.sequences()

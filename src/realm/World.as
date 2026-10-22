@@ -158,6 +158,16 @@ package realm {
 		public var gates:Array = [];
 		public var stageSpots:Array = [];
 		public var mobRooms:Array = [];
+		/**
+		 * A trial raid (the Starfall Vault): sealed chambers {x, y, w, h} with no way
+		 * between them but portals. trialArrive[k] is where you land in chamber k,
+		 * trialExits[k] where chamber k's portal on opens once its master falls, and
+		 * trialCleared how many chambers are beaten.
+		 */
+		public var chambers:Array;
+		public var trialArrive:Array;
+		public var trialExits:Array;
+		public var trialCleared:int = 0;
 		/** Dungeon side room holding a treasure chest (or null). */
 		public var treasure:Object;
 		public var theme:Object;
@@ -907,42 +917,45 @@ package realm {
 		 * raises a set piece of its own in the middle of it, so the chambers
 		 * are plain stone halls (with braziers and side alcoves) until then.
 		 */
+		/**
+		 * The Starfall Trial: four chambers sealed off from each other, floating in the
+		 * dark. You arrive in the first; each master that falls opens a portal to the
+		 * next. The last, the Star Throne, is the biggest.
+		 */
 		private function layoutStarfall(th:Object):void {
 			var F:int = th.floor, A:int = th.accent;
-			var entry:Object = hall(100, 188, 13, 9, F);
-			carve(99, 184, 3, 9, A);
-			rooms.push(entry);
-			var cys:Array = [160, 118, 76, 34];
-			for (var k:int = 0; k < cys.length; k++) {
-				var cy:int = cys[k], last:Boolean = k == cys.length - 1;
-				var w:int = last ? 29 : 27, h:int = last ? 27 : 25;
-				rooms.push(hall(100, cy, w, h, F));
+			// [centre x, centre y, size]
+			var cs:Array = [[52, 150, 31], [148, 150, 31], [52, 52, 31], [146, 54, 33]];
+			chambers = []; trialArrive = []; trialExits = []; stageSpots = []; mobRooms = [];
+			for (var k:int = 0; k < cs.length; k++) {
+				var cx:int = cs[k][0], cy:int = cs[k][1], sz:int = cs[k][2], h:int = int(sz / 2);
+				var room:Object = hall(cx, cy, sz, sz, F);
+				chambers.push(room);
+				// a gold border just inside the walls, and the landing pad at the south edge
+				for (var t:int = -h + 1; t <= h - 1; t++) {
+					if ((t + 100) % 3 == 0) continue;
+					carve(cx + t, cy - h + 1, 1, 1, A); carve(cx + t, cy + h - 1, 1, 1, A);
+					carve(cx - h + 1, cy + t, 1, 1, A); carve(cx + h - 1, cy + t, 1, 1, A);
+				}
+				carve(cx - 2, cy + h - 4, 5, 3, A);
 				// braziers in the corners, outside where the set piece will rise
-				for each (var b:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) objs[(cy + b[1] * (int(h / 2) - 1)) * N + 100 + b[0] * (int(w / 2) - 1)] = 7;
-				// alcoves either side, with the vault's guards
-				if (!last) {
-					for (var sd:int = -1; sd <= 1; sd += 2) {
-						var ax:int = 100 + sd * 24;
-						rooms.push(hall(ax, cy, 9, 9, F));
-						corridor(100 + sd * 13, cy, ax, cy, F);
-						objs[(cy - 3) * N + ax] = 8;
-						mobRooms.push({x: ax, y: cy, w: 7, h: 7, n: 4});
-					}
-				}
-				// the way on, sealed until this chamber's master falls
-				var top:int = cy - int(h / 2) - 1;
-				if (k == 0) corridor(100, 183, 100, cy + int(h / 2) + 1, F);
-				if (!last) {
-					var next:int = cys[k + 1] + int(13) + 1;
-					corridor(100, top, 100, next, F);
-					var gy:int = int((top + next) / 2);
-					gateRows(k, 100, gy, gy + 1, WALL);
-				}
+				for each (var b:Array in [[-1, -1], [1, -1], [-1, 1], [1, 1]]) objs[(cy + b[1] * (h - 2)) * N + cx + b[0] * (h - 2)] = 7;
+				trialArrive.push([cx + 0.5, cy + h - 2.5]);
+				trialExits.push([cx + 0.5, cy + 3.5]);
+				stageSpots.push([[cx + 0.5, cy - 1.5]]);
 			}
-			// gold runner up the middle of the entrance and the last chamber
-			carve(99, 22, 3, 25, A);
-			stageSpots = [[[100.5, 160.5]], [[100.5, 118.5]], [[100.5, 76.5]], [[100.5, 34.5]]];
-			mobRooms.push({x: 100, y: 188, w: 9, h: 5, n: 0});
+			// rooms[0] is where you come in: the first chamber's landing pad
+			rooms.unshift({x: cs[0][0], y: cs[0][1] + int(cs[0][2] / 2) - 3, w: 5, h: 3});
+		}
+
+		/** The trial chamber (0..) a spot is in, or -1. */
+		public function chamberAt(x:Number, y:Number):int {
+			if (!chambers) return -1;
+			for (var k:int = 0; k < chambers.length; k++) {
+				var c:Object = chambers[k];
+				if (Math.abs(x - (c.x + 0.5)) <= c.w / 2 + 1 && Math.abs(y - (c.y + 0.5)) <= c.h / 2 + 1) return k;
+			}
+			return -1;
 		}
 
 		/** A pool of blood (burns like lava). */

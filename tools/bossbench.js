@@ -122,8 +122,11 @@ function setup(id) {
     sim = new WorldSim('raid:' + ri + ':4242');
     // clear the mobs and jump straight to this stage
     for (const e of sim.enemies) e.dead = true;
-    sim.players.set(-1, { id: -1, x: 100, y: 100, send() {}, hidden: true });
+    const fake = { id: -1, x: 100, y: 100, send() {}, hidden: true };
+    sim.players.set(-1, fake);
     for (let s = 0; s <= si; s++) {
+      // (a trial's master only wakes with someone in its chamber)
+      if (sim.w.trialArrive) { fake.x = sim.w.trialArrive[s][0]; fake.y = sim.w.trialArrive[s][1]; sim.updateRaid(DT); }
       sim.w.raidT = 0;
       sim.updateRaid(DT);
       if (s < si) for (const e of sim.enemies) e.dead = true;

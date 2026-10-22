@@ -654,7 +654,11 @@ package realm {
 			var trim:int = safeFloor(st.trim) ? st.trim : st.alt;
 			var bt:Array = w.baseTiles, bo:Array = w.baseObjs;
 			var map:Object = {};
+			// a trial's master takes only its own chamber
+			var ch:int = w.chamberAt(cx, cy);
+			var room:Object = ch >= 0 ? w.chambers[ch] : null;
 			for (y = 1; y < N - 1; y++) for (x = 1; x < N - 1; x++) {
+				if (room && (Math.abs(x - room.x) > room.w / 2 + 1 || Math.abs(y - room.y) > room.h / 2 + 1)) continue;
 				i = y * N + x;
 				var t:int = bt[i];
 				if (!safeFloor(t)) continue;
@@ -763,12 +767,12 @@ package realm {
 				msg: "The eye of the storm narrows!"},
 				{when: "hp", at: 0.2, sel: "ring", a: 6.5, b: 99, to: "shock", col: 0xffffff,
 				msg: "THE EYE CLOSES! Only its heart is safe!"}],
-			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
+			star: [{when: "hp", at: 0.8, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
-				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
-				msg: "A ring of starfire ignites around Astraeon!"},
-				{when: "hp", at: 0.25, sel: "ring", a: 8.5, b: 99, to: "hz", col: 0xff6020,
-				msg: "The edges of the throne burn away! Stay close to the fallen star!"}]
+				{when: "hp", at: 0.6, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
+				msg: "A ring of starfire ignites around Astraeon! His gravity drags you toward it!"},
+				{when: "hp", at: 0.15, sel: "ring", a: 9, b: 99, to: "hz", col: 0xff6020,
+				msg: "The edges of the throne burn away! Nowhere left to run!"}]
 		};
 
 		/** The phases of an event boss's arena (may be empty). */

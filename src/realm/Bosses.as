@@ -404,7 +404,7 @@ package realm {
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
-			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne! When he eclipses the sky, watch the light of his falling stars."}
+			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons: shatter them. Stand between his constellation's lines, fight his gravity, watch the falling stars in the eclipse, and when he goes supernova get into a pool of starlight!"}
 		};
 
 		/** Where a boss's set-piece pieces stand: the P tiles of its layout (x, y is the boss's tile centre). */
@@ -1479,7 +1479,7 @@ package realm {
 		public static const VAULT_TWISTS:Array = [
 			{id: "quick", name: "Quickened Sands", desc: "Everything in the Vault attacks 25% faster.", rate: 1.25},
 			{id: "stone", name: "Stoneskin Masters", desc: "The four masters have 40% more health.", masterHp: 1.4},
-			{id: "swarm", name: "Swarming Halls", desc: "Twice the guards in the alcoves, and they hit 15% harder.", guards: 2, guardDmg: 1.15},
+			{id: "swarm", name: "Swarming Chambers", desc: "Each master wakes with two guards, and every guard hits 15% harder.", escort: 2, guardDmg: 1.15},
 			{id: "fleet", name: "Fleet Masters", desc: "The masters move 35% faster.", masterSpd: 1.35},
 			{id: "glass", name: "Glass Vault", desc: "Everything has 30% less health but hits 40% harder.", hp: 0.7, dmg: 1.4},
 			{id: "escort", name: "Honour Guard", desc: "Each master wakes with four guards at its side.", escort: 4}
@@ -1640,6 +1640,18 @@ package realm {
 		private static function bloodBrand(n:int, dmg:int, cd:Number, x:Object = null):Object {
 			return o({p: "brand", n: n, dmg: dmg, cd: cd, radius: 3.6, delay: 4.5, col: 0xff1838, eff: "bleeding", name: "the blood brand"}, x);
 		}
+		/** Astraeon's constellation: n stars round him joined by lines of starlight that burn after delay (Enemy "constellation"). */
+		private static function constellation(n:int, dmg:int, cd:Number, x:Object = null):Object {
+			return o({p: "constellation", n: n, inner: 3, spread: 11, width: 0.75, delay: 1.9, stagger: 0.14, dmg: dmg, cd: cd, col: 0xffe080, burst: 6, r: 0.25, shape: "star", name: "constellation"}, x);
+		}
+		/** The fallen star's gravity: everyone within radius is dragged toward him for dur seconds. */
+		private static function gravityWell(pull:Number, dur:Number, cd:Number, x:Object = null):Object {
+			return o({p: "gravity", pull: pull, dur: dur, radius: 18, dmg: 0, cd: cd, col: 0xffd060, name: "the star's gravity"}, x);
+		}
+		/** The supernova: n pools of starlight open round him; when it bursts, only those standing in one are spared. */
+		private static function supernova(n:int, dmg:int, cd:Number, delay:Number, x:Object = null):Object {
+			return o({p: "supernova", n: n, inner: 7, spread: 8.6, radius: 1.5, delay: delay, dmg: dmg, cd: cd, col: 0xffb040, name: "supernova"}, x);
+		}
 		/** Astraeon's eclipse: dur seconds of darkness, lit only by waves of falling stars (Enemy "eclipse"). */
 		private static function eclipse(dur:Number, stars:int, dmg:int, cd:Number, x:Object = null):Object {
 			return o({p: "eclipse", dur: dur, stars: stars, gap: 1.3, spread: 9, radius: 1.6, delay: 1.2, dmg: dmg, cd: cd, col: 0xffe080,
@@ -1702,10 +1714,10 @@ package realm {
 					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand. Spread out: chain lightning leaps from one of you to the next.",
 				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true, trial: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
-				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
+				intro: "The Starfall Trial: four sealed chambers, one master in each, and no way between them but the portal each master leaves when it falls. Break what feeds them, mind the floor, and save your strength for the Star Throne.",
 				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.25, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
@@ -1861,19 +1873,27 @@ package realm {
 					attacks: [flower(28, 6, 6, 90, 0.7, 0xe8e0c8), rain(8, 6, 120, 1.8, 0xc060ff, {burst: 8, fx: "spikes"}),
 						pull(16, 95, 3.4, 0xc060ff, {shape: "soul", name: "soul drain"})]})
 			]}, raid), ["sovereign_signet"]);
-			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
+			// Astraeon, the Fallen Star: the last trial and the hardest fight in Eldmere. Five phases, each with
+			// something new: the constellation (lines of starlight to stand between), the star's gravity (it
+			// drags you toward him, and into his starfire), the eclipse (dark, lit only by falling stars), the
+			// supernova (only the pools of starlight are safe) and, at the end, all of it at once
+			boss("astraeon", o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: PRIMORDIAL_CHANCE, hp: 112000, def: 34, spd: 1.8, xp: 9000, col: 0xffd060, gold: 3000, onrane: 40, r: 1.1, phases: [
 				P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
-					attacks: [spiral(3, 12, 6.5, 80, 0.15, 0xffd060, {shape: "star"}), aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
-						pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
-				P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
-					cycle: [[flower(24, 5.6, 5.5, 85, 0.85, 0xffd060)], [wall(21, 5.5, 95, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7})],
-						[rain(10, 7, 130, 1.6, 0xffb040, {burst: 6, fx: "pillar"}), lineRain(7, 120, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
-				P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "orbit",
-					attacks: [spiral(4, -11, 6, 90, 0.13, 0xffe080, {motion: "wave"}), selfNova(5.5, 1.4, 180, 3.2, 0xffb040, {burst: 14, shape: "star", fx: "pillar", name: "supernova"}),
-						blinkRing(6, 0xfff0a0), pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), eclipse(10, 4, 140, 24)]}),
-				P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [spiral(4, 9, 6.5, 95, 0.14, 0xffffff, {shape: "star"}), aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
-						selfNova(6, 1.5, 200, 2.8, 0xffe080, {burst: 16, shape: "star", fx: "pillar", name: "supernova"}), lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), eclipse(12, 5, 160, 20)]})
+					attacks: [spiral(4, 12, 6.5, 95, 0.15, 0xffd060, {shape: "star"}), aim(5, 40, 10, 112, 1.2, 0xffffff, {shape: "crescent", r: 0.3, name: "star blades"}),
+						pillars(6, 120, 3.0, 0xffe080, {name: "starfall"}), constellation(4, 160, 6.0)]}),
+				P(0.8, {say: "Guards of the throne!", banner: "The throne wakes!", shield: 3, move: "center", every: 4.5,
+					cycle: [[constellation(5, 170, 2.2, {loop: true}), flower(24, 5.6, 5.5, 100, 0.85, 0xffd060)],
+						[gravityWell(2.4, 4, 4.4), pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's pull"}), spiral(3, -14, 6, 85, 0.16, 0xfff0a0, {shape: "star"})],
+						[wall(21, 5.5, 100, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7}), lineRain(7, 125, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
+				P(0.6, {say: "Darkness. Then light. Then nothing.", banner: "ECLIPSE!", move: "orbit",
+					attacks: [eclipse(12, 5, 150, 21), gravityWell(2.0, 3.5, 10), spiral(4, -11, 6, 100, 0.13, 0xffe080, {motion: "wave"}), blinkRing(6, 0xfff0a0),
+						aim(7, 90, 9, 118, 1.5, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3, name: "star blades"})]}),
+				P(0.4, {say: "Feel the heat of a dying star!", banner: "THE STAR COLLAPSES!", shield: 3, move: "center",
+					attacks: [supernova(3, 520, 13, 4.5), constellation(5, 170, 5.5), spiral(4, 9, 6.5, 108, 0.14, 0xffffff, {shape: "star"}),
+						aim(5, 50, 9, 118, 1.4, 0xffd060, {shape: "crescent", name: "star blades"})]}),
+				P(0.15, {say: "I AM THE LIGHT THAT ENDS!", banner: "THE LIGHT THAT ENDS!", shield: 3, move: "center", speed: 1.5,
+					attacks: [supernova(2, 600, 10, 4), constellation(6, 180, 4.2, {loop: true}), gravityWell(2.6, 3, 9),
+						spiral(5, 9, 6.5, 115, 0.13, 0xffffff, {shape: "star"}), lineRain(8, 135, 2.2, 0xffe080, "pillar", {name: "falling stars"})]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
 	}

@@ -1025,6 +1025,8 @@ package realm {
 			return "Events " + r.eventsDone + "/" + Data.EVENTS_PER_REALM;
 		}
 
+		private static function capFirst(t:String):String { return t ? t.charAt(0).toUpperCase() + t.substr(1) : ""; }
+
 		private function portalTitle(p:Object):String {
 			if (p.kind == "realm") return realmNames[p.idx] + " Realm";
 			if (p.kind == "dungeon") return Data.DUNGEONS[p.idx].name;
@@ -1033,6 +1035,7 @@ package realm {
 			if (p.kind == "deep") return "The Endless Abyss";
 			if (p.kind == "vault") return "Your " + vaultName;
 			if (p.kind == "ghall") return "Guild Hall";
+			if (p.kind == "trial" && world.raid) return world.raid.places[p.idx + 1];
 			return "Nexus";
 		}
 
@@ -1053,6 +1056,7 @@ package realm {
 			else if (p.kind == "deep") enterDeep(0);
 			else if (p.kind == "vault") enterVault();
 			else if (p.kind == "ghall") enterGuildHall();
+			else if (p.kind == "trial") trialStep(p.idx);
 			else nexusNow();
 		}
 
@@ -2674,6 +2678,86 @@ package realm {
 			markers.push({x: x, y: y, r: r, t: 0, d: delay, col: col, fn: boom, w: world, style: style});
 		}
 
+		/** Astraeon's constellation: a line of starlight from (x1, y1) to (x2, y2) that burns after delay (wide w). */
+		public function beam(x1:Number, y1:Number, x2:Number, y2:Number, w:Number, delay:Number, col:uint, dmg:int, src:String, attack:String):void {
+			var self:Game = this;
+			var mk:Object = {x: (x1 + x2) / 2, y: (y1 + y2) / 2, x1: x1, y1: y1, x2: x2, y2: y2, r: w, t: 0, d: delay, col: col, w: world, style: "beam"};
+			mk.fn = function():void {
+				var len:Number = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+				for (var k:int = 0; k <= int(len); k += 2) burst(x1 + (x2 - x1) * k / Math.max(1, len), y1 + (y2 - y1) * k / Math.max(1, len), col, 4);
+				soundAt(mk.x, mk.y, "holy", 0.6, 0.15);
+				if (player.hp <= 0 || player.invulnT > 0) return;
+				if (segDist(player.x, player.y, x1, y1, x2, y2) < w + Player.R) {
+					player.takeHit(dmg, src, self, null, attack);
+					floatText(player.x, player.y - 1.2, "Caught in the constellation!", col);
+				}
+			};
+			markers.push(mk);
+		}
+
+		/** How far (x, y) is from the segment (x1, y1)-(x2, y2). */
+		public static function segDist(x:Number, y:Number, x1:Number, y1:Number, x2:Number, y2:Number):Number {
+			var dx:Number = x2 - x1, dy:Number = y2 - y1;
+			var l2:Number = dx * dx + dy * dy;
+			var t:Number = l2 > 0 ? Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / l2)) : 0;
+			var px:Number = x1 + dx * t - x, py:Number = y1 + dy * t - y;
+			return Math.sqrt(px * px + py * py);
+		}
+
+		/** The fallen star's gravity: for secs everyone within r of (x, y) is dragged toward it at pull tiles a second. */
+		private var gravT:Number = 0, gravX:Number = 0, gravY:Number = 0, gravPull:Number = 0, gravR:Number = 0, gravW:World = null;
+		public function gravity(x:Number, y:Number, pull:Number, secs:Number, r:Number, by:Enemy):void {
+			if (gravT <= 0 || gravW != world) { showBanner("The fallen star's gravity drags you in!", 0xffd060, 2.5); Sfx.play("boss"); }
+			gravT = secs; gravX = x; gravY = y; gravPull = pull; gravR = r; gravW = world;
+			addMarker(x, y, Math.min(6, r * 0.4), secs, 0xffd060, null, "vortex");
+		}
+
+		private function updateGravity(dt:Number):void {
+			if (gravT <= 0) return;
+			gravT -= dt;
+			if (gravW != world || player.hp <= 0) { gravT = 0; return; }
+			var dx:Number = gravX - player.x, dy:Number = gravY - player.y;
+			var d:Number = Math.sqrt(dx * dx + dy * dy);
+			if (d > gravR || d < 0.8) return;
+			// (stronger the closer you are, like the real thing)
+			var step:Number = Math.min(d - 0.8, gravPull * (1.6 - 0.6 * d / gravR) * dt);
+			var nx:Number = player.x + dx / d * step, ny:Number = player.y + dy / d * step;
+			if (world.canStand(nx, player.y, Player.R, false)) player.x = nx;
+			if (world.canStand(player.x, ny, Player.R, false)) player.y = ny;
+			if (opt("parts") && parts.length < 300 && Math.random() < 0.5) {
+				var pa:Number = Math.random() * Math.PI * 2, pr:Number = 2 + Math.random() * 6;
+				parts.push(new Particle(gravX + Math.cos(pa) * pr, gravY + Math.sin(pa) * pr, -Math.cos(pa) * pr * 1.4, -Math.sin(pa) * pr * 1.4, 0.6, Sprites.glow(0xffe8a0)));
+			}
+		}
+
+		/**
+		 * The supernova: shelters (pools of starlight, r wide) open round the star; after delay
+		 * it bursts, and everyone not standing in one takes dmg.
+		 */
+		public function supernova(x:Number, y:Number, shelters:Array, r:Number, delay:Number, col:uint, dmg:int, src:String, attack:String, by:Enemy):void {
+			var self:Game = this;
+			showBanner("SUPERNOVA! Stand in the starlight!", 0xfff0a0, Math.min(3.5, delay));
+			Sfx.play("boss");
+			shake(0.4, 5);
+			for each (var sp:Array in shelters) markers.push({x: sp[0], y: sp[1], r: r, t: 0, d: delay, col: 0xfffbe8, w: world, style: "shelter"});
+			var mk:Object = {x: x, y: y, r: 12, t: 0, d: delay, col: col, w: world, style: "supernova"};
+			mk.fn = function():void {
+				flash(0.9);
+				shake(1.2, 14);
+				soundAt(x, y, "boom", 1, 0.1);
+				burst(x, y, col, 60);
+				ring(x, y, 0xffffff, 60);
+				if (player.hp <= 0 || player.invulnT > 0) return;
+				for each (var s2:Array in shelters) {
+					var dx:Number = player.x - s2[0], dy:Number = player.y - s2[1];
+					if (dx * dx + dy * dy < (r + Player.R) * (r + Player.R)) { floatText(player.x, player.y - 1.2, "Sheltered!", 0xfff0a0); return; }
+				}
+				player.takeHit(dmg, src, self, null, attack);
+				floatText(player.x, player.y - 1.2, "Burned by the supernova!", col);
+			};
+			markers.push(mk);
+		}
+
 		/**
 		 * A blood brand (Archon Vesper): a mark that follows who for delay seconds, then bursts. Everyone else
 		 * within r of them takes dmg; the branded one only a third of it. Carrying it means leaving the group.
@@ -2929,6 +3013,7 @@ package realm {
 				if (m.t >= m.d) { markers.splice(i, 1); if (m.fn != null) m.fn(); }
 			}
 			if (eclipseT > 0) { eclipseT -= dt; if (eclipseW != world) eclipseT = 0; }
+			updateGravity(dt);
 			for (i = webs.length - 1; i >= 0; i--) {
 				var wb:Object = webs[i];
 				wb.t -= dt;
@@ -2995,6 +3080,60 @@ package realm {
 					gr.lineStyle();
 					gr.beginFill(0x06000c, 0.35 + f * 0.4);
 					gr.drawEllipse(-rx * 0.18, -ry * 0.18, rx * 0.36, ry * 0.36);
+					gr.endFill();
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
+				if (m.style == "beam") {
+					// a line of starlight between two stars: thin and faint, then blazing as it's about to burn
+					var bx1:Number = scrX(m.x1, m.y1) - sx, by1:Number = scrY(m.x1, m.y1) - sy;
+					var bx2:Number = scrX(m.x2, m.y2) - sx, by2:Number = scrY(m.x2, m.y2) - sy;
+					gr.lineStyle(m.r * TS * 2 * (0.3 + f * 0.7), m.col, 0.12 + f * 0.3);
+					gr.moveTo(bx1, by1); gr.lineTo(bx2, by2);
+					gr.lineStyle(1 + f * 2, 0xffffff, 0.4 + f * 0.6);
+					gr.moveTo(bx1, by1); gr.lineTo(bx2, by2);
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
+				if (m.style == "shelter") {
+					// a pool of starlight: the only safe place from the supernova (a column of light rising from it)
+					var pulse:Number = 0.5 + 0.5 * Math.sin(time * 6);
+					gr.lineStyle(6, 0xffe080, 0.35 + pulse * 0.25);
+					gr.drawEllipse(-rx * 1.15, -ry * 1.15, rx * 2.3, ry * 2.3);
+					gr.lineStyle(3, 0xffffff, 0.8 + pulse * 0.2);
+					gr.beginFill(0xfff6c0, 0.4 + f * 0.3);
+					gr.drawEllipse(-rx, -ry, rx * 2, ry * 2);
+					gr.endFill();
+					gr.lineStyle();
+					// a tall column of light, so you can find it across the arena
+					gr.beginFill(0xfff6c0, 0.18 + pulse * 0.12);
+					gr.drawRect(-rx * 0.85, -TS * 8, rx * 1.7, TS * 8);
+					gr.endFill();
+					gr.beginFill(0xffffff, 0.35 + pulse * 0.2);
+					gr.drawRect(-rx * 0.35, -TS * 8, rx * 0.7, TS * 8);
+					gr.endFill();
+					for (var shk:int = 0; shk < 6; shk++) {
+						var sha:Number = time * 1.5 + shk * Math.PI / 3;
+						gr.beginFill(0xffffff, 0.9);
+						gr.drawCircle(Math.cos(sha) * rx * 0.8, Math.sin(sha) * ry * 0.8 - (time * 30 + shk * 12) % (TS * 3), 1.6);
+						gr.endFill();
+					}
+					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
+					canvas.draw(markShape, markMtx);
+					continue;
+				}
+				if (m.style == "supernova") {
+					// the star swelling before it bursts: rings racing outward and back, faster as it nears
+					for (var nk:int = 0; nk < 5; nk++) {
+						var nf:Number = ((nk / 5 + time * (0.5 + f * 1.5)) % 1);
+						gr.lineStyle(3, nk % 2 ? 0xffffff : m.col, (1 - nf) * (0.3 + f * 0.6));
+						gr.drawEllipse(-rx * nf, -ry * nf, rx * 2 * nf, ry * 2 * nf);
+					}
+					gr.lineStyle();
+					gr.beginFill(0xffffff, 0.2 + f * 0.5);
+					gr.drawEllipse(-TS * (1 + f * 2), -TS * 0.6 * (1 + f * 2), TS * 2 * (1 + f * 2), TS * 1.2 * (1 + f * 2));
 					gr.endFill();
 					markMtx.tx = sx; markMtx.ty = sy + TS * 0.3;
 					canvas.draw(markShape, markMtx);
@@ -3851,7 +3990,7 @@ package realm {
 					y += 56;
 				} else y += (int((n - 1) / 8) + 1) * 52 + 4;
 			} else if (openStation.kind == "raids") {
-				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are boss fights one after another (the Starfall Vault has four chambers, each a structure that fights back), best with friends, " +
+				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are boss fights one after another (the Starfall Vault is a trial: four sealed chambers joined only by portals, Astraeon last, the hardest fight in the game), best with friends, " +
 					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder. " +
 					"<font color='#ffb040'><b>Heroic</b></font> (two keys): tougher bosses and better loot. The first clear of each raid each week, on each difficulty, " +
 					"gives a bonus roll from its final boss, and the fastest clears go on the raid's weekly board." +
@@ -4794,6 +4933,47 @@ package realm {
 			saveCharacter();
 		}
 
+		// ------------------------------------------------------------ the Starfall Trial
+		/** Chambers up to n are beaten: each one's portal on opens (where its master stood). */
+		public function trialCleared(n:int, fresh:Boolean):void {
+			var w:World = world;
+			if (!w.trialExits || n <= w.trialCleared) return;
+			for (var k:int = w.trialCleared; k < n; k++) {
+				if (k + 1 >= w.trialExits.length) continue;
+				var ex:Array = w.trialExits[k];
+				addPortal(w, ex[0], ex[1], "trial", k, w.raid ? w.raid.color : 0xffd060, 0, 0, false, ex[0], ex[1]);
+				if (fresh) {
+					showBanner("A portal to " + w.raid.places[k + 1] + " opens!", w.raid.color, 3.5);
+					msg("The chamber is beaten. Step through its portal to " + w.raid.places[k + 1] + " when you're ready: the next master wakes as you arrive.", w.raid.color);
+					Sfx.play("portal");
+					ring(ex[0], ex[1], w.raid.color, 30);
+				}
+			}
+			w.trialCleared = n;
+		}
+
+		/** Through chamber k's portal: online the server moves us (trialWarp), offline we go at once. */
+		private function trialStep(k:int):void {
+			var w:World = world;
+			if (!w.trialArrive || k + 1 >= w.trialArrive.length || k >= w.trialCleared) return;
+			if (net && net.online && !sync.isHost) { sync.trial(k); return; }
+			var to:Array = w.trialArrive[k + 1];
+			trialWarp(to[0], to[1], k + 1);
+		}
+
+		/** Landing in trial chamber k. */
+		public function trialWarp(x:Number, y:Number, k:int):void {
+			var w:World = world;
+			if (!player || isNaN(x) || isNaN(y) || !w.raid) return;
+			player.x = x; player.y = y;
+			camX = x; camY = y;
+			player.invulnT = Math.max(player.invulnT, 2);
+			fadeA = 1; fadeTarget = 0;
+			Sfx.play("portal");
+			if (w.raid.places[k]) showBanner(w.raid.places[k], w.raid.color, 3);
+			flash(0.3);
+		}
+
 		/** Host: start a stage, and when its bosses fall open the next seal and wake the next stage. */
 		private function updateRaid(dt:Number):void {
 			var w:World = world;
@@ -4801,6 +4981,11 @@ package realm {
 			if (!rd || w.raidStage >= rd.stages.length) return;
 			// (a stage ends when its bosses, and any objectives it has, are all down)
 			if (w.raidStage >= 0) for each (var e:Enemy in enemies) if (!e.dead && (e.isBoss || e.def.stageFoe)) return;
+			if (rd.trial) {
+				// a trial: the beaten chamber's portal opens, and the next master waits for you in its own
+				if (w.raidStage >= 0 && w.trialCleared <= w.raidStage) trialCleared(w.raidStage + 1, true);
+				if (w.raidStage + 1 < rd.stages.length && w.chamberAt(player.x, player.y) != w.raidStage + 1) { w.raidT = 3; return; }
+			}
 			w.raidT -= dt;
 			if (w.raidT > 0) return;
 			if (w.raidStage == rd.stages.length - 1) { w.raidStage++; return; }
@@ -6914,7 +7099,8 @@ package realm {
 					: p.kind == "elder" ? "<font color='#c060ff'>Dark Elder's Chamber</font>"
 					: p.kind == "deep" ? "<font color='#d080ff'>The Endless Abyss</font>\n<font size='11' color='#cccccc'>level 20 · /abyss</font>"
 					: p.kind == "raid" ? "<font color='" + Ui.hex(p.idx >= RAID_HEROIC ? 0xffb040 : p.color) + "'>" + Bosses.raidName(p.idx % RAID_HEROIC, p.idx >= RAID_HEROIC) + "</font>\n<font size='11' color='#cccccc'>Raid  " + Math.ceil(p.life) + "s</font>" : p.kind == "vault" ? "<font color='#f0c030'>Vault</font>"
-					: p.kind == "ghall" ? "<font color='#80ff80'>Guild Hall</font>" + (net && net.guild ? "\n<font size='11' color='#cccccc'>" + net.guild.name + "</font>" : "") : "Nexus";
+					: p.kind == "ghall" ? "<font color='#80ff80'>Guild Hall</font>" + (net && net.guild ? "\n<font size='11' color='#cccccc'>" + net.guild.name + "</font>" : "")
+					: p.kind == "trial" && world.raid ? "<font color='" + Ui.hex(p.color) + "'>" + capFirst(world.raid.places[p.idx + 1]) + "</font>\n<font size='11' color='#cccccc'>the trial goes on</font>" : "Nexus";
 				lab.x = int(pcx - lab.width / 2);
 				lab.y = int(ptop - lab.height - 2);
 			}

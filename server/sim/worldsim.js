@@ -102,7 +102,7 @@ class WorldSim {
       aggroTarget: (e) => sim.target(e),
       spawnEnemy: (id, x, y, zone) => sim.spawn(id, x, y, zone),
       countAlive: (id) => sim.enemies.filter((e) => !e.dead && e.defId === id).length,
-      burst() {}, later() {}, addMarker() {}, groundFx() {}, chainArc() {}, brand() {}, eclipse() {},
+      burst() {}, later() {}, addMarker() {}, groundFx() {}, chainArc() {}, brand() {}, eclipse() {}, beam() {}, gravity() {}, supernova() {},
       playersNear: (x, y, r) => [...sim.players.values()].filter((c) => (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y) < r * r), addWeb() {}, soundAt() {}, bossPhase: (ph, b) => sim.bossPhase(ph, b),
       addShot: (s) => sim.trackShot(s), areaHit: (x, y, r) => sim.expectArea(x, y, r),
       sync: { fired: (e, i, ang, spin, code, dist) => sim.fired(e, i, ang, spin, code, dist) }
@@ -213,9 +213,19 @@ class WorldSim {
       const list = [];
       for (const e of this.enemies) if (!e.dead) list.push(this.entry(e));
       this.send(c, { t: 'espawn', l: list, n: 0 });
-      this.send(c, { t: 'wstate', ev: this.w.eventsDone, ct: r2(this.closeT), rs: this.w.raidStage });
+      this.send(c, { t: 'wstate', ev: this.w.eventsDone, ct: r2(this.closeT), rs: this.w.raidStage, tc: this.w.trialCleared || 0 });
     } else if (d.t === 'ehit') {
       this.hit(c, d);
+    } else if (d.t === 'trial') {
+      // a trial's portal on: only from a beaten chamber, standing at its portal (then you land in the next)
+      const w = this.w, k = Number(d.k) | 0;
+      if (!w.trialExits || k < 0 || k >= w.trialCleared || k + 1 >= w.trialArrive.length) return;
+      const ex = w.trialExits[k];
+      if ((c.x - ex[0]) * (c.x - ex[0]) + (c.y - ex[1]) * (c.y - ex[1]) > 7 * 7) return;
+      const to = w.trialArrive[k + 1];
+      c.x = to[0]; c.y = to[1];
+      c.mv = null;
+      this.send(c, { t: 'warp', x: to[0], y: to[1], k: k + 1 });
     } else if (d.t === 'decoy') {
       // a Cloak of Mirrors' mirror image (only from a hero wearing one; it lasts a few seconds at most)
       if (!c.caps || !c.caps.decoy) return;
@@ -736,6 +746,15 @@ class WorldSim {
     if (w.raidStage >= rd.stages.length) return;
     // (a stage ends when its bosses, and any objectives it has, are all down)
     if (w.raidStage >= 0 && this.enemies.some((e) => !e.dead && (e.isBoss || e.def.stageFoe))) return;
+    if (rd.trial) {
+      // a trial: a beaten chamber opens its portal on, and the next master wakes only once someone steps into its chamber
+      if (w.raidStage >= 0 && w.trialCleared <= w.raidStage) {
+        w.trialCleared = w.raidStage + 1;
+        this.all({ t: 'trial', c: w.trialCleared });
+      }
+      const nx = w.raidStage + 1;
+      if (nx < rd.stages.length && ![...this.players.values()].some((c) => c.alive !== false && w.chamberAt(c.x, c.y) === nx)) { w.raidT = 3; return; }
+    }
     w.raidT -= dt;
     if (w.raidT > 0) return;
     if (w.raidStage === rd.stages.length - 1) { w.raidStage++; return; }

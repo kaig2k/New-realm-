@@ -2688,6 +2688,15 @@ class Bosses {
 	static bloodBrand(n, dmg, cd, x = null) { n = __int(n); dmg = __int(dmg);
 			return Bosses.o({p: "brand", n: n, dmg: dmg, cd: cd, radius: 3.6, delay: 4.5, col: 0xff1838, eff: "bleeding", name: "the blood brand"}, x);
 		}
+	static constellation(n, dmg, cd, x = null) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "constellation", n: n, inner: 3, spread: 11, width: 0.75, delay: 1.9, stagger: 0.14, dmg: dmg, cd: cd, col: 0xffe080, burst: 6, r: 0.25, shape: "star", name: "constellation"}, x);
+		}
+	static gravityWell(pull, dur, cd, x = null) {
+			return Bosses.o({p: "gravity", pull: pull, dur: dur, radius: 18, dmg: 0, cd: cd, col: 0xffd060, name: "the star's gravity"}, x);
+		}
+	static supernova(n, dmg, cd, delay, x = null) { n = __int(n); dmg = __int(dmg);
+			return Bosses.o({p: "supernova", n: n, inner: 7, spread: 8.6, radius: 1.5, delay: delay, dmg: dmg, cd: cd, col: 0xffb040, name: "supernova"}, x);
+		}
 	static eclipse(dur, stars, dmg, cd, x = null) { stars = __int(stars); dmg = __int(dmg);
 			return Bosses.o({p: "eclipse", dur: dur, stars: stars, gap: 1.3, spread: 9, radius: 1.6, delay: 1.2, dmg: dmg, cd: cd, col: 0xffe080,
 				burst: 6, bspd: 4.5, blife: 0.9, fx: "pillar", shape: "star", name: "a falling star"}, x);
@@ -2869,19 +2878,27 @@ class Bosses {
 					attacks: [Bosses.flower(28, 6, 6, 90, 0.7, 0xe8e0c8), Bosses.rain(8, 6, 120, 1.8, 0xc060ff, {burst: 8, fx: "spikes"}),
 						Bosses.pull(16, 95, 3.4, 0xc060ff, {shape: "soul", name: "soul drain"})]})
 			]}, raid), ["sovereign_signet"]);
-			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 72000, def: 32, spd: 1.8, xp: 7000, col: 0xffd060, gold: 2500, onrane: 30, r: 1.1, phases: [
+			
+			
+			
+			
+			Bosses.boss("astraeon", Bosses.o({name: "Astraeon, the Fallen Star", spr: "astraeon", uchance: Bosses.PRIMORDIAL_CHANCE, hp: 112000, def: 34, spd: 1.8, xp: 9000, col: 0xffd060, gold: 3000, onrane: 40, r: 1.1, phases: [
 				Bosses.P(1, {say: "I fell so that you could rise. Now I will fall upon you.", move: "orbit",
-					attacks: [Bosses.spiral(3, 12, 6.5, 80, 0.15, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 95, 1.2, 0xffffff, {shape: "crescent", r: 0.3}),
-						Bosses.pillars(6, 115, 3.0, 0xffe080, {name: "starfall"})]}),
-				Bosses.P(0.75, {say: "Guards of the throne!", shield: 3, move: "center", every: 4,
-					cycle: [[Bosses.flower(24, 5.6, 5.5, 85, 0.85, 0xffd060)], [Bosses.wall(21, 5.5, 95, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7})],
-						[Bosses.rain(10, 7, 130, 1.6, 0xffb040, {burst: 6, fx: "pillar"}), Bosses.lineRain(7, 120, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
-				Bosses.P(0.5, {say: "Feel the heat of a dying star!", banner: "Starfire!", move: "orbit",
-					attacks: [Bosses.spiral(4, -11, 6, 90, 0.13, 0xffe080, {motion: "wave"}), Bosses.selfNova(5.5, 1.4, 180, 3.2, 0xffb040, {burst: 14, shape: "star", fx: "pillar", name: "supernova"}),
-						Bosses.blinkRing(6, 0xfff0a0), Bosses.pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's gravity"}), Bosses.eclipse(10, 4, 140, 24)]}),
-				Bosses.P(0.25, {say: "I AM THE LIGHT THAT ENDS!", shield: 3, move: "orbit", speed: 1.5,
-					attacks: [Bosses.spiral(4, 9, 6.5, 95, 0.14, 0xffffff, {shape: "star"}), Bosses.aim(7, 100, 9, 100, 1.3, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3}),
-						Bosses.selfNova(6, 1.5, 200, 2.8, 0xffe080, {burst: 16, shape: "star", fx: "pillar", name: "supernova"}), Bosses.lineRain(8, 130, 2.0, 0xffe080, "pillar", {name: "falling stars"}), Bosses.eclipse(12, 5, 160, 20)]})
+					attacks: [Bosses.spiral(4, 12, 6.5, 95, 0.15, 0xffd060, {shape: "star"}), Bosses.aim(5, 40, 10, 112, 1.2, 0xffffff, {shape: "crescent", r: 0.3, name: "star blades"}),
+						Bosses.pillars(6, 120, 3.0, 0xffe080, {name: "starfall"}), Bosses.constellation(4, 160, 6.0)]}),
+				Bosses.P(0.8, {say: "Guards of the throne!", banner: "The throne wakes!", shield: 3, move: "center", every: 4.5,
+					cycle: [[Bosses.constellation(5, 170, 2.2, {loop: true}), Bosses.flower(24, 5.6, 5.5, 100, 0.85, 0xffd060)],
+						[Bosses.gravityWell(2.4, 4, 4.4), Bosses.pull(18, 100, 4.0, 0xffd060, {shape: "star", name: "the star's pull"}), Bosses.spiral(3, -14, 6, 85, 0.16, 0xfff0a0, {shape: "star"})],
+						[Bosses.wall(21, 5.5, 100, 1.4, 0xfff0a0, {hole: 3, waves: 2, gap: 0.7}), Bosses.lineRain(7, 125, 1.6, 0xffe080, "pillar", {name: "falling stars"})]]}),
+				Bosses.P(0.6, {say: "Darkness. Then light. Then nothing.", banner: "ECLIPSE!", move: "orbit",
+					attacks: [Bosses.eclipse(12, 5, 150, 21), Bosses.gravityWell(2.0, 3.5, 10), Bosses.spiral(4, -11, 6, 100, 0.13, 0xffe080, {motion: "wave"}), Bosses.blinkRing(6, 0xfff0a0),
+						Bosses.aim(7, 90, 9, 118, 1.5, 0xffd060, {shape: "crescent", waves: 2, gap: 0.3, name: "star blades"})]}),
+				Bosses.P(0.4, {say: "Feel the heat of a dying star!", banner: "THE STAR COLLAPSES!", shield: 3, move: "center",
+					attacks: [Bosses.supernova(3, 520, 13, 4.5), Bosses.constellation(5, 170, 5.5), Bosses.spiral(4, 9, 6.5, 108, 0.14, 0xffffff, {shape: "star"}),
+						Bosses.aim(5, 50, 9, 118, 1.4, 0xffd060, {shape: "crescent", name: "star blades"})]}),
+				Bosses.P(0.15, {say: "I AM THE LIGHT THAT ENDS!", banner: "THE LIGHT THAT ENDS!", shield: 3, move: "center", speed: 1.5,
+					attacks: [Bosses.supernova(2, 600, 10, 4), Bosses.constellation(6, 180, 4.2, {loop: true}), Bosses.gravityWell(2.6, 3, 9),
+						Bosses.spiral(5, 9, 6.5, 115, 0.13, 0xffffff, {shape: "star"}), Bosses.lineRain(8, 135, 2.2, 0xffe080, "pillar", {name: "falling stars"})]})
 			]}, raid), ["starfall_staff", "fallen_star_mantle", "hourglass_fallen_star", "seventh_star_wand", "falling_sky_spell", "star_throne_aegis", "liquid_starlight", "lyre_of_spheres", "starwell_ring", "eye_of_astraeon", "comets_tail"]);
 		}
 }
@@ -2914,6 +2931,10 @@ class World {
 		this.gates = [];
 		this.stageSpots = [];
 		this.mobRooms = [];
+		this.chambers = null;
+		this.trialArrive = null;
+		this.trialExits = null;
+		this.trialCleared = __int(0);
 		this.treasure = null;
 		this.theme = null;
 		this.lair = null;
@@ -3565,40 +3586,36 @@ class World {
 		}
 	layoutStarfall(th) {
 			var F = __int(th.floor), A = __int(th.accent);
-			var entry = this.hall(100, 188, 13, 9, F);
-			this.carve(99, 184, 3, 9, A);
-			this.rooms.push(entry);
-			var cys = [160, 118, 76, 34];
-			for (var k = __int(0); k < cys.length; k++) {
-				var cy = __int(cys[k]), last = k == cys.length - 1;
-				var w = __int(last ? 29 : 27), h = __int(last ? 27 : 25);
-				this.rooms.push(this.hall(100, cy, w, h, F));
+			
+			var cs = [[52, 150, 31], [148, 150, 31], [52, 52, 31], [146, 54, 33]];
+			this.chambers = []; this.trialArrive = []; this.trialExits = []; this.stageSpots = []; this.mobRooms = [];
+			for (var k = __int(0); k < cs.length; k++) {
+				var cx = __int(cs[k][0]), cy = __int(cs[k][1]), sz = __int(cs[k][2]), h = __int(__int(sz / 2));
+				var room = this.hall(cx, cy, sz, sz, F);
+				this.chambers.push(room);
 				
-				for (var b of __vals( [[-1, -1], [1, -1], [-1, 1], [1, 1]])) this.objs[(cy + b[1] * (__int(h / 2) - 1)) * this.N + 100 + b[0] * (__int(w / 2) - 1)] = 7;
-				
-				if (!last) {
-					for (var sd = __int(-1); sd <= 1; sd = __int(sd + (2))) {
-						var ax = __int(100 + sd * 24);
-						this.rooms.push(this.hall(ax, cy, 9, 9, F));
-						this.corridor(100 + sd * 13, cy, ax, cy, F);
-						this.objs[(cy - 3) * this.N + ax] = 8;
-						this.mobRooms.push({x: ax, y: cy, w: 7, h: 7, n: 4});
-					}
+				for (var t = __int(-h + 1); t <= h - 1; t++) {
+					if ((t + 100) % 3 == 0) continue;
+					this.carve(cx + t, cy - h + 1, 1, 1, A); this.carve(cx + t, cy + h - 1, 1, 1, A);
+					this.carve(cx - h + 1, cy + t, 1, 1, A); this.carve(cx + h - 1, cy + t, 1, 1, A);
 				}
+				this.carve(cx - 2, cy + h - 4, 5, 3, A);
 				
-				var top = __int(cy - __int(h / 2) - 1);
-				if (k == 0) this.corridor(100, 183, 100, cy + __int(h / 2) + 1, F);
-				if (!last) {
-					var next = __int(cys[k + 1] + __int(13) + 1);
-					this.corridor(100, top, 100, next, F);
-					var gy = __int(__int((top + next) / 2));
-					this.gateRows(k, 100, gy, gy + 1, World.WALL);
-				}
+				for (var b of __vals( [[-1, -1], [1, -1], [-1, 1], [1, 1]])) this.objs[(cy + b[1] * (h - 2)) * this.N + cx + b[0] * (h - 2)] = 7;
+				this.trialArrive.push([cx + 0.5, cy + h - 2.5]);
+				this.trialExits.push([cx + 0.5, cy + 3.5]);
+				this.stageSpots.push([[cx + 0.5, cy - 1.5]]);
 			}
 			
-			this.carve(99, 22, 3, 25, A);
-			this.stageSpots = [[[100.5, 160.5]], [[100.5, 118.5]], [[100.5, 76.5]], [[100.5, 34.5]]];
-			this.mobRooms.push({x: 100, y: 188, w: 9, h: 5, n: 0});
+			this.rooms.unshift({x: cs[0][0], y: cs[0][1] + __int(cs[0][2] / 2) - 3, w: 5, h: 3});
+		}
+	chamberAt(x, y) {
+			if (!this.chambers) return __int(-1);
+			for (var k = __int(0); k < this.chambers.length; k++) {
+				var c = this.chambers[k];
+				if (Math.abs(x - (c.x + 0.5)) <= c.w / 2 + 1 && Math.abs(y - (c.y + 0.5)) <= c.h / 2 + 1) return __int(k);
+			}
+			return __int(-1);
 		}
 	pool(cx, cy, r) { cx = __int(cx); cy = __int(cy);
 			for (var y = __int(-2); y <= 2; y++) for (var x = __int(-2); x <= 2; x++) {
@@ -4142,7 +4159,11 @@ class SetPieces {
 			var trim = __int(SetPieces.safeFloor(st.trim) ? st.trim : st.alt);
 			var bt = w.baseTiles, bo = w.baseObjs;
 			var map = {};
+			
+			var ch = __int(w.chamberAt(cx, cy));
+			var room = ch >= 0 ? w.chambers[ch] : null;
 			for (y = __int(1); y < N - 1; y++) for (x = __int(1); x < N - 1; x++) {
+				if (room && (Math.abs(x - room.x) > room.w / 2 + 1 || Math.abs(y - room.y) > room.h / 2 + 1)) continue;
 				i = __int(y * N + x);
 				var t = __int(bt[i]);
 				if (!SetPieces.safeFloor(t)) continue;
@@ -4760,7 +4781,7 @@ class Enemy {
 				return;
 			}
 			
-			var spin0 = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : this.spins[i];
+			var spin0 = a.p == "rain" || a.p == "wall" || a.p == "eclipse" || a.p == "constellation" || a.p == "supernova" ? Math.random() * 1000 : this.spins[i];
 			this.shootAttack(a, ang, spin0, dist, g);
 			if (a.dash && a.wind) { this.windT = a.wind; this.windDash = a.dash; this.windA = ang; this.windSpd = a.dashSpd || 9; }
 			else if (a.lead) { this.windT = a.lead + (a.waves || 1) * (a.gap || 0.2); this.windDash = 0; }
@@ -4893,6 +4914,52 @@ class Enemy {
 						g.later(0.8 + k * (a.gap || 1.4), this.starWave(a, eSpots, dmg, bd, spinning, g, ang + k));
 					}
 					break;
+				case "constellation":
+					
+					
+					var cSeed = __uint(__uint(Math.abs(ang) * 100003 + Math.abs(spin0) * 7919 + 1));
+					var cRand = () => { cSeed = __uint(__uint((cSeed * 1103515245 + 12345) % 2147483648)); return cSeed / 2147483648; };
+					var cPts = [];
+					var cBase = cRand() * Math.PI * 2;
+					for (k = __int(0); k < Math.max(3, n); k++) {
+						var cAng = cBase + k * Math.PI * 2 / Math.max(3, n) + (cRand() - 0.5) * 0.9;
+						var cr = (a.inner || 3) + cRand() * ((a.spread || 10) - (a.inner || 3));
+						cPts.push([this.x + Math.cos(cAng) * cr, this.y + Math.sin(cAng) * cr]);
+					}
+					
+					var cOrd = [];
+					for (k = __int(0); k < cPts.length; k++) cOrd.push(k);
+					for (k = __int(cOrd.length - 1); k > 0; k--) { var cj = __int(__int(cRand() * (k + 1))); var ct = __int(cOrd[k]); cOrd[k] = cOrd[cj]; cOrd[cj] = ct; }
+					var cSegs = __int(a.loop ? cOrd.length : cOrd.length - 1);
+					for (k = __int(0); k < cSegs; k++) {
+						var cp = cPts[cOrd[k]], cq = cPts[cOrd[(k + 1) % cOrd.length]];
+						g.beam(cp[0], cp[1], cq[0], cq[1], a.width || 0.7, (a.delay || 1.8) + k * (a.stagger || 0.12), col, dmg, this.def.name, Enemy.attackName(a));
+					}
+					
+					for (k = __int(0); k < cPts.length; k++) g.addMarker(cPts[k][0], cPts[k][1], 1.1, (a.delay || 1.8) + cSegs * (a.stagger || 0.12), col,
+						this.novaFn(Enemy.o2(a, {burst: a.burst || 6, bspd: 4.5, blife: 1.2}), cPts[k][0], cPts[k][1], __int(dmg * 0.8), bd, spinning, g, cBase + k), "star");
+					break;
+				case "gravity":
+					
+					g.gravity(this.x, this.y, a.pull || 2.2, a.dur || 4, a.radius || 16, this);
+					break;
+				case "supernova":
+					
+					
+					var sSeed = __uint(__uint(Math.abs(ang) * 100003 + Math.abs(spin0) * 7919 + 1));
+					var sRand = () => { sSeed = __uint(__uint((sSeed * 1103515245 + 12345) % 2147483648)); return sSeed / 2147483648; };
+					var shelters = [];
+					var sBase = sRand() * Math.PI * 2;
+					for (k = __int(0); k < Math.max(1, n); k++) {
+						for (var st = __int(0); st < 10; st++) {
+							var sa = sBase + k * Math.PI * 2 / Math.max(1, n) + (sRand() - 0.5) * 0.8;
+							var sr = (a.inner || 3.5) + sRand() * ((a.spread || 6.5) - (a.inner || 3.5));
+							var sx = this.x + Math.cos(sa) * sr, sy = this.y + Math.sin(sa) * sr;
+							if (g.world.canStand(sx, sy, 0.6, true) || st == 9) { shelters.push([sx, sy]); break; }
+						}
+					}
+					g.supernova(this.x, this.y, shelters, a.radius || 1.5, a.delay || 4.5, col, dmg, this.def.name, Enemy.attackName(a), this);
+					break;
 				case "implode":
 					
 					var id2 = Math.min(dist, a.reach || 9);
@@ -4932,6 +4999,12 @@ class Enemy {
 						this.shot(t, a.spd, a, dmg, bd, spinning, g, this.x, this.y, k);
 					}
 			}
+		}
+	static o2(a, x) {
+			var r = {};
+			for (var k in a) r[k] = a[k];
+			for (var k2 in x) r[k2] = x[k2];
+			return r;
 		}
 	blinkAway(r, g) {
 			for (var bt = __int(0); bt < 12; bt++) {
@@ -5986,6 +6059,13 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-trial", title: "The Starfall Trial",
+				lines: ["<b>The Starfall Vault is now a trial</b>: no more halls to walk. You arrive straight in the first of four sealed chambers and its master wakes. Beat it and a portal opens where it fell; step through when you're ready and the next master wakes as you land.",
+					"<b>Astraeon, the Fallen Star</b> waits in the last chamber, and he is now the hardest fight in Eldmere: five phases, far more health, and four things nothing else does.",
+					"<b>His constellation</b>: stars light up round him, joined by lines of starlight that burn a moment later. Stand between them.",
+					"<b>His gravity</b> drags you toward him, and into the ring of starfire round him. <b>The eclipse</b> plunges the throne into darkness lit only by falling stars.",
+					"<b>The supernova</b>: when the star collapses, a few pools of starlight open round him. Only those standing in one are spared, and each holds only a player or two. At the very end, he does it all at once.",
+					"The weekly twist Swarming Halls is now <b>Swarming Chambers</b>: each master wakes with two guards that hit 15% harder."]},
 			{id: "2026-10-storm", title: "Heart of the Storm reworked",
 				lines: ["<b>No more stun-locks</b>: once a paralysis wears off you can't be paralyzed again for 3 seconds, and a new hit no longer restarts one. This holds everywhere in the game.",
 					"<b>Thunder Sentinels</b> fire a fan of static bolts and <b>overcharge</b>: a rune circle under them, then a burst. Step out of it.",
@@ -6842,7 +6922,7 @@ Bosses.SETPIECES = {
 			ignis: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests feed Ignis. Smother them, or he burns forever!"},
 			archivist: {style: "sunken", prop: "tidal_shrine", n: 3, r: 5.5, hint: "The tidal shrines keep the Archivist whole. Break them before the archive floods!"},
 			sovereign: {style: "skull", prop: "bone_brazier", n: 4, r: 5.5, ward: true, hint: "Four bone braziers shield the Sovereign. Douse them all to reach him!"},
-			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons. Shatter them, then survive the Star Throne! When he eclipses the sky, watch the light of his falling stars."}
+			astraeon: {style: "star", prop: "star_pylon", n: 4, r: 6, ward: true, hint: "Astraeon draws power from four star pylons: shatter them. Stand between his constellation's lines, fight his gravity, watch the falling stars in the eclipse, and when he goes supernova get into a pool of starlight!"}
 		};
 Bosses.V_RED = __uint(0xff2a3a);
 Bosses.V_GOLD = __uint(0xd8a030);
@@ -6862,7 +6942,7 @@ Bosses.FINALES = ["citadel", "drowned_throne", "clockwork_foundry", "void_rift"]
 Bosses.VAULT_TWISTS = [
 			{id: "quick", name: "Quickened Sands", desc: "Everything in the Vault attacks 25% faster.", rate: 1.25},
 			{id: "stone", name: "Stoneskin Masters", desc: "The four masters have 40% more health.", masterHp: 1.4},
-			{id: "swarm", name: "Swarming Halls", desc: "Twice the guards in the alcoves, and they hit 15% harder.", guards: 2, guardDmg: 1.15},
+			{id: "swarm", name: "Swarming Chambers", desc: "Each master wakes with two guards, and every guard hits 15% harder.", escort: 2, guardDmg: 1.15},
 			{id: "fleet", name: "Fleet Masters", desc: "The masters move 35% faster.", masterSpd: 1.35},
 			{id: "glass", name: "Glass Vault", desc: "Everything has 30% less health but hits 40% harder.", hp: 0.7, dmg: 1.4},
 			{id: "escort", name: "Honour Guard", desc: "Each master wakes with four guards at its side.", escort: 4}
@@ -6891,10 +6971,10 @@ Bosses.RAIDS = [
 					"Then break the Lightning Rods on the terrace to call the Galecaller down. Keep moving: lightning strikes where you stand. Spread out: chain lightning leaps from one of you to the next.",
 				theme: {id: "storm", wall: "stormstone", name: "Heart of the Storm", color: 0x80ffff, floor: 13, accent: 0, tier: 4, hard: 2.2, raid: true, layout: "spire",
 					mobs: ["gale_harpy", "gale_harpy", "thunder_golem", "cloud_serpent", "storm_wisp"]}},
-			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true,
+			{id: "starfall", name: "The Starfall Vault", color: 0xffd060, takeover: true, twists: true, trial: true,
 				stages: [["ignis"], ["archivist"], ["sovereign"], ["astraeon"]],
 				places: ["the Hall of Embers", "the Drowned Archive", "the Bone Crypt", "the Star Throne"],
-				intro: "Deep beneath Eldmere lies the vault where a star fell. Four masters guard it, and each one remakes the whole vault in its own image when it wakes: break what feeds it, and mind the floor.",
+				intro: "The Starfall Trial: four sealed chambers, one master in each, and no way between them but the portal each master leaves when it falls. Break what feeds them, mind the floor, and save your strength for the Star Throne.",
 				theme: {id: "starfall", wall: "starstone", name: "The Starfall Vault", color: 0xffd060, floor: 9, accent: 26, tier: 5, hard: 2.4, raid: true, heroicHp: 1.25, layout: "starfall",
 					mobs: ["royal_guard", "grave_wraith", "cube_shard", "temple_scorpion", "bone_thrall"]}}
 		];
@@ -7544,12 +7624,12 @@ SetPieces.PHASES = {
 				msg: "The eye of the storm narrows!"},
 				{when: "hp", at: 0.2, sel: "ring", a: 6.5, b: 99, to: "shock", col: 0xffffff,
 				msg: "THE EYE CLOSES! Only its heart is safe!"}],
-			star: [{when: "hp", at: 0.75, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
+			star: [{when: "hp", at: 0.8, sel: "walls", to: "floor", spawn: "star_guard", n: 4, col: 0xffd060,
 				msg: "The throne room's walls shatter! Star Guards pour in!"},
-				{when: "hp", at: 0.5, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
-				msg: "A ring of starfire ignites around Astraeon!"},
-				{when: "hp", at: 0.25, sel: "ring", a: 8.5, b: 99, to: "hz", col: 0xff6020,
-				msg: "The edges of the throne burn away! Stay close to the fallen star!"}]
+				{when: "hp", at: 0.6, sel: "ring", a: 4.5, b: 6.5, to: "hz", col: 0xffb040,
+				msg: "A ring of starfire ignites around Astraeon! His gravity drags you toward it!"},
+				{when: "hp", at: 0.15, sel: "ring", a: 9, b: 99, to: "hz", col: 0xff6020,
+				msg: "The edges of the throne burn away! Nowhere left to run!"}]
 		};
 Enemy.DEG = Math.PI / 180;
 Enemy.LEGACY_HP = [1, 0.66, 0.33];

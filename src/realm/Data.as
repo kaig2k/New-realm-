@@ -1616,6 +1616,13 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-trial", title: "The Starfall Trial",
+				lines: ["<b>The Starfall Vault is now a trial</b>: no more halls to walk. You arrive straight in the first of four sealed chambers and its master wakes. Beat it and a portal opens where it fell; step through when you're ready and the next master wakes as you land.",
+					"<b>Astraeon, the Fallen Star</b> waits in the last chamber, and he is now the hardest fight in Eldmere: five phases, far more health, and four things nothing else does.",
+					"<b>His constellation</b>: stars light up round him, joined by lines of starlight that burn a moment later. Stand between them.",
+					"<b>His gravity</b> drags you toward him, and into the ring of starfire round him. <b>The eclipse</b> plunges the throne into darkness lit only by falling stars.",
+					"<b>The supernova</b>: when the star collapses, a few pools of starlight open round him. Only those standing in one are spared, and each holds only a player or two. At the very end, he does it all at once.",
+					"The weekly twist Swarming Halls is now <b>Swarming Chambers</b>: each master wakes with two guards that hit 15% harder."]},
 			{id: "2026-10-storm", title: "Heart of the Storm reworked",
 				lines: ["<b>No more stun-locks</b>: once a paralysis wears off you can't be paralyzed again for 3 seconds, and a new hit no longer restarts one. This holds everywhere in the game.",
 					"<b>Thunder Sentinels</b> fire a fan of static bolts and <b>overcharge</b>: a rune circle under them, then a burst. Step out of it.",

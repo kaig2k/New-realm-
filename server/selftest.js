@@ -679,13 +679,22 @@ async function run() {
       const themes = [];
       const c = { id: 1, x: 100, y: 100, maxDps: 1e9, send: (m) => got.push(m.d) };
       ws.join(c);
+      if (ws.w.chambers) { c.x = ws.w.spawnX; c.y = ws.w.spawnY; }
       let err = null;
       try {
-        for (let step = 0; step < 4000; step++) {
+        for (let step = 0; step < 6000; step++) {
           ws.tick(0.05);
           if (step % 20) continue;
+          // (the Starfall Trial: through each beaten chamber's portal to the next)
+          const w = ws.w, ck = w.chambers ? w.chamberAt(c.x, c.y) : -1;
+          if (ck >= 0 && ck < w.trialCleared && ck + 1 < w.chambers.length) { c.x = w.trialExits[ck][0]; c.y = w.trialExits[ck][1]; ws.onClient(c, { t: 'trial', k: ck }); }
           for (const e of ws.enemies.slice()) {
-            if (!e.dead && e.isBoss && e.arena && arenas.indexOf(e.defId) < 0) { arenas.push(e.defId); themes.push(ws.w.tiles[188 * ws.w.N + 101]); }
+            if (!e.dead && e.isBoss && e.arena && arenas.indexOf(e.defId) < 0) {
+              arenas.push(e.defId);
+              // (in the trial, each master's own chamber: a tile of it beyond the set piece)
+              const rm = w.chambers ? w.chambers[w.chamberAt(e.x, e.y)] : null;
+              themes.push(rm ? w.tiles[rm.y * w.N + rm.x + 13] : w.tiles[188 * w.N + 101]);
+            }
             if (!e.dead && (e.isBoss || e.def.prop)) { c.x = e.x; c.y = e.y + 2; ws.hit(c, { id: e.id, d: 6000 }); }
           }
         }
@@ -696,7 +705,7 @@ async function run() {
         arenas.length === 2 && got.filter((m) => m.t === 'sphase' && m.go).length >= (r === 0 ? 4 : 5), arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
       if (r === 2) check('the Starfall Vault: every chamber raises its set piece, and the Star Throne changes three times',
         arenas.length === 4 && got.filter((m) => m.t === 'sphase' && m.go).length >= 3 + 2 + 1 + 1, arenas.join(',') + ' / ' + got.filter((m) => m.t === 'sphase' && m.go).length);
-      if (r === 2) check('each Vault master remakes the whole dungeon in its style (even the entrance hall)',
+      if (r === 2) check('each Starfall master remakes its own chamber in its style',
         new Set(themes).size === 4 && themes.every((t) => t !== 9), themes.join(','));
     }
   }
@@ -830,7 +839,7 @@ async function run() {
     const atk = (d) => [].concat(...d.phases.map((p) => (p.attacks || []).concat(...(p.cycle || []))));
     const vb = atk(VD.ENEMIES.archon).filter((a) => a.p === 'brand'), ae = atk(VD.ENEMIES.astraeon).filter((a) => a.p === 'eclipse');
     check('Archon Vesper brands players in blood from his second phase on (two at once at the end)', vb.length >= 3 && vb.some((a) => a.n === 2) && !(VD.ENEMIES.archon.phases[0].attacks || []).some((a) => a.p === 'brand'));
-    check('Astraeon eclipses the sky in his last two phases', ae.length === 2 && VD.ENEMIES.astraeon.phases.slice(2).every((p) => (p.attacks || []).some((a) => a.p === 'eclipse')));
+    check('Astraeon eclipses the sky in his eclipse phase', ae.length >= 1 && (VD.ENEMIES.astraeon.phases[2].attacks || []).some((a) => a.p === 'eclipse'));
     const ws = new WorldSim('raid:0:2468');
     const P = (id, x, y) => { const c = { id, x, y, maxDps: 1e9, send: () => {} }; ws.join(c); c.x = x; c.y = y; return c; };
     const a1 = P(51, 100, 100), a2 = P(52, 104, 100); P(53, 120, 100);
@@ -845,14 +854,15 @@ async function run() {
     const runs = [];
     for (let rep = 0; rep < 2; rep++) {
       const s2 = new WorldSim('raid:2:1357');
-      s2.join({ id: 61, x: 100, y: 100, send: () => {} });
-      const st = s2.spawn('astraeon', 100, 90, 5, true);
+      const at = s2.w.stageSpots[3][0];
+      s2.join({ id: 61, x: at[0], y: at[1] + 8, send: () => {} });
+      const st = s2.spawn('astraeon', at[0], at[1], 5, true);
       const later = [], spots = [];
       let dark = 0;
       s2.g.later = (d, fn) => later.push(fn);
       s2.g.eclipse = (secs) => { dark = secs; };
       s2.g.addMarker = (x, y, r, d, c, fn, style) => spots.push([Math.round(x * 10), Math.round(y * 10), style]);
-      const p3 = VD.ENEMIES.astraeon.phases[3];
+      const p3 = VD.ENEMIES.astraeon.phases[2];
       st.setAttacks(p3.attacks);
       st.shootAttack(p3.attacks.find((a) => a.p === 'eclipse'), 1.234, 567.8, 10, s2.g);
       later.forEach((fn) => fn());
@@ -1210,6 +1220,53 @@ async function run() {
     check('ghosts drift through walls and their shots pass through them', wx > 0 && E.ghost.ghostly && E.ghost.attacks.every((a) => a.ghost) && ws.w.canFloat(wx, wy, 0.3) && !ws.w.canStand(wx, wy, 0.3, true) && ghost);
   }
 
+  console.log('the Starfall Trial');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Bosses: TB } = require('./sim/gen/game');
+    const ws = new WorldSim('raid:' + TB.RAIDS.findIndex((r) => r.id === 'starfall') + ':4242');
+    const w = ws.w;
+    // the chambers are sealed: walking from the first never reaches another
+    const seen = new Set([Math.floor(w.spawnY) * w.N + Math.floor(w.spawnX)]), q = [...seen];
+    while (q.length) {
+      const i = q.pop();
+      for (const d of [1, -1, w.N, -w.N]) {
+        const j = i + d;
+        if (seen.has(j) || !w.walkable(j % w.N + 0.5, Math.floor(j / w.N) + 0.5)) continue;
+        seen.add(j); q.push(j);
+      }
+    }
+    const reach = (k) => seen.has(Math.floor(w.trialArrive[k][1]) * w.N + Math.floor(w.trialArrive[k][0]));
+    check('the Starfall Trial: four chambers sealed from each other, you start in the first', w.chambers.length === 4 && w.chamberAt(w.spawnX, w.spawnY) === 0 && reach(0) && !reach(1) && !reach(2) && !reach(3));
+    const msgs = [];
+    const c = { id: 1, x: w.spawnX, y: w.spawnY, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => msgs.push(m.d) };
+    ws.join(c);
+    let early = false, wrongRoom = false;
+    for (let step = 0; step < 20000 && w.raidStage < 4; step++) {
+      ws.tick(0.05);
+      for (const e of ws.enemies.slice()) if (!e.dead && (e.isBoss || e.def.prop || e.def.stageFoe)) {
+        if (w.chamberAt(e.x, e.y) !== w.chamberAt(c.x, c.y)) wrongRoom = true;
+        ws.hit(c, { id: e.id, d: 6000 });
+      }
+      const k = w.chamberAt(c.x, c.y);
+      if (k >= 0 && k < w.trialCleared && k + 1 < w.chambers.length && step % 40 === 0) {
+        // not from far away, and not a chamber still unbeaten
+        ws.onClient(c, { t: 'trial', k });
+        ws.onClient(c, { t: 'trial', k: k + 1 });
+        if (w.chamberAt(c.x, c.y) !== k) early = true;
+        const ex = w.trialExits[k]; c.x = ex[0]; c.y = ex[1];
+        ws.onClient(c, { t: 'trial', k });
+      }
+    }
+    check('...each master falls, its portal opens, and the next master wakes only once you step through', w.raidStage === 4 && !early && !wrongRoom &&
+      msgs.filter((m) => m.t === 'trial').map((m) => m.c).join() === '1,2,3,4' && msgs.filter((m) => m.t === 'warp').map((m) => m.k).join() === '1,2,3' &&
+      msgs.filter((m) => m.t === 'loot').length >= 4, [w.raidStage, early, wrongRoom].join(' '));
+    const ast = TB.RAIDS.find((r) => r.id === 'starfall');
+    const A = require('./sim/gen/game').Data.ENEMIES.astraeon;
+    const kinds = new Set(); for (const ph of A.phases) for (const a of (ph.attacks || []).concat(...(ph.cycle || []))) kinds.add(a.p);
+    check('Astraeon: five phases, with his constellation, gravity, eclipse and supernova', A.phases.length === 5 && ['constellation', 'gravity', 'eclipse', 'supernova'].every((k) => kinds.has(k)) && ast.trial);
+  }
+
   console.log('weekly vault twists');
   {
     const { WorldSim } = require('./sim/worldsim');
@@ -1221,13 +1278,16 @@ async function run() {
       ws.enemies.length = 0;
       ws.populateRaid();
       const guards = ws.enemies.length;
-      ws.w.raidT = 0; ws.updateRaid(0.1);
+      // (a trial's master wakes with someone in its chamber)
+      ws.players.set(9, { id: 9, x: ws.w.trialArrive[0][0], y: ws.w.trialArrive[0][1], send() {} });
+      ws.updateRaid(0.1); ws.w.raidT = 0; ws.updateRaid(0.1);
+      ws.players.delete(9);
       return { ws, guards, master: ws.w.boss, all: ws.enemies.length };
     };
     const plain = new WorldSim('raid:' + vi + ':99');
     check('the Vault has a rule each week, the same for the whole week', VB.VAULT_TWISTS.length >= 5 && plain.twist && plain.twist === VB.vaultTwist(plain.week) && VB.vaultTwist(plain.week + 1) !== plain.twist);
     const swarm = run('swarm'), glass = run('glass'), quick = run('quick'), escort = run('escort'), stone = run('stone');
-    check('Swarming Halls: twice the guards', swarm.guards >= 1.5 * glass.guards, swarm.guards + ' vs ' + glass.guards);
+    check('Swarming Chambers: guards at the master\'s side that hit harder', swarm.all - swarm.guards >= 1 + 2 && swarm.ws.enemies.some((e) => e !== swarm.master && e.dmgMult > 1.1));
     check('Glass Vault: less health, harder hits; Quickened Sands: faster attacks', glass.master.maxHp < stone.master.maxHp && glass.master.dmgMult > 1.3 && quick.master.rateMult === 1.25);
     check('Honour Guard: guards wake at the master\'s side', escort.all - escort.guards >= 1 + 4);
     const feats = [];

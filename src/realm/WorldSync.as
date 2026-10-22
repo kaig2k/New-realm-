@@ -113,6 +113,11 @@ package realm {
 		}
 
 		/** A Cloak of Mirrors' decoy: the host's monsters aim at it for a moment. */
+		/** A trial's portal on, out of chamber k (the server checks it and moves us: "warp"). */
+		public function trial(k:int):void {
+			if (active) send("host", {t: "trial", k: k});
+		}
+
 		public function decoy(x:Number, y:Number, secs:Number):void {
 			if (!active) return;
 			send("host", {t: "decoy", x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, s: secs});
@@ -262,6 +267,17 @@ package realm {
 					w.eventsDone = d.ev;
 					if (d.rs != undefined && w.raid && d.rs >= 0) g.raidStageReached(Math.min(d.rs, w.raid.stages.length - 1));
 					if (d.ct > 0 && w.closeT <= 0) w.closeT = d.ct;
+					if (d.tc > 0) g.trialCleared(int(d.tc), false);
+					break;
+				case "trial":
+					// a trial chamber was beaten: its portal on opens
+					if (from != 0 || isHost) return;
+					g.trialCleared(int(d.c), true);
+					break;
+				case "warp":
+					// through a trial's portal: the server put us in the next chamber
+					if (from != 0) return;
+					g.trialWarp(Number(d.x), Number(d.y), int(d.k));
 					break;
 				case "loot":
 					// the server rolled your drops from a monster you helped kill

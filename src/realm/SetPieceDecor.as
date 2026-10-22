@@ -56,8 +56,8 @@ package realm {
 		private static const WAVE_SPEED:Number = 48;
 		private static const WAVE_NEAR:Number = 17;
 		private static const WAVE_TAUNT:Object = {
-			fire: "Ignis sets the whole vault ablaze!", sunken: "The Archivist drowns the vault in the deep!",
-			skull: "The Sovereign raises a crypt from every hall!", star: "Astraeon remakes the vault as a field of stars!"
+			fire: "Ignis sets the chamber ablaze!", sunken: "The Archivist drowns the archive in the deep!",
+			skull: "The Sovereign raises a crypt round you!", star: "Astraeon remakes the throne as a field of stars!"
 		};
 
 		/**

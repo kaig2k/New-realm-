@@ -612,7 +612,7 @@ package realm {
 				return;
 			}
 			// patterns that rotate or scatter carry their own seed so every player sees the same bullets
-			var spin0:Number = a.p == "rain" || a.p == "wall" || a.p == "eclipse" ? Math.random() * 1000 : spins[i];
+			var spin0:Number = a.p == "rain" || a.p == "wall" || a.p == "eclipse" || a.p == "constellation" || a.p == "supernova" ? Math.random() * 1000 : spins[i];
 			shootAttack(a, ang, spin0, dist, g);
 			if (a.dash && a.wind) { windT = a.wind; windDash = a.dash; windA = ang; windSpd = a.dashSpd || 9; }
 			else if (a.lead) { windT = a.lead + (a.waves || 1) * (a.gap || 0.2); windDash = 0; }
@@ -749,6 +749,52 @@ package realm {
 						g.later(0.8 + k * (a.gap || 1.4), starWave(a, eSpots, dmg, bd, spinning, g, ang + k));
 					}
 					break;
+				case "constellation":
+					// Astraeon's constellation: stars light up round him and lines of starlight join them; the
+					// lines burn a moment later, so you stand between them. (Seeded by the shot, like the eclipse.)
+					var cSeed:uint = uint(Math.abs(ang) * 100003 + Math.abs(spin0) * 7919 + 1);
+					var cRand:Function = function():Number { cSeed = uint((cSeed * 1103515245 + 12345) % 2147483648); return cSeed / 2147483648; };
+					var cPts:Array = [];
+					var cBase:Number = cRand() * Math.PI * 2;
+					for (k = 0; k < Math.max(3, n); k++) {
+						var cAng:Number = cBase + k * Math.PI * 2 / Math.max(3, n) + (cRand() - 0.5) * 0.9;
+						var cr:Number = (a.inner || 3) + cRand() * ((a.spread || 10) - (a.inner || 3));
+						cPts.push([x + Math.cos(cAng) * cr, y + Math.sin(cAng) * cr]);
+					}
+					// the order the lines join them in jumps about, so they cross
+					var cOrd:Array = [];
+					for (k = 0; k < cPts.length; k++) cOrd.push(k);
+					for (k = cOrd.length - 1; k > 0; k--) { var cj:int = int(cRand() * (k + 1)); var ct:int = cOrd[k]; cOrd[k] = cOrd[cj]; cOrd[cj] = ct; }
+					var cSegs:int = a.loop ? cOrd.length : cOrd.length - 1;
+					for (k = 0; k < cSegs; k++) {
+						var cp:Array = cPts[cOrd[k]], cq:Array = cPts[cOrd[(k + 1) % cOrd.length]];
+						g.beam(cp[0], cp[1], cq[0], cq[1], a.width || 0.7, (a.delay || 1.8) + k * (a.stagger || 0.12), col, dmg, def.name, attackName(a));
+					}
+					// and each star bursts where it hangs
+					for (k = 0; k < cPts.length; k++) g.addMarker(cPts[k][0], cPts[k][1], 1.1, (a.delay || 1.8) + cSegs * (a.stagger || 0.12), col,
+						novaFn(o2(a, {burst: a.burst || 6, bspd: 4.5, blife: 1.2}), cPts[k][0], cPts[k][1], int(dmg * 0.8), bd, spinning, g, cBase + k), "star");
+					break;
+				case "gravity":
+					// the fallen star's gravity: for dur seconds everyone near is dragged toward him
+					g.gravity(x, y, a.pull || 2.2, a.dur || 4, a.radius || 16, this);
+					break;
+				case "supernova":
+					// the star collapses: pools of starlight open round him, and when it bursts only
+					// those standing in one live through it unharmed (each holds a player or two)
+					var sSeed:uint = uint(Math.abs(ang) * 100003 + Math.abs(spin0) * 7919 + 1);
+					var sRand:Function = function():Number { sSeed = uint((sSeed * 1103515245 + 12345) % 2147483648); return sSeed / 2147483648; };
+					var shelters:Array = [];
+					var sBase:Number = sRand() * Math.PI * 2;
+					for (k = 0; k < Math.max(1, n); k++) {
+						for (var st:int = 0; st < 10; st++) {
+							var sa:Number = sBase + k * Math.PI * 2 / Math.max(1, n) + (sRand() - 0.5) * 0.8;
+							var sr:Number = (a.inner || 3.5) + sRand() * ((a.spread || 6.5) - (a.inner || 3.5));
+							var sx:Number = x + Math.cos(sa) * sr, sy:Number = y + Math.sin(sa) * sr;
+							if (g.world.canStand(sx, sy, 0.6, true) || st == 9) { shelters.push([sx, sy]); break; }
+						}
+					}
+					g.supernova(x, y, shelters, a.radius || 1.5, a.delay || 4.5, col, dmg, def.name, attackName(a), this);
+					break;
 				case "implode":
 					// a gravity well: a ring of shots appears round you and falls inward
 					var id2:Number = Math.min(dist, a.reach || 9);
@@ -788,6 +834,14 @@ package realm {
 						shot(t, a.spd, a, dmg, bd, spinning, g, x, y, k);
 					}
 			}
+		}
+
+		/** a with x's fields laid over it (a copy). */
+		private static function o2(a:Object, x:Object):Object {
+			var r:Object = {};
+			for (var k:String in a) r[k] = a[k];
+			for (var k2:String in x) r[k2] = x[k2];
+			return r;
 		}
 
 		/** Vanishes and reappears a few tiles away (an attack's blink: up to that many tiles from its home). */

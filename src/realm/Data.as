@@ -123,15 +123,18 @@ package realm {
 		}
 
 		// ---- item tiers -------------------------------------------------
-		// Tiered items are T0..T7. New Realm's special rarities, from common to rarest:
-		// Runed (RN), Bonded (BD, class sets), Eldritch (EL, the Dark Elder), Starforged (SF, forged), Primordial (PR).
-		// The short ids (ut, st, fb, lg, ar) are only save-file keys and never shown to players.
-		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "ar", "gd"];
-		public static const RARITY_NAMES:Object = {ut: "Runed", st: "Bonded", fb: "Eldritch", lg: "Starforged", ar: "Primordial", gd: "Godly"};
-		public static const RARITY_LABELS:Object = {ut: "RN", st: "BD", fb: "EL", lg: "SF", ar: "PR", gd: "GD"};
-		public static const RARITY_COLORS:Object = {ut: 0x6aa8ff, st: 0x4ee08a, fb: 0xc85cff, lg: 0xffc23a, ar: 0xff5533, gd: 0xfff6e0};
-		/** Effective tier used for item stats. */
-		private static const RARITY_POWER:Object = {ut: 8, st: 8.5, fb: 9.5, lg: 11, ar: 12.5, gd: 14};
+		// Tiered items are T0..T7. Above them one ladder of named items with fixed stats, every step stronger:
+		// UT (Untiered), Legendary, Starforged (a Legendary upgraded at the Starforge), Primordial (endgame only),
+		// Godly. Bonded (st) and Eldritch (fb) are retired: still read from old saves, never made.
+		// The short ids are only save-file keys and never shown to players.
+		public static const RARITIES:Array = ["ut", "st", "fb", "lg", "sf", "ar", "gd"];
+		/** The ladder, weakest first (what drops and is shown; st and fb are only old saves). */
+		public static const LADDER:Array = ["ut", "lg", "sf", "ar", "gd"];
+		public static const RARITY_NAMES:Object = {ut: "Untiered", st: "Bonded", fb: "Eldritch", lg: "Legendary", sf: "Starforged", ar: "Primordial", gd: "Godly"};
+		public static const RARITY_LABELS:Object = {ut: "UT", st: "BD", fb: "EL", lg: "LG", sf: "SF", ar: "PR", gd: "GD"};
+		public static const RARITY_COLORS:Object = {ut: 0xb070ff, st: 0x4ee08a, fb: 0xd070c0, lg: 0xffd23a, sf: 0x8ae8ff, ar: 0xff5533, gd: 0xfff6e0};
+		/** Effective tier used for item stats (the ladder's power, in tiers: T7 = 7). */
+		private static const RARITY_POWER:Object = {ut: 7, st: 8.5, fb: 9.5, lg: 10, sf: 11.5, ar: 12.5, gd: 14};
 
 		public static const WEAPON_NAMES:Object = {
 			staff: ["Twig Staff", "Ember Staff", "Comet Staff", "Serpent Staff", "Starfall Staff", "Ruin Staff", "Nebula Staff", "Staff of the Void"],
@@ -268,7 +271,8 @@ package realm {
 
 		/** Half of all dropped weapons have a form. */
 		public static function rollForm():String {
-			return Math.random() < 0.5 ? "" : pick(FORM_IDS);
+			// (weapons no longer drop in random forms: every named item is fixed, tiered gear is plain)
+			return "";
 		}
 
 		private static function applyForm(w:Object, form:String):void {
@@ -635,7 +639,7 @@ package realm {
 			var slots:Array = ["Weapon", "Ability", "Armor", "Ring"], tops:Array = [7, 6, 7, 5];
 			for (s = 0; s < 4; s++) {
 				for (i = 0; i <= tops[s]; i++) out.push({name: "T" + i + " " + slots[s], k: "t", a: s, b: i});
-				for each (var rar:String in ["ut", "st", "fb", "lg", "ar", "gd"]) out.push({name: RARITY_NAMES[rar] + " " + slots[s], k: "r", a: s, b: rar});
+				out.push({name: RARITY_NAMES.gd + " " + slots[s], k: "r", a: s, b: "gd"});
 				out.push({name: "Cursed " + slots[s], k: "c", a: s, b: ""});
 				for each (var cu:String in CURSE_IDS) out.push({name: CURSES[cu].name + " " + slots[s], k: "c", a: s, b: cu});
 			}
@@ -682,7 +686,6 @@ package realm {
 			{id: "hp", name: "Health Potion", price: 50},
 			{id: "mp", name: "Magic Potion", price: 50},
 			{id: "stat", name: "Random Stat Potion", price: 1200},
-			{id: "sor", name: "Star Shard", price: 7500},
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
@@ -751,7 +754,7 @@ package realm {
 			brittle: {name: "Brittle", boon: {def: 16, vit: 12}, bane: {spd: -10}, desc: "a fortress that barely moves"}
 		};
 		public static const CURSE_IDS:Array = ["bloodbound", "hexed", "feral", "gilded", "reckless", "brittle"];
-		public static const CURSE_COLOR:uint = 0xb050ff;
+		public static const CURSE_COLOR:uint = 0x7ad03a;
 
 		/** A cursed piece of gear for one of cls's four slots (curse: a CURSES id, or one at random). */
 		public static function makeCursed(cls:Object, slot:int = -1, curse:String = null):Object {
@@ -785,12 +788,19 @@ package realm {
 
 		/** Gear for one of a class's 4 slots. */
 		public static function makeForSlot(cls:Object, slot:int, tier:int, rarity:String):Object {
-			switch (slot) {
-				case 0: return classSet(makeWeapon(cls.weapon, tier, rarity, "?"), cls);
-				case 1: return classSet(makeAbility(cls.abilityType, tier, rarity, randomAbility(cls.abilityType)), cls);
-				case 2: return classSet(makeArmor(cls.armor, tier, rarity), cls);
+			// above the tiers every item is a named one: a Godly piece, or a random one of the ladder's for this slot
+			if (rarity == "gd") return Godly.make(cls.id, slot);
+			if (rarity) {
+				var named:Object = Uniques.randomFor(cls, slot, rarity == "st" || rarity == "fb" ? "lg" : rarity);
+				if (named) return named;
+				tier = 7;
 			}
-			return classSet(makeRing(randomStat(), Math.min(5, tier), rarity), cls);
+			switch (slot) {
+				case 0: return makeWeapon(cls.weapon, tier, null, "");
+				case 1: return makeAbility(cls.abilityType, tier, null, randomAbility(cls.abilityType));
+				case 2: return makeArmor(cls.armor, tier, null);
+			}
+			return makeRing(randomStat(), Math.min(5, tier), null);
 		}
 
 		/** Re-tag a generic set item as a piece of the class's own set. */
@@ -808,11 +818,15 @@ package realm {
 
 		/** Weapons (but not uniques or Godly items) can get a new prefix (form). */
 		public static function canRerollForm(item:Object):Boolean {
+			return false; // (rerolls are gone: every named item is fixed)
+
 			return item && item.kind == "weapon" && !item.uid && !item.gid && !item.curse && FORM_IDS.length > 1;
 		}
 
 		/** Special-rarity gear (but not uniques or Godly items) can roll its bonus stats again. */
 		public static function canRerollStats(item:Object):Boolean {
+			return false; // (rerolls are gone: every named item is fixed)
+
 			return item && isGear(item) && item.rarity && item.rarity != "gd" && !item.uid && !item.gid;
 		}
 
@@ -856,6 +870,8 @@ package realm {
 		 * (a weapon's Speed is its bullets, so weapons can't take a Speed rune).
 		 */
 		public static function canUseRune(item:Object, stat:String):Boolean {
+			return false; // (rerolls are gone: every named item is fixed)
+
 			return canRerollStats(item) && ROLLED.indexOf(stat) >= 0 && !(item.kind == "weapon" && stat == "spd");
 		}
 		public static function rerollStatsWith(item:Object, stat:String):Object {
@@ -882,6 +898,8 @@ package realm {
 
 		/** Why this item can't go on the Anvil, or null. */
 		public static function anvilBlock(item:Object):String {
+			return "Fortune's Anvil has gone cold: every named item is fixed now.";
+
 			if (!item || !isGear(item)) return "Only gear goes on the Anvil.";
 			if (item.uid || item.gid) return "Unique and Godly items are too precious for the Anvil.";
 			if (item.set) return "Set pieces can't go on the Anvil.";
@@ -925,15 +943,11 @@ package realm {
 			return n;
 		}
 
-		/** Turn an item into a Starforged item of the same kind (Starforge). */
+		/** The Starforge's price besides the item and a Star Shard. */
+		public static const STARFORGE_AETHER:int = 100;
+		/** A Legendary's Starforged self (Uniques.starforge); anything else stays as it is. */
 		public static function forgeLegendary(item:Object, cls:Object):Object {
-			switch (item.kind) {
-				case "weapon": return makeWeapon(item.sub, 7, "lg", item.form || "?");
-				case "ability": return makeAbility(item.sub, 6, "lg", item.ab);
-				case "armor": return makeArmor(item.sub, 7, "lg");
-				case "ring": return makeRing(item.sub, 5, "lg");
-			}
-			return item;
+			return Uniques.starforge(item);
 		}
 
 		public static function isGear(item:Object):Boolean {
@@ -2199,10 +2213,10 @@ package realm {
 		public static const DEEP_CHEST_INFO:Array = ["",
 			"Wave 5: stat potions and a tier 6 item",
 			"Wave 10: more potions, a tier 7 item, a chance at runes and Evolution Stones",
-			"Wave 15: a Starforged set piece, runes, stones, a small chance at an Abyss unique",
-			"Wave 20: two set pieces, a better chance at an Abyss unique",
-			"Wave 25: an Eldritch piece, a good chance at an Abyss unique, a rare Shard",
-			"Wave 30+: the Hoard: two Eldritch pieces, a coin flip for an Abyss unique"];
+			"Wave 15: two tier 7 items, runes, stones, a small chance at an Abyss unique",
+			"Wave 20: three tier 7 items, a better chance at an Abyss unique",
+			"Wave 25: three tier 7 items, a good chance at an Abyss unique",
+			"Wave 30+: the Hoard: three tier 7 items, a coin flip for an Abyss unique"];
 		/** The Abyss's own uniques: only its chests have them. */
 		public static const DEEP_UNIQUES:Array = ["voidrend", "abyssal_crown", "depthstone"];
 		/** A chest's loot for one player (every player who opens it rolls their own). */
@@ -2213,13 +2227,10 @@ package realm {
 			for (var p:int = 0; p < [0, 2, 3, 4, 5, 6, 8][tier]; p++) items.push(makePotion("stat", randomStat()));
 			if (tier == 1) items.push(makeForSlot(lc, int(Math.random() * 4), 6, null));
 			else if (tier == 2) items.push(makeForSlot(lc, int(Math.random() * 4), 7, null));
-			else if (tier <= 4) for (var k:int = 0; k < tier - 2; k++) items.push(makeForSlot(lc, int(Math.random() * 4), 7, "st"));
-			else for (k = 0; k < tier - 4; k++) items.push(makeForSlot(lc, int(Math.random() * 4), 7, "fb"));
-			if (tier >= 2 && Math.random() < 0.15 + 0.1 * tier) items.push(makeRune(randomStat()));
+			else for (var k:int = 0; k < Math.min(3, tier - 1); k++) items.push(makeForSlot(lc, int(Math.random() * 4), 7, null));
 			if (tier >= 2 && Math.random() < 0.1 + 0.08 * tier) items.push(makeStone());
 			var uc:Number = [0, 0, 0, 0.05, 0.12, 0.25, 0.5][tier] * rare;
 			if (Math.random() < uc) items.push(Uniques.make(DEEP_UNIQUES[int(Math.random() * DEEP_UNIQUES.length)]));
-			if (tier >= 5 && Math.random() < (tier == 6 ? 0.08 : 0.03) * rare) items.push(makeSor());
 			items.push(makePotion("hp"));
 			items.push(makePotion("mp"));
 			return items;
@@ -2476,6 +2487,15 @@ package realm {
 		/** A boss's own unique items: each one rolls separately. */
 		private static function rollUniques(def:Object, items:Array, boost:Number):void {
 			if (!def.uniques) return;
+			// the item ladder's bosses: each item rolled on its own, a UT 1 in 50 whatever your luck, a Legendary
+			// 1 in 100 that luck can nudge (rare is at most +40%)
+			if (def.planned) {
+				for each (var pid:String in def.uniques) {
+					var pr:String = Uniques.rarityOf(pid);
+					if (Math.random() < Uniques.CHANCE[pr] * (pr == "ut" ? 1 : boost)) items.push(Uniques.make(pid));
+				}
+				return;
+			}
 			// late-game items are meant to be hunted for (each unique the boss carries rolls on its own)
 			var c:Number = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
 			for each (var id:String in def.uniques) if (Math.random() < c * boost) items.push(Uniques.make(id));
@@ -2494,26 +2514,21 @@ package realm {
 			rollKey(def, items, boost);
 			var ex:Array = bossExtras(def);
 			if (Math.random() < ex[0] * rare) items.push(makeStone());
-			if (Math.random() < ex[1] * rare) items.push(makeRune(randomStat()));
 			// cursed gear: a bit rarer than runes
 			if (Math.random() < ex[1] * 0.35 * rare) items.push(makeCursed(lootClass(cls)));
 			if (def.raid) {
 				// raid bosses: the best loot in the game
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.25 ? "fb" : "st"));
-				if (Math.random() < 0.06 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.004 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.1 * rare) items.push(makeSor());
+				// (named gear only from its own list above: the rest is top-tier gear)
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				return items;
 			}
 			if (def.final || def.finale) {
 				// the Dark Elder: fabled gear, a shot at legendaries and relics
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "fb"));
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				if (Math.random() < 0.12 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.006 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.18 * rare) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
@@ -2521,8 +2536,7 @@ package realm {
 			}
 			if (def.treasure) {
 				// treasure room chest: a coin flip for a Bonded piece for your class (else top-tier gear), plus potions
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.5 ? "st" : null));
-				if (Math.random() < 0.03 * rare) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
 				for (var tp:int = 0; tp < 3; tp++) items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
 				items.push(makePotion("mp"));
@@ -2530,11 +2544,8 @@ package realm {
 			}
 			if (def.dungeon && def.dtier >= 5) {
 				// hard multi-boss dungeons: the best loot outside the Dark Elder
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "st"));
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, Math.random() < 0.15 ? "fb" : null));
-				if (Math.random() < (def.sealed ? 0.15 : 0.07) * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < (def.sealed ? 0.008 : 0.0025) * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "ar"));
-				if (Math.random() < 0.07 * rare) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, null));
 				for (var hp2:int = 0; hp2 < 3; hp2++) items.push(makePotion("stat", randomStat()));
 				return items;
 			}
@@ -2552,9 +2563,7 @@ package realm {
 			}
 			if (def.dungeon) {
 				// (Bonded gear is earned: a good chance, not a sure thing; else strong tiered gear)
-				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), Math.random() < 0.5 ? 7 : 6, Math.random() < 0.35 ? "st" : null));
-				if (Math.random() < 0.03 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.03 * rare) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), Math.random() < 0.5 ? 7 : 6, null));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				return items;
@@ -2562,9 +2571,7 @@ package realm {
 			if (def.ai == "boss") {
 				// realm event: Runed or Bonded piece, sometimes Starforged
 				slot = int(Math.random() * 4);
-				items.push(makeForSlot(lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, Math.random() < 0.15 ? "st" : null));
-				if (Math.random() < 0.02 * rare) items.push(makeForSlot(lootClass(cls), int(Math.random() * 4), 7, "lg"));
-				if (Math.random() < 0.025 * rare) items.push(makeSor());
+				items.push(makeForSlot(lootClass(cls), slot, Math.random() < 0.3 ? 7 : 6, null));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("stat", randomStat()));
 				items.push(makePotion("hp"));
@@ -2578,7 +2585,7 @@ package realm {
 				if (tier > 7) tier = 7;
 				var roll:Number = Math.random();
 				var lc:Object = lootClass(cls);
-				if (roll < 0.4) items.push(makeWeapon(lc.weapon, tier, null, "?"));
+				if (roll < 0.4) items.push(makeWeapon(lc.weapon, tier, null, ""));
 				else if (roll < 0.55) items.push(makeAbility(lc.abilityType, Math.min(6, tier), null, randomAbility(lc.abilityType)));
 				else if (roll < 0.82) items.push(makeArmor(lc.armor, tier));
 				else items.push(makeRing(randomStat(), Math.min(5, int(tier * 0.7))));
@@ -2586,6 +2593,13 @@ package realm {
 			var statChance:Number = zone == 4 ? 0.07 : zone == 3 ? 0.03 : zone == 2 ? 0.01 : 0;
 			if (Math.random() < statChance * boost) items.push(makePotion("stat", randomStat()));
 			return items;
+		}
+
+		/** Star Shards' only source: the last boss of a multi-boss dungeon, 1 in 150 for each player there. */
+		public static const SHARD_CHANCE:Number = 1 / 150;
+		/** Whether this kill can give a Star Shard (kingsLeft: the other kings still standing, for the Tomb). */
+		public static function shardKill(def:Object, kingsLeft:int):Boolean {
+			return def && def.shard && !(def.trio && kingsLeft > 0);
 		}
 
 		public static function randomStat():String {
@@ -2599,7 +2613,7 @@ package realm {
 				var r:int = 0;
 				if (it.rarity == "gd") r = 7;
 				else if (it.rarity == "ar") r = 6;
-				else if (it.rarity == "lg") r = 5;
+				else if (it.rarity == "lg" || it.rarity == "sf") r = 5;
 				else if (it.rarity == "fb" || it.curse) r = 4;
 				else if (it.rarity || it.kind == "key") r = 3;
 				else if (it.tier >= 6 || it.kind == "material" || it.kind == "stone" || it.kind == "rune") r = 2;

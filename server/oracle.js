@@ -10,7 +10,7 @@
  */
 
 const ITEMS_PER_BOSS = 60, LOG_KEEP = 60;
-const RARE = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
+const RARE = new Set(['ut', 'st', 'fb', 'lg', 'sf', 'ar', 'gd']);
 
 function notable(it) { return !!(it && (RARE.has(it.rarity) || it.uid || it.curse || it.kind === 'material')); }
 

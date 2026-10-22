@@ -256,7 +256,7 @@ package realm {
 			var shp:Object = shapesOf(name);
 			var diag:Boolean = it.kind == "weapon";
 			// how grand it is: plain tiers grow with tier, named gear is grand
-			var grand:int = named ? 3 + (it.rarity == "lg" || it.rarity == "ar" || it.rarity == "gd" ? 1 : 0) : t < 2 ? 0 : t < 4 ? 1 : t < 6 ? 2 : 3;
+			var grand:int = named ? 3 + (it.rarity == "lg" || it.rarity == "sf" || it.rarity == "ar" || it.rarity == "gd" ? 1 : 0) : t < 2 ? 0 : t < 4 ? 1 : t < 6 ? 2 : 3;
 
 			// ---- colours
 			var metal:Array = el ? el.m : materialOf(name) || TIER_METAL[t];

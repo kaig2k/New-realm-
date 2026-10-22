@@ -12,7 +12,7 @@
  */
 
 const KINDS = new Set(['weapon', 'ability', 'armor', 'ring', 'hp', 'mp', 'stat', 'material', 'key', 'stone', 'rune']);
-const RARITIES = new Set(['ut', 'st', 'fb', 'lg', 'ar', 'gd']);
+const RARITIES = new Set(['ut', 'st', 'fb', 'lg', 'sf', 'ar', 'gd']);
 const PASSIVES = new Set(['lifesteal', 'shards', 'frost', 'critical', 'rampage']);
 // (seek: a tiered weapon's signature shot that turns toward the nearest monster, Data.SIGS)
 const MOTIONS = new Set(['wave', 'return', 'accel', 'home', 'seek']);

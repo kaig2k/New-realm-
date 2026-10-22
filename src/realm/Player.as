@@ -490,7 +490,7 @@ package realm {
 			// (uniques and Godly weapons keep the shots they were made with)
 			// (a Godly weapon fires its set's own shot: Sprites.godlyShot)
 			var gcls:String = Godly.classOf(w);
-			var tierFx:int = gcls ? 13 : w.sig !== undefined ? int(w.sig) : w.rarity && !w.uid && w.rarity != "gd" ? 8 + Math.max(0, ["ut", "st", "fb", "lg", "ar"].indexOf(w.rarity)) : -1;
+			var tierFx:int = gcls ? 13 : w.sig !== undefined ? int(w.sig) : w.rarity && !w.uid && w.rarity != "gd" ? 8 + Math.max(0, ["ut", "st", "fb", "lg", "sf", "ar"].indexOf(w.rarity)) : -1;
 			var frames:Vector.<BitmapData> = gcls ? Sprites.godlyShot(gcls, w.col, 2) : tierFx >= 0 ? Sprites.weaponShot(w.sub, Math.min(7, tierFx), w.col, w.form == "heavy" ? 3 : 2) : null;
 			if (!frames) frames = Sprites.projectile(w.shape, w.col, w.size || (w.sub == "sword" ? 4 : 3));
 			var trail:String = Data.trailOf(w);

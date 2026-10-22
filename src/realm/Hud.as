@@ -1285,7 +1285,7 @@ class Slot extends Sprite {
 		back.graphics.drawRoundRect(0, 0, 48, 48, 12, 12);
 		back.graphics.endFill();
 		rim = it && it.rarity ? Data.tierColor(it) : kind == "bag" ? 0x6a5434 : Hud.EDGE;
-		shimmer = it && (it.rarity == "lg" || it.rarity == "ar" || it.rarity == "gd");
+		shimmer = it && (it.rarity == "lg" || it.rarity == "sf" || it.rarity == "ar" || it.rarity == "gd");
 		if (!shimmer && fx) fx.graphics.clear();
 		if (it && it.rarity) {
 			// a soft glow of the rarity colour from the bottom

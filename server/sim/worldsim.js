@@ -903,6 +903,8 @@ class WorldSim {
     // a raid's final boss (its last stage, nothing else of it left standing)
     const raidEnd = this.kind === 'raid' && e.isBoss && this.w.raidStage === this.w.raid.stages.length - 1 &&
       !this.enemies.some((o) => o !== e && !o.dead && o.isBoss);
+    // a Star Shard's only source: the last boss of a multi-boss dungeon (each player rolls their own)
+    const shardKill = Data.shardKill(e.def, this.enemies.filter((o) => o !== e && !o.dead && o.def.trio && o.def.shard).length);
     for (const [cid, dmg] of e.hitters || []) {
       const c = this.players.get(cid);
       if (!c || dmg <= 0) continue;
@@ -923,6 +925,7 @@ class WorldSim {
         first = true;
         items = items.concat(Data.rollLoot(e.def, zone, cls, lk + hl + 120));
       }
+      if (shardKill && Math.random() < Data.SHARD_CHANCE) items.push(Data.makeSor());
       if (e.def.goblin) items = items.concat(goblinLoot(zone, cls, lk));
       if (e.def.crate && Math.random() < 0.45) items.push(Math.random() < 0.67 ? Data.makePotion(Math.random() < 0.5 ? 'hp' : 'mp') : Data.makePotion('stat', Data.randomStat()));
       if (e.def.mimic) items = items.concat(mimicLoot(cls));
@@ -1198,17 +1201,16 @@ class WorldSim {
 
 /** The treasure goblin's sack (was Game.goblinLoot). */
 function goblinLoot(zone, cls, lk) {
-  const out = [Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, 'ut'), Data.makePotion('stat', Data.randomStat()), Data.makePotion('stat', Data.randomStat())];
-  if (Math.random() < 0.12) out.push(Data.makeSor());
-  if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, Math.random() < 0.85 ? 'st' : 'fb'));
+  // (named gear and Star Shards only come from their own bosses now: the goblin's sack is top-tier gear)
+  const out = [Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, null), Data.makePotion('stat', Data.randomStat()), Data.makePotion('stat', Data.randomStat())];
+  if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, null));
   return out.concat(Data.rollLoot(Data.ENEMIES.loot_goblin, zone, cls, lk + 40));
 }
 
 /** A mimic's insides (was Game.mimicLoot). */
 function mimicLoot(cls) {
   const out = [Data.makePotion('stat', Data.randomStat())];
-  if (Math.random() < 0.4) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, 'ut'));
-  if (Math.random() < 0.06) out.push(Data.makeSor());
+  if (Math.random() < 0.4) out.push(Data.makeForSlot(cls, Math.floor(Math.random() * 4), 7, null));
   return out;
 }
 

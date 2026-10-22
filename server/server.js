@@ -31,7 +31,7 @@ const modes = require('./modes');
 const graves = require('./graves');
 const progress = require('./progress');
 const combat = require('./combat');
-const { Data, Bosses, World } = require('./sim/gen/game');
+const { Data, Bosses, World, Uniques } = require('./sim/gen/game');
 const quests = require('./quests');
 const { Market } = require('./market');
 
@@ -2028,7 +2028,7 @@ const handlers = {
       const e = Data.SHOP.find((x) => x.id === what);
       const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
       const makers = { hp: () => Data.makePotion('hp'), mp: () => Data.makePotion('mp'), stat: () => Data.makePotion('stat', Data.randomStat()),
-        sor: () => Data.makeSor(), ut: () => Data.makeForSlot(cls, Math.floor(Math.random() * 3), 7, null) };
+        ut: () => Data.makeForSlot(cls, Math.floor(Math.random() * 3), 7, null) };
       if (!e || !makers[what]) return;
       price = e.price;
       make = makers[what];
@@ -2081,16 +2081,16 @@ const handlers = {
     shopDone(c, sv, ch, { anvil: made ? way : 'shatter', was: item.name, now: made ? made.name : '', slot });
   },
 
-  /** Starforge: a Runed, Bonded or Eldritch item + a Star Shard + 100 Aether = a Starforged item. */
+  /** Starforge: a Legendary + a Star Shard + Aether = its Starforged self (Uniques.starforge). */
   forge(c, m) {
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was forged.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
     const slot = num(m.slot) | 0, item = ch.inv[slot];
-    if (!item || !item.rarity || item.rarity === 'lg' || item.rarity === 'ar' || item.rarity === 'gd') return c.send({ t: 'shopFail', msg: 'That item cannot be forged.' });
+    if (!Uniques.canStarforge(item)) return c.send({ t: 'shopFail', msg: 'Only a Legendary can be Starforged.' });
     const sor = ch.inv.findIndex((it) => it && it.kind === 'material');
     if (sor < 0) return c.send({ t: 'shopFail', msg: 'You need a Star Shard.' });
-    if ((sv.onrane || 0) < 100) return c.send({ t: 'shopFail', msg: 'You need 100 Aether.' });
+    if ((sv.onrane || 0) < Data.STARFORGE_AETHER) return c.send({ t: 'shopFail', msg: 'You need ' + Data.STARFORGE_AETHER + ' Aether.' });
     const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
     const lg = items.issue(sv, Data.forgeLegendary(item, cls));
     // the two items it was made from are used up for good
@@ -2099,7 +2099,7 @@ const handlers = {
     delete l[ch.inv[sor].sid];
     ch.inv[sor] = null;
     ch.inv[slot] = lg;
-    sv.onrane = (sv.onrane || 0) - 100;
+    sv.onrane = (sv.onrane || 0) - Data.STARFORGE_AETHER;
     shopDone(c, sv, ch, { forged: lg.name, slot });
   },
 

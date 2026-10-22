@@ -223,7 +223,7 @@ package realm {
 			label("Items for your " + cls.name + " go into your inventory (or a bag at your feet when full).", 14, 0);
 			var rows:Array = ["Weapon", "Ability", "Armor", "Ring"];
 			var caps:Array = [7, 6, 7, 5];
-			var rar:Array = ["ut", "st", "fb", "lg", "ar"];
+			var rar:Array = ["ut", "lg", "sf", "ar"];
 			for (var r:int = 0; r < 4; r++) {
 				var y:int = 26 + r * 34;
 				label(rows[r], 14, y + 5, 0xffffff, 80);
@@ -236,8 +236,8 @@ package realm {
 			btn("HP potion", 14, y2, 100, function():void { g.giveItem(Data.makePotion("hp")); });
 			btn("MP potion", 120, y2, 100, function():void { g.giveItem(Data.makePotion("mp")); });
 			btn("Star Shard", 226, y2, 100, function():void { g.giveItem(Data.makeSor()); });
-			btn("Bonded set", 332, y2, 100, function():void { for (var s:int = 0; s < 4; s++) g.giveItem(Data.makeForSlot(cls, s, 7, "st")); });
-			btn("Random SF", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
+			btn("Random UT", 332, y2, 100, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "ut")); });
+			btn("Random LG", 438, y2, 88, function():void { g.giveItem(Data.makeForSlot(cls, int(Math.random() * 4), 7, "lg")); });
 			y2 += 34;
 			btn("Random Godly", 170, y2, 150, function():void {
 				var classes:Array = Data.CLASS_ORDER;

@@ -131,6 +131,8 @@ package realm {
 			posed();
 			fair();
 			risen();
+			// (the item ladder's drops replace what the bosses above carried)
+			Uniques.assign();
 			Godly.init();
 			skins();
 		}

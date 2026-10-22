@@ -2472,6 +2472,12 @@ package realm {
 			var items:Array = roll ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + modeLuck) : [];
 			// elites drop twice; the treasure goblin spills its whole sack
 			if (roll && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + modeLuck + 50));
+			// a Star Shard's only source: the last boss of a multi-boss dungeon
+			if (roll && Math.random() < Data.SHARD_CHANCE) {
+				var kingsLeft:int = 0;
+				for each (var ko:Enemy in enemies) if (ko != e && !ko.dead && ko.def.trio && ko.def.shard) kingsLeft++;
+				if (Data.shardKill(e.def, kingsLeft)) items.push(Data.makeSor());
+			}
 			if (roll && e.def.goblin) items = items.concat(goblinLoot(lootZone));
 			if (mine && e.def.crate) items = items.concat(crateLoot(lootZone));
 			if (roll && e.def.mimic) items = items.concat(mimicLoot());
@@ -3565,7 +3571,7 @@ package realm {
 					}
 					return;
 				}
-				if (item.kind == "material") tip("sor", "Star Shard: bring it with a Runed, Bonded or Eldritch item and 100 Aether to the Starforge to make it Starforged.");
+				if (item.kind == "material") tip("sor", "Star Shard: bring it with a Legendary and " + Data.STARFORGE_AETHER + " Aether to the Starforge to make it Starforged.");
 				if (item.kind == "hp" && p.hpPots < Player.MAX_POTS) { p.hpPots++; hud.flyItem(item, idx, "hp"); }
 				else if (item.kind == "mp" && p.mpPots < Player.MAX_POTS) { p.mpPots++; hud.flyItem(item, idx, "mp"); }
 				else {
@@ -3769,121 +3775,29 @@ package realm {
 			sp.addChild(info);
 			var i:int;
 			if (openStation.kind == "forge") {
-				// two tabs: forge a Starforged item, or reroll a prefix / bonus stats
-				var tabs:Array = [["forge", "Starforge"], ["reroll", "Reroll"], ["anvil", "Fortune's Anvil"]];
-				for (var ti:int = 0; ti < tabs.length; ti++) {
-					var tb:Sprite = Ui.button((forgeMode == tabs[ti][0] ? "> " : "") + tabs[ti][1], 136, 26, forgeTabFn(tabs[ti][0]), 13);
-					tb.x = w / 2 - 210 + ti * 142; tb.y = y;
-					tb.alpha = forgeMode == tabs[ti][0] ? 1 : 0.7;
-					sp.addChild(tb);
-				}
-				y += 34;
-			}
-			if (openStation.kind == "forge" && forgeMode == "reroll") {
-				info.htmlText = "<b>New prefix</b> (weapons): <font color='#ffd75e'>" + Data.REROLL_FORM_GOLD + " gold</font>. Everything else the weapon rolled stays.\n" +
-					"<b>Reroll stats</b> (Runed, Bonded, Eldritch, Starforged, Primordial): <font color='#c080ff'>" + Data.REROLL_STATS_AETHER + " Aether</font>. " +
-					"Uniques and Godly items are fixed.\nYou have <b>" + gold + "</b> gold and <b>" + onrane + "</b> Aether.";
-				info.y = y;
-				y += info.height + 6;
-				for (var rr:int = 0; rr < 2; rr++) {
-					var rl:TextField = Ui.text(13, rr ? 0xc080ff : Ui.GOLD, true, "left", w - 30, true);
-					rl.text = rr ? "Reroll stats" : "New prefix";
-					rl.x = 16; rl.y = y;
-					sp.addChild(rl);
-					y += 20;
-					var rn:int = 0;
-					for (i = 0; i < player.inv.length; i++) {
-						var ri:Object = player.inv[i];
-						if (!(rr ? Data.canRerollStats(ri) : Data.canRerollForm(ri))) continue;
-						sp.addChild(itemButton(ri, 16 + (rn % 8) * 52, y + int(rn / 8) * 52, rerollFn(i, rr ? "stats" : "form")));
-						rn++;
-					}
-					if (rn == 0) {
-						var rnone:TextField = Ui.text(12, 0x888888, false, "left", w - 30);
-						rnone.x = 16; rnone.y = y + 4;
-						rnone.text = rr ? "No special-rarity gear in your inventory." : "No weapons in your inventory.";
-						sp.addChild(rnone);
-						y += 26;
-					} else y += (int((rn - 1) / 8) + 1) * 52 + 4;
-					if (rr == 0) {
-						// runes: pick one and the next stat reroll is sure to include its stat
-						var runes:Array = [];
-						for (i = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "rune") runes.push(i);
-						if (rerollRune >= 0 && runes.indexOf(rerollRune) < 0) rerollRune = -1;
-						if (runes.length) {
-							var rh:TextField = Ui.text(12, 0xdddddd, false, "left", w - 30, true);
-							rh.htmlText = "<b>Runes</b>: click one, then reroll an item's stats and its stat is sure to be among them (the rune is used up)." +
-								(rerollRune >= 0 ? "  <font color='#80ff80'>Using: " + player.inv[rerollRune].name + "</font>" : "");
-							rh.x = 16; rh.y = y;
-							sp.addChild(rh);
-							y += rh.height + 4;
-							for (var ru:int = 0; ru < runes.length; ru++) {
-								var rb2:Sprite = itemButton(player.inv[runes[ru]], 16 + ru * 52, y, runeFn(runes[ru]));
-								if (rerollRune == runes[ru]) { rb2.graphics.lineStyle(3, 0x80ff80); rb2.graphics.drawRoundRect(-2, -2, 52, 52, 12, 12); }
-								sp.addChild(rb2);
-							}
-							y += 58;
-						}
-					}
-				}
-			} else if (openStation.kind == "forge" && forgeMode == "anvil") {
-				info.htmlText = "Strike an item for gold: <font color='#80ff80'>" + int(Data.ANVIL_UP * 100) + "%</font> it climbs a step (a tier, then Runed, Bonded, Eldritch), " +
-					"<font color='#ffb040'>" + int(Data.ANVIL_DOWN * 100) + "%</font> it drops one, <font color='#ff6060'>" + Math.round(100 - (Data.ANVIL_UP + Data.ANVIL_DOWN) * 100) + "%</font> it shatters. " +
-					"Locked items, uniques, Godly and set pieces stay off it. You have <font color='#ffd75e'><b>" + Ui.commas(gold) + "</b></font> gold.";
-				info.y = y;
-				y += info.height + 8;
-				var an:int = 0;
-				for (i = 0; i < player.inv.length; i++) {
-					var ai:Object = player.inv[i];
-					if (!ai || !Data.isGear(ai) || Data.anvilBlock(ai)) continue;
-					var ab:Sprite = itemButton(ai, 16 + (an % 8) * 52, y + int(an / 8) * 52, anvilPickFn(i));
-					if (anvilSel == i) { ab.graphics.lineStyle(3, 0xffd75e); ab.graphics.drawRoundRect(-2, -2, 52, 52, 12, 12); }
-					sp.addChild(ab);
-					an++;
-				}
-				if (!an) {
-					var anone:TextField = Ui.text(12, 0x888888, false, "center", w - 20);
-					anone.text = "Nothing in your inventory can go on the Anvil.";
-					anone.x = 10; anone.y = y + 6;
-					sp.addChild(anone);
-					y += 30;
-				} else y += (int((an - 1) / 8) + 1) * 52 + 6;
-				var sel:Object = anvilSel >= 0 ? player.inv[anvilSel] : null;
-				if (sel && !Data.anvilBlock(sel)) {
-					var up:Object = Data.anvilStep(sel, true), dn:Object = Data.anvilStep(sel, false);
-					var at:TextField = Ui.text(12, 0xdddddd, false, "left", w - 30, true);
-					at.htmlText = "<b>" + sel.name + "</b> " + Data.tierLabel(sel) + ":  up <font color='#80ff80'>" + (up ? Data.tierLabel(up) + " " + (up.rarity ? Data.RARITY_NAMES[up.rarity] : "") : "-") + "</font>" +
-						"  ·  down <font color='#ffb040'>" + (dn ? Data.tierLabel(dn) + " " + (dn.rarity ? Data.RARITY_NAMES[dn.rarity] : "") : "shatters") + "</font>";
-					at.x = 16; at.y = y;
-					sp.addChild(at);
-					y += at.height + 4;
-					var sb:Sprite = Ui.button("Strike!  -  " + Ui.commas(Data.anvilCost(sel)) + "g", 220, 32, anvilStrike, 15);
-					sb.x = (w - 220) / 2; sb.y = y;
-					if (gold < Data.anvilCost(sel)) sb.alpha = 0.5;
-					sp.addChild(sb);
-					y += 40;
-				} else anvilSel = -1;
-			} else if (openStation.kind == "forge") {
+				// the Starforge: a Legendary + a Star Shard + Aether = its Starforged self (no more rerolls or Anvil)
 				var sors:int = 0;
 				for each (var it:Object in player.inv) if (it && it.kind == "material") sors++;
-				info.htmlText = "Forge a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Starforged</b></font> item: Runed, Bonded or Eldritch item + 1 Star Shard + 100 Aether\n" +
-					"You have <b>" + sors + "</b> Star Shard" + (sors == 1 ? "" : "s") + " and <b>" + onrane + "</b> Aether. Click an item to forge it.";
+				info.htmlText = "<font color='" + Ui.hex(Data.RARITY_COLORS.sf) + "'><b>Starforge</b></font> a <font color='" + Ui.hex(Data.RARITY_COLORS.lg) + "'><b>Legendary</b></font>: " +
+					"the item + 1 Star Shard + " + Data.STARFORGE_AETHER + " Aether.\nIt keeps its name, look and special, and rises to the top of its slot: weapons to the same damage, " +
+					"abilities to " + Uniques.SF_POWER + "x power, armour and rings to the same stats (and they gain a passive of their own).\n" +
+					"Star Shards come only from the last boss of a multi-boss dungeon.\nYou have <b>" + sors + "</b> Star Shard" + (sors == 1 ? "" : "s") + " and <b>" + onrane + "</b> Aether. Click an item to Starforge it.";
 				info.y = y;
 				y += info.height + 8;
 				var n:int = 0;
 				for (i = 0; i < player.inv.length; i++) {
 					var item:Object = player.inv[i];
-					if (!item || !item.rarity || item.rarity == "lg" || item.rarity == "ar" || item.rarity == "gd") continue;
-					sp.addChild(itemButton(item, 20 + n * 52, y, forgeFn(i)));
+					if (!Uniques.canStarforge(item)) continue;
+					sp.addChild(itemButton(item, 20 + (n % 8) * 52, y + int(n / 8) * 52, forgeFn(i)));
 					n++;
 				}
 				if (n == 0) {
 					var none:TextField = Ui.text(13, 0x888888, false, "center", w - 20);
 					none.x = 10; none.y = y + 10;
-					none.text = "No Runed, Bonded or Eldritch items in your inventory.";
+					none.text = "No Legendaries in your inventory.";
 					sp.addChild(none);
-				}
-				y += 56;
+					y += 56;
+				} else y += (int((n - 1) / 8) + 1) * 52 + 4;
 			} else if (openStation.kind == "raids") {
 				info.htmlText = "Use a raid key to open a raid portal here in the Nexus. Raids are boss fights one after another (the Starfall Vault has four chambers, each a structure that fights back), best with friends, " +
 					"and raid bosses drop their own unique items. Keys drop rarely from bosses: realm events, dungeon bosses and, most often, the Dark Elder. " +
@@ -5285,8 +5199,7 @@ package realm {
 		/** Mimics guard the good stuff. */
 		private function mimicLoot():Array {
 			var out:Array = [Data.makePotion("stat", Data.randomStat())];
-			if (Math.random() < 0.4) out.push(Data.makeForSlot(player.cls, int(Math.random() * 4), 7, "ut"));
-			if (Math.random() < 0.06) out.push(Data.makeSor());
+			if (Math.random() < 0.4) out.push(Data.makeForSlot(player.cls, int(Math.random() * 4), 7, null));
 			return out;
 		}
 
@@ -5365,11 +5278,10 @@ package realm {
 		private function goblinLoot(zone:int):Array {
 			var out:Array = [];
 			var cls:Object = player.cls;
-			out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, "ut"));
+			out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, null));
 			out.push(Data.makePotion("stat", Data.randomStat()));
 			out.push(Data.makePotion("stat", Data.randomStat()));
-			if (Math.random() < 0.12) out.push(Data.makeSor());
-			if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, Math.random() < 0.7 ? "st" : "fb"));
+			if (Math.random() < 0.25) out.push(Data.makeForSlot(cls, int(Math.random() * 4), 7, null));
 			for each (var it:Object in Data.rollLoot(Data.ENEMIES.loot_goblin, zone, player.cls, player.frt + 40)) out.push(it);
 			return out;
 		}
@@ -6323,24 +6235,24 @@ package realm {
 			return function():void { buy(e); };
 		}
 
-		/** Starforge: Runed/Bonded/Eldritch item + Star Shard + 100 Aether -> Starforged. */
+		/** Starforge: a Legendary + Star Shard + Aether -> its Starforged self. */
 		private function forge(slot:int):void {
 			var item:Object = player.inv[slot];
-			if (!item) return;
+			if (!Uniques.canStarforge(item)) return;
 			var sorSlot:int = -1;
 			for (var i:int = 0; i < player.inv.length; i++) if (player.inv[i] && player.inv[i].kind == "material") { sorSlot = i; break; }
-			if (sorSlot < 0) { msg("You need a Star Shard (event bosses drop them, or buy one at the Marketplace).", 0xff8080); return; }
-			if (onrane < 100) { msg("You need 100 Aether (" + onrane + " now). Event bosses drop Aether.", 0xff8080); return; }
+			if (sorSlot < 0) { msg("You need a Star Shard (the last boss of a multi-boss dungeon may drop one).", 0xff8080); return; }
+			if (onrane < Data.STARFORGE_AETHER) { msg("You need " + Data.STARFORGE_AETHER + " Aether (" + onrane + " now). Event bosses drop Aether.", 0xff8080); return; }
 			if (net.shopRequest({t: "forge", slot: slot})) { shopWaiting = true; return; }
-			addOnrane(-100);
+			addOnrane(-Data.STARFORGE_AETHER);
 			player.inv[sorSlot] = null;
 			var lg:Object = Data.forgeLegendary(item, player.cls);
 			player.inv[slot] = lg;
 			questEvent("legendary");
 			Save.flush();
-			showBanner("Forged " + lg.name + "!", Data.RARITY_COLORS.lg, 3);
+			showBanner("Starforged " + lg.name + "!", Data.RARITY_COLORS.sf, 3);
 			Sfx.play("rare");
-			msg("The Starforge blazes... you forged " + lg.name + "!", Data.RARITY_COLORS.lg);
+			msg("The Starforge blazes... " + lg.name + " is Starforged!", Data.RARITY_COLORS.sf);
 			burst(player.x, player.y, 0xd8e040, 30);
 			saveCharacter();
 			refreshStation();
@@ -7279,7 +7191,7 @@ package realm {
 		private var introTick:int = -1;
 
 		private var previewMtx:Matrix = new Matrix();
-		private static const RARITY_RANK:Object = {gd: 7, ar: 6, lg: 5, fb: 4, ut: 3, st: 2};
+		private static const RARITY_RANK:Object = {gd: 8, ar: 7, sf: 6, lg: 5, fb: 4, ut: 3, st: 2};
 
 		private function drawBagPreview(b:LootBag, cx:Number, top:Number):void {
 			var best:Object = null, bestR:Number = -1;

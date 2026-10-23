@@ -15,9 +15,11 @@
 • An SSS+5 item reaches **135%** of its base stats
 • Starforging keeps your grade and forging
 
-**✨ Fate Dust and rerolls**
-• **Salvage** items you don't need for **Fate Dust**: a UT gives 1, a Legendary 3, a Starforged or Primordial 5
-• **10 Fate Dust** rerolls an item's grade. Your forging is always kept
+**🔁 Rerolling a grade**
+• There are two ways to reroll an item's grade at the Starforge:
+  • A spare **Star Shard**: a fresh roll with the normal odds
+  • A **charm** from the Fate Crate: a Reroll Charm rolls with the normal odds, a Sovereign Charm gives S, SS or SSS
+• Your forging is always kept
 
 **📦 The Fate Crate**
 • A new station in the Nexus west wing, between the Fame Store and the Pet Yard
@@ -26,7 +28,7 @@
   • Blue (55%): a random stat potion
   • Purple (25%): a **Gold Pouch**, 2,000-3,000 gold
   • Pink (10%): an **Aether Vial**, 150 Aether
-  • Pink (6%): a **Reroll Charm**: rerolls a grade, never lower than the one you have
+  • Pink (6%): a **Reroll Charm**: rerolls a grade with the normal odds
   • Red (2.5%): a crate-only **pet skin**: Golden Rabbit, Fortune Cat or Lucky Horseshoe
   • Red (1%): a crate-only **title**: Fortune's Favoured, the High Roller or Gilded
   • Gold (0.4%): a **Sovereign Charm**: rerolls a grade to S, SS or SSS

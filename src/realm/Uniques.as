@@ -588,9 +588,8 @@ package realm {
 		public static const FORGE_STEP:Number = 0.03, FORGE_MAX:int = 5;
 		/** How much stronger a +3 item's special is, and a +5 (Awakened) Starforged passive. */
 		public static const AWAKEN_SPECIAL:Number = 1.15, AWAKEN_PASSIVE:Number = 1.4;
-		/** Fate Dust: what salvaging gives (by rarity), and what a grade reroll costs. */
-		public static const DUST:Object = {ut: 1, lg: 3, sf: 5, ar: 5};
-		public static const REROLL_DUST:int = 10;
+		/** A grade is rerolled with a spare Star Shard (normal odds) or a Fate Crate charm. */
+		public static const REROLL_SHARDS:int = 1;
 		public static const LUCK_RING:String = "fortune_ring";
 
 		/** Whether an item has a grade: the named items from UT up, Godly set pieces and Fortune's Favour (not tiered gear). */
@@ -697,12 +696,6 @@ package realm {
 		/** Whether `copy` can be forged into `it` (the same item, not yet +5). */
 		public static function canFuse(it:Object, copy:Object):Boolean {
 			return gradeable(it) && gradeable(copy) && it !== copy && idOf(it) == idOf(copy) && int(it.fg) < FORGE_MAX;
-		}
-
-		/** Fate Dust from salvaging an item (0: it can't be salvaged). */
-		public static function dustOf(it:Object):int {
-			if (!gradeable(it) || it.uid == LUCK_RING) return 0;
-			return int(DUST[it.rarity] || 0);
 		}
 
 		/** The tooltip's last line: "Quality: 116% (S, +2 forges)". */

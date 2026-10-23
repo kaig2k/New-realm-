@@ -399,7 +399,7 @@ package realm {
 					g.shopResult(m);
 					break;
 				case "crateState":
-					// the Fate Crate's chest, filters and Fate Dust
+					// the Fate Crate's chest and filters
 					g.crateState(m);
 					break;
 				case "tradeDone":

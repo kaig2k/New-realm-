@@ -616,12 +616,12 @@ class Data {
 					if (Data.keyDungeon(item) >= 0) s += "Opens a portal to the " + Data.DUNGEONS[Data.keyDungeon(item)].name + " (30 seconds; your party can follow).\nClick it in the Nexus or a realm.\nSold by the Key Merchant.\n";
 					else s += "Opens a portal to " + Bosses.RAIDS[Math.max(0, Data.keyRaid(item))].name + ".\nUse it in the Nexus (click it) or at the Raid Table.\nDrops rarely from bosses.\n";
 					break;
-				case "material": s += "Crafting material for the Starforge.\nForge: Runed, Bonded or Eldritch item + Star Shard + 100 Aether = Starforged\n"; break;
+				case "material": s += "Crafting material for the Starforge: a Legendary + Star Shard + 100 Aether = its Starforged self.\nA spare one rerolls an item's grade (the Starforge's Grades tab).\n"; break;
 				case "stone": s += "Pets evolve with these at the Pet Yard.\nBosses drop them (raids and the Dark Elder most often).\n"; break;
 				case "rune": s += "Starforge: carry it when you reroll an item's bonus stats and " + Data.STAT_NAMES[item.sub] + " is sure to be one of them (the rune is used up).\n"; break;
 				case "charm":
 					s += item.sub == "sovereign" ? "Rerolls an item's grade at the Starforge: S, SS or SSS, never lower than S. Its forging is kept.\n"
-						: "Rerolls an item's grade at the Starforge, never lower than the grade it has. Its forging is kept.\n";
+						: "Rerolls an item's grade at the Starforge with the normal odds, like a Star Shard. Its forging is kept.\n";
 					s += "<font color='#9a9aaa'>From the Fate Crate.</font>\n";
 					break;
 				case "pouch":
@@ -1423,10 +1423,6 @@ class Uniques {
 		}
 	static canFuse(it, copy) {
 			return Uniques.gradeable(it) && Uniques.gradeable(copy) && it !== copy && Uniques.idOf(it) == Uniques.idOf(copy) && __int(it.fg) < Uniques.FORGE_MAX;
-		}
-	static dustOf(it) {
-			if (!Uniques.gradeable(it) || it.uid == Uniques.LUCK_RING) return __int(0);
-			return __int(__int(Uniques.DUST[it.rarity] || 0));
 		}
 	static qualityLine(it) {
 			if (!Uniques.gradeable(it)) return "";
@@ -6316,7 +6312,7 @@ Data.DYE_KEYS = {
 Data.NEWS = [
 			{id: "2026-10-grades", title: "What's new in Eldmere",
 				lines: ["<b>Every item rolls a grade</b>: UT, Legendary, Starforged, Primordial and Godly items drop D, C, B, A, S, SS or SSS, from 90% to 120% of their stats. The grade shows in the name (Titanbreaker [S+2]). Items you already had count as B.",
-					"<b>Forge copies together</b> at the Starforge's Grades & Forging tab: +3% each, up to +5. +3 strengthens the item's special; +5 Awakens it. Salvage items for <b>Fate Dust</b>: 10 rerolls a grade, keeping the forging.",
+					"<b>Forge copies together</b> at the Starforge's Grades & Forging tab: +3% each, up to +5. +3 strengthens the item's special; +5 Awakens it. <b>Reroll a grade</b> with a spare Star Shard or a charm from the Fate Crate; the forging is kept.",
 					"<b>The Fate Crate</b>, in the Nexus west wing: 5,000 fame a crate, one or ten at once. Stat potions, Gold Pouches, Aether Vials, Reroll and Sovereign Charms, crate-only pet skins and titles, and once in a thousand <font color='#fff6e0'>Fortune's Favour</font>, a Godly loot ring. Never more than 30 crates without a pink prize."]},
 			{id: "2026-10-effects", title: "Weapon fixes",
 				lines: ["<b>Fifteen dungeon weapons had hidden effects</b> left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. They're gone. Each weapon now does exactly what its tooltip says.",
@@ -7058,8 +7054,7 @@ Uniques.FORGE_STEP = 0.03;
 Uniques.FORGE_MAX = __int(5);
 Uniques.AWAKEN_SPECIAL = 1.15;
 Uniques.AWAKEN_PASSIVE = 1.4;
-Uniques.DUST = {ut: 1, lg: 3, sf: 5, ar: 5};
-Uniques.REROLL_DUST = __int(10);
+Uniques.REROLL_SHARDS = __int(1);
 Uniques.LUCK_RING = "fortune_ring";
 Godly.CHANCE = 1 / 1000;
 Godly.SETS = {

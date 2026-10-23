@@ -3024,13 +3024,11 @@ async function run() {
     for (let k = 0; k < NG; k++) cnt[GU.rollGrade()]++;
     check('grades drop with their odds (D 15%, B 30%, SSS about 1%)', Math.abs(cnt[0] / NG - 0.15) < 0.01 && Math.abs(cnt[2] / NG - 0.3) < 0.01 && Math.abs(cnt[6] / NG - 0.01) < 0.002, cnt.join(','));
     let low = 0;
-    for (let k = 0; k < 20000; k++) { if (GU.rollGrade(GU.GRADE_S) < GU.GRADE_S) low++; if (GU.rollGrade(3) < 3) low++; }
-    check('a charm\'s reroll never lands below its floor', low === 0);
+    for (let k = 0; k < 20000; k++) if (GU.rollGrade(GU.GRADE_S) < GU.GRADE_S) low++;
+    check('a Sovereign Charm\'s reroll never lands below S', low === 0);
     let graded = 0, ungraded = 0;
     for (let k = 0; k < 20000; k++) for (const it of GD.rollLoot(GD.ENEMIES.cove_boss, 0, GD.CLASSES.knight, 0)) if (it.uid) { if (it.g !== undefined) graded++; else ungraded++; }
     check('a boss\'s items drop with a grade rolled', graded > 0 && ungraded === 0, graded + '/' + ungraded);
-    check('Fate Dust: a UT salvages for 1, a Legendary 3, a Starforged 5; Fortune\'s Favour can\'t be salvaged', GU.dustOf(GU.make('saltbeard_cutlass')) === 1 &&
-      GU.dustOf(base) === 3 && GU.dustOf(GU.starforge(base)) === 5 && GU.dustOf(GU.make('fortune_ring')) === 0);
     check('only copies of the same item forge in, up to +5', GU.canFuse(base, GU.make('titanbreaker')) && !GU.canFuse(base, GU.make('frostfang')) && !GU.canFuse(max, GU.make('titanbreaker')));
     // Godly pieces roll grades and forge too (a copy of the same piece only)
     const gw = G.Godly.make('wizard', 0), badGd = [];
@@ -3038,7 +3036,7 @@ async function run() {
     check('Godly pieces grade like the rest (SSS+5 is 135%), and every one passes the save checks maxed', GU.graded(gw, 6, 5).dmin === Math.round(gw.dmin * 1.35) &&
       GU.graded(gw, 6, 5).gid === gw.gid && /^Awakened /.test(GU.graded(gw, 6, 5).name) && !badGd.length, badGd.join(', '));
     check('only a copy of the same Godly piece forges into it', GU.canFuse(gw, G.Godly.make('wizard', 0)) && !GU.canFuse(gw, G.Godly.make('wizard', 1)) &&
-      !GU.canFuse(gw, G.Godly.make('archer', 0)) && GU.dustOf(gw) === 0);
+      !GU.canFuse(gw, G.Godly.make('archer', 0)));
     let gdg = 0;
     for (let k = 0; k < 400000 && gdg < 3; k++) for (const it of GD.rollLoot(GD.ENEMIES.elder, 4, GD.CLASSES.wizard, 0)) if (it.rarity === 'gd' && it.g !== undefined) gdg++;
     check('Godly pieces drop with a grade rolled', gdg > 0);
@@ -3073,18 +3071,21 @@ async function run() {
     const tb = () => ph.inv.map((it, i) => (it && it.uid === 'titanbreaker' ? i : -1)).filter((i) => i >= 0);
     check('/give hands out graded items (B unless rolled)', tb().length === 3, JSON.stringify(ph.inv) + ' boss: ' + JSON.stringify(boss.msgs.slice(-3)) + ' player: ' + JSON.stringify(P.msgs.slice(-3)));
     const r0 = await ask({ t: 'grade', a: 'reroll', slot: tb()[0] });
-    check('a reroll needs 10 Fate Dust', r0 && r0.t === 'shopFail' && /Fate Dust/.test(r0.msg), JSON.stringify(r0));
+    check('a reroll needs a spare Star Shard', r0 && r0.t === 'shopFail' && /Star Shard/.test(r0.msg), JSON.stringify(r0));
     const fu = await ask({ t: 'grade', a: 'fuse', slot: tb()[0], fs: tb()[1] });
     const f1 = ph.inv[tb()[0]];
     check('forging a copy in: +1, the copy is used up', fu && fu.graded === 'fuse' && f1 && f1.fg === 1 && tb().length === 2 && f1.sid, JSON.stringify(fu));
+    await give('star shard');
+    const sh1 = await ask({ t: 'grade', a: 'reroll', slot: tb()[0] });
+    check('a Star Shard rerolls the grade (used up), and the forging is kept', sh1 && sh1.graded === 'reroll' && sh1.shard && ph.inv[tb()[0]].fg === 1 &&
+      !ph.inv.some((it) => it && it.kind === 'material'), JSON.stringify(sh1));
     const sv1 = await ask({ t: 'grade', a: 'salvage', slot: tb()[1] });
-    check('salvaging a Legendary gives 3 Fate Dust', sv1 && sv1.graded === 'salvage' && sv1.dust === 3 && tb().length === 1, JSON.stringify(sv1));
+    check('there is no salvaging any more', !sv1 || (sv1.t !== 'shopDone' || !sv1.graded) || tb().length === 2, JSON.stringify(sv1));
     await give('reroll charm');
     const cs = ph.inv.findIndex((it) => it && it.kind === 'charm');
-    const g0 = GU.gradeOf(ph.inv[tb()[0]]);
     const ch1 = await ask({ t: 'grade', a: 'charm', slot: tb()[0], cs });
     const after = ph.inv[tb()[0]];
-    check('a Reroll Charm rerolls the grade, never lower, and keeps the forging', ch1 && ch1.graded === 'charm' && GU.gradeOf(after) >= g0 && after.fg === 1 &&
+    check('a Reroll Charm rerolls the grade with the normal odds, and keeps the forging', ch1 && ch1.graded === 'charm' && GU.gradeOf(after) >= 0 && after.g !== undefined && after.fg === 1 &&
       !ph.inv.some((it) => it && it.kind === 'charm'), JSON.stringify(ch1));
     // a game that edits an item's grade keeps the server's
     P.clear();

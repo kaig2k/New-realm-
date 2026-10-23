@@ -1046,7 +1046,7 @@ function applySave(c, data, cid) {
   graves.bury(data, fell, wallet.fameGain(prev, data));
   // and earned titles (the game's list is only a copy)
   if (prev._titles) data._titles = prev._titles; else delete data._titles;
-  // and the Fate Crate's chest, filters and bad-luck count, and the Fate Dust (all the server's)
+  // and the Fate Crate's chest, filters and bad-luck count (all the server's)
   if (prev._crate) data._crate = prev._crate; else delete data._crate;
   data.earned = Object.keys(data._titles || {});
   // admins' own new items join their ledger
@@ -1094,19 +1094,18 @@ function setCaps(c) {
 
 /** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
 // ------------------------------------------------------------------ the Fate Crate
-/** The account's crate state (sv._crate, the server's): the chest, filters, bad-luck count and Fate Dust. */
+/** The account's crate state (sv._crate, the server's): the chest, filters and bad-luck count. */
 function crateState(sv) {
   let cr = sv._crate;
   if (!cr || typeof cr !== 'object') cr = sv._crate = {};
   if (!Array.isArray(cr.box)) cr.box = [];
   if (!cr.filter || typeof cr.filter !== 'object') cr.filter = { stat: 'keep', gold: 'keep', aether: 'keep', reroll: 'keep' };
   cr.pity = Math.max(0, cr.pity | 0);
-  cr.dust = Math.max(0, cr.dust | 0);
   return cr;
 }
 /** What the game is told about it. */
 function crateView(cr) {
-  return { box: cr.box, filter: cr.filter, pity: cr.pity, dust: cr.dust, opened: cr.opened || 0 };
+  return { box: cr.box, filter: cr.filter, pity: cr.pity, opened: cr.opened || 0 };
 }
 /** One crate: rolls its prize and puts it in the chest, unlocks it, or uses it at once (the filters). */
 function openCrate(c, sv, cr) {
@@ -2184,9 +2183,9 @@ const handlers = {
   },
 
   /**
-   * Grades at the Starforge (Uniques: grades D-SSS, forging +1..+5, Fate Dust). a:
-   *  salvage (slot): the item becomes Fate Dust;  reroll (slot): 10 Fate Dust, a new grade;
-   *  charm (slot, cs): a Reroll Charm (never lower) or Sovereign Charm (S or better);
+   * Grades at the Starforge (Uniques: grades D-SSS, forging +1..+5). a:
+   *  reroll (slot): a spare Star Shard rerolls the grade (normal odds);
+   *  charm (slot, cs): a Reroll Charm (normal odds) or Sovereign Charm (S or better);
    *  fuse (slot, fs): a copy of the same item is forged in, +1 (+3% to everything).
    * The item's forging is always kept; its new self takes a new ledger id.
    */
@@ -2197,29 +2196,24 @@ const handlers = {
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing changed.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!sv || !ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
-    const cr = crateState(sv);
     const slot = num(m.slot) | 0, item = ch.inv[slot];
-    if (!Uniques.gradeable(item)) return c.send({ t: 'shopFail', msg: 'Only UT, Legendary, Starforged and Primordial items have a grade.' });
+    if (!Uniques.gradeable(item)) return c.send({ t: 'shopFail', msg: 'Only UT, Legendary, Starforged, Primordial and Godly items have a grade.' });
     const a = str(m.a, 12);
     const was = Uniques.displayName(item);
     let made = null, extra = {};
-    if (a === 'salvage') {
-      const d = Uniques.dustOf(item);
-      if (!d) return c.send({ t: 'shopFail', msg: 'That can\'t be salvaged.' });
-      if (item.locked) return c.send({ t: 'shopFail', msg: was + ' is locked. Unlock it first (right-click it).' });
-      ch.inv[slot] = null;
-      items.release(sv, item);
-      cr.dust += d;
-      log(c.name + ' salvaged ' + was + ' for ' + d + ' Fate Dust');
-      return shopDone(c, sv, ch, { graded: 'salvage', was, got: d, dust: cr.dust });
-    } else if (a === 'reroll') {
-      if (cr.dust < Uniques.REROLL_DUST) return c.send({ t: 'shopFail', msg: 'A reroll costs ' + Uniques.REROLL_DUST + ' Fate Dust (you have ' + cr.dust + '). Salvage items you don\'t need for it.' });
-      cr.dust -= Uniques.REROLL_DUST;
+    if (a === 'reroll') {
+      const sh = ch.inv.findIndex((it) => it && it.kind === 'material');
+      if (sh < 0) return c.send({ t: 'shopFail', msg: 'A reroll takes a spare Star Shard (or a charm from the Fate Crate).' });
+      const shard = ch.inv[sh];
+      ch.inv[sh] = null;
+      items.release(sv, shard);
       made = Uniques.graded(item, Uniques.rollGrade(), item.fg | 0);
+      extra.shard = true;
     } else if (a === 'charm') {
       const cs = num(m.cs) | 0, charm = ch.inv[cs];
       if (!charm || charm.kind !== 'charm') return c.send({ t: 'shopFail', msg: 'You need a Reroll Charm or a Sovereign Charm.' });
-      const min = charm.sub === 'sovereign' ? Uniques.GRADE_S : Uniques.gradeOf(item);
+      // (a Reroll Charm rolls with the normal odds; a Sovereign Charm gives S or better)
+      const min = charm.sub === 'sovereign' ? Uniques.GRADE_S : 0;
       made = Uniques.graded(item, Uniques.rollGrade(min), item.fg | 0);
       ch.inv[cs] = null;
       items.release(sv, charm);
@@ -2235,7 +2229,7 @@ const handlers = {
     items.release(sv, item);
     ch.inv[slot] = items.issue(sv, made);
     log(c.name + ' ' + a + ': ' + was + ' -> ' + Uniques.displayName(made));
-    shopDone(c, sv, ch, Object.assign({ graded: a, was, now: Uniques.displayName(made), slot, dust: cr.dust }, extra));
+    shopDone(c, sv, ch, Object.assign({ graded: a, was, now: Uniques.displayName(made), slot }, extra));
   },
 
   /** The Fate Crate: n = 1 or 10 crates, 5,000 fame each. Prizes go to the crate chest (or are used at once, by the player's filters). */

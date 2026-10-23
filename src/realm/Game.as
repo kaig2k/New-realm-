@@ -3924,8 +3924,8 @@ package realm {
 			// the Guild Hall's stations each open their own page of it
 			if (st.mode) { hallMode = st.mode; if (net && net.online) Online.send({t: "ghView"}); }
 			if (st.kind == "groupstore" && net && net.online) Online.send({t: "gsView"});
-			// (the crate chest and Fate Dust are the server's: ask for them)
-			if ((st.kind == "crate" || st.kind == "forge") && net && net.online) Online.send({t: "crateView"});
+			// (the crate chest is the server's: ask for it)
+			if (st.kind == "crate" && net && net.online) Online.send({t: "crateView"});
 			openStation = st;
 			var why:String = STATION_TIPS[st.kind];
 			if (why) tip("st_" + st.kind, why);
@@ -6520,19 +6520,18 @@ package realm {
 		}
 
 		// ------------------------------------------------------------- the Fate Crate and item grades
-		/** The server's crate state: {box, filter, pity, dust, opened}. */
+		/** The server's crate state: {box, filter, pity, opened}. */
 		private var crateInfo:Object;
 		/** The crate opening on screen (kept across panel rebuilds), and what it showed. */
 		private var crateReel:CrateReel;
 		private var crateLast:Array;
 		private var crateFilters:Boolean = false;
-		/** The item picked on the Starforge's Grades tab (its inventory slot), and when Salvage was armed. */
+		/** The item picked on the Starforge's Grades tab (its inventory slot). */
 		private var gradeSel:int = -1;
-		private var salvageArmed:int = 0;
 
-		/** The server sent the crate chest, filters and Fate Dust (the station opened, or a filter changed). */
+		/** The server sent the crate chest and filters (the station opened, or a filter changed). */
 		public function crateState(m:Object):void {
-			crateInfo = {box: m.box || [], filter: m.filter || {}, pity: int(m.pity), dust: int(m.dust), opened: int(m.opened)};
+			crateInfo = {box: m.box || [], filter: m.filter || {}, pity: int(m.pity), opened: int(m.opened)};
 			if (m.fame !== undefined) Save.data.fame = int(m.fame);
 			if (openStation && (openStation.kind == "crate" || openStation.kind == "forge")) refreshStation();
 		}
@@ -6590,7 +6589,7 @@ package realm {
 		private function buildCratePanel(sp:Sprite, info:TextField, y:int, w:int):int {
 			if (stationTip) stationTip.visible = false;
 			var fame:int = int(Save.data.fame || 0);
-			var ci:Object = crateInfo || {box: [], filter: {}, pity: 0, dust: 0};
+			var ci:Object = crateInfo || {box: [], filter: {}, pity: 0};
 			var i:int;
 			info.htmlText = "A crate costs <font color='#ff9a2e'><b>" + Ui.commas(Data.CRATE_COST) + "</b></font> fame. You have <font color='#ff9a2e'><b>" + Ui.commas(fame) + "</b></font>.\n" +
 				"<font color='#9a9aaa'>A pink prize or better within " + Math.max(1, Data.CRATE_PITY - int(ci.pity)) + " more crate" + (Data.CRATE_PITY - int(ci.pity) == 1 ? "" : "s") + ", guaranteed.</font>";
@@ -6731,8 +6730,7 @@ package realm {
 			var it:Object = gradeSel >= 0 ? player.inv[gradeSel] : null;
 			if (!Uniques.gradeable(it) || shopWaiting) return;
 			var req:Object = {t: "grade", a: a, slot: gradeSel};
-			var dust:int = crateInfo ? int(crateInfo.dust) : 0;
-			if (a == "reroll" && dust < Uniques.REROLL_DUST) { msg("A reroll costs " + Uniques.REROLL_DUST + " Fate Dust (you have " + dust + "). Salvage items you don't need for it.", 0xff8080); return; }
+			if (a == "reroll" && countKind("material", "sor") < Uniques.REROLL_SHARDS) { msg("A reroll takes a spare Star Shard (or a charm from the Fate Crate).", 0xff8080); return; }
 			if (a == "charm" || a == "sovereign") {
 				var cs:int = charmSlot(a == "sovereign" ? "sovereign" : "reroll");
 				if (cs < 0) return;
@@ -6744,29 +6742,18 @@ package realm {
 				if (fs < 0) { msg("You need another (unlocked) copy of " + it.name + " in your inventory.", 0xff8080); return; }
 				req.fs = fs;
 			}
-			if (a == "salvage") {
-				if (it.locked) { msg(it.name + " is locked. Unlock it first (right-click it).", 0xffd75e); return; }
-				if (getTimer() - salvageArmed > 3000) { salvageArmed = getTimer(); msg("Click Salvage again to turn " + Uniques.displayName(it) + " into Fate Dust.", 0xffd75e); refreshStation(); return; }
-				salvageArmed = 0;
-			}
 			if (net.shopRequest(req)) shopWaiting = true;
 			else msg("Grades are handled by the server: connect to a server first.", 0xff8080);
 		}
 
-		/** The server changed an item's grade or forging, or salvaged it. */
+		/** The server changed an item's grade or forging. */
 		private function gradeDone(m:Object):void {
-			if (m.graded == "salvage") {
-				msg("Salvaged " + m.was + " for " + m.got + " Fate Dust.", 0xd8b0ff);
-				Sfx.play("coin");
-				gradeSel = -1;
-				return;
-			}
 			gradeSel = int(m.slot);
 			var it:Object = player.inv[gradeSel];
 			var g:int = Uniques.gradeOf(it);
 			var col:uint = Uniques.GRADE_COLORS[g];
 			if (m.graded == "fuse") msg("Forged a copy into it: " + m.was + " is now " + m.now + ".", 0xffd23a);
-			else msg((m.charm ? "The " + m.charm + " glows... " : "The Fate Dust swirls... ") + m.was + " is now " + m.now + ".", col);
+			else msg((m.charm ? "The " + m.charm + " glows... " : "The Star Shard shatters... ") + m.was + " is now " + m.now + ".", col);
 			if (g >= Uniques.GRADE_S || (m.graded == "fuse" && it && int(it.fg) >= Uniques.FORGE_MAX)) {
 				showBanner(m.now + "!", col, 3);
 				Sfx.play("rare");
@@ -6775,16 +6762,16 @@ package realm {
 		}
 
 		private function gradeSelFn(i:int):Function {
-			return function():void { gradeSel = i; salvageArmed = 0; refreshStation(); };
+			return function():void { gradeSel = i; refreshStation(); };
 		}
 
 		private function buildGradePanel(sp:Sprite, info:TextField, y:int, w:int):int {
 			if (stationTip) stationTip.visible = false;
 			y = forgeTabs(sp, y, w);
-			var dust:int = crateInfo ? int(crateInfo.dust) : 0;
-			info.htmlText = "Every UT, Legendary, Starforged and Primordial item has a <b>grade</b>, from D (90% of its stats) to SSS (120%). " +
+			var shards:int = countKind("material", "sor");
+			info.htmlText = "Every UT, Legendary, Starforged, Primordial and Godly item has a <b>grade</b>, from D (90% of its stats) to SSS (120%). " +
 				"Forge copies of the same item into it for <b>+3%</b> each, up to +5: +3 makes its special stronger, +5 <b>Awakens</b> it.\n" +
-				"You have <font color='#d8b0ff'><b>" + dust + "</b></font> Fate Dust. Salvage items you don't need for it.";
+				"Reroll a grade with a spare <b>Star Shard</b> (you have " + shards + ") or a charm from the Fate Crate.";
 			info.y = y;
 			y += info.height + 8;
 			var n:int = 0, i:int;
@@ -6815,7 +6802,7 @@ package realm {
 			sp.addChild(nm);
 			y += nm.height + 6;
 			var acts:Array = [];
-			acts.push(["Reroll (" + Uniques.REROLL_DUST + " Dust)", "reroll", dust >= Uniques.REROLL_DUST]);
+			acts.push(["Reroll (1 Star Shard)", "reroll", shards >= Uniques.REROLL_SHARDS]);
 			var rc:int = countKind("charm", "reroll"), sc:int = countKind("charm", "sovereign");
 			if (rc > 0) acts.push(["Reroll Charm (" + rc + ")", "charm", true]);
 			if (sc > 0) acts.push(["Sovereign Charm (" + sc + ")", "sovereign", true]);
@@ -6824,7 +6811,6 @@ package realm {
 				for (i = 0; i < player.inv.length; i++) if (i != gradeSel && Uniques.canFuse(sel, player.inv[i]) && !player.inv[i].locked) copies++;
 				acts.push(["Forge in a copy (" + copies + ")", "fuse", copies > 0]);
 			}
-			if (Uniques.dustOf(sel) > 0) acts.push([getTimer() - salvageArmed < 3000 ? "Sure? Salvage" : "Salvage (+" + Uniques.dustOf(sel) + " Dust)", "salvage", !sel.locked]);
 			for (i = 0; i < acts.length; i++) {
 				var ab:Sprite = Ui.button(acts[i][0], 136, 30, gradeFn(acts[i][1]), 12);
 				ab.x = 14 + (i % 3) * 140; ab.y = y + int(i / 3) * 36;
@@ -6833,7 +6819,7 @@ package realm {
 			}
 			y += Math.ceil(acts.length / 3) * 36 + 4;
 			var hint:TextField = Ui.text(11, 0x9a9aaa, false, "center", w - 20, true);
-			hint.text = "Rerolls keep the forging. A Reroll Charm never lowers the grade; a Sovereign Charm gives S or better.";
+			hint.text = "Rerolls keep the forging. A Star Shard or Reroll Charm rolls with the normal odds; a Sovereign Charm gives S or better.";
 			hint.x = 10; hint.y = y;
 			sp.addChild(hint);
 			return y + hint.height + 6;
@@ -6931,7 +6917,6 @@ package realm {
 			// (the Fate Crate spends fame on the server; grades and the crate chest are the server's too)
 			if (m.fame !== undefined) Save.data.fame = int(m.fame);
 			if (m.cr) crateInfo = m.cr;
-			if (m.dust !== undefined) { if (!crateInfo) crateInfo = {box: [], filter: {}, pity: 0, dust: 0}; crateInfo.dust = int(m.dust); }
 			saveCharacter();
 			Save.flush();
 			if (m.stable) Save.data.stable = m.stable;

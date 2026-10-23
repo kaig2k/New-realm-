@@ -45,7 +45,7 @@ package realm {
 		public function refresh():void {
 			body.removeChildren();
 			var intro:TextField = Ui.text(12, 0xc8b8e0, false, "left", W - 40, true);
-			intro.htmlText = "A run: you go in with <b>T1 gear and an empty bag</b> and loot as you fight, better gear the deeper the wave. Every " + Data.DEEP_CHEST_EVERY +
+			intro.htmlText = "A run: you start fresh at <b>level 1, in T1 gear with an empty bag</b>, and level up and loot as you fight, better gear the deeper the wave. Every " + Data.DEEP_CHEST_EVERY +
 				" waves a boss and a chest come (the <font color='#d080ff'>Abyssal Herald</font> every " + Data.DEEP_HERALD + "th) and you pick a boon. " +
 				"Every wave cleared earns <font color='#d080ff'>Abyss Points</font> for the Abyss Shop. When the run ends your hero comes back <b>exactly as it went in</b>. The board resets every Monday.";
 			intro.x = 20; intro.y = 50;

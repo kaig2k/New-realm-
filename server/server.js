@@ -1089,7 +1089,9 @@ function setCaps(c) {
     const ch = serverChar(c), cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
     let best = c.caps;
     for (let k = 0; k < 6; k++) {
-      const run = Object.assign({}, ch, { weapon: Data.makeForSlot(cls, 0, 7, k < 3 ? 'lg' : null), ability: Data.makeForSlot(cls, 1, 7, k < 3 ? 'lg' : null), armor: Data.makeForSlot(cls, 2, 7, null), ring: Data.makeForSlot(cls, 3, 7, null) });
+      // (the run's hero starts at level 1 but can reach 20, its stats maxed, any skills)
+      const run = Object.assign({}, ch, { level: 20, stats: cls.max, skills: combat.MAX_SKILLS,
+        weapon: Data.makeForSlot(cls, 0, 7, k < 3 ? 'lg' : null), ability: Data.makeForSlot(cls, 1, 7, k < 3 ? 'lg' : null), armor: Data.makeForSlot(cls, 2, 7, null), ring: Data.makeForSlot(cls, 3, 7, null) });
       const rc = combat.caps(run, sv.pet, extra);
       if (rc && rc.rate > best.rate) best = Object.assign({}, rc, { hex: true, decoy: true });
     }
@@ -1785,6 +1787,7 @@ const handlers = {
    * its gear and the skill points it earned past 20) for a point in the account's tree.
    */
   ascend(c, m) {
+    if (String(c.world || '').startsWith('deep:')) return c.send({ t: 'shopFail', msg: 'Finish your Abyss run first.' });
     if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved. Try again in a moment.' });
     const sv = onlineSave(c.key), ch = serverChar(c);
     if (!ch) return c.send({ t: 'shopFail', msg: 'Pick a hero and enter the game first.' });
@@ -2862,6 +2865,7 @@ const MOD_BAN_HOURS = 72;
 
 /** /l20 (the hero you're playing goes to level 20) and /backpack (it gets a backpack). */
 function vipPerk(c, cmd) {
+  if (String(c.world || '').startsWith('deep:')) return c.note('Finish your Abyss run first.');
   const sv = onlineSave(c.key), ch = serverChar(c);
   if (!sv || !ch) return c.note('Pick a hero and enter the game first.');
   if (cmd === '/backpack') {

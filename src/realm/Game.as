@@ -1442,7 +1442,7 @@ package realm {
 		private var runPts:int = 0, runWave:int = 0;
 		public function get inRun():Boolean { return runSnap != null; }
 
-		/** A run begins: the hero keeps its level, stats and skills, but goes in with T1 gear, an empty bag and three of each potion. */
+		/** A run begins: a fresh level 1 hero of the class (base stats, no skills) in T1 gear, with an empty bag and three of each potion. */
 		private function startRun():void {
 			if (runSnap) return;
 			runSnap = player.serialize();
@@ -7877,7 +7877,7 @@ package realm {
 			player.bossDmg = 0;
 			Sfx.play("portal");
 			showBanner("The Endless Abyss", 0xd080ff, 3);
-			msg("An Abyss run: you start in T1 gear with an empty bag, and everything you find here is the run's own (better gear the deeper you go). " +
+			msg("An Abyss run: you start fresh at level 1, in T1 gear with an empty bag, and everything you find here is the run's own (better gear the deeper you go). " +
 				"Every wave cleared earns Abyss Points for the Abyss Shop by the portal. When you leave (R) or fall, your hero comes back exactly as it went in.", 0xd080ff);
 		}
 
@@ -7965,6 +7965,7 @@ package realm {
 		/** Asks the server to ascend this hero (it answers with "asc" and the reset hero). */
 		public function ascend():void {
 			if (shopWaiting) return;
+			if (runSnap) { msg("Finish your Abyss run first: the hero on a run is the run's own.", 0xff8080); return; }
 			if (net.shopRequest({t: "ascend"})) shopWaiting = true;
 		}
 

@@ -1617,7 +1617,7 @@ package realm {
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
 			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
-				lines: ["<b>The Abyss is a run now</b>: your hero goes in with <b>T1 gear and an empty bag</b> (it keeps its level, stats and skills) and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
+				lines: ["<b>The Abyss is a run now</b>: your class starts fresh at <b>level 1, in T1 gear with an empty bag</b>, and levels up and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
 					"Everything you find is the run's own. When you leave (R) or fall, your hero comes back <b>exactly as it went in</b>: its own gear, bag and potions. Falling in the Abyss never kills your hero.",
 					"<b>Abyss Points</b>: every wave you clear pays them (more the deeper you go, and a bonus for boss waves), and you keep them whatever happens to the run.",
 					"<b>The Abyss Shop</b>, beside the Abyss's portal in the Nexus: dungeon keys, Evolution Stones, Aether, a title, and the Abyss's Legendaries (Voidrend, the Abyssal Crown and the Depthstone).",
@@ -2280,9 +2280,16 @@ package realm {
 		}
 		// ---- Abyss runs: you go in with T1 gear and an empty bag, and everything you find is the run's own
 		// (it's gone when the run ends: your hero comes back as it went in). Clearing waves earns Abyss Points.
-		/** The kit a run starts with: T1 weapon, ability and armour for the class (and potions). */
+		/**
+		 * The hero a run starts with: a fresh level 1 of the class (base stats, no skills), in T1 weapon,
+		 * ability and armour, with three of each potion. It levels up as it fights, like any new hero.
+		 */
 		public static function runKit(cls:Object):Object {
-			return {weapon: makeForSlot(cls, 0, 1, null), ability: makeForSlot(cls, 1, 1, null), armor: makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3};
+			var st:Object = {};
+			for (var s:String in cls.base) st[s] = cls.base[s];
+			// (xpNext: Player.xpFor(1))
+			return {weapon: makeForSlot(cls, 0, 1, null), ability: makeForSlot(cls, 1, 1, null), armor: makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3,
+				level: 1, xp: 0, xpNext: 88, totalXp: 0, ascXp: 0, stats: st, skills: {}, skillPoints: 0, highStakes: false};
 		}
 		/** The tier a run's drops come at on wave n (T1 at the start, T7 by wave 12). */
 		public static function runTier(wave:int):int { return Math.max(1, Math.min(7, 1 + int(wave / 2) + (Math.random() < 0.25 ? 1 : 0))); }

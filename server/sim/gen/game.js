@@ -867,7 +867,11 @@ class Data {
 			return items;
 		}
 	static runKit(cls) {
-			return {weapon: Data.makeForSlot(cls, 0, 1, null), ability: Data.makeForSlot(cls, 1, 1, null), armor: Data.makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3};
+			var st = {};
+			for (var s in cls.base) st[s] = cls.base[s];
+			
+			return {weapon: Data.makeForSlot(cls, 0, 1, null), ability: Data.makeForSlot(cls, 1, 1, null), armor: Data.makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3,
+				level: 1, xp: 0, xpNext: 88, totalXp: 0, ascXp: 0, stats: st, skills: {}, skillPoints: 0, highStakes: false};
 		}
 	static runTier(wave) { wave = __int(wave); return __int(Math.max(1, Math.min(7, 1 + __int(wave / 2) + (Math.random() < 0.25 ? 1 : 0)))); }
 	static runItem(cls, wave, bonus = 0) { wave = __int(wave); bonus = __int(bonus);
@@ -6262,7 +6266,7 @@ Data.DYE_KEYS = {
 		};
 Data.NEWS = [
 			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
-				lines: ["<b>The Abyss is a run now</b>: your hero goes in with <b>T1 gear and an empty bag</b> (it keeps its level, stats and skills) and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
+				lines: ["<b>The Abyss is a run now</b>: your class starts fresh at <b>level 1, in T1 gear with an empty bag</b>, and levels up and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
 					"Everything you find is the run's own. When you leave (R) or fall, your hero comes back <b>exactly as it went in</b>: its own gear, bag and potions. Falling in the Abyss never kills your hero.",
 					"<b>Abyss Points</b>: every wave you clear pays them (more the deeper you go, and a bonus for boss waves), and you keep them whatever happens to the run.",
 					"<b>The Abyss Shop</b>, beside the Abyss's portal in the Nexus: dungeon keys, Evolution Stones, Aether, a title, and the Abyss's Legendaries (Voidrend, the Abyssal Crown and the Depthstone).",

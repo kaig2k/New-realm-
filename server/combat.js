@@ -102,4 +102,4 @@ function caps(ch, pet, extra) {
 /** The most Defense a Warrior's banner (Abilities: 10 x its power) gives everyone near it. */
 const AURA_DEF = 30;
 
-module.exports = { caps, stat, ABILITY, AURA_DEF };
+module.exports = { caps, stat, ABILITY, AURA_DEF, MAX_SKILLS: SKILL_MAX };

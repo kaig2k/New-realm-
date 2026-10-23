@@ -1168,7 +1168,8 @@ async function run() {
     // runs: T1 kit, loot that climbs with the wave
     const kit = DD.runKit(DD.CLASSES.wizard);
     const tiers = (w) => { let t = 0, n = 0; for (let k = 0; k < 200; k++) { const it = DD.runItem(DD.CLASSES.wizard, w); if (it.kind !== 'ring' && !it.rarity) { t += it.tier; n++; } } return t / n; };
-    check('a run starts in T1 gear, and its loot climbs with the wave (T7 by wave 12)', kit.weapon.tier === 1 && kit.armor.tier === 1 && kit.ability.tier === 1 && !kit.ring &&
+    check('a run starts as a fresh level 1 of the class (base stats, no skills) in T1 gear, and its loot climbs with the wave (T7 by wave 12)', kit.weapon.tier === 1 && kit.armor.tier === 1 && kit.ability.tier === 1 && !kit.ring &&
+      kit.level === 1 && kit.xp === 0 && kit.xpNext === 40 + 45 + 3 && Object.keys(kit.skills).length === 0 && kit.skillPoints === 0 && Object.keys(DD.CLASSES.wizard.base).every((k) => kit.stats[k] === DD.CLASSES.wizard.base[k]) &&
       tiers(1) < 2 && tiers(12) > 6.5 && DD.abyssPoints(5) > DD.abyssPoints(4) + 5, [tiers(1), tiers(12)].join(' '));
     check('boons add stats (and Greed adds luck)', DD.deepBonus(['might', 'might', 'life']).att === 8 && DD.deepBonus(['life']).hp === 60 && DD.deepBoonLuck(['greed', 'might']) === 15);
   }
@@ -2759,16 +2760,19 @@ async function run() {
     for (let k = 0; k < 60 && !P.find((m) => m.t === 'deepWave' && m.state === 'fight'); k++) await wait(250);
     const fight = P.find((m) => m.t === 'deepWave' && m.state === 'fight');
     check('wave 1 starts after the break', fight && fight.wave === 1 && fight.left > 0, JSON.stringify(fight));
-    AD2.clear();
-    AD2.send({ t: 'w', to: 'host', d: { t: 'sync' } });
-    await wait(300);
-    const dsp = AD2.find((m) => m.t === 'w' && m.d.t === 'espawn');
-    for (const e of (dsp ? dsp.d.l : [])) {
-      AD2.send({ t: 'move', x: e[2], y: e[3] + 1 });
-      await wait(60);
-      for (let k = 0; k < 5; k++) AD2.send({ t: 'w', to: 'host', d: { t: 'ehit', id: e[0], d: 5e6 } });
+    // (the first waves' wolves and spiders are quick: a few passes, each from where they are now)
+    for (let pass = 0; pass < 6 && !P.find((m) => m.t === 'deepWave' && m.state === 'cleared' && m.wave === 1); pass++) {
+      AD2.clear();
+      AD2.send({ t: 'w', to: 'host', d: { t: 'sync' } });
+      await wait(300);
+      const dsp = AD2.find((m) => m.t === 'w' && m.d.t === 'espawn');
+      for (const e of (dsp ? dsp.d.l : [])) {
+        AD2.send({ t: 'move', x: e[2], y: e[3] + 1 });
+        await wait(60);
+        for (let k = 0; k < 5; k++) AD2.send({ t: 'w', to: 'host', d: { t: 'ehit', id: e[0], d: 5e6 } });
+      }
+      await wait(500);
     }
-    await wait(500);
     check('wave cleared: everyone in the arena hears it and the run counts it', P.find((m) => m.t === 'deepWave' && m.state === 'cleared' && m.wave === 1) && P.find((m) => m.t === 'abyssRun' && m.wave === 1),
       JSON.stringify(P.msgs.filter((m) => m.t === 'deepWave').slice(-3)));
     const runLoot = [].concat(...P.msgs.concat(AD2.msgs).filter((m) => m.t === 'w' && m.d.t === 'loot').map((m) => m.d.l));

@@ -147,7 +147,8 @@ class Data {
 			if (it && it.gid) return Godly.upgrade(it);
 			
 			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
-				var uq = Uniques.make(it.uid);
+				
+				var uq = it.rarity == "sf" && Uniques.FIXED[it.uid] ? Uniques.starforge(Uniques.make(it.uid)) : Uniques.make(it.uid);
 				if (!uq) return false;
 				for (var uk of __vals( Data.WEAPON_KEYS)) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
 				return true;
@@ -570,7 +571,8 @@ class Data {
 			switch (item.kind) {
 				case "weapon":
 					
-					if (item.sig !== undefined && Data.SIGS[item.sub] && Data.SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + Data.SIGS[item.sub][item.sig].tx + "</font>\n";
+					
+					if (item.sig !== undefined && !item.uid && !item.rarity && Data.SIGS[item.sub] && Data.SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + Data.SIGS[item.sub][item.sig].tx + "</font>\n";
 					if (item.form && Data.FORMS[item.form]) s += "<font color='#9ad0ff'>" + Data.FORMS[item.form].name + ":</font> " + Data.FORMS[item.form].desc + "\n";
 					s += "Damage: " + item.dmin + "-" + item.dmax + (item.shots > 1 ? " per shot" : "") + "\n";
 					if (item.shots > 1) s += "Shots: " + item.shots + "\n";
@@ -1193,6 +1195,8 @@ class Uniques {
 			
 			for (var sk of __vals( Data.STATS.concat(Data.GEAR_STATS))) if (!(sk == "spd" && f.k == "weapon")) delete it[sk];
 			delete it.sig;
+			
+			delete it.split; delete it.boom; delete it.walls; delete it.effect;
 			it.rarity = f.r;
 			it.tier = 8;
 			it.name = f.n;
@@ -6155,6 +6159,11 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-effects", title: "Weapon fixes",
+				lines: ["<b>Fifteen dungeon weapons had hidden effects</b> left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. They're gone. Each weapon now does exactly what its tooltip says.",
+					"Affected: <b>Moonlantern, Prismatic, Regent's Scepter, Hexbound, Bonechime</b> (wands), <b>Fang of Ssythra, Imp's Fang, Frostfang, Obsidian Shiv, Kraken's Grasp</b> (daggers), <b>Venomspit, Soulreaper, Cubic, Trident, Cinderfeather</b> (staves). Copies you own are updated, Starforged ones included.",
+					"Named weapons no longer show the tiered weapon's shot text (Galecaller's Bow said 5 arrows; it shoots 4).",
+					"Fixed outdated lore on Cubic Staff, Regent's Scepter and Hexbound Wand."]},
 			{id: "2026-10-trial2", title: "The Starfall Trial's dungeons",
 				lines: ["<b>Each Starfall master now has a dungeon of its own</b>, built in its style: no more set pieces rising out of the floor.",
 					"<b>Ignis</b>: a lava river with two bridges under fire from magma vents, Cinder Imps and Ash Fiends, lava in the arena's corners.",
@@ -6754,7 +6763,7 @@ Uniques.FIXED = {
 			prismatic_wand: {n: "Prismatic Wand", k: "weapon", s: "wand", r: "lg", st: {wis: 6, dex: 4}, d: [40, 54], sh: 3, rt: 1.1, arc: 8, x: {prism: true}, sfk: 0.85, txt: "Support: red shots hit 25% harder, blue ones slow, green ones heal you 2 HP a hit."},
 			
 			cubic_grimoire: {n: "Cubic Grimoire", k: "ability", s: "spell", r: "ut", pw: 2.15, st: {wis: 4}, ab: "fireball", abx: {cubes: 4}, txt: "Fireball bursts into 4 small cubes.", lore: "Every page is a perfect square."},
-			cubic_staff: {n: "Cubic Staff", k: "weapon", s: "staff", r: "lg", st: {att: 6, wis: 4}, d: [80, 106], sh: 3, rt: 1, split: {n: 4, spd: 4, life: 0.5, mul: 0.35}, txt: "Zoner: shots split into 4 cubes at the end of their range."},
+			cubic_staff: {n: "Cubic Staff", k: "weapon", s: "staff", r: "lg", st: {att: 6, wis: 4}, d: [80, 106], sh: 3, rt: 1, split: {n: 4, spd: 4, life: 0.5, mul: 0.35}, txt: "Zoner: shots split into 4 cubes at the end of their range.", lore: "Three bolts, perfectly aligned. Each one ends in cubes."},
 			molten_flask: {n: "Molten Flask", k: "ability", s: "flask", r: "ut", pw: 2.15, st: {att: 4}, ab: "acidflask", abx: {dur: 2}, txt: "Volatile Flask's pool burns 2s longer.", lore: "Handle with the other hand."},
 			titanbreaker: {n: "Titanbreaker", k: "weapon", s: "sword", r: "lg", st: {att: 8}, d: [170, 220], sh: 2, rt: 1, rg: 0.6, pc: true, x: {armor: 15}, sfk: 1.15, txt: "Brawler: short-range blades that pierce and ignore 15 enemy defense."},
 			wyrmscale: {n: "Wyrmscale Hide", k: "armor", s: "leather", r: "ut", df: 23, st: {spd: 5, vit: 3}, txt: "Cold to the touch, hard to cut."},
@@ -6764,7 +6773,7 @@ Uniques.FIXED = {
 			behemoth_hide: {n: "Behemoth Hide", k: "armor", s: "heavy", r: "ut", df: 33, st: {hp: 60}, txt: "Thick enough to stop a charge."},
 			gorehorn_bow: {n: "Gorehorn Longbow", k: "weapon", s: "bow", r: "lg", st: {dex: 6, hp: 40}, d: [74, 100], sh: 4, rt: 1, pc: true, txt: "Line clearer: four piercing arrows."},
 			phantom_hourglass: {n: "Phantom Hourglass", k: "ability", s: "hourglass", r: "ut", pw: 2.15, st: {wis: 4}, ab: "rewind", abx: {invis: 1}, txt: "Rewind also turns you invisible for 1s.", lore: "The sand falls both ways."},
-			regents_scepter: {n: "Regent's Scepter", k: "weapon", s: "wand", r: "lg", st: {wis: 6, spd: 4}, d: [58, 78], sh: 2, rt: 1, rg: 1.5, walls: true, sfk: 0.9, txt: "Long-range poke: shots fly half as far again and pass through walls."},
+			regents_scepter: {n: "Regent's Scepter", k: "weapon", s: "wand", r: "lg", st: {wis: 6, spd: 4}, d: [58, 78], sh: 2, rt: 1, rg: 1.5, walls: true, sfk: 0.9, txt: "Long-range poke: shots fly half as far again and pass through walls.", lore: "No wall stands between a regent and his orders."},
 			riddle_tome: {n: "Tome of Riddles", k: "ability", s: "tome", r: "ut", pw: 2.15, st: {wis: 5, mp: 40}, ab: "sanctuary", abx: {cure: true}, txt: "Sanctuary also cures bad effects."},
 			sandglass_ring: {n: "Sandglass Ring", k: "ring", s: "dex", r: "lg", st: {dex: 8, spd: 6, luc: 4}, txt: "The speed ring."},
 			hermit_shell: {n: "Hermit's Shell", k: "ring", s: "def", r: "ut", st: {hp: 80, def: 6}, txt: "The tank ring."},
@@ -6776,7 +6785,7 @@ Uniques.FIXED = {
 			phoenix_quill: {n: "Phoenix Quill", k: "weapon", s: "bow", r: "lg", st: {dex: 6, att: 4}, d: [102, 135], sh: 3, rt: 1, x: {trail: true}, txt: "Area denial: arrows leave a short trail of fire."},
 			rebirth_tome: {n: "Tome of Rebirth", k: "ability", s: "tome", r: "lg", pw: 2.85, st: {wis: 8, mp: 60}, ab: "sanctuary", abx: {heal: 0.25}, txt: "Healer: Sanctuary heals 25% more."},
 			hexstring_bow: {n: "Hexstring Bow", k: "weapon", s: "bow", r: "ut", st: {dex: 4}, d: [66, 90], sh: 3, rt: 1, eff: "slow", txt: "Arrows slow what they hit.", lore: "Strung with a curse."},
-			hexbound_wand: {n: "Hexbound Wand", k: "weapon", s: "wand", r: "lg", st: {wis: 6, att: 4}, d: [140, 180], sh: 1, rt: 1, x: {hex: true}, txt: "Boss killer: hexed targets take 10% more damage from your whole party for 3s."},
+			hexbound_wand: {n: "Hexbound Wand", k: "weapon", s: "wand", r: "lg", st: {wis: 6, att: 4}, d: [140, 180], sh: 1, rt: 1, x: {hex: true}, txt: "Boss killer: hexed targets take 10% more damage from your whole party for 3s.", lore: "Its curse marks the cursed for everyone."},
 			witchs_brew: {n: "Witch's Brew", k: "ability", s: "trap", r: "lg", pw: 2.85, st: {wis: 6, dex: 4}, ab: "snare", abx: {cloud: true}, txt: "Snare leaves a poison cloud."},
 			bonechime_wand: {n: "Bonechime Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [48, 62], sh: 2, rt: 1, pc: true, txt: "Shots pierce.", lore: "It rings like a bell made of ribs."},
 			shrineflame: {n: "Shrineflame Staff", k: "weapon", s: "staff", r: "lg", st: {att: 8}, d: [160, 210], sh: 2, rt: 0.8, sp: 0.6, boom: {r: 1.4, mul: 0.6}, txt: "Burst: slow shots that explode on impact."},
@@ -6848,7 +6857,7 @@ Uniques.STAT_MUL = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
 Uniques.DMG_MUL = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
 Uniques.FLOOR = 1.08;
 Uniques.PASSIVE_DPS = {rampage: 1.3, critical: 1.08};
-Uniques.VERSION = __int(2);
+Uniques.VERSION = __int(3);
 Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 Uniques.SF_DPS = {staff: 345, bow: 405, sword: 405, dagger: 325, wand: 185};
 Uniques.SF_WEAPON_STATS = __int(12);

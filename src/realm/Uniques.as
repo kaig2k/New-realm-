@@ -204,7 +204,7 @@ package realm {
 			prismatic_wand: {n: "Prismatic Wand", k: "weapon", s: "wand", r: "lg", st: {wis: 6, dex: 4}, d: [40, 54], sh: 3, rt: 1.1, arc: 8, x: {prism: true}, sfk: 0.85, txt: "Support: red shots hit 25% harder, blue ones slow, green ones heal you 2 HP a hit."},
 			// ---- realm events (a UT at T7, one or two Legendaries)
 			cubic_grimoire: {n: "Cubic Grimoire", k: "ability", s: "spell", r: "ut", pw: 2.15, st: {wis: 4}, ab: "fireball", abx: {cubes: 4}, txt: "Fireball bursts into 4 small cubes.", lore: "Every page is a perfect square."},
-			cubic_staff: {n: "Cubic Staff", k: "weapon", s: "staff", r: "lg", st: {att: 6, wis: 4}, d: [80, 106], sh: 3, rt: 1, split: {n: 4, spd: 4, life: 0.5, mul: 0.35}, txt: "Zoner: shots split into 4 cubes at the end of their range."},
+			cubic_staff: {n: "Cubic Staff", k: "weapon", s: "staff", r: "lg", st: {att: 6, wis: 4}, d: [80, 106], sh: 3, rt: 1, split: {n: 4, spd: 4, life: 0.5, mul: 0.35}, txt: "Zoner: shots split into 4 cubes at the end of their range.", lore: "Three bolts, perfectly aligned. Each one ends in cubes."},
 			molten_flask: {n: "Molten Flask", k: "ability", s: "flask", r: "ut", pw: 2.15, st: {att: 4}, ab: "acidflask", abx: {dur: 2}, txt: "Volatile Flask's pool burns 2s longer.", lore: "Handle with the other hand."},
 			titanbreaker: {n: "Titanbreaker", k: "weapon", s: "sword", r: "lg", st: {att: 8}, d: [170, 220], sh: 2, rt: 1, rg: 0.6, pc: true, x: {armor: 15}, sfk: 1.15, txt: "Brawler: short-range blades that pierce and ignore 15 enemy defense."},
 			wyrmscale: {n: "Wyrmscale Hide", k: "armor", s: "leather", r: "ut", df: 23, st: {spd: 5, vit: 3}, txt: "Cold to the touch, hard to cut."},
@@ -214,7 +214,7 @@ package realm {
 			behemoth_hide: {n: "Behemoth Hide", k: "armor", s: "heavy", r: "ut", df: 33, st: {hp: 60}, txt: "Thick enough to stop a charge."},
 			gorehorn_bow: {n: "Gorehorn Longbow", k: "weapon", s: "bow", r: "lg", st: {dex: 6, hp: 40}, d: [74, 100], sh: 4, rt: 1, pc: true, txt: "Line clearer: four piercing arrows."},
 			phantom_hourglass: {n: "Phantom Hourglass", k: "ability", s: "hourglass", r: "ut", pw: 2.15, st: {wis: 4}, ab: "rewind", abx: {invis: 1}, txt: "Rewind also turns you invisible for 1s.", lore: "The sand falls both ways."},
-			regents_scepter: {n: "Regent's Scepter", k: "weapon", s: "wand", r: "lg", st: {wis: 6, spd: 4}, d: [58, 78], sh: 2, rt: 1, rg: 1.5, walls: true, sfk: 0.9, txt: "Long-range poke: shots fly half as far again and pass through walls."},
+			regents_scepter: {n: "Regent's Scepter", k: "weapon", s: "wand", r: "lg", st: {wis: 6, spd: 4}, d: [58, 78], sh: 2, rt: 1, rg: 1.5, walls: true, sfk: 0.9, txt: "Long-range poke: shots fly half as far again and pass through walls.", lore: "No wall stands between a regent and his orders."},
 			riddle_tome: {n: "Tome of Riddles", k: "ability", s: "tome", r: "ut", pw: 2.15, st: {wis: 5, mp: 40}, ab: "sanctuary", abx: {cure: true}, txt: "Sanctuary also cures bad effects."},
 			sandglass_ring: {n: "Sandglass Ring", k: "ring", s: "dex", r: "lg", st: {dex: 8, spd: 6, luc: 4}, txt: "The speed ring."},
 			hermit_shell: {n: "Hermit's Shell", k: "ring", s: "def", r: "ut", st: {hp: 80, def: 6}, txt: "The tank ring."},
@@ -226,7 +226,7 @@ package realm {
 			phoenix_quill: {n: "Phoenix Quill", k: "weapon", s: "bow", r: "lg", st: {dex: 6, att: 4}, d: [102, 135], sh: 3, rt: 1, x: {trail: true}, txt: "Area denial: arrows leave a short trail of fire."},
 			rebirth_tome: {n: "Tome of Rebirth", k: "ability", s: "tome", r: "lg", pw: 2.85, st: {wis: 8, mp: 60}, ab: "sanctuary", abx: {heal: 0.25}, txt: "Healer: Sanctuary heals 25% more."},
 			hexstring_bow: {n: "Hexstring Bow", k: "weapon", s: "bow", r: "ut", st: {dex: 4}, d: [66, 90], sh: 3, rt: 1, eff: "slow", txt: "Arrows slow what they hit.", lore: "Strung with a curse."},
-			hexbound_wand: {n: "Hexbound Wand", k: "weapon", s: "wand", r: "lg", st: {wis: 6, att: 4}, d: [140, 180], sh: 1, rt: 1, x: {hex: true}, txt: "Boss killer: hexed targets take 10% more damage from your whole party for 3s."},
+			hexbound_wand: {n: "Hexbound Wand", k: "weapon", s: "wand", r: "lg", st: {wis: 6, att: 4}, d: [140, 180], sh: 1, rt: 1, x: {hex: true}, txt: "Boss killer: hexed targets take 10% more damage from your whole party for 3s.", lore: "Its curse marks the cursed for everyone."},
 			witchs_brew: {n: "Witch's Brew", k: "ability", s: "trap", r: "lg", pw: 2.85, st: {wis: 6, dex: 4}, ab: "snare", abx: {cloud: true}, txt: "Snare leaves a poison cloud."},
 			bonechime_wand: {n: "Bonechime Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [48, 62], sh: 2, rt: 1, pc: true, txt: "Shots pierce.", lore: "It rings like a bell made of ribs."},
 			shrineflame: {n: "Shrineflame Staff", k: "weapon", s: "staff", r: "lg", st: {att: 8}, d: [160, 210], sh: 2, rt: 0.8, sp: 0.6, boom: {r: 1.4, mul: 0.6}, txt: "Burst: slow shots that explode on impact."},
@@ -351,7 +351,7 @@ package realm {
 		/** What a passive adds on its own (so a Rampage weapon's floor counts its rings). */
 		private static const PASSIVE_DPS:Object = {rampage: 1.3, critical: 1.08};
 		/** Bumped when unique weapons' numbers change: older copies are remade (Data.upgradeWeapon). */
-		public static const VERSION:int = 2;
+		public static const VERSION:int = 3;
 		private static const POWER_ADD:Object = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 
 		public static function make(id:String):Object {
@@ -426,6 +426,8 @@ package realm {
 			// (only the plan's own stats: a tiered base's are cleared first)
 			for each (var sk:String in Data.STATS.concat(Data.GEAR_STATS)) if (!(sk == "spd" && f.k == "weapon")) delete it[sk];
 			delete it.sig;
+			// (and the T7 base's signature tricks: a staff's blast, a wand's or dagger's sparks. Only the plan's own count)
+			delete it.split; delete it.boom; delete it.walls; delete it.effect;
 			it.rarity = f.r;
 			it.tier = 8;
 			it.name = f.n;

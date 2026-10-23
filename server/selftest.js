@@ -561,6 +561,27 @@ async function run() {
     }
     for (const u in Uniques.ALL) t(Uniques.make(u), 'unique ' + u);
     check('the save check accepts every weapon, form, rarity, Godly piece and unique the game makes (no "unknown shot motion")', !bad.size, [...bad].slice(0, 5).join(' | '));
+    // a named weapon shoots only as its own entry says: no sparks or blast left over from the tiered base it's built on
+    const extra = [];
+    for (const id in Uniques.FIXED) {
+      const f = Uniques.FIXED[id];
+      if (f.k !== 'weapon') continue;
+      for (const it of [Uniques.make(id), Uniques.starforge(Uniques.make(id))]) {
+        if ((it.split && !f.split) || (it.boom && !f.boom) || (it.walls && !f.walls) || (it.effect && !f.eff)) extra.push(id + (it.rarity === 'sf' ? ' (SF)' : ''));
+      }
+    }
+    check('no named weapon keeps a hidden split or blast its description doesn\'t mention', !extra.length, extra.slice(0, 5).join(', '));
+    const sigShown = Object.keys(Uniques.FIXED).concat(Object.keys(Uniques.ALL)).filter((id) => {
+      const it = Uniques.FIXED[id] ? Uniques.make(id) : Uniques.make(id);
+      const sg = it && it.kind === 'weapon' && it.sig !== undefined && Data.SIGS[it.sub] && Data.SIGS[it.sub][it.sig];
+      return sg && Data.describe(it).indexOf(sg.tx) >= 0;
+    });
+    check('a named weapon\'s tooltip doesn\'t show the tiered weapon\'s shot text', !sigShown.length, sigShown.slice(0, 5).join(', '));
+    // one from before the change is remade, and a Starforged one stays Starforged
+    const oldSf = Uniques.starforge(Uniques.make('cubic_staff')), want = oldSf.dmin;
+    oldSf.uv = 2; oldSf.boom = { r: 1.3, mul: 0.6 };
+    Data.upgradeWeapon(oldSf);
+    check('an owned copy loses the hidden blast, and a Starforged one keeps its Starforged damage', !oldSf.boom && oldSf.rarity === 'sf' && oldSf.dmin === want, JSON.stringify({ boom: oldSf.boom, dmin: oldSf.dmin, want }));
     // a Primordial unique for every item there is (each class's weapon, armor and ability, and a ring of every stat)
     require('./sim/gen/game').Bosses.init();
     const types = new Set();

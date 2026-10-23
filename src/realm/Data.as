@@ -444,7 +444,8 @@ package realm {
 			if (it && it.gid) return Godly.upgrade(it);
 			// a unique weapon from before its numbers changed: remade as it drops now
 			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
-				var uq:Object = Uniques.make(it.uid);
+				// (a Starforged one is remade Starforged)
+				var uq:Object = it.rarity == "sf" && Uniques.FIXED[it.uid] ? Uniques.starforge(Uniques.make(it.uid)) : Uniques.make(it.uid);
 				if (!uq) return false;
 				for each (var uk:String in WEAPON_KEYS) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
 				return true;
@@ -1042,7 +1043,8 @@ package realm {
 			switch (item.kind) {
 				case "weapon":
 					// (a tiered weapon's signature shot)
-					if (item.sig !== undefined && SIGS[item.sub] && SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + SIGS[item.sub][item.sig].tx + "</font>\n";
+					// (only a plain tiered weapon: a named one may be built on a tiered base, but shoots its own way)
+					if (item.sig !== undefined && !item.uid && !item.rarity && SIGS[item.sub] && SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + SIGS[item.sub][item.sig].tx + "</font>\n";
 					if (item.form && FORMS[item.form]) s += "<font color='#9ad0ff'>" + FORMS[item.form].name + ":</font> " + FORMS[item.form].desc + "\n";
 					s += "Damage: " + item.dmin + "-" + item.dmax + (item.shots > 1 ? " per shot" : "") + "\n";
 					if (item.shots > 1) s += "Shots: " + item.shots + "\n";
@@ -1616,6 +1618,11 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-effects", title: "Weapon fixes",
+				lines: ["<b>Fifteen dungeon weapons had hidden effects</b> left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. They're gone. Each weapon now does exactly what its tooltip says.",
+					"Affected: <b>Moonlantern, Prismatic, Regent's Scepter, Hexbound, Bonechime</b> (wands), <b>Fang of Ssythra, Imp's Fang, Frostfang, Obsidian Shiv, Kraken's Grasp</b> (daggers), <b>Venomspit, Soulreaper, Cubic, Trident, Cinderfeather</b> (staves). Copies you own are updated, Starforged ones included.",
+					"Named weapons no longer show the tiered weapon's shot text (Galecaller's Bow said 5 arrows; it shoots 4).",
+					"Fixed outdated lore on Cubic Staff, Regent's Scepter and Hexbound Wand."]},
 			{id: "2026-10-trial2", title: "The Starfall Trial's dungeons",
 				lines: ["<b>Each Starfall master now has a dungeon of its own</b>, built in its style: no more set pieces rising out of the floor.",
 					"<b>Ignis</b>: a lava river with two bridges under fire from magma vents, Cinder Imps and Ash Fiends, lava in the arena's corners.",

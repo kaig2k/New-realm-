@@ -1,3 +1,19 @@
+**📜 ELDMERE UPDATE: Weapon Fixes**
+
+**🔧 Hidden effects removed**
+• Fifteen dungeon weapons had **hidden effects** left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. Some were doing more than double their intended damage
+• They're gone: each weapon now does **exactly what its tooltip says**
+• **Wands:** Moonlantern, Prismatic, Regent's Scepter, Hexbound, Bonechime
+• **Daggers:** Fang of Ssythra, Imp's Fang, Frostfang, Obsidian Shiv, Kraken's Grasp
+• **Staves:** Venomspit, Soulreaper, Cubic, Trident, Cinderfeather
+• Copies you already own are updated automatically, Starforged ones included
+
+**📝 Tooltip fixes**
+• Named weapons no longer show the tiered weapon's shot text (Galecaller's Bow said 5 arrows; it shoots 4)
+• Fixed outdated lore on **Cubic Staff**, **Regent's Scepter** and **Hexbound Wand**
+
+---
+
 **📜 ELDMERE UPDATE: Gorehorn the Behemoth**
 
 **🐗 A realm boss that hunts you**

@@ -838,7 +838,8 @@ class WorldSim {
     if (e.bonded && e.bonded.some((o) => !o.dead)) this.all({ t: 'wmsg', banner: e.def.bond, text: e.def.bond, color: this.w.raid ? this.w.raid.color : 0xffd75e });
     // what each player who hit it could earn from it (gold and fame checks)
     // (players close by who didn't hit it share its XP, so its fame, but not its gold)
-    if (this.onEarn) {
+    // (an Abyss run earns Abyss Points, not gold or fame)
+    if (this.onEarn && !this.deep) {
       const hit = new Set();
       for (const h of e.hitters || []) if (h[1] > 0) { const c = this.players.get(h[0]); if (c) { hit.add(c); this.onEarn(c, e, false); } }
       for (const c of this.players.values()) {
@@ -972,6 +973,14 @@ class WorldSim {
       if (e.def.siege && share < 0.005) continue;
       const prof = c.profile || {};
       const cls = Data.CLASSES[prof.cls] || Data.CLASSES.wizard;
+      // an Abyss run: run loot, better the deeper the wave (marked as the run's: it never leaves it)
+      if (this.deep) {
+        const run = Data.runLoot(e.def, Math.max(1, this.deep.wave), cls, !!e.elite);
+        // (not in the ledger: no save can ever hold them)
+        for (const it of run) it.run = 1;
+        if (run.length) this.send(c, { t: 'loot', id: e.id, x: r2(e.x), y: r2(e.y), l: run, n: e.def.name, hs: '' });
+        continue;
+      }
       // (Ironman and Hardcore heroes get extra luck on top: see modes.js)
       // (VIPs find a little more: VIP_LUCK in server.js)
       const lk = (this.deep ? Data.deepBoonLuck(c.abyss ? c.abyss.boons : null) : 0) + Math.max(0, Math.min(160, prof.lk | 0)) + (c.mode ? Data.findMode(c.mode).luck | 0 : 0) + (c.vip ? 15 : 0) + (c.ascLuck | 0) + (c.guild && WorldSim.guildLuck ? WorldSim.guildLuck[c.guild] | 0 : 0);
@@ -1000,8 +1009,6 @@ class WorldSim {
         if (Math.random() < 0.5) { items = items.concat(items.map((it) => JSON.parse(JSON.stringify(it)))); hs = 'won'; }
         else { items = []; hs = 'lost'; }
       }
-      // the Endless Abyss: its monsters drop nothing, only its chests do
-      if (this.deep && !e.def.abyssChest) { items = []; hs = ''; }
       if (this.issuer) for (const it of items) this.issuer(c, it);
       // the Oracle counts every boss kill and what it dropped for you (and the Abyss's chests)
       if (this.onOracle && (e.isBoss || e.def.abyssChest)) this.onOracle(c, e, items);

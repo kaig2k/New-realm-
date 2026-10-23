@@ -45,8 +45,9 @@ package realm {
 		public function refresh():void {
 			body.removeChildren();
 			var intro:TextField = Ui.text(12, 0xc8b8e0, false, "left", W - 40, true);
-			intro.htmlText = "Wave after wave in the Abyss's arena, each tougher than the last. Its monsters drop <b>nothing</b>: every " + Data.DEEP_CHEST_EVERY +
-				" waves a chest appears instead, and a boss with it (the <font color='#d080ff'>Abyssal Herald</font> every " + Data.DEEP_HERALD + "th), and you pick a boon for the run. Level 20 heroes only; the board resets every Monday.";
+			intro.htmlText = "A run: you go in with <b>T1 gear and an empty bag</b> and loot as you fight, better gear the deeper the wave. Every " + Data.DEEP_CHEST_EVERY +
+				" waves a boss and a chest come (the <font color='#d080ff'>Abyssal Herald</font> every " + Data.DEEP_HERALD + "th) and you pick a boon. " +
+				"Every wave cleared earns <font color='#d080ff'>Abyss Points</font> for the Abyss Shop. When the run ends your hero comes back <b>exactly as it went in</b>. The board resets every Monday.";
 			intro.x = 20; intro.y = 50;
 			body.addChild(intro);
 			var run:Object = g.abyssRunInfo;
@@ -56,12 +57,12 @@ package realm {
 				for each (var id:String in run.boons || []) { var b:Object = Data.findBoon(id); if (b) bn.push("<font color='" + Ui.hex(b.col) + "'>" + b.name + "</font>"); }
 				rt.htmlText = "Your run: wave <font color='#d080ff'>" + run.wave + "</font> cleared<br><font size='12'>" + (bn.length ? bn.join(", ") : "no boons yet") + "</font>";
 			} else rt.htmlText = "Not in a run." + (data && data.best ? "  <font color='#c8b8e0'>Your best this week: wave " + data.best + "</font>" : "");
+			rt.htmlText += "<br><font size='12' color='#d080ff'>Abyss Points: " + Ui.commas(g.abyssPts) + "</font>";
 			rt.x = 20; rt.y = 104;
 			body.addChild(rt);
 			if (!run) {
 				var go:Sprite = Ui.button("Enter the Abyss", 160, 34, function():void { g.toggleAbyss(); g.enterDeep(0); }, 14);
 				go.x = W - 180; go.y = 104;
-				go.alpha = g.player.level >= 20 ? 1 : 0.5;
 				body.addChild(go);
 			}
 			// the board: a tab per class
@@ -91,8 +92,9 @@ package realm {
 			lt.x = 20; lt.y = ty + 36;
 			body.addChild(lt);
 			var ct:TextField = Ui.text(11, 0xc8b8e0, false, "left", 250, true);
-			var cs:String = "<font size='14' color='#d080ff'><b>The chests</b></font><br>";
-			for (var ci:int = 1; ci < Data.DEEP_CHEST_INFO.length; ci++) cs += "<font color='#e0c0ff'>" + Data.DEEP_CHEST_NAMES[ci] + "</font><br>" + Data.DEEP_CHEST_INFO[ci] + "<br>";
+			var cs:String = "<font size='14' color='#d080ff'><b>Abyss Points</b></font><br>";
+			for each (var pw:int in [1, 5, 10, 15, 20, 30]) cs += "Wave " + pw + ": <font color='#e0c0ff'>+" + Data.abyssPoints(pw) + "</font><br>";
+			cs += "<br><font size='14' color='#d080ff'><b>Run loot</b></font><br>T1 at the start, T7 by wave 12; from wave 12 a chance at UTs, from wave 20 at Legendaries (the run's own: they stay in the Abyss).";
 			ct.htmlText = cs;
 			ct.x = W - 270; ct.y = ty + 36;
 			body.addChild(ct);

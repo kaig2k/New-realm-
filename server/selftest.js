@@ -1135,7 +1135,8 @@ async function run() {
       }
     };
     killAll();
-    check('its monsters drop nothing', got.length === 0, got.map((i) => i.name).join(','));
+    const runDrops = () => [].concat(...said.filter((m) => m.t === 'w' && m.d.t === 'loot').map((m) => m.d.l));
+    check('its monsters drop the run\'s own loot (marked, never issued into the ledger)', got.length === 0 && runDrops().every((it) => it.run === 1), runDrops().length + '');
     check('wave cleared: a short break, and it counts', ws.deep.state === 'break' && cleared.length === 1 && cleared[0][0] === 1 && !cleared[0][1]);
     ws.deep.wave = 4; ws.deep.t = 0; ws.updateWaves(0.05);
     const boss = ws.w.boss;
@@ -1144,12 +1145,13 @@ async function run() {
     const chest = ws.enemies.find((e) => !e.dead && e.def.abyssChest);
     check('...and once it\'s down, a chest (and a boon for everyone)', got.length === 0 && chest && chest.def.abyssChest === 1 && cleared.pop()[1] === true);
     chest.hitters.set(92, 600); ws.kill(chest);
-    check('the chest gives its loot', got.length >= 4 && got.some((i) => i.kind === 'potion' || /Potion/.test(i.name)), got.map((i) => i.name).join(','));
+    const chestLoot = (said.filter((m) => m.t === 'w' && m.d.t === 'loot' && m.d.n === chest.def.name).pop() || { d: { l: [] } }).d.l;
+    check('the chest gives its loot: run gear and potions', chestLoot.length >= 5 && chestLoot.some((i) => /Potion/.test(i.name)) && chestLoot.every((i) => i.run === 1), chestLoot.map((i) => i.name).join(','));
     const t1 = DD.deepChest(1, DD.CLASSES.wizard, 0), t6 = DD.deepChest(6, DD.CLASSES.wizard, 0);
     let early = 0;
     for (let k = 0; k < 300; k++) early += DD.deepChest(2, DD.CLASSES.wizard, 200).filter((i) => i.uid).length;
     check('deeper chests give more, and the Abyss uniques only from wave 15 on', t6.length > t1.length && early === 0 && DD.deepChestTier(30) === 6 && DD.deepChestTier(5) === 1, [t1.length, t6.length, early].join(' '));
-    check('wave sizes and bosses: every 5th a boss, every 10th the Herald, two at once from wave 20', DD.deepBoss(10) === 'abyss_herald' && DD.deepBoss(7) === null &&
+    check('wave sizes and bosses: every 5th a boss, every 20th the Herald, two at once from wave 20', DD.deepBoss(20) === 'abyss_herald' && DD.deepBoss(10) !== 'abyss_herald' && DD.deepBoss(7) === null &&
       DD.deepCount(20) > DD.deepCount(3) && DD.deepBosses(25).length === 2 && DD.deepCount(8, 3) > DD.deepCount(8, 1));
     // modifiers, and the restless Abyss
     const w2 = new DW('deep:654'), said2 = [];
@@ -1163,6 +1165,11 @@ async function run() {
     const added = w2.enemies.filter((e) => !e.dead).slice(before);
     check('a wave left too long: the Abyss sends elites', added.length >= 2 && added.every((e) => e.elite) && said2.some((m) => m.state === 'restless'), added.length + '');
     check('deep waves are much tougher than early ones', DD.deepScale(20)[0] > 5 && DD.deepScale(20)[1] > 2.4 && DD.deepEliteChance(20) >= 0.4);
+    // runs: T1 kit, loot that climbs with the wave
+    const kit = DD.runKit(DD.CLASSES.wizard);
+    const tiers = (w) => { let t = 0, n = 0; for (let k = 0; k < 200; k++) { const it = DD.runItem(DD.CLASSES.wizard, w); if (it.kind !== 'ring' && !it.rarity) { t += it.tier; n++; } } return t / n; };
+    check('a run starts in T1 gear, and its loot climbs with the wave (T7 by wave 12)', kit.weapon.tier === 1 && kit.armor.tier === 1 && kit.ability.tier === 1 && !kit.ring &&
+      tiers(1) < 2 && tiers(12) > 6.5 && DD.abyssPoints(5) > DD.abyssPoints(4) + 5, [tiers(1), tiers(12)].join(' '));
     check('boons add stats (and Greed adds luck)', DD.deepBonus(['might', 'might', 'life']).att === 8 && DD.deepBonus(['life']).hp === 60 && DD.deepBoonLuck(['greed', 'might']) === 15);
   }
 
@@ -2734,15 +2741,15 @@ async function run() {
     P.clear();
     P.send({ t: 'enter', key: 'deep:4545', cid: 'dp1', x: 100.5, y: 113.5 });
     await wait(300);
-    check('a hero under level 20 can\'t enter the Abyss', P.find((m) => m.t === 'toNexus'));
-    P.send({ t: 'enter', key: 'nexus', cid: 'dp1', x: 100, y: 100 });
-    AD2.send({ t: 'cmd', text: '/maxhero ' + nm });
-    await wait(400);
-    P.clear();
-    P.send({ t: 'enter', key: 'deep:4545', cid: 'dp1', x: 100.5, y: 113.5 });
-    await wait(300);
-    check('a level 20 hero can: a run starts, the first wave on its way', !P.find((m) => m.t === 'toNexus') && P.find((m) => m.t === 'abyssRun' && m.on && m.wave === 0) &&
+    check('any hero can go in (a level 1 one too): a run starts, the first wave on its way', !P.find((m) => m.t === 'toNexus') && P.find((m) => m.t === 'abyssRun' && m.on && m.wave === 0) &&
       P.find((m) => m.t === 'deepWave' && m.state === 'break' && m.secs > 0), JSON.stringify(P.msgs.slice(0, 4)));
+    // mid-run: no trading, and no Abyss Shop
+    P.clear();
+    P.send({ t: 'tradeReq', to: AD2.id });
+    P.send({ t: 'abyssBuy', id: 'stat' });
+    await wait(250);
+    check('no trading and no Abyss Shop during a run', P.find((m) => (m.t === 'note' || m.t === 'msg') && /during an Abyss run/.test(m.text)) && P.find((m) => m.t === 'shopFail' && /Finish your Abyss run/.test(m.msg)),
+      JSON.stringify(P.msgs.slice(0, 3)));
     P.send({ t: 'abyssBoon', id: 'might' });
     await wait(200);
     check('no boon without one being offered', !P.msgs.some((m) => m.t === 'abyssRun' && m.boons && m.boons.length));
@@ -2764,7 +2771,10 @@ async function run() {
     await wait(500);
     check('wave cleared: everyone in the arena hears it and the run counts it', P.find((m) => m.t === 'deepWave' && m.state === 'cleared' && m.wave === 1) && P.find((m) => m.t === 'abyssRun' && m.wave === 1),
       JSON.stringify(P.msgs.filter((m) => m.t === 'deepWave').slice(-3)));
-    check('...and the monsters dropped nothing', !P.find((m) => m.t === 'w' && m.d.t === 'loot') && !AD2.find((m) => m.t === 'w' && m.d.t === 'loot'));
+    const runLoot = [].concat(...P.msgs.concat(AD2.msgs).filter((m) => m.t === 'w' && m.d.t === 'loot').map((m) => m.d.l));
+    check('...what the monsters drop is the run\'s own (marked, never in the ledger)', runLoot.every((it) => it.run === 1 && !it.sid), runLoot.length + ' items');
+    const pts = P.find((m) => m.t === 'abyssPts');
+    check('...and clearing the wave paid Abyss Points', pts && pts.add === AQ.abyssPoints(1) && pts.n === AQ.abyssPoints(1), JSON.stringify(pts));
     P.clear();
     P.send({ t: 'deepBoard', cls: 'wizard' });
     await wait(250);
@@ -2774,6 +2784,28 @@ async function run() {
     P.send({ t: 'enter', key: 'nexus', cid: 'dp1', x: 100, y: 100 });
     await wait(250);
     check('leaving the Abyss ends the run', P.find((m) => m.t === 'abyssRun' && !m.on));
+    // a run's loot can never be saved; Abyss Points can't be raised by a save
+    const runItem = Object.assign(AQ.runItem(AQ.CLASSES.wizard, 3), { run: 1 });
+    P.clear();
+    P.send({ t: 'save', data: { gold: 0, fame: 0, abyssPts: 99999, chars: [{ id: 'dp1', cls: 'wizard', name: 'Diver', level: 1, xp: 0, stats: clone(AQ.CLASSES.wizard.base), inv: [runItem, null, null, null, null, null, null, null] }] } });
+    await wait(300);
+    check('a save holding a run\'s item is refused', P.find((m) => m.t === 'saveRejected' && /Abyss run item/.test(m.reason)), JSON.stringify(P.msgs.slice(0, 2)));
+    P.clear();
+    P.send({ t: 'save', data: { gold: 0, fame: 0, abyssPts: 99999, chars: [{ id: 'dp1', cls: 'wizard', name: 'Diver', level: 1, xp: 0, stats: clone(AQ.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] }] } });
+    await wait(300);
+    // the Abyss Shop: points buy (the server's count, not the save's)
+    P.clear();
+    P.send({ t: 'abyssBuy', id: 'stone' });
+    await wait(250);
+    check('the Abyss Shop refuses what you can\'t afford (a save can\'t give you points)', P.find((m) => m.t === 'shopFail' && /Not enough Abyss Points/.test(m.msg)), JSON.stringify(P.msgs.slice(0, 2)));
+    AD2.send({ t: 'cmd', text: '/give ' + nm + ' 100 abyss' });
+    await wait(250);
+    P.clear();
+    P.send({ t: 'abyssBuy', id: 'stat' });
+    await wait(250);
+    const bought = P.find((m) => m.t === 'shopDone');
+    check('...and sells what you can: the item comes from the server, the points go down', bought && bought.abyssPts === AQ.abyssPoints(1) + 100 - AQ.findAbyssShop('stat').price &&
+      bought.inv.some((it) => it && it.kind === 'stat' && it.sid), JSON.stringify(bought || P.msgs.slice(0, 2)));
     P.s.destroy(); AD2.s.destroy();
   }
 

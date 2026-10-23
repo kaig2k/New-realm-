@@ -826,7 +826,7 @@ class Data {
 			var sk = Data.PET_SKILLS[pet.species];
 			return Data.PET_STAGES[Data.petStage(pet)].name + " " + (p && sk ? sk[p].name : pet.name);
 		}
-	static deepMobs(wave) { wave = __int(wave); return Data.DEEP_MOBS[Math.min(Data.DEEP_MOBS.length - 1, __int((wave - 1) / 4))]; }
+	static deepMobs(wave) { wave = __int(wave); return Data.DEEP_MOBS[Math.min(Data.DEEP_MOBS.length - 1, __int((wave - 1) / 3))]; }
 	static deepCount(wave, players = 1) { wave = __int(wave); players = __int(players);
 			var n = Math.min(30, 5 + wave * 1.6) * (1 + 0.5 * (Math.max(1, players) - 1));
 			return __int(__int(n) - (wave % Data.DEEP_CHEST_EVERY == 0 ? 5 : 0));
@@ -865,6 +865,41 @@ class Data {
 			items.push(Data.makePotion("hp"));
 			items.push(Data.makePotion("mp"));
 			return items;
+		}
+	static runKit(cls) {
+			return {weapon: Data.makeForSlot(cls, 0, 1, null), ability: Data.makeForSlot(cls, 1, 1, null), armor: Data.makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3};
+		}
+	static runTier(wave) { wave = __int(wave); return __int(Math.max(1, Math.min(7, 1 + __int(wave / 2) + (Math.random() < 0.25 ? 1 : 0)))); }
+	static runItem(cls, wave, bonus = 0) { wave = __int(wave); bonus = __int(bonus);
+			var lc = Data.lootClass(cls);
+			var slot = __int(__int(Math.random() * 4));
+			if (wave >= 20 && Math.random() < 0.012 * (1 + bonus)) return Data.makeForSlot(lc, slot, 7, "lg");
+			if (wave >= 12 && Math.random() < 0.025 * (1 + bonus)) return Data.makeForSlot(lc, slot, 7, "ut");
+			var t = __int(Math.min(7, Data.runTier(wave) + bonus));
+			return slot == 3 ? Data.makeRing(Data.randomStat(), Math.max(1, Math.min(5, t - 2))) : Data.makeForSlot(lc, slot, t, null);
+		}
+	static runLoot(def, wave, cls, elite) { wave = __int(wave);
+			var out = [];
+			var k = 0;
+			if (def.abyssChest) {
+				for (k = __int(0); k < 3; k++) out.push(Data.runItem(cls, wave, 1));
+				out.push(Data.makePotion("hp"), Data.makePotion("hp"), Data.makePotion("mp"), Data.makePotion("mp"));
+				return out;
+			}
+			if (def.ai == "boss") {
+				for (k = __int(0); k < 2; k++) out.push(Data.runItem(cls, wave, 1));
+				out.push(Data.makePotion("hp"));
+				return out;
+			}
+			if (Math.random() < (elite ? 0.6 : 0.15)) out.push(Data.runItem(cls, wave, elite ? 1 : 0));
+			if (Math.random() < 0.08) out.push(Data.makePotion("hp"));
+			if (Math.random() < 0.06) out.push(Data.makePotion("mp"));
+			return out;
+		}
+	static abyssPoints(wave) { wave = __int(wave); return __int(2 + wave + (wave % Data.DEEP_CHEST_EVERY == 0 ? 10 : 0)); }
+	static findAbyssShop(id) {
+			for (var e of __vals( Data.ABYSS_SHOP)) if (e.id == id) return e;
+			return null;
 		}
 	static findBoon(id) {
 			for (var b of __vals( Data.DEEP_BOONS)) if (b.id == id) return b;
@@ -6226,6 +6261,12 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
+				lines: ["<b>The Abyss is a run now</b>: your hero goes in with <b>T1 gear and an empty bag</b> (it keeps its level, stats and skills) and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
+					"Everything you find is the run's own. When you leave (R) or fall, your hero comes back <b>exactly as it went in</b>: its own gear, bag and potions. Falling in the Abyss never kills your hero.",
+					"<b>Abyss Points</b>: every wave you clear pays them (more the deeper you go, and a bonus for boss waves), and you keep them whatever happens to the run.",
+					"<b>The Abyss Shop</b>, beside the Abyss's portal in the Nexus: stat potions, dungeon keys, Evolution Stones, Aether, a title, and the Abyss's Legendaries (Voidrend, the Abyssal Crown and the Depthstone).",
+					"Any hero can go in now, not only level 20 ones. The Abyssal Herald comes every 20th wave."]},
 			{id: "2026-10-throne", title: "The Star Throne",
 				lines: ["<b>Astraeon's dungeon is rebuilt</b>: islands of star-stone and marble adrift in a nebula, shooting stars streaking overhead, joined by bridges with a gold runner.",
 					"Cross the <b>Falling Field</b> (starfire craters and star crystals) and the <b>Hall of Constellations</b>; the last bridge, up to the throne, only forms when their guards are dead.",
@@ -6387,6 +6428,7 @@ Data.TITLES = [
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
 			{id: "deep10", name: "the Abyssal", earn: "Clear wave 10 of the Endless Abyss", col: 0xa060ff},
 			{id: "deep25", name: "Voidwalker", earn: "Clear wave 25 of the Endless Abyss", col: 0xd080ff},
+			{id: "delver", name: "the Delver", earn: "Buy it in the Abyss Shop", col: 0xb080ff},
 			{id: "deepking", name: "Abyss Champion", earn: "Reach the highest wave of your class in the Endless Abyss in a week", col: 0xff60ff},
 			{id: "realmlord", name: "Realm Leader", earn: "Be in the guild crowned Realm Leaders (the most realm bosses slain in a week)", col: 0xffd75e},
 			{id: "spirelord", name: "Lord of the Godlands", earn: "Held the old Godlands Spires longest in a week (no longer earned)", col: 0x7fd8ff},
@@ -6511,10 +6553,15 @@ Data.DUNGEONS = [
 			{id: "sprite_world", wall: "coral_pastel", layout: "islands", name: "Sprite World", color: 0xff80d0, floor: 13, accent: 5, tier: 4, mobs: ["sprite", "sprite", "sprite_god", "sprite"], boss: "sprite_boss"}
 		];
 Data.DEEP_CHEST_EVERY = __int(5);
-Data.DEEP_HERALD = __int(10);
+Data.DEEP_HERALD = __int(20);
 Data.DEEP_BOSSES = ["warden", "pyrelord", "spider_boss", "seraph", "lich_boss", "serpent_boss", "sorcerer", "demon_boss", "sprite_boss"];
 Data.DEEP_BOSSES_LATE = ["sun_king", "moon_queen", "star_prince", "frost_warden", "flame_warden", "blood_knight", "hex_queen", "shattered_seraph"];
 Data.DEEP_MOBS = [
+			
+			["goblin", "bandit", "wolf", "spider", "hobbit", "crab"],
+			["orc", "elf", "gazer", "skeleton", "spider", "harpy"],
+			["shade", "ghost", "imp", "dwarf", "great_snake", "gazer"],
+			["lesser_demon", "djinn", "minotaur", "medusa", "ogre", "shade"],
 			["shade", "gazer", "lesser_demon", "ghost", "orc", "imp"],
 			["lich", "djinn", "elf", "lesser_demon", "shade", "great_snake"],
 			["lich", "sprite_god", "lesser_demon", "ghost", "djinn"],
@@ -6541,6 +6588,17 @@ Data.DEEP_CHEST_INFO = ["",
 			"Wave 25: three tier 7 items, a good chance at an Abyss unique",
 			"Wave 30+: the Hoard: three tier 7 items, a coin flip for an Abyss unique"];
 Data.DEEP_UNIQUES = ["voidrend", "abyssal_crown", "depthstone"];
+Data.ABYSS_SHOP = [
+			{id: "stat", name: "Stat Potion", desc: "A potion of a random stat", price: 25},
+			{id: "stat5", name: "Five Stat Potions", desc: "Five potions of random stats", price: 110},
+			{id: "key", name: "Dungeon Key", desc: "A key to a random dungeon", price: 40},
+			{id: "stone", name: "Evolution Stone", desc: "Evolves your pet", price: 80},
+			{id: "aether", name: "25 Aether", desc: "For the Starforge", price: 60},
+			{id: "title", name: "Title: the Delver", desc: "A title to wear", price: 300},
+			{id: "voidrend", name: "Voidrend", desc: "The Abyss's Legendary weapon", price: 1500},
+			{id: "abyssal_crown", name: "Abyssal Crown", desc: "The Abyss's Legendary ability", price: 1500},
+			{id: "depthstone", name: "Depthstone", desc: "The Abyss's Legendary ring", price: 1500}
+		];
 Data.DEEP_BOONS = [
 			{id: "might", name: "Abyssal Might", desc: "+4 Attack", st: {att: 4}, col: 0xff6a50},
 			{id: "haste", name: "Quickened", desc: "+5 Speed", st: {spd: 5}, col: 0x80ffa0},

@@ -127,6 +127,7 @@ package realm {
 			return function():void {
 				var pt:Object = g.pet;
 				if (!pt || !pt.bag[i]) return;
+				if (g.inRun) { g.msg("Your pet's bag stays shut on an Abyss run.", 0xff8080); return; }
 				var free:int = g.player.freeSlot();
 				if (free < 0) { g.msg("Your inventory is full.", 0xff8080); return; }
 				// items stay with their hero mode: what one mode's hero gave the pet only comes back out to that mode
@@ -146,6 +147,7 @@ package realm {
 				var pt:Object = g.pet;
 				var it:Object = g.player.inv[i];
 				if (!pt || !it) return;
+				if (g.inRun) { g.msg("Your pet's bag stays shut on an Abyss run.", 0xff8080); return; }
 				var free:int = pt.bag.indexOf(null);
 				if (free < 0) { g.msg("Your pet can't carry any more.", 0xff8080); return; }
 				pt.bag[free] = it;

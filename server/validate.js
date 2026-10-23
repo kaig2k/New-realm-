@@ -32,6 +32,8 @@ function checkItem(it) {
   if (it === null || it === undefined) return null;
   if (typeof it !== 'object' || Array.isArray(it)) return 'not an item';
   if (!KINDS.has(it.kind)) return 'unknown item kind';
+  // (an Abyss run's loot is the run's: it never leaves it)
+  if (it.run) return 'an Abyss run item';
   if (it.rarity !== undefined && it.rarity !== null && !RARITIES.has(it.rarity)) return 'unknown rarity';
   if (it.curse !== undefined && it.curse !== null && !CURSES[it.curse]) return 'unknown curse';
   if (it.tier !== undefined && (!isNum(it.tier) || it.tier < 0 || it.tier > 8)) return 'bad tier';

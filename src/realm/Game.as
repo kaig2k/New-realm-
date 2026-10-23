@@ -776,8 +776,8 @@ package realm {
 		public function set boss(e:Enemy):void { world.boss = e; }
 		public function get gold():int { return int(Save.data.gold || 0); }
 		public function get onrane():int { return int(Save.data.onrane || 0); }
-		public function addGold(n:int):void { Save.data.gold = gold + n; }
-		public function addOnrane(n:int):void { Save.data.onrane = onrane + n; }
+		public function addGold(n:int):void { if (runSnap && n > 0) return; Save.data.gold = gold + n; }
+		public function addOnrane(n:int):void { if (runSnap && n > 0) return; Save.data.onrane = onrane + n; }
 		public function get nearMarket():Boolean { return nearStation != null && nearStation.kind == "market"; }
 		public function get inNexus():Boolean { return world == nexusWorld; }
 
@@ -803,6 +803,8 @@ package realm {
 			stations.push({x: 74.5, y: 108.5, kind: "pets", spr: "nest", label: makeLabel("Pet Yard", 0x60c0ff), w: "nexus"});
 			stations.push({x: 108.5, y: 120.5, kind: "market", spr: "merchant", label: makeLabel("Marketplace", 0x6fe08f), w: "nexus"});
 			stations.push({x: KEYS_X, y: KEYS_Y, kind: "keys", spr: "keysmith", label: makeLabel("Key Merchant", 0x80d0ff), w: "nexus"});
+			// beside the way down into the Abyss: its shop, for the points its runs earn
+			if (Online.connected) stations.push({x: 132.5, y: 95.5, kind: "abyssshop", spr: "abyss_chest", label: makeLabel("Abyss Shop", 0xd080ff), w: "nexus"});
 			// signposts by the entrance, for finding your way the first time
 			stations.push({x: 96.5, y: 123.2, kind: "deco", spr: "signpost", w: "nexus",
 				label: makeLabel("<font size='12'><b>North:</b> Realm portals\n<b>West:</b> Vault, Fame Store, Pet Yard\n<b>Here:</b> Quest Board</font>", 0xf0e0b0)});
@@ -1428,8 +1430,54 @@ package realm {
 
 		/** Persist the current character (RotMG keeps characters until they die). */
 		public function saveCharacter():void {
+			// (on an Abyss run the hero is borrowed: only the hero as it went in is ever saved)
+			if (runSnap) { Save.storeChar(runSnap); return; }
 			if (deathInfo || player.hp <= 0) return;
 			Save.storeChar(player.serialize());
+		}
+
+		// ------------------------------------------------------------ Abyss runs
+		/** On an Abyss run: the hero as it went in (its gear, bag, XP...), put back when the run ends. */
+		private var runSnap:Object = null;
+		private var runPts:int = 0, runWave:int = 0;
+		public function get inRun():Boolean { return runSnap != null; }
+
+		/** A run begins: the hero keeps its level, stats and skills, but goes in with T1 gear, an empty bag and three of each potion. */
+		private function startRun():void {
+			if (runSnap) return;
+			runSnap = player.serialize();
+			var rc:Object = Save.clone(runSnap);
+			var kit:Object = Data.runKit(player.cls);
+			for (var k:String in kit) rc[k] = kit[k];
+			rc.inv = [];
+			while (rc.inv.length < (rc.backpack ? 16 : 8)) rc.inv.push(null);
+			player.restore(rc);
+			runPts = 0; runWave = 0;
+			hud.refresh();
+		}
+
+		/** The run is over (left, or fell): the hero comes back exactly as it went in. */
+		private function endRun(fell:Boolean):void {
+			if (!runSnap) return;
+			var snap:Object = runSnap;
+			runSnap = null;
+			player.restore(snap);
+			Save.storeChar(snap);
+			hud.refresh();
+			showBanner(fell ? "Your run is over" : "Run ended", 0xd080ff, 3);
+			msg((fell ? "You fell" : "You left") + (runWave > 0 ? " after clearing wave " + runWave : " before clearing a wave") + ". " +
+				(runPts > 0 ? "You earned <b>" + runPts + "</b> Abyss Points (" + Ui.commas(abyssPts) + " in all). " : "") +
+				"Your hero is back as it went in: the run's loot stays in the Abyss.", 0xd080ff);
+		}
+
+		/** The account's Abyss Points (the server's count). */
+		public function get abyssPts():int { return int(Save.data.abyssPts || 0); }
+
+		/** The server paid out Abyss Points for a cleared wave. */
+		public function abyssPoints(m:Object):void {
+			Save.data.abyssPts = int(m.n);
+			runPts = int(m.run);
+			if (int(m.add) > 0) floatText(player.x, player.y - 1.6, "+" + int(m.add) + " Abyss Points", 0xd080ff);
 		}
 
 		/** Saves and, online, sends it to the server at once (not on the usual short delay). */
@@ -1464,7 +1512,8 @@ package realm {
 			else msg("The server refused your save (" + reason + "). Your character was restored from the server's copy.", 0xff8080);
 			// everything goes back to the server's copy together, so nothing can exist twice
 			if (vaultWorld) fillVault();
-			for each (var c:Object in Save.chars) if (c && c.id == player.id) { player.restore(c); hud.refresh(); if (ascWin) ascWin.refresh(); return; }
+			// (on a run, the server's copy is the hero that went in: the run's own hero carries on)
+			for each (var c:Object in Save.chars) if (c && c.id == player.id) { if (runSnap) { runSnap = Save.clone(c); return; } player.restore(c); hud.refresh(); if (ascWin) ascWin.refresh(); return; }
 			msg("This character isn't on the server. Save & Quit and pick a character.", 0xff8080);
 		}
 
@@ -1518,7 +1567,7 @@ package realm {
 			}
 			world = w;
 			// (out of the Abyss, its run and boons are over, whatever the server managed to say)
-			if (!w.key || w.key.indexOf("deep:") != 0) { abyssRunInfo = null; Player.deepBoons = null; }
+			if (!w.key || w.key.indexOf("deep:") != 0) { endRun(false); abyssRunInfo = null; Player.deepBoons = null; }
 			player.x = x;
 			player.y = y;
 			player.invulnT = 1.5;
@@ -3607,6 +3656,14 @@ package realm {
 
 		private function die():void {
 			var p:Player = player;
+			// an Abyss run's hero is borrowed: falling ends the run, not the hero
+			if (runSnap) {
+				burst(p.x, p.y, 0xa040ff, 30);
+				Sfx.play("hurt", 1);
+				endRun(true);
+				nexusNow();
+				return;
+			}
 			if (sandbox) {
 				showBanner("Defeated! Restarting the fight...", 0xff6060, 2.5);
 				burst(p.x, p.y, 0xd02020, 30);
@@ -3936,7 +3993,8 @@ package realm {
 			raids: "The Raid Table: use a raid key to open a raid, boss fights one after another for a group. The Starfall Vault changes every week.",
 			vaultkeeper: "The Vault Keeper sells more vault chests. Your vault is shared by all your heroes of this mode (Regular, Ironman, Hardcore and Group Ironman heroes each have their own).",
 			guildhall: "Your guild's shared bank, its weekly goals (finish all three for a new banner), its banners and the guild ranking.",
-			groupstore: "Group Storage: shared by every Group Ironman hero in your group. Make a group with /group create Name, then /group invite friends."
+			groupstore: "Group Storage: shared by every Group Ironman hero in your group. Make a group with /group create Name, then /group invite friends.",
+			abyssshop: "The Abyss Shop: spend the Abyss Points you earn clearing waves in the Endless Abyss (its portal is right here)."
 		};
 
 		private function closeStation():void {
@@ -3957,8 +4015,8 @@ package realm {
 			sp.removeChildren();
 			sp.graphics.clear();
 			var w:int = 440, y:int = 10;
-			var title:Sprite = Ui.heading({keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: showAch ? "Achievements" : "Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage"}[openStation.kind],
-				21, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8}[openStation.kind], w);
+			var title:Sprite = Ui.heading({keys: "Key Merchant", forge: "Starforge", market: "Marketplace", quests: showAch ? "Achievements" : "Quests", pets: "Pet Yard", skins: "Fame Store", raids: "Raid Table", vaultkeeper: "Vault Keeper", guildhall: "Guild Hall", groupstore: "Group Storage", abyssshop: "Abyss Shop"}[openStation.kind],
+				21, {keys: 0x80d0ff, forge: 0xc080ff, market: 0x6fe08f, quests: 0xf0d080, pets: 0x60c0ff, skins: 0xff9a2e, raids: 0xff3050, vaultkeeper: Ui.GOLD, guildhall: 0x80ff80, groupstore: 0x7fd8a8, abyssshop: 0xd080ff}[openStation.kind], w);
 			title.y = y;
 			sp.addChild(title);
 			y += 32;
@@ -4023,6 +4081,22 @@ package realm {
 						sp.addChild(nk);
 					}
 					y += Math.max(keys > 0 ? 70 : 46, rt.height + 8);
+				}
+			} else if (openStation.kind == "abyssshop") {
+				info.htmlText = "Abyss Points come from clearing waves in the Endless Abyss: the deeper the wave, the more it pays (boss waves pay a bonus). " +
+					"You have <font color='#d080ff'><b>" + Ui.commas(abyssPts) + "</b></font> Abyss Points.";
+				info.y = y;
+				y += info.height + 8;
+				for each (var ae:Object in Data.ABYSS_SHOP) {
+					var an:TextField = Ui.text(14, 0xffffff, true, "left", 300, true);
+					an.htmlText = ae.name + "<font size='12' color='#999999'>  " + ae.desc + "</font>";
+					an.x = 14; an.y = y + 6;
+					sp.addChild(an);
+					var ab:Sprite = Ui.button(Ui.commas(ae.price) + " points", 120, 28, abyssBuyFn(ae.id), 13);
+					ab.x = w - 134; ab.y = y;
+					if (abyssPts < ae.price) ab.alpha = 0.5;
+					sp.addChild(ab);
+					y += 34;
 				}
 			} else if (openStation.kind == "keys") {
 				info.htmlText = "Dungeon keys open a portal to that dungeon right where you stand (30 seconds; friends can follow). " +
@@ -6051,6 +6125,7 @@ package realm {
 		}
 
 		private function petGainXp(n:int):void {
+			if (runSnap) return;
 			var pt:Object = pet;
 			if (!pt) return;
 			var max:int = Data.PET_RARITIES[pt.rarity].max;
@@ -6482,6 +6557,16 @@ package realm {
 			return b;
 		}
 
+		private function abyssBuyFn(id:String):Function {
+			return function():void {
+				var e:Object = Data.findAbyssShop(id);
+				if (!e || shopWaiting) return;
+				if (abyssPts < e.price) { msg("Not enough Abyss Points for " + e.name + " (" + e.price + "). Clear waves in the Endless Abyss to earn more.", 0xff8080); return; }
+				if (!net.shopRequest({t: "abyssBuy", id: id})) { msg("The Abyss Shop is on the server: play online to use it.", 0xff8080); return; }
+				shopWaiting = true;
+			};
+		}
+
 		private function buyKey(idx:int):void {
 			var price:int = Data.keyPrice(idx);
 			if (price <= 0) return;
@@ -6612,6 +6697,8 @@ package realm {
 			Save.data.gold = int(m.gold);
 			Save.data.onrane = int(m.onrane);
 			Save.data.tradeSeq = int(m.seq);
+			if (m.abyssPts != undefined) Save.data.abyssPts = int(m.abyssPts);
+			if (m.earned is Array) Save.data.earned = m.earned;
 			saveCharacter();
 			Save.flush();
 			if (m.stable) Save.data.stable = m.stable;
@@ -7771,7 +7858,6 @@ package realm {
 		/** Whether this hero may go into the Endless Abyss now (says why not). */
 		private function deepAllowed():Boolean {
 			if (!net.online || !(Online.welcome && Online.welcome.serverMonsters)) { msg("The Endless Abyss needs a server that runs its monsters: play online on Eldmere to go in.", 0xff8080); return false; }
-			if (player.level < Player.MAX_LEVEL) { msg("Only level 20 heroes can enter the Endless Abyss.", 0xff8080); return false; }
 			return true;
 		}
 
@@ -7786,11 +7872,13 @@ package realm {
 			dungeonWorld.key = "deep:" + seed;
 			if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }
 			switchWorld(dungeonWorld, dungeonWorld.spawnX, dungeonWorld.spawnY);
+			startRun();
 			player.invulnT = 3;
 			player.bossDmg = 0;
 			Sfx.play("portal");
 			showBanner("The Endless Abyss", 0xd080ff, 3);
-			msg("The Endless Abyss: survive wave after wave. Its monsters drop nothing, but every 5 waves a chest appears, better the further you get. Return to the Nexus (R) to stop.", 0xd080ff);
+			msg("An Abyss run: you start in T1 gear with an empty bag, and everything you find here is the run's own (better gear the deeper you go). " +
+				"Every wave cleared earns Abyss Points for the Abyss Shop by the portal. When you leave (R) or fall, your hero comes back exactly as it went in.", 0xd080ff);
 		}
 
 		/** The server's word on the waves (WavePanel). */
@@ -7840,7 +7928,7 @@ package realm {
 
 		/** The run: on (floor, boons) or over. */
 		public function abyssRun(m:Object):void {
-			if (m.on) abyssRunInfo = {wave: int(m.wave), boons: (m.boons as Array) || []};
+			if (m.on) { abyssRunInfo = {wave: int(m.wave), boons: (m.boons as Array) || []}; runWave = int(m.wave); }
 			else {
 				abyssRunInfo = null;
 				if (boonPicker) { if (boonPicker.parent) removeChild(boonPicker); boonPicker = null; }

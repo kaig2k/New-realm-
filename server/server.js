@@ -475,8 +475,7 @@ function announceRaid(c, wkey, i, seed, heroic) {
 function mayEnter(c, world, from) {
   if (!sims || canTest(c)) return true;
   const kind = world.split(':')[0];
-  // the Endless Abyss: level 20 heroes only
-  if (kind === 'deep') { const ch = serverChar(c); return !!(ch && Number(ch.level) >= 20); }
+  // (the Endless Abyss is open to every hero: a run starts everyone in T1 gear)
   if (kind !== 'dg' && kind !== 'raid' && kind !== 'arena') return true;
   // someone is in there now (a party member followed with /join, a reconnect)
   const sm = sims.get(world);
@@ -1003,6 +1002,8 @@ function applySave(c, data, cid) {
   if (prev.stable) data.stable = prev.stable; else delete data.stable;
   // and the daily login streak
   if (prev._login) data._login = prev._login; else delete data._login;
+  // and the Abyss Points (only clearing waves earns them, only the Abyss Shop spends them)
+  if (prev.abyssPts !== undefined) data.abyssPts = prev.abyssPts; else delete data.abyssPts;
   // and the week's raid first clears, and the raids cleared on Heroic
   if (prev.raidWeek) data.raidWeek = prev.raidWeek; else delete data.raidWeek;
   if (prev.heroics) data.heroics = prev.heroics; else delete data.heroics;
@@ -1083,6 +1084,17 @@ function setCaps(c) {
   // (the Endless Abyss run's boons)
   if (c.abyss) { const db = Data.deepBonus(c.abyss.boons); for (const k in db) extra[k] = (extra[k] || 0) + db[k]; }
   c.caps = combat.caps(serverChar(c), sv.pet, extra) || NEW_HERO_CAPS;
+  // (on an Abyss run the hero fights with whatever the run gave it, up to Legendary gear: caps for the best of it)
+  if (c.abyss && serverChar(c)) {
+    const ch = serverChar(c), cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+    let best = c.caps;
+    for (let k = 0; k < 6; k++) {
+      const run = Object.assign({}, ch, { weapon: Data.makeForSlot(cls, 0, 7, k < 3 ? 'lg' : null), ability: Data.makeForSlot(cls, 1, 7, k < 3 ? 'lg' : null), armor: Data.makeForSlot(cls, 2, 7, null), ring: Data.makeForSlot(cls, 3, 7, null) });
+      const rc = combat.caps(run, sv.pet, extra);
+      if (rc && rc.rate > best.rate) best = Object.assign({}, rc, { hex: true, decoy: true });
+    }
+    c.caps = Object.assign({}, best, { hit: Math.ceil(best.hit * 1.5), rate: Math.ceil(best.rate * 1.5), burst: Math.ceil(best.burst * 1.5), def: Math.max(best.def, c.caps.def) });
+  }
   // (Ascendant Fortune: loot luck the server adds to its own drops)
   c.ascLuck = Data.ascRank(sv.asc, 'fortune') * 3;
   c.maxDps = c.caps.rate * 3;
@@ -1401,6 +1413,8 @@ const handlers = {
 
   // ---------------------------------------------------------------- trading
   tradeReq(c, m) {
+    // (an Abyss run's hero is borrowed: what it carries isn't the hero's to trade)
+    if (String(c.world || '').startsWith('deep:')) return c.note('You can\'t trade during an Abyss run: everything you find there is the run\'s.');
     const o = clients.get(m.to);
     if (!o || !o.authed || o.world !== c.world) return c.note('That player isn\'t here.');
     if (o === c) return;
@@ -2042,6 +2056,39 @@ const handlers = {
     shopDone(c, sv, ch, { bought: item.name });
   },
 
+  /** The Abyss Shop: Abyss Points (earned clearing waves) buy potions, keys, stones, Aether, a title and the Abyss's Legendaries. */
+  abyssBuy(c, m) {
+    if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'buy from the Abyss Shop') });
+    if (String(c.world || '').startsWith('deep:')) return c.send({ t: 'shopFail', msg: 'Finish your Abyss run first.' });
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was bought.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const e = Data.findAbyssShop(str(m.id, 24));
+    if (!e) return;
+    const pts = Number(sv.abyssPts) || 0;
+    if (pts < e.price) return c.send({ t: 'shopFail', msg: 'Not enough Abyss Points (' + e.name + ' costs ' + e.price + ').' });
+    if (e.id === 'aether') sv.onrane = (sv.onrane || 0) + 25;
+    else if (e.id === 'title') {
+      if (sv._titles && sv._titles.delver) return c.send({ t: 'shopFail', msg: 'You already have that title.' });
+      grantTitle(c.key, 'delver');
+    } else {
+      const keyed = Data.DUNGEONS.map((d, i) => i).filter((i) => Data.keyPrice(i) > 0);
+      const makers = {
+        stat: () => [Data.makePotion('stat', Data.randomStat())],
+        stat5: () => [0, 1, 2, 3, 4].map(() => Data.makePotion('stat', Data.randomStat())),
+        key: () => [Data.makeDungeonKey(keyed[Math.floor(Math.random() * keyed.length)])],
+        stone: () => [Data.makeStone()]
+      };
+      const list = makers[e.id] ? makers[e.id]() : Data.DEEP_UNIQUES.indexOf(e.id) >= 0 ? [Uniques.make(e.id)] : null;
+      if (!list) return;
+      if (ch.inv.filter((x) => x === null).length < list.length) return c.send({ t: 'shopFail', msg: 'Inventory full! (' + e.name + ' needs ' + list.length + ' free slot' + (list.length > 1 ? 's' : '') + ')' });
+      for (const it of list) ch.inv[ch.inv.indexOf(null)] = items.issue(sv, it);
+    }
+    sv.abyssPts = pts - e.price;
+    log(c.name + ' bought ' + e.name + ' in the Abyss Shop (' + e.price + ' points)');
+    shopDone(c, sv, ch, { bought: e.name, abyssPts: sv.abyssPts, earned: Object.keys(sv._titles || {}) });
+  },
+
   /** Selling an item to the Nexus merchant (shift-click at the Marketplace): the server pays for it. */
   sell(c, m) {
     if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'sell items') });
@@ -2486,6 +2533,17 @@ const handlers = {
           log(c.name + ' gave ' + accounts[who].name + ' ' + n + ' ' + kind);
           shopDone(target, sv, ch, { market: c.name + ' gave you ' + n + ' ' + (kind === 'cursed' ? 'cursed item' : kind.startsWith('rune') ? Data.STAT_NAMES[stat] + ' Rune' : 'Evolution Stone') + (n === 1 ? '' : 's') + '.' });
           return c.note('Gave ' + accounts[who].name + ' ' + n + ' of them.', 0x80ff80);
+        }
+        // /give name 500 abyss: Abyss Points (events, testing)
+        if (kind === 'abyss' || kind === 'points') {
+          const sv = onlineSave(who);
+          if (!who || !accounts[who] || !sv) return c.note('No account called ' + parts[1] + '.');
+          if (!(Math.abs(amount) > 0 && Math.abs(amount) <= 1000000)) return c.note('Usage: /give name 500 abyss');
+          sv.abyssPts = Math.max(0, (Number(sv.abyssPts) || 0) + amount);
+          store.putSave(who, sv);
+          log(c.name + ' gave ' + accounts[who].name + ' ' + amount + ' Abyss Points');
+          if (target) target.send({ t: 'abyssPts', n: sv.abyssPts, add: amount, run: 0 });
+          return c.note(accounts[who].name + ' has ' + sv.abyssPts + ' Abyss Points now.', 0x80ff80);
         }
         // /give name 200 petxp: grows their active pet (events, testing)
         if (kind === 'petxp') {
@@ -3541,7 +3599,9 @@ function deepEnter(c, world) {
     if (c.key) deepRuns.delete(c.key);
     // (always say so: a game that reconnected may still think it's on a run)
     c.send({ t: 'abyssRun', on: false });
+    const was = !!c.abyss;
     c.abyss = null; c.abyssOffer = null;
+    if (was) setCaps(c);
     return;
   }
   const kept = c.key && deepRuns.get(c.key);
@@ -3549,7 +3609,8 @@ function deepEnter(c, world) {
   else if (!c.abyss || c.abyss.key !== world) c.abyss = { key: world, wave: 0, boons: [], start: Date.now() };
   if (c.key) deepRuns.set(c.key, c.abyss);
   c.abyssOffer = null;
-  c.send({ t: 'abyssRun', on: true, wave: c.abyss.wave, boons: c.abyss.boons });
+  setCaps(c);
+  c.send({ t: 'abyssRun', on: true, wave: c.abyss.wave, boons: c.abyss.boons, pts: c.abyss.pts || 0 });
 }
 
 /** A wave is cleared: it counts for everyone in the arena; after every 5th, a boon to pick. */
@@ -3575,6 +3636,15 @@ if (sims) sims.onDeep = (sim, players, wave, chest) => {
     }
     if (wave >= 10) grantTitle(c.key, 'deep10');
     if (wave >= 25) grantTitle(c.key, 'deep25');
+    // Abyss Points: each wave cleared pays, whatever happens to the run after
+    const sv = onlineSave(c.key);
+    if (sv) {
+      const add = Data.abyssPoints(wave);
+      sv.abyssPts = (Number(sv.abyssPts) || 0) + add;
+      c.abyss.pts = (c.abyss.pts || 0) + add;
+      store.putSave(c.key, sv);
+      c.send({ t: 'abyssPts', n: sv.abyssPts, add, run: c.abyss.pts });
+    }
     if (chest) {
       const ids = Data.DEEP_BOONS.map((b) => b.id).sort(() => Math.random() - 0.5).slice(0, 3);
       c.abyssOffer = { wave, ids };

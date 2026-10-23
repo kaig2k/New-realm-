@@ -323,6 +323,9 @@ package realm {
 				case "abyssRun":
 					g.abyssRun(m);
 					break;
+				case "abyssPts":
+					g.abyssPoints(m);
+					break;
 				case "abyssBoons":
 					g.abyssBoons(m);
 					break;

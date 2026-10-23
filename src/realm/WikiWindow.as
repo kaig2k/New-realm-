@@ -137,7 +137,7 @@ package realm {
 			}
 			// the Realm Siege's Warlord and the Endless Abyss's Herald (their collections count in the Oracle too)
 			add(events, "siege_warlord", "The Realm Siege (every couple of hours, in the Godlands)");
-			add(events, "abyss_herald", "The Endless Abyss, every 10th wave (its uniques are in the Abyss's chests)");
+			add(events, "abyss_herald", "The Endless Abyss, every 20th wave (its Legendaries are in the Abyss Shop)");
 			for each (var d:Object in Data.DUNGEONS) {
 				var finale:Boolean = Bosses.FINALES.indexOf(d.id) >= 0;
 				var list:Array = finale ? finales : d.hard ? hard : dungeons;

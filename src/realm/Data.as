@@ -1616,6 +1616,12 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
+				lines: ["<b>The Abyss is a run now</b>: your hero goes in with <b>T1 gear and an empty bag</b> (it keeps its level, stats and skills) and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
+					"Everything you find is the run's own. When you leave (R) or fall, your hero comes back <b>exactly as it went in</b>: its own gear, bag and potions. Falling in the Abyss never kills your hero.",
+					"<b>Abyss Points</b>: every wave you clear pays them (more the deeper you go, and a bonus for boss waves), and you keep them whatever happens to the run.",
+					"<b>The Abyss Shop</b>, beside the Abyss's portal in the Nexus: stat potions, dungeon keys, Evolution Stones, Aether, a title, and the Abyss's Legendaries (Voidrend, the Abyssal Crown and the Depthstone).",
+					"Any hero can go in now, not only level 20 ones. The Abyssal Herald comes every 20th wave."]},
 			{id: "2026-10-throne", title: "The Star Throne",
 				lines: ["<b>Astraeon's dungeon is rebuilt</b>: islands of star-stone and marble adrift in a nebula, shooting stars streaking overhead, joined by bridges with a gold runner.",
 					"Cross the <b>Falling Field</b> (starfire craters and star crystals) and the <b>Hall of Constellations</b>; the last bridge, up to the throne, only forms when their guards are dead.",
@@ -1884,6 +1890,7 @@ package realm {
 			{id: "siege", name: "Siegebreaker", earn: "Be the MVP (most damage) when a Realm Siege's Warlord falls", col: 0xffa020},
 			{id: "deep10", name: "the Abyssal", earn: "Clear wave 10 of the Endless Abyss", col: 0xa060ff},
 			{id: "deep25", name: "Voidwalker", earn: "Clear wave 25 of the Endless Abyss", col: 0xd080ff},
+			{id: "delver", name: "the Delver", earn: "Buy it in the Abyss Shop", col: 0xb080ff},
 			{id: "deepking", name: "Abyss Champion", earn: "Reach the highest wave of your class in the Endless Abyss in a week", col: 0xff60ff},
 			{id: "realmlord", name: "Realm Leader", earn: "Be in the guild crowned Realm Leaders (the most realm bosses slain in a week)", col: 0xffd75e},
 			{id: "spirelord", name: "Lord of the Godlands", earn: "Held the old Godlands Spires longest in a week (no longer earned)", col: 0x7fd8ff},
@@ -2181,20 +2188,25 @@ package realm {
 		// Its monsters drop nothing; every DEEP_CHEST_EVERY waves cleared an Abyssal Chest appears instead,
 		// better the further you got (deepChest).
 		public static const DEEP_CHEST_EVERY:int = 5;
-		/** Every 10th wave the Abyssal Herald comes (with the other boss waves between). */
-		public static const DEEP_HERALD:int = 10;
+		/** Every 20th wave the Abyssal Herald comes (with the other boss waves between). */
+		public static const DEEP_HERALD:int = 20;
 		/** Boss waves (every 5th): dungeon masters first, the hard dungeons' bosses from wave 25; the Herald on every 10th. */
 		public static const DEEP_BOSSES:Array = ["warden", "pyrelord", "spider_boss", "seraph", "lich_boss", "serpent_boss", "sorcerer", "demon_boss", "sprite_boss"];
 		public static const DEEP_BOSSES_LATE:Array = ["sun_king", "moon_queen", "star_prince", "frost_warden", "flame_warden", "blood_knight", "hex_queen", "shattered_seraph"];
 		/** The monsters of a wave, by how deep it is (a new, nastier mix every 4 waves). */
 		public static const DEEP_MOBS:Array = [
+			// (a run starts in T1 gear: the first waves are the realm's beach and lowlands)
+			["goblin", "bandit", "wolf", "spider", "hobbit", "crab"],
+			["orc", "elf", "gazer", "skeleton", "spider", "harpy"],
+			["shade", "ghost", "imp", "dwarf", "great_snake", "gazer"],
+			["lesser_demon", "djinn", "minotaur", "medusa", "ogre", "shade"],
 			["shade", "gazer", "lesser_demon", "ghost", "orc", "imp"],
 			["lich", "djinn", "elf", "lesser_demon", "shade", "great_snake"],
 			["lich", "sprite_god", "lesser_demon", "ghost", "djinn"],
 			["gale_harpy", "bone_thrall", "blood_hound", "lich", "sprite_god"],
 			["gale_harpy", "bone_thrall", "blood_hound", "thunder_golem", "cloud_serpent"]
 		];
-		public static function deepMobs(wave:int):Array { return DEEP_MOBS[Math.min(DEEP_MOBS.length - 1, int((wave - 1) / 4))]; }
+		public static function deepMobs(wave:int):Array { return DEEP_MOBS[Math.min(DEEP_MOBS.length - 1, int((wave - 1) / 3))]; }
 		/** How many monsters come in wave n for this many players (before its modifiers; a boss wave brings fewer). */
 		public static function deepCount(wave:int, players:int = 1):int {
 			var n:Number = Math.min(30, 5 + wave * 1.6) * (1 + 0.5 * (Math.max(1, players) - 1));
@@ -2266,6 +2278,61 @@ package realm {
 			items.push(makePotion("mp"));
 			return items;
 		}
+		// ---- Abyss runs: you go in with T1 gear and an empty bag, and everything you find is the run's own
+		// (it's gone when the run ends: your hero comes back as it went in). Clearing waves earns Abyss Points.
+		/** The kit a run starts with: T1 weapon, ability and armour for the class (and potions). */
+		public static function runKit(cls:Object):Object {
+			return {weapon: makeForSlot(cls, 0, 1, null), ability: makeForSlot(cls, 1, 1, null), armor: makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3};
+		}
+		/** The tier a run's drops come at on wave n (T1 at the start, T7 by wave 12). */
+		public static function runTier(wave:int):int { return Math.max(1, Math.min(7, 1 + int(wave / 2) + (Math.random() < 0.25 ? 1 : 0))); }
+		/** One run item for wave n (bonus: tiers better); deep in, a chance at a UT or a Legendary. */
+		public static function runItem(cls:Object, wave:int, bonus:int = 0):Object {
+			var lc:Object = lootClass(cls);
+			var slot:int = int(Math.random() * 4);
+			if (wave >= 20 && Math.random() < 0.012 * (1 + bonus)) return makeForSlot(lc, slot, 7, "lg");
+			if (wave >= 12 && Math.random() < 0.025 * (1 + bonus)) return makeForSlot(lc, slot, 7, "ut");
+			var t:int = Math.min(7, runTier(wave) + bonus);
+			return slot == 3 ? makeRing(randomStat(), Math.max(1, Math.min(5, t - 2))) : makeForSlot(lc, slot, t, null);
+		}
+		/** What a monster drops on a run (its chests and bosses more and better). */
+		public static function runLoot(def:Object, wave:int, cls:Object, elite:Boolean):Array {
+			var out:Array = [];
+			var k:int;
+			if (def.abyssChest) {
+				for (k = 0; k < 3; k++) out.push(runItem(cls, wave, 1));
+				out.push(makePotion("hp"), makePotion("hp"), makePotion("mp"), makePotion("mp"));
+				return out;
+			}
+			if (def.ai == "boss") {
+				for (k = 0; k < 2; k++) out.push(runItem(cls, wave, 1));
+				out.push(makePotion("hp"));
+				return out;
+			}
+			if (Math.random() < (elite ? 0.6 : 0.15)) out.push(runItem(cls, wave, elite ? 1 : 0));
+			if (Math.random() < 0.08) out.push(makePotion("hp"));
+			if (Math.random() < 0.06) out.push(makePotion("mp"));
+			return out;
+		}
+		/** Abyss Points for clearing wave n (and a bonus for every boss wave). */
+		public static function abyssPoints(wave:int):int { return 2 + wave + (wave % DEEP_CHEST_EVERY == 0 ? 10 : 0); }
+		/** The Abyss Shop (beside the Abyss's portal in the Nexus): what Abyss Points buy. */
+		public static const ABYSS_SHOP:Array = [
+			{id: "stat", name: "Stat Potion", desc: "A potion of a random stat", price: 25},
+			{id: "stat5", name: "Five Stat Potions", desc: "Five potions of random stats", price: 110},
+			{id: "key", name: "Dungeon Key", desc: "A key to a random dungeon", price: 40},
+			{id: "stone", name: "Evolution Stone", desc: "Evolves your pet", price: 80},
+			{id: "aether", name: "25 Aether", desc: "For the Starforge", price: 60},
+			{id: "title", name: "Title: the Delver", desc: "A title to wear", price: 300},
+			{id: "voidrend", name: "Voidrend", desc: "The Abyss's Legendary weapon", price: 1500},
+			{id: "abyssal_crown", name: "Abyssal Crown", desc: "The Abyss's Legendary ability", price: 1500},
+			{id: "depthstone", name: "Depthstone", desc: "The Abyss's Legendary ring", price: 1500}
+		];
+		public static function findAbyssShop(id:String):Object {
+			for each (var e:Object in ABYSS_SHOP) if (e.id == id) return e;
+			return null;
+		}
+
 		/** Boons: after each boss wave everyone picks one of three; they last for the run. */
 		public static const DEEP_BOONS:Array = [
 			{id: "might", name: "Abyssal Might", desc: "+4 Attack", st: {att: 4}, col: 0xff6a50},

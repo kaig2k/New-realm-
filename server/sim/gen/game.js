@@ -6265,7 +6265,7 @@ Data.NEWS = [
 				lines: ["<b>The Abyss is a run now</b>: your hero goes in with <b>T1 gear and an empty bag</b> (it keeps its level, stats and skills) and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
 					"Everything you find is the run's own. When you leave (R) or fall, your hero comes back <b>exactly as it went in</b>: its own gear, bag and potions. Falling in the Abyss never kills your hero.",
 					"<b>Abyss Points</b>: every wave you clear pays them (more the deeper you go, and a bonus for boss waves), and you keep them whatever happens to the run.",
-					"<b>The Abyss Shop</b>, beside the Abyss's portal in the Nexus: stat potions, dungeon keys, Evolution Stones, Aether, a title, and the Abyss's Legendaries (Voidrend, the Abyssal Crown and the Depthstone).",
+					"<b>The Abyss Shop</b>, beside the Abyss's portal in the Nexus: dungeon keys, Evolution Stones, Aether, a title, and the Abyss's Legendaries (Voidrend, the Abyssal Crown and the Depthstone).",
 					"Any hero can go in now, not only level 20 ones. The Abyssal Herald comes every 20th wave."]},
 			{id: "2026-10-throne", title: "The Star Throne",
 				lines: ["<b>Astraeon's dungeon is rebuilt</b>: islands of star-stone and marble adrift in a nebula, shooting stars streaking overhead, joined by bridges with a gold runner.",
@@ -6589,8 +6589,6 @@ Data.DEEP_CHEST_INFO = ["",
 			"Wave 30+: the Hoard: three tier 7 items, a coin flip for an Abyss unique"];
 Data.DEEP_UNIQUES = ["voidrend", "abyssal_crown", "depthstone"];
 Data.ABYSS_SHOP = [
-			{id: "stat", name: "Stat Potion", desc: "A potion of a random stat", price: 25},
-			{id: "stat5", name: "Five Stat Potions", desc: "Five potions of random stats", price: 110},
 			{id: "key", name: "Dungeon Key", desc: "A key to a random dungeon", price: 40},
 			{id: "stone", name: "Evolution Stone", desc: "Evolves your pet", price: 80},
 			{id: "aether", name: "25 Aether", desc: "For the Starforge", price: 60},

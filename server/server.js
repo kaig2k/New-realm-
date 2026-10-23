@@ -2056,7 +2056,7 @@ const handlers = {
     shopDone(c, sv, ch, { bought: item.name });
   },
 
-  /** The Abyss Shop: Abyss Points (earned clearing waves) buy potions, keys, stones, Aether, a title and the Abyss's Legendaries. */
+  /** The Abyss Shop: Abyss Points (earned clearing waves) buy keys, stones, Aether, a title and the Abyss's Legendaries (no stat potions). */
   abyssBuy(c, m) {
     if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'buy from the Abyss Shop') });
     if (String(c.world || '').startsWith('deep:')) return c.send({ t: 'shopFail', msg: 'Finish your Abyss run first.' });
@@ -2074,8 +2074,6 @@ const handlers = {
     } else {
       const keyed = Data.DUNGEONS.map((d, i) => i).filter((i) => Data.keyPrice(i) > 0);
       const makers = {
-        stat: () => [Data.makePotion('stat', Data.randomStat())],
-        stat5: () => [0, 1, 2, 3, 4].map(() => Data.makePotion('stat', Data.randomStat())),
         key: () => [Data.makeDungeonKey(keyed[Math.floor(Math.random() * keyed.length)])],
         stone: () => [Data.makeStone()]
       };

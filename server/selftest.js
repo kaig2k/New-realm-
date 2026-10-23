@@ -2746,7 +2746,7 @@ async function run() {
     // mid-run: no trading, and no Abyss Shop
     P.clear();
     P.send({ t: 'tradeReq', to: AD2.id });
-    P.send({ t: 'abyssBuy', id: 'stat' });
+    P.send({ t: 'abyssBuy', id: 'key' });
     await wait(250);
     check('no trading and no Abyss Shop during a run', P.find((m) => (m.t === 'note' || m.t === 'msg') && /during an Abyss run/.test(m.text)) && P.find((m) => m.t === 'shopFail' && /Finish your Abyss run/.test(m.msg)),
       JSON.stringify(P.msgs.slice(0, 3)));
@@ -2802,10 +2802,11 @@ async function run() {
     await wait(250);
     P.clear();
     P.send({ t: 'abyssBuy', id: 'stat' });
+    P.send({ t: 'abyssBuy', id: 'key' });
     await wait(250);
     const bought = P.find((m) => m.t === 'shopDone');
-    check('...and sells what you can: the item comes from the server, the points go down', bought && bought.abyssPts === AQ.abyssPoints(1) + 100 - AQ.findAbyssShop('stat').price &&
-      bought.inv.some((it) => it && it.kind === 'stat' && it.sid), JSON.stringify(bought || P.msgs.slice(0, 2)));
+    check('...and sells what you can (no stat potions): the item comes from the server, the points go down', !AQ.findAbyssShop('stat') && P.msgs.filter((m) => m.t === 'shopDone').length === 1 &&
+      bought && bought.abyssPts === AQ.abyssPoints(1) + 100 - AQ.findAbyssShop('key').price && bought.inv.some((it) => it && it.kind === 'key' && it.sid), JSON.stringify(bought || P.msgs.slice(0, 2)));
     P.s.destroy(); AD2.s.destroy();
   }
 

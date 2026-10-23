@@ -3065,8 +3065,14 @@ async function run() {
     let seq = 0, gold = 0, fame = 0;
     const take = (r) => { if (r) { if (r.seq !== undefined) seq = r.seq; if (r.gold !== undefined) gold = r.gold; if (r.fame !== undefined) fame = r.fame; if (r.inv) ph.inv = r.inv; } return r; };
     const data = () => ({ gold, fame, chars: [clone(ph)], tradeSeq: seq });
-    const ask = async (msg) => { P.clear(); P.send(Object.assign({ data: data(), cid: 'gh1' }, msg)); await wait(350); return take(P.find((m) => m.t === 'shopDone')) || P.find((m) => m.t === 'shopFail'); };
-    const give = async (what) => { P.clear(); boss.send({ t: 'cmd', text: '/give ' + nm + ' ' + what }); await wait(400); take(P.find((m) => m.t === 'shopDone') || P.find((m) => m.t === 'given')); };
+    let lastAsk = 0;
+    // (the server ignores a grade request within 250ms of the last, so space them out; then wait for the reply, however slow)
+    const ask = async (msg) => { const gap = 300 - (Date.now() - lastAsk); if (gap > 0) await wait(gap); lastAsk = Date.now(); P.clear(); P.send(Object.assign({ data: data(), cid: 'gh1' }, msg));
+      for (let k = 0; k < 30 && !P.find((m) => m.t === 'shopDone' || m.t === 'shopFail'); k++) await wait(100);
+      return take(P.find((m) => m.t === 'shopDone')) || P.find((m) => m.t === 'shopFail'); };
+    const give = async (what) => { P.clear(); boss.send({ t: 'cmd', text: '/give ' + nm + ' ' + what });
+      for (let k = 0; k < 30 && !P.find((m) => m.t === 'shopDone'); k++) await wait(100);
+      take(P.find((m) => m.t === 'shopDone') || P.find((m) => m.t === 'given')); };
     await give('3 titanbreaker');
     const tb = () => ph.inv.map((it, i) => (it && it.uid === 'titanbreaker' ? i : -1)).filter((i) => i >= 0);
     check('/give hands out graded items (B unless rolled)', tb().length === 3, JSON.stringify(ph.inv) + ' boss: ' + JSON.stringify(boss.msgs.slice(-3)) + ' player: ' + JSON.stringify(P.msgs.slice(-3)));
@@ -3122,11 +3128,16 @@ async function run() {
     P.send({ t: 'save', data: data() });
     await wait(400);
     check('...and a save holding them (and graded gear) is accepted', !P.find((m) => m.t === 'saveRejected'), JSON.stringify(P.find((m) => m.t === 'saveRejected')));
+    // (the crate's prizes may have filled the bag: drop one that isn't a pouch to make room)
+    if (ph.inv.every((it) => it)) {
+      ph.inv[ph.inv.findIndex((it) => it.kind !== 'pouch')] = null;
+      P.clear(); P.send({ t: 'save', data: data() }); await wait(400);
+    }
     await give('gold pouch');
     const pi = ph.inv.findIndex((it) => it && it.kind === 'pouch' && it.sub === 'gold');
     const amt = pi >= 0 ? ph.inv[pi].amt : 0, gb = gold;
     const po = await ask({ t: 'pouch', slot: pi });
-    check('a Gold Pouch opens into gold on the server', po && po.pouch === 'gold' && gold === gb + amt && !ph.inv[pi], JSON.stringify(po));
+    check('a Gold Pouch opens into gold on the server', po && po.pouch === 'gold' && gold === gb + amt && !ph.inv[pi], JSON.stringify(po) + ' slot ' + pi + ' ' + JSON.stringify(ph.inv.map((it) => it && it.kind)));
     for (const c of [P, boss]) c.s.destroy();
   }
 

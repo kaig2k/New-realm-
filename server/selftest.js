@@ -1168,9 +1168,14 @@ async function run() {
     // runs: T1 kit, loot that climbs with the wave
     const kit = DD.runKit(DD.CLASSES.wizard);
     const tiers = (w) => { let t = 0, n = 0; for (let k = 0; k < 200; k++) { const it = DD.runItem(DD.CLASSES.wizard, w); if (it.kind !== 'ring' && !it.rarity) { t += it.tier; n++; } } return t / n; };
-    check('a run starts as a fresh level 1 of the class (base stats, no skills) in T1 gear, and its loot climbs with the wave (T7 by wave 12)', kit.weapon.tier === 1 && kit.armor.tier === 1 && kit.ability.tier === 1 && !kit.ring &&
+    check('a run starts as a fresh level 1 of the class (base stats, no skills) in T1 gear, and its loot climbs with the wave (T7 by wave 8)', kit.weapon.tier === 1 && kit.armor.tier === 1 && kit.ability.tier === 1 && !kit.ring &&
       kit.level === 1 && kit.xp === 0 && kit.xpNext === 40 + 45 + 3 && Object.keys(kit.skills).length === 0 && kit.skillPoints === 0 && Object.keys(DD.CLASSES.wizard.base).every((k) => kit.stats[k] === DD.CLASSES.wizard.base[k]) &&
-      tiers(1) < 2 && tiers(12) > 6.5 && DD.abyssPoints(5) > DD.abyssPoints(4) + 5, [tiers(1), tiers(12)].join(' '));
+      tiers(1) < 2 && tiers(8) > 6.5 && DD.abyssPoints(5) > DD.abyssPoints(4) + 5, [tiers(1), tiers(8)].join(' '));
+    let dropped = 0;
+    for (let k = 0; k < 400; k++) dropped += DD.runLoot(DD.ENEMIES.goblin, 3, DD.CLASSES.wizard, false).filter((it) => it.kind !== 'hp' && it.kind !== 'mp' && !/Potion/.test(it.name)).length;
+    let statPots = 0;
+    for (let k = 0; k < 400; k++) statPots += DD.runLoot(DD.ENEMIES.goblin, 3, DD.CLASSES.wizard, true).filter((it) => it.kind === 'stat').length;
+    check('...and a good share of kills drop gear (elites always), and stat potions too', dropped > 120 && statPots > 60 && DD.runLoot(DD.ENEMIES.abyss_chest_1, 5, DD.CLASSES.wizard, false).filter((it) => it.kind === 'stat').length === 3 && DD.runLoot(DD.ENEMIES.goblin, 3, DD.CLASSES.wizard, true).some((it) => !/Potion/.test(it.name)), String(dropped));
     check('boons add stats (and Greed adds luck)', DD.deepBonus(['might', 'might', 'life']).att === 8 && DD.deepBonus(['life']).hp === 60 && DD.deepBoonLuck(['greed', 'might']) === 15);
   }
 

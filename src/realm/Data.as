@@ -1616,6 +1616,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-abyss2", title: "Faster Abyss runs",
+				lines: ["<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
+					"<b>Faster</b>: the first wave comes in seconds, the breaks between waves are short, a stalled wave grows restless sooner, and your run hero earns three times the XP."]},
 			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
 				lines: ["<b>The Abyss is a run now</b>: your class starts fresh at <b>level 1, in T1 gear with an empty bag</b>, and levels up and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
 					"Everything you find is the run's own. When you leave (R) or fall, your hero comes back <b>exactly as it went in</b>: its own gear, bag and potions. Falling in the Abyss never kills your hero.",
@@ -2231,7 +2234,7 @@ package realm {
 		/** The chance any monster of wave n comes as an elite. */
 		public static function deepEliteChance(wave:int):Number { return Math.min(0.45, 0.02 * wave); }
 		/** A wave left too long: after this many seconds the Abyss grows restless and sends elites. */
-		public static const DEEP_RESTLESS:int = 40;
+		public static const DEEP_RESTLESS:int = 25;
 		/** Wave modifiers (one from wave 2, two from 11, three from 21; the server rolls them). */
 		public static const DEEP_MODS:Array = [
 			{id: "swarm", name: "Swarm", desc: "Twice as many monsters, weaker each", col: 0x80ff80},
@@ -2291,14 +2294,14 @@ package realm {
 			return {weapon: makeForSlot(cls, 0, 1, null), ability: makeForSlot(cls, 1, 1, null), armor: makeForSlot(cls, 2, 1, null), ring: null, hpPots: 3, mpPots: 3,
 				level: 1, xp: 0, xpNext: 88, totalXp: 0, ascXp: 0, stats: st, skills: {}, skillPoints: 0, highStakes: false};
 		}
-		/** The tier a run's drops come at on wave n (T1 at the start, T7 by wave 12). */
-		public static function runTier(wave:int):int { return Math.max(1, Math.min(7, 1 + int(wave / 2) + (Math.random() < 0.25 ? 1 : 0))); }
+		/** The tier a run's drops come at on wave n (T1-2 at the start, T7 by wave 8). */
+		public static function runTier(wave:int):int { return Math.max(1, Math.min(7, 1 + int(wave * 0.75) + (Math.random() < 0.3 ? 1 : 0))); }
 		/** One run item for wave n (bonus: tiers better); deep in, a chance at a UT or a Legendary. */
 		public static function runItem(cls:Object, wave:int, bonus:int = 0):Object {
 			var lc:Object = lootClass(cls);
 			var slot:int = int(Math.random() * 4);
-			if (wave >= 20 && Math.random() < 0.012 * (1 + bonus)) return makeForSlot(lc, slot, 7, "lg");
-			if (wave >= 12 && Math.random() < 0.025 * (1 + bonus)) return makeForSlot(lc, slot, 7, "ut");
+			if (wave >= 15 && Math.random() < 0.02 * (1 + bonus)) return makeForSlot(lc, slot, 7, "lg");
+			if (wave >= 8 && Math.random() < 0.04 * (1 + bonus)) return makeForSlot(lc, slot, 7, "ut");
 			var t:int = Math.min(7, runTier(wave) + bonus);
 			return slot == 3 ? makeRing(randomStat(), Math.max(1, Math.min(5, t - 2))) : makeForSlot(lc, slot, t, null);
 		}
@@ -2307,18 +2310,23 @@ package realm {
 			var out:Array = [];
 			var k:int;
 			if (def.abyssChest) {
-				for (k = 0; k < 3; k++) out.push(runItem(cls, wave, 1));
+				for (k = 0; k < 4; k++) out.push(runItem(cls, wave, 1));
+				out.push(makeRing(randomStat(), Math.max(1, Math.min(5, runTier(wave) - 1))));
+				for (k = 0; k < 3; k++) out.push(makePotion("stat", randomStat()));
 				out.push(makePotion("hp"), makePotion("hp"), makePotion("mp"), makePotion("mp"));
 				return out;
 			}
 			if (def.ai == "boss") {
-				for (k = 0; k < 2; k++) out.push(runItem(cls, wave, 1));
-				out.push(makePotion("hp"));
+				for (k = 0; k < 3; k++) out.push(runItem(cls, wave, 1));
+				for (k = 0; k < 2; k++) out.push(makePotion("stat", randomStat()));
+				out.push(makePotion("hp"), makePotion("mp"));
 				return out;
 			}
-			if (Math.random() < (elite ? 0.6 : 0.15)) out.push(runItem(cls, wave, elite ? 1 : 0));
-			if (Math.random() < 0.08) out.push(makePotion("hp"));
-			if (Math.random() < 0.06) out.push(makePotion("mp"));
+			// stat potions too: the run's hero starts at base stats, and they're the run's own
+			if (Math.random() < (elite ? 0.35 : 0.06)) out.push(makePotion("stat", randomStat()));
+			if (elite || Math.random() < 0.4) out.push(runItem(cls, wave, elite ? 1 : 0));
+			if (Math.random() < 0.12) out.push(makePotion("hp"));
+			if (Math.random() < 0.1) out.push(makePotion("mp"));
 			return out;
 		}
 		/** Abyss Points for clearing wave n (and a bonus for every boss wave). */

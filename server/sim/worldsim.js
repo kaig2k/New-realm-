@@ -79,7 +79,7 @@ class WorldSim {
     } else if (this.kind === 'deep') {
       // the Endless Abyss: an arena where the waves keep coming (updateWaves)
       this.w = new World('abyss', 'The Endless Abyss');
-      this.deep = { wave: 0, state: 'break', t: 10, left: 0, mods: [], pulses: [], fightT: 0, restT: 0 };
+      this.deep = { wave: 0, state: 'break', t: 4, left: 0, mods: [], pulses: [], fightT: 0, restT: 0 };
     } else if (this.kind === 'arena') {
       this.w = new World('arena', "Dark Elder's Chamber");
     } else throw new Error('not a simulated world: ' + key);
@@ -1115,7 +1115,7 @@ class WorldSim {
     d.pulses = [];
     if (mods.includes('reinforce')) {
       const part = Math.ceil(count / 3);
-      d.pulses = [{ at: 10, n: part }, { at: 20, n: part }];
+      d.pulses = [{ at: 6, n: part }, { at: 12, n: part }];
       count -= part * 2;
     }
     this.waveSpawn(count, mods);
@@ -1144,7 +1144,8 @@ class WorldSim {
     const d = this.deep, n = d.wave;
     const chest = n % Data.DEEP_CHEST_EVERY === 0;
     d.state = 'break';
-    d.t = chest ? 15 : 6;
+    // (short breathers: a run should keep moving; a little longer after a boss, to loot its chest)
+    d.t = chest ? 8 : 2.5;
     if (chest) this.spawn('abyss_chest_' + Data.deepChestTier(n), 100.5, 100.5, World.ARENA_ZONE, true);
     for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'cleared', secs: d.t, chest: chest ? Data.DEEP_CHEST_NAMES[Data.deepChestTier(n)] : '' });
     if (this.onDeep) this.onDeep(this, [...this.players.values()], n, chest);

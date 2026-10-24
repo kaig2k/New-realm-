@@ -2443,7 +2443,8 @@ package realm {
 			var xpMult:Number = 1 + Math.min(0.5, streakN / 100) + (e.elite ? 2 : 0);
 			if (mine || near) {
 				// (Ascendant Wisdom: more XP; Ascendant Bond: more for the pet)
-				p.gainXp(int(e.def.xp * xpMult * (1 + Data.ascRank(Save.data.asc, "wisdom") * 0.04 + leaderXp())), this);
+				// (an Abyss run's level 1 hero grows three times as fast)
+				p.gainXp(int(e.def.xp * xpMult * (1 + Data.ascRank(Save.data.asc, "wisdom") * 0.04 + leaderXp()) * (runSnap ? 3 : 1)), this);
 				// your pet grows with the XP you earn
 				if (!e.def.crate && !e.def.prop) petGainXp(Data.petKillXp(e.def.xp * xpMult, Save.data.asc));
 			}

@@ -94,7 +94,7 @@ package realm {
 			var ct:TextField = Ui.text(11, 0xc8b8e0, false, "left", 250, true);
 			var cs:String = "<font size='14' color='#d080ff'><b>Abyss Points</b></font><br>";
 			for each (var pw:int in [1, 5, 10, 15, 20, 30]) cs += "Wave " + pw + ": <font color='#e0c0ff'>+" + Data.abyssPoints(pw) + "</font><br>";
-			cs += "<br><font size='14' color='#d080ff'><b>Run loot</b></font><br>T1 at the start, T7 by wave 12; from wave 12 a chance at UTs, from wave 20 at Legendaries (the run's own: they stay in the Abyss).";
+			cs += "<br><font size='14' color='#d080ff'><b>Run loot</b></font><br>Plenty of it: T1-2 at the start, T7 by wave 8; from wave 8 a chance at UTs, from wave 15 at Legendaries (the run's own: they stay in the Abyss).";
 			ct.htmlText = cs;
 			ct.x = W - 270; ct.y = ty + 36;
 			body.addChild(ct);

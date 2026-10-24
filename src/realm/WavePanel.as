@@ -84,7 +84,7 @@ package realm {
 				sub.htmlText = restless ? "<font color='#ff5060'><b>The Abyss grows restless: elites are coming!</b></font>" : "Clear it within " + Data.DEEP_RESTLESS + "s or the Abyss sends elites.";
 			} else {
 				line.text = wave == 0 ? "The first wave comes in " + Math.ceil(t) + "s" : "Wave " + wave + " cleared!  Next in " + Math.ceil(t) + "s";
-				sub.text = chest ? chest + " in the middle of the arena: open it!" : "Next chest after wave " + (int(wave / Data.DEEP_CHEST_EVERY) + 1) * Data.DEEP_CHEST_EVERY;
+				sub.text = chest ? chest + " in the middle of the arena: open it!" : "A chest after every wave (a big one after wave " + (int(wave / Data.DEEP_CHEST_EVERY) + 1) * Data.DEEP_CHEST_EVERY + ")";
 			}
 		}
 	}

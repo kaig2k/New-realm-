@@ -1144,10 +1144,12 @@ class WorldSim {
     const d = this.deep, n = d.wave;
     const chest = n % Data.DEEP_CHEST_EVERY === 0;
     d.state = 'break';
-    // (short breathers: a run should keep moving; a little longer after a boss, to loot its chest)
-    d.t = chest ? 8 : 2.5;
-    if (chest) this.spawn('abyss_chest_' + Data.deepChestTier(n), 100.5, 100.5, World.ARENA_ZONE, true);
-    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'cleared', secs: d.t, chest: chest ? Data.DEEP_CHEST_NAMES[Data.deepChestTier(n)] : '' });
+    // (short breathers: a run should keep moving, but long enough to open the wave's chest)
+    d.t = chest ? 8 : 5;
+    // a chest after every wave: the boss waves' big one, an Abyssal Cache after the rest
+    const id = chest ? 'abyss_chest_' + Data.deepChestTier(n) : 'abyss_cache';
+    this.spawn(id, 100.5, 100.5, World.ARENA_ZONE, true);
+    for (const c of this.players.values()) c.send({ t: 'deepWave', wave: n, state: 'cleared', secs: d.t, chest: Data.ENEMIES[id].name });
     if (this.onDeep) this.onDeep(this, [...this.players.values()], n, chest);
   }
 

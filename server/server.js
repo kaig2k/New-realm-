@@ -1084,14 +1084,15 @@ function setCaps(c) {
   // (the Endless Abyss run's boons)
   if (c.abyss) { const db = Data.deepBonus(c.abyss.boons); for (const k in db) extra[k] = (extra[k] || 0) + db[k]; }
   c.caps = combat.caps(serverChar(c), sv.pet, extra) || NEW_HERO_CAPS;
-  // (on an Abyss run the hero fights with whatever the run gave it, up to Legendary gear: caps for the best of it)
+  // (on an Abyss run the hero fights with whatever the run gave it, up to Godly gear: caps for the best of it)
   if (c.abyss && serverChar(c)) {
     const ch = serverChar(c), cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
     let best = c.caps;
     for (let k = 0; k < 6; k++) {
       // (the run's hero starts at level 1 but can reach 20, its stats maxed, any skills)
       const run = Object.assign({}, ch, { level: 20, stats: cls.max, skills: combat.MAX_SKILLS,
-        weapon: Data.makeForSlot(cls, 0, 7, k < 3 ? 'lg' : null), ability: Data.makeForSlot(cls, 1, 7, k < 3 ? 'lg' : null), armor: Data.makeForSlot(cls, 2, 7, null), ring: Data.makeForSlot(cls, 3, 7, null) });
+        // (a chest's jackpot can be any item: Godly pieces too)
+        weapon: Data.makeForSlot(cls, 0, 7, k < 2 ? 'gd' : k < 4 ? 'lg' : null), ability: Data.makeForSlot(cls, 1, 7, k < 2 ? 'gd' : k < 4 ? 'lg' : null), armor: Data.makeForSlot(cls, 2, 7, k < 2 ? 'gd' : null), ring: Data.makeForSlot(cls, 3, 7, k < 2 ? 'gd' : null) });
       const rc = combat.caps(run, sv.pet, extra);
       if (rc && rc.rate > best.rate) best = Object.assign({}, rc, { hex: true, decoy: true });
     }

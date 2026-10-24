@@ -842,7 +842,8 @@ class Data {
 	static deepBoss(wave) { wave = __int(wave); var b = Data.deepBosses(wave); return b.length ? b[0] : null; }
 	static deepScale(wave) { wave = __int(wave);
 			var f = __int(Math.max(0, wave - 1));
-			return [1 + 0.22 * f + 0.004 * f * f, 1 + 0.08 * f];
+			
+			return [1 + 0.15 * f + 0.004 * f * f, 1 + 0.06 * f];
 		}
 	static deepEliteChance(wave) { wave = __int(wave); return Math.min(0.45, 0.02 * wave); }
 	static findDeepMod(id) {
@@ -882,10 +883,40 @@ class Data {
 			var t = __int(Math.min(7, Data.runTier(wave) + bonus));
 			return slot == 3 ? Data.makeRing(Data.randomStat(), Math.max(1, Math.min(5, t - 2))) : Data.makeForSlot(lc, slot, t, null);
 		}
+	static runJackpot(cls, wave) { wave = __int(wave);
+			var lc = Data.lootClass(cls);
+			var slot = __int(__int(Math.random() * 4));
+			var d = Math.min(1, wave / 25);
+			var r = Math.random();
+			var it = null;
+			if (r < 0.02 + 0.03 * d) it = Data.makeForSlot(lc, slot, 7, "gd");
+			else if (r < 0.07 + 0.08 * d) it = Data.runPrimordial(lc);
+			else if (r < 0.2 + 0.15 * d) it = Data.makeForSlot(lc, slot, 7, "lg");
+			else if (r < 0.45 + 0.15 * d) it = Data.makeForSlot(lc, slot, 7, "ut");
+			if (!it) {
+				var t = __int(Math.min(7, Data.runTier(wave) + 1 + __int(Math.random() * 3)));
+				it = slot == 3 ? Data.makeRing(Data.randomStat(), Math.max(1, Math.min(5, t - 2))) : Data.makeForSlot(lc, slot, t, null);
+			}
+			return it;
+		}
+	static runPrimordial(cls) {
+			var pool = [];
+			for (var u in Uniques.ALL) {
+				var it = Uniques.make(u);
+				if (it && it.rarity == "ar" && Data.canUse(it, cls.id)) pool.push(it);
+			}
+			return pool.length ? pool[__int(Math.random() * pool.length)] : null;
+		}
 	static runLoot(def, wave, cls, elite) { wave = __int(wave);
 			var out = [];
 			var k = 0;
+			if (def.cache) {
+				
+				out.push(Data.runItem(cls, wave, 1), Data.runItem(cls, wave, 1), Data.runJackpot(cls, wave), Data.makePotion("stat", Data.randomStat()), Data.makePotion(Math.random() < 0.5 ? "hp" : "mp"));
+				return out;
+			}
 			if (def.abyssChest) {
+				out.push(Data.runJackpot(cls, wave), Data.runJackpot(cls, wave));
 				for (k = __int(0); k < 4; k++) out.push(Data.runItem(cls, wave, 1));
 				out.push(Data.makeRing(Data.randomStat(), Math.max(1, Math.min(5, Data.runTier(wave) - 1))));
 				for (k = __int(0); k < 3; k++) out.push(Data.makePotion("stat", Data.randomStat()));
@@ -6222,6 +6253,8 @@ Data.ENEMIES = {
 			treasure: {name: "Treasure Chest", spr: "chest", hp: 1800, def: 0, spd: 0, xp: 150, ai: "still", r: 0.5, aggro: 0, range: 0, drop: 1, col: 0xf0c030, treasure: true,
 				gold: 150, onrane: 3, attacks: []},
 			
+			
+			abyss_cache: {name: "Abyssal Cache", spr: "abyss_chest", hp: 250, def: 0, spd: 0, xp: 0, ai: "still", r: 0.55, aggro: 0, range: 0, drop: 1, col: 0x9050e0, treasure: true, abyssChest: 1, cache: true, attacks: []},
 			abyss_chest_1: {name: "Abyssal Chest", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xa060ff, treasure: true, abyssChest: 1, attacks: []},
 			abyss_chest_2: {name: "Abyssal Chest II", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xb070ff, treasure: true, abyssChest: 2, attacks: []},
 			abyss_chest_3: {name: "Abyssal Chest III", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xc080ff, treasure: true, abyssChest: 3, attacks: []},
@@ -6271,7 +6304,8 @@ Data.DYE_KEYS = {
 		};
 Data.NEWS = [
 			{id: "2026-10-abyss2", title: "Faster Abyss runs",
-				lines: ["<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
+				lines: ["<b>A chest after every wave</b>: an Abyssal Cache with gear and a jackpot that can be <b>any item in the game</b> (up to Primordial and even Godly pieces, for the run). Boss waves' chests roll two jackpots. And the early waves are gentler.",
+					"<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
 					"<b>Faster</b>: the first wave comes in seconds, the breaks between waves are short, a stalled wave grows restless sooner, and your run hero earns three times the XP."]},
 			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
 				lines: ["<b>The Abyss is a run now</b>: your class starts fresh at <b>level 1, in T1 gear with an empty bag</b>, and levels up and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",

@@ -1527,6 +1527,8 @@ package realm {
 			treasure: {name: "Treasure Chest", spr: "chest", hp: 1800, def: 0, spd: 0, xp: 150, ai: "still", r: 0.5, aggro: 0, range: 0, drop: 1, col: 0xf0c030, treasure: true,
 				gold: 150, onrane: 3, attacks: []},
 			// the Endless Abyss's chests (Data.deepChest), one for each step down
+			// (after every ordinary wave: a smaller chest with a jackpot roll, Data.runLoot)
+			abyss_cache: {name: "Abyssal Cache", spr: "abyss_chest", hp: 250, def: 0, spd: 0, xp: 0, ai: "still", r: 0.55, aggro: 0, range: 0, drop: 1, col: 0x9050e0, treasure: true, abyssChest: 1, cache: true, attacks: []},
 			abyss_chest_1: {name: "Abyssal Chest", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xa060ff, treasure: true, abyssChest: 1, attacks: []},
 			abyss_chest_2: {name: "Abyssal Chest II", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xb070ff, treasure: true, abyssChest: 2, attacks: []},
 			abyss_chest_3: {name: "Abyssal Chest III", spr: "abyss_chest", hp: 600, def: 0, spd: 0, xp: 0, ai: "still", r: 0.6, aggro: 0, range: 0, drop: 1, col: 0xc080ff, treasure: true, abyssChest: 3, attacks: []},
@@ -1617,7 +1619,8 @@ package realm {
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
 			{id: "2026-10-abyss2", title: "Faster Abyss runs",
-				lines: ["<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
+				lines: ["<b>A chest after every wave</b>: an Abyssal Cache with gear and a jackpot that can be <b>any item in the game</b> (up to Primordial and even Godly pieces, for the run). Boss waves' chests roll two jackpots. And the early waves are gentler.",
+					"<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
 					"<b>Faster</b>: the first wave comes in seconds, the breaks between waves are short, a stalled wave grows restless sooner, and your run hero earns three times the XP."]},
 			{id: "2026-10-abyssruns", title: "The Endless Abyss: runs and the Abyss Shop",
 				lines: ["<b>The Abyss is a run now</b>: your class starts fresh at <b>level 1, in T1 gear with an empty bag</b>, and levels up and loots as it fights: T1 at the start, T7 by wave 12, and deep in a chance at UTs and Legendaries.",
@@ -2229,7 +2232,8 @@ package realm {
 		/** How much tougher wave n's monsters are: [health, damage]. */
 		public static function deepScale(wave:int):Array {
 			var f:int = Math.max(0, wave - 1);
-			return [1 + 0.22 * f + 0.004 * f * f, 1 + 0.08 * f];
+			// (gentle early on: a run starts at level 1 in T1 gear)
+			return [1 + 0.15 * f + 0.004 * f * f, 1 + 0.06 * f];
 		}
 		/** The chance any monster of wave n comes as an elite. */
 		public static function deepEliteChance(wave:int):Number { return Math.min(0.45, 0.02 * wave); }
@@ -2305,11 +2309,48 @@ package realm {
 			var t:int = Math.min(7, runTier(wave) + bonus);
 			return slot == 3 ? makeRing(randomStat(), Math.max(1, Math.min(5, t - 2))) : makeForSlot(lc, slot, t, null);
 		}
+		/**
+		 * A chest's jackpot: it can be any item in the game, for the run's class: tiered gear up to T7,
+		 * a UT, a Legendary, a Primordial, even a Godly piece (the deeper the wave, the better the odds).
+		 */
+		public static function runJackpot(cls:Object, wave:int):Object {
+			var lc:Object = lootClass(cls);
+			var slot:int = int(Math.random() * 4);
+			var d:Number = Math.min(1, wave / 25);
+			var r:Number = Math.random();
+			var it:Object = null;
+			if (r < 0.02 + 0.03 * d) it = makeForSlot(lc, slot, 7, "gd");
+			else if (r < 0.07 + 0.08 * d) it = runPrimordial(lc);
+			else if (r < 0.2 + 0.15 * d) it = makeForSlot(lc, slot, 7, "lg");
+			else if (r < 0.45 + 0.15 * d) it = makeForSlot(lc, slot, 7, "ut");
+			if (!it) {
+				var t:int = Math.min(7, runTier(wave) + 1 + int(Math.random() * 3));
+				it = slot == 3 ? makeRing(randomStat(), Math.max(1, Math.min(5, t - 2))) : makeForSlot(lc, slot, t, null);
+			}
+			return it;
+		}
+
+		/** A random Primordial (the raids' finest) this class can use, or null. */
+		private static function runPrimordial(cls:Object):Object {
+			var pool:Array = [];
+			for (var u:String in Uniques.ALL) {
+				var it:Object = Uniques.make(u);
+				if (it && it.rarity == "ar" && canUse(it, cls.id)) pool.push(it);
+			}
+			return pool.length ? pool[int(Math.random() * pool.length)] : null;
+		}
+
 		/** What a monster drops on a run (its chests and bosses more and better). */
 		public static function runLoot(def:Object, wave:int, cls:Object, elite:Boolean):Array {
 			var out:Array = [];
 			var k:int;
+			if (def.cache) {
+				// after every ordinary wave: two pieces, a jackpot, a stat potion and a potion
+				out.push(runItem(cls, wave, 1), runItem(cls, wave, 1), runJackpot(cls, wave), makePotion("stat", randomStat()), makePotion(Math.random() < 0.5 ? "hp" : "mp"));
+				return out;
+			}
 			if (def.abyssChest) {
+				out.push(runJackpot(cls, wave), runJackpot(cls, wave));
 				for (k = 0; k < 4; k++) out.push(runItem(cls, wave, 1));
 				out.push(makeRing(randomStat(), Math.max(1, Math.min(5, runTier(wave) - 1))));
 				for (k = 0; k < 3; k++) out.push(makePotion("stat", randomStat()));

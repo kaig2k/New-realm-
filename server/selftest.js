@@ -1137,7 +1137,8 @@ async function run() {
     killAll();
     const runDrops = () => [].concat(...said.filter((m) => m.t === 'w' && m.d.t === 'loot').map((m) => m.d.l));
     check('its monsters drop the run\'s own loot (marked, never issued into the ledger)', got.length === 0 && runDrops().every((it) => it.run === 1), runDrops().length + '');
-    check('wave cleared: a short break, and it counts', ws.deep.state === 'break' && cleared.length === 1 && cleared[0][0] === 1 && !cleared[0][1]);
+    check('wave cleared: a short break, and it counts (and a cache appears)', ws.deep.state === 'break' && cleared.length === 1 && cleared[0][0] === 1 && !cleared[0][1] &&
+      ws.enemies.some((e) => !e.dead && e.defId === 'abyss_cache'));
     ws.deep.wave = 4; ws.deep.t = 0; ws.updateWaves(0.05);
     const boss = ws.w.boss;
     check('wave 5 brings a boss, tougher for the depth', boss && boss.defId === DD.deepBoss(5) && boss.maxHp > boss.def.hp * 1.5 && boss.dmgMult > 1.1, boss && boss.defId);
@@ -1164,7 +1165,13 @@ async function run() {
     w2.updateWaves(0.05);
     const added = w2.enemies.filter((e) => !e.dead).slice(before);
     check('a wave left too long: the Abyss sends elites', added.length >= 2 && added.every((e) => e.elite) && said2.some((m) => m.state === 'restless'), added.length + '');
-    check('deep waves are much tougher than early ones', DD.deepScale(20)[0] > 5 && DD.deepScale(20)[1] > 2.4 && DD.deepEliteChance(20) >= 0.4);
+    check('deep waves are much tougher than early ones (and wave 7 gentle enough for a run)', DD.deepScale(20)[0] > 5 && DD.deepScale(20)[1] > 2 && DD.deepScale(7)[0] < 2.2 && DD.deepEliteChance(20) >= 0.4);
+    // every wave's chest: a cache with a jackpot that can be anything, up to Godly
+    const jr = {};
+    for (let k = 0; k < 3000; k++) { const it = DD.runJackpot(DD.CLASSES.wizard, 10); jr[it.rarity || 't' + it.tier] = (jr[it.rarity || 't' + it.tier] || 0) + 1; }
+    const cache = DD.runLoot(DD.ENEMIES.abyss_cache, 3, DD.CLASSES.wizard, false);
+    check('every wave leaves a chest whose jackpot can be any item: tiered, UT, Legendary, Primordial, Godly', jr.gd > 0 && jr.ar > 0 && jr.lg > 0 && jr.ut > 0 && jr.t7 > 0 &&
+      cache.length === 5 && cache.some((it) => it.kind === 'stat'), JSON.stringify(jr));
     // runs: T1 kit, loot that climbs with the wave
     const kit = DD.runKit(DD.CLASSES.wizard);
     const tiers = (w) => { let t = 0, n = 0; for (let k = 0; k < 200; k++) { const it = DD.runItem(DD.CLASSES.wizard, w); if (it.kind !== 'ring' && !it.rarity) { t += it.tier; n++; } } return t / n; };

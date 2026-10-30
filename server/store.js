@@ -21,6 +21,33 @@ class Store {
     this.timers = {};
     this.pending = {};
     this.saves = new Map(); // account key -> save object (loaded on demand)
+    // writes that failed (a save that can't be written is lost on the next restart)
+    this.writeErrors = 0;
+    this.lastWriteError = '';
+    this.onWriteError = null;
+  }
+
+  /**
+   * Every file and folder in the data folder this process can't write to (usually ones left
+   * owned by root after the server was run by hand as root). Empty when all is well.
+   */
+  unwritable() {
+    const bad = [];
+    const probe = (dir) => {
+      const f = path.join(dir, '.write-check');
+      try { fs.writeFileSync(f, 'ok'); fs.unlinkSync(f); } catch (e) { bad.push(dir); }
+    };
+    probe(this.dir);
+    probe(this.savesDir);
+    for (const dir of [this.dir, this.savesDir]) {
+      let names = [];
+      try { names = fs.readdirSync(dir); } catch (e) {}
+      for (const n of names) {
+        const f = path.join(dir, n);
+        try { if (fs.statSync(f).isFile()) fs.accessSync(f, fs.constants.W_OK); } catch (e) { bad.push(f); }
+      }
+    }
+    return bad;
   }
 
   file(name) { return path.join(this.dir, name); }
@@ -102,7 +129,10 @@ class Store {
       fs.closeSync(fd);
       fs.renameSync(file + '.tmp', file);
     } catch (e) {
+      this.writeErrors++;
+      this.lastWriteError = file + ': ' + e.message;
       console.error('Could not write ' + file + ': ' + e.message);
+      if (this.onWriteError) try { this.onWriteError(file, e); } catch (e2) {}
     }
   }
 

@@ -130,6 +130,14 @@ const REALM_NAMES = ['Ashveil', 'Thornwick', 'Glimmerfen', 'Duskhollow', 'Brineh
 
 // ------------------------------------------------------------------ storage
 const store = new Store(DATA_DIR);
+// the server must be able to write its saves, or every bit of progress is lost on the next restart. That happens
+// when the data was left owned by another user (the server run by hand as root): say so loudly, with the fix
+const DATA_FIX = 'sudo chown -R ' + os.userInfo().username + ':' + os.userInfo().username + ' ' + DATA_DIR;
+const dataUnwritable = store.unwritable();
+if (dataUnwritable.length) {
+  console.error('\n!!! The server can\'t write ' + dataUnwritable.length + ' of its data files (as user ' + os.userInfo().username + '), e.g. ' + dataUnwritable.slice(0, 3).join(', ') +
+    '.\n!!! Players\' progress will be LOST on the next restart. Fix it on the VPS with:\n!!!   ' + DATA_FIX + '\n!!! then restart the server.\n');
+}
 // a copy of everything in data/ each day (data/backups/YYYY-MM-DD, newest 14 kept; config "backups": false turns it off)
 const backup = require('./backup');
 const site = require('./site');
@@ -301,6 +309,8 @@ function finishLogin(c, acc, key, session) {
   c.send({ t: 'quests', q: quests.view(onlineSave(key)) });
   sendLeaders(c);
   log(c.name, '#' + (acc.no || '?'), 'joined (' + byName.size + ' online)');
+  if (isAdmin(c) && (store.writeErrors || dataUnwritable.length))
+    c.note(store.writeErrors ? writeWarning() : '⚠️ The server can\'t write ' + dataUnwritable.length + ' of its data files: progress will be lost on the next restart. On the VPS run: ' + DATA_FIX + ' then restart.', 0xff6060);
 }
 
 // ------------------------------------------------------------------ the minimap
@@ -860,6 +870,16 @@ function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); 
 // ------------------------------------------------------------------ Discord feed
 const { Discord, StatusBoard, esc: desc, names: dnames } = require('./discord');
 const discord = new Discord(config.discordWebhook, config.name || 'Eldmere', log);
+/** A save that couldn't be written: the log, Discord and any admin online hear of it (at most every 10 minutes). */
+let writeWarnedAt = 0;
+const writeWarning = () => '⚠️ The server can\'t write its saves (' + store.lastWriteError + '). Progress will be lost on the next restart. On the VPS run: ' + DATA_FIX + ' then restart.';
+store.onWriteError = () => {
+  if (Date.now() - writeWarnedAt < 600000) return;
+  writeWarnedAt = Date.now();
+  log(writeWarning());
+  if (discord.on) discord.post(writeWarning(), 0xff4040);
+  for (const c of clients.values()) if (c.authed && isAdmin(c)) c.note(writeWarning(), 0xff6060);
+};
 /** config "discordBugForum": a webhook in a Discord Forum channel, where every /bug report opens a post of its own. */
 const bugForum = new Discord(config.discordBugForum, config.name || 'Eldmere', log);
 /** What the server did that's worth telling the Discord: (kind, details). */
@@ -2986,6 +3006,7 @@ function statsLines() {
   const where = {};
   for (const c of on) { const w = String(c.world || '-').split(':')[0]; where[w] = (where[w] || 0) + 1; }
   lines.push('Where: ' + (Object.keys(where).map((k) => k + ' ' + where[k]).join(', ') || 'nobody'));
+  lines.push(store.writeErrors ? 'Saves: ' + store.writeErrors + ' FAILED writes (' + store.lastWriteError + '). Fix: ' + DATA_FIX : 'Saves: writing fine');
   if (sims) {
     const st = sims.stats();
     lines.push(st.worlds + ' worlds, ' + st.monsters + ' monsters; world tick ' + st.avgMs + ' ms avg, ' + st.p99Ms + ' ms worst 1% (budget 50)');

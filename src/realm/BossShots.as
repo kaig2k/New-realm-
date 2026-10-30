@@ -71,6 +71,8 @@ package realm {
 			sabre: ["........", "......HH", ".....HH.", "...iHH..", "G.iH....", "GGG.....", ".G......", "........"],
 			pearl: ["........", "..aCCa..", ".aWHHWa.", ".CHHHHC.", ".CWHHWC.", ".aCWWCa.", "..aCCa..", "........"],
 			scythe: ["..CCWW..", ".C....W.", "........", "......IW", "IIIIIII.", "........", "........", "........"],
+			candycorn: ["........", "GGC.....", "GGCCC...", "GGCCCHH.", "GGCCCHHH", "GGCCCHH.", "GGCCC...", "GGC....."],
+			pumpkinlet: ["...S....", "..aSa...", ".aCCCCa.", "aCKCCKCa", "aCCCCCCa", "aCKKKKCa", ".aCCCCa.", "..aaaa.."],
 			tidewave: ["...WW...", "..WCCW..", ".a..CCW.", "aa...CWH", "aa...CWH", ".a..CCW.", "..WCCW..", "...WW..."]
 		};
 	}

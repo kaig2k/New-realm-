@@ -161,6 +161,14 @@ if (sims) sims.onOracle = (c, e, got) => {
 // the Realm Siege: everyone who fought is a Realm Defender; the top damage dealer earns Siegebreaker
 if (sims) sims.onSiege = (sim, kind, d) => {
   const realm = sim.key.split(':').slice(1, -1).join(':') || 'the realm';
+  // the Pumpkin King (Halloween): no Siege titles, just the news
+  if (d.id === 'pumpkin_king') {
+    const team = d.team || [];
+    if (kind === 'fail') broadcast('The Pumpkin King sinks back into the earth of ' + realm + ', cackling. He\'ll be back.', 0xd09060);
+    else broadcast('The Pumpkin King is smashed in ' + realm + '! ' + team.length + ' hero' + (team.length === 1 ? '' : 'es') + (team[0] ? '. MVP: ' + team[0].c.name + ' (' + team[0].pct + '% of the damage)' : '') + '.', 0xff8020);
+    log('pumpkin king ' + (kind === 'fail' ? 'withdrew from ' : 'smashed in ') + realm);
+    return;
+  }
   if (kind === 'fail') {
     broadcast('' + d.name + ' has withdrawn from ' + realm + '. The siege was not broken this time.', 0xd09060);
     feat('siege', { won: false, realm });
@@ -2456,6 +2464,11 @@ const handlers = {
         sm.w.eventT = 0;
         return c.note('An event is on its way.', 0x80ff80);
       }
+      case '/halloween': {
+        // (admins: the Pumpkin King now, in the realm you're in or every realm with heroes in it)
+        const n = startHallow(realms.some((r) => realmKey(r) === c.world) ? c.world : '');
+        return c.note(n ? 'The Pumpkin King rises.' : 'He found no room (a world boss is already up there, or the realm is closing).', n ? 0x80ff80 : 0xff8080);
+      }
       case '/siege': {
         // (admins: a Realm Siege now, in the realm you're in or the busiest one)
         const why = startSiege(realms.some((r) => realmKey(r) === c.world) ? c.world : '');
@@ -3670,8 +3683,8 @@ function siegeRealm() {
 }
 /** Starts one now (admins' /siege, or the timer). Returns why not, or ''. */
 function startSiege(key) {
-  // (one at a time)
-  for (const r of realms) { const sm = sims && sims.get(realmKey(r)); if (sm && sm.siege) return 'There is already a siege in ' + r.name + '.'; }
+  // (one at a time; a realm with the Pumpkin King in it is busy too)
+  for (const r of realms) { const sm = sims && sims.get(realmKey(r)); if (sm && sm.siege && sm.siege.e.defId === 'siege_warlord') return 'There is already a siege in ' + r.name + '.'; }
   const best = key ? { sm: sims && sims.get(key), r: realms.find((r) => realmKey(r) === key) } : siegeRealm();
   if (!best || !best.sm) return 'No realm is open.';
   if (best.sm.siege) return 'There is already a siege in ' + best.r.name + '.';
@@ -3702,6 +3715,40 @@ function siegeTick() {
   }
 }
 setInterval(siegeTick, 5000).unref();
+
+// ------------------------------------------------------------------ Halloween: the Pumpkin King
+/** Every halloweenEveryMinutes (config, default 10; 0 turns it off) he rises in every realm with heroes in it, after a 30 second warning. */
+const hallow = { at: Date.now() + 2 * 60000, warned: false };
+function hallowRealms() {
+  return realms.filter((r) => r.count > 0).map((r) => ({ r, sm: sims && sims.get(realmKey(r)) })).filter((x) => x.sm && !x.sm.w.closed && !x.sm.closeT && !x.sm.siege);
+}
+/** He rises now in the realm (or every realm with heroes in it). Returns how many he rose in. */
+function startHallow(key) {
+  let n = 0;
+  for (const { r, sm } of key ? [{ r: realms.find((x) => realmKey(x) === key), sm: sims && sims.get(key) }] : hallowRealms()) {
+    if (!r || !sm || sm.siege || !sm.startSiege('pumpkin_king')) continue;
+    n++;
+    for (const c of online()) if (c.world === realmKey(r)) c.send({ t: 'banner', text: 'THE PUMPKIN KING RISES!', color: 0xff8020, msg: 'The Pumpkin King has risen in ' + r.name + '! Smash him within 5 minutes (follow the panel at the top).', sfx: 'boss' });
+    log('the pumpkin king rose in ' + r.name);
+  }
+  return n;
+}
+function hallowTick() {
+  const every = config.halloweenEveryMinutes === undefined ? 10 : Number(config.halloweenEveryMinutes);
+  if (!sims || !(every > 0) || WorldSim.restartSoon) return;
+  const now = Date.now();
+  if (!hallow.warned && now >= hallow.at - 30000) {
+    if (!hallowRealms().length) { hallow.at = now + 60000; return; }
+    hallow.warned = true;
+    for (const { r } of hallowRealms()) for (const c of online()) if (c.world === realmKey(r)) c.send({ t: 'msg', text: 'Something stirs in the pumpkin patch... the Pumpkin King rises in 30 seconds!', color: 0xff8020 });
+    return;
+  }
+  if (hallow.warned && now >= hallow.at) {
+    hallow.warned = false;
+    hallow.at = now + (startHallow('') ? every * 60000 : 60000);
+  }
+}
+setInterval(hallowTick, 5000).unref();
 
 function broadcast(text, color) { for (const c of online()) c.send({ t: 'msg', text, color: color || 0xffd75e }); }
 process.stdin.setEncoding('utf8');

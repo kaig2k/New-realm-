@@ -1238,6 +1238,29 @@ async function run() {
     check('ghosts drift through walls and their shots pass through them', wx > 0 && E.ghost.ghostly && E.ghost.attacks.every((a) => a.ghost) && ws.w.canFloat(wx, wy, 0.3) && !ws.w.canStand(wx, wy, 0.3, true) && ghost);
   }
 
+  console.log('halloween: the Pumpkin King');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: HW, Bosses: HB } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Hallow:4242');
+    const sent = [], fin = [];
+    ws.onSiege = (sm, k, d) => fin.push([k, d.id]);
+    const c = { id: 7, name: 'H', x: 100, y: 100, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => sent.push(m.d || m) };
+    ws.join(c);
+    const ok = ws.startSiege('pumpkin_king'), e = ws.siege && ws.siege.e;
+    const panel = sent.find((m) => m.t === 'siege' && m.on);
+    check('the Pumpkin King rises in the realm with his jack-o\'-lanterns, a 5 minute clock and his own panel', ok && e.defId === 'pumpkin_king' && e.zone === 3 &&
+      ws.enemies.some((o) => !o.dead && o.defId === 'jack_lantern') && panel && panel.title === 'HALLOWEEN' && panel.left === 300 && HB.POSED.indexOf('pumpkin_king') >= 0 &&
+      HW.ENEMIES.pumpkin_king.uniques.length === 2, JSON.stringify(panel));
+    check('...the realm\'s events go on while he\'s up (the Siege holds them back, he doesn\'t)', (ws.w.eventT = 0, ws.updateEvents(0.1), !!(ws.w.boss && !ws.w.boss.dead)));
+    if (ws.w.boss && !ws.w.boss.dead) ws.kill(ws.w.boss);
+    c.x = e.x; c.y = e.y + 2;
+    for (let k = 0; k < 400 && !e.dead; k++) { ws.tick(0.05); ws.hit(c, { id: e.id, d: 6000 }); }
+    const won = sent.filter((m) => m.t === 'siege').pop();
+    check('...smash him: his own victory, his jack-o\'-lanterns go, and the Realm Siege can still come after', e.dead && fin.some((f) => f[0] === 'win' && f[1] === 'pumpkin_king') &&
+      won && won.wonText === 'THE PUMPKIN KING IS SMASHED!' && !ws.enemies.some((o) => !o.dead && o.defId === 'jack_lantern') && ws.startSiege() && ws.siege.e.defId === 'siege_warlord', JSON.stringify(fin));
+  }
+
   console.log('the Starfall Trial');
   {
     const { WorldSim } = require('./sim/worldsim');

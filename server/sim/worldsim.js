@@ -614,7 +614,8 @@ class WorldSim {
     const w = this.w;
     // a restart is close: no new event bosses that nobody could finish
     if (WorldSim.restartSoon) return;
-    if (this.closeT > 0 || w.closed || this.siege || w.eventsDone >= Data.EVENTS_PER_REALM || (w.boss && !w.boss.dead)) return;
+    // (the Realm Siege holds the realm's events back; the Pumpkin King doesn't)
+    if (this.closeT > 0 || w.closed || (this.siege && this.siege.e.defId === 'siege_warlord') || w.eventsDone >= Data.EVENTS_PER_REALM || (w.boss && !w.boss.dead)) return;
     w.eventT -= dt;
     if (w.eventT > 0) return;
     if (!w.recentEvents) w.recentEvents = [];
@@ -1154,29 +1155,38 @@ class WorldSim {
   }
 
   // ------------------------------------------------------------ the Realm Siege
-  /** The Warlord marches into this realm's Godlands (server.js decides when). False if there's no room. */
-  startSiege() {
-    const w = this.w;
+  /**
+   * A world boss comes into this realm (server.js decides when): the Warlord into its Godlands (the
+   * Realm Siege), or the Pumpkin King (Halloween). Its def.world says how: {minion, time, zone, title,
+   * won}; Vorgath's are the defaults. False if there's no room.
+   */
+  startSiege(id = 'siege_warlord') {
+    const w = this.w, d = Data.ENEMIES[id];
+    const wb = Object.assign({ minion: 'siege_soldier', time: SIEGE_TIME, zone: World.GOD_ZONE, title: 'REALM SIEGE', won: 'THE SIEGE IS BROKEN!' }, d && d.world);
     // (not while a realm event boss is up or the realm is about to close: its finale would cut the siege short)
-    if (this.kind !== 'realm' || this.siege || w.closed || this.closeT > 0 || (w.boss && !w.boss.dead) || w.eventsDone >= Data.EVENTS_PER_REALM - 1) return false;
+    // (the Pumpkin King comes even while an event boss is up)
+    if (!d || this.kind !== 'realm' || this.siege || w.closed || this.closeT > 0 || (id === 'siege_warlord' && w.boss && !w.boss.dead) || w.eventsDone >= Data.EVENTS_PER_REALM - 1) return false;
+    const camp = !!Bosses.SETPIECES[id];
     for (let tries = 0; tries < 1500; tries++) {
       const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.5) + 0.5;
-      if (w.zoneAt(x, y) !== World.GOD_ZONE || !w.canStand(x, y, 1.2, true)) continue;
+      if (w.zoneAt(x, y) !== wb.zone || !w.canStand(x, y, 1.2, true)) continue;
       // (his war camp has to fit: the later tries settle for less)
-      if (tries < 1200 && !SetPieces.fits('siege_warlord', w, Math.floor(x), Math.floor(y))) continue;
+      if (camp && tries < 1200 && !SetPieces.fits(id, w, Math.floor(x), Math.floor(y))) continue;
       // the camp rises first, so he and his ballistas stand on it
-      const cells = SetPieces.plan('siege_warlord', w, Math.floor(x), Math.floor(y));
-      SetPieces.apply(w, cells);
-      const e = new Enemy('siege_warlord', x, y, World.GOD_ZONE);
+      const cells = camp ? SetPieces.plan(id, w, Math.floor(x), Math.floor(y)) : null;
+      if (cells) SetPieces.apply(w, cells);
+      const e = new Enemy(id, x, y, wb.zone);
       e.arena = cells;
       this.add(e);
-      this.unstick(cells);
       e.props = [];
-      for (const sp of Bosses.setPieceSpots('siege_warlord', x, y, w)) {
-        const pr = this.spawn(sp.what, sp.x, sp.y, World.GOD_ZONE, true);
-        if (pr) e.props.push(pr);
+      if (cells) {
+        this.unstick(cells);
+        for (const sp of Bosses.setPieceSpots(id, x, y, w)) {
+          const pr = this.spawn(sp.what, sp.x, sp.y, wb.zone, true);
+          if (pr) e.props.push(pr);
+        }
       }
-      this.siege = { e, left: SIEGE_TIME, waveT: 20, sendT: 0 };
+      this.siege = { e, left: wb.time, waveT: 20, sendT: 0, wb };
       this.siegeSoldiers(4);
       this.siegeStatus(true);
       return true;
@@ -1184,13 +1194,13 @@ class WorldSim {
     return false;
   }
 
-  /** Soldiers march out around the Warlord (never more than 10 at once). */
+  /** The world boss's minions come out round it (never more than 10 at once). */
   siegeSoldiers(n) {
-    const e = this.siege.e;
-    const alive = this.enemies.filter((o) => !o.dead && o.defId === 'siege_soldier').length;
+    const e = this.siege.e, m = this.siege.wb.minion;
+    const alive = this.enemies.filter((o) => !o.dead && o.defId === m).length;
     for (let k = 0; k < Math.min(n, 10 - alive); k++) {
       const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 3;
-      this.spawn('siege_soldier', e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, World.GOD_ZONE);
+      this.spawn(m, e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, this.siege.wb.zone);
     }
   }
 
@@ -1211,12 +1221,13 @@ class WorldSim {
   /** Time's up (or the siege can't go on): he marches away, and his soldiers with him. */
   siegeFail() {
     const e = this.siege.e;
-    for (const o of this.enemies) if (!o.dead && (o === e || o.defId === 'siege_soldier' || o.defId === 'siege_ballista')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+    const m = this.siege.wb.minion;
+    for (const o of this.enemies) if (!o.dead && (o === e || o.defId === m || o.defId === 'siege_ballista')) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
     // (his camp comes down with him)
     if (e.arena) { SetPieces.undo(this.w, e.arena); e.arena = null; }
     this.siege = null;
     for (const c of this.players.values()) c.send({ t: 'siege', on: false, lost: true });
-    if (this.onSiege) this.onSiege(this, 'fail', { name: e.def.name });
+    if (this.onSiege) this.onSiege(this, 'fail', { name: e.def.name, id: e.defId });
   }
 
   /** Who's done what so far, most damage first: [[client, damage], ...] and the total. */
@@ -1236,18 +1247,19 @@ class WorldSim {
     const top = rows.slice(0, 3).map((r) => { const c = this.players.get(r[0]); return [c ? c.name : '?', Math.round(r[1] / total * 1000) / 10]; });
     for (const c of this.players.values()) {
       const i = rows.findIndex((r) => r[0] === c.id);
-      c.send({ t: 'siege', on: true, start: !!start, id: e.id, name: e.def.name, hp: Math.ceil(e.hp), max: Math.ceil(e.maxHp), left: Math.ceil(sg.left),
+      c.send({ t: 'siege', on: true, start: !!start, id: e.id, name: e.def.name, title: sg.wb.title, hp: Math.ceil(e.hp), max: Math.ceil(e.maxHp), left: Math.ceil(sg.left),
         x: r2(e.x), y: r2(e.y), top, me: i >= 0 ? Math.round(rows[i][1] / total * 1000) / 10 : 0, rank: i + 1, n: rows.length });
     }
   }
 
   siegeDown(e) {
     const { rows, total } = this.siegeBoard();
+    const wb = this.siege.wb;
     this.siege = null;
-    for (const o of this.enemies) if (!o.dead && o.defId === 'siege_soldier') { o.dead = true; this.all({ t: 'edel', id: o.id }); }
+    for (const o of this.enemies) if (!o.dead && o.defId === wb.minion) { o.dead = true; this.all({ t: 'edel', id: o.id }); }
     const team = rows.map((r) => ({ c: this.players.get(r[0]), pct: Math.round(r[1] / total * 1000) / 10 })).filter((r) => r.c);
-    for (const c of this.players.values()) c.send({ t: 'siege', on: false, won: true, mvp: team.length ? team[0].c.name : '', top: team.slice(0, 3).map((r) => [r.c.name, r.pct]) });
-    if (this.onSiege) this.onSiege(this, 'win', { name: e.def.name, team });
+    for (const c of this.players.values()) c.send({ t: 'siege', on: false, won: true, wonText: wb.won, mvp: team.length ? team[0].c.name : '', top: team.slice(0, 3).map((r) => [r.c.name, r.pct]) });
+    if (this.onSiege) this.onSiege(this, 'win', { name: e.def.name, id: e.defId, team });
   }
 
   guardianDown() {

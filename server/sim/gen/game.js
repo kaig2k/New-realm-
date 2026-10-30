@@ -2148,6 +2148,25 @@ class Bosses {
 				anim: "fly", animMs: 130, animHit: 4, animHold: 1.4, name: "frost dive"});
 		}
 	static siege() {
+			
+			Bosses.mob("jack_lantern", {name: "Jack-o'-Lantern", spr: "jack_lantern", hp: 2400, def: 14, spd: 3.4, xp: 120, col: 0xff8020, ai: "orbit", keep: 3, drop: 0.3,
+				attacks: [Bosses.aim(3, 26, 8, 70, 1.1, 0xff8020, {shape: "fire", name: "lantern sparks"}), Bosses.ring(8, 0, 4.5, 60, 2.4, 0x60e040, {name: "witch-fire"})]});
+			Bosses.boss("pumpkin_king", {name: "The Pumpkin King", spr: "pumpkin_king", hp: 150000, def: 30, spd: 1.4, xp: 6000, col: 0xff8020,
+				gold: 1500, onrane: 10, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
+				world: {minion: "jack_lantern", time: 300, zone: 3, title: "HALLOWEEN", won: "THE PUMPKIN KING IS SMASHED!"},
+				hint: "The Pumpkin King rises! Dodge his pumpkin bombs and candy corn, smash his jack-o'-lanterns, and beat him before the witching hour ends.",
+				phases: [
+				Bosses.P(1, {say: "TRICK... OR TREAT?", move: "chase", speed: 1.1, summon: [{what: "jack_lantern", n: 2}],
+					attacks: [Bosses.aim(5, 50, 9, 95, 1.0, 0xff8020, {name: "candy corn"}), Bosses.ring(12, 15, 5, 80, 1.8, 0x60e040, {name: "witch-fire ring"}),
+						Bosses.rain(4, 4, 110, 3.0, 0xff8020, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "pumpkin bombs"}), Bosses.summon("jack_lantern", 2, 8, 6)]}),
+				Bosses.P(0.65, {say: "THE HARVEST COMES!", banner: "The harvest comes!", shield: 3, move: "orbit",
+					attacks: [Bosses.spiral(4, 13, 6, 85, 0.13, 0xff8020, {name: "pumpkin spiral"}), Bosses.aim(3, 30, 7, 110, 1.4, 0x60e040, {motion: "home", name: "homing witch-fire"}),
+						Bosses.lineRain(6, 120, 3.2, 0xff6010, "pillar", {name: "scythe sweep"}), Bosses.summon("jack_lantern", 3, 9, 8)]}),
+				Bosses.P(0.3, {say: "NO TREATS. ONLY TRICKS!", banner: "THE WITCHING HOUR!", shield: 3, move: "chase", speed: 1.4,
+					attacks: [Bosses.flower(20, 7, 5.5, 95, 0.9, 0xff8020, {name: "candy whirl"}), Bosses.spiral(5, -11, 6.5, 100, 0.12, 0x60e040, {name: "witch-fire spiral"}),
+						Bosses.rain(7, 5, 125, 2.2, 0xff8020, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "pumpkin bombs"}),
+						Bosses.pull(16, 100, 4.0, 0x60e040, {name: "the witching hour"}), Bosses.summon("jack_lantern", 4, 7, 10)]})
+			]}, ["candy_corn_ring", "pumpkin_signet"]);
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
 				attacks: [Bosses.aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
 			
@@ -6303,6 +6322,10 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-10-pumpkin", title: "The Pumpkin King",
+				lines: ["<b>Halloween has come to the realm</b>: every ten minutes <b>the Pumpkin King</b> rises in each realm with heroes in it (you're warned 30 seconds before), a scarecrow lord with a burning jack-o'-lantern for a head, a scythe and a lantern of witch-fire.",
+					"Beat him within <b>5 minutes</b>: his candy corn, pumpkin bombs and witch-fire get worse as he weakens, and his jack-o'-lanterns hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
+					"He can drop the <b>Candy Corn Ring</b> (UT) and the <b>Pumpkin King's Signet</b> (Legendary)."]},
 			{id: "2026-10-abyss2", title: "Faster Abyss runs",
 				lines: ["<b>A chest after every wave</b>: an Abyssal Cache with gear and a jackpot that can be <b>any item in the game</b> (up to Primordial and even Godly pieces, for the run). Boss waves' chests roll two jackpots. And the early waves are gentler.",
 					"<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
@@ -6906,6 +6929,9 @@ Uniques.FIXED = {
 			
 			saltbeard_cutlass: {n: "Saltbeard's Cutlass", k: "weapon", s: "sword", r: "ut", st: {dex: 2}, d: [36, 50], sh: 3, rt: 1, arc: 26, txt: "Three blades in a wide fan: good against groups."},
 			swashbuckler_tunic: {n: "Swashbuckler's Tunic", k: "armor", s: "leather", r: "ut", df: 14, st: {spd: 4, dex: 4}, txt: "T4 defense with agility on top.", lore: "Cut for boarding actions."},
+			
+			candy_corn_ring: {n: "Candy Corn Ring", k: "ring", s: "dex", r: "ut", st: {dex: 6, spd: 6, luc: 4}, txt: "The speed ring, with a treat of luck.", lore: "Sweet enough to fight over."},
+			pumpkin_signet: {n: "Pumpkin King's Signet", k: "ring", s: "att", r: "lg", st: {att: 8, mgt: 6, hp: 60}, txt: "The damage ring.", lore: "Carved from the rind of his own crown."},
 			pirates_treasure: {n: "Pirate's Treasure", k: "ring", s: "luc", r: "ut", st: {luc: 12, mgt: 12, dex: 2}, txt: "The crit ring.", lore: "X marked the spot."},
 			lantern_wand: {n: "Moonlantern Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [30, 42], sh: 2, rt: 1, par: true, mo: "wave", txt: "Twin shots, side by side, weaving."},
 			dustveil_robe: {n: "Dustveil Robe", k: "armor", s: "robe", r: "ut", df: 8, st: {mp: 60, wis: 5}, txt: "Less defense, more mana."},
@@ -6981,6 +7007,7 @@ Uniques.FIXED = {
 			shardglass_alembic: {n: "Shardglass Alembic", k: "ability", s: "flask", r: "lg", pw: 2.95, st: {att: 6, dex: 6}, ab: "philbomb", abx: {shards: true}, txt: "Philosopher's Bomb scatters glass shards outwards.", lore: "Blown from the Seraph's broken wings."}
 		};
 Uniques.DROPS = {
+			pumpkin_king: ["candy_corn_ring", "pumpkin_signet"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],
@@ -7138,9 +7165,9 @@ Bosses.POSED = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord"
 			"vault_ignis", "warden", "blood_knight", "sentinel",
 			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
 			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
-			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan"];
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan", "pumpkin_king"];
 Bosses.POSED_SEQ = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
-Bosses.POSED_SHOTS = {"boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
+Bosses.POSED_SHOTS = {"pumpkin_king": ["candycorn", "pumpkinlet"], "boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
 			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],
 			"kraken": ["ink", "bubble"], "lich_king": ["skull", "soulorb"], "serpent_queen": ["fang", "venom"],

@@ -1618,6 +1618,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-10-pumpkin", title: "The Pumpkin King",
+				lines: ["<b>Halloween has come to the realm</b>: every ten minutes <b>the Pumpkin King</b> rises in each realm with heroes in it (you're warned 30 seconds before), a scarecrow lord with a burning jack-o'-lantern for a head, a scythe and a lantern of witch-fire.",
+					"Beat him within <b>5 minutes</b>: his candy corn, pumpkin bombs and witch-fire get worse as he weakens, and his jack-o'-lanterns hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
+					"He can drop the <b>Candy Corn Ring</b> (UT) and the <b>Pumpkin King's Signet</b> (Legendary)."]},
 			{id: "2026-10-abyss2", title: "Faster Abyss runs",
 				lines: ["<b>A chest after every wave</b>: an Abyssal Cache with gear and a jackpot that can be <b>any item in the game</b> (up to Primordial and even Godly pieces, for the run). Boss waves' chests roll two jackpots. And the early waves are gentler.",
 					"<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",

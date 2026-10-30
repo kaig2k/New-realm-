@@ -17,6 +17,8 @@ package realm {
 		private var bar:Shape = new Shape();
 		/** Seconds since the last word from the server (the panel goes once it's stale). */
 		public var quiet:Number = 0;
+		/** Which world boss this is (its name): the Warlord's Realm Siege, or the Pumpkin King. */
+		private var wb:String = "";
 		/** Showing the result: seconds left. */
 		public var endT:Number = 0;
 		public var bossId:int = 0;
@@ -54,7 +56,8 @@ package realm {
 				endT = 0;
 				active = true;
 				bossId = int(m.id);
-				title.text = "REALM SIEGE · " + m.name;
+				title.text = (m.title || "REALM SIEGE") + " · " + m.name;
+				wb = String(m.name);
 				var left:int = int(m.left);
 				timeTf.text = int(left / 60) + ":" + (left % 60 < 10 ? "0" : "") + (left % 60);
 				timeTf.textColor = left < 120 ? 0xff6060 : 0xffffff;
@@ -68,7 +71,7 @@ package realm {
 				bar.graphics.drawRoundRect(0, 0, (W - 20) * f, 12, 6, 6);
 				bar.graphics.endFill();
 				board.htmlText = topLine(m.top as Array) + (m.n ? "   <font color='#a89878'>" + m.n + " fighting</font>" : "");
-				meTf.text = m.rank > 0 ? "You: " + m.me + "% of the damage (#" + m.rank + ")" : "Hit the Warlord to share in the loot  (/glands to get there)";
+				meTf.text = m.rank > 0 ? "You: " + m.me + "% of the damage (#" + m.rank + ")" : m.title ? "Hit " + m.name + " to share in the loot" : "Hit the Warlord to share in the loot  (/glands to get there)";
 			} else {
 				endT = 7;
 				active = false;
@@ -76,11 +79,11 @@ package realm {
 				bar.graphics.clear();
 				timeTf.text = "";
 				if (m.won) {
-					title.text = "THE SIEGE IS BROKEN!";
+					title.text = m.wonText || "THE SIEGE IS BROKEN!";
 					board.htmlText = topLine(m.top as Array);
 					meTf.text = m.mvp ? "MVP: " + m.mvp : "";
 				} else {
-					title.text = "The Warlord withdraws...";
+					title.text = (wb && wb.indexOf("Vorgath") < 0 ? wb : "The Warlord") + " withdraws...";
 					board.htmlText = "<font color='#a89878'>Not beaten in time. He'll be back.</font>";
 					meTf.text = "";
 				}

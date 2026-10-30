@@ -179,6 +179,9 @@ package realm {
 			// ---- early dungeons (UT, T4-T5)
 			saltbeard_cutlass: {n: "Saltbeard's Cutlass", k: "weapon", s: "sword", r: "ut", st: {dex: 2}, d: [36, 50], sh: 3, rt: 1, arc: 26, txt: "Three blades in a wide fan: good against groups."},
 			swashbuckler_tunic: {n: "Swashbuckler's Tunic", k: "armor", s: "leather", r: "ut", df: 14, st: {spd: 4, dex: 4}, txt: "T4 defense with agility on top.", lore: "Cut for boarding actions."},
+			// the Pumpkin King's (the Halloween world boss)
+			candy_corn_ring: {n: "Candy Corn Ring", k: "ring", s: "dex", r: "ut", st: {dex: 6, spd: 6, luc: 4}, txt: "The speed ring, with a treat of luck.", lore: "Sweet enough to fight over."},
+			pumpkin_signet: {n: "Pumpkin King's Signet", k: "ring", s: "att", r: "lg", st: {att: 8, mgt: 6, hp: 60}, txt: "The damage ring.", lore: "Carved from the rind of his own crown."},
 			pirates_treasure: {n: "Pirate's Treasure", k: "ring", s: "luc", r: "ut", st: {luc: 12, mgt: 12, dex: 2}, txt: "The crit ring.", lore: "X marked the spot."},
 			lantern_wand: {n: "Moonlantern Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [30, 42], sh: 2, rt: 1, par: true, mo: "wave", txt: "Twin shots, side by side, weaving."},
 			dustveil_robe: {n: "Dustveil Robe", k: "armor", s: "robe", r: "ut", df: 8, st: {mp: 60, wis: 5}, txt: "Less defense, more mana."},
@@ -256,6 +259,7 @@ package realm {
 
 		/** Which boss drops which of them (replacing what the bosses carried before). */
 		public static const DROPS:Object = {
+			pumpkin_king: ["candy_corn_ring", "pumpkin_signet"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],

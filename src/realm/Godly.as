@@ -221,6 +221,8 @@ package realm {
 		}
 
 		public static function describe(it:Object):String {
+			// (a Godly unique, like All Hallows' Eye, is described by Uniques.describe)
+			if (!it.gid) return "";
 			var src:String = source[it.gid];
 			var s:String = "";
 			var x:Object = wrathOf(it);

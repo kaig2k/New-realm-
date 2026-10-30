@@ -99,7 +99,7 @@ package realm {
 			nameTf.filters = [new GlowFilter(0x000000, 1, 4, 4, 6), new GlowFilter(col, 0.7, 10, 10, 2)];
 			addChild(nameTf);
 			sub = Ui.text(14, 0xdddddd, false, "center", w, true);
-			sub.htmlText = (from ? "from <b>" + from + "</b>   ·   " : "") + (godly ? "1 in 1,000 from the bosses that carry them" : "the rarest gear in the realm");
+			sub.htmlText = (from ? "from <b>" + from + "</b>   ·   " : "") + (godly ? (item.uid ? "1 in 2,500: the best ring in the realm" : "1 in 1,000 from the bosses that carry them") : "the rarest gear in the realm");
 			sub.y = cy + 122;
 			addChild(sub);
 			addEventListener(Event.ENTER_FRAME, tick);

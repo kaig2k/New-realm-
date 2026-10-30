@@ -301,7 +301,7 @@ package realm {
 			var a:Object = baseArt(it);
 			if (a && it.rarity == "gd") {
 				var p:Object = a.pal;
-				var jewel:uint = HUES[(hash(identity(it)) >>> 4) % 8];
+				var jewel:uint = it.col && it.kind == "ring" ? it.col : HUES[(hash(identity(it)) >>> 4) % 8];
 				if (it.kind == "ring") {
 					p.G = 0xf2cc6a; p.g = 0xb08a30; p.R = jewel; p.r = Sprites.shade(jewel, 0.6);
 				} else {

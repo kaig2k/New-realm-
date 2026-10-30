@@ -1275,6 +1275,8 @@ class Uniques {
 			it.lore = f.lore || (Uniques.ALL[id] ? Uniques.ALL[id][5] : "");
 			for (var k in f.st) it[k] = f.st[k];
 			if (f.k == "armor") it.def = f.df;
+			if (f.wild) it.wild = true;
+			if (f.col && f.k == "ring") it.col = f.col;
 			if (f.k == "ability") {
 				it.power = f.pw;
 				if (f.ab) it.ab = f.ab;
@@ -1385,6 +1387,7 @@ class Uniques {
 			else if (sp && rar == "lg") s += "<font color='#6a9aa8'>Starforged, it gains " + sp.name + ": " + sp.desc + "</font>\n";
 			if (rar == "sf") s += "<font color='#8ae8ff'>Starforged from the Legendary" + (src ? " " + src + " drops" : "") + ".</font>\n";
 			else if (rar == "lg" && Uniques.canStarforge(it)) s += "<font color='#8ae8ff'>Bring it and a Star Shard to the Starforge to make it Starforged.</font>\n";
+			else if (rar == "gd") s += "<font color='#fff6e0'>Godly: 1 in 2,500 from " + (src || "its boss") + ". Every drop is the same: no bad rolls.</font>\n";
 			else if (src) s += "<font color='#ff9a2e'>" + Data.RARITY_NAMES[rar] + ": only " + src + " drops this.</font>\n";
 			return s;
 		}
@@ -1488,6 +1491,8 @@ class Godly {
 			}
 		}
 	static describe(it) {
+			
+			if (!it.gid) return "";
 			var src = Godly.source[it.gid];
 			var s = "";
 			var x = Godly.wrathOf(it);
@@ -6325,7 +6330,8 @@ Data.NEWS = [
 			{id: "2026-10-pumpkin", title: "The Pumpkin King",
 				lines: ["<b>Halloween has come to the realm</b>: every ten minutes <b>the Pumpkin King</b> rises in each realm with heroes in it (you're warned 30 seconds before), a scarecrow lord with a burning jack-o'-lantern for a head, a scythe and a lantern of witch-fire.",
 					"Beat him within <b>5 minutes</b>: his candy corn, pumpkin bombs and witch-fire get worse as he weakens, and his jack-o'-lanterns hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
-					"He can drop the <b>Candy Corn Ring</b> (UT) and the <b>Pumpkin King's Signet</b> (Legendary)."]},
+					"He can drop the <b>Candy Corn Ring</b> (UT) and four Legendaries: the <b>Pumpkin King's Signet</b>, the <b>Harvest Moon Scythe</b> (a wide, piercing three-blade sweep), the <b>Scarecrow's Shroud</b> (Shadowstep leaves a scarecrow that draws fire) and the <b>Hollow King's Coat</b>.",
+					"And, 1 in 2,500: <font color='#fff6e0'><b>All Hallows' Eye</b></font>, a Godly ring and the best ring in the realm for every class. It counts as a piece of whatever Godly set you wear, so it never costs you your set bonus."]},
 			{id: "2026-10-abyss2", title: "Faster Abyss runs",
 				lines: ["<b>A chest after every wave</b>: an Abyssal Cache with gear and a jackpot that can be <b>any item in the game</b> (up to Primordial and even Godly pieces, for the run). Boss waves' chests roll two jackpots. And the early waves are gentler.",
 					"<b>More loot</b>: four kills in ten drop gear, elites always do, bosses drop three pieces and chests four and a ring. <b>Stat potions</b> drop on runs too (for the run's hero). Gear reaches T7 by wave 8, UTs can drop from wave 8 and Legendaries from wave 15.",
@@ -6932,6 +6938,15 @@ Uniques.FIXED = {
 			
 			candy_corn_ring: {n: "Candy Corn Ring", k: "ring", s: "dex", r: "ut", st: {dex: 6, spd: 6, luc: 4}, txt: "The speed ring, with a treat of luck.", lore: "Sweet enough to fight over."},
 			pumpkin_signet: {n: "Pumpkin King's Signet", k: "ring", s: "att", r: "lg", st: {att: 8, mgt: 6, hp: 60}, txt: "The damage ring.", lore: "Carved from the rind of his own crown."},
+			harvest_scythe: {n: "Harvest Moon Scythe", k: "weapon", s: "sword", r: "lg", st: {att: 6, mgt: 4}, d: [110, 146], sh: 3, rt: 1, arc: 34, pc: true, col: 0xff8020,
+				txt: "A wide reaping sweep: three blades that pierce everything in the arc.", lore: "It has brought in a thousand harvests. Not all of them wheat."},
+			scarecrow_shroud: {n: "Scarecrow's Shroud", k: "ability", s: "cloak", r: "lg", pw: 2.85, st: {dex: 8, spd: 6}, ab: "shadowstep", abx: {decoy: 3},
+				txt: "Shadowstep leaves a scarecrow behind that draws enemy fire for 3s.", lore: "Stuffed with straw, and something that whispers."},
+			hollow_kings_coat: {n: "Hollow King's Coat", k: "armor", s: "leather", r: "lg", df: 32, st: {att: 6, dex: 6, hp: 80}, txt: "Offense leather.",
+				lore: "Black as a moonless field, trimmed in pumpkin-fire."},
+			
+			all_hallows_eye: {n: "All Hallows' Eye", k: "ring", s: "luc", r: "gd", st: {hp: 260, mp: 100, att: 28, dex: 28, wis: 28, vit: 20, luc: 20, mgt: 16, spd: 16, prt: 16, frt: 20},
+				wild: true, col: 0xff7a18, txt: "The best ring in the realm, for every class. Counts as a piece of any set you wear.", lore: "The Pumpkin King's burning eye. It still sees the other side."},
 			pirates_treasure: {n: "Pirate's Treasure", k: "ring", s: "luc", r: "ut", st: {luc: 12, mgt: 12, dex: 2}, txt: "The crit ring.", lore: "X marked the spot."},
 			lantern_wand: {n: "Moonlantern Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [30, 42], sh: 2, rt: 1, par: true, mo: "wave", txt: "Twin shots, side by side, weaving."},
 			dustveil_robe: {n: "Dustveil Robe", k: "armor", s: "robe", r: "ut", df: 8, st: {mp: 60, wis: 5}, txt: "Less defense, more mana."},
@@ -7007,7 +7022,7 @@ Uniques.FIXED = {
 			shardglass_alembic: {n: "Shardglass Alembic", k: "ability", s: "flask", r: "lg", pw: 2.95, st: {att: 6, dex: 6}, ab: "philbomb", abx: {shards: true}, txt: "Philosopher's Bomb scatters glass shards outwards.", lore: "Blown from the Seraph's broken wings."}
 		};
 Uniques.DROPS = {
-			pumpkin_king: ["candy_corn_ring", "pumpkin_signet"],
+			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],
@@ -7041,7 +7056,7 @@ Uniques.DROPS = {
 			flame_warden: ["flamewarden_signet"],
 			shattered_seraph: ["shardglass_alembic"]
 		};
-Uniques.CHANCE = {ut: 0.02, lg: 0.01};
+Uniques.CHANCE = {ut: 0.02, lg: 0.01, gd: 1 / 2500};
 Uniques.RETIRED = ["parrot_charm", "scaled_hide", "powder_keg", "silkspinner", "brimstone_ring", "pixie_ring", "fae_quiver",
 			"cube_core", "ember_mantle", "kings_ransom", "phantom_veil", "obsidian_maul", "gravebind_ring", "cinder_ring", "emberheart_staff",
 			"illusionist_wand", "flamewarden_blade", "tempest_quiver", "thunderhide", "arcane_vestments", "sunfire_staff", "solar_crown",

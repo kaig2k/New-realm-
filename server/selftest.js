@@ -1251,7 +1251,7 @@ async function run() {
     const panel = sent.find((m) => m.t === 'siege' && m.on);
     check('the Pumpkin King rises in the realm with his jack-o\'-lanterns, a 5 minute clock and his own panel', ok && e.defId === 'pumpkin_king' && e.zone === 3 &&
       ws.enemies.some((o) => !o.dead && o.defId === 'jack_lantern') && panel && panel.title === 'HALLOWEEN' && panel.left === 300 && HB.POSED.indexOf('pumpkin_king') >= 0 &&
-      HW.ENEMIES.pumpkin_king.uniques.length === 2, JSON.stringify(panel));
+      HW.ENEMIES.pumpkin_king.uniques.length === 6, JSON.stringify(panel));
     check('...the realm\'s events go on while he\'s up (the Siege holds them back, he doesn\'t)', (ws.w.eventT = 0, ws.updateEvents(0.1), !!(ws.w.boss && !ws.w.boss.dead)));
     if (ws.w.boss && !ws.w.boss.dead) ws.kill(ws.w.boss);
     c.x = e.x; c.y = e.y + 2;
@@ -1259,6 +1259,20 @@ async function run() {
     const won = sent.filter((m) => m.t === 'siege').pop();
     check('...smash him: his own victory, his jack-o\'-lanterns go, and the Realm Siege can still come after', e.dead && fin.some((f) => f[0] === 'win' && f[1] === 'pumpkin_king') &&
       won && won.wonText === 'THE PUMPKIN KING IS SMASHED!' && !ws.enemies.some((o) => !o.dead && o.defId === 'jack_lantern') && ws.startSiege() && ws.siege.e.defId === 'siege_warlord', JSON.stringify(fin));
+    // his loot: a UT, four Legendaries and, 1 in 2,500, All Hallows' Eye: a Godly ring above every other ring, worn with any Godly set
+    const { Uniques: HU, Godly: HG } = require('./sim/gen/game');
+    const eye = HU.make('all_hallows_eye'), rings = Object.keys(HG.SETS).map((k) => HG.make(k, 3));
+    const beats = rings.every((r) => HU.statTotal(eye) > HU.statTotal(r) && ['att', 'dex', 'wis'].every((k) => eye[k] >= (r[k] || 0)));
+    const rar = HW.ENEMIES.pumpkin_king.uniques.map((u) => HU.rarityOf(u)).join(',');
+    const real = Math.random;
+    let drops = 0;
+    Math.random = () => 0.0003; drops += HW.rollLoot(HW.ENEMIES.pumpkin_king, 3, HW.CLASSES.wizard, 0).filter((it) => it.uid === 'all_hallows_eye').length;
+    Math.random = () => 0.0005; drops += 10 * HW.rollLoot(HW.ENEMIES.pumpkin_king, 3, HW.CLASSES.wizard, 0).filter((it) => it.uid === 'all_hallows_eye').length;
+    Math.random = real;
+    const ch = { stats: {}, weapon: HG.make('wizard', 0), ability: HG.make('wizard', 1), armor: HG.make('wizard', 2), ring: eye };
+    check('...his drops: a UT, four Legendaries and a 1 in 2,500 Godly ring, the best ring there is, that keeps a Godly set\'s bonus',
+      rar === 'ut,lg,lg,lg,lg,gd' && eye.rarity === 'gd' && eye.wild && checkItem(eye) === null && beats && drops === 1 && Math.abs(HU.CHANCE.gd - 1 / 2500) < 1e-12 &&
+      require('./combat').stat(ch, 'wis') >= eye.wis + HG.make('wizard', 0).wis + HG.make('wizard', 1).wis + HG.make('wizard', 2).wis + HW.setBonus('g_wizard').wis, rar + ' ' + drops);
   }
 
   console.log('the Starfall Trial');

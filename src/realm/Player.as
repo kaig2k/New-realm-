@@ -151,12 +151,16 @@ package realm {
 
 		/** Most equipped pieces of any one set. */
 		public function get setPieces():int {
-			var counts:Object = {}, n:int = 0;
-			for each (var it:Object in [weapon, ability, armor, ring]) if (it && it.set) {
-				counts[it.set] = (counts[it.set] || 0) + 1;
-				n = Math.max(n, counts[it.set]);
+			var counts:Object = {}, n:int = 0, wild:int = 0;
+			for each (var it:Object in [weapon, ability, armor, ring]) {
+				// (a wild piece, like All Hallows' Eye, counts toward whichever set the rest is)
+				if (it && it.wild) wild++;
+				else if (it && it.set) {
+					counts[it.set] = (counts[it.set] || 0) + 1;
+					n = Math.max(n, counts[it.set]);
+				}
 			}
-			return n;
+			return n ? n + wild : 0;
 		}
 
 		/** The set whose 4-piece bonus is active, or null. */

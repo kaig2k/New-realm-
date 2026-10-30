@@ -182,6 +182,15 @@ package realm {
 			// the Pumpkin King's (the Halloween world boss)
 			candy_corn_ring: {n: "Candy Corn Ring", k: "ring", s: "dex", r: "ut", st: {dex: 6, spd: 6, luc: 4}, txt: "The speed ring, with a treat of luck.", lore: "Sweet enough to fight over."},
 			pumpkin_signet: {n: "Pumpkin King's Signet", k: "ring", s: "att", r: "lg", st: {att: 8, mgt: 6, hp: 60}, txt: "The damage ring.", lore: "Carved from the rind of his own crown."},
+			harvest_scythe: {n: "Harvest Moon Scythe", k: "weapon", s: "sword", r: "lg", st: {att: 6, mgt: 4}, d: [110, 146], sh: 3, rt: 1, arc: 34, pc: true, col: 0xff8020,
+				txt: "A wide reaping sweep: three blades that pierce everything in the arc.", lore: "It has brought in a thousand harvests. Not all of them wheat."},
+			scarecrow_shroud: {n: "Scarecrow's Shroud", k: "ability", s: "cloak", r: "lg", pw: 2.85, st: {dex: 8, spd: 6}, ab: "shadowstep", abx: {decoy: 3},
+				txt: "Shadowstep leaves a scarecrow behind that draws enemy fire for 3s.", lore: "Stuffed with straw, and something that whispers."},
+			hollow_kings_coat: {n: "Hollow King's Coat", k: "armor", s: "leather", r: "lg", df: 32, st: {att: 6, dex: 6, hp: 80}, txt: "Offense leather.",
+				lore: "Black as a moonless field, trimmed in pumpkin-fire."},
+			// the Godly ring: the best ring in the game, for any class. It counts as a piece of whatever Godly set you wear
+			all_hallows_eye: {n: "All Hallows' Eye", k: "ring", s: "luc", r: "gd", st: {hp: 260, mp: 100, att: 28, dex: 28, wis: 28, vit: 20, luc: 20, mgt: 16, spd: 16, prt: 16, frt: 20},
+				wild: true, col: 0xff7a18, txt: "The best ring in the realm, for every class. Counts as a piece of any set you wear.", lore: "The Pumpkin King's burning eye. It still sees the other side."},
 			pirates_treasure: {n: "Pirate's Treasure", k: "ring", s: "luc", r: "ut", st: {luc: 12, mgt: 12, dex: 2}, txt: "The crit ring.", lore: "X marked the spot."},
 			lantern_wand: {n: "Moonlantern Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [30, 42], sh: 2, rt: 1, par: true, mo: "wave", txt: "Twin shots, side by side, weaving."},
 			dustveil_robe: {n: "Dustveil Robe", k: "armor", s: "robe", r: "ut", df: 8, st: {mp: 60, wis: 5}, txt: "Less defense, more mana."},
@@ -259,7 +268,7 @@ package realm {
 
 		/** Which boss drops which of them (replacing what the bosses carried before). */
 		public static const DROPS:Object = {
-			pumpkin_king: ["candy_corn_ring", "pumpkin_signet"],
+			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],
@@ -293,8 +302,8 @@ package realm {
 			flame_warden: ["flamewarden_signet"],
 			shattered_seraph: ["shardglass_alembic"]
 		};
-		/** Per item, each rolled on its own: a UT 1 in 50, a Legendary 1 in 100 (UTs before any luck). */
-		public static const CHANCE:Object = {ut: 0.02, lg: 0.01};
+		/** Per item, each rolled on its own: a UT 1 in 50, a Legendary 1 in 100 (UTs before any luck), a Godly unique 1 in 2,500. */
+		public static const CHANCE:Object = {ut: 0.02, lg: 0.01, gd: 1 / 2500};
 
 		/** Puts the plan's drops on its bosses (Bosses.init, once every boss exists). */
 		public static function assign():void {
@@ -437,6 +446,8 @@ package realm {
 			it.lore = f.lore || (ALL[id] ? ALL[id][5] : "");
 			for (var k:String in f.st) it[k] = f.st[k];
 			if (f.k == "armor") it.def = f.df;
+			if (f.wild) it.wild = true;
+			if (f.col && f.k == "ring") it.col = f.col;
 			if (f.k == "ability") {
 				it.power = f.pw;
 				if (f.ab) it.ab = f.ab;
@@ -582,6 +593,7 @@ package realm {
 			else if (sp && rar == "lg") s += "<font color='#6a9aa8'>Starforged, it gains " + sp.name + ": " + sp.desc + "</font>\n";
 			if (rar == "sf") s += "<font color='#8ae8ff'>Starforged from the Legendary" + (src ? " " + src + " drops" : "") + ".</font>\n";
 			else if (rar == "lg" && canStarforge(it)) s += "<font color='#8ae8ff'>Bring it and a Star Shard to the Starforge to make it Starforged.</font>\n";
+			else if (rar == "gd") s += "<font color='#fff6e0'>Godly: 1 in 2,500 from " + (src || "its boss") + ". Every drop is the same: no bad rolls.</font>\n";
 			else if (src) s += "<font color='#ff9a2e'>" + Data.RARITY_NAMES[rar] + ": only " + src + " drops this.</font>\n";
 			return s;
 		}

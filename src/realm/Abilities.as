@@ -509,7 +509,7 @@ package realm {
 							dx = e.x - z.x; dy = e.y - z.y;
 							if (!e.dead && dx * dx + dy * dy < z.r * z.r) {
 								if (z.mark > 0) { e.markT = 0.6; e.markMul = Math.max(e.markT > 0 ? e.markMul : 0, z.mark); }
-								g.hurtEnemy(e, z.dmg, z.venom ? "venom" : "shard", e.x, e.y);
+								g.hurtEnemy(e, z.dmg, z.venom ? "poisontick" : "shard", e.x, e.y);
 								g.burst(e.x, e.y, 0xfff0a0, 3);
 							}
 						}

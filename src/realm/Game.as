@@ -15,6 +15,7 @@ package realm {
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.text.TextField;
+	import flash.text.TextFormat;
 	import flash.ui.Keyboard;
 	import flash.utils.getTimer;
 	import flash.utils.Dictionary;
@@ -335,6 +336,7 @@ package realm {
 			chatInput.visible = false;
 			chatInput.addEventListener(KeyboardEvent.KEY_DOWN, onChatKey);
 			addChild(chatInput);
+			applyChatScale();
 		}
 
 		private function openChat(start:String = ""):void {
@@ -576,6 +578,32 @@ package realm {
 		}
 		private static var vsyncHooked:Boolean = false;
 
+		/** Chat text sizes (Settings: Chat size): name, font size. */
+		private static const CHAT_SIZES:Array = [["Small", 12], ["Normal", 15], ["Large", 18], ["Huge", 22]];
+		private function chatScaleIdx():int {
+			var i:int = Save.data.opt && Save.data.opt.chatSize != undefined ? int(Save.data.opt.chatSize) : 1;
+			return Math.max(0, Math.min(CHAT_SIZES.length - 1, i));
+		}
+		private function setChatScale(i:int):void {
+			if (!Save.data.opt) Save.data.opt = {};
+			Save.data.opt.chatSize = i;
+			Save.flush();
+			applyChatScale();
+		}
+		/** The chat log and the line you type in at the chosen size. */
+		private function applyChatScale():void {
+			var size:int = CHAT_SIZES[chatScaleIdx()][1];
+			for each (var tf:TextField in [chat, chatInput]) {
+				if (!tf) continue;
+				var f:TextFormat = tf.defaultTextFormat;
+				f.size = size;
+				tf.defaultTextFormat = f;
+				tf.setTextFormat(f);
+			}
+			if (chatInput) { chatInput.height = size + 9; chatInput.y = VIEW_H - chatInput.height - 6; }
+			refreshChat();
+		}
+
 		private static function setOpt(name:String, v:Boolean):void {
 			if (!Save.data.opt) Save.data.opt = {};
 			Save.data.opt[name] = v;
@@ -602,7 +630,7 @@ package realm {
 			pauseButtons.removeChildren();
 			var gr:* = pauseLayer.graphics;
 			gr.clear();
-			var w:int = menuPage == "controls" ? 640 : MENU_W;
+			var w:int = menuPage == "main" ? MENU_W : 640;
 			var x0:int = int((VIEW_W - w) / 2);
 			var title:Sprite = Ui.heading({main: "Menu", settings: "Settings", controls: "Controls"}[menuPage], 26, 0xe8dcff, w);
 			title.x = x0; title.y = 50;
@@ -636,18 +664,31 @@ package realm {
 				sl.x = x0 + (w - 280) / 2; sl.y = y;
 				pauseButtons.addChild(sl);
 				y += 54;
-				add("Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); }, 28, 33);
-				add("Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers"), 28, 33);
-				add("Player names: " + onOff("names"), toggle("names"), 28, 33);
-				add("Chat bubbles: " + onOff("bubbles"), toggle("bubbles"), 28, 33);
-				add("Damage numbers: " + onOff("dmg"), toggle("dmg"), 28, 33);
-				add("Particles: " + onOff("parts"), toggle("parts"), 28, 33);
-				add("Screen shake: " + onOff("shake"), toggle("shake"), 28, 33);
-				add("Game cursor: " + onOff("cursor"), toggle("cursor"), 28, 33);
-				add("V-Sync: " + (opt("vsync") ? "On (60 FPS)" : "Off (up to 240 FPS)"), function():void { setOpt("vsync", !opt("vsync")); applyVsync(stage); refreshPauseMenu(); }, 28, 33);
-				add("Quest tracker: " + onOff("tracker"), function():void { setOpt("tracker", !opt("tracker")); refreshTracker(); refreshPauseMenu(); }, 28, 33);
-				add("Loot filter: " + LootBag.FILTERS[int(Save.data.lootFilter || 0)], function():void { Save.data.lootFilter = (int(Save.data.lootFilter || 0) + 1) % LootBag.FILTERS.length; Save.flush(); refreshPauseMenu(); }, 28, 33);
-				add("Auto-drink stat potions: " + (Save.data.autoPots ? "On" : "Off"), function():void { Save.data.autoPots = !Save.data.autoPots; Save.flush(); refreshPauseMenu(); }, 28, 33);
+				// (two columns, so every setting fits on the screen)
+				var n:int = 0;
+				var set2:Function = function(label:String, fn:Function):void {
+					var b:Sprite = Ui.button(label, 290, 28, fn, 14);
+					b.x = x0 + 20 + (n % 2) * 300; b.y = y;
+					pauseButtons.addChild(b);
+					if (n % 2 == 1) y += 33;
+					n++;
+				};
+				set2("Sound: " + (Sfx.muted ? "Off" : "On"), function():void { Sfx.muted = !Sfx.muted; refreshPauseMenu(); });
+				set2("Show players: " + (opt("allplayers") ? "Everyone" : "Party & guild"), toggle("allplayers"));
+				set2("Player names: " + onOff("names"), toggle("names"));
+				set2("Chat bubbles: " + onOff("bubbles"), toggle("bubbles"));
+				set2("Other players' shots: " + (opt("allyshots") ? "Shown" : "Hidden"), toggle("allyshots"));
+				set2("Your shots: " + (opt("myshotsolid") ? "Solid" : "See-through"), toggle("myshotsolid"));
+				set2("Damage numbers: " + onOff("dmg"), toggle("dmg"));
+				set2("Particles: " + onOff("parts"), toggle("parts"));
+				set2("Screen shake: " + onOff("shake"), toggle("shake"));
+				set2("Game cursor: " + onOff("cursor"), toggle("cursor"));
+				set2("V-Sync: " + (opt("vsync") ? "On (60 FPS)" : "Off (up to 240)"), function():void { setOpt("vsync", !opt("vsync")); applyVsync(stage); refreshPauseMenu(); });
+				set2("Quest tracker: " + onOff("tracker"), function():void { setOpt("tracker", !opt("tracker")); refreshTracker(); refreshPauseMenu(); });
+				set2("Chat size: " + CHAT_SIZES[chatScaleIdx()][0], function():void { setChatScale((chatScaleIdx() + 1) % CHAT_SIZES.length); refreshPauseMenu(); });
+				set2("Loot filter: " + LootBag.FILTERS[int(Save.data.lootFilter || 0)], function():void { Save.data.lootFilter = (int(Save.data.lootFilter || 0) + 1) % LootBag.FILTERS.length; Save.flush(); refreshPauseMenu(); });
+				set2("Auto-drink stat potions: " + (Save.data.autoPots ? "On" : "Off"), function():void { Save.data.autoPots = !Save.data.autoPots; Save.flush(); refreshPauseMenu(); });
+				if (n % 2 == 1) y += 33;
 				y += 6;
 				add("Back", function():void { menuPage = "main"; refreshPauseMenu(); }, 28, 33);
 			} else {
@@ -737,31 +778,34 @@ package realm {
 			fameTf = tfs[0]; goldTf = tfs[1]; onraneTf = tfs[2]; killTf = tfs[3];
 		}
 
+		private static const BOSS_W:int = 236;
+
 		private function buildBossPanel():void {
 			// damage meter, styled like the RotMG boss leaderboard
 			bossPanel = new Sprite();
-			Ui.panel(bossPanel.graphics, 0, 0, 290, 100, 0x2a2a2a, 0x454545, 0.85);
-			bossName = Ui.text(20, 0xc83030, true, "center", 290, true);
-			bossName.y = 2;
+			// (kept small: it sits over the fight)
+			Ui.panel(bossPanel.graphics, 0, 0, BOSS_W, 72, 0x2a2a2a, 0x454545, 0.8);
+			bossName = Ui.text(15, 0xc83030, true, "center", BOSS_W, true);
+			bossName.y = 1;
 			bossPanel.addChild(bossName);
 			bossBar = new Shape();
-			bossBar.x = 12; bossBar.y = 34;
+			bossBar.x = 10; bossBar.y = 24;
 			bossPanel.addChild(bossBar);
 			var icon:Bitmap = new Bitmap(Sprites.get(player.spriteId));
-			icon.scaleX = icon.scaleY = 0.45;
-			icon.x = 10; icon.y = 50;
+			icon.scaleX = icon.scaleY = 0.33;
+			icon.x = 8; icon.y = 36;
 			bossPanel.addChild(icon);
 			dmgBar = new Shape();
-			dmgBar.x = 36; dmgBar.y = 54;
+			dmgBar.x = 30; dmgBar.y = 37;
 			bossPanel.addChild(dmgBar);
-			dmgTf = Ui.text(14, 0xffffff, true, "left", 244, true);
-			dmgTf.x = 40; dmgTf.y = 52;
+			dmgTf = Ui.text(11, 0xffffff, true, "left", BOSS_W - 40, true);
+			dmgTf.x = 34; dmgTf.y = 36;
 			bossPanel.addChild(dmgTf);
-			bossInfo = Ui.text(11, 0xaaaaaa, true, "left", 140, true);
-			bossInfo.x = 12; bossInfo.y = 78;
+			bossInfo = Ui.text(10, 0xaaaaaa, true, "left", 130, true);
+			bossInfo.x = 10; bossInfo.y = 55;
 			bossPanel.addChild(bossInfo);
-			thresholdTf = Ui.text(11, 0x7fd07f, true, "right", 140, true);
-			thresholdTf.x = 138; thresholdTf.y = 78;
+			thresholdTf = Ui.text(10, 0x7fd07f, true, "right", 100, true);
+			thresholdTf.x = BOSS_W - 110; thresholdTf.y = 55;
 			bossPanel.addChild(thresholdTf);
 			bossPanel.x = 10; bossPanel.y = 10;
 			bossPanel.visible = false;
@@ -1795,7 +1839,13 @@ package realm {
 			}
 			if (bannerT > 0) {
 				bannerT -= dt;
-				if (bannerT <= 0) banner.hide();
+				bannerAge += dt;
+				// (with more waiting, each gets a moment and then makes way)
+				if (bannerQueue.length && bannerAge > BANNER_MIN && bannerT > 0.35) bannerT = 0.35;
+				if (bannerT <= 0) {
+					banner.hide();
+					if (bannerQueue.length && !revealing) { var nb:Array = bannerQueue.shift(); showBanner(nb[0], nb[1], nb[2]); }
+				}
 			}
 			banner.tick(dt);
 
@@ -2130,12 +2180,16 @@ package realm {
 			hurtEnemy(e, s.dmg, s.effect, s.x, s.y);
 		}
 
+		/** A bleeding weapon's wound: each tick (every 0.5s for 3s) deals this share of the hit that opened it. */
+		public static const BLEED:Number = 0.125;
+
 		/** Player damage to an enemy: defense, crits (Luck/Might), weapon passives. */
 		public function hurtEnemy(e:Enemy, raw:int, effect:String, hx:Number, hy:Number):void {
 			if (e.dead) return;
 			var p:Player = player;
-			// poison and acid ticks: like a passive's shard, but they eat through armour
-			var dot:Boolean = effect == "shard" || effect == "venom";
+			// poison ticks and an Acid Ooze's blobs: like a passive's shard, but they eat through armour
+			// (a bleeding or poisoning weapon's own hits, "venom", count as hits: they start the bleed below)
+			var dot:Boolean = effect == "shard" || effect == "poisontick" || effect == "acid";
 			e.playerHit = true;
 			if (e.immune) {
 				if (opt("dmg") && Math.random() < 0.15) floatText(e.x, e.y - e.r - 0.6, "Immune", 0xff80c0);
@@ -2170,7 +2224,7 @@ package realm {
 			// Piercing Shot ignores defense
 			// (Titanbreaker's blades ignore 15 of it)
 			var edef:int = effect == "sunder" ? Math.max(0, e.defense - 15) : e.defense;
-			var d:int = effect == "true" || effect == "venom" ? Math.max(1, raw) : Math.max(1, raw - edef, int(raw * 0.15));
+			var d:int = effect == "true" || effect == "venom" || effect == "poisontick" || effect == "acid" ? Math.max(1, raw) : Math.max(1, raw - edef, int(raw * 0.15));
 			// Ignite (a Starforged Flamewarden's Signet): a crit burns for 2s, 20% of the hit again
 			if (crit && !dot && p.hasSf("ignite")) { e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, int(d * 0.05) + 1); e.poisonT = Math.max(e.poisonT, 2); }
 			// a remote copy's health is only our guess: the host gets the full hit and caps it itself
@@ -2193,6 +2247,13 @@ package realm {
 				// (a fresh dose never weakens one still working)
 				e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, p.poisonDmg);
 				e.poisonT = 4;
+			}
+			// a bleeding (bow) or poisoning (dagger) weapon: each hit opens a wound that bleeds an eighth of it every half
+			// second for 3s (a fresh wound never weakens one still bleeding; Data.weaponExtra counts it for the server)
+			if (effect == "venom" && e.hp > 0) {
+				if (e.poisonT <= 0) floatText(e.x, e.y - e.r - 1.1, p.weapon && p.weapon.sub == "bow" ? "Bleeding" : "Poisoned", p.weapon && p.weapon.sub == "bow" ? 0xff4050 : 0x90f070);
+				e.poisonDmg = Math.max(e.poisonT > 0 ? e.poisonDmg : 0, int(d * BLEED) + 1);
+				e.poisonT = Math.max(e.poisonT, 3);
 			}
 			// Starforged / Primordial passives (not from passive-spawned shards)
 			if (!dot) {
@@ -2243,8 +2304,9 @@ package realm {
 				e.poisonTick -= dt;
 				if (e.poisonTick > 0) continue;
 				e.poisonTick = 0.5;
-				hurtEnemy(e, e.poisonDmg, "venom", e.x, e.y);
-				if (opt("parts") && parts.length < 400) parts.push(new Particle(e.x + (Math.random() - 0.5) * 0.6, e.y - 0.3, 0, -1, 0.5, Sprites.glow(0x90f070)));
+				hurtEnemy(e, e.poisonDmg, "poisontick", e.x, e.y);
+				// (a bow's wound drips red, poison bubbles green)
+				if (opt("parts") && parts.length < 400) parts.push(new Particle(e.x + (Math.random() - 0.5) * 0.6, e.y - 0.3, 0, -1, 0.5, Sprites.glow(player.weapon && player.weapon.sub == "bow" && player.weapon.effect == "venom" ? 0xff3040 : 0x90f070)));
 			}
 		}
 
@@ -3788,6 +3850,17 @@ package realm {
 		public function nexus():void {
 			if (sandbox) { restartSandbox(); return; }
 			travel(nexusNow);
+		}
+
+		/** The vault key: straight to your vault, through the Nexus when you're out in the world. */
+		public function goVault():void {
+			if (sandbox || world == vaultWorld) return;
+			if (inNexus) { travel(enterVault); return; }
+			travel(function():void {
+				nexusNow();
+				// (an Abyss run's hero never reaches the vault: the run ends in the Nexus first)
+				if (!inRun) enterVault();
+			});
 		}
 
 		public function nexusNow():void {
@@ -6066,7 +6139,7 @@ package realm {
 					var look:Array = Data.PET_SHOTS[pt.species] || ["orb", 0xffffff];
 					var n:int = Data.petShots(pt), aim:Number = Math.atan2(target.y - petY, target.x - petX);
 					// (Acid Ooze's blobs eat through Defense)
-					var fx:String = pt.species == "slime" && Data.petPath(pt) == "b" ? "venom" : "shard";
+					var fx:String = pt.species == "slime" && Data.petPath(pt) == "b" ? "acid" : "shard";
 					for (var k:int = 0; k < n; k++) {
 						var ps:Projectile = new Projectile(petX, petY - 0.3, aim + (k - (n - 1) / 2) * 0.18, 11, range / 11 + 0.1, Data.petAttack(pt), false, 0.25 + Data.petStage(pt) * 0.04,
 							Sprites.projectile(look[0], look[1], 3), false, player.name, fx);
@@ -6829,7 +6902,7 @@ package realm {
 			chat.visible = show.length > 0;
 			chat.alpha = 1;
 			chatFadeAt = open ? 0 : oldest + CHAT_SECS;
-			chat.y = VIEW_H - chat.height - (open ? 36 : 6);
+			chat.y = VIEW_H - chat.height - (open ? chatInput.height + 12 : 6);
 			if (!chatBg) {
 				chatBg = new Shape();
 				chatBg.cacheAsBitmap = true;
@@ -6884,7 +6957,10 @@ package realm {
 			banner.visible = false;
 		}
 		private var activeReveal:DropReveal;
-		private var pendingBanner:Array;
+		/** Banners waiting their turn (one at a time, so a burst of them doesn't blur into each other). */
+		private var bannerQueue:Array = [];
+		private var bannerAge:Number = 0, bannerText:String = "";
+		private static const BANNER_MIN:Number = 1.6;
 		private function get revealing():Boolean { return activeReveal != null && !activeReveal.done; }
 
 		private var announceBox:Sprite;
@@ -6916,9 +6992,19 @@ package realm {
 		}
 
 		public function showBanner(text:String, color:uint, secs:Number):void {
-			if (revealing) { pendingBanner = [text, color, secs]; return; }
+			// (the same words again are one banner, not two)
+			if ((bannerT > 0 && text == bannerText)) return;
+			for each (var q:Array in bannerQueue) if (q[0] == text) return;
+			if (revealing || bannerT > 0) {
+				bannerQueue.push([text, color, secs]);
+				// (at most three waiting: the oldest goes)
+				if (bannerQueue.length > 3) bannerQueue.shift();
+				return;
+			}
 			banner.show(text, color, secs);
 			bannerT = secs;
+			bannerAge = 0;
+			bannerText = text;
 		}
 
 		/** The Realm Siege's panel (the server's "siege" messages; ServerNet). */
@@ -6926,8 +7012,8 @@ package realm {
 			if (!siegePanel) {
 				if (!m.on && !m.won && !m.lost) return;
 				siegePanel = new SiegePanel();
-				siegePanel.x = 308;
-				siegePanel.y = 8;
+				siegePanel.x = int((VIEW_W - SiegePanel.W) / 2);
+				siegePanel.y = 6;
 				addChild(siegePanel);
 			}
 			siegePanel.update(m);
@@ -6948,7 +7034,7 @@ package realm {
 		private function updateOverlays():void {
 			tickSiege();
 			tickWaves();
-			if (pendingBanner && !revealing) { var pb:Array = pendingBanner; pendingBanner = null; showBanner(pb[0], pb[1], pb[2]); }
+			if (bannerQueue.length && !revealing && bannerT <= 0) { var pb:Array = bannerQueue.shift(); showBanner(pb[0], pb[1], pb[2]); }
 			if (revealing) banner.visible = false;
 			fameTf.text = Ui.commas(player.fame);
 			killTf.text = Ui.commas(player.kills);
@@ -6968,6 +7054,8 @@ package realm {
 
 			var b:Enemy = focusBoss();
 			var show:Boolean = b != null && !b.dead;
+			// (a world boss has its own strip at the top: no second panel for him)
+			if (show && siegePanel && siegePanel.active && b.id == siegePanel.bossId) show = false;
 			if (show) {
 				var dx:Number = b.x - player.x, dy:Number = b.y - player.y;
 				show = dx * dx + dy * dy < 22 * 22 || b.hp < b.maxHp;
@@ -6979,17 +7067,17 @@ package realm {
 				var g:* = bossBar.graphics;
 				g.clear();
 				g.beginFill(0x111111);
-				g.drawRoundRect(0, 0, 266, 10, 4, 4);
+				g.drawRoundRect(0, 0, BOSS_W - 20, 8, 4, 4);
 				g.beginFill(b.immune ? 0x9a5a7a : 0xc82828);
-				g.drawRoundRect(0, 0, 266 * frac, 10, 4, 4);
+				g.drawRoundRect(0, 0, (BOSS_W - 20) * frac, 8, 4, 4);
 				g.endFill();
 				var pct:Number = player.bossDmg / b.maxHp * 100;
 				var dg:* = dmgBar.graphics;
 				dg.clear();
 				dg.beginFill(0x1a1a1a);
-				dg.drawRoundRect(0, 0, 242, 20, 6, 6);
+				dg.drawRoundRect(0, 0, BOSS_W - 40, 15, 5, 5);
 				dg.beginFill(0x2f8fc8);
-				dg.drawRoundRect(0, 0, Math.max(8, 242 * pct / 100), 20, 6, 6);
+				dg.drawRoundRect(0, 0, Math.max(6, (BOSS_W - 40) * pct / 100), 15, 5, 5);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
 				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : b.def.lairBoss || (world.theme && world.theme.lair) ? lairShieldText() : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
@@ -7029,12 +7117,15 @@ package realm {
 		}
 
 		private function updateZoom():void {
-			var steps:Number = input.wheel;
+			// the mouse wheel zooms the minimap, Shift + wheel the camera (as do the zoom keys)
+			var steps:Number = 0;
+			if (input.wheel != 0 && !uiCaptured()) {
+				if (input.shift && input.mx < VIEW_W) steps = input.wheel;
+				else if (!input.shift && (input.mx < VIEW_W || hud.overMinimap(input.mx, input.my))) hud.zoomMap(input.wheel > 0 ? 1 : -1);
+			}
 			if (input.pressed(Keys.k("zoomout")) || input.pressed(109)) steps -= 1;
 			if (input.pressed(Keys.k("zoomin")) || input.pressed(107)) steps += 1;
 			if (steps == 0) return;
-			// the wheel over the sidebar or a window doesn't zoom
-			if (input.wheel != 0 && (input.mx >= VIEW_W || uiCaptured())) return;
 			setZoom(zoom * Math.pow(1.1, steps > 0 ? 1 : -1));
 		}
 
@@ -7342,9 +7433,13 @@ package realm {
 
 			// (the eclipse falls over the world and its people, but shots and telegraphs still show)
 			if (eclipseT > 0) { drawEclipse(); if (eclipseDark() > 0) drawMarkers(); }
+			// (Settings: other players' shots can be hidden, and your own drawn see-through)
+			var allyShots:Boolean = opt("allyshots"), fadeMine:Boolean = !opt("myshotsolid");
 			for each (var s:Projectile in shots) {
 				if (s.bot && !s.shown) continue;
+				if (!s.enemy && (s.bot || s.ghost) && !allyShots) continue;
 				bd = s.frame(time, camAngle);
+				if (fadeMine && !s.enemy && !s.bot && !s.ghost) bd = faded(bd);
 				pt.x = int(scrX(s.x, s.y) - bd.width / 2);
 				pt.y = int(scrY(s.x, s.y) - bd.height / 2);
 				if (pt.x < -bd.width || pt.y < -bd.height || pt.x > vw || pt.y > vh) continue;
@@ -7373,6 +7468,19 @@ package realm {
 				f.tf.x = scrX(f.x, f.y) - f.tf.width / 2;
 				f.tf.y = scrY(f.x, f.y) - f.tf.height / 2;
 			}
+		}
+
+		/** See-through copies of shot frames (Settings: your shots see-through), made once each. */
+		private var fadedFrames:Dictionary = new Dictionary(true);
+		private static const SHOT_FADE:ColorTransform = new ColorTransform(1, 1, 1, 0.4);
+		private function faded(bd:BitmapData):BitmapData {
+			var f:BitmapData = fadedFrames[bd];
+			if (!f) {
+				f = bd.clone();
+				f.colorTransform(f.rect, SHOT_FADE);
+				fadedFrames[bd] = f;
+			}
+			return f;
 		}
 
 		private var darkShape:Shape = new Shape();
@@ -7740,7 +7848,7 @@ package realm {
 			hoverRemote = input.mx < VIEW_W && !uiCaptured() ? remoteAt(input.mx / zoom, input.my / zoom) : null;
 			if (requestPopup) {
 				requestT -= dt;
-				if (requestT <= 0) closeRequest(true);
+				if (requestT <= 0) closeRequest(!requestKeep);
 			}
 			if (!input.clicked && !input.rightClicked) return;
 			if (playerMenu && !playerMenu.hitTestPoint(input.mx, input.my, true)) closePlayerMenu();
@@ -8254,10 +8362,13 @@ package realm {
 		}
 
 		private var requestNo:Function;
+		/** A party or guild invite: left waiting (the party & guild window can still join it) when its popup goes unanswered. */
+		private var requestKeep:Boolean = false;
 
 		/** Accept / Decline popup (trade, party and guild invites). Unanswered, it declines itself after 20s. */
-		public function askPopup(html:String, color:uint, onYes:Function, onNo:Function):void {
-			closeRequest(true);
+		public function askPopup(html:String, color:uint, onYes:Function, onNo:Function, keep:Boolean = false):void {
+			closeRequest(!requestKeep);
+			requestKeep = keep;
 			requestNo = onNo;
 			requestT = 20;
 			var w:int = 360;

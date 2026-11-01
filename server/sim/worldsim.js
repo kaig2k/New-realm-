@@ -111,11 +111,22 @@ class WorldSim {
 
   /** The nearest player a monster can see (not invisible, not in a safe zone). */
   target(e) {
-    let best = null, bd = 1e9;
+    let best = null, bd = 1e9, hid = null, hd = 1e9;
     for (const c of this.players.values()) {
-      if (c.hidden || this.w.isSafe(c.x, c.y)) continue;
+      if (this.w.isSafe(c.x, c.y)) continue;
       const d = (c.x - e.x) * (c.x - e.x) + (c.y - e.y) * (c.y - e.y);
+      if (c.hidden) { if (d < hd) { hd = d; hid = c; } continue; }
       if (d < bd) { bd = d; best = c; }
+    }
+    // a boss doesn't stand idle while everyone hides from it (a Smoke Bomb, Shadowstep): it fights blind, its rings
+    // and spirals going everywhere and its aimed shots at a guess a few tiles off, moved every second or so
+    if (!best && hid && e.isBoss && hd < Math.pow((e.def.aggro || 9) + 4, 2)) {
+      const now = Date.now();
+      if (!e.blind || e.blind.until <= now) {
+        const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 3;
+        e.blind = { x: hid.x + Math.cos(a) * r, y: hid.y + Math.sin(a) * r, until: now + 800 + Math.random() * 700 };
+      }
+      return e.blind;
     }
     // a Cloak of Mirrors' decoy draws their fire while it lasts
     if (this.decoys && this.decoys.length) {

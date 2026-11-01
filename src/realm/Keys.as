@@ -14,6 +14,7 @@ package realm {
 			{id: "hp", name: "Health potion", key: 70},
 			{id: "mp", name: "Magic potion", key: 71},
 			{id: "nexus", name: "Return to Nexus", key: 82},
+			{id: "vault", name: "Go to your vault", key: 66},
 			{id: "interact", name: "Interact (portals)", key: 88},
 			{id: "realm", name: "Go to a realm", key: 86},
 			{id: "glands", name: "Jump to the Godlands", key: 72},

@@ -492,10 +492,7 @@ package realm {
 			b.x = x; b.y = y;
 			b.buttonMode = true;
 			b.mouseChildren = false;
-			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void {
-				zoom = Math.max(0, Math.min(ZOOMS.length - 1, zoom + dir));
-				drawMinimap();
-			});
+			b.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { zoomMap(dir); });
 			return b;
 		}
 
@@ -877,6 +874,18 @@ package realm {
 			return "<font color='#9a9a9a'>" + Data.STAT_SHORT[key] + "</font> <font color='" + (maxed ? "#ffd75e" : "#ffffff") + "'>" + p.stat(key) + "</font>" +
 				(b > 0 ? "<font color='#6fd06f'>+" + b + "</font>" : "") +
 				(maxed ? "" : " <font color='#8a8a9a' size='11'>" + left + " left</font>") + "    ";
+		}
+
+		/** Whether a point on the stage is over the minimap. */
+		public function overMinimap(sx:Number, sy:Number):Boolean {
+			var lx:Number = sx - x, ly:Number = sy - y;
+			return lx >= MINI_X && lx < MINI_X + MINI_W && ly >= MINI_Y && ly < MINI_Y + MINI_H;
+		}
+
+		/** The minimap one step closer (dir 1) or further out (-1): its + and - buttons and the mouse wheel. */
+		public function zoomMap(dir:int):void {
+			zoom = Math.max(0, Math.min(ZOOMS.length - 1, zoom + dir));
+			drawMinimap();
 		}
 
 		private function drawMinimap():void {

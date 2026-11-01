@@ -330,7 +330,7 @@ package realm {
 				{sh: "spear", col: 0xd0d8e0, n: 1, spd: 19, life: 0.55, pc: true, sz: 4, tx: "One fast, heavy hunting arrow."},
 				{sh: "arrow", col: 0xffd040, n: 3, arc: 8, spd: 15, life: 0.54, pc: true, tx: "Three gilded arrows in a fan."},
 				{sh: "spike", col: 0x70d050, n: 2, arc: 7, spd: 15, life: 0.52, pc: true, split: {n: 3, mul: 0.35, spd: 9, life: 0.3, sh: "spike"}, tx: "Thorn arrows that burst into three thorns."},
-				{sh: "wisp", col: 0x90ffd0, n: 3, arc: 12, spd: 14, life: 0.62, mo: "seek", pc: true, tx: "Three fey arrows that seek out enemies."},
+				{sh: "wisp", col: 0x90ffd0, n: 3, arc: 12, spd: 14, life: 0.62, mo: "seek", tx: "Three fey arrows that seek out enemies."},
 				{sh: "arrow", col: 0xff3040, n: 3, arc: 7, spd: 12, life: 0.55, mo: "accel", ac: 1.6, pc: true, fx: "venom", tx: "Three blood arrows that speed up and make enemies bleed."},
 				{sh: "star", col: 0xfff4c0, n: 5, arc: 6, spd: 16, life: 0.58, pc: true, tx: "A volley of five starlit arrows."}
 			],
@@ -374,6 +374,8 @@ package realm {
 			if (w && w.split) f += (w.split.n || 0) * (w.split.mul || 0) * (most ? 1 : 0.35);
 			// (an explosion also flings embers: Abilities.explode)
 			if (w && w.boom) f += (w.boom.mul || 0) * (most ? 3 : 1.5);
+			// (a bleeding weapon's wound: up to six ticks of Game.BLEED a hit, though wounds don't stack)
+			if (w && w.effect == "venom") f += most ? 0.75 : 0.25;
 			// (a Godly weapon's Divine Wrath: at most every wrath shot on one monster; honestly about a third)
 			if (w && w.gid) f += Godly.wrathExtra(w) * (most ? 1 : 0.3);
 			return f;
@@ -405,6 +407,7 @@ package realm {
 			w.dmin = int(avg * 0.82);
 			w.dmax = int(avg * 1.18);
 			w.sig = tier;
+			w.sv = SIG_V;
 		}
 
 		/** The trail a weapon's shots leave: from its signature (or its rarity: always sparkling). */
@@ -439,6 +442,12 @@ package realm {
 		}
 		private static const WEAPON_KEYS:Array = ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "passive", "uv", "fv"];
 
+		/**
+		 * Bumped when a tier's signature shot changes: older copies get the new one (2: the T5 bow's seeking
+		 * arrows stop at the first enemy instead of piercing on and turning back, which beat the tiers above it).
+		 */
+		public static const SIG_V:int = 2;
+
 		public static function upgradeWeapon(it:Object):Boolean {
 			// (and Godly pieces from before every drop was the same: remade as they drop now)
 			if (it && it.gid) return Godly.upgrade(it);
@@ -456,9 +465,9 @@ package realm {
 				it.fv = SIEGE_V;
 				return true;
 			}
-			if (!isTieredWeapon(it) || it.sig === it.tier) return false;
+			if (!isTieredWeapon(it) || (it.sig === it.tier && int(it.sv) == SIG_V)) return false;
 			var fresh:Object = makeWeapon(it.sub, it.tier, null, it.form || "");
-			for each (var k:String in ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"]) {
+			for each (var k:String in ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "sv"]) {
 				if (fresh[k] === undefined) delete it[k];
 				else it[k] = fresh[k];
 			}
@@ -978,7 +987,11 @@ package realm {
 				case "material": return 300;
 				case "stone": return 400;
 				case "rune": return 300;
-				case "key": return 2000;
+				case "key":
+					// a dungeon key sells for half what the Key Merchant asks (never more: that was free gold); raid keys can't be bought
+					var kd:int = keyDungeon(item);
+					if (kd >= 0) { var kp:int = keyPrice(kd); return kp > 0 ? int(kp / 2) : 300; }
+					return 2000;
 				case "hp": case "mp": return 20;
 			}
 			return 10 + item.tier * item.tier * 12;
@@ -1313,17 +1326,17 @@ package realm {
 					{p: "aimed", n: 1, spd: 8, life: 1.2, dmg: 55, cd: 1.6, r: 0.3, col: 0x8a6a4a, shape: "orb", eff: "armorbroken"}]},
 			minotaur: {name: "Minotaur", spr: "minotaur", hp: 900, def: 10, spd: 2.2, xp: 90, ai: "charge", keep: 2, drop: 0.3, col: 0x6a3a1a, r: 0.6,
 				attacks: [{p: "aimed", n: 3, arc: 20, spd: 10, life: 0.6, dmg: 40, cd: 1.0, r: 0.2, col: 0xffffff, shape: "blade"}]},
-			// ---- Godlands
+			// ---- Godlands (the gods drop their dungeons twice as often as they used to: 1 in 10, the Sprite God 1 in 8)
 			ghost_god: {name: "Ghost God", spr: "ghost_god", hp: 1200, def: 10, spd: 2.0, xp: 95, ai: "blink", keep: 4, drop: 0.32, col: 0xc8d8f0,
-				portal: "undead_lair", portalChance: 0.05,
+				portal: "undead_lair", portalChance: 0.1,
 				attacks: [{p: "ring", n: 12, rot: 10, spd: 5, life: 1.6, dmg: 45, cd: 1.4, r: 0.2, col: 0xc8d8f0, shape: "star"},
 					{p: "aimed", n: 1, spd: 10, life: 1.2, dmg: 60, cd: 1.2, r: 0.24, col: 0xffffff, shape: "dart", eff: "confused"}]},
 			demon: {name: "White Demon", spr: "demon", hp: 1300, def: 14, spd: 2.4, xp: 100, ai: "orbit", keep: 4, drop: 0.34, col: 0xd02020,
-				portal: "abyss", portalChance: 0.05,
+				portal: "abyss", portalChance: 0.1,
 				attacks: [{p: "aimed", n: 5, arc: 40, spd: 8, life: 1.2, dmg: 50, cd: 1.0, r: 0.22, col: 0xff4020, shape: "orb"},
 					{p: "spiral", n: 2, rot: 30, spd: 5, life: 1.4, dmg: 40, cd: 0.3, r: 0.18, col: 0xffe040, shape: "star"}]},
 			sprite_god: {name: "Sprite God", spr: "sprite_god", hp: 1000, def: 8, spd: 3.0, xp: 95, ai: "orbit", keep: 5, drop: 0.32, col: 0xff80d0,
-				portal: "sprite_world", portalChance: 0.06,
+				portal: "sprite_world", portalChance: 0.12,
 				attacks: [{p: "spiral", n: 3, rot: -18, spd: 6, life: 1.4, dmg: 38, cd: 0.2, r: 0.16, col: 0xff80d0, shape: "star"}]},
 			slime_god: {name: "Slime God", spr: "slime_god", hp: 1600, def: 12, spd: 1.0, xp: 100, ai: "wander", drop: 0.34, col: 0x8040c0, r: 0.65,
 				attacks: [{p: "ring", n: 20, rot: 9, spd: 4, life: 2.0, dmg: 42, cd: 1.6, r: 0.22, col: 0xd0a0ff, shape: "orb", eff: "slowed"}]},
@@ -1618,6 +1631,12 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-11-feedback", title: "Your feedback, fixed",
+				lines: ["<b>Settings</b>: hide other players' shots, make your own shots see-through, and pick a chat size (Small to Huge). The settings menu is now two columns.",
+					"<b>Zoom</b>: the mouse wheel zooms the minimap; hold <b>Shift</b> and scroll to zoom the camera (the zoom keys still work). New <b>vault key</b> (B by default): straight to your vault from anywhere.",
+					"<b>Party & guild window</b>: <b>Join</b> buttons follow a party or guild member to wherever they are, and an invite you missed waits there with a Join button.",
+					"<b>Fixes</b>: bleeding bows really bleed now (and poison daggers poison); the T5 bow's seeking arrows stop at their target instead of piercing and circling back, so higher tiers win again; dungeon keys sell for half their price (no more free gold); world boss panels are much smaller; announcements queue up instead of blurring together.",
+					"<b>Balance</b>: realm gods drop their dungeon portals twice as often, and a boss whose attackers all hide in smoke keeps shooting blind instead of standing still."]},
 			{id: "2026-10-pumpkin", title: "The Pumpkin King",
 				lines: ["<b>Halloween has come to the realm</b>: every ten minutes <b>the Pumpkin King</b> rises in each realm with heroes in it (you're warned 30 seconds before), a scarecrow lord with a burning jack-o'-lantern for a head, a scythe and a lantern of witch-fire.",
 					"Beat him within <b>5 minutes</b>: his candy corn, pumpkin bombs and witch-fire get worse as he weakens, and his jack-o'-lanterns hop along beside him. Everyone who hits him shares the loot by their share of the damage.",

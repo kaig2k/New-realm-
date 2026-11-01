@@ -1275,6 +1275,27 @@ async function run() {
       require('./combat').stat(ch, 'wis') >= eye.wis + HG.make('wizard', 0).wis + HG.make('wizard', 1).wis + HG.make('wizard', 2).wis + HW.setBonus('g_wizard').wis, rar + ' ' + drops);
   }
 
+  console.log('player feedback: keys, bleed, bows, god portals, blind bosses');
+  {
+    const { Data: FD } = require('./sim/gen/game');
+    const { WorldSim } = require('./sim/worldsim');
+    // a key sells for half the Key Merchant's price, never more (buying a Pirate Cove key to sell was free gold)
+    const keyOk = FD.DUNGEONS.every((d, i) => FD.keyPrice(i) < 0 || FD.sellValue(FD.makeDungeonKey(i)) <= FD.keyPrice(i) / 2);
+    check('a dungeon key never sells for more than half what it costs', keyOk && FD.sellValue(FD.makeDungeonKey(0)) < FD.keyPrice(0));
+    // the bleeding T6 bow's wound counts toward the server's damage caps; the T5 bow's seeking arrows no longer pierce
+    const t5 = FD.makeWeapon('bow', 5, null, ''), t6 = FD.makeWeapon('bow', 6, null, '');
+    const old = Object.assign({}, t5, { pierce: true, sv: 1 });
+    check('the T6 bow bleeds (counted for the caps); the T5 bow\'s seekers stop at their target, older copies updated',
+      t6.effect === 'venom' && FD.weaponExtra(t6, true) > 1.5 && !t5.pierce && t5.motion === 'seek' && FD.upgradeWeapon(old) && !old.pierce && old.sv === FD.SIG_V && !FD.upgradeWeapon(old));
+    check('realm gods drop their dungeons twice as often', FD.ENEMIES.ghost_god.portalChance >= 0.1 && FD.ENEMIES.demon.portalChance >= 0.1 && FD.ENEMIES.sprite_god.portalChance >= 0.12);
+    // a boss whose every attacker hides (Smoke Bomb) still fights: it aims at a guess near them
+    const ws = new WorldSim('realm:Blind:4242');
+    const boss = ws.spawn('pumpkin_king', 100, 100, 3, true);
+    ws.players.set(5, { id: 5, name: 'Smoke', x: 102, y: 100, hidden: true, send() {} });
+    const t = ws.target(boss), mob = ws.spawn('jack_lantern', 101, 101, 3, true);
+    check('a boss keeps fighting blind when everyone near it hides; ordinary monsters lose them', t && !t.id && Math.hypot(t.x - 102, t.y - 100) >= 2.9 && ws.target(mob) === null);
+  }
+
   console.log('the Starfall Trial');
   {
     const { WorldSim } = require('./sim/worldsim');

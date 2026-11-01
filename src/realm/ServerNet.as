@@ -425,10 +425,11 @@ package realm {
 					g.socialChanged();
 					break;
 				case "partyInvite":
-					var from:int = m.from;
+					partyInv = {from: int(m.from), name: m.name};
 					g.askPopup(m.name + " invited you to their party.", 0x7fd8ff,
-						function():void { Online.send({t: "partyAns", from: from, yes: true}); },
-						function():void { Online.send({t: "partyAns", from: from, yes: false}); });
+						function():void { answerParty(true); },
+						function():void { answerParty(false); }, true);
+					g.socialChanged();
 					break;
 
 				// guild
@@ -437,10 +438,11 @@ package realm {
 					g.socialChanged();
 					break;
 				case "guildInvite":
-					var gfrom:int = m.from;
+					guildInv = {from: int(m.from), name: m.name, guild: m.guild};
 					g.askPopup(m.name + " invited you to join the guild " + m.guild + ".", 0x80ff80,
-						function():void { Online.send({t: "guildAns", from: gfrom, yes: true}); },
-						function():void { Online.send({t: "guildAns", from: gfrom, yes: false}); });
+						function():void { answerGuild(true); },
+						function():void { answerGuild(false); }, true);
+					g.socialChanged();
 					break;
 				case "guildCreated":
 					var cb:Function = guildDone;
@@ -511,6 +513,18 @@ package realm {
 			Online.send({t: "guildCreate", name: name});
 		}
 
+		override public function answerParty(yes:Boolean):void {
+			if (!partyInv) return;
+			Online.send({t: "partyAns", from: partyInv.from, yes: yes});
+			partyInv = null;
+			g.socialChanged();
+		}
+		override public function answerGuild(yes:Boolean):void {
+			if (!guildInv) return;
+			Online.send({t: "guildAns", from: guildInv.from, yes: yes});
+			guildInv = null;
+			g.socialChanged();
+		}
 		override public function inviteGuild(p:RemotePlayer):void { Online.send({t: "guildInvite", to: int(p.id)}); }
 		override public function leaveGuild():void { Online.send({t: "guildLeave"}); }
 		override public function kickGuild(name:String):void { Online.send({t: "guildKick", name: name}); }

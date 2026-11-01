@@ -93,6 +93,8 @@ class Data {
 			
 			if (w && w.boom) f += (w.boom.mul || 0) * (most ? 3 : 1.5);
 			
+			if (w && w.effect == "venom") f += most ? 0.75 : 0.25;
+			
 			if (w && w.gid) f += Godly.wrathExtra(w) * (most ? 1 : 0.3);
 			return f;
 		}
@@ -119,6 +121,7 @@ class Data {
 			w.dmin = __int(avg * 0.82);
 			w.dmax = __int(avg * 1.18);
 			w.sig = tier;
+			w.sv = Data.SIG_V;
 		}
 	static trailOf(w) {
 			if (!w) return "";
@@ -159,9 +162,9 @@ class Data {
 				it.fv = Data.SIEGE_V;
 				return true;
 			}
-			if (!Data.isTieredWeapon(it) || it.sig === it.tier) return false;
+			if (!Data.isTieredWeapon(it) || (it.sig === it.tier && __int(it.sv) == Data.SIG_V)) return false;
 			var fresh = Data.makeWeapon(it.sub, it.tier, null, it.form || "");
-			for (var k of __vals( ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig"])) {
+			for (var k of __vals( ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "sv"])) {
 				if (fresh[k] === undefined) delete it[k];
 				else it[k] = fresh[k];
 			}
@@ -513,7 +516,11 @@ class Data {
 				case "material": return __int(300);
 				case "stone": return __int(400);
 				case "rune": return __int(300);
-				case "key": return __int(2000);
+				case "key":
+					
+					var kd = __int(Data.keyDungeon(item));
+					if (kd >= 0) { var kp = __int(Data.keyPrice(kd)); return __int(kp > 0 ? __int(kp / 2) : 300); }
+					return __int(2000);
 				case "hp": case "mp": return __int(20);
 			}
 			return __int(10 + item.tier * item.tier * 12);
@@ -5735,7 +5742,7 @@ Data.SIGS = {
 				{sh: "spear", col: 0xd0d8e0, n: 1, spd: 19, life: 0.55, pc: true, sz: 4, tx: "One fast, heavy hunting arrow."},
 				{sh: "arrow", col: 0xffd040, n: 3, arc: 8, spd: 15, life: 0.54, pc: true, tx: "Three gilded arrows in a fan."},
 				{sh: "spike", col: 0x70d050, n: 2, arc: 7, spd: 15, life: 0.52, pc: true, split: {n: 3, mul: 0.35, spd: 9, life: 0.3, sh: "spike"}, tx: "Thorn arrows that burst into three thorns."},
-				{sh: "wisp", col: 0x90ffd0, n: 3, arc: 12, spd: 14, life: 0.62, mo: "seek", pc: true, tx: "Three fey arrows that seek out enemies."},
+				{sh: "wisp", col: 0x90ffd0, n: 3, arc: 12, spd: 14, life: 0.62, mo: "seek", tx: "Three fey arrows that seek out enemies."},
 				{sh: "arrow", col: 0xff3040, n: 3, arc: 7, spd: 12, life: 0.55, mo: "accel", ac: 1.6, pc: true, fx: "venom", tx: "Three blood arrows that speed up and make enemies bleed."},
 				{sh: "star", col: 0xfff4c0, n: 5, arc: 6, spd: 16, life: 0.58, pc: true, tx: "A volley of five starlit arrows."}
 			],
@@ -5773,6 +5780,7 @@ Data.SIGS = {
 Data.TIER_DPS = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [29, 110], dagger: [30, 188]};
 Data.SIEGE_V = __int(2);
 Data.WEAPON_KEYS = ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "passive", "uv", "fv"];
+Data.SIG_V = __int(2);
 Data.ABILITIES = {
 			fireball: {type: "spell", name: "Fireball", cost: 30, cd: 3, col: 0},
 			lightning: {type: "spell", name: "Lightning Strike", cost: 40, cd: 5, school: "Storms", col: 0x3a5ad0},
@@ -6065,15 +6073,15 @@ Data.ENEMIES = {
 				attacks: [{p: "aimed", n: 3, arc: 20, spd: 10, life: 0.6, dmg: 40, cd: 1.0, r: 0.2, col: 0xffffff, shape: "blade"}]},
 			
 			ghost_god: {name: "Ghost God", spr: "ghost_god", hp: 1200, def: 10, spd: 2.0, xp: 95, ai: "blink", keep: 4, drop: 0.32, col: 0xc8d8f0,
-				portal: "undead_lair", portalChance: 0.05,
+				portal: "undead_lair", portalChance: 0.1,
 				attacks: [{p: "ring", n: 12, rot: 10, spd: 5, life: 1.6, dmg: 45, cd: 1.4, r: 0.2, col: 0xc8d8f0, shape: "star"},
 					{p: "aimed", n: 1, spd: 10, life: 1.2, dmg: 60, cd: 1.2, r: 0.24, col: 0xffffff, shape: "dart", eff: "confused"}]},
 			demon: {name: "White Demon", spr: "demon", hp: 1300, def: 14, spd: 2.4, xp: 100, ai: "orbit", keep: 4, drop: 0.34, col: 0xd02020,
-				portal: "abyss", portalChance: 0.05,
+				portal: "abyss", portalChance: 0.1,
 				attacks: [{p: "aimed", n: 5, arc: 40, spd: 8, life: 1.2, dmg: 50, cd: 1.0, r: 0.22, col: 0xff4020, shape: "orb"},
 					{p: "spiral", n: 2, rot: 30, spd: 5, life: 1.4, dmg: 40, cd: 0.3, r: 0.18, col: 0xffe040, shape: "star"}]},
 			sprite_god: {name: "Sprite God", spr: "sprite_god", hp: 1000, def: 8, spd: 3.0, xp: 95, ai: "orbit", keep: 5, drop: 0.32, col: 0xff80d0,
-				portal: "sprite_world", portalChance: 0.06,
+				portal: "sprite_world", portalChance: 0.12,
 				attacks: [{p: "spiral", n: 3, rot: -18, spd: 6, life: 1.4, dmg: 38, cd: 0.2, r: 0.16, col: 0xff80d0, shape: "star"}]},
 			slime_god: {name: "Slime God", spr: "slime_god", hp: 1600, def: 12, spd: 1.0, xp: 100, ai: "wander", drop: 0.34, col: 0x8040c0, r: 0.65,
 				attacks: [{p: "ring", n: 20, rot: 9, spd: 4, life: 2.0, dmg: 42, cd: 1.6, r: 0.22, col: 0xd0a0ff, shape: "orb", eff: "slowed"}]},
@@ -6327,6 +6335,12 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-11-feedback", title: "Your feedback, fixed",
+				lines: ["<b>Settings</b>: hide other players' shots, make your own shots see-through, and pick a chat size (Small to Huge). The settings menu is now two columns.",
+					"<b>Zoom</b>: the mouse wheel zooms the minimap; hold <b>Shift</b> and scroll to zoom the camera (the zoom keys still work). New <b>vault key</b> (B by default): straight to your vault from anywhere.",
+					"<b>Party & guild window</b>: <b>Join</b> buttons follow a party or guild member to wherever they are, and an invite you missed waits there with a Join button.",
+					"<b>Fixes</b>: bleeding bows really bleed now (and poison daggers poison); the T5 bow's seeking arrows stop at their target instead of piercing and circling back, so higher tiers win again; dungeon keys sell for half their price (no more free gold); world boss panels are much smaller; announcements queue up instead of blurring together.",
+					"<b>Balance</b>: realm gods drop their dungeon portals twice as often, and a boss whose attackers all hide in smoke keeps shooting blind instead of standing still."]},
 			{id: "2026-10-pumpkin", title: "The Pumpkin King",
 				lines: ["<b>Halloween has come to the realm</b>: every ten minutes <b>the Pumpkin King</b> rises in each realm with heroes in it (you're warned 30 seconds before), a scarecrow lord with a burning jack-o'-lantern for a head, a scythe and a lantern of witch-fire.",
 					"Beat him within <b>5 minutes</b>: his candy corn, pumpkin bombs and witch-fire get worse as he weakens, and his jack-o'-lanterns hop along beside him. Everyone who hits him shares the loot by their share of the damage.",

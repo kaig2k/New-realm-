@@ -80,9 +80,19 @@ package realm {
 			y += 40;
 			for each (var rp:RemotePlayer in net.party) {
 				face(rp.spriteId, 16, y);
-				text("<font color='#7fd8ff'>" + rp.name + "</font> <font color='#9a9aaa' size='12'>Lv " + rp.profile.level + " " + rp.cls.name + "</font>", 52, y + 4, 14, 220);
-				btn("Teleport", 262, y + 2, 76, tpFn(rp));
+				text("<font color='#7fd8ff'>" + rp.name + "</font> <font color='#9a9aaa' size='12'>Lv " + rp.profile.level + " " + rp.cls.name + "</font>", 52, y + 4, 14, 210);
+				// (somewhere else: Join follows them there; here: Teleport to them)
+				var where:String = net.worldOf(rp.name);
+				if (where && where != g.world.key) btn("Join", 262, y + 2, 76, joinFn(rp.name));
+				else btn("Teleport", 262, y + 2, 76, tpFn(rp));
 				btn("Kick", 344, y + 2, 76, kickFn(rp));
+				y += 40;
+			}
+			if (net.partyInv) {
+				// an invite you haven't answered yet (its popup may be long gone)
+				text("<font color='#7fd8ff'>" + Ui.esc(net.partyInv.name) + "</font> invited you to their party.", 16, y + 4, 13, 230);
+				btn("Join party", 250, y, 90, function():void { net.answerParty(true); });
+				btn("Decline", 346, y, 76, function():void { net.answerParty(false); });
 				y += 40;
 			}
 			if (!net.party.length) {
@@ -95,6 +105,7 @@ package realm {
 		}
 
 		private function tpFn(rp:RemotePlayer):Function { return function():void { g.teleportTo(rp); }; }
+		private function joinFn(name:String):Function { return function():void { g.toggleSocial(); g.joinPlayer(name); }; }
 		private function kickFn(rp:RemotePlayer):Function { return function():void { g.net.kickParty(rp); }; }
 
 		// ------------------------------------------------------------ guild
@@ -107,6 +118,11 @@ package realm {
 					" gold, then invite players from their menu (click a player, <b>Invite to guild</b>). Guilds hold up to " + Net.GUILD_MAX +
 					" members, have their own chat (/g) and you can teleport to guild members.</font>", 16, 40, 13, W - 32);
 				btn("Create a guild (" + Ui.commas(Net.GUILD_COST) + "g)", 16, 190, 240, function():void { g.toggleSocial(); g.chatWith("/guild create "); }, 34, 14);
+				if (net.guildInv) {
+					text("<font color='#80ff80'>" + Ui.esc(net.guildInv.name) + "</font> invited you to <font color='#80ff80'>" + Ui.esc(net.guildInv.guild) + "</font>.", 16, 244, 13, W - 32);
+					btn("Join " + net.guildInv.guild, 16, 270, 240, function():void { net.answerGuild(true); }, 34, 14);
+					btn("Decline", 266, 270, 100, function():void { net.answerGuild(false); }, 34, 14);
+				}
 				return;
 			}
 			var members:Array = gd.members.concat();
@@ -122,7 +138,8 @@ package realm {
 				var dot:String = st == "here" ? "#5ae06a" : st == "online" ? "#e0d060" : "#666666";
 				face(m.cls, 16, y - 2);
 				text("<font color='" + dot + "'>●</font> " + m.name + "  <font size='11' color='#9a9aaa'>" + Net.RANKS[m.rank] +
-					(st == "here" ? ", here" : st == "online" ? ", online" : "") + "</font>", 48, y + 2, 13, 220);
+					(st == "here" ? ", here" : st == "online" ? ", online" : "") + "</font>", 48, y + 2, 13, 150);
+				if (st == "online") btn("Join", 200, y, 62, joinFn(m.name));
 				if (gd.myRank >= Net.OFFICER && m.rank < gd.myRank) {
 					if (m.rank + 1 < gd.myRank) btn("+", 268, y, 30, rankFn(m.name, m.rank + 1));
 					if (m.rank > 0) btn("-", 302, y, 30, rankFn(m.name, m.rank - 1));

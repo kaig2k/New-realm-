@@ -77,6 +77,11 @@ package realm {
 		/** You closed the trade window. */
 		public function cancelTrade():void {}
 
+		/** Invites still waiting for your answer ({name, guild}), or null: the party & guild window can still join them. */
+		public var partyInv:Object = null, guildInv:Object = null;
+		public function answerParty(yes:Boolean):void {}
+		public function answerGuild(yes:Boolean):void {}
+
 		// ---- party
 		public function inviteParty(p:RemotePlayer):void {}
 		public function leaveParty():void {}

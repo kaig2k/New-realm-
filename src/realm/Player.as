@@ -493,6 +493,7 @@ package realm {
 			if (inp.pressed(Keys.k("mp"))) drinkMp(g);
 			if (!g.trading) for (var k:int = 0; k < 8; k++) if (inp.pressed(Keys.k("slot" + (k + 1)))) useItem(packPage * 8 + k, g);
 			if (inp.pressed(Keys.k("nexus"))) g.nexus();
+			if (inp.pressed(Keys.k("vault"))) g.goVault();
 
 			// --- regen (bleeding drains instead)
 			if (status.bleeding > 0) {

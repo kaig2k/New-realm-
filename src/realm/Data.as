@@ -453,7 +453,8 @@ package realm {
 			if (it && it.gid) return Godly.upgrade(it);
 			// a unique weapon from before its numbers changed: remade as it drops now
 			if (it && it.uid && it.kind == "weapon" && it.uv !== Uniques.VERSION) {
-				var uq:Object = Uniques.make(it.uid);
+				// (a Starforged one is remade Starforged)
+				var uq:Object = it.rarity == "sf" && Uniques.FIXED[it.uid] ? Uniques.starforge(Uniques.make(it.uid)) : Uniques.make(it.uid);
 				if (!uq) return false;
 				for each (var uk:String in WEAPON_KEYS) { if (uq[uk] === undefined) delete it[uk]; else it[uk] = uq[uk]; }
 				return true;
@@ -1055,7 +1056,8 @@ package realm {
 			switch (item.kind) {
 				case "weapon":
 					// (a tiered weapon's signature shot)
-					if (item.sig !== undefined && SIGS[item.sub] && SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + SIGS[item.sub][item.sig].tx + "</font>\n";
+					// (only a plain tiered weapon: a named one may be built on a tiered base, but shoots its own way)
+					if (item.sig !== undefined && !item.uid && !item.rarity && SIGS[item.sub] && SIGS[item.sub][item.sig]) s += "<font color='#ffd27a'>" + SIGS[item.sub][item.sig].tx + "</font>\n";
 					if (item.form && FORMS[item.form]) s += "<font color='#9ad0ff'>" + FORMS[item.form].name + ":</font> " + FORMS[item.form].desc + "\n";
 					s += "Damage: " + item.dmin + "-" + item.dmax + (item.shots > 1 ? " per shot" : "") + "\n";
 					if (item.shots > 1) s += "Shots: " + item.shots + "\n";
@@ -1637,6 +1639,11 @@ package realm {
 					"<b>Party & guild window</b>: <b>Join</b> buttons follow a party or guild member to wherever they are, and an invite you missed waits there with a Join button.",
 					"<b>Fixes</b>: bleeding bows really bleed now (and poison daggers poison); the T5 bow's seeking arrows stop at their target instead of piercing and circling back, so higher tiers win again; dungeon keys sell for half their price (no more free gold); world boss panels are much smaller; announcements queue up instead of blurring together.",
 					"<b>Balance</b>: realm gods drop their dungeon portals twice as often, and a boss whose attackers all hide in smoke keeps shooting blind instead of standing still."]},
+			{id: "2026-11-effects", title: "Weapon fixes",
+				lines: ["<b>Fifteen dungeon weapons had hidden effects</b> left over from the tiered weapons they're built on: wands and daggers threw extra sparks, staves exploded. They're gone. Each weapon now does exactly what its tooltip says.",
+					"Affected: <b>Moonlantern, Prismatic, Regent's Scepter, Hexbound, Bonechime</b> (wands), <b>Fang of Ssythra, Imp's Fang, Frostfang, Obsidian Shiv, Kraken's Grasp</b> (daggers), <b>Venomspit, Soulreaper, Cubic, Trident, Cinderfeather</b> (staves). Copies you own are updated, Starforged ones included.",
+					"Named weapons no longer show the tiered weapon's shot text (Galecaller's Bow said 5 arrows; it shoots 4).",
+					"Fixed outdated lore on Cubic Staff, Regent's Scepter and Hexbound Wand."]},
 			{id: "2026-10-pumpkin", title: "The Pumpkin King",
 				lines: ["<b>Halloween has come to the realm</b>: every ten minutes <b>the Pumpkin King</b> rises in each realm with heroes in it (you're warned 30 seconds before), a scarecrow lord with a burning jack-o'-lantern for a head, a scythe and a lantern of witch-fire.",
 					"Beat him within <b>5 minutes</b>: his candy corn, pumpkin bombs and witch-fire get worse as he weakens, and his jack-o'-lanterns hop along beside him. Everyone who hits him shares the loot by their share of the damage.",

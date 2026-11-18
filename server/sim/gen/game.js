@@ -2183,6 +2183,25 @@ class Bosses {
 						Bosses.rain(7, 5, 125, 2.2, 0xff8020, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "pumpkin bombs"}),
 						Bosses.pull(16, 100, 4.0, 0x60e040, {name: "the witching hour"}), Bosses.summon("jack_lantern", 4, 7, 10)]})
 			]}, ["candy_corn_ring", "pumpkin_signet"]);
+			
+			Bosses.mob("snowling", {name: "Snowling", spr: "snowling", hp: 2400, def: 14, spd: 3.6, xp: 120, col: 0xc8e8ff, ai: "orbit", keep: 3, drop: 0.3,
+				attacks: [Bosses.aim(3, 24, 8, 70, 1.1, 0xc8e8ff, {shape: "snowball", name: "snowballs"}), Bosses.ring(8, 0, 4.5, 60, 2.4, 0x60b0ff, {name: "frost ring", eff: "slowed"})]});
+			Bosses.boss("snow_tyrant", {name: "Grimsnow the Snow Tyrant", spr: "snow_tyrant", hp: 150000, def: 30, spd: 1.3, xp: 6000, col: 0x9fe0ff,
+				gold: 1500, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
+				world: {minion: "snowling", time: 300, zone: 3, title: "WINTER", won: "GRIMSNOW IS MELTED!"},
+				hint: "Grimsnow stomps in! Dodge his snowball barrages and icicle walls, smash his snowlings, and keep moving: his frost slows you down.",
+				phases: [
+				Bosses.P(1, {say: "WHO'S BEEN NAUGHTY?", move: "chase", speed: 1.0, summon: [{what: "snowling", n: 2}],
+					attacks: [Bosses.aim(5, 50, 9, 95, 1.0, 0xc8e8ff, {name: "snowball barrage"}), Bosses.ring(12, 15, 5, 80, 1.8, 0x60b0ff, {name: "frost ring", eff: "slowed"}),
+						Bosses.rain(4, 4, 110, 3.0, 0x9fe0ff, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "falling icicles"}), Bosses.summon("snowling", 2, 8, 6)]}),
+				Bosses.P(0.65, {say: "A BLIZZARD COMES!", banner: "A blizzard comes!", shield: 3, move: "orbit",
+					attacks: [Bosses.spiral(4, 13, 6, 85, 0.13, 0x9fe0ff, {name: "blizzard spiral"}), Bosses.aim(3, 30, 7, 110, 1.4, 0x60b0ff, {motion: "home", name: "homing snowballs"}),
+						Bosses.wall(16, 4.5, 100, 3.4, 0x9fe0ff, {hole: 3, name: "icicle wall"}), Bosses.summon("snowling", 3, 9, 8)]}),
+				Bosses.P(0.3, {say: "THE LONGEST NIGHT!", banner: "THE LONGEST NIGHT!", shield: 3, move: "chase", speed: 1.35,
+					attacks: [Bosses.flower(20, 7, 5.5, 95, 0.9, 0xc8e8ff, {name: "snowflake whirl"}), Bosses.spiral(5, -11, 6.5, 100, 0.12, 0x60b0ff, {name: "frost spiral", eff: "slowed"}),
+						Bosses.rain(7, 5, 125, 2.2, 0x9fe0ff, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "falling icicles"}),
+						Bosses.pull(16, 100, 4.0, 0x60b0ff, {name: "the deep freeze"}), Bosses.summon("snowling", 4, 7, 10)]})
+			]}, ["peppermint_ring", "grimsnows_crown"]);
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
 				attacks: [Bosses.aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
 			
@@ -6339,6 +6358,12 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",
+				lines: ["<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
+					"Melt him within <b>5 minutes</b>: snowball barrages, frost rings that slow you, falling icicles, icicle walls with a gap to slip through, and a blizzard that pulls you in. His snowlings hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
+					"He can drop the <b>Peppermint Ring</b> (UT) and four Legendaries: <b>Grimsnow's Crown</b> (the tank ring), the <b>Staff of the Longest Night</b> (three frost bolts that slow), <b>The Snowglobe</b> (Time Stop lasts 1s longer) and the <b>Frostwoven Robe</b>.",
+					"And, 1 in 2,500: <font color='#fff6e0'><b>Everwinter Heart</b></font>, a Godly ring for every class built to keep you standing. Like All Hallows' Eye, it counts as a piece of whatever Godly set you wear.",
+					"The Pumpkin King has gone back into the earth: he only rises at Halloween now (17 October to 2 November), and he'll be back next year."]},
 			{id: "2026-11-feedback", title: "Your feedback, fixed",
 				lines: ["<b>Settings</b>: hide other players' shots, make your own shots see-through, and pick a chat size (Small to Huge). The settings menu is now two columns.",
 					"<b>Zoom</b>: the mouse wheel zooms the minimap; hold <b>Shift</b> and scroll to zoom the camera (the zoom keys still work). New <b>vault key</b> (B by default): straight to your vault from anywhere.",
@@ -6970,6 +6995,18 @@ Uniques.FIXED = {
 			
 			all_hallows_eye: {n: "All Hallows' Eye", k: "ring", s: "luc", r: "gd", st: {hp: 260, mp: 100, att: 28, dex: 28, wis: 28, vit: 20, luc: 20, mgt: 16, spd: 16, prt: 16, frt: 20},
 				wild: true, col: 0xff7a18, txt: "The best ring in the realm, for every class. Counts as a piece of any set you wear.", lore: "The Pumpkin King's burning eye. It still sees the other side."},
+			
+			peppermint_ring: {n: "Peppermint Ring", k: "ring", s: "wis", r: "ut", st: {wis: 6, vit: 6, mp: 40}, txt: "The mana ring, with a twist of vitality.", lore: "Red and white, and colder than it looks."},
+			grimsnows_crown: {n: "Grimsnow's Crown", k: "ring", s: "def", r: "lg", st: {def: 8, vit: 6, hp: 80}, txt: "The tank ring.", lore: "Icicles that never melt, frozen to a band of black iron."},
+			longest_night_staff: {n: "Staff of the Longest Night", k: "weapon", s: "staff", r: "lg", st: {att: 6, wis: 4}, d: [84, 112], sh: 3, rt: 1, arc: 10, eff: "slow", col: 0x9fe0ff,
+				txt: "Control: three frost bolts that slow whatever they hit.", lore: "Cut from the heart of a glacier on the darkest night of the year."},
+			snowglobe_hourglass: {n: "The Snowglobe", k: "ability", s: "hourglass", r: "lg", pw: 2.95, st: {wis: 8, vit: 6}, ab: "timestop", abx: {dur: 1},
+				txt: "Time Stop lasts 1s longer.", lore: "Shake it and the whole world holds still, snow hanging in the air."},
+			frostwoven_robe: {n: "Frostwoven Robe", k: "armor", s: "robe", r: "lg", df: 24, st: {mp: 80, wis: 6, vit: 6}, txt: "The sturdy caster robe.",
+				lore: "Woven from snow that fell on the longest night, and never thawed."},
+			
+			everwinter_heart: {n: "Everwinter Heart", k: "ring", s: "def", r: "gd", st: {hp: 320, mp: 100, att: 24, dex: 24, wis: 24, vit: 28, def: 12, luc: 20, mgt: 14, spd: 14, prt: 20, frt: 18},
+				wild: true, col: 0x8fd8ff, txt: "A Godly ring for every class, built to keep you standing. Counts as a piece of any set you wear.", lore: "Grimsnow's frozen heart. Hold it and you never feel the cold again."},
 			pirates_treasure: {n: "Pirate's Treasure", k: "ring", s: "luc", r: "ut", st: {luc: 12, mgt: 12, dex: 2}, txt: "The crit ring.", lore: "X marked the spot."},
 			lantern_wand: {n: "Moonlantern Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [30, 42], sh: 2, rt: 1, par: true, mo: "wave", txt: "Twin shots, side by side, weaving."},
 			dustveil_robe: {n: "Dustveil Robe", k: "armor", s: "robe", r: "ut", df: 8, st: {mp: 60, wis: 5}, txt: "Less defense, more mana."},
@@ -7046,6 +7083,7 @@ Uniques.FIXED = {
 		};
 Uniques.DROPS = {
 			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
+			snow_tyrant: ["peppermint_ring", "grimsnows_crown", "longest_night_staff", "snowglobe_hourglass", "frostwoven_robe", "everwinter_heart"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],
@@ -7203,9 +7241,9 @@ Bosses.POSED = ["boss", "titan", "hollowking", "regent", "sphinx", "sunken_lord"
 			"vault_ignis", "warden", "blood_knight", "sentinel",
 			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
 			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
-			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan", "pumpkin_king"];
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan", "pumpkin_king", "snow_tyrant"];
 Bosses.POSED_SEQ = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
-Bosses.POSED_SHOTS = {"pumpkin_king": ["candycorn", "pumpkinlet"], "boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
+Bosses.POSED_SHOTS = {"pumpkin_king": ["candycorn", "pumpkinlet"], "snow_tyrant": ["icicle", "snowball"], "boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
 			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],
 			"kraken": ["ink", "bubble"], "lich_king": ["skull", "soulorb"], "serpent_queen": ["fang", "venom"],

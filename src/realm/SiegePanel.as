@@ -18,7 +18,7 @@ package realm {
 		/** Seconds since the last word from the server (the panel goes once it's stale). */
 		public var quiet:Number = 0;
 		/** Which world boss this is (its name): the Warlord's Realm Siege, or the Pumpkin King. */
-		private var wb:String = "";
+		public var wb:String = "";
 		/** Showing the result: seconds left. */
 		public var endT:Number = 0;
 		public var bossId:int = 0;

@@ -49,7 +49,7 @@ package realm {
 			eyespot: ["..aaaa..", ".aCCCCa.", "aCWWWWCa", "aCWKKWCa", "aCWKKWCa", "aCWWWWCa", ".aCCCCa.", "..aaaa.."],
 			web: ["H..H..H.", ".H.H.H..", "..HHH...", "HHHCHHH.", "..HHH...", ".H.H.H..", "H..H..H.", "........"],
 			egg: ["...BB...", "..BBBB..", ".BBBBBb.", ".BBCBBb.", ".BBBBBb.", ".bBBBbb.", "..bbbb..", "........"],
-			icicle: ["........", "........", "WWHH....", "CWWWHH..", "aCCWWWHH", ".aaCCW..", "........", "........"],
+			icicle: ["........", "aa......", "aCCW....", "aCCWWWH.", "aCCCWWWH", "aCCW....", "aa......", "........"],
 			snowflake: ["W..W..W.", ".W.W.W..", "..CWC...", "WWWHWWW.", "..CWC...", ".W.W.W..", "W..W..W.", "........"],
 			flamesword: ["........", "a.....C.", ".aCCCCWC", "IICWWWWH", ".aCCCCWC", "a.....C.", "........", "........"],
 			lantern: ["...II...", "..I..I..", ".IIIIII.", ".ICWWCI.", ".IWHHWI.", ".ICWWCI.", ".IIIIII.", "...II..."],
@@ -73,6 +73,7 @@ package realm {
 			scythe: ["..CCWW..", ".C....W.", "........", "......IW", "IIIIIII.", "........", "........", "........"],
 			candycorn: ["........", "GGC.....", "GGCCC...", "GGCCCHH.", "GGCCCHHH", "GGCCCHH.", "GGCCC...", "GGC....."],
 			pumpkinlet: ["...S....", "..aSa...", ".aCCCCa.", "aCKCCKCa", "aCCCCCCa", "aCKKKKCa", ".aCCCCa.", "..aaaa.."],
+			snowball: ["..aWWa..", ".aWHHWa.", "aWHHHHWa", "aWHHHWWa", "aWHHWWCa", ".aWWWCa.", "..aCCa..", "........"],
 			tidewave: ["...WW...", "..WCCW..", ".a..CCW.", "aa...CWH", "aa...CWH", ".a..CCW.", "..WCCW..", "...WW..."]
 		};
 	}

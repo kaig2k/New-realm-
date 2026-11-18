@@ -149,10 +149,10 @@ package realm {
 			"vault_ignis", "warden", "blood_knight", "sentinel",
 			"vault_archivist", "vault_sovereign", "astraeon", "void_dragon", "zealot", "galecaller", "gearmind", "matron",
 			"tesseract", "forgemaster", "glacia", "hollow_prince", "rendmaw", "pharaoh", "admiral", "pearlmaw", "ossarion",
-			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan", "pumpkin_king"];
+			"quarry_heart", "ignaria", "crone_bramble", "crone_bog", "crone_ash", "leviathan", "pumpkin_king", "snow_tyrant"];
 		public static const POSED_SEQ:Object = {idle: 4, move: 6, cast: 5, strike: 5, "summon": 5, guard: 4, death: 6, ridle: 4, rmove: 6};
 		/** Their own shots (tools/bossart/boss_shots.py): [from its strikes, from its casts], in place of the plain shapes. */
-		public static const POSED_SHOTS:Object = {"pumpkin_king": ["candycorn", "pumpkinlet"], "boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
+		public static const POSED_SHOTS:Object = {"pumpkin_king": ["candycorn", "pumpkinlet"], "snow_tyrant": ["icicle", "snowball"], "boss": ["cube_shard", "cube_eye"], "titan": ["magma", "ember"], "hollowking": ["skull", "crownlet"],
 			"regent": ["mask", "phantom"], "sphinx": ["scarab", "ankh"], "sunken_lord": ["anchor", "bubble"], "hermit": ["claw", "shell"],
 			"shrine": ["skullfire", "candle"], "colossus": ["boulder", "voidshard"], "phoenix": ["feather", "pflame"], "witch": ["potion", "hex"],
 			"kraken": ["ink", "bubble"], "lich_king": ["skull", "soulorb"], "serpent_queen": ["fang", "venom"],
@@ -934,6 +934,25 @@ package realm {
 						rain(7, 5, 125, 2.2, 0xff8020, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "pumpkin bombs"}),
 						pull(16, 100, 4.0, 0x60e040, {name: "the witching hour"}), summon("jack_lantern", 4, 7, 10)]})
 			]}, ["candy_corn_ring", "pumpkin_signet"]);
+			// ---- Winter: Grimsnow the Snow Tyrant, a world boss that comes to a realm every ten minutes in December (server.js seasonalTick)
+			mob("snowling", {name: "Snowling", spr: "snowling", hp: 2400, def: 14, spd: 3.6, xp: 120, col: 0xc8e8ff, ai: "orbit", keep: 3, drop: 0.3,
+				attacks: [aim(3, 24, 8, 70, 1.1, 0xc8e8ff, {shape: "snowball", name: "snowballs"}), ring(8, 0, 4.5, 60, 2.4, 0x60b0ff, {name: "frost ring", eff: "slowed"})]});
+			boss("snow_tyrant", {name: "Grimsnow the Snow Tyrant", spr: "snow_tyrant", hp: 150000, def: 30, spd: 1.3, xp: 6000, col: 0x9fe0ff,
+				gold: 1500, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
+				world: {minion: "snowling", time: 300, zone: 3, title: "WINTER", won: "GRIMSNOW IS MELTED!"},
+				hint: "Grimsnow stomps in! Dodge his snowball barrages and icicle walls, smash his snowlings, and keep moving: his frost slows you down.",
+				phases: [
+				P(1, {say: "WHO'S BEEN NAUGHTY?", move: "chase", speed: 1.0, summon: [{what: "snowling", n: 2}],
+					attacks: [aim(5, 50, 9, 95, 1.0, 0xc8e8ff, {name: "snowball barrage"}), ring(12, 15, 5, 80, 1.8, 0x60b0ff, {name: "frost ring", eff: "slowed"}),
+						rain(4, 4, 110, 3.0, 0x9fe0ff, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "falling icicles"}), summon("snowling", 2, 8, 6)]}),
+				P(0.65, {say: "A BLIZZARD COMES!", banner: "A blizzard comes!", shield: 3, move: "orbit",
+					attacks: [spiral(4, 13, 6, 85, 0.13, 0x9fe0ff, {name: "blizzard spiral"}), aim(3, 30, 7, 110, 1.4, 0x60b0ff, {motion: "home", name: "homing snowballs"}),
+						wall(16, 4.5, 100, 3.4, 0x9fe0ff, {hole: 3, name: "icicle wall"}), summon("snowling", 3, 9, 8)]}),
+				P(0.3, {say: "THE LONGEST NIGHT!", banner: "THE LONGEST NIGHT!", shield: 3, move: "chase", speed: 1.35,
+					attacks: [flower(20, 7, 5.5, 95, 0.9, 0xc8e8ff, {name: "snowflake whirl"}), spiral(5, -11, 6.5, 100, 0.12, 0x60b0ff, {name: "frost spiral", eff: "slowed"}),
+						rain(7, 5, 125, 2.2, 0x9fe0ff, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "falling icicles"}),
+						pull(16, 100, 4.0, 0x60b0ff, {name: "the deep freeze"}), summon("snowling", 4, 7, 10)]})
+			]}, ["peppermint_ring", "grimsnows_crown"]);
 			mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
 				attacks: [aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
 			// his war camp's ballistas: heavy burning bolts at whoever comes near, and fire-pots lobbed into the camp

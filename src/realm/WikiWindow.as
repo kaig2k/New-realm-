@@ -137,6 +137,9 @@ package realm {
 			}
 			// the Realm Siege's Warlord and the Endless Abyss's Herald (their collections count in the Oracle too)
 			add(events, "siege_warlord", "The Realm Siege (every couple of hours, in the Godlands)");
+			// the seasonal world bosses: every ten minutes in their season, in the highlands
+			add(events, "pumpkin_king", "Halloween (17 Oct - 2 Nov), every ten minutes in the highlands");
+			add(events, "snow_tyrant", "Winter (1 Dec - 6 Jan), every ten minutes in the highlands");
 			add(events, "abyss_herald", "The Endless Abyss, every 20th wave (its Legendaries are in the Abyss Shop)");
 			for each (var d:Object in Data.DUNGEONS) {
 				var finale:Boolean = Bosses.FINALES.indexOf(d.id) >= 0;

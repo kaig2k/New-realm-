@@ -1,3 +1,28 @@
+**📜 ELDMERE UPDATE: Winter is Coming**
+
+**☃️ Grimsnow the Snow Tyrant (1 December to 6 January)**
+• Every **10 minutes** Grimsnow stomps into each realm with heroes in it (30 seconds' warning): a hulking snowman with a **crown of icicles**, coal eyes burning blue and a great **club of ice**
+• **5 minutes** to melt him: snowball barrages, **frost rings that slow you**, falling icicles, **icicle walls** with a gap to slip through, and a blizzard that pulls you in
+• His **snowlings** hop along beside him
+• Loot follows your share of the damage, and the MVP is named for the whole server
+
+**🎁 His loot**
+• **Peppermint Ring** (UT)
+• **Grimsnow's Crown** (Legendary): the tank ring
+• **Staff of the Longest Night** (Legendary): three frost bolts that slow
+• **The Snowglobe** (Legendary): Time Stop lasts 1s longer
+• **Frostwoven Robe** (Legendary): the sturdy caster robe
+• 1 in 2,500: **Everwinter Heart**, a **Godly** ring for every class, built to keep you standing. It counts as a piece of any Godly set you wear
+
+**❄️ Snow**
+• Through the season, **snow falls** over the Nexus and the realms, and a blizzard blows round Grimsnow
+
+**🎃 The Pumpkin King**
+• He's gone back into the earth: he only rises at **Halloween** now (17 October to 2 November) and comes back every year
+• Both bosses are in the **wiki** (K)
+
+---
+
 **📜 ELDMERE UPDATE: Weapon Fixes**
 
 **🔧 Hidden effects removed**

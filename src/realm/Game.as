@@ -434,7 +434,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/halloween": case "/spires": case "/leaders": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
+				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/halloween": case "/winter": case "/spires": case "/leaders": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
 					net.serverCommand(t);
@@ -5291,8 +5291,8 @@ package realm {
 			if (ambBits[key]) return ambBits[key];
 			var out:Array = [];
 			for each (var a:Number in [1, 0.6, 0.3]) {
-				var w:int = kind == "rain" ? 2 : kind == "leaf" ? 5 : kind == "glint" || kind == "ember" ? 6 : 4;
-				var h:int = kind == "rain" ? 12 : kind == "leaf" ? 4 : kind == "glint" || kind == "ember" ? 6 : 4;
+				var w:int = kind == "rain" ? 2 : kind == "leaf" ? 5 : kind == "glint" || kind == "ember" ? 6 : kind == "snow" ? 3 : 4;
+				var h:int = kind == "rain" ? 12 : kind == "leaf" ? 4 : kind == "glint" || kind == "ember" ? 6 : kind == "snow" ? 3 : 4;
 				var bd:BitmapData = new BitmapData(w, h, true, 0);
 				var c:uint = (uint(a * (kind == "rain" ? 150 : 230)) << 24) | col;
 				if (kind == "glint") { bd.fillRect(new Rectangle(2, 0, 2, 6), c); bd.fillRect(new Rectangle(0, 2, 6, 2), c); }
@@ -5302,6 +5302,7 @@ package realm {
 					bd.fillRect(new Rectangle(0, 1, 6, 4), (uint(a * 90) << 24) | col);
 					bd.fillRect(new Rectangle(2, 2, 2, 2), (uint(a * 255) << 24) | Sprites.tint(col, 0.5));
 				}
+				else if (kind == "snow") { bd.fillRect(new Rectangle(1, 0, 1, 3), c); bd.fillRect(new Rectangle(0, 1, 3, 1), c); }
 				else bd.fillRect(bd.rect, c);
 				out.push(bd);
 			}
@@ -5309,12 +5310,21 @@ package realm {
 			return out;
 		}
 
+		/** Winter in the realm (1 December to 6 January, like the server's Grimsnow season): snow falls. */
+		public static function winterNow():Boolean {
+			var d:Date = new Date(), md:int = (d.month + 1) * 100 + d.date;
+			return md >= 1201 || md <= 106;
+		}
+
 		/** What drifts through the air here: [kind, colours, per second]. */
 		private function ambientKind():Array {
 			if (world.raid) return world.raid.id == "storm" ? ["rain", [0xb0c8ff], 70] : ["ash", [0xa01020, 0x501010], 14];
-			if (world.kind == "nexus") return ["mote", [0xffe080, 0xfff0c0], 4];
+			var snow:Boolean = winterNow();
+			if (world.kind == "nexus") return snow ? ["snow", [0xffffff, 0xe0f0ff], 10] : ["mote", [0xffe080, 0xfff0c0], 4];
 			if (world.kind == "arena") return ["ember", [0xff3040, 0xff8040], 10];
-			if (world.kind == "realm" && siegePanel && siegePanel.active) return ["ember", [0xff7a1a, 0xff3010, 0xffb040], 16];
+			// (Grimsnow brings a blizzard; the Warlord and the Pumpkin King bring fire)
+			if (world.kind == "realm" && siegePanel && siegePanel.active) return siegePanel.wb.indexOf("Grimsnow") >= 0 ? ["snow", [0xffffff, 0xd8ecff, 0xb0d8ff], 45] : ["ember", [0xff7a1a, 0xff3010, 0xffb040], 16];
+			if (world.kind == "realm" && snow && world.zoneAt(player.x, player.y) != World.GOD_ZONE) return ["snow", [0xffffff, 0xe0f0ff], 14];
 			if (world.kind == "abyss") return ["ember", [0xa040ff, 0xd080ff, 0x6020c0], 16];
 			if (world.kind == "dungeon") {
 				var th:Object = world.theme;
@@ -5356,7 +5366,7 @@ package realm {
 			}
 			if (!k) return;
 			ambAcc += dt * k[2];
-			var cap:int = k[0] == "rain" ? 160 : 90;
+			var cap:int = k[0] == "rain" || k[0] == "snow" ? 160 : 90;
 			while (ambAcc >= 1) {
 				ambAcc -= 1;
 				if (amb.length >= cap) continue;
@@ -5367,6 +5377,7 @@ package realm {
 					case "leaf": p.vx = 0.4 + Math.random() * 0.6; p.vy = 0.9 + Math.random() * 0.6; p.life = p.max = 3 + Math.random() * 2; p.sway = Math.random() * 6; break;
 					case "ember": p.vx = (Math.random() - 0.5) * 0.6; p.vy = -0.8 - Math.random() * 0.8; p.life = p.max = 2 + Math.random() * 1.5; p.sway = Math.random() * 6; break;
 					case "ash": p.vx = (Math.random() - 0.5) * 0.4; p.vy = 0.5 + Math.random() * 0.4; p.life = p.max = 3 + Math.random() * 2; p.sway = Math.random() * 6; break;
+					case "snow": p.vx = 0.3 + Math.random() * 0.4; p.vy = 1.0 + Math.random() * 0.8; p.life = p.max = 3 + Math.random() * 2; p.sway = Math.random() * 6; break;
 					default: p.vx = (Math.random() - 0.5) * 0.4; p.vy = (Math.random() - 0.5) * 0.4; p.life = p.max = 2.5 + Math.random() * 2;
 				}
 				amb.push(p);

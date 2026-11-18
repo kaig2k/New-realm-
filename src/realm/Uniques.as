@@ -191,6 +191,18 @@ package realm {
 			// the Godly ring: the best ring in the game, for any class. It counts as a piece of whatever Godly set you wear
 			all_hallows_eye: {n: "All Hallows' Eye", k: "ring", s: "luc", r: "gd", st: {hp: 260, mp: 100, att: 28, dex: 28, wis: 28, vit: 20, luc: 20, mgt: 16, spd: 16, prt: 16, frt: 20},
 				wild: true, col: 0xff7a18, txt: "The best ring in the realm, for every class. Counts as a piece of any set you wear.", lore: "The Pumpkin King's burning eye. It still sees the other side."},
+			// Grimsnow's (the winter world boss)
+			peppermint_ring: {n: "Peppermint Ring", k: "ring", s: "wis", r: "ut", st: {wis: 6, vit: 6, mp: 40}, txt: "The mana ring, with a twist of vitality.", lore: "Red and white, and colder than it looks."},
+			grimsnows_crown: {n: "Grimsnow's Crown", k: "ring", s: "def", r: "lg", st: {def: 8, vit: 6, hp: 80}, txt: "The tank ring.", lore: "Icicles that never melt, frozen to a band of black iron."},
+			longest_night_staff: {n: "Staff of the Longest Night", k: "weapon", s: "staff", r: "lg", st: {att: 6, wis: 4}, d: [84, 112], sh: 3, rt: 1, arc: 10, eff: "slow", col: 0x9fe0ff,
+				txt: "Control: three frost bolts that slow whatever they hit.", lore: "Cut from the heart of a glacier on the darkest night of the year."},
+			snowglobe_hourglass: {n: "The Snowglobe", k: "ability", s: "hourglass", r: "lg", pw: 2.95, st: {wis: 8, vit: 6}, ab: "timestop", abx: {dur: 1},
+				txt: "Time Stop lasts 1s longer.", lore: "Shake it and the whole world holds still, snow hanging in the air."},
+			frostwoven_robe: {n: "Frostwoven Robe", k: "armor", s: "robe", r: "lg", df: 24, st: {mp: 80, wis: 6, vit: 6}, txt: "The sturdy caster robe.",
+				lore: "Woven from snow that fell on the longest night, and never thawed."},
+			// the Godly ring: as strong as All Hallows' Eye with the weight on survival; it too counts as a piece of whatever Godly set you wear
+			everwinter_heart: {n: "Everwinter Heart", k: "ring", s: "def", r: "gd", st: {hp: 320, mp: 100, att: 24, dex: 24, wis: 24, vit: 28, def: 12, luc: 20, mgt: 14, spd: 14, prt: 20, frt: 18},
+				wild: true, col: 0x8fd8ff, txt: "A Godly ring for every class, built to keep you standing. Counts as a piece of any set you wear.", lore: "Grimsnow's frozen heart. Hold it and you never feel the cold again."},
 			pirates_treasure: {n: "Pirate's Treasure", k: "ring", s: "luc", r: "ut", st: {luc: 12, mgt: 12, dex: 2}, txt: "The crit ring.", lore: "X marked the spot."},
 			lantern_wand: {n: "Moonlantern Wand", k: "weapon", s: "wand", r: "ut", st: {wis: 3}, d: [30, 42], sh: 2, rt: 1, par: true, mo: "wave", txt: "Twin shots, side by side, weaving."},
 			dustveil_robe: {n: "Dustveil Robe", k: "armor", s: "robe", r: "ut", df: 8, st: {mp: 60, wis: 5}, txt: "Less defense, more mana."},
@@ -269,6 +281,7 @@ package realm {
 		/** Which boss drops which of them (replacing what the bosses carried before). */
 		public static const DROPS:Object = {
 			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
+			snow_tyrant: ["peppermint_ring", "grimsnows_crown", "longest_night_staff", "snowglobe_hourglass", "frostwoven_robe", "everwinter_heart"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],

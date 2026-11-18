@@ -1633,6 +1633,12 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",
+				lines: ["<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
+					"Melt him within <b>5 minutes</b>: snowball barrages, frost rings that slow you, falling icicles, icicle walls with a gap to slip through, and a blizzard that pulls you in. His snowlings hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
+					"He can drop the <b>Peppermint Ring</b> (UT) and four Legendaries: <b>Grimsnow's Crown</b> (the tank ring), the <b>Staff of the Longest Night</b> (three frost bolts that slow), <b>The Snowglobe</b> (Time Stop lasts 1s longer) and the <b>Frostwoven Robe</b>.",
+					"And, 1 in 2,500: <font color='#fff6e0'><b>Everwinter Heart</b></font>, a Godly ring for every class built to keep you standing. Like All Hallows' Eye, it counts as a piece of whatever Godly set you wear.",
+					"The Pumpkin King has gone back into the earth: he only rises at Halloween now (17 October to 2 November), and he'll be back next year."]},
 			{id: "2026-11-feedback", title: "Your feedback, fixed",
 				lines: ["<b>Settings</b>: hide other players' shots, make your own shots see-through, and pick a chat size (Small to Huge). The settings menu is now two columns.",
 					"<b>Zoom</b>: the mouse wheel zooms the minimap; hold <b>Shift</b> and scroll to zoom the camera (the zoom keys still work). New <b>vault key</b> (B by default): straight to your vault from anywhere.",

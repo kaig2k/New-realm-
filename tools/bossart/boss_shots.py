@@ -76,6 +76,9 @@ SHOTS = {
     # the Pumpkin King's: candy corn (gold, his orange, a pale tip) and a grinning little pumpkin
     'candycorn': ["........", "GGC.....", "GGCCC...", "GGCCCHH.", "GGCCCHHH", "GGCCCHH.", "GGCCC...", "GGC....."],
     'pumpkinlet': ["...S....", "..aSa...", ".aCCCCa.", "aCKCCKCa", "aCCCCCCa", "aCKKKKCa", ".aCCCCa.", "..aaaa.."],
+    # Grimsnow's: a jagged icicle (pointing the way it flies) and a packed snowball
+    'icicle': ["........", "aa......", "aCCW....", "aCCWWWH.", "aCCCWWWH", "aCCW....", "aa......", "........"],
+    'snowball': ["..aWWa..", ".aWHHWa.", "aWHHHHWa", "aWHHHWWa", "aWHHWWCa", ".aWWWCa.", "..aCCa..", "........"],
     'tidewave': ["...WW...", "..WCCW..", ".a..CCW.", "aa...CWH", "aa...CWH", ".a..CCW.", "..WCCW..", "...WW..."],
 }
 

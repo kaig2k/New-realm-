@@ -123,6 +123,12 @@ These are the defaults. You can change any of them in Menu (Esc) > Controls.
   inland and runs away. The quest arrow points to it. Catch it within 30 seconds for a big
   sack: gold, a Runed item for your class, stat potions, a good chance of a Star Shard, and
   sometimes Bonded or Eldritch gear.
+- **Seasonal world bosses:** in their season, every 10 minutes a world boss comes to every realm
+  with heroes in it, for 5 minutes: the **Pumpkin King** at Halloween (17 October to 2 November)
+  and **Grimsnow the Snow Tyrant** in winter (1 December to 6 January, when snow falls over the
+  Nexus and the realms). Each drops a UT, four Legendaries and, 1 in 2,500, a Godly ring. Their
+  art is in `tools/bossart/halloween.py` and `tools/bossart/winter.py`; the dates are in
+  `server/seasons.js`.
 - **Shrines:** about 12 shrines stand in each realm's inland biomes (shown on the minimap once
   seen). Walk up to one for a 60-second blessing: **Might** (+30% damage), **Haste** (+35%
   speed), **Fortune** (+25% loot luck), **Vigor** (regenerate 4% HP a second) or **Arcana**

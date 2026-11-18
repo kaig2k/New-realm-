@@ -1296,6 +1296,48 @@ async function run() {
       require('./combat').stat(ch, 'wis') >= eye.wis + HG.make('wizard', 0).wis + HG.make('wizard', 1).wis + HG.make('wizard', 2).wis + HW.setBonus('g_wizard').wis, rar + ' ' + drops);
   }
 
+  console.log('seasons: the Pumpkin King at Halloween, Grimsnow in winter');
+  {
+    const S = require('./seasons');
+    const on = (cfg, y, m, d) => { const s = S.seasonNow(cfg, new Date(y, m - 1, d, 12)); return s ? s.id : ''; };
+    check('the Pumpkin King only comes 17 Oct - 2 Nov, Grimsnow 1 Dec - 6 Jan (across the new year), nobody in between',
+      on({}, 2026, 10, 16) === '' && on({}, 2026, 10, 17) === 'pumpkin_king' && on({}, 2026, 10, 31) === 'pumpkin_king' && on({}, 2026, 11, 2) === 'pumpkin_king' &&
+      on({}, 2026, 11, 3) === '' && on({}, 2026, 11, 18) === '' && on({}, 2026, 11, 30) === '' && on({}, 2026, 12, 1) === 'snow_tyrant' &&
+      on({}, 2026, 12, 25) === 'snow_tyrant' && on({}, 2027, 1, 1) === 'snow_tyrant' && on({}, 2027, 1, 6) === 'snow_tyrant' && on({}, 2027, 1, 7) === '' && on({}, 2027, 7, 4) === '');
+    check('...the config can turn either off, or run it out of season for testing',
+      on({ winterEveryMinutes: 0 }, 2026, 12, 25) === '' && on({ halloweenEveryMinutes: 0 }, 2026, 10, 31) === '' &&
+      on({ winterAlways: true }, 2026, 11, 18) === 'snow_tyrant' && on({ halloweenAlways: true }, 2027, 3, 1) === 'pumpkin_king' && S.every({}, S.SEASONAL[1]) === 10);
+  }
+
+  console.log('winter: Grimsnow the Snow Tyrant');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: WD, Bosses: WB, Uniques: WU } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Winter:4243');
+    const sent = [], fin = [];
+    ws.onSiege = (sm, k, d) => fin.push([k, d.id]);
+    const c = { id: 8, name: 'W', x: 100, y: 100, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => sent.push(m.d || m) };
+    ws.join(c);
+    const ok = ws.startSiege('snow_tyrant'), e = ws.siege && ws.siege.e;
+    const panel = sent.find((m) => m.t === 'siege' && m.on);
+    check('Grimsnow stomps into the highlands with his snowlings, a 5 minute clock and his own panel', ok && e.defId === 'snow_tyrant' && e.zone === 3 &&
+      ws.enemies.some((o) => !o.dead && o.defId === 'snowling') && panel && panel.title === 'WINTER' && panel.left === 300 && WB.POSED.indexOf('snow_tyrant') >= 0 &&
+      WD.ENEMIES.snow_tyrant.phases.length === 3, JSON.stringify(panel));
+    c.x = e.x; c.y = e.y + 2;
+    for (let k = 0; k < 400 && !e.dead; k++) { ws.tick(0.05); ws.hit(c, { id: e.id, d: 6000 }); }
+    const won = sent.filter((m) => m.t === 'siege').pop();
+    check('...melt him: his own victory, his snowlings go, and the Realm Siege can still come after', e.dead && fin.some((f) => f[0] === 'win' && f[1] === 'snow_tyrant') &&
+      won && won.wonText === 'GRIMSNOW IS MELTED!' && !ws.enemies.some((o) => !o.dead && o.defId === 'snowling') && ws.startSiege() && ws.siege.e.defId === 'siege_warlord', JSON.stringify(fin));
+    const rar = WD.ENEMIES.snow_tyrant.uniques.map((u) => WU.rarityOf(u)).join(',');
+    const items = WD.ENEMIES.snow_tyrant.uniques.map((u) => WU.make(u));
+    const heart = WU.make('everwinter_heart'), staff = WU.make('longest_night_staff');
+    const ch = { stats: {}, weapon: require('./sim/gen/game').Godly.make('wizard', 0), ability: require('./sim/gen/game').Godly.make('wizard', 1), armor: require('./sim/gen/game').Godly.make('wizard', 2), ring: heart };
+    const bad = items.map((it) => [it.uid, checkItem(it)]).filter((x) => x[1] !== null);
+    check('...his drops: a UT, four Legendaries and a 1 in 2,500 Godly ring that keeps a Godly set\'s bonus; every one is a fair item; his staff slows',
+      rar === 'ut,lg,lg,lg,lg,gd' && heart.rarity === 'gd' && heart.wild && bad.length === 0 && staff.effect === 'slow' &&
+      require('./combat').stat(ch, 'vit') >= heart.vit + (WD.setBonus('g_wizard').vit || 0), rar + ' ' + JSON.stringify(bad));
+  }
+
   console.log('player feedback: keys, bleed, bows, god portals, blind bosses');
   {
     const { Data: FD } = require('./sim/gen/game');

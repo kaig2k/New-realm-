@@ -11,6 +11,7 @@
 • The Sun King's and Moon Queen's last-phase spirals are thinner: with all three kings firing at once they were the deadliest hard dungeon
 
 **🎨 Art**
+• **Heroes polished**: the classic heroes you know, now with light and shade on their robes, armour and hoods, and a warmer skin tone. Every skin and dye still works, and its light and shade follow its colours
 • **Every pet redrawn**, shaded like the monsters: the pup, jelly, owl, drake, wisp and golem, and each one's two Adult forms (a Treasure Hound with a gold collar, a spiky-collared Warhound, a crowned Royal Jelly, a dripping Acid Ooze, a snowy Seer with a third-eye gem, a red-eyed Hunter Owl, a flaming Inferno Wyrm, a stone-plated Ash Guardian, crystal and storm wisps, a shielded Bastion and a mossy Boulder)
 • Pet skins wash the whole pet evenly
 • **The world redrawn at twice the detail**: trees, pines, palms and dead trees, rocks and boulders, pillars and ruins, crates, chests, graves, tents, campfires, braziers, crystals, the five shrines, the Nexus's townsfolk, and every **loot bag** (now a proper tied sack in its rarity's colour). Every arena prop built from them (obelisks, pylons, gold pillars, the Raid Table, the Abyss chest...) got the new look too

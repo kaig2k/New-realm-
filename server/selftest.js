@@ -1360,6 +1360,29 @@ async function run() {
       Math.abs(b.maxHp - solo * 2.5) < 1 && ED.ENEMIES.ev_behemoth.hp < 120000, solo + ' ' + one + ' ' + (b && b.maxHp));
   }
 
+  console.log('mimics grow with the land');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: MD } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Mimic:4245');
+    ws.updateSpawns = () => {};
+    const c = { id: 9, name: 'M', x: 100, y: 100, maxDps: 1e9, profile: { cls: 'knight', lk: 0 }, send() {} };
+    ws.join(c);
+    const real = Math.random;
+    const out = [];
+    for (const z of [1, 4]) {
+      Math.random = () => 0.01;
+      const cr = ws.spawn('crate', 100.5, 100.5, z, true);
+      ws.kill(cr);
+      Math.random = real;
+      const m = ws.enemies.find((e) => !e.dead && e.defId === 'mimic');
+      out.push(m ? [m.maxHp, m.dmgMult] : null);
+      if (m) m.dead = true;
+    }
+    check('a Mimic from a lowland crate is a fair fight for a new hero (800 health, a third of the damage); a Godlands one is the full thing',
+      out[0] && out[0][0] === 800 && out[0][1] === 0.35 && out[1] && out[1][0] === 4500 && out[1][1] === 1 && MD.mimicHp(0) === 600, JSON.stringify(out));
+  }
+
   console.log('player feedback: keys, bleed, bows, god portals, blind bosses');
   {
     const { Data: FD } = require('./sim/gen/game');

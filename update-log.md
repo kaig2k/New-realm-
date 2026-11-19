@@ -6,6 +6,10 @@
 • Event bosses hit a little softer: their extra damage is **+25%** (was +45%)
 • Realms close faster on quiet servers, so the finales and the Dark Elder come round more often
 
+**📦 Fairer Mimics**
+• A Mimic now grows with the land its crate stood in: a lowland Mimic has **800 health** (was 2,100) and hits **a third as hard**
+• It used to kill new heroes outright. Highland and Godlands Mimics are as tough as ever
+
 **🔥 Two outliers tamed**
 • **Pyraxis the Phoenix** and **the Obsidian Colossus** fire thinner spirals in their last phase: they were far deadlier than every other event
 

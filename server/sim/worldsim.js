@@ -866,7 +866,8 @@ class WorldSim {
     this.dropLoot(e);
     if (e.def.crate && Math.random() < 0.12) {
       const m = this.spawn('mimic', e.x, e.y, e.zone, true);
-      if (m) m.maxHp = m.hp = 1200 + Math.max(0, e.zone) * 900;
+      // (it grows with the land it's found in: a lowland Mimic mustn't be a death sentence for a new hero)
+      if (m) { m.maxHp = m.hp = Data.mimicHp(e.zone); m.dmgMult = Data.mimicDmg(e.zone); }
     }
     // slimes burst into smaller slimes
     if (e.def.splits) {

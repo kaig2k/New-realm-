@@ -5603,7 +5603,8 @@ package realm {
 			if (remote || Math.random() > 0.12) return;
 			var m:Enemy = spawnEnemy("mimic", e.x, e.y, e.zone);
 			if (!m) return;
-			m.maxHp = m.hp = 1200 + Math.max(0, e.zone) * 900;
+			m.maxHp = m.hp = Data.mimicHp(e.zone);
+			m.dmgMult = Data.mimicDmg(e.zone);
 			showBanner("It's a Mimic!", 0xff4040, 2.5);
 			shake(0.3, 6);
 			Sfx.play("boss", 0.6);

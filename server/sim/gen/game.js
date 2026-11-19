@@ -1054,6 +1054,12 @@ class Data {
 			var c = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
 			for (var id of __vals( def.uniques)) if (Math.random() < c * boost) items.push(Uniques.make(id));
 		}
+	static mimicHp(zone) { zone = __int(zone);
+			return __int([600, 800, 1800, 3000, 4500][Math.max(0, Math.min(4, zone))]);
+		}
+	static mimicDmg(zone) { zone = __int(zone);
+			return [0.35, 0.35, 0.55, 0.8, 1][Math.max(0, Math.min(4, zone))];
+		}
 	static rollLoot(def, zone, cls, fortune) { zone = __int(zone); fortune = __int(fortune);
 			
 			if (def.abyssChest) return Data.deepChest(def.abyssChest, cls, fortune);

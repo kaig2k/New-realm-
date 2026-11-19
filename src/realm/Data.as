@@ -1633,8 +1633,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
-			{id: "2026-11-events", title: "Realm events you can finish",
-				lines: ["<b>Realm events are built for any crowd now</b>, including just you. On your own an event boss has <b>about half the health</b> it had, and each hero who joins adds three quarters of that again, so a big group still brings it down faster.",
+			{id: "2026-11-events", title: "Realm events you can finish, and fairer Mimics",
+				lines: ["<b>Mimics grow with the land</b>: one hiding in a lowland crate has 800 health and hits a third as hard as before, so it's a fight a new hero can win (it used to kill them outright). Highland and Godlands Mimics are as tough as ever.",
+					"<b>Realm events are built for any crowd now</b>, including just you. On your own an event boss has <b>about half the health</b> it had, and each hero who joins adds three quarters of that again, so a big group still brings it down faster.",
 					"Event bosses hit a little softer (their extra damage went from +45% to +25%), and <b>Pyraxis</b> and <b>the Obsidian Colossus</b> fire thinner spirals in their last phase: they were far deadlier than the others.",
 					"Standing still is still a bad idea: every event punishes heroes who don't dodge."]},
 			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",
@@ -2692,6 +2693,17 @@ package realm {
 			// late-game items are meant to be hunted for (each unique the boss carries rolls on its own)
 			var c:Number = def.uchance || (def.raid ? 0.07 : def.final || def.finale ? 0.07 : def.dtier >= 5 ? 0.05 : def.dungeon ? 0.035 : 0.025);
 			for each (var id:String in def.uniques) if (Math.random() < c * boost) items.push(Uniques.make(id));
+		}
+
+		/**
+		 * A Mimic grows with the land its crate stood in: a tough fight for that zone (about twice its leaders'
+		 * health), never a death sentence for a new hero. Its health, and how hard it hits.
+		 */
+		public static function mimicHp(zone:int):int {
+			return [600, 800, 1800, 3000, 4500][Math.max(0, Math.min(4, zone))];
+		}
+		public static function mimicDmg(zone:int):Number {
+			return [0.35, 0.35, 0.55, 0.8, 1][Math.max(0, Math.min(4, zone))];
 		}
 
 		public static function rollLoot(def:Object, zone:int, cls:Object, fortune:int):Array {

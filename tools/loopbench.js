@@ -128,8 +128,8 @@ function run(seed) {
   };
   g.later = (t, fn) => timers.push({ t, fn });
   g.addMarker = (x, y, r, d, col, fn) => marks.push({ x, y, r, t: d, fn });
-  g.brand = (who, r, d, col, dmg) => marks.push({ x: who.x, y: who.y, r, t: d, follow: who, fn: () => hurt(dmg, true) });
-  g.areaHit = (x, y, r, dmg) => { if ((bot.x - x) ** 2 + (bot.y - y) ** 2 < r * r) hurt(dmg, true); };
+  g.brand = (who, r, d, col, dmg, src) => marks.push({ x: who.x, y: who.y, r, t: d, follow: who, fn: () => hurt(dmg, true, src, 'brand') });
+  g.areaHit = (x, y, r, dmg, src, eff, col, attack) => { if ((bot.x - x) ** 2 + (bot.y - y) ** 2 < r * r) hurt(dmg, BOSS_NAMES.has(src), src, attack || 'blast'); };
   g.eclipse = () => {};
 
   // XP as Game.as gives it: the kills you hit, and every kill near you
@@ -160,13 +160,20 @@ function run(seed) {
       hp = Math.max(hp, H.maxHp * keep);
     }
   }
-  function hurt(raw, boss) {
+  const recent = [];
+  function hurt(raw, boss, src, attack) {
     const d = boss ? Math.max(raw - Math.floor(H.def * 0.5), Math.floor(raw * 0.35)) : Math.max(raw - H.def, Math.floor(raw * 0.15));
     hp -= d;
-    if (hp <= 0) die();
+    recent.push({ t: out.time, d, src: src || '?', attack: attack || '' });
+    while (recent.length && recent[0].t < out.time - 5) recent.shift();
+    if (hp <= 0) die(src, attack);
   }
-  function die() {
-    out.deaths.push({ t: Math.round(out.time), level: h.level, life: Math.round(out.time - h.born), zone: w.zoneAt(bot.x, bot.y) });
+  function die(src, attack) {
+    // what did it in, and what had hurt it in the last 5 seconds (by source)
+    const by = {};
+    for (const r of recent) by[r.src] = (by[r.src] || 0) + r.d;
+    const nearby = sim.enemies.filter((e) => !e.dead && Math.hypot(e.x - bot.x, e.y - bot.y) < 12).length;
+    out.deaths.push({ t: Math.round(out.time), level: h.level, life: Math.round(out.time - h.born), zone: w.zoneAt(bot.x, bot.y), src, attack, by, maxHp: H.maxHp, def: H.def, nearby, gear: h.gear.weapon.name + '/' + h.gear.armor.name });
     out.lives.push({ level: h.level, secs: Math.round(out.time - h.born), kills: h.kills });
     h = newHero(C); h.born = out.time; H = derive(h, C); hp = H.maxHp;
     bot.x = w.spawnX; bot.y = w.spawnY;
@@ -327,7 +334,7 @@ function run(seed) {
       s.x += s.vx * DT; s.y += s.vy * DT;
       let gone = s.life <= 0 || (!s.passWalls && w.blocksShot(s.x, s.y));
       const rr = (s.r || 0.3) + 0.3;
-      if (!gone && (bot.x - s.x) ** 2 + (bot.y - s.y) ** 2 < rr * rr) { hurt(s.dmg, BOSS_NAMES.has(s.owner)); gone = true; }
+      if (!gone && (bot.x - s.x) ** 2 + (bot.y - s.y) ** 2 < rr * rr) { hurt(s.dmg, BOSS_NAMES.has(s.owner), s.owner, s.attack); gone = true; }
       if (gone) shots.splice(i, 1);
     }
   }
@@ -345,7 +352,8 @@ function main() {
     const m = (s) => (s / 60).toFixed(1) + 'm';
     console.log('\n=== run ' + (r + 1) + ' (' + CLS + ', ' + MINUTES + ' min, seed ' + o.seed + ')');
     console.log('first hero: level by time  ' + [2, 5, 8, 10, 12, 15, 18, 20].map((l) => 'L' + l + ' ' + (o.levelAt[l] != null ? m(o.levelAt[l]) : '-')).join('  '));
-    console.log('deaths: ' + (o.deaths.length ? o.deaths.map((d) => 'L' + d.level + ' at ' + m(d.t) + ' (zone ' + d.zone + ')').join(', ') : 'none'));
+    console.log('deaths: ' + (o.deaths.length ? '' : 'none'));
+    for (const d of o.deaths) console.log('   L' + d.level + ' at ' + m(d.t) + ' zone ' + d.zone + ': ' + d.src + (d.attack ? ' (' + d.attack + ')' : '') + ', last 5s ' + JSON.stringify(d.by) + ', hp ' + d.maxHp + ' def ' + d.def + ', ' + d.nearby + ' monsters near, ' + d.gear);
     const tot = o.fightT + o.walkT + o.idleT;
     console.log('time: fighting ' + Math.round(o.fightT / tot * 100) + '%, closing in ' + Math.round(o.walkT / tot * 100) + '%, nothing near ' + Math.round(o.idleT / tot * 100) + '%');
     console.log('kills ' + o.kills + ' (' + (o.kills / MINUTES).toFixed(1) + '/min) by zone ' + JSON.stringify(o.perZone) + ', events ' + o.events + ', goblins ' + o.goblins + ', XP own/near ' + o.xpBy.own + '/' + o.xpBy.near);

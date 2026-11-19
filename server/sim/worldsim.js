@@ -1215,8 +1215,13 @@ class WorldSim {
     const e = this.siege.e, m = this.siege.wb.minion;
     const alive = this.enemies.filter((o) => !o.dead && o.defId === m).length;
     for (let k = 0; k < Math.min(n, 10 - alive); k++) {
-      const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 3;
-      this.spawn(m, e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, this.siege.wb.zone);
+      // (a few tries each: a spot in a wall or the water would lose it)
+      for (let tries = 0; tries < 12; tries++) {
+        const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 3;
+        const x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r;
+        if (!this.w.canStand(x, y, 0.4, true)) continue;
+        if (this.spawn(m, x, y, this.siege.wb.zone)) break;
+      }
     }
   }
 

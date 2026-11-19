@@ -11,7 +11,7 @@
 • The Sun King's and Moon Queen's last-phase spirals are thinner: with all three kings firing at once they were the deadliest hard dungeon
 
 **🎨 Art**
-• New art for the **Kraken tentacles** (a curling tentacle with suckers, rising from the foam), the **Pearlmaw's clams** (a giant open clam with a glowing pearl), **spiderlings** and the storm raid's **Cloud Serpents** (a coiling storm-blue serpent with a crest)
+• New art for the **Kraken tentacles** (a curling tentacle with suckers, rising from the foam), the **Pearlmaw's clams** (a giant open clam with a glowing pearl), **spiderlings** and the storm raid's **Cloud Serpents** (a blue sky dragon with a gold belly, horns and whiskers, rising out of a cloud)
 • Named rings now take the colours of their names: an **Ember Ring** burns orange, an **Icicle Ring** is icy, the **Peppermint Ring** is red and white, the **Candy Corn Ring** orange and gold (the gem still shows the stat)
 • The Godly **Everwinter Heart** and **All Hallows' Eye** now show their own colours (ice blue and pumpkin orange) instead of plain gold
 

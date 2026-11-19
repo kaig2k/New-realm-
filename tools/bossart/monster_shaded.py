@@ -605,31 +605,54 @@ def bone_thrall(t):
 
 
 def cloud_serpent(t):
-    """A sky serpent: a thick body coiling through the air, storm-blue above and pale beneath, feathered
-    fins down its back, a lightning-lit crest and a fanged head."""
-    mm = M(body=g([0x10203e, 0x1e3a6a, 0x3462a0, 0x5a90d0], spec=0.6), belly=g([0x8aa8c8, 0xc0d8ee, 0xf0f8ff]),
-           fin=glow(0x3a7ad0, 0x8ac8ff, 0xe8f8ff, base=0.3), eye=glow(0x806000, 0xffe040), fang=BONE)
-    m = Model(32, 28)
-    pts = []
-    for k in range(12):
-        a = k / 11
-        pts.append((4 + a * 20, 21 - math.sin(a * math.pi * 2.0 + t * 1.2) * 4.5 - a * 9, 1))
-    radii = [1.4 + a * 2.0 for a in [k / 11 for k in range(12)]]
-    m.chain(pts, radii, 'body', scales(0.08, 1.2))
-    # its pale belly along the underside of the coil
-    m.chain([(x, y + r * 0.45, 1.6) for (x, y, _), r in zip(pts, radii)], [r * 0.55 for r in radii], 'belly')
-    for k in (2, 5, 8):
-        x, y, _ = pts[k]
-        spike(m, (x, y - radii[k] * 0.7), (x - 2.5, y - radii[k] - 3.5 + t), 1.4, 3, 'fin')
-    hx, hy = pts[-1][0] + 3, pts[-1][1] - 0.5
-    m.sphere((hx, hy, 2.5), 3.3, 'body', 1.3, 0.95, 1, scales(0.06, 1.2))
-    m.capsule((hx + 2, hy + 1.6, 3), (hx + 5, hy + 2, 3), 1.2, 0.8, 'belly')                  # its jaw
-    spike(m, (hx + 3.5, hy + 2.2), (hx + 3.8, hy + 4), 0.5, 4, 'fang')
-    for k in range(3):                                                                         # the crest
-        spike(m, (hx - 1 + k * 1.2, hy - 2.6), (hx - 4 + k * 1.6, hy - 7 + k * 0.6), 1.0, 4, 'fin')
-    m.mark(int(hx + 1.5), int(hy - 1), 'eye')
+    """A sky dragon riding the storm: a smooth, thick body rising out of a cloud bank in an S, sky-blue
+    above and pale gold beneath, a fringe of fins down its back, and a proud head with gold horns and
+    whiskers and a glowing eye."""
+    mm = M(body=g([0x0e2a5a, 0x1e4c94, 0x3a78c8, 0x6aa8ec, 0xc0e4ff], spec=0.55),
+           belly=g([0xb08a40, 0xe0c070, 0xfff0b8]),
+           fin=g([0x6a9ad0, 0xb0d8ff, 0xf4fcff]),
+           cloud=g([0x8a9ab8, 0xc8d4e8, 0xf4f8ff], gamma=0.9),
+           horn=g([0x8a6a14, 0xd8a830, 0xffe890], spec=0.6),
+           eye=glow(0xa06000, 0xffe040, 0xffffd0), mouth=g([0x3a0a14, 0x6a1a28]))
+    m = Model(42, 36)
+    sw = math.sin(t * math.pi * 2) * 0.8
+    # the body: tail low on the left, a loop up and over, the neck rising to the head on the right
+    path = [(5, 25), (8, 21.5), (12.5, 20), (16.5, 22), (19.5, 25), (23.5, 25.5), (26.5, 22), (27.5, 17.5), (27, 13), (28.5, 9.5)]
+    pts = [(x + (sw if k % 2 else -sw) * 0.4, y, 2 + k * 0.3) for k, (x, y) in enumerate(path)]
+    radii = [1.2, 2.0, 2.7, 3.1, 3.3, 3.4, 3.4, 3.3, 3.1, 2.9]
+    # fins first, so the body sits over their roots
+    for k in range(1, len(pts) - 1, 1):
+        x, y, z = pts[k]
+        tx, ty = pts[k + 1][0] - pts[k - 1][0], pts[k + 1][1] - pts[k - 1][1]
+        d = math.hypot(tx, ty) or 1
+        nx, ny = ty / d, -tx / d                                                               # the back: up and outward
+        if ny > 0: nx, ny = -nx, -ny
+        r = radii[k]
+        m.membrane([(x - tx / d * 1.2, y - ty / d * 1.2), (x + tx / d * 1.2, y + ty / d * 1.2), (x + nx * (r + 2.6) - tx / d * 0.8, y + ny * (r + 2.6) - ty / d * 0.8)], z - 0.5, 'fin')
+    m.chain(pts, radii, 'body', rough(0.03, 0.5, 4))
+    # the pale belly down the front of the coil
+    m.chain([(x + 0.2, y + r * 0.5, z + r * 0.6) for (x, y, z), r in zip(pts[1:], radii[1:])], [r * 0.5 for r in radii[1:]], 'belly')
+    # the head: a broad brow, a long snout, an open jaw
+    hx, hy = 31, 7
+    m.part('head', (hx - 2, hy + 2))
+    m.sphere((hx, hy, 5), 4.2, 'body', 1.1, 0.95, 1)
+    m.capsule((hx + 2, hy + 0.3, 6), (hx + 7.5, hy + 1.2, 6), 2.6, 1.8, 'body')                 # snout
+    m.capsule((hx + 2, hy + 3.2, 5), (hx + 6.5, hy + 3.9, 5), 1.5, 1.0, 'belly')               # jaw
+    m.capsule((hx + 3, hy + 2.5, 7), (hx + 7, hy + 2.7, 7), 0.45, 0.45, 'mouth')
+    m.sphere((hx + 7.6, hy + 0.6, 6.5), 0.6, 'mouth')                                         # nostril
+    for s, dz in ((-1, 3), (1, 7)):                                                            # two horns, swept back
+        m.chain([(hx - 0.5 + s * 1.4, hy - 3, dz), (hx - 2.5 + s * 1.8, hy - 7, dz), (hx - 6 + s * 2.2, hy - 9, dz), (hx - 8.5 + s * 2, hy - 8.5, dz)], [1.2, 0.9, 0.55, 0.25], 'horn')
+    m.chain([(hx + 6, hy + 2, 7), (hx + 8.5, hy + 4.5 + sw, 7), (hx + 8, hy + 8 + sw, 7)], [0.35, 0.3, 0.2], 'horn')  # whiskers
+    m.chain([(hx + 5, hy + 2.5, 7), (hx + 6, hy + 6 + sw, 7), (hx + 4.5, hy + 9, 7)], [0.35, 0.3, 0.2], 'horn')
+    for k in range(4):                                                                         # its mane, down the neck
+        m.sphere((hx - 3 - k * 0.6, hy + 0.5 + k * 1.8, 4), 1.5 - k * 0.15, 'fin', 1.3, 0.8, 1)
+    m.mark(int(hx + 1), int(hy - 1.5), None, 3, 1)                                          # a brow over the eye
+    m.mark(int(hx + 1), int(hy - 0.5), 'eye', 2, 2)
+    m.part(None)
+    # the cloud bank it rises from, round its tail and the bottom of the loop
+    for x, y, r in ((3, 29, 3.0), (7.5, 30, 3.6), (12.5, 29.5, 3.2), (17, 30.5, 3.4), (22, 30, 3.0), (26.5, 29.5, 2.6), (10, 27, 2.4), (20, 28, 2.2)):
+        m.sphere((x + sw * 0.3, y, 7), r, 'cloud', 1.25, 0.75, 1)
     return m, mm
-
 
 def spiderling(t):
     """A spider's brood: small, quick, its mark and eyes bright so it reads against the floor."""

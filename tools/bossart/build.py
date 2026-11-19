@@ -14,6 +14,9 @@ import realm_shaded, dungeon_shaded_a, dungeon_shaded_b, raid_shaded, angular_sh
 _shaded = realm_shaded.designs() + dungeon_shaded_a.all_designs() + dungeon_shaded_b.all_designs() + raid_shaded.all_designs() + angular_shaded.all_designs() + lair_shaded.all_designs() + endgame_shaded.all_designs() + halloween.all_designs() + winter.all_designs()
 # the realm's monsters, shaded too (monster_shaded.py; their old drawings go: nothing recolours them by name)
 _monsters = monster_shaded.all_designs()
+# the pets (pets_shaded.py), drawn smaller than the monsters
+import pets_shaded
+_monsters += pets_shaded.all_designs()
 _mnames = {d[0] for d in _monsters}
 _names = {d[0] for d in _shaded}
 # (bosses that reuse an old drawing with a colour swap keep it, as name_flat, until they get shaded art of their own)

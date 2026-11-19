@@ -816,8 +816,9 @@ package realm {
 			} else if (ps) {
 				// a wash over every colour but the eyes, keeping light and dark parts apart
 				for (k in pal) {
-					if (k == "E") continue;
 					var l:Number = lum(pal[k]);
+					// (eyes and pupils stay as they are: they're the near-black ones, whatever their letter)
+					if (l < 0.1) continue;
 					pal[k] = l < 0.55 ? shade(ps.col, 0.35 + l * 1.2) : tint(ps.col, (l - 0.55) * 1.4);
 				}
 			} else return null;

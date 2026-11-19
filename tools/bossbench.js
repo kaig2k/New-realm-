@@ -251,7 +251,22 @@ function fight(id, opts) {
   }
   function nearestBot(x, y) { let best = null, bd = 1e9; for (const b of bots) { const d = (b.x - x) ** 2 + (b.y - y) ** 2; if (d < bd) { bd = d; best = b; } } return best; }
   /** Where a shot will be t seconds on (good enough for dodging: straight, or along its weave). */
-  function ahead(s, t) {
+  function ahead(s, t, px, py) {
+    // a homing shot turns toward its target as moveShot does (1.6 rad/s, after 0.15s): a player sees it bend
+    if (s.motion === 'home' && px !== undefined) {
+      let x = s.x, y = s.y, a = s.angle, age = s.age;
+      const sp = Math.hypot(s.vx, s.vy);
+      for (let k = 0; k < t; k += 0.05) {
+        const st = Math.min(0.05, t - k);
+        if (age > 0.15) {
+          let diff = Math.atan2(py - y, px - x) - a;
+          while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
+          a += Math.max(-1.6 * st, Math.min(1.6 * st, diff));
+        }
+        x += Math.cos(a) * sp * st; y += Math.sin(a) * sp * st; age += st;
+      }
+      return [x, y];
+    }
     const ax = s.x + s.vx * t, ay = s.y + s.vy * t;
     return [ax, ay];
   }
@@ -287,8 +302,8 @@ function fight(id, opts) {
         const dx0 = s.x - b.x, dy0 = s.y - b.y;
         if (dx0 * dx0 + dy0 * dy0 > 100) continue;
         for (let t = 0.05; t <= 0.6; t += 0.11) {
-          const [sx, sy] = ahead(s, t);
           const px = b.x + mx * Math.min(t, 0.35), py = b.y + my * Math.min(t, 0.35);
+          const [sx, sy] = ahead(s, t, px, py);
           const rr = (s.r || 0.3) + 0.3 + 0.15;
           const d2 = (sx - px) ** 2 + (sy - py) ** 2;
           if (d2 < rr * rr * 2.2) danger += (1 - t) * 4 / (0.05 + d2);

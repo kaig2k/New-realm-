@@ -54,7 +54,7 @@ package {
 					if ((what == "bosses") == big) list.push([n, null]);
 				}
 			}
-			var cell:int = what == "bosses" ? 200 : what == "items" ? 100 : 90;
+			var cell:int = p.cell ? int(p.cell) : what == "bosses" ? 200 : what == "items" ? 100 : 90;
 			var cols:int = int(1600 / cell), rows:int = int(1200 / cell), per:int = cols * rows;
 			var tf:TextField = new TextField();
 			tf.defaultTextFormat = new TextFormat("_sans", 12, 0xffffff, true);

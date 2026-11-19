@@ -11,6 +11,8 @@
 • The Sun King's and Moon Queen's last-phase spirals are thinner: with all three kings firing at once they were the deadliest hard dungeon
 
 **🎨 Art**
+• **Every hero redrawn** at twice the detail (16x16, was 8x8): a wizard's pointed hat, white beard and glowing staff, the knight's plumed great helm and shield, the warrior's horned helm and beard, the bard's feathered cap and lyre, the necromancer's skull staff and glowing eyes in a deep hood, and more, all shaded
+• **Every skin and dye still works**, and its light and shadow follow its colours (a Frost Mage's robe is icy blue in its highlights too)
 • New art for the **Kraken tentacles** (a curling tentacle with suckers, rising from the foam), the **Pearlmaw's clams** (a giant open clam with a glowing pearl), **spiderlings** and the storm raid's **Cloud Serpents** (a blue sky dragon with a gold belly, horns and whiskers, rising out of a cloud)
 • Named rings now take the colours of their names: an **Ember Ring** burns orange, an **Icicle Ring** is icy, the **Peppermint Ring** is red and white, the **Candy Corn Ring** orange and gold (the gem still shows the stat)
 • The Godly **Everwinter Heart** and **All Hallows' Eye** now show their own colours (ice blue and pumpkin orange) instead of plain gold

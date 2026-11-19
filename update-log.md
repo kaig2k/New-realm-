@@ -29,6 +29,9 @@
 **🔥 Two outliers tamed**
 • **Pyraxis the Phoenix** and **the Obsidian Colossus** fire thinner spirals in their last phase: they were far deadlier than every other event
 
+**🏰 Realm finales**
+• When a realm closes and pulls you into its finale on your own, you're told it's built for a group, and that **R** takes you back to the Nexus with full health at any time
+
 **🎯 Still a fight**
 • Standing still gets you killed at every event: dodging matters as much as ever
 

@@ -1953,6 +1953,8 @@ package realm {
 					world.closed = true;
 					if (net.online) net.realmClosed(world.key);
 					msg("The " + world.name + " realm has closed.", 0xff8080);
+					// (who goes in with you: everyone in the realm, as it closes)
+					finaleCompany = net.online ? net.players.length : net.party.length;
 					travel(enterCitadel);
 				}
 			}
@@ -3653,6 +3655,9 @@ package realm {
 			msg("The remaining kings grow stronger!", 0xff6040);
 		}
 
+		/** How many other heroes were in the realm when it closed (they come into its finale too). */
+		private var finaleCompany:int = 0;
+
 		/** The realm has closed: storm Azrakor's Citadel, then face him in his chamber. */
 		private function enterCitadel():void {
 			// each realm closes into one of several finales; online, everyone from the realm goes to the same one
@@ -3666,6 +3671,11 @@ package realm {
 				void_rift: ["Vael'thrax the Void Dragon", "The realm is torn open. Step into the rift, little ones."]
 			};
 			say(lines[fid][0], lines[fid][1]);
+			// (a finale is the realm's last stand, built for a crowd: a hero who came alone should know they can leave)
+			var others:int = finaleCompany;
+			finaleCompany = 0;
+			msg(others > 0 ? "The realm's finale: " + (others + 1) + " heroes here. Stay together!"
+				: "The realm's finale is built for a group, and you're on your own. Press " + Keys.name(Keys.k("nexus")) + " any time to go back to the Nexus with full health.", 0xffb080);
 		}
 
 		public function bossPhase(phase:int, b:Enemy = null):void {

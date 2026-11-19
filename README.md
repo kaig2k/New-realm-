@@ -136,7 +136,7 @@ These are the defaults. You can change any of them in Menu (Esc) > Controls.
   shrine rests for 2 minutes after blessing you.
 - **Crates and Mimics:** piles of breakable crates turn up in the realm and in dungeon rooms.
   Shoot them for gold or potions. One in eight is a **Mimic** (as tough as the zone it hides in) that jumps out and fights back,
-  and guards stat potions, a 40% chance of a Runed item and sometimes a Star Shard.
+  and guards a stat potion and a 40% chance of a top-tier (T7) item for your class.
 - **Loot beams:** white bags and rarer shine a column of light into the sky in their colour,
   so you can spot good drops from across the screen.
 - **Atmosphere:** the light shifts with where you are (warm beach, shaded forests, violet

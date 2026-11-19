@@ -1360,6 +1360,17 @@ async function run() {
       Math.abs(b.maxHp - solo * 2.5) < 1 && ED.ENEMIES.ev_behemoth.hp < 120000, solo + ' ' + one + ' ' + (b && b.maxHp));
   }
 
+  console.log('wands: the support classes can finish a fight');
+  {
+    const { Data: WD2, Uniques: WU2 } = require('./sim/gen/game');
+    const plainW = WD2.weaponDps(WD2.makeWeapon('wand', 7, null, '')), plainS = WD2.weaponDps(WD2.makeWeapon('staff', 7, null, ''));
+    const lgW = Object.keys(WU2.FIXED).filter((id) => WU2.FIXED[id].k === 'weapon' && WU2.FIXED[id].s === 'wand' && WU2.FIXED[id].r === 'lg').map((id) => WD2.weaponDps(WU2.make(id)));
+    const old = Object.assign(WD2.makeWeapon('wand', 7, null, ''), { dmin: 10, dmax: 14, sv: 2 });
+    check('a T7 wand deals 150 a second (was 110), still under a staff; every Legendary wand beats it; old wands are updated',
+      Math.abs(plainW - 150) < 4 && plainW < plainS && lgW.length >= 3 && lgW.every((d) => d > plainW) && WD2.upgradeWeapon(old) && old.dmin > 10 && old.sv === WD2.SIG_V,
+      Math.round(plainW) + ' ' + Math.round(plainS) + ' ' + lgW.map(Math.round).join(','));
+  }
+
   console.log('mimics grow with the land');
   {
     const { WorldSim } = require('./sim/worldsim');

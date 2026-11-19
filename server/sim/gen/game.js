@@ -201,7 +201,8 @@ class Data {
 				else if (sub == "bow") { w.shots = rarity == "ar" ? 5 : 4; w.arc = 10; }
 				else if (sub == "sword") { w.shots = 2; w.arc = 12; w.pierce = true; }
 				else if (sub == "dagger") { w.shots = 2; w.arc = 6; }
-				else { w.pierce = true; w.rate = 1.2; }
+				
+				else { w.pierce = true; w.rate = 1.65; }
 			}
 			if (sub == "sword") w.size = 4;
 			
@@ -1317,7 +1318,9 @@ class Uniques {
 				if (f.abx) it.abx = f.abx;
 			}
 			if (f.k == "weapon") {
-				it.dmin = f.d[0]; it.dmax = f.d[1];
+				
+				var wm = f.s == "wand" ? Uniques.WAND_UP : 1;
+				it.dmin = __int(f.d[0] * wm); it.dmax = __int(f.d[1] * wm);
 				it.shots = f.sh || 1;
 				it.rate = f.rt || 1;
 				it.parallel = f.par == true;
@@ -5825,10 +5828,10 @@ Data.SIGS = {
 				{sh: "voidorb", col: 0x9040c0, n: 2, arc: 10, spd: 15, life: 0.48, mo: "seek", split: {n: 3, mul: 0.35, spd: 8, life: 0.3, sh: "dart"}, tx: "Dusk blades that seek out enemies and split in three."}
 			]
 		};
-Data.TIER_DPS = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [29, 110], dagger: [30, 188]};
+Data.TIER_DPS = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [32, 150], dagger: [30, 188]};
 Data.SIEGE_V = __int(2);
 Data.WEAPON_KEYS = ["shape", "col", "shots", "arc", "parallel", "pierce", "rate", "spd", "life", "size", "motion", "accel", "walls", "effect", "split", "boom", "dmin", "dmax", "sig", "passive", "uv", "fv"];
-Data.SIG_V = __int(2);
+Data.SIG_V = __int(3);
 Data.ABILITIES = {
 			fireball: {type: "spell", name: "Fireball", cost: 30, cd: 3, col: 0},
 			lightning: {type: "spell", name: "Lightning Strike", cost: 40, cd: 5, school: "Storms", col: 0x3a5ad0},
@@ -6384,8 +6387,9 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
-			{id: "2026-11-alchemy", title: "Potion Alchemy",
-				lines: ["<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
+			{id: "2026-11-alchemy", title: "Potion Alchemy, and stronger wands",
+				lines: ["<b>Wands hit harder</b>: Priests and Chronomancers dealt about a fifth of a Wizard's damage, too little to finish a fight alone. Tiered wands now deal <b>about 35% more</b> at the top tiers (T7: 110 to 150 a second), and named and Starforged wands rise with them. Wands you own are updated. They're still the support classes' weapon: staves, bows and swords hit harder.",
+					"<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
 					"It uses potions of stats your hero has already maxed first, then the ones you have most of, and never touches locked items. Maxing that last stubborn stat no longer means waiting for the right drop."]},
 			{id: "2026-11-events", title: "Realm events you can finish, and fairer Mimics",
 				lines: ["<b>Mimics grow with the land</b>: one hiding in a lowland crate has 800 health and hits a third as hard as before, so it's a fight a new hero can win (it used to kill them outright). Highland and Godlands Mimics are as tough as ever.",
@@ -7162,9 +7166,10 @@ Uniques.STAT_MUL = {ut: 1, fb: 1.25, lg: 1.5, ar: 1.8};
 Uniques.DMG_MUL = {ut: 1.12, fb: 1.2, lg: 1.3, ar: 1.42};
 Uniques.FLOOR = 1.08;
 Uniques.PASSIVE_DPS = {rampage: 1.3, critical: 1.08};
-Uniques.VERSION = __int(3);
+Uniques.VERSION = __int(4);
 Uniques.POWER_ADD = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
-Uniques.SF_DPS = {staff: 345, bow: 405, sword: 405, dagger: 325, wand: 185};
+Uniques.SF_DPS = {staff: 345, bow: 405, sword: 405, dagger: 325, wand: 250};
+Uniques.WAND_UP = 150 / 110;
 Uniques.SF_WEAPON_STATS = __int(12);
 Uniques.SF_POWER = 3.05;
 Uniques.SF_ABILITY_STATS = __int(16);

@@ -366,7 +366,8 @@ package realm {
 			]
 		};
 		/** What a weapon type's tier-0 and tier-7 deal in a second of steady fire (each tier between is a fixed step up). */
-		public static const TIER_DPS:Object = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [29, 110], dagger: [30, 188]};
+		// (wands are the support classes' weapon, so the weakest, but a Priest or Chronomancer has to be able to finish a fight alone: 110 at T7 was half a staff)
+		public static const TIER_DPS:Object = {staff: [36, 197], bow: [24, 234], sword: [43, 235], wand: [32, 150], dagger: [30, 188]};
 
 		/** How much more a weapon deals than its shots alone: its shards and explosions (honest play, then the most it could). */
 		public static function weaponExtra(w:Object, most:Boolean = false):Number {
@@ -446,7 +447,7 @@ package realm {
 		 * Bumped when a tier's signature shot changes: older copies get the new one (2: the T5 bow's seeking
 		 * arrows stop at the first enemy instead of piercing on and turning back, which beat the tiers above it).
 		 */
-		public static const SIG_V:int = 2;
+		public static const SIG_V:int = 3;
 
 		public static function upgradeWeapon(it:Object):Boolean {
 			// (and Godly pieces from before every drop was the same: remade as they drop now)
@@ -505,7 +506,8 @@ package realm {
 				else if (sub == "bow") { w.shots = rarity == "ar" ? 5 : 4; w.arc = 10; }
 				else if (sub == "sword") { w.shots = 2; w.arc = 12; w.pierce = true; }
 				else if (sub == "dagger") { w.shots = 2; w.arc = 6; }
-				else { w.pierce = true; w.rate = 1.2; }
+				// (a wand: one piercing shot, quick; see TIER_DPS)
+				else { w.pierce = true; w.rate = 1.65; }
 			}
 			if (sub == "sword") w.size = 4;
 			// (a plain tiered weapon fires its tier's signature shot instead)
@@ -1658,8 +1660,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
-			{id: "2026-11-alchemy", title: "Potion Alchemy",
-				lines: ["<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
+			{id: "2026-11-alchemy", title: "Potion Alchemy, and stronger wands",
+				lines: ["<b>Wands hit harder</b>: Priests and Chronomancers dealt about a fifth of a Wizard's damage, too little to finish a fight alone. Tiered wands now deal <b>about 35% more</b> at the top tiers (T7: 110 to 150 a second), and named and Starforged wands rise with them. Wands you own are updated. They're still the support classes' weapon: staves, bows and swords hit harder.",
+					"<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
 					"It uses potions of stats your hero has already maxed first, then the ones you have most of, and never touches locked items. Maxing that last stubborn stat no longer means waiting for the right drop."]},
 			{id: "2026-11-events", title: "Realm events you can finish, and fairer Mimics",
 				lines: ["<b>Mimics grow with the land</b>: one hiding in a lowland crate has 800 health and hits a third as hard as before, so it's a fight a new hero can win (it used to kill them outright). Highland and Godlands Mimics are as tough as ever.",

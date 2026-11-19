@@ -377,7 +377,7 @@ package realm {
 		/** What a passive adds on its own (so a Rampage weapon's floor counts its rings). */
 		private static const PASSIVE_DPS:Object = {rampage: 1.3, critical: 1.08};
 		/** Bumped when unique weapons' numbers change: older copies are remade (Data.upgradeWeapon). */
-		public static const VERSION:int = 3;
+		public static const VERSION:int = 4;
 		private static const POWER_ADD:Object = {ut: 0, fb: 0.15, lg: 0.3, ar: 0.45};
 
 		public static function make(id:String):Object {
@@ -469,7 +469,9 @@ package realm {
 				if (f.abx) it.abx = f.abx;
 			}
 			if (f.k == "weapon") {
-				it.dmin = f.d[0]; it.dmax = f.d[1];
+				// (wands were raised with the tiered ones, Data.TIER_DPS: their named ones keep their lead)
+				var wm:Number = f.s == "wand" ? WAND_UP : 1;
+				it.dmin = int(f.d[0] * wm); it.dmax = int(f.d[1] * wm);
 				it.shots = f.sh || 1;
 				it.rate = f.rt || 1;
 				it.parallel = f.par == true;
@@ -513,7 +515,9 @@ package realm {
 
 		// ---- the Starforge: a Legendary and a Star Shard make its Starforged self
 		/** Weapon damage a second (every shot landing) a Starforged weapon of each type reaches. */
-		public static const SF_DPS:Object = {staff: 345, bow: 405, sword: 405, dagger: 325, wand: 185};
+		public static const SF_DPS:Object = {staff: 345, bow: 405, sword: 405, dagger: 325, wand: 250};
+		/** Named wands' damage over their listed numbers (wands were raised by this much: Data.TIER_DPS). */
+		public static const WAND_UP:Number = 150 / 110;
 		public static const SF_WEAPON_STATS:int = 12, SF_POWER:Number = 3.05, SF_ABILITY_STATS:int = 16;
 		public static const SF_DEF:Object = {robe: 25, leather: 36, heavy: 46};
 		public static const SF_ARMOR_STATS:int = 22, SF_RING_STATS:int = 30;

@@ -1,4 +1,10 @@
-**📜 ELDMERE UPDATE: Potion Alchemy**
+**📜 ELDMERE UPDATE: Potion Alchemy & Stronger Wands**
+
+**🪄 Wands hit harder**
+• **Priests and Chronomancers** dealt about a fifth of a Wizard's damage: too little to finish a fight alone
+• Tiered wands now deal **about 35% more** at the top tiers (a T7 wand: 110 to 150 damage a second), and Legendary, named and Starforged wands rise with them
+• Wands you already own are **updated automatically**
+• They're still the support classes' weapon: staves, bows and swords hit harder
 
 **🧪 No more wasted stat potions**
 • At the **Marketplace** (Shop tab), **Potion Alchemy** turns any **3 stat potions** into **1 of the stat you choose**

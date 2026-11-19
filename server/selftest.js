@@ -1338,6 +1338,28 @@ async function run() {
       require('./combat').stat(ch, 'vit') >= heart.vit + (WD.setBonus('g_wizard').vit || 0), rar + ' ' + JSON.stringify(bad));
   }
 
+  console.log('realm events: a lone hero can finish one, a crowd still kills faster');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: ED } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Events:4244');
+    ws.updateSpawns = () => {};
+    const keep = ED.EVENTS;
+    ED.EVENTS = ['ev_cube'];
+    ws.players.set(-1, { id: -1, x: 0, y: 0, send() {}, hidden: true });
+    ws.w.eventT = 0; ws.updateEvents(0.1);
+    ws.players.delete(-1);
+    ED.EVENTS = keep;
+    const b = ws.w.boss, solo = b && b.maxHp;
+    const near = (k) => ({ id: 50 + k, name: 'E' + k, x: b.x + k, y: b.y + 3, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send() {} });
+    ws.join(near(1)); ws.scaleT = 0; ws.scaleBosses(0.1);
+    const one = b.maxHp;
+    ws.join(near(2)); ws.join(near(3)); ws.scaleT = 0; ws.scaleBosses(0.1);
+    // (solo: 4x its listed health, not 7x; each hero who joins adds three quarters of that)
+    check('a realm event alone has 4x its health (it was 7x), and each hero who joins adds 75% of that', b && solo === 44000 && one === solo &&
+      Math.abs(b.maxHp - solo * 2.5) < 1 && ED.ENEMIES.ev_behemoth.hp < 120000, solo + ' ' + one + ' ' + (b && b.maxHp));
+  }
+
   console.log('player feedback: keys, bleed, bows, god portals, blind bosses');
   {
     const { Data: FD } = require('./sim/gen/game');

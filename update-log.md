@@ -1,3 +1,19 @@
+**📜 ELDMERE UPDATE: Realm Events for Everyone**
+
+**⚔️ Events you can finish, alone or in a crowd**
+• On your own, realm event bosses have **about half the health** they had: a solo fight takes 1½ to 3 minutes instead of 3 to 6
+• Each hero who joins adds three quarters of that again, so **big groups still kill faster**
+• Event bosses hit a little softer: their extra damage is **+25%** (was +45%)
+• Realms close faster on quiet servers, so the finales and the Dark Elder come round more often
+
+**🔥 Two outliers tamed**
+• **Pyraxis the Phoenix** and **the Obsidian Colossus** fire thinner spirals in their last phase: they were far deadlier than every other event
+
+**🎯 Still a fight**
+• Standing still gets you killed at every event: dodging matters as much as ever
+
+---
+
 **📜 ELDMERE UPDATE: Winter is Coming**
 
 **☃️ Grimsnow the Snow Tyrant (1 December to 6 January)**

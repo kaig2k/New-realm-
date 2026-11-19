@@ -763,7 +763,9 @@ class WorldSim {
       }
       n = Math.max(1, Math.min(20, n));
       const d = e.def, endgame = d.raid || d.finale || d.final || d.siege || d.dtier >= 5;
-      const mult = 1 + (endgame ? 0.75 : 0.5) * (n - 1);
+      // (realm events start lower for a lone hero, Bosses.harden, and grow more with each hero who joins)
+      const realmEvent = this.kind === 'realm' && d.setpiece && e === this.w.boss;
+      const mult = 1 + (endgame || realmEvent ? 0.75 : 0.5) * (n - 1);
       if (mult <= e.scaleMult + 0.01) continue;
       const frac = e.hp / e.maxHp;
       e.maxHp = e.maxHp / e.scaleMult * mult;

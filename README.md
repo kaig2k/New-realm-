@@ -211,8 +211,10 @@ returns to you. Runed items no longer drop from random monsters. Star Shards are
 **Endgame difficulty.** Hard-dungeon bosses, realm finales and raid bosses have about twice
 the health, +10 defense, 35% harder bullets and faster attacks. They also **scale with the
 players fighting them**:
-- Each extra player in the world adds +80% boss health; offline, each simulated party member
-  adds +40%.
+- Online, each extra player fighting a boss adds +50% of its health (+75% for endgame bosses
+  and realm events); offline, each simulated party member adds +40%.
+- Realm events are tuned so one hero can finish them (about 4x a boss's listed health solo),
+  and crowds still kill them faster.
 - Health only goes up, keeping the same percentage, so leaving mid-fight doesn't help.
 - The boss bar shows how many players it's scaled for.
 
@@ -689,6 +691,12 @@ and map code. After changing `Data.as`, `Bosses.as`, `Uniques.as`, `Godly.as`, `
 `server/sim/gen/game.js`. Then `node server/sim/worldhash.js` prints map fingerprints. The
 game's `/thash` test command prints the same ones, so you can check the two still build
 identical maps.
+
+**Balance tools** (run from the repo root, using the server's own simulation):
+- `node tools/bossbench.js --only ev_cube --runs 3 [--n 3]`: bots fight a boss (solo, or with
+  `--n` players) and report how long it takes, how often they die, and whether standing still works.
+- `node tools/loopbench.js --min 40 --runs 3 [--cls wizard]`: a bot plays a new hero from level 1
+  in a real realm (levelling, events, loot, deaths) and reports how the core loop paces.
 
 To add a monster, add an entry to `Data.ENEMIES` (and optionally a sprite to
 `Sprites.DEFS`), then list it in `Data.ZONE_SPAWNS`.

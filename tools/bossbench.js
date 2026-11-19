@@ -3,7 +3,7 @@
  * Boss benchmark: bots fight every boss in the server's own simulation and report how
  * long each fight takes, how much it hurts, and how varied it is.
  *
- *   node tools/bossbench.js [--only id,id] [--cls archer] [--runs 3] [--json out.json] [--gear raid]
+ *   node tools/bossbench.js [--only id,id] [--cls archer] [--runs 3] [--json out.json] [--gear raid] [--n 3]
  *   (--gear: fight every boss with that GEAR row instead of the one for where it's met; raid = maxed)
  *
  * Each fight runs the real boss scripts (server/sim/gen/game.js) in its real world (realm
@@ -179,7 +179,8 @@ function setup(id) {
 function fight(id, opts) {
   const { sim, targets, tier, group, label } = setup(id);
   const w = sim.w, g = sim.g;
-  const n = opts.group ? group : 1;
+  // (--n: fight it with that many bots, whatever the boss)
+  const n = Number(opt('n', 0)) || (opts.group ? group : 1);
   const gr = GEAR[opt('gear', tier)] || GEAR[tier];
   const H = hero(CLS, gr);
   const shots = [], timers = [], marks = [];
@@ -256,6 +257,8 @@ function fight(id, opts) {
   }
   // ---- a bot's turn
   function think(b, dt) {
+    // (the arena changed under it: the game moves the player out of the new walls, SetPieceDecor.unstick)
+    if (!w.canStand(b.x, b.y, 0.3, false)) place(b, b.x, b.y);
     const tg = pick(b);
     // far away or cut off (another room, behind a wall): it walks there (we skip the walk)
     if (tg) {

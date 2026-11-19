@@ -1633,6 +1633,10 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-11-events", title: "Realm events you can finish",
+				lines: ["<b>Realm events are built for any crowd now</b>, including just you. On your own an event boss has <b>about half the health</b> it had, and each hero who joins adds three quarters of that again, so a big group still brings it down faster.",
+					"Event bosses hit a little softer (their extra damage went from +45% to +25%), and <b>Pyraxis</b> and <b>the Obsidian Colossus</b> fire thinner spirals in their last phase: they were far deadlier than the others.",
+					"Standing still is still a bad idea: every event punishes heroes who don't dodge."]},
 			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",
 				lines: ["<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
 					"Melt him within <b>5 minutes</b>: snowball barrages, frost rings that slow you, falling icicles, icicle walls with a gap to slip through, and a blizzard that pulls you in. His snowlings hop along beside him. Everyone who hits him shares the loot by their share of the damage.",

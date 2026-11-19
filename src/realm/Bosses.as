@@ -270,14 +270,16 @@ package realm {
 				// every boss gets tougher with more people fighting it (WorldSim.scaleBosses)
 				d.scales = true;
 				// and every boss is built for heroes who have it all: far more health, harder hits, faster
-				// attacks (the realm's event bosses most of all: they're meant to take a crowd)
+				// attacks. The realm's event bosses are meant to take a crowd, but a hero on their own has to
+				// be able to finish one too (a realm needs eight to close): they start at 4x and each hero who
+				// joins adds three quarters of that again (WorldSim.scaleBosses), so crowds still kill faster
 				var realmEvent:Boolean = id.indexOf("ev_") == 0;
 				// (the Siege is sized for the whole realm already, and grows with every hero who joins it)
-				var tough:Array = realmEvent ? [7, 1.45] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				var tough:Array = realmEvent ? [4, 1.25] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
 				// (bosses already built huge, like Sylith and Gorehorn, grow less; the three kings are fought
 				// all at once and the Seraph has four phases, so they grow less too)
 				if (d.trio && !d.lairBoss) tough[0] *= 0.6; else if (id == "shattered_seraph") tough[0] *= 0.65;
-				d.hp = int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], 2.5) : tough[0]));
+				d.hp = int(d.hp * (d.hp >= 50000 ? Math.min(tough[0], realmEvent ? 1.45 : 2.5) : tough[0]));
 				var done0:Dictionary = new Dictionary();
 				for each (var ph0:Object in d.phases) {
 					var lists0:Array = ph0 is Array ? [ph0] : (ph0.cycle || []).concat(ph0.attacks ? [ph0.attacks] : []).concat(ph0.dodge || []);
@@ -770,7 +772,7 @@ package realm {
 				P(0.66, {say: "*the ground shakes*", shield: 2.5, move: "still",
 					attacks: [wall(19, 4.5, 80, 1.8, 0xb060ff, {hole: 3}), rain(4, 4, 90, 3, 0x8030ff)]}),
 				P(0.33, {say: "*cracks glow with violet fire*", banner: "The Colossus cracks open!", move: "chase", speed: 1.4,
-					attacks: [spiral(6, 9, 6, 70, 0.12, 0xc070ff), flower(20, 9, 5, 75, 1.2, 0xff80ff)]})
+					attacks: [spiral(4, 9, 6, 70, 0.12, 0xc070ff), flower(20, 9, 5, 75, 1.2, 0xff80ff)]})
 			]}, ["obsidian_maul", "colossus_core"]);
 
 			boss("ev_phoenix", {name: "Pyraxis the Phoenix", spr: "phoenix", hp: 12000, def: 18, spd: 2.4, xp: 1800, col: 0xffa030,
@@ -778,7 +780,7 @@ package realm {
 				P(1, {move: "orbit", speed: 1.4, attacks: [spiral(3, 23, 7, 55, 0.12, 0xffd040), aim(5, 50, 8, 60, 1.2, 0xff6020, {motion: "wave"})]}),
 				P(0.5, {say: "From the ashes...", banner: "The Phoenix is reborn!", shield: 3, move: "center",
 					attacks: [flower(24, 7.5, 5, 65, 0.9, 0xffa030), rain(6, 5, 85, 2, 0xff4010, {burst: 6})]}),
-				P(0.2, {say: "...I RISE!", move: "teleport", attacks: [spiral(8, 11, 7, 70, 0.1, 0xffe080), nova(2.5, 1, 110, 2.4, 0xff6010, {burst: 12})]})
+				P(0.2, {say: "...I RISE!", move: "teleport", attacks: [spiral(5, 11, 7, 70, 0.12, 0xffe080), nova(2.5, 1, 110, 2.4, 0xff6010, {burst: 12})]})
 			]}, ["phoenix_quill", "rebirth_tome"]);
 
 			boss("ev_witch", {name: "Mother Hexis", spr: "witch", hp: 12500, def: 20, spd: 1.6, xp: 1800, col: 0x80ff60,

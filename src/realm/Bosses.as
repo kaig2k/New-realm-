@@ -1062,12 +1062,12 @@ package realm {
 			boss("sun_king", {phases: [
 				P(1, {move: "wander", attacks: [flower(16, 11, 5, 70, 1.0, 0xffb020), aim(3, 20, 9, 80, 1.0, 0xffe060)]}),
 				P(0.5, {say: "Kneel before the noon sun!", shield: 1.5, move: "center",
-					attacks: [spiral(5, 8, 6, 70, 0.13, 0xffd040), nova(2.5, 1.3, 120, 2.6, 0xff9020, {burst: 8})]})
+					attacks: [spiral(4, 8, 6, 70, 0.16, 0xffd040), nova(2.5, 1.3, 120, 2.6, 0xff9020, {burst: 8})]})
 			]}, ["solar_crown", "sunfire_staff"]);
 			boss("moon_queen", {phases: [
 				P(1, {move: "orbit", attacks: [aim(5, 64, 7, 70, 1.4, 0xb0c0ff, {motion: "wave"}), ring(16, 11, 4, 65, 1.4, 0x8a9aff, {motion: "return"})]}),
 				P(0.5, {say: "The night is mine.", move: "teleport",
-					attacks: [spiral(4, -14, 6, 70, 0.12, 0xd0d8ff), rain(5, 4, 100, 2.4, 0x6a7ac0, {eff: "slowed"})]})
+					attacks: [spiral(4, -14, 6, 70, 0.15, 0xd0d8ff), rain(5, 4, 100, 2.4, 0x6a7ac0, {eff: "slowed"})]})
 			]}, ["moonlight_bow", "lunar_robe"]);
 			boss("star_prince", {phases: [
 				P(1, {move: "teleport", attacks: [aim(3, 30, 9, 75, 0.8, 0xd080ff, {shape: "star"}), aim(1, 0, 6, 80, 1.6, 0xfff060, {motion: "home"})]}),

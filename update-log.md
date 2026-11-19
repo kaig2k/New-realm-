@@ -7,6 +7,9 @@
 • Their last phase hits softer: a weaker, slower pull and a thinner spiral
 • Three heroes now bring them down in about 2 minutes; alone it's a real fight, but you can win it
 
+**👑 The Tomb of the Three Kings**
+• The Sun King's and Moon Queen's last-phase spirals are thinner: with all three kings firing at once they were the deadliest hard dungeon
+
 **🎨 Art**
 • New art for the **Kraken tentacles** (a curling tentacle with suckers, rising from the foam), the **Pearlmaw's clams** (a giant open clam with a glowing pearl), **spiderlings** and the storm raid's **Cloud Serpents** (a coiling storm-blue serpent with a crest)
 • Named rings now take the colours of their names: an **Ember Ring** burns orange, an **Icicle Ring** is icy, the **Peppermint Ring** is red and white, the **Candy Corn Ring** orange and gold (the gem still shows the stat)

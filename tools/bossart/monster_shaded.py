@@ -605,21 +605,89 @@ def bone_thrall(t):
 
 
 def cloud_serpent(t):
-    """A sky serpent: a long white-and-blue body coiling through the air, feathered fins, a crest."""
-    mm = M(body=g([0x2a4a7a, 0x4a72a8, 0x7aa4d4, 0xc0dcf4], spec=0.7), fin=glow(0x4a8ad0, 0x9ad0ff, 0xe8f8ff, base=0.3), eye=glow(0x204080, 0x60c0ff))
-    m = Model(32, 26)
+    """A sky serpent: a thick body coiling through the air, storm-blue above and pale beneath, feathered
+    fins down its back, a lightning-lit crest and a fanged head."""
+    mm = M(body=g([0x10203e, 0x1e3a6a, 0x3462a0, 0x5a90d0], spec=0.6), belly=g([0x8aa8c8, 0xc0d8ee, 0xf0f8ff]),
+           fin=glow(0x3a7ad0, 0x8ac8ff, 0xe8f8ff, base=0.3), eye=glow(0x806000, 0xffe040), fang=BONE)
+    m = Model(32, 28)
     pts = []
-    for k in range(10):
-        a = k / 9
-        pts.append((3 + a * 22, 18 - math.sin(a * math.pi * 1.6 + t) * 5 - a * 6, 1))
-    m.chain(pts, [1.6 + a * 1.8 for a in [k / 9 for k in range(10)]], 'body', scales(0.06, 1.4))
-    for k in (3, 6):
+    for k in range(12):
+        a = k / 11
+        pts.append((4 + a * 20, 21 - math.sin(a * math.pi * 2.0 + t * 1.2) * 4.5 - a * 9, 1))
+    radii = [1.4 + a * 2.0 for a in [k / 11 for k in range(12)]]
+    m.chain(pts, radii, 'body', scales(0.08, 1.2))
+    # its pale belly along the underside of the coil
+    m.chain([(x, y + r * 0.45, 1.6) for (x, y, _), r in zip(pts, radii)], [r * 0.55 for r in radii], 'belly')
+    for k in (2, 5, 8):
         x, y, _ = pts[k]
-        spike(m, (x, y - 1), (x - 2, y - 5 + t), 1.4, 3, 'fin')
-    hx, hy = pts[-1][0] + 2.5, pts[-1][1] - 1
-    m.sphere((hx, hy, 2), 2.8, 'body', 1.3, 0.9, 1)
-    spike(m, (hx - 1, hy - 2), (hx - 4, hy - 6), 1.2, 3, 'fin')                              # its crest
-    m.mark(int(hx + 1), int(hy - 1), 'eye')
+        spike(m, (x, y - radii[k] * 0.7), (x - 2.5, y - radii[k] - 3.5 + t), 1.4, 3, 'fin')
+    hx, hy = pts[-1][0] + 3, pts[-1][1] - 0.5
+    m.sphere((hx, hy, 2.5), 3.3, 'body', 1.3, 0.95, 1, scales(0.06, 1.2))
+    m.capsule((hx + 2, hy + 1.6, 3), (hx + 5, hy + 2, 3), 1.2, 0.8, 'belly')                  # its jaw
+    spike(m, (hx + 3.5, hy + 2.2), (hx + 3.8, hy + 4), 0.5, 4, 'fang')
+    for k in range(3):                                                                         # the crest
+        spike(m, (hx - 1 + k * 1.2, hy - 2.6), (hx - 4 + k * 1.6, hy - 7 + k * 0.6), 1.0, 4, 'fin')
+    m.mark(int(hx + 1.5), int(hy - 1), 'eye')
+    return m, mm
+
+
+def spiderling(t):
+    """A spider's brood: small, quick, its mark and eyes bright so it reads against the floor."""
+    mm = M(chitin=g([0x16141c, 0x2e2a3a, 0x4e4862, 0x76708e], spec=0.5), mark=g([0x8a1010, 0xd02020, 0xff5a40]), eye=glow(0xa00000, 0xff5050))
+    m = Model(20, 15)
+    cx, cy = 10, 8
+    for k in range(4):
+        for s in (-1, 1):
+            fx = cx + s * (7.5 + (k % 2) * 0.8 * (1 - 2 * t))
+            m.chain([(cx + s * 1.5, cy, 0), (cx + s * 5, cy - 3 + k * 1.6, 1), (fx, cy + 4 + k * 0.6, 0)], [0.7, 0.6, 0.4], 'chitin')
+    m.sphere((cx - 2, cy, 1), 3.4, 'chitin', 1.05, 0.9, 1)
+    m.sphere((cx - 2, cy - 0.8, 2.8), 1.3, 'mark', 1, 1.3, 1)
+    m.sphere((cx + 2.2, cy + 0.3, 2), 2.2, 'chitin')
+    m.mark(int(cx + 2), int(cy - 0.5), 'eye')
+    m.mark(int(cx + 3), int(cy), 'eye')
+    return m, mm
+
+
+def kraken_tentacle(t):
+    """A kraken's tentacle rising out of the water in an S and curling over at the tip: dark purple-red,
+    a row of pale suckers down its front, foam where it breaks the surface."""
+    mm = M(skin=g([0x1e0624, 0x4a1040, 0x7a2260, 0xa83c84, 0xd068a8], spec=0.5), sucker=g([0x9a6a80, 0xe0b0c4, 0xfff0f6]),
+           foam=g([0x5a80a0, 0xb8d8ee, 0xf4fcff]))
+    m = Model(26, 30)
+    # up from the water, leaning, then curling back over itself at the tip (it sways as it idles)
+    path = [(9, 28), (8, 24), (9, 20), (12, 16.5), (14.5, 13), (15.5, 9), (14.5, 5.5), (12, 3.5), (9, 4), (7.5, 6.5), (8.5, 9), (10.5, 9.5)]
+    pts = [(x + math.sin(k * 0.5 + t * 2) * 0.6 * k / 11, y, 1 + k * 0.2) for k, (x, y) in enumerate(path)]
+    n = len(pts)
+    radii = [3.9 - 2.9 * (k / (n - 1)) for k in range(n)]
+    m.chain(pts, radii, 'skin', rough(0.07, 0.4, 11))
+    # suckers down the inside of the curve
+    for k in range(1, n - 1):
+        x, y, z = pts[k]
+        tx, ty = pts[k + 1][0] - pts[k - 1][0], pts[k + 1][1] - pts[k - 1][1]
+        d = math.hypot(tx, ty) or 1
+        nx, ny = -ty / d, tx / d
+        m.sphere((x + nx * radii[k] * 0.6, y + ny * radii[k] * 0.6, z + radii[k] * 0.8), max(0.75, radii[k] * 0.42), 'sucker')
+    for dx in (-5, -2.5, 0, 2.5, 5):
+        m.sphere((pts[0][0] + dx, 28.5, 2), 1.6, 'foam', 1.3, 0.45, 1)
+    return m, mm
+
+
+def clam_cannon(t):
+    """A giant clam, its ribbed shell open, a glowing pearl inside it ready to fire."""
+    mm = M(shell=g([0x3a2a3a, 0x6a4a5e, 0x9a7088, 0xcca0b4, 0xf0d0dc], spec=0.4), flesh=g([0x8a3a4a, 0xc0606e, 0xf09aa0]),
+           pearl=glow(0x9090b0, 0xe0e8ff, 0xffffff, base=0.45))
+    m = Model(26, 22)
+    cx = 13
+    # the lower shell, ribbed
+    m.sphere((cx, 16, 0), 10, 'shell', 1.0, 0.5, 0.8, folds(0.18, 2.2, 3))
+    # the upper shell, lifted open
+    lift = 1.5 + t * 1.5
+    m.sphere((cx, 9 - lift, -1), 10, 'shell', 1.0, 0.45, 0.7, folds(0.18, 2.2, 5))
+    for k in range(5):
+        x = cx - 7 + k * 3.5
+        m.capsule((x, 12.5 - lift, 1), (cx + (x - cx) * 0.4, 5 - lift, 1), 0.5, 0.3, 'shell')
+    m.sphere((cx, 14, 3), 6.5, 'flesh', 1.0, 0.45, 0.8)
+    m.sphere((cx, 13, 5), 2.6, 'pearl')
     return m, mm
 
 
@@ -839,6 +907,7 @@ MODELS += [
     ('royal_guard', guard), ('star_guard', lambda t: guard(t, (0x2a1a6a, 0x4a2aa8, 0x6a4ad0))),
     ('siege_soldier', lambda t: guard(t, (0x3a0a06, 0x5a140c, 0x7a2012), plume=False, gold_trim=False)),
     ('shade', shade), ('skeleton', skeleton), ('sprite', sprite),
+    ('spiderling', spiderling), ('kraken_tentacle', kraken_tentacle), ('clam_cannon', clam_cannon),
     ('temple_scorpion', lambda t: scorpion(t, (0x5a420c, 0x9a7418, 0xd8a830, 0xffe080))),
     ('thunder_golem', lambda t: golem(t, (0x14141c, 0x26263a, 0x3e3e5a, 0x5e5e80), (0x8a7000, 0xffe040, 0xffffc0), mossy=False)),
 ]

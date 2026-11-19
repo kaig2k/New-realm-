@@ -699,5 +699,10 @@ identical maps.
 - `node tools/loopbench.js --min 40 --runs 3 [--cls wizard]`: a bot plays a new hero from level 1
   in a real realm (levelling, events, loot, deaths) and reports how the core loop paces.
 
+**Sprite sheets** (to look over the art as the game draws it): `tools/spritesheet/SpriteSheet.as` lays every
+sprite out on a page. Compile it with the game's source (`mxmlc -source-path=src -source-path+=tools/spritesheet
+tools/spritesheet/SpriteSheet.as`) and open it in Flash Player or Ruffle with the flashvars `what` (`monsters`,
+`bosses` or `items`), `page`, `zoom` and optionally `only` (a comma list of sprite names, or unique item ids).
+
 To add a monster, add an entry to `Data.ENEMIES` (and optionally a sprite to
 `Sprites.DEFS`), then list it in `Data.ZONE_SPAWNS`.

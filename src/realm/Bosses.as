@@ -531,7 +531,7 @@ package realm {
 			Sprites.recolor("siege_soldier", "bandit", {H: 0x7a7a86, h: 0x4a4a56, S: 0xd8c0a0, E: 0xff6010, B: 0x5a1a10, b: 0x3a0a06, A: 0xffa020, L: 0x2a2a30, W: 0xc0c0d0});
 			// every boss its own design (tools/bossart), drawn over the recoloured stand-ins above
 			BossArt.register();
-			Sprites.smaller("spiderling", "spider", 2);
+			// (the spiderling has a design of its own now: tools/bossart/monster_shaded.py)
 		}
 
 		private static function minions():void {

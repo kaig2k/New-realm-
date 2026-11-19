@@ -7,6 +7,11 @@
 • Their last phase hits softer: a weaker, slower pull and a thinner spiral
 • Three heroes now bring them down in about 2 minutes; alone it's a real fight, but you can win it
 
+**🎨 Art**
+• New art for the **Kraken tentacles** (a curling tentacle with suckers, rising from the foam), the **Pearlmaw's clams** (a giant open clam with a glowing pearl), **spiderlings** and the storm raid's **Cloud Serpents** (a coiling storm-blue serpent with a crest)
+• Named rings now take the colours of their names: an **Ember Ring** burns orange, an **Icicle Ring** is icy, the **Peppermint Ring** is red and white, the **Candy Corn Ring** orange and gold (the gem still shows the stat)
+• The Godly **Everwinter Heart** and **All Hallows' Eye** now show their own colours (ice blue and pumpkin orange) instead of plain gold
+
 **❄️🔥 The Shattered Sanctum's Wardens**
 • **Glacius** and **Ignivar** were far deadlier than the Seraph they guard
 • Both have **less health** (about half the Seraph's)

@@ -564,6 +564,24 @@ package realm {
 
 		public static function has(name:String):Boolean { return DEFS[name] != null; }
 
+		/** Is this sprite a big one (a boss), going by its first drawing's size and scale? */
+		public static function bigName(name:String):Boolean {
+			var d:Array = DEFS[name];
+			if (!d || !d[0] || !d[0][0]) return false;
+			var rows:Array = d[0][0], sc:int = d[2] || SCALE;
+			var w:int = 0;
+			for each (var r:String in rows) w = Math.max(w, r.replace(/[0-9]+(.)/g, "$1").length);
+			return Math.max(w, rows.length) * sc > 70;
+		}
+
+		/** Every sprite's name (tools/spritesheet: a sheet of them all to look over). */
+		public static function names():Array {
+			var out:Array = [];
+			for (var k:String in DEFS) out.push(k);
+			out.sort();
+			return out;
+		}
+
 		public static function get(name:String, frame:int = 0, flip:Boolean = false):BitmapData {
 			var d:Array = DEFS[name] || skinDef(name) || DEFS["cubelet"];
 			var frames:Array = d[0];

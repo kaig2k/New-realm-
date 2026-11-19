@@ -94,9 +94,14 @@ package realm {
 		 * gem, its motif's colours and the motif. The first element named wins.
 		 */
 		private static const ELEMENTS:Array = [
+			// (the seasonal treats: peppermint's red and white, candy corn's orange and yellow)
+			{w: ["peppermint", "candy cane"],
+				m: [0xffffff, 0xf8dce0, 0xd02838], gem: 0xe02030, fx: [0xff6070, 0xc01020], motif: "facet"},
+			{w: ["candy corn", "candy"],
+				m: [0xfff8d0, 0xffa030, 0xd05010], gem: 0xfff060, fx: [0xffe060, 0xff8020], motif: "flame"},
 			{w: ["flame", "fire", "ember", "blaze", "pyre", "inferno", "burn", "ash", "phoenix", "magma", "molten", "cinder", "scorch", "hell", "forge", "primal flame", "pyro", "ignis", "lava"],
 				m: [0xffe0a0, 0xff8a30, 0xb03a10], gem: 0xffd040, fx: [0xffe060, 0xff5010], motif: "flame"},
-			{w: ["frost", "ice", "glaci", "snow", "winter", "rime", "cold", "freez", "hail", "sylith", "glacius", "glacia"],
+			{w: ["frost", "ice", "icicle", "glaci", "snow", "winter", "rime", "cold", "freez", "hail", "sylith", "glacius", "glacia"],
 				m: [0xf0ffff, 0x9ae0ff, 0x4a90c0], gem: 0xe0ffff, fx: [0xffffff, 0x80d8ff], motif: "crystal"},
 			{w: ["void", "abyss", "umbra", "rift", "eclipse", "unmade", "nether", "eldritch", "chaos", "vael"],
 				m: [0x9a7ad0, 0x4a2a7a, 0x1e1030], gem: 0xd060ff, fx: [0xe0a0ff, 0x8030c0], motif: "wisp"},
@@ -278,13 +283,16 @@ package realm {
 			if (it.rarity == "gd") {
 				// Godly: ivory and gold, touched with its set's own colour, which fills its gems and its light
 				var gs:Object = Godly.SETS[String(it.set || "").substr(2)];
-				var gc:uint = gs ? uint(gs.weapon.col) : 0xffe080;
+				// (a Godly piece of no set, like All Hallows' Eye or the Everwinter Heart, has a colour of its own)
+				var gc:uint = gs ? uint(gs.weapon.col) : it.col ? uint(it.col) : 0xffe080;
 				metal = [mix(0xffffff, gc, 0.08), mix(0xfff2d8, gc, 0.26), mix(0xb89860, gc, 0.4)];
 				trim = TRIMS[0];
 				gem = gc;
 				if (!el) fx = [tint(gc, 0.55), gc];
 			}
 			if (golden) trim = TRIMS[0];
+			// a named ring's band takes its element's colours (its gem still shows its stat): an Ember Ring burns, a Peppermint Ring is red and white
+			if (el && named && it.kind == "ring" && it.rarity != "gd") trim = [el.m[0], el.m[1], el.m[2]];
 			// shafts of staves, wands and bows are their own wood unless an element runs through them
 			var shaft:Array = el && it.sub == "bow" ? [el.m[1], el.m[2], shade(el.m[2], 0.6)] : grip;
 			// a wand's or staff's shaft is never shiny metal (it would read as a blade): wood, bone, ebony or pale ash

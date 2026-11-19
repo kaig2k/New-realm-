@@ -936,6 +936,58 @@ MODELS += [
 ]
 
 
+def loot_goblin(t):
+    """The Treasure Goblin: a grinning goblin hauling a sack of gold bigger than itself, coins spilling out."""
+    mm = M(skin=g([0x2a4a10, 0x4a7a1c, 0x78b030, 0xb0e070]), rag=g([0x3a2a14, 0x5e4422, 0x846232]), eye=glow(0xa06000, 0xffd040),
+           sack=g([0x4a3010, 0x7a5420, 0xa87a34, 0xd0a050]), coin=g([0x8a6010, 0xd8a020, 0xffe060, 0xfff8c0], spec=0.9))
+    m = Model(28, 26)
+    # the sack on its back, first, so it sits behind
+    m.sphere((8, 13, -2), 7, 'sack', 1.0, 1.05, 1, rough(0.06))
+    m.capsule((8, 6.5, 0), (9.5, 4, 0), 1.6, 1.2, 'sack')                                    # its gathered neck
+    for x, y in ((6, 5), (9, 3.5), (11, 5.5), (4, 7)):                                        # gold heaped at the top
+        m.sphere((x, y - t * 0.5, 2), 1.3, 'coin', 1.2, 0.8, 0.8)
+    hy = biped(m, 15, 13, 25, 3.2, 'rag', 'skin', 'skin', 'skin', 3.8)
+    head(m, 15, hy, 3.8, 'skin')
+    for s in (-1, 1):
+        spike(m, (15 + s * 2.8, hy - 0.5), (15 + s * 7, hy - 2.5), 1.2, 4, 'skin')
+    eyes(m, 15, int(hy), 1.5, 6, 'eye')
+    m.mark(14, int(hy + 2), 'coin', 3, 1)                                                     # a greedy gold grin
+    m.part(None)
+    for x, y in ((21, 21), (23.5, 23.5 - t), (19, 24)):                                       # coins spilling behind it
+        m.sphere((x, y, 4), 1.1, 'coin', 1.2, 0.7, 0.6)
+    return m, mm
+
+
+def war_orc(t):
+    """Gorehorn's Warrior: an orc in bone armour, a horned skull for a helm, red war paint, a bone blade."""
+    mm = M(skin=g([0x1e3a10, 0x34601c, 0x50882c, 0x7cb44a]), bone=BONE, hide=g([0x3a2410, 0x5e3c1c, 0x86582c]),
+           paint=g([0x6a0a0a, 0xb01818, 0xe83030]), eye=glow(0x806000, 0xffe040), tusk=BONE)
+    m = Model(28, 30)
+    cx = 14
+    hy = biped(m, cx, 14, 29, 4.6, 'hide', 'hide', 'skin', 'skin', 4.4)
+    for s in (-1, 1):
+        pauldron(m, cx + s * 5.5, 15, 3.0, 2.2, 4, 'bone', s, bevel=1.0)                       # bone pauldrons
+    for y in (17, 19.5):
+        m.capsule((cx - 3.5, y, 5), (cx + 3.5, y, 5), 0.5, 0.5, 'bone')                          # a ribcage breastplate
+    held(m, 'R')
+    m.chain([(cx + 5.5, 21, 6), (cx + 9, 14 - t, 6), (cx + 11, 8 - t, 6)], [1.4, 1.1, 0.4], 'bone')   # a jagged bone blade
+    m.part(None)
+    head(m, cx, hy, 4.4, 'skin')
+    m.capsule((cx - 2.5, hy - 0.5, 7), (cx - 0.5, hy + 2, 7), 0.5, 0.5, 'paint')                  # war paint
+    m.capsule((cx + 2.5, hy - 0.5, 7), (cx + 0.5, hy + 2, 7), 0.5, 0.5, 'paint')
+    eyes(m, cx, int(hy), 1.6, 6, 'eye')
+    for s in (-1, 1):
+        spike(m, (cx + s * 1.6, hy + 2.6), (cx + s * 2.2, hy + 0.2), 0.7, 7, 'tusk')
+        m.chain([(cx + s * 3.2, hy - 3, 5), (cx + s * 6, hy - 5.5, 5), (cx + s * 6.5, hy - 8.5, 5)], [1.2, 0.8, 0.3], 'bone')  # the helm's horns
+    m.sphere((cx, hy - 3, 4), 3.6, 'bone', 1.15, 0.6, 1)                                         # the skull helm
+    m.part(None)
+    return m, mm
+
+
+
+MODELS += [('loot_goblin', loot_goblin), ('war_orc', war_orc)]
+
+
 def all_designs():
     return designs(MODELS)
 

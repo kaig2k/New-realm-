@@ -250,6 +250,96 @@ def humanoid():
     return c
 
 
+# ---------------------------------------------------------------- the Nexus's stations, banners and camp gear
+def anvil():
+    """The Starforge's anvil, a star-crystal glowing over it."""
+    c = Canvas(16, 16)
+    c.rect(1, 7, 14, 8, 'K'); c.rect(0, 7, 2, 7, 'K'); c.rect(13, 8, 15, 8, 'K')     # the face and horn
+    c.rect(3, 9, 12, 10, 'K'); c.rect(5, 11, 10, 12, 'K'); c.rect(2, 13, 13, 15, 'K')  # waist and foot
+    c.shade('K', '1', 'k')
+    c.poly([(6, 5), (10, 5), (11, 2), (8, -1), (5, 2)], 'C')
+    c.shade('C', 'W', 'c')
+    for x, y in ((3, 1), (13, 2), (12, 5)):
+        c.put(x, y, 'W')
+    return c
+
+
+def banner():
+    c = Canvas(16, 20)
+    c.rect(0, 0, 15, 1, 'S'); c.put(0, 2, 'S'); c.put(15, 2, 'S')                   # the crossbar
+    c.shade('S', '1', 's')
+    c.rect(2, 2, 13, 15, 'R')
+    c.poly([(2, 15), (7, 15), (2, 19)], 'R'); c.poly([(8, 15), (13, 15), (13, 19)], 'R')   # swallow-tailed
+    c.shade('R', '2', 'r')
+    c.rect(2, 3, 13, 3, 'Y'); c.rect(2, 14, 13, 14, 'Y')                             # gold trim
+    c.ellipse(7.5, 8.5, 3, 3, 'Y'); c.ellipse(7.5, 8.5, 1.6, 1.6, 'R'); c.put(7, 8, 'Y'); c.put(8, 8, 'Y')   # its emblem
+    return c
+
+
+def nest():
+    c = Canvas(16, 16)
+    c.ellipse(8, 7, 5, 6, 'W')                                                       # the egg
+    c.shade('W', '1', 'w')
+    for x, y in ((6, 4), (9, 6), (6, 9), (10, 10)):
+        c.put(x, y, 'S'); c.put(x + 1, y, 'S')
+    c.ellipse(8, 13, 7.5, 2.5, 'K')                                                  # the nest of twigs
+    for x in range(1, 15, 2):
+        c.line(x, 12, x + 2, 15, 'k')
+    c.put(0, 12, 'K'); c.put(15, 12, 'K')
+    return c
+
+
+def totem():
+    c = Canvas(16, 20)
+    c.rect(3, 2, 12, 19, 'K')
+    c.shade('K', '1', 'k')
+    c.line(1, 1, 3, 3, 'R'); c.line(14, 1, 12, 3, 'R'); c.put(0, 0, 'R'); c.put(15, 0, 'R')   # carved horns
+    for y0 in (3, 11):                                                               # two carved faces
+        c.rect(4, y0 + 2, 6, y0 + 3, 'k'); c.rect(9, y0 + 2, 11, y0 + 3, 'k')
+        c.put(5, y0 + 2, 'E'); c.put(10, y0 + 2, 'E')
+        c.rect(6, y0 + 5, 9, y0 + 6, 'R'); c.line(6, y0 + 6, 9, y0 + 6, 'k')
+    c.rect(3, 9, 12, 9, 'k'); c.rect(3, 18, 12, 19, 'k')
+    return c
+
+
+def questboard():
+    c = Canvas(16, 16)
+    c.line(2, 9, 2, 15, 'W', 2); c.line(13, 9, 13, 15, 'W', 2)                      # the legs
+    c.rect(0, 0, 15, 11, 'W')
+    c.shade('W', '1', 'w')
+    for x0, y0, x1, y1 in ((2, 2, 7, 6), (9, 2, 13, 5), (3, 7, 8, 9), (9, 6, 13, 9)):   # notices pinned to it
+        c.rect(x0, y0, x1, y1, 'P')
+        for y in range(y0 + 1, y1, 2):
+            c.line(x0 + 1, y, x1 - 1, y, 'L')
+        c.put(x0 + (x1 - x0) // 2, y0, 'r')
+    return c
+
+
+def signpost():
+    c = Canvas(16, 16)
+    c.rect(7, 3, 8, 15, 'W'); c.rect(5, 15, 10, 15, 'W')
+    c.poly([(1, 2), (12, 2), (15, 4.5), (12, 7), (1, 7)], 'P')                      # an arrow-shaped sign
+    c.shade('P', '1', 'p')
+    c.line(3, 4, 10, 4, 'L'); c.line(3, 5, 8, 5, 'L')
+    c.line(1, 2, 12, 2, 'W'); c.line(1, 7, 12, 7, 'W'); c.line(1, 2, 1, 7, 'W')
+    c.shade('W', '2', 'w')
+    return c
+
+
+def skull():
+    c = Canvas(16, 16)
+    c.ellipse(7.5, 6.5, 6.5, 6, 'W')
+    c.rect(4, 11, 11, 14, 'W')
+    c.shade('W', '1', 'w')
+    c.ellipse(4.8, 7, 1.8, 2, 'E'); c.ellipse(10.2, 7, 1.8, 2, 'E')               # eye sockets
+    c.poly([(7, 9), (8, 9), (8.5, 11), (6.5, 11)], 'E')                             # the nose
+    for x in (5, 7, 9):                                                             # teeth
+        c.line(x, 12, x, 14, 'w')
+    c.line(4, 2, 6, 4, 'w')                                                         # a crack
+    return c
+
+
+
 # name in Sprites.as: (drawing const, fn or [frames], letters' base palette, tones, scale)
 PROPS = {
     'TREE': (tree, {'tree': ({'g': 0x24561c, 'G': 0x3e8a2c, 'L': 0x6cc04a, 'T': 0x6b4423, 't': 0x442a14}, 3),
@@ -285,6 +375,13 @@ PROPS = {
                {'1': ('S', 0.35), '2': ('H', 0.6)}),
     'TENT': (tent, {'tent': ({'K': 0x3a2814, 'C': 0xb08a50, 'c': 0x806030, 'D': 0x2a1a0c}, 3)}, {'1': ('C', 0.3)}),
     'HUMANOID': (humanoid, {}, {'1': ('B', 0.3), '2': ('H', 0.3)}),
+    'ANVIL': (anvil, {'anvil': ({'C': 0xa060ff, 'W': 0xffffff, 'c': 0x6a30c0, 'K': 0x5a5a62, 'k': 0x3a3a40}, 3)}, {'1': ('K', 0.3)}),
+    'BANNER': (banner, {'banner': ({'S': 0xc8a050, 's': 0x8a6a30, 'R': 0x8a1a2a, 'Y': 0xf0c030}, 3)}, {'1': ('S', 0.35), '2': ('R', 0.3), 'r': ('R', -0.6)}),
+    'NEST': (nest, {'nest': ({'W': 0xf4ecd8, 'w': 0xc8b890, 'S': 0x60c0ff, 'K': 0x7a5a2a, 'k': 0x4a3418}, 3)}, {'1': ('W', 0.5)}),
+    'TOTEM': (totem, {'totem': ({'K': 0x7a5230, 'k': 0x4a3018, 'E': 0xffe040, 'R': 0xc03020}, 3)}, {'1': ('K', 0.3)}),
+    'QUESTBOARD': (questboard, {'questboard': ({'W': 0x6a4423, 'P': 0xf0e0b0, 'L': 0x8a7a5a}, 3)}, {'1': ('W', 0.3), 'w': ('W', -0.6), 'r': ('L', -0.5)}),
+    'SIGNPOST': (signpost, {'signpost': ({'W': 0x6a4423, 'P': 0xf0e0b0, 'L': 0x8a7a5a}, 3)}, {'1': ('P', 0.4), 'p': ('P', -0.75), '2': ('W', 0.3), 'w': ('W', -0.6)}),
+    'SKULL': (skull, {'skull': ({'W': 0xe8e8e8, 'E': 0x202020}, 2)}, {'1': ('W', 0.5), 'w': ('W', -0.7)}),
 }
 
 

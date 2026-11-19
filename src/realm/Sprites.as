@@ -91,22 +91,22 @@ package realm {
 		private static const BOULDER:Array = [["......................", ".........L............", "......LLLKLLL.........", ".....LKKKKKKKLLL......", "....LKKKKKKKkKKKLL....", "...LKKKKKKKKkKKKKKLL..", "..LKKKKKKKKKkkKKKkKKL.", "..LKKKKKKKKKKkKKKKKKd.", ".LKKKKKKKKKKKkKKKKKKKL", "..LKKKkKKKKKkKKKKKKKd.", "..dKKKKKKKKKkKKKKKKKd.", "...ddKKKKKKkKKKKKKdd..", ".....ddKKKKKKKKKdd....", ".......ddddddddd......"]];
 		private static const DEADTREE:Array = [["........................", "..................1.....", ".1....1...........w.....", "..1...1..........1....1.", "...1..w1........1W1..1..", "....11.1........1WW11...", ".....w1W1......1Www.....", ".......ww.....1Ww.......", "........11....1Ww.......", "......11ww...1Www11.....", ".....1...11..1w...w1....", ".........wW11w..........", "..........1WWw..........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "..........1Ww...........", "......1111www1111......."]];
 		private static const PILLAR:Array = [["...2222222222...", "..2LLLLLLLLLl...", ".2LLLLLLLLLLL22.", ".llllllllllllll.", "...1111111111...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...1SsSSsSSss...", "...ssssssssss...", ".22222222222222.", ".2LLLLLLLLLLLLl.", "llllllllllllllll", "llllllllllllllll"]];
-		private static const BANNER:Array = [["SSSSSSSS", ".RRRRRR.", ".RYYYYR.", ".RYRRYR.", ".RRYYRR.", ".RYRRYR.", ".RRRRRR.", ".RR..RR.", ".R....R.", "...ss..."]];
+		private static const BANNER:Array = [["1111111111111111", "1sssssssssssssss", "s.222222222222.s", "..YYYYYYYYYYYY..", "..2RRRRRRRRRRr..", "..2RRRRRRRRRRr..", "..2RRRYYYYRRRr..", "..2RRYYRRYYRRr..", "..2RRYRYYRYRRr..", "..2RRYRRRRYRRr..", "..2RRYYRRYYRRr..", "..2RRRYYYYRRRr..", "..2RRRRRRRRRRr..", "..2RRRRRRRRRRr..", "..YYYYYYYYYYYY..", "..2RRrrrrrRRRr..", "..2Rr.....rRr...", "..2r.......rr...", "..r.........r...", "................"]];
 		private static const CRATE:Array = [["KKKKKKKKKKKKKKKK", "KKKCCCCCCCCCCCKK", "KKKKCCCCCCCCCKKK", "KKKKKCCCCCCCKCKK", "KKCKKKCCCCCKCCKK", "KK222222222222KK", "KKCCCKKKCKCCCCKK", "KKCCCCKKKCCCCCKK", "KKCCCCCKKKCCCCKK", "KKCCCCKCKKKCCCKK", "KK222222222222KK", "KKCCKCCCCCKKKCKK", "KKCKCCCCCCCKKKKK", "KKKCCCCCCCCCKKKK", "KKCCCCCCCCCCCKKK", "KKKKKKKKKKKKKKKK"]];
 		private static const SHRINE:Array = [["..............O.", "..O...HHHH......", ".....HHOOOH.....", "....H2HOOOOH.O..", "....HOOOOOOo....", "....oOOOOOOo....", ".O...oOOOOo.....", "......oooo......", "....11111111....", "....ssSSSSss....", "......1SSs......", "......1SSs......", "......1SSs......", "......1SSs......", ".....1SSSS1.....", ".....1SSSSs.....", "..111SSSSSS111..", "..1SSSSSSSSSSs..", ".ssssssssssssss.", ".ssssssssssssss."]];
 		private static const TENT:Array = [["........KKK.......", "........KKK.......", ".......1KKK.......", ".......KCK1K......", "......KKCKcK......", "......KCCKC1K.....", ".....KKCCCCcK.....", "....1KCCCCCC1K....", "....KCCCDDCCCK....", "...KKCCCDDCCCcK...", "...KCCCCDDCCCCK...", "..KKCCCCDDCCCCcK..", ".1KCCCCCDDCCCCCK..", ".KCCCCCDDDDCCCCcK.", "1KcccccDDDDcccccK.", "K................K"]];
 		private static const CAMPFIRE:Array = [["................", ".......FF.......", "....Y..FFF......", "......FYYF......", "......FYYF..F...", ".....FFYYFF.....", ".....FFYYFF.....", ".....FYYWYF.....", "..k.FFYWWWFF.K..", ".kkkFFYWWWFFKKK.", "..kkkkkkWkKKKK..", "..KKKKkkkkkkkk..", ".KKKKK....kkkkk.", ".kK..........kK."], ["................", "........FF......", "...Y...FYFF.....", "......FYYYF.....", "......FYYYF..F..", ".....FFYYYF.....", ".....FFYYYFF....", ".....FYYWYFF....", "..k.FFYWWWFF.K..", ".kkkFFYWWWFFKKK.", "..kkkkkkWkKKKK..", "..KKKKkkkkkkkk..", ".KKKKK....kkkkk.", ".kK..........kK."]];
-		private static const TOTEM:Array = [["R.KKKK.R", "RKEKKEKR", ".KKKKKK.", ".KkRRkK.", ".KKKKKK.", ".KEKKEK.", ".KKRRKK.", ".KkkkkK.", ".KKKKKK.", "..kkkk.."]];
+		private static const TOTEM:Array = [["R..............R", ".R............R.", "..R1111111111R..", "...RKKKKKKKKR...", "...1KKKKKKKKk...", "...1kEkKKkEkk...", "...1kkkKKkkkk...", "...1KKKKKKKKk...", "...1KKRRRRKKk...", "...kkkkkkkkkk...", "...1KKKKKKKKk...", "...1KKKKKKKKk...", "...1KKKKKKKKk...", "...1kEkKKkEkk...", "...1kkkKKkkkk...", "...1KKKKKKKKk...", "...1KKRRRRKKk...", "...1KKkkkkKKk...", "...kkkkkkkkkk...", "...kkkkkkkkkk..."]];
 		private static const RUINWALL:Array = [["...LLL..........", "...LSl..........", "..LSSSL.........", "..LSSSl....LLLL.", "..LSSSl....LSSl.", "llllllllllllllll", "LSSSlSSSSSSlSSSl", "LSSSlSSSSSSlSSSl", "LSSSlSSSSSSlSSSl", "llllllllllllllll", "LlSSSSSlSSSSSSll", "LlSSSSSlSSSSSSll", "LlSSSSSlSSSSSSll", "llllllllllllllll"]];
 		private static const BRAZIER:Array = [["......FFFF......", ".....FFFFF......", ".....FFFYFF.....", "....FFFYYFF.....", "....FFYYYYF.....", "...FFYYWWYFF....", ".11111111111111.", "..1SSSSSSSSSSs..", "..1SSSSSSSSSSs..", "..ssssSSSSssss..", "....ssssssss....", "......1SSs......", "......1SSs......", "......1SSs......", "....11SSSS11....", "....ssssssss...."], [".......FFFF.....", "......FFFFF.....", ".....FFFYYF.....", "....FFFYYYFF....", "....FFYYYYFF....", "...FFYYWWYFF....", ".11111111111111.", "..1SSSSSSSSSSs..", "..1SSSSSSSSSSs..", "..ssssSSSSssss..", "....ssssssss....", "......1SSs......", "......1SSs......", "......1SSs......", "....11SSSS11....", "....ssssssss...."]];
 		private static const CHEST:Array = [["................", "................", ".K113111111311K.", ".K1C3CCCCCC3CcK.", ".KCC3CCCCCC3CCK.", ".KCC3CCCCCC3CCK.", ".KCC3CCCCCC3CCK.", ".KCC3C3333C3CCK.", ".KKK3K3yyyK3KKK.", ".KCC3C3KK3C3CCK.", ".KCC3C3KK3C3CCK.", ".KCC3Cy33yC3CCK.", ".KCC3CCCCCC3CCK.", ".KCC3CCCCCC3CCK.", ".KCC3CCCCCC3CCK.", ".KKKyKKKKKKyKKK."]];
 		private static const PORTAL:Array = ["..aaaa..", ".abbbba.", "abccccba", "abcddcba", "abcddcba", "abccccba", ".abbbba.", "..aaaa.."];
-		private static const ANVIL:Array = [["...CC...", "..CWCc..", "........", "KKKKKKK.", "KkkkkkKK", ".KkkkK..", "..KkK...", "KKKKKKK."]];
-		private static const QUESTBOARD:Array = [["WWWWWWWW", "WPPPPPPW", "WPLLLPPW", "WPPPPPPW", "WPLLLLPW", "WPPPPPPW", "WWWWWWWW", ".W....W."]];
+		private static const ANVIL:Array = [["......WWWW......", "...W.WCCCCW.....", ".....WCCCCc..W..", ".....cCCCCc.....", "......cccc......", "............W...", "................", "111111111111111.", ".kkKKKKKKKKKKkk1", "...1KKKKKKKKk...", "...kkKKKKKKkk...", ".....1KKKKk.....", ".....1KKKKk.....", "..111KKKKKK111..", "..1KKKKKKKKKKk..", "..kkkkkkkkkkkk.."]];
+		private static const QUESTBOARD:Array = [["1111111111111111", "1WWWWWWWWWWWWWWw", "1WPPrPPPWPPrPPWw", "1WPLLLLPWPLLLPWw", "1WPPPPPPWPPPPPWw", "1WPLLLLPWPPPPPWw", "1WPPPPPPWPPrPPWw", "1WWPPrPPPPLLLPWw", "1WWPLLLLPPPPPPWw", "1WWPPPPPPPPPPPWw", "1WWWWWWWWWWWWWWw", "wwWwwwwwwwwwwWww", "..1..........1..", "..1..........1..", "..1..........1..", ".1w1........1w1."]];
 		private static const WOLF:Array = [["......W.", ".....WWW", "WWWWWWEW", "WWWWWWWW", "wWWWWWW.", ".W.W.W.W", ".W.W.W.W", "........"]];
 		private static const BAG:Array = [["................", "....11111111....", ".....cCCCCc.....", "......cccc......", ".....KKKKKKK....", "......1111..K...", ".....1CCCC11K...", "...11CCCCCCC11..", "...1C1cCCCcCCc..", "..1C1CcCCCcCCC1.", "..1CCcCDDDCcCCc.", "..1CCcCDDDCcCCc.", "..cCCCCDDDCCCCc.", "...1CCCCCCCCCc..", "...ccCCCCCCCcc..", ".....ccccccc...."]];
 		private static const CRYSTAL:Array = [["................", ".......Wc.......", "......WWcW......", "......1Wcc......", ".....WWCcCW.....", "..W.WCWCcCCW....", "..WWCWWCcCCc....", "..WCCWCCcCCCW...", "..WCCCCCcCCCCW..", ".WCCCCCCcCCCCc..", ".WCCCCCCcCCCCCW.", ".WCCCCCCcCCCCCc.", ".cccccccccccccD.", "...SSSSSSSSSS...", "...SSSSSSSSSS...", "..SSSSSSSSSSSS.."]];
-		private static const NEST:Array = [["...WW...", "..WWWw..", ".WWSWWw.", ".WWWWSw.", ".WSWWWw.", "..WWWw..", "KKKKKKKK", ".KkkkkK."]];
+		private static const NEST:Array = [["................", "........1.......", "......11W11.....", ".....1WWWWW1....", "....1WSSWWWW1...", "....1WWWWWWWw...", "....1WWWWSSWw...", "...1WWWWWWWWW1..", "....1WWWWWWWw...", "....1WSSWWWWw...", "....wWWWWWSSw...", "....KKKKKKKKK...", "KkKkKkKkKkKkKkKK", ".KkKkKkKkKkKkKkK", "..kKkKkKkKkKkKk.", "...kKkKkKkKkKk.k"]];
 		private static const OWL:Array = [["..B..B..", ".BBBBBB.", "BWEBBEWB", "BBBYYBBB", ".BbBBbB.", ".BbbbbB.", "..BBBB..", "..Y..Y.."]];
 		private static const DRAKE:Array = [["......R.", ".R..RRR.", "RRR.RERR", ".RRRRRRR", "..RRRrR.", "..RrrrR.", "..RR.RR.", "........"]];
 		private static const WISP:Array = [["...WW...", "..WCCW..", ".WCEECW.", ".WCCCCW.", "..WCCW..", "...WC...", "....W...", "...W...."]];
@@ -225,6 +225,8 @@ package realm {
 		private static const ICON_ABIL:Object = {spell: [0x6a3a8a, 0xe8e0c8], quiver: [0x8a5a2a, 0xc0c0c0], shield: [0x5a6a9a, 0xd8d8e0], tome: [0x9a2a2a, 0xe8e0c8], cloak: [0x4a2a6a, 0xc8c8c8], helm: [0x9a9aa6, 0xe0e0e8], skull: [0x8a8070, 0xe8e0c8], trap: [0x5a5a62, 0xa0a0a8]};
 		private static const ICON_ARMOR:Object = {robe: [0x3a5ab0, 0x6a3a9a, 0xa02a3a, 0x202034], leather: [0x8a5a2a, 0x6a4422, 0x4a5a2a, 0x2a2a2a], heavy: [0x9a9aa6, 0x7a8aa6, 0xc8a040, 0x5a6a8a]};
 		private static const GRAVE:Array = [["................", ".....111111.....", "....1GGGGGG1....", "...1GGGGGGGG1...", "...1GGGDDGGGg...", "...1GGGDDGGGg...", "...1GDDDDDGGg...", "...1GGGDDGGGg...", "...1GGGDDGGGg...", "...1GGGDDGGGg...", "...1GGGDDGGGg...", "...1GGGGGGGGg...", "...1GGGGGGGGg...", "..MggMgggggggM..", "MMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMM"]];
+		private static const SKULL:Array = [["................", ".....111111.....", "....wWWWWWW1....", "...1WwWWWWWW1...", "..1WWWwWWWWWW1..", "..1WWWWWWWWWWw..", "..1WEEEWWEEEWw..", "..1EEEEWWEEEWw..", "..1WEEEWWEEEWw..", "..wWWWWEWWWWWw..", "...wWWWEWWWWw...", "....1WWWWWWw....", "....1wWwWwWw....", "....1wWwWwWw....", "....wwwwwwww....", "................"]];
+		private static const SIGNPOST:Array = [["................", "................", ".222222222222...", ".2PPPPPPPPPPP1..", ".2PLLLLLLLLPPP1.", ".2PLLLLLLPPPPp..", ".2ppppppppppp...", ".w22222222222...", ".......2w.......", ".......2w.......", ".......2w.......", ".......2w.......", ".......2w.......", ".......2w.......", ".......2w.......", ".....22ww22....."]];
 
 		// ================================================================ projectiles (point right)
 		private static const P_ARROW:Array = ["........", "........", "F.....H.", "FFSSSSHH", "F.....H.", "........", "........", "........"];
@@ -305,7 +307,7 @@ package realm {
 			merchant: [HUMANOID, {H: 0x2a7a4a, h: 0x1a5030, S: 0xf5dc72, E: 0x101010, B: 0x2a8a5a, b: 0x1a5a3a, A: 0xf0c030, L: 0x3a2a14, W: 0xf0c030}],
 			keysmith: [HUMANOID, {H: 0x2a4a8a, h: 0x1a3060, S: 0xf5dc72, E: 0x101010, B: 0x3a5aa0, b: 0x243a70, A: 0x80d0ff, L: 0x3a2a14, W: 0xc0e8ff}],
 			questboard: [QUESTBOARD, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 6],
-			signpost: [[["WWWWWWWW", "WPLLLLPW", "WPPPPPPW", "WPLLLPPW", "WWWWWWWW", "...WW...", "...WW...", "..WWWW.."]], {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a}, 5],
+			signpost: [SIGNPOST, {W: 0x6a4423, P: 0xf0e0b0, L: 0x8a7a5a, "1": 0xf6eccf, p: 0xb4a884, "2": 0x967c65, w: 0x3f2815}, 5],
 			slime: [BLOB, {B: 0x5ac040, b: 0x3a8a2a, W: 0x9aff7a, E: 0x103010}],
 			wolf: [WOLF, {W: 0x8a8a92, w: 0x5a5a62, E: 0xff3030}],
 			golem: [BRUTE, {H: 0x9a9aa0, h: 0x6a6a70, E: 0x60e0ff, B: 0x8a8a90, b: 0x5a5a60, A: 0x60e0ff, L: 0x4a4a50, W: 0x8a8a90, S: 0x9a9aa0}, 6],
@@ -427,7 +429,7 @@ package realm {
 			bag_relic: [BAG, {K: 0x601a08, C: 0xff5533, c: 0xc0301a, D: 0x8a2410}],
 			grave: [GRAVE, {G: 0x9a9aa0, g: 0x6a6a70, D: 0x4a4a50, M: 0x3a6a2a}],
 			fame: [[I_FAME], {O: 0xd05010, Y: 0xff9a2e, W: 0xffe080}, 3],
-			skull: [[I_SKULL], {W: 0xe8e8e8, E: 0x202020}, 3]
+			skull: [SKULL, {W: 0xe8e8e8, E: 0x202020, "1": 0xf3f3f3, w: 0xa2a2a2}, 3]
 		};
 
 		// ================================================================ guild banners
@@ -764,24 +766,31 @@ package realm {
 			if (!propTones) {
 				propTones = new Dictionary();
 				for each (var e:Array in [
-				[TREE, {"1": ["L", 0.4]}],
-				[PINE, {}],
-				[PALM, {"g": ["G", -0.6]}],
-				[DEADTREE, {"1": ["W", 0.3]}],
-				[ROCK, {}],
-				[BOULDER, {}],
-				[PILLAR, {"1": ["S", 0.35], "2": ["L", 0.4]}],
-				[RUINWALL, {}],
-				[CRATE, {"1": ["C", 0.3], "2": ["C", -0.75]}],
-				[CHEST, {"1": ["C", 0.3], "3": ["Y", 0.45], "y": ["Y", -0.65]}],
-				[BAG, {"1": ["C", 0.4]}],
-				[GRAVE, {"1": ["G", 0.35]}],
-				[CAMPFIRE, {}],
-				[BRAZIER, {"1": ["S", 0.35]}],
-				[CRYSTAL, {"1": ["W", 0.5]}],
-				[SHRINE, {"1": ["S", 0.35], "2": ["H", 0.6]}],
-				[TENT, {"1": ["C", 0.3]}],
-				[HUMANOID, {"1": ["B", 0.3], "2": ["H", 0.3]}]
+					[TREE, {"1": ["L", 0.4]}],
+					[PINE, {}],
+					[PALM, {"g": ["G", -0.6]}],
+					[DEADTREE, {"1": ["W", 0.3]}],
+					[ROCK, {}],
+					[BOULDER, {}],
+					[PILLAR, {"1": ["S", 0.35], "2": ["L", 0.4]}],
+					[RUINWALL, {}],
+					[CRATE, {"1": ["C", 0.3], "2": ["C", -0.75]}],
+					[CHEST, {"1": ["C", 0.3], "3": ["Y", 0.45], "y": ["Y", -0.65]}],
+					[BAG, {"1": ["C", 0.4]}],
+					[GRAVE, {"1": ["G", 0.35]}],
+					[CAMPFIRE, {}],
+					[BRAZIER, {"1": ["S", 0.35]}],
+					[CRYSTAL, {"1": ["W", 0.5]}],
+					[SHRINE, {"1": ["S", 0.35], "2": ["H", 0.6]}],
+					[TENT, {"1": ["C", 0.3]}],
+					[HUMANOID, {"1": ["B", 0.3], "2": ["H", 0.3]}],
+					[ANVIL, {"1": ["K", 0.3]}],
+					[BANNER, {"1": ["S", 0.35], "2": ["R", 0.3], "r": ["R", -0.6]}],
+					[NEST, {"1": ["W", 0.5]}],
+					[TOTEM, {"1": ["K", 0.3]}],
+					[QUESTBOARD, {"1": ["W", 0.3], "w": ["W", -0.6], "r": ["L", -0.5]}],
+					[SIGNPOST, {"1": ["P", 0.4], "p": ["P", -0.75], "2": ["W", 0.3], "w": ["W", -0.6]}],
+					[SKULL, {"1": ["W", 0.5], "w": ["W", -0.7]}]
 				]) propTones[e[0]] = e[1];
 			}
 			return propTones[frames];

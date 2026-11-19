@@ -485,7 +485,6 @@ package realm {
 			Sprites.recolor("cube_shard", "cubelet", {P: 0xff60ff, p: 0xa020c0, Q: 0xffc0ff, E: 0x46c0e8});
 			Sprites.recolor("royal_guard", "bandit", {H: 0xd8b050, h: 0x8a6a20, S: 0xe8e0c0, E: 0x40c0ff, B: 0xc8c8d0, b: 0x8a8a96, A: 0x8a1a2a, L: 0x5a5a66, W: 0xffe080});
 			Sprites.recolor("grave_wraith", "ghost", {W: 0x9ab0ff, w: 0x5a6aa8, E: 0xffffff}, 4);
-			Sprites.recolor("war_orc", "orc", {H: 0x7a9a3a, h: 0x4a6a24, E: 0xffe040, B: 0xc8a878, b: 0x8a6a40, A: 0xe8e0c8, L: 0x3a2410, W: 0xe8e0c8, S: 0x7a9a3a});
 			Sprites.recolor("temple_scorpion", "scorpion", {C: 0xd8b060, S: 0xf0d090, T: 0x9a7030, E: 0x60ff40});
 			// realm event set-piece pieces
 			Sprites.recolor("cube_pylon", "crystal", {W: 0xffe0ff, C: 0xff60ff, c: 0xa020c0, D: 0x50106a, S: 0x2a1a3a}, 6);
@@ -502,7 +501,6 @@ package realm {
 			Sprites.recolor("clam_cannon", "totem", {K: 0xffb0c0, k: 0xc07080, E: 0xffffff, R: 0x60c0ff});
 			Sprites.recolor("obsidian_spire", "crystal", {W: 0xffa060, C: 0x302030, c: 0x1a101a, D: 0x0a060a, S: 0xff6020}, 7);
 			Sprites.recolor("kraken_tentacle", "totem", {K: 0xff80a0, k: 0xb04060, E: 0xffe0f0, R: 0x8a2040});
-			Sprites.recolor("loot_goblin", "goblin", {H: 0x70b840, h: 0x4a8a28, E: 0xffe020, B: 0xc8962a, b: 0x8a6418, A: 0xffe060, L: 0x5a3a14, W: 0xffe060, S: 0x70b840});
 			// raid monsters
 			Sprites.recolor("cultist", "bandit", {H: 0x8a0a1a, h: 0x5a0610, S: 0xe8d0c0, E: 0xffe040, B: 0xa01428, b: 0x6a0a18, A: 0xf0c030, L: 0x2a0408, W: 0xff3040});
 			Sprites.recolor("bone_thrall", "skeleton", {H: 0xe8e0c8, h: 0xa09880, S: 0xe8e0c8, E: 0xff2020, B: 0x8a1a1a, b: 0x5a0a0a, A: 0xd02030, L: 0xb0a890, W: 0xe8e0c8});

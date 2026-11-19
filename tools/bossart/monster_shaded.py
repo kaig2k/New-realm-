@@ -87,19 +87,29 @@ def pirate_brawler(t):
 
 
 def snake(t, big=False):
-    body = g([0x2a4a10, 0x4a7a1c, 0x78b030, 0xb8e070]) if not big else g([0x3a2a0a, 0x6a5018, 0xa07c2c, 0xd8b058])
-    mm = M(body=body, belly=g([0x8a8050, 0xc8b878, 0xf0e4b0]), eye=glow(0xa01010, 0xff4040), tongue=g([0xa01020, 0xe03040]))
-    W, H = (30, 22) if big else (26, 18)
+    """A snake coiled on the ground, its head reared up to strike: a patterned back, a pale belly, fangs."""
+    body = g([0x1a3a08, 0x3a6a14, 0x62a028, 0xa8e060]) if not big else g([0x2e1e06, 0x5a4214, 0x8a6a24, 0xc8a050])
+    mm = M(body=body, belly=g([0x8a8050, 0xc8b878, 0xf0e4b0]), eye=glow(0xa06000, 0xffe040), tongue=g([0xa01020, 0xe03040]),
+           band=g([0x14100a, 0x2a2214, 0x46382a]), fang=BONE)
+    W, H = (30, 26) if big else (26, 22)
     m = Model(W, H)
-    pts = []
-    for k in range(9):
-        a = k / 8
-        pts.append((3 + a * (W - 9), H - 4 - math.sin(a * math.pi * 2 + t * 0.8) * 2.2 - a * (H * 0.3), 1))
-    m.chain(pts, [1.6 + a * 0.3 for a in [k / 8 for k in range(9)]][:-1] + [2.4], 'body', scales(0.08, 1.4))
-    hx, hy = pts[-1][0] + 2, pts[-1][1] - 2
-    m.sphere((hx, hy, 2), 3.2 if big else 2.7, 'body', 1.3, 0.9, 1, scales(0.08, 1.2))
-    m.mark(int(hx + 1), int(hy - 1), 'eye')
-    m.capsule((hx + 3.4, hy + 0.6, 3), (hx + 5.5 - t, hy + 1.2, 3), 0.3, 0.2, 'tongue')
+    k = 1.15 if big else 1.0
+    cx, cy = W * 0.42, H - 6 * k
+    # the coil: a ring on the ground, the tail tucked in
+    coil = [(cx + math.cos(a) * 7 * k, cy + math.sin(a) * 3.2 * k, 1 + math.sin(a) * 2) for a in [i * math.pi / 7 for i in range(15)]]
+    m.chain(coil, [2.0 * k] * 15, 'body', scales(0.07, 1.2))
+    # the neck rising out of the coil, curving back, the head over it
+    neck = [(cx + 7 * k, cy, 2), (cx + 8.5 * k, cy - 4 * k, 3), (cx + 7.5 * k - t, cy - 8 * k, 4), (cx + 9 * k - t, cy - 11 * k, 5)]
+    m.chain(neck, [2.1 * k, 2.0 * k, 1.9 * k, 1.8 * k], 'body', scales(0.07, 1.2))
+    m.chain([(x - 0.8 * k, y + 0.5, z + 1.6 * k) for x, y, z in neck[:3]], [0.9 * k, 0.9 * k, 0.8 * k], 'belly')
+    for i in (2, 6, 10):                                                                   # dark bands along its back
+        x, y, z = coil[i]
+        m.sphere((x, y - 1.2 * k, z + 1), 1.0 * k, 'band', 1.3, 0.6, 0.6)
+    hx, hy = neck[-1][0] + 1.5 * k, neck[-1][1] - 0.5
+    m.sphere((hx, hy, 6), 2.8 * k, 'body', 1.35, 0.85, 1, scales(0.07, 1.2))                # the head
+    spike(m, (hx + 2.2 * k, hy + 1.6), (hx + 2.4 * k, hy + 3.4 * k), 0.4, 7, 'fang')
+    m.capsule((hx + 3.6 * k, hy + 0.8, 7), (hx + 6 * k + t, hy + 1.6, 7), 0.3, 0.2, 'tongue')
+    m.mark(int(hx + 0.5), int(hy - 1), 'eye', 2 if big else 1, 1)
     return m, mm
 
 
@@ -137,16 +147,22 @@ def crab(t):
 
 
 def slime(t, col=(0x0a3a7a, 0x2a6ad0, 0x6aa8ff, 0xd0e8ff), big=False, crown_on=False):
-    mm = M(gel=g(list(col), spec=0.9), core=glow(col[1], col[3]), eye=g([0x050510, 0x050510]), white=g([0xffffff, 0xffffff]))
+    """A slime: a wobbling glossy dome, lighter at its heart, a bright gleam, a grumpy little face."""
+    mm = M(gel=g(list(col), spec=0.9), core=glow(col[1], col[2], col[3], base=0.45), shine=g([0xe8f4ff, 0xffffff]),
+           eye=g([0x050510, 0x050510]), white=g([0xffffff, 0xffffff]), brow=g([0x05050a, 0x10101c]))
     W, H = (34, 30) if big else (24, 20)
     m = Model(W, H)
     cx, base = W / 2, H - 2
     r = (W / 2 - 2) * (1 + t * 0.05)
-    m.sphere((cx, base - r * 0.55, 1), r, 'gel', 1.0, 0.62 - t * 0.04, 0.9)
-    m.sphere((cx - r * 0.3, base - r * 0.75, r * 0.5), r * 0.22, 'core')                    # a gleam
-    for ex in (cx - r * 0.3, cx + r * 0.3):                                                  # two round eyes
-        m.mark(int(ex), int(base - r * 0.6), 'white', 2, 2)
-        m.mark(int(ex) + 1, int(base - r * 0.6) + 1, 'eye', 1, 1)
+    m.sphere((cx, base - r * 0.45, 1), r, 'gel', 1.0, 0.75 - t * 0.06, 0.9)                 # the dome
+    m.sphere((cx + r * 0.1, base - r * 0.35, r * 0.45), r * 0.5, 'core', 1.1, 0.7, 0.6)     # its glowing heart
+    m.sphere((cx - r * 0.45, base - r * 0.8, r * 0.6), r * 0.18, 'shine', 1.5, 0.8, 0.6)     # a gleam
+    m.sphere((cx - r * 0.2, base - r * 0.95, r * 0.6), r * 0.08, 'shine')
+    for i, ex in enumerate((cx - r * 0.35, cx + r * 0.3)):                                   # two grumpy eyes
+        m.mark(int(ex), int(base - r * 0.55), 'white', 2, 2)
+        m.mark(int(ex) + (1 if i == 0 else 0), int(base - r * 0.55) + 1, 'eye', 1, 1)
+        m.mark(int(ex) - (0 if i == 0 else 0), int(base - r * 0.55) - 1, 'brow', 2, 1)
+    m.mark(int(cx - 1), int(base - r * 0.25), 'brow', 3, 1)                                 # a scowl
     if crown_on:
         crown(m, cx, base - r * 1.15, r * 0.45, 'gold', spikes=5, tall=4, z=4)
     return m, mm

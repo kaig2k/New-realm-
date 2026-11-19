@@ -1514,7 +1514,7 @@ package realm {
 						{p: "aimed", n: 1, spd: 15, life: 1.4, dmg: 120, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade", eff: "paralyzed"}],
 					[{p: "spiral", n: 6, rot: -13, spd: 7, life: 2.0, dmg: 70, cd: 0.1, r: 0.2, col: 0xfff060, shape: "star"}]
 				]},
-			frost_warden: {name: "Glacius the Frost Warden", spr: "frost_warden", hp: 18000, def: 25, spd: 1.2, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x80e0ff,
+			frost_warden: {name: "Glacius the Frost Warden", spr: "frost_warden", hp: 11000, def: 25, spd: 1.2, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x80e0ff,
 				gold: 400, onrane: 5, dungeon: true, dtier: 5, guardian: true,
 				phases: [
 					[{p: "ring", n: 18, rot: 10, spd: 4.5, life: 2.8, dmg: 70, cd: 1.1, r: 0.24, col: 0xc0f0ff, shape: "ring", eff: "slowed"},
@@ -1523,7 +1523,7 @@ package realm {
 						{p: "summon", n: 2, cd: 8, what: "ghost"}],
 					[{p: "ring", n: 32, rot: 5.6, spd: 5, life: 2.6, dmg: 80, cd: 0.8, r: 0.24, col: 0x40a0ff, shape: "orb", eff: "paralyzed"}]
 				]},
-			flame_warden: {name: "Ignivar the Flame Warden", spr: "flame_warden", hp: 18000, def: 25, spd: 1.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xff6020,
+			flame_warden: {name: "Ignivar the Flame Warden", spr: "flame_warden", hp: 11000, def: 25, spd: 1.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xff6020,
 				gold: 400, onrane: 5, dungeon: true, dtier: 5, guardian: true,
 				phases: [
 					[{p: "aimed", n: 7, arc: 70, spd: 8, life: 1.8, dmg: 80, cd: 1.0, r: 0.24, col: 0xff6020, shape: "orb", eff: "bleeding"}],
@@ -1671,7 +1671,8 @@ package realm {
 					"Event bosses hit a little softer (their extra damage went from +45% to +25%), and <b>Pyraxis</b> and <b>the Obsidian Colossus</b> fire thinner spirals in their last phase: they were far deadlier than the others.",
 					"Standing still is still a bad idea: every event punishes heroes who don't dodge."]},
 			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",
-				lines: ["<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
+				lines: ["<b>World bosses for whoever is about</b>: Grimsnow (and the Pumpkin King, next Halloween) now come sized for the heroes around them: beatable alone in the five minutes, and each hero who joins adds a whole share. No more waves of minions on top of their own.",
+					"<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
 					"Melt him within <b>5 minutes</b>: snowball barrages, frost rings that slow you, falling icicles, icicle walls with a gap to slip through, and a blizzard that pulls you in. His snowlings hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
 					"He can drop the <b>Peppermint Ring</b> (UT) and four Legendaries: <b>Grimsnow's Crown</b> (the tank ring), the <b>Staff of the Longest Night</b> (three frost bolts that slow), <b>The Snowglobe</b> (Time Stop lasts 1s longer) and the <b>Frostwoven Robe</b>.",
 					"And, 1 in 2,500: <font color='#fff6e0'><b>Everwinter Heart</b></font>, a Godly ring for every class built to keep you standing. Like All Hallows' Eye, it counts as a piece of whatever Godly set you wear.",

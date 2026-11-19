@@ -765,7 +765,8 @@ class WorldSim {
       const d = e.def, endgame = d.raid || d.finale || d.final || d.siege || d.dtier >= 5;
       // (realm events start lower for a lone hero, Bosses.harden, and grow more with each hero who joins)
       const realmEvent = this.kind === 'realm' && d.setpiece && e === this.w.boss;
-      const mult = 1 + (endgame || realmEvent ? 0.75 : 0.5) * (n - 1);
+      // (a seasonal world boss, d.world, comes to whoever is about: small for one hero, a whole share for each who joins)
+      const mult = 1 + (d.world ? 1 : endgame || realmEvent ? 0.75 : 0.5) * (n - 1);
       if (mult <= e.scaleMult + 0.01) continue;
       const frac = e.hp / e.maxHp;
       e.maxHp = e.maxHp / e.scaleMult * mult;
@@ -1201,7 +1202,8 @@ class WorldSim {
         }
       }
       this.siege = { e, left: wb.time, waveT: 20, sendT: 0, wb };
-      this.siegeSoldiers(4);
+      // (it comes with an escort: the Warlord's soldiers, or a seasonal boss's two minions)
+      this.siegeSoldiers(wb.waves === false ? 2 : 4);
       this.siegeStatus(true);
       return true;
     }
@@ -1226,7 +1228,8 @@ class WorldSim {
     if (this.closeT > 0 || this.w.closed) { this.siegeFail(); return; }
     sg.left -= dt;
     sg.waveT -= dt;
-    if (sg.waveT <= 0) { sg.waveT = 25; this.siegeSoldiers(2 + Math.min(6, (e.scalePlayers || 1))); }
+    // (the Warlord's soldiers march out in waves; a seasonal boss, waves: false, only has the ones it summons)
+    if (sg.waveT <= 0 && sg.wb.waves !== false) { sg.waveT = 25; this.siegeSoldiers(2 + Math.min(6, (e.scalePlayers || 1))); }
     if (sg.left <= 0) { this.siegeFail(); return; }
     sg.sendT -= dt;
     if (sg.sendT <= 0) { sg.sendT = 2; this.siegeStatus(false); }

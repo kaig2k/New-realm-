@@ -274,8 +274,9 @@ package realm {
 				// be able to finish one too (a realm needs eight to close): they start at 4x and each hero who
 				// joins adds three quarters of that again (WorldSim.scaleBosses), so crowds still kill faster
 				var realmEvent:Boolean = id.indexOf("ev_") == 0;
-				// (the Siege is sized for the whole realm already, and grows with every hero who joins it)
-				var tough:Array = realmEvent ? [4, 1.25] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				// (the Siege is sized for the whole realm already, and grows with every hero who joins it; the seasonal
+				// world bosses, d.world, come every ten minutes to whoever is about, so they hit softer)
+				var tough:Array = realmEvent ? [4, 1.25] : d.world ? [1, 0.8] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
 				// (bosses already built huge, like Sylith and Gorehorn, grow less; the three kings are fought
 				// all at once and the Seraph has four phases, so they grow less too)
 				if (d.trio && !d.lairBoss) tough[0] *= 0.6; else if (id == "shattered_seraph") tough[0] *= 0.65;
@@ -918,42 +919,42 @@ package realm {
 		 */
 		private static function siege():void {
 			// ---- Halloween: the Pumpkin King, a world boss that rises in a realm every ten minutes (server.js hallowTick)
-			mob("jack_lantern", {name: "Jack-o'-Lantern", spr: "jack_lantern", hp: 2400, def: 14, spd: 3.4, xp: 120, col: 0xff8020, ai: "orbit", keep: 3, drop: 0.3,
+			mob("jack_lantern", {name: "Jack-o'-Lantern", spr: "jack_lantern", hp: 900, def: 14, spd: 3.4, xp: 120, col: 0xff8020, ai: "orbit", keep: 3, drop: 0.3,
 				attacks: [aim(3, 26, 8, 70, 1.1, 0xff8020, {shape: "fire", name: "lantern sparks"}), ring(8, 0, 4.5, 60, 2.4, 0x60e040, {name: "witch-fire"})]});
-			boss("pumpkin_king", {name: "The Pumpkin King", spr: "pumpkin_king", hp: 150000, def: 30, spd: 1.4, xp: 6000, col: 0xff8020,
+			boss("pumpkin_king", {name: "The Pumpkin King", spr: "pumpkin_king", hp: 55000, def: 30, spd: 1.4, xp: 6000, col: 0xff8020,
 				gold: 1500, onrane: 10, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
-				world: {minion: "jack_lantern", time: 300, zone: 3, title: "HALLOWEEN", won: "THE PUMPKIN KING IS SMASHED!"},
+				world: {minion: "jack_lantern", waves: false, time: 300, zone: 3, title: "HALLOWEEN", won: "THE PUMPKIN KING IS SMASHED!"},
 				hint: "The Pumpkin King rises! Dodge his pumpkin bombs and candy corn, smash his jack-o'-lanterns, and beat him before the witching hour ends.",
 				phases: [
 				P(1, {say: "TRICK... OR TREAT?", move: "chase", speed: 1.1, summon: [{what: "jack_lantern", n: 2}],
 					attacks: [aim(5, 50, 9, 95, 1.0, 0xff8020, {name: "candy corn"}), ring(12, 15, 5, 80, 1.8, 0x60e040, {name: "witch-fire ring"}),
-						rain(4, 4, 110, 3.0, 0xff8020, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "pumpkin bombs"}), summon("jack_lantern", 2, 8, 6)]}),
+						rain(4, 4, 110, 3.0, 0xff8020, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "pumpkin bombs"}), summon("jack_lantern", 2, 8, 4)]}),
 				P(0.65, {say: "THE HARVEST COMES!", banner: "The harvest comes!", shield: 3, move: "orbit",
 					attacks: [spiral(4, 13, 6, 85, 0.13, 0xff8020, {name: "pumpkin spiral"}), aim(3, 30, 7, 110, 1.4, 0x60e040, {motion: "home", name: "homing witch-fire"}),
-						lineRain(6, 120, 3.2, 0xff6010, "pillar", {name: "scythe sweep"}), summon("jack_lantern", 3, 9, 8)]}),
+						lineRain(6, 120, 3.2, 0xff6010, "pillar", {name: "scythe sweep"}), summon("jack_lantern", 2, 9, 5)]}),
 				P(0.3, {say: "NO TREATS. ONLY TRICKS!", banner: "THE WITCHING HOUR!", shield: 3, move: "chase", speed: 1.4,
-					attacks: [flower(20, 7, 5.5, 95, 0.9, 0xff8020, {name: "candy whirl"}), spiral(5, -11, 6.5, 100, 0.12, 0x60e040, {name: "witch-fire spiral"}),
+					attacks: [flower(20, 7, 5.5, 95, 0.9, 0xff8020, {name: "candy whirl"}), spiral(4, -11, 6.5, 90, 0.14, 0x60e040, {name: "witch-fire spiral"}),
 						rain(7, 5, 125, 2.2, 0xff8020, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "pumpkin bombs"}),
-						pull(16, 100, 4.0, 0x60e040, {name: "the witching hour"}), summon("jack_lantern", 4, 7, 10)]})
+						pull(12, 70, 6.0, 0x60e040, {name: "the witching hour"}), summon("jack_lantern", 3, 8, 6)]})
 			]}, ["candy_corn_ring", "pumpkin_signet"]);
 			// ---- Winter: Grimsnow the Snow Tyrant, a world boss that comes to a realm every ten minutes in December (server.js seasonalTick)
-			mob("snowling", {name: "Snowling", spr: "snowling", hp: 2400, def: 14, spd: 3.6, xp: 120, col: 0xc8e8ff, ai: "orbit", keep: 3, drop: 0.3,
+			mob("snowling", {name: "Snowling", spr: "snowling", hp: 900, def: 14, spd: 3.6, xp: 120, col: 0xc8e8ff, ai: "orbit", keep: 3, drop: 0.3,
 				attacks: [aim(3, 24, 8, 70, 1.1, 0xc8e8ff, {shape: "snowball", name: "snowballs"}), ring(8, 0, 4.5, 60, 2.4, 0x60b0ff, {name: "frost ring", eff: "slowed"})]});
-			boss("snow_tyrant", {name: "Grimsnow the Snow Tyrant", spr: "snow_tyrant", hp: 150000, def: 30, spd: 1.3, xp: 6000, col: 0x9fe0ff,
+			boss("snow_tyrant", {name: "Grimsnow the Snow Tyrant", spr: "snow_tyrant", hp: 55000, def: 30, spd: 1.3, xp: 6000, col: 0x9fe0ff,
 				gold: 1500, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
-				world: {minion: "snowling", time: 300, zone: 3, title: "WINTER", won: "GRIMSNOW IS MELTED!"},
+				world: {minion: "snowling", waves: false, time: 300, zone: 3, title: "WINTER", won: "GRIMSNOW IS MELTED!"},
 				hint: "Grimsnow stomps in! Dodge his snowball barrages and icicle walls, smash his snowlings, and keep moving: his frost slows you down.",
 				phases: [
 				P(1, {say: "WHO'S BEEN NAUGHTY?", move: "chase", speed: 1.0, summon: [{what: "snowling", n: 2}],
 					attacks: [aim(5, 50, 9, 95, 1.0, 0xc8e8ff, {name: "snowball barrage"}), ring(12, 15, 5, 80, 1.8, 0x60b0ff, {name: "frost ring", eff: "slowed"}),
-						rain(4, 4, 110, 3.0, 0x9fe0ff, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "falling icicles"}), summon("snowling", 2, 8, 6)]}),
+						rain(4, 4, 110, 3.0, 0x9fe0ff, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "falling icicles"}), summon("snowling", 2, 8, 4)]}),
 				P(0.65, {say: "A BLIZZARD COMES!", banner: "A blizzard comes!", shield: 3, move: "orbit",
 					attacks: [spiral(4, 13, 6, 85, 0.13, 0x9fe0ff, {name: "blizzard spiral"}), aim(3, 30, 7, 110, 1.4, 0x60b0ff, {motion: "home", name: "homing snowballs"}),
-						wall(16, 4.5, 100, 3.4, 0x9fe0ff, {hole: 3, name: "icicle wall"}), summon("snowling", 3, 9, 8)]}),
+						wall(16, 4.5, 100, 3.4, 0x9fe0ff, {hole: 3, name: "icicle wall"}), summon("snowling", 2, 9, 5)]}),
 				P(0.3, {say: "THE LONGEST NIGHT!", banner: "THE LONGEST NIGHT!", shield: 3, move: "chase", speed: 1.35,
-					attacks: [flower(20, 7, 5.5, 95, 0.9, 0xc8e8ff, {name: "snowflake whirl"}), spiral(5, -11, 6.5, 100, 0.12, 0x60b0ff, {name: "frost spiral", eff: "slowed"}),
+					attacks: [flower(20, 7, 5.5, 95, 0.9, 0xc8e8ff, {name: "snowflake whirl"}), spiral(4, -11, 6.5, 90, 0.14, 0x60b0ff, {name: "frost spiral"}),
 						rain(7, 5, 125, 2.2, 0x9fe0ff, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "falling icicles"}),
-						pull(16, 100, 4.0, 0x60b0ff, {name: "the deep freeze"}), summon("snowling", 4, 7, 10)]})
+						pull(12, 70, 6.0, 0x60b0ff, {name: "the deep freeze"}), summon("snowling", 3, 8, 6)]})
 			]}, ["peppermint_ring", "grimsnows_crown"]);
 			mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
 				attacks: [aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
@@ -1074,15 +1075,15 @@ package realm {
 					attacks: [rain(8, 6, 90, 2, 0xc070ff, {burst: 4}), spiral(3, 23, 7, 70, 0.1, 0xfff060)]})
 			]}, ["starfall_dagger", "astral_cloak"]);
 			boss("frost_warden", {phases: [
-				P(1, {move: "wander", attacks: [spiral(4, 10, 5, 65, 0.16, 0x80e0ff), aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
+				P(1, {move: "wander", attacks: [spiral(4, 10, 5, 65, 0.2, 0x80e0ff), aim(1, 0, 8.5, 85, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
 					ring(10, 18, 3.5, 60, 2.4, 0xc0e8ff, {name: "frost ring"})]}),
 				P(0.5, {say: "The cold takes everything.", shield: 2, move: "center",
-					attacks: [wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3, eff: "slowed"}), rain(5, 5, 85, 2.6, 0x80f0ff, {delay: 1.3})]})
+					attacks: [wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3}), rain(5, 5, 75, 2.6, 0x80f0ff, {delay: 1.6})]})
 			]}, ["glacial_plate", "icicle_ring"]);
 			boss("flame_warden", {phases: [
 				P(1, {move: "wander", attacks: [aim(4, 60, 8, 75, 1.2, 0xff6020), ring(10, 15, 4, 65, 2.0, 0xffb020, {split: {n: 3, spd: 3.5, life: 0.7, dmg: 40}, life: 1.4})]}),
 				P(0.5, {say: "Burn with your friend!", shield: 2, move: "charge",
-					attacks: [spiral(4, 13, 5.5, 70, 0.14, 0xff6020), nova(2.2, 1.3, 95, 2.7, 0xff3010, {burst: 5, bspd: 3.5})]})
+					attacks: [spiral(4, 13, 5.5, 70, 0.18, 0xff6020), nova(2.2, 1.3, 95, 2.7, 0xff3010, {burst: 5, bspd: 3.5})]})
 			]}, ["flamewarden_blade", "ember_ring"]);
 			boss("shattered_seraph", {phases: [
 				P(1, {move: "orbit", attacks: [spiral(4, 12, 6, 70, 0.12, 0xff60c0), aim(3, 24, 10, 90, 1.0, 0xffffff, {shape: "blade"})]}),

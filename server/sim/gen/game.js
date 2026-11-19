@@ -1725,7 +1725,8 @@ class Bosses {
 				
 				var realmEvent = id.indexOf("ev_") == 0;
 				
-				var tough = realmEvent ? [4, 1.25] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
+				
+				var tough = realmEvent ? [4, 1.25] : d.world ? [1, 0.8] : d.siege ? [1, 1.15] : d.lairBoss ? [3.4, 1.0] : d.raid ? [1.5, 1.15] : (d.finale || d.final) ? [1.7, 1.2] : [4, 1.35];
 				
 				
 				if (d.trio && !d.lairBoss) tough[0] *= 0.6; else if (id == "shattered_seraph") tough[0] *= 0.65;
@@ -2193,42 +2194,42 @@ class Bosses {
 		}
 	static siege() {
 			
-			Bosses.mob("jack_lantern", {name: "Jack-o'-Lantern", spr: "jack_lantern", hp: 2400, def: 14, spd: 3.4, xp: 120, col: 0xff8020, ai: "orbit", keep: 3, drop: 0.3,
+			Bosses.mob("jack_lantern", {name: "Jack-o'-Lantern", spr: "jack_lantern", hp: 900, def: 14, spd: 3.4, xp: 120, col: 0xff8020, ai: "orbit", keep: 3, drop: 0.3,
 				attacks: [Bosses.aim(3, 26, 8, 70, 1.1, 0xff8020, {shape: "fire", name: "lantern sparks"}), Bosses.ring(8, 0, 4.5, 60, 2.4, 0x60e040, {name: "witch-fire"})]});
-			Bosses.boss("pumpkin_king", {name: "The Pumpkin King", spr: "pumpkin_king", hp: 150000, def: 30, spd: 1.4, xp: 6000, col: 0xff8020,
+			Bosses.boss("pumpkin_king", {name: "The Pumpkin King", spr: "pumpkin_king", hp: 55000, def: 30, spd: 1.4, xp: 6000, col: 0xff8020,
 				gold: 1500, onrane: 10, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
-				world: {minion: "jack_lantern", time: 300, zone: 3, title: "HALLOWEEN", won: "THE PUMPKIN KING IS SMASHED!"},
+				world: {minion: "jack_lantern", waves: false, time: 300, zone: 3, title: "HALLOWEEN", won: "THE PUMPKIN KING IS SMASHED!"},
 				hint: "The Pumpkin King rises! Dodge his pumpkin bombs and candy corn, smash his jack-o'-lanterns, and beat him before the witching hour ends.",
 				phases: [
 				Bosses.P(1, {say: "TRICK... OR TREAT?", move: "chase", speed: 1.1, summon: [{what: "jack_lantern", n: 2}],
 					attacks: [Bosses.aim(5, 50, 9, 95, 1.0, 0xff8020, {name: "candy corn"}), Bosses.ring(12, 15, 5, 80, 1.8, 0x60e040, {name: "witch-fire ring"}),
-						Bosses.rain(4, 4, 110, 3.0, 0xff8020, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "pumpkin bombs"}), Bosses.summon("jack_lantern", 2, 8, 6)]}),
+						Bosses.rain(4, 4, 110, 3.0, 0xff8020, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "pumpkin bombs"}), Bosses.summon("jack_lantern", 2, 8, 4)]}),
 				Bosses.P(0.65, {say: "THE HARVEST COMES!", banner: "The harvest comes!", shield: 3, move: "orbit",
 					attacks: [Bosses.spiral(4, 13, 6, 85, 0.13, 0xff8020, {name: "pumpkin spiral"}), Bosses.aim(3, 30, 7, 110, 1.4, 0x60e040, {motion: "home", name: "homing witch-fire"}),
-						Bosses.lineRain(6, 120, 3.2, 0xff6010, "pillar", {name: "scythe sweep"}), Bosses.summon("jack_lantern", 3, 9, 8)]}),
+						Bosses.lineRain(6, 120, 3.2, 0xff6010, "pillar", {name: "scythe sweep"}), Bosses.summon("jack_lantern", 2, 9, 5)]}),
 				Bosses.P(0.3, {say: "NO TREATS. ONLY TRICKS!", banner: "THE WITCHING HOUR!", shield: 3, move: "chase", speed: 1.4,
-					attacks: [Bosses.flower(20, 7, 5.5, 95, 0.9, 0xff8020, {name: "candy whirl"}), Bosses.spiral(5, -11, 6.5, 100, 0.12, 0x60e040, {name: "witch-fire spiral"}),
+					attacks: [Bosses.flower(20, 7, 5.5, 95, 0.9, 0xff8020, {name: "candy whirl"}), Bosses.spiral(4, -11, 6.5, 90, 0.14, 0x60e040, {name: "witch-fire spiral"}),
 						Bosses.rain(7, 5, 125, 2.2, 0xff8020, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "pumpkin bombs"}),
-						Bosses.pull(16, 100, 4.0, 0x60e040, {name: "the witching hour"}), Bosses.summon("jack_lantern", 4, 7, 10)]})
+						Bosses.pull(12, 70, 6.0, 0x60e040, {name: "the witching hour"}), Bosses.summon("jack_lantern", 3, 8, 6)]})
 			]}, ["candy_corn_ring", "pumpkin_signet"]);
 			
-			Bosses.mob("snowling", {name: "Snowling", spr: "snowling", hp: 2400, def: 14, spd: 3.6, xp: 120, col: 0xc8e8ff, ai: "orbit", keep: 3, drop: 0.3,
+			Bosses.mob("snowling", {name: "Snowling", spr: "snowling", hp: 900, def: 14, spd: 3.6, xp: 120, col: 0xc8e8ff, ai: "orbit", keep: 3, drop: 0.3,
 				attacks: [Bosses.aim(3, 24, 8, 70, 1.1, 0xc8e8ff, {shape: "snowball", name: "snowballs"}), Bosses.ring(8, 0, 4.5, 60, 2.4, 0x60b0ff, {name: "frost ring", eff: "slowed"})]});
-			Bosses.boss("snow_tyrant", {name: "Grimsnow the Snow Tyrant", spr: "snow_tyrant", hp: 150000, def: 30, spd: 1.3, xp: 6000, col: 0x9fe0ff,
+			Bosses.boss("snow_tyrant", {name: "Grimsnow the Snow Tyrant", spr: "snow_tyrant", hp: 55000, def: 30, spd: 1.3, xp: 6000, col: 0x9fe0ff,
 				gold: 1500, r: 1.5, siege: true, scales: true, aggro: 22, range: 20,
-				world: {minion: "snowling", time: 300, zone: 3, title: "WINTER", won: "GRIMSNOW IS MELTED!"},
+				world: {minion: "snowling", waves: false, time: 300, zone: 3, title: "WINTER", won: "GRIMSNOW IS MELTED!"},
 				hint: "Grimsnow stomps in! Dodge his snowball barrages and icicle walls, smash his snowlings, and keep moving: his frost slows you down.",
 				phases: [
 				Bosses.P(1, {say: "WHO'S BEEN NAUGHTY?", move: "chase", speed: 1.0, summon: [{what: "snowling", n: 2}],
 					attacks: [Bosses.aim(5, 50, 9, 95, 1.0, 0xc8e8ff, {name: "snowball barrage"}), Bosses.ring(12, 15, 5, 80, 1.8, 0x60b0ff, {name: "frost ring", eff: "slowed"}),
-						Bosses.rain(4, 4, 110, 3.0, 0x9fe0ff, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "falling icicles"}), Bosses.summon("snowling", 2, 8, 6)]}),
+						Bosses.rain(4, 4, 110, 3.0, 0x9fe0ff, {radius: 1.4, delay: 1.0, fx: "pillar", burst: 5, name: "falling icicles"}), Bosses.summon("snowling", 2, 8, 4)]}),
 				Bosses.P(0.65, {say: "A BLIZZARD COMES!", banner: "A blizzard comes!", shield: 3, move: "orbit",
 					attacks: [Bosses.spiral(4, 13, 6, 85, 0.13, 0x9fe0ff, {name: "blizzard spiral"}), Bosses.aim(3, 30, 7, 110, 1.4, 0x60b0ff, {motion: "home", name: "homing snowballs"}),
-						Bosses.wall(16, 4.5, 100, 3.4, 0x9fe0ff, {hole: 3, name: "icicle wall"}), Bosses.summon("snowling", 3, 9, 8)]}),
+						Bosses.wall(16, 4.5, 100, 3.4, 0x9fe0ff, {hole: 3, name: "icicle wall"}), Bosses.summon("snowling", 2, 9, 5)]}),
 				Bosses.P(0.3, {say: "THE LONGEST NIGHT!", banner: "THE LONGEST NIGHT!", shield: 3, move: "chase", speed: 1.35,
-					attacks: [Bosses.flower(20, 7, 5.5, 95, 0.9, 0xc8e8ff, {name: "snowflake whirl"}), Bosses.spiral(5, -11, 6.5, 100, 0.12, 0x60b0ff, {name: "frost spiral", eff: "slowed"}),
+					attacks: [Bosses.flower(20, 7, 5.5, 95, 0.9, 0xc8e8ff, {name: "snowflake whirl"}), Bosses.spiral(4, -11, 6.5, 90, 0.14, 0x60b0ff, {name: "frost spiral"}),
 						Bosses.rain(7, 5, 125, 2.2, 0x9fe0ff, {radius: 1.4, delay: 0.9, fx: "pillar", burst: 6, name: "falling icicles"}),
-						Bosses.pull(16, 100, 4.0, 0x60b0ff, {name: "the deep freeze"}), Bosses.summon("snowling", 4, 7, 10)]})
+						Bosses.pull(12, 70, 6.0, 0x60b0ff, {name: "the deep freeze"}), Bosses.summon("snowling", 3, 8, 6)]})
 			]}, ["peppermint_ring", "grimsnows_crown"]);
 			Bosses.mob("siege_soldier", {name: "Siege Soldier", spr: "siege_soldier", hp: 5200, def: 30, spd: 2.6, xp: 160, col: 0xffa020, keep: 2,
 				attacks: [Bosses.aim(3, 24, 8, 90, 1.3, 0xd8d0c0, {shape: "blade"}), Bosses.aim(1, 0, 6, 110, 2.6, 0xff6010, {motion: "home", r: 0.28})]});
@@ -2332,15 +2333,15 @@ class Bosses {
 					attacks: [Bosses.rain(8, 6, 90, 2, 0xc070ff, {burst: 4}), Bosses.spiral(3, 23, 7, 70, 0.1, 0xfff060)]})
 			]}, ["starfall_dagger", "astral_cloak"]);
 			Bosses.boss("frost_warden", {phases: [
-				Bosses.P(1, {move: "wander", attacks: [Bosses.spiral(4, 10, 5, 65, 0.16, 0x80e0ff), Bosses.aim(1, 0, 10, 110, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
+				Bosses.P(1, {move: "wander", attacks: [Bosses.spiral(4, 10, 5, 65, 0.2, 0x80e0ff), Bosses.aim(1, 0, 8.5, 85, 1.1, 0xffffff, {shape: "blade", r: 0.3}),
 					Bosses.ring(10, 18, 3.5, 60, 2.4, 0xc0e8ff, {name: "frost ring"})]}),
 				Bosses.P(0.5, {say: "The cold takes everything.", shield: 2, move: "center",
-					attacks: [Bosses.wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3, eff: "slowed"}), Bosses.rain(5, 5, 85, 2.6, 0x80f0ff, {delay: 1.3})]})
+					attacks: [Bosses.wall(15, 4.5, 90, 2.2, 0xc0e8ff, {hole: 3}), Bosses.rain(5, 5, 75, 2.6, 0x80f0ff, {delay: 1.6})]})
 			]}, ["glacial_plate", "icicle_ring"]);
 			Bosses.boss("flame_warden", {phases: [
 				Bosses.P(1, {move: "wander", attacks: [Bosses.aim(4, 60, 8, 75, 1.2, 0xff6020), Bosses.ring(10, 15, 4, 65, 2.0, 0xffb020, {split: {n: 3, spd: 3.5, life: 0.7, dmg: 40}, life: 1.4})]}),
 				Bosses.P(0.5, {say: "Burn with your friend!", shield: 2, move: "charge",
-					attacks: [Bosses.spiral(4, 13, 5.5, 70, 0.14, 0xff6020), Bosses.nova(2.2, 1.3, 95, 2.7, 0xff3010, {burst: 5, bspd: 3.5})]})
+					attacks: [Bosses.spiral(4, 13, 5.5, 70, 0.18, 0xff6020), Bosses.nova(2.2, 1.3, 95, 2.7, 0xff3010, {burst: 5, bspd: 3.5})]})
 			]}, ["flamewarden_blade", "ember_ring"]);
 			Bosses.boss("shattered_seraph", {phases: [
 				Bosses.P(1, {move: "orbit", attacks: [Bosses.spiral(4, 12, 6, 70, 0.12, 0xff60c0), Bosses.aim(3, 24, 10, 90, 1.0, 0xffffff, {shape: "blade"})]}),
@@ -6282,7 +6283,7 @@ Data.ENEMIES = {
 						{p: "aimed", n: 1, spd: 15, life: 1.4, dmg: 120, cd: 0.8, r: 0.3, col: 0xffffff, shape: "blade", eff: "paralyzed"}],
 					[{p: "spiral", n: 6, rot: -13, spd: 7, life: 2.0, dmg: 70, cd: 0.1, r: 0.2, col: 0xfff060, shape: "star"}]
 				]},
-			frost_warden: {name: "Glacius the Frost Warden", spr: "frost_warden", hp: 18000, def: 25, spd: 1.2, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x80e0ff,
+			frost_warden: {name: "Glacius the Frost Warden", spr: "frost_warden", hp: 11000, def: 25, spd: 1.2, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0x80e0ff,
 				gold: 400, onrane: 5, dungeon: true, dtier: 5, guardian: true,
 				phases: [
 					[{p: "ring", n: 18, rot: 10, spd: 4.5, life: 2.8, dmg: 70, cd: 1.1, r: 0.24, col: 0xc0f0ff, shape: "ring", eff: "slowed"},
@@ -6291,7 +6292,7 @@ Data.ENEMIES = {
 						{p: "summon", n: 2, cd: 8, what: "ghost"}],
 					[{p: "ring", n: 32, rot: 5.6, spd: 5, life: 2.6, dmg: 80, cd: 0.8, r: 0.24, col: 0x40a0ff, shape: "orb", eff: "paralyzed"}]
 				]},
-			flame_warden: {name: "Ignivar the Flame Warden", spr: "flame_warden", hp: 18000, def: 25, spd: 1.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xff6020,
+			flame_warden: {name: "Ignivar the Flame Warden", spr: "flame_warden", hp: 11000, def: 25, spd: 1.4, xp: 1600, ai: "boss", r: 0.9, aggro: 14, range: 14, drop: 1, col: 0xff6020,
 				gold: 400, onrane: 5, dungeon: true, dtier: 5, guardian: true,
 				phases: [
 					[{p: "aimed", n: 7, arc: 70, spd: 8, life: 1.8, dmg: 80, cd: 1.0, r: 0.24, col: 0xff6020, shape: "orb", eff: "bleeding"}],
@@ -6398,7 +6399,8 @@ Data.NEWS = [
 					"Event bosses hit a little softer (their extra damage went from +45% to +25%), and <b>Pyraxis</b> and <b>the Obsidian Colossus</b> fire thinner spirals in their last phase: they were far deadlier than the others.",
 					"Standing still is still a bad idea: every event punishes heroes who don't dodge."]},
 			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",
-				lines: ["<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
+				lines: ["<b>World bosses for whoever is about</b>: Grimsnow (and the Pumpkin King, next Halloween) now come sized for the heroes around them: beatable alone in the five minutes, and each hero who joins adds a whole share. No more waves of minions on top of their own.",
+					"<b>Winter is coming</b>: from <b>1 December to 6 January</b> snow falls over the Nexus and the realms, and every ten minutes <b>Grimsnow the Snow Tyrant</b> stomps into each realm with heroes in it (you're warned 30 seconds before): a hulking snowman with a crown of icicles, coal eyes burning blue and a great club of ice.",
 					"Melt him within <b>5 minutes</b>: snowball barrages, frost rings that slow you, falling icicles, icicle walls with a gap to slip through, and a blizzard that pulls you in. His snowlings hop along beside him. Everyone who hits him shares the loot by their share of the damage.",
 					"He can drop the <b>Peppermint Ring</b> (UT) and four Legendaries: <b>Grimsnow's Crown</b> (the tank ring), the <b>Staff of the Longest Night</b> (three frost bolts that slow), <b>The Snowglobe</b> (Time Stop lasts 1s longer) and the <b>Frostwoven Robe</b>.",
 					"And, 1 in 2,500: <font color='#fff6e0'><b>Everwinter Heart</b></font>, a Godly ring for every class built to keep you standing. Like All Hallows' Eye, it counts as a piece of whatever Godly set you wear.",

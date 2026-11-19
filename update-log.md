@@ -1,3 +1,20 @@
+**📜 ELDMERE UPDATE: Bosses Tuned**
+
+**☃️ World bosses for whoever is about**
+• **Grimsnow** (and the **Pumpkin King**, next Halloween) were out of reach: even three heroes couldn't beat them in the 5 minutes
+• They now have **55,000 health for one hero**, and each hero who joins adds a whole share again
+• No more extra waves of minions on top of their own snowlings and jack-o'-lanterns, which now have far less health
+• Their last phase hits softer: a weaker, slower pull and a thinner spiral
+• Three heroes now bring them down in about 2 minutes; alone it's a real fight, but you can win it
+
+**❄️🔥 The Shattered Sanctum's Wardens**
+• **Glacius** and **Ignivar** were far deadlier than the Seraph they guard
+• Both have **less health** (about half the Seraph's)
+• **Glacius**: a slower spiral, a lighter, slower icicle, falling blasts with more warning, and his wall no longer slows you
+• **Ignivar**: a slower ember spiral
+
+---
+
 **📜 ELDMERE UPDATE: Potion Alchemy & Stronger Wands**
 
 **🪄 Wands hit harder**

@@ -109,12 +109,13 @@ function setup(id) {
     const b = sim.spawn('abyss_herald', 100.5, 96.5, World.ARENA_ZONE || 1, true);
     targets = () => sim.enemies.filter((e) => !e.dead && (e === b || e.def.prop));
     tier = 'finale';
-  } else if (id === 'siege_warlord') {
+  } else if (id === 'siege_warlord' || (d.siege && d.world)) {
+    // (the Realm Siege, or a seasonal world boss: the Pumpkin King, Grimsnow)
     sim = new WorldSim('realm:Bench:77');
     sim.updateSpawns = () => {}; sim.updateEvents = () => {}; sim.updateGoblin = () => {};
-    sim.startSiege();
+    sim.startSiege(id);
     targets = () => sim.siege && sim.siege.e && !sim.siege.e.dead ? [sim.siege.e] : [];
-    tier = 'raid'; group = 6;
+    tier = id === 'siege_warlord' ? 'raid' : 'event'; group = id === 'siege_warlord' ? 6 : 3;
   } else if (d.raid || d.stageFoe) {
     const ri = Bosses.RAIDS.findIndex((r) => r.stages.some((s) => s.indexOf(id) >= 0));
     const rd = Bosses.RAIDS[ri];
@@ -278,7 +279,8 @@ function fight(id, opts) {
     // far away or cut off (another room, behind a wall): it walks there (we skip the walk)
     if (tg) {
       const far = Math.hypot(tg.x - b.x, tg.y - b.y);
-      b.farT = far > Math.max(12, H.range * 1.6) ? (b.farT || 0) + dt : 0;
+      // (out of reach: far off, or out of range behind a maze wall for a few seconds: it walks round, which we skip)
+      b.farT = far > Math.max(12, H.range * 1.6) ? (b.farT || 0) + dt : far > H.range + (tg.r || 0.5) ? (b.farT || 0) + dt / 3 : 0;
       if (b.farT > 2) { place(b, tg.x + (b.x - tg.x) / far * H.range * 0.7, tg.y + (b.y - tg.y) / far * H.range * 0.7); b.farT = 0; return; }
     }
     if (b.stand) {

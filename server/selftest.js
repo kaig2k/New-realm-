@@ -1371,6 +1371,25 @@ async function run() {
       Math.round(plainW) + ' ' + Math.round(plainS) + ' ' + lgW.map(Math.round).join(','));
   }
 
+  console.log('seasonal world bosses: for whoever is about');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const ws = new WorldSim('realm:Season:4246');
+    ws.updateSpawns = () => {}; ws.updateEvents = () => {};
+    const near = (k) => ({ id: 70 + k, name: 'S' + k, x: 0, y: 0, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send() {} });
+    const c1 = near(1); ws.join(c1);
+    ws.startSiege('snow_tyrant');
+    const e = ws.siege.e;
+    c1.x = e.x; c1.y = e.y + 3;
+    const solo = e.maxHp;
+    for (const k of [2, 3]) { const c = near(k); c.x = e.x + k; c.y = e.y + 3; ws.join(c); }
+    ws.scaleT = 0; ws.scaleBosses(0.1);
+    for (let t = 0; t < 60; t += 0.5) ws.updateSiege(0.5);
+    const minions = ws.enemies.filter((o) => !o.dead && o.defId === 'snowling').length;
+    check('Grimsnow alone has 55,000 health, each hero who joins adds a whole share; no soldiers march in waves (only his own snowlings)',
+      solo === 55000 && Math.abs(e.maxHp - 165000) < 1 && minions <= 2, solo + ' ' + e.maxHp + ' ' + minions);
+  }
+
   console.log('mimics grow with the land');
   {
     const { WorldSim } = require('./sim/worldsim');

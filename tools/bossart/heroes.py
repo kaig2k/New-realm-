@@ -1,4 +1,6 @@
 """
+(NOT IN USE: the game keeps its original 8x8 heroes; props.py still takes tint/shade from here.)
+
 The heroes, redrawn at 16x16 (they were 8x8): every class in three frames (standing, a step, the
 attack), facing right, in the same palette letters as before so every skin and dye still recolours
 them (Data.SKINS, Data.DYES). Shading adds tones the old drawings didn't have; those are digits, each

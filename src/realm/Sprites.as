@@ -23,52 +23,52 @@ package realm {
 		// RotMG "lofi" style: big hooded head, pale face with two eyes, narrow shaded body,
 		// 1px weapon at the side. Frames: stand, walk, attack.
 		private static const WIZARD:Array = [
-			["......111.......", ".....rRRR1......", ".....1RRRr...G..", ".....1RRRR1.G2G.", "....1RRRRRr..G..", "...rrrrrrrrrrY..", "......SSSS...Y..", "......SESE...Y..", ".....1WWWW1..Y..", ".....1WWWW1SSY..", "....1R1WW1R1.Y..", "....1RrWW1Rr.Y..", "...1RRrWW1RR1Y..", "...rrrrrrrrrrY..", "......BB.BB..Y..", "......BB.BB..Y.."],
-			["......111.......", ".....rRRR1......", ".....1RRRr...G..", ".....1RRRR1.G2G.", "....1RRRRRr..G..", "...rrrrrrrrrrY..", "......SSSS...Y..", "......SESE...Y..", ".....1WWWW1..Y..", ".....1WWWW1SSY..", "....1R1WW1R1.Y..", "....1RrWW1Rr.Y..", "...1RRrWW1RR1Y..", "...rrrrrrrrrrY..", ".....BB..BB..Y..", ".....BB..BB..Y.."],
-			["......111.....G.", ".....rRRR1...G2G", ".....1RRRr....G.", ".....1RRRR1...Y.", "....1RRRRRr...Y.", "...rrrrrrrrrr.Y.", "......SSSS....Y.", "......SESE....Y.", ".....1WWWW1.SSY.", ".....1WWWW1...Y.", "....1R1WW1R1..Y.", "....1RrWW1Rr..Y.", "...1RRrWW1RR1.Y.", "...rrrrrrrrrr...", "......BB.BB.....", "......BB.BB....."]];
+			["...RR..G", "..RRRr.Y", ".rSESEr.", "..SSSS.Y", "RRRWWRRS", ".rRWWRrY", ".rRRRRr.", "..B..B.."],
+			["...RR..G", "..RRRr.Y", ".rSESEr.", "..SSSS.Y", "RRRWWRRS", ".rRWWRrY", ".rRRRRr.", ".B....B."],
+			["...RR...", "..RRRr..", ".rSESEr.", "..SSSS.G", "RRRWWRSY", ".rRWWRY.", ".rRRRRr.", "..B..B.."]];
 		private static const ARCHER:Array = [
-			["................", "......1111......", ".....1GGGg..W...", ".....1gggg..YW..", "....1gSSSS1.YW..", "....1gSESE1.YWW.", "...gGgSSSSg.Y.W.", "...ggggggg..Y.W.", "...gg222222.YSW.", "..ggg2LLLLl.Y.W.", "..ggg2LLLLl.Y.W.", "..gggllllll.YWW.", "..gggllllll.YW..", "......BB.BB.YW..", "......BB.BB.W...", "......BB.BB....."],
-			["................", "......1111......", ".....1GGGg..W...", ".....1gggg..YW..", "....1gSSSS1.YW..", "....1gSESE1.YWW.", "...gGgSSSSg.Y.W.", "...ggggggg..Y.W.", "...gg222222.YSW.", "..ggg2LLLLl.Y.W.", "..ggg2LLLLl.Y.W.", "..gggllllll.YWW.", "..gggllllll.YW..", ".....BB..BB.YW..", ".....BB..BB.W...", ".....BB..BB....."],
-			["................", "......1111......", ".....1GGGg...W..", ".....1gggg...YW.", "....1gSSSS1.YYW.", "....1gSESE1.Y.WW", "...gGgSSSSg.Y..W", "...ggggggg.YY..W", "...gg222222SYYYY", "..ggg2LLLLlYY..W", "..ggg2LLLLl.Y.WW", "..gggllllll.YYW.", "..gggllllll..YW.", "......BB.BB..W..", "......BB.BB.....", "......BB.BB....."]];
+			["..GGGg.W", ".GGGGGgW", ".gSESEg.", "..SSSS.W", "gLLLLLgS", ".gLllLgW", ".gLLLLg.", "..B..B.."],
+			["..GGGg.W", ".GGGGGgW", ".gSESEg.", "..SSSS.W", "gLLLLLgS", ".gLllLgW", ".gLLLLg.", ".B....B."],
+			["..GGGg..", ".GGGGGg.", ".gSESEgW", "..SSSSW.", "gLLLLLSW", ".gLllLW.", ".gLLLLg.", "..B..B.."]];
 		private static const KNIGHT:Array = [
-			[".......rr.......", ".....rr111......", "....r11HHH1.....", "...r.1HHhHh.W...", ".....1hhEhE.W...", ".....1HH1H1.W...", ".....1HHHHh.W...", ".....hhhhhh.W...", ".2222333333mW...", ".kQkkMMMMMMmW...", ".QQQ2MMMMMMAAA..", ".2Q2k3MmmMm.S...", ".k2KkmmAAmm.....", "..kk..BB.BB.....", "......BB.BB.....", "......BB.BB....."],
-			[".......rr.......", ".....rr111......", "....r11HHH1.....", "...r.1HHhHh.W...", ".....1hhEhE.W...", ".....1HH1H1.W...", ".....1HHHHh.W...", ".....hhhhhh.W...", ".2222333333mW...", ".kQkkMMMMMMmW...", ".QQQ2MMMMMMAAA..", ".2Q2k3MmmMm.S...", ".k2KkmmAAmm.....", "..kk.BB..BB.....", ".....BB..BB.....", ".....BB..BB....."],
-			[".......rr.......", ".....rr111......", "....r11HHH1.....", "...r.1HHhHh.....", ".....1hhEhE.....", ".....1HH1H1....W", ".....1HHHHh...W.", ".....hhhhhh..W..", ".2222333333mW...", ".kQkkMMMMMAW....", ".QQQ2MMMMMMAS...", ".2Q2k3MmmMm.....", ".k2KkmmAAmm.....", "..kk..BB.BB.....", "......BB.BB.....", "......BB.BB....."]];
+			["..HHHH..", ".HHrrHH.", ".HEhEhHW", ".hHHHHhW", "KKMMMMmW", "KQKMMmSA", "KKMMMMm.", "..B..B.."],
+			["..HHHH..", ".HHrrHH.", ".HEhEhHW", ".hHHHHhW", "KKMMMMmW", "KQKMMmSA", "KKMMMMm.", ".B....B."],
+			["..HHHH..", ".HHrrHH.", ".HEhEhH.", ".hHHHHh.", "KKMMMMm.", "KQKMMmSW", "KKMMMMmW", "..B..B.."]];
 		private static const PRIEST:Array = [
-			["......YYYY......", "......1111......", ".....1WWWw......", ".....1wwww......", ".....1SSSS1.G...", "....1wSESE1GGG..", "....wwSSSS1.G...", ".....11111w.Y...", ".....1wYYww.Y...", "....1wYYYY11Y...", "....1W1YY1WwS...", "....1WwYY1WwY...", "...1WWwYY1WW1...", "...wwwwYYwwww...", "......BB.BB.....", "......BB.BB....."],
-			["......YYYY......", "......1111......", ".....1WWWw......", ".....1wwww......", ".....1SSSS1.G...", "....1wSESE1GGG..", "....wwSSSS1.G...", ".....11111w.Y...", ".....1wYYww.Y...", "....1wYYYY11Y...", "....1W1YY1WwS...", "....1WwYY1WwY...", "...1WWwYY1WW1...", "...wwwwYYwwww...", ".....BB..BB.....", ".....BB..BB....."],
-			["......YYYY......", "......1111......", ".....1WWWw......", ".....1wwww....GG", ".....1SSSS1...GG", "....1wSESE1..Y..", "....wwSSSS1.YY..", ".....11111w.Y...", ".....1wYYwwY....", "....1wYYYY1S....", "....1W1YY1Ww....", "....1WwYY1Ww....", "...1WWwYY1WW1...", "...wwwwYYwwww...", "......BB.BB.....", "......BB.BB....."]];
+			["..WWWw..", ".WWWWWwG", ".wSESEwY", "..SSSS.Y", "wWWYWWwS", ".wYYYWwY", ".wWYWWw.", "..B..B.."],
+			["..WWWw..", ".WWWWWwG", ".wSESEwY", "..SSSS.Y", "wWWYWWwS", ".wYYYWwY", ".wWYWWw.", ".B....B."],
+			["..WWWw..", ".WWWWWw.", ".wSESEw.", "..SSSS.G", "wWWYWWSY", ".wYYYWY.", ".wWYWWw.", "..B..B.."]];
 
 		private static const ROGUE:Array = [
-			["................", "......1111......", ".....1PPPp......", ".....1pppp.p....", ".....1SSSS1.....", "....1pSESE1.....", "....1pKKKK1.....", "....1p1111p.W...", "...1p2222221W...", "...1p2KKKKk1W...", "...ppkkkkkkpW...", "....p2k112k.Sk..", ".....kkppkk.....", "......BB.BB.....", "......BB.BB.....", "......BB.BB....."],
-			["................", "......1111......", ".....1PPPp......", ".....1pppp.p....", ".....1SSSS1.....", "....1pSESE1.....", "....1pKKKK1.....", "....1p1111p.W...", "...1p2222221W...", "...1p2KKKKk1W...", "...ppkkkkkkpW...", "....p2k112k.Sk..", ".....kkppkk.....", ".....BB..BB.....", ".....BB..BB.....", ".....BB..BB....."],
-			["................", "......1111......", ".....1PPPp......", ".....1pppp.p....", ".....1SSSS1.....", "....1pSESE1.....", "....1pKKKK1.....", "....1p1111p...WW", "...1p2222221WWW.", "...1p2KKKKkWW...", "...ppkkkkkkS....", "....p2k112k.....", ".....kkppkk.....", "......BB.BB.....", "......BB.BB.....", "......BB.BB....."]];
+			["..PPPp..", ".PPPPPp.", ".pSESEp.", "..KKKK..", "kKKKKKkS", ".kKPPKkW", ".kKKKKk.", "..B..B.."],
+			["..PPPp..", ".PPPPPp.", ".pSESEp.", "..KKKK..", "kKKKKKkS", ".kKPPKkW", ".kKKKKk.", ".B....B."],
+			["..PPPp..", ".PPPPPp.", ".pSESEp.", "..KKKK..", "kKKKKKSW", ".kKPPKW.", ".kKKKKk.", "..B..B.."]];
 		private static const WARRIOR:Array = [
-			["..Y...1111...Y..", "...Y.1HHHH1.YW..", "....Y1HHHHhY.W..", "....Y1HHHHhY.W..", ".....hhhhhh..W..", "......SEhE...W..", "......SSSS...W..", "......hhhh...W..", "...4433hh334.W..", "...4r3MMMMm4.W..", "..4Rr3MMMMm4AAA.", "..4Rr3MmmMm4rS..", "..rrrmmAAmmrr...", "......BB.BB.....", "......BB.BB.....", "......BB.BB....."],
-			["..Y...1111...Y..", "...Y.1HHHH1.YW..", "....Y1HHHHhY.W..", "....Y1HHHHhY.W..", ".....hhhhhh..W..", "......SEhE...W..", "......SSSS...W..", "......hhhh...W..", "...4433hh334.W..", "...4r3MMMMm4.W..", "..4Rr3MMMMm4AAA.", "..4Rr3MmmMm4rS..", "..rrrmmAAmmrr...", ".....BB..BB.....", ".....BB..BB.....", ".....BB..BB....."],
-			["..Y...1111...Y..", "...Y.1HHHH1.Y...", "....Y1HHHHhY....", "....Y1HHHHhY...W", ".....hhhhhh...W.", "......SEhE...WW.", "......SSSS...W..", "......hhhh..WW..", "...4433hh334A...", "...4r3MMMMmA....", "..4Rr3MMMMAS4...", "..4Rr3MmmMm4r...", "..rrrmmAAmmrr...", "......BB.BB.....", "......BB.BB.....", "......BB.BB....."]];
+			["Y.HHHH.Y", "YHHHHHHY", ".HEhEhH.", ".hHHHHhW", "RRMMMMmW", "RMMMMmSA", ".RMMMMm.", "..B..B.."],
+			["Y.HHHH.Y", "YHHHHHHY", ".HEhEhH.", ".hHHHHhW", "RRMMMMmW", "RMMMMmSA", ".RMMMMm.", ".B....B."],
+			["Y.HHHH.Y", "YHHHHHHY", ".HEhEhH.", ".hHHHHh.", "RRMMMMm.", "RMMMMmSW", ".RMMMMmW", "..B..B.."]];
 		private static const NECRO:Array = [
-			["............GGG.", "......1111..dGd.", ".....1DDDd..GGG.", ".....1DDDd...W..", ".....1dddd1..W..", "....1DdEdE1..W..", "....dDddddd..W..", ".....1DddDd..W..", ".....1dKK1d..W..", "....1DdKK1D1SW..", "....1DdKK1Dd.W..", "....1DdKK1Dd.W..", "...1DDdKK1DD1W..", "...ddddKKddddW..", "......BB.BB..W..", "......BB.BB..W.."],
-			["............GGG.", "......1111..dGd.", ".....1DDDd..GGG.", ".....1DDDd...W..", ".....1dddd1..W..", "....1DdEdE1..W..", "....dDddddd..W..", ".....1DddDd..W..", ".....1dKK1d..W..", "....1DdKK1D1SW..", "....1DdKK1Dd.W..", "....1DdKK1Dd.W..", "...1DDdKK1DD1W..", "...ddddKKddddW..", ".....BB..BB..W..", ".....BB..BB..W.."],
-			[".............GGG", "......1111...dGd", ".....1DDDd...GGG", ".....1DDDd....W.", ".....1dddd1...W.", "....1DdEdE1...W.", "....dDddddd...W.", ".....1DddDd...W.", ".....1dKK1d..SW.", "....1DdKK1D1..W.", "....1DdKK1Dd..W.", "....1DdKK1Dd..W.", "...1DDdKK1DD1.W.", "...ddddKKdddd...", "......BB.BB.....", "......BB.BB....."]];
+			["..DDDd.G", ".DDDDDdW", ".dSESEd.", "..SSSS.W", "dDDKDDdS", ".dKKKDdW", ".dDKDDd.", "..B..B.."],
+			["..DDDd.G", ".DDDDDdW", ".dSESEd.", "..SSSS.W", "dDDKDDdS", ".dKKKDdW", ".dDKDDd.", ".B....B."],
+			["..DDDd..", ".DDDDDd.", ".dSESEd.", "..SSSS.G", "dDDKDDSW", ".dKKKDW.", ".dDKDDd.", "..B..B.."]];
 		private static const HUNTRESS:Array = [
-			["................", ".......1.1......", "....111R1R1.W...", "....1Rrrrrr.YW..", "....1rSSSS..YW..", "....1rSESE..YWW.", "....1rSSSS..Y.W.", "....1r1.....Y.W.", "....1222222.YSW.", "...1r2GGGGg.Y.W.", "...rrgggggg.Y.W.", ".....LLLLLL.YWW.", ".....222222.YW..", "......BB.BB.YW..", "......BB.BB.W...", "......BB.BB....."],
-			["................", ".......1.1......", "....111R1R1.W...", "....1Rrrrrr.YW..", "....1rSSSS..YW..", "....1rSESE..YWW.", "....1rSSSS..Y.W.", "....1r1.....Y.W.", "....1222222.YSW.", "...1r2GGGGg.Y.W.", "...rrgggggg.Y.W.", ".....LLLLLL.YWW.", ".....222222.YW..", ".....BB..BB.YW..", ".....BB..BB.W...", ".....BB..BB....."],
-			["................", ".......1.1......", "....111R1R1..W..", "....1Rrrrrr..YW.", "....1rSSSS..YYW.", "....1rSESE..Y.WW", "....1rSSSS..Y..W", "....1r1....YY..W", "....1222222SYYYY", "...1r2GGGGgYY..W", "...rrgggggg.Y.WW", ".....LLLLLL.YYW.", ".....222222..YW.", "......BB.BB..W..", "......BB.BB.....", "......BB.BB....."]];
+			["..RRRr.W", ".RRRRRrW", "RrSESErW", "R.SSSS.W", "gGGGGGgS", ".gGLLGgW", ".gGGGGg.", "..B..B.."],
+			["..RRRr.W", ".RRRRRrW", "RrSESErW", "R.SSSS.W", "gGGGGGgS", ".gGLLGgW", ".gGGGGg.", ".B....B."],
+			["..RRRr..", ".RRRRRr.", "RrSESErW", "R.SSSSW.", "gGGGGGSW", ".gGLLGW.", ".gGGGGg.", "..B..B.."]];
 		// Eldmere's own classes: the Bard (feathered cap and lyre), the Alchemist (goggles, apron
 		// and a bubbling flask) and the Chronomancer (star-blue hood and a golden hourglass)
 		private static const BARD:Array = [
-			["............HH..", "..........HHHhh.", ".....1111HHhhh..", "....1VVVV1hh....", "....vvvvvv1.....", "......SSSS.L...L", "......SESE.LLLLL", "......SSSS.LWWWL", ".....v2222vLLWLL", ".....2vvvvv.LWL.", ".....21vvVv.LWL.", ".....2vvvvS.LLL.", ".....vvvvvv.LLL.", "......BB.BB.....", "......BB.BB.....", "......BB.BB....."],
-			["............HH..", "..........HHHhh.", ".....1111HHhhh..", "....1VVVV1hh....", "....vvvvvv1.....", "......SSSS.L...L", "......SESE.LLLLL", "......SSSS.LWWWL", ".....v2222vLLWLL", ".....2vvvvv.LWL.", ".....21vvVv.LWL.", ".....2vvvvS.LLL.", ".....vvvvvv.LLL.", ".....BB..BB.....", ".....BB..BB.....", ".....BB..BB....."],
-			["............HH..", "..........HHHhh.", ".....1111HHhhh..", "....1VVVV1hL...L", "....vvvvvv1LLLLL", "......SSSS.LWWWL", "......SESE.LLWLL", "......SSSS..LWL.", ".....v2222v.LWL.", ".....2vvvvS.LLL.", ".....21vvVv.LLL.", ".....2vvvvv.....", ".....vvvvvv.....", "......BB.BB.....", "......BB.BB.....", "......BB.BB....."]];
+			["..VVVH..", ".VVVVVhH", ".vSESEv.", "..SSSS.L", "vVVLVVvS", ".vVVVVvL", ".vVVVVv.", "..B..B.."],
+			["..VVVH..", ".VVVVVhH", ".vSESEv.", "..SSSS.L", "vVVLVVvS", ".vVVVVvL", ".vVVVVv.", ".B....B."],
+			["..VVVH..", ".VVVVVhH", ".vSESEvL", "..SSSSL.", "vVVLVVSL", ".vVVVVL.", ".vVVVVv.", "..B..B.."]];
 		private static const ALCHEMIST:Array = [
-			["................", "......1111......", ".....1AAAa......", ".....1aaAa......", ".....1GGaG1.....", "....1aSSSS1.....", "....aaSSSSa.....", "................", ".....2M22M2.W...", ".....2MMMM2F3F..", ".....2MMMM2FFF..", ".....2MMMM2SFF..", ".....aMMMMa.....", "......MMMMB.....", "......BB.BB.....", "......BB.BB....."],
-			["................", "......1111......", ".....1AAAa......", ".....1aaAa......", ".....1GGaG1.....", "....1aSSSS1.....", "....aaSSSSa.....", "................", ".....2M22M2.W...", ".....2MMMM2F3F..", ".....2MMMM2FFF..", ".....2MMMM2SFF..", ".....aMMMMa.....", ".....BMMMMB.....", ".....BB..BB.....", ".....BB..BB....."],
-			["................", "......1111......", ".....1AAAa....F.", ".....1aaAa...W..", ".....1GGaG1.F3F.", "....1aSSSS1.FFF.", "....aaSSSSa.FFF.", "................", ".....2M22M2S....", ".....2MMMM2.....", ".....2MMMM2.....", ".....2MMMM2.....", ".....aMMMMa.....", "......MMMMB.....", "......BB.BB.....", "......BB.BB....."]];
+			["..AAAa..", ".AGAAGa.", ".aSESEa.", "..SSSS.F", "aAMMMMaS", ".aMMMMaF", ".aAAAAa.", "..B..B.."],
+			["..AAAa..", ".AGAAGa.", ".aSESEa.", "..SSSS.F", "aAMMMMaS", ".aMMMMaF", ".aAAAAa.", ".B....B."],
+			["..AAAa.F", ".AGAAGaF", ".aSESEa.", "..SSSSS.", "aAMMMMS.", ".aMMMMa.", ".aAAAAa.", "..B..B.."]];
 		private static const CHRONO:Array = [
-			["................", "......1111......", ".....1TTOt......", ".....1tttt......", ".....1SSSS1.....", "....1tSESE1.....", "....ttSSSS1.....", ".....11111tYYY..", ".....1tYY1tOOO..", "....1OtYY1T1O...", "....1TtYY1TWWW..", "....1TtYY1OYYY..", "...1TTtYY1TS1...", "...ttttYYtttt...", "......BB.BB.....", "......BB.BB....."],
-			["................", "......1111......", ".....1TTOt......", ".....1tttt......", ".....1SSSS1.....", "....1tSESE1.....", "....ttSSSS1.....", ".....11111tYYY..", ".....1tYY1tOOO..", "....1OtYY1T1O...", "....1TtYY1TWWW..", "....1TtYY1OYYY..", "...1TTtYY1TS1...", "...ttttYYtttt...", ".....BB..BB.....", ".....BB..BB....."],
-			["................", "......1111......", ".....1TTOt......", ".....1tttt......", ".....1SSSS1.YYY.", "....1tSESE1.OOO.", "....ttSSSS1..O..", ".....11111t.WWW.", ".....1tYY1t.YYY.", "....1OtYY1T1S...", "....1TtYY1Tt....", "....1TtYY1Ot....", "...1TTtYY1TT1...", "...ttttYYtttt...", "......BB.BB.....", "......BB.BB....."]];
+			[".TTTTt.O", "TTTTTTtY", ".tSESEt.", "..SSSS.Y", "tTTYTTtS", ".tTYYTtO", ".tTTTTt.", "..B..B.."],
+			[".TTTTt.O", "TTTTTTtY", ".tSESEt.", "..SSSS.Y", "tTTYTTtS", ".tTYYTtO", ".tTTTTt.", ".B....B."],
+			[".TTTTt..", "TTTTTTt.", ".tSESEtO", "..SSSSYY", "tTTYTTSO", ".tTYYTt.", ".tTTTTt.", "..B..B.."]];
 
 		// ================================================================ enemies
 		private static const HUMANOID:Array = [["................", "......2222......", ".....2HHHh......", ".....2hhhh......", ".....2SSSS2.....", "....2hSESE2.A...", "....hhSSSSh.W...", "............W...", ".....111111.W...", ".....1BBBBbSS...", ".....bbbbbbSS...", ".....AAAAAA.....", ".....111111.....", "....1bbbbbb1....", "......LL.LL.....", "......LL.LL....."]];
@@ -278,18 +278,18 @@ package realm {
 
 		// name: [frames, palette, scale]
 		private static const DEFS:Object = {
-			wizard: [WIZARD, {"R": 0xd03030, "r": 0x8a1818, "S": 0xf5dc72, "E": 0x101010, "W": 0xf4f4f4, "Y": 0x8a5a2a, "G": 0x60e0ff, "B": 0x3a2010, "1": 0xe07878, "2": 0xbff2ff}, 3],
-			archer: [ARCHER, {"G": 0x3a9a3a, "g": 0x1e6a1e, "S": 0xf5dc72, "E": 0x101010, "L": 0x8a5a2a, "l": 0x5a3a18, "W": 0xc08040, "B": 0x3a2a14, "1": 0x7ebd7e, "2": 0xb29374, "Y": 0xe2c5a9}, 3],
-			knight: [KNIGHT, {"r": 0xd02020, "H": 0xc8c8d0, "h": 0x7a7a86, "E": 0x101010, "K": 0x3a5ad0, "Q": 0xf0c030, "M": 0xa8a8b4, "m": 0x6a6a78, "S": 0xf5dc72, "A": 0xc89030, "W": 0xf0f0ff, "B": 0x2a2a30, "1": 0xe0e0e5, "2": 0x7e93e0, "k": 0x22367c, "3": 0xcacad2}, 3],
-			priest: [PRIEST, {"W": 0xf4f4f4, "w": 0xa8a8b8, "S": 0xf5dc72, "E": 0x101010, "Y": 0xe0b030, "G": 0x70e0ff, "B": 0x5a4030, "1": 0xf9f9f9}, 3],
+			wizard: [WIZARD, {R: 0xd03030, r: 0x8a1818, S: 0xf5dc72, E: 0x101010, W: 0xf4f4f4, Y: 0x8a5a2a, G: 0x60e0ff, B: 0x3a2010}],
+			archer: [ARCHER, {G: 0x3a9a3a, g: 0x1e6a1e, S: 0xf5dc72, E: 0x101010, L: 0x8a5a2a, l: 0x5a3a18, W: 0xc08040, B: 0x3a2a14}],
+			knight: [KNIGHT, {r: 0xd02020, H: 0xc8c8d0, h: 0x7a7a86, E: 0x101010, K: 0x3a5ad0, Q: 0xf0c030, M: 0xa8a8b4, m: 0x6a6a78, S: 0xf5dc72, A: 0xc89030, W: 0xf0f0ff, B: 0x2a2a30}],
+			priest: [PRIEST, {W: 0xf4f4f4, w: 0xa8a8b8, S: 0xf5dc72, E: 0x101010, Y: 0xe0b030, G: 0x70e0ff, B: 0x5a4030}],
 
-			rogue: [ROGUE, {"P": 0x6a2a8a, "p": 0x3a1850, "S": 0xf5dc72, "E": 0x101010, "K": 0x3a3a44, "k": 0x22222a, "W": 0xd8d8e8, "B": 0x1a1a1a, "1": 0x9e74b2, "2": 0x75757c}, 3],
-			warrior: [WARRIOR, {"Y": 0xf0e0b0, "H": 0xc0a060, "h": 0x806a30, "E": 0x101010, "R": 0xb02020, "M": 0xc83030, "m": 0x802020, "S": 0xf5dc72, "A": 0xc89030, "W": 0xf0f0ff, "B": 0x2a1a10, "1": 0xd9c69f, "3": 0xdb7878, "4": 0xc76262, "r": 0x691313}, 3],
-			necromancer: [NECRO, {"D": 0x2e2e36, "d": 0x18181c, "S": 0xd8d0c0, "E": 0xff3030, "K": 0x9a1a1a, "G": 0xe8e0c8, "W": 0x5a3a2a, "B": 0x101010, "1": 0x626268}, 3],
-			huntress: [HUNTRESS, {"R": 0xd04a20, "r": 0x8a2a10, "S": 0xf5dc72, "E": 0x101010, "G": 0x4a8a3a, "g": 0x2e5a24, "L": 0x8a5a2a, "W": 0xc08040, "B": 0x3a2a14, "1": 0xe0896e, "2": 0x89b27e, "Y": 0xe2c5a9}, 3],
-			bard: [BARD, {"V": 0x3a6ad0, "v": 0x1e3a8a, "H": 0xff4040, "h": 0xa02020, "S": 0xf5dc72, "E": 0x101010, "L": 0xe0b040, "B": 0x5a3a1a, "1": 0x7e9ee0, "2": 0x6187d9, "W": 0xf2dfb2}, 3],
-			alchemist: [ALCHEMIST, {"A": 0x2e7a6a, "a": 0x184a40, "G": 0x80ffe0, "M": 0xc8a878, "S": 0xf5dc72, "E": 0x101010, "F": 0x70ff50, "B": 0x3a2a14, "1": 0x77a89e, "2": 0x629b8f, "3": 0xc5ffb9, "W": 0xdecaae}, 3],
-			chronomancer: [CHRONO, {"T": 0x2a3a8a, "t": 0x141e4a, "Y": 0xf0c040, "O": 0x80e0ff, "S": 0xf5dc72, "E": 0x101010, "B": 0x1a1a2a, "1": 0x747eb2, "W": 0xf9e5b2}, 3],
+			rogue: [ROGUE, {P: 0x6a2a8a, p: 0x3a1850, S: 0xf5dc72, E: 0x101010, K: 0x3a3a44, k: 0x22222a, W: 0xd8d8e8, B: 0x1a1a1a}],
+			warrior: [WARRIOR, {Y: 0xf0e0b0, H: 0xc0a060, h: 0x806a30, E: 0x101010, R: 0xb02020, M: 0xc83030, m: 0x802020, S: 0xf5dc72, A: 0xc89030, W: 0xf0f0ff, B: 0x2a1a10}],
+			necromancer: [NECRO, {D: 0x2e2e36, d: 0x18181c, S: 0xd8d0c0, E: 0xff3030, K: 0x9a1a1a, G: 0xe8e0c8, W: 0x5a3a2a, B: 0x101010}],
+			huntress: [HUNTRESS, {R: 0xd04a20, r: 0x8a2a10, S: 0xf5dc72, E: 0x101010, G: 0x4a8a3a, g: 0x2e5a24, L: 0x8a5a2a, W: 0xc08040, B: 0x3a2a14}],
+			bard: [BARD, {V: 0x3a6ad0, v: 0x1e3a8a, H: 0xff4040, h: 0xa02020, S: 0xf5dc72, E: 0x101010, L: 0xe0b040, B: 0x5a3a1a}],
+			alchemist: [ALCHEMIST, {A: 0x2e7a6a, a: 0x184a40, G: 0x80ffe0, M: 0xc8a878, S: 0xf5dc72, E: 0x101010, F: 0x70ff50, B: 0x3a2a14}],
+			chronomancer: [CHRONO, {T: 0x2a3a8a, t: 0x141e4a, Y: 0xf0c040, O: 0x80e0ff, S: 0xf5dc72, E: 0x101010, B: 0x1a1a2a}],
 			titan: [BOSS_TITAN, {R: 0x7a4a30, r: 0x3e2418, Y: 0xffd040, L: 0xff5a10}, 5],
 			wyrm: [BOSS_WYRM, {C: 0x7ac8f0, c: 0x3a78b0, W: 0xe8f8ff, w: 0xa8d8f0, E: 0x1a2a6a, K: 0xffffff}, 5],
 			hollowking: [BOSS_HOLLOWKING, {Y: 0xf0c030, G: 0x6aff4a, B: 0xe8e0c8, T: 0x9a9280, E: 0x2a2a2a, P: 0x4a1a6a, W: 0xffffff}, 5],
@@ -725,38 +725,6 @@ package realm {
 		/** Flashed version used when something gets hit. */
 		/** Builds (once) the sprite definition for a class skin: the class frames with a recoloured palette. */
 		/**
-		 * The heroes' shading tones (tools/bossart/heroes.py): each is worked out from one of the class's
-		 * letters, tinted toward white (a positive amount) or shaded (negative), so a skin or dye that
-		 * recolours a robe recolours its light and shadow too.
-		 */
-		private static const HERO_TONES:Object = {
-			wizard: {"1": ["R", 0.35], "2": ["G", 0.6]},
-			knight: {"1": ["H", 0.45], "2": ["K", 0.35], "k": ["K", -0.6], "3": ["M", 0.4]},
-			archer: {"1": ["G", 0.35], "2": ["L", 0.35], "Y": ["W", 0.55]},
-			priest: {"1": ["W", 0.5]},
-			rogue: {"1": ["P", 0.35], "2": ["K", 0.3]},
-			warrior: {"1": ["H", 0.4], "3": ["M", 0.35], "4": ["R", 0.3], "r": ["R", -0.6]},
-			necromancer: {"1": ["D", 0.25]},
-			huntress: {"1": ["R", 0.35], "2": ["G", 0.35], "Y": ["W", 0.55]},
-			bard: {"1": ["V", 0.35], "2": ["V", 0.2], "W": ["L", 0.6]},
-			alchemist: {"1": ["A", 0.35], "2": ["A", 0.25], "3": ["F", 0.6], "W": ["M", 0.4]},
-			chronomancer: {"1": ["T", 0.35], "W": ["Y", 0.6]}
-
-		};
-
-		/** Works a hero palette's shading tones out again from its letters (after a skin or dye changed them). */
-		private static function retone(cls:String, pal:Object):void {
-			var t:Object = HERO_TONES[cls];
-			if (!t) return;
-			for (var k:String in t) {
-				var base:* = pal[t[k][0]];
-				if (base === undefined) continue;
-				var a:Number = t[k][1];
-				pal[k] = a >= 0 ? tint(uint(base), a) : shade(uint(base), -a);
-			}
-		}
-
-		/**
 		 * The props redrawn at twice the detail (tools/bossart/props.py): drawing -> the tones it shades
 		 * with, worked out from each sprite's own letters (so every recolour of a drawing shades right).
 		 * Their sprites keep their old scales, halved, since the drawings are twice the size.
@@ -819,7 +787,6 @@ package realm {
 			var k:String;
 			for (k in base[1]) pal[k] = base[1][k];
 			for (k in f.skin.pal) pal[k] = f.skin.pal[k];
-			retone(f.base, pal);
 			return DEFS[name] = [base[0], pal, base[2]];
 		}
 
@@ -870,8 +837,6 @@ package realm {
 					var ratio:Number = i == 0 ? 1 : lum(pal[keys[i]]) / l0;
 					pal[keys[i]] = ratio <= 1 ? shade(dye.col, Math.max(0.35, ratio)) : tint(dye.col, Math.min(0.5, ratio - 1));
 				}
-				// (and the dyed cloth's light and shadow follow it)
-				retone(f ? f.base : parts[0], pal);
 			} else if (ps) {
 				// a wash over every colour but the eyes, keeping light and dark parts apart
 				for (k in pal) {

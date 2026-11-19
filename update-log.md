@@ -11,14 +11,12 @@
 • The Sun King's and Moon Queen's last-phase spirals are thinner: with all three kings firing at once they were the deadliest hard dungeon
 
 **🎨 Art**
-• **Every hero redrawn** at twice the detail (16x16, was 8x8): a wizard's pointed hat, white beard and glowing staff, the knight's plumed great helm and shield, the warrior's horned helm and beard, the bard's feathered cap and lyre, the necromancer's skull staff and glowing eyes in a deep hood, and more, all shaded
 • **Every pet redrawn**, shaded like the monsters: the pup, jelly, owl, drake, wisp and golem, and each one's two Adult forms (a Treasure Hound with a gold collar, a spiky-collared Warhound, a crowned Royal Jelly, a dripping Acid Ooze, a snowy Seer with a third-eye gem, a red-eyed Hunter Owl, a flaming Inferno Wyrm, a stone-plated Ash Guardian, crystal and storm wisps, a shielded Bastion and a mossy Boulder)
 • Pet skins wash the whole pet evenly
 • **The world redrawn at twice the detail**: trees, pines, palms and dead trees, rocks and boulders, pillars and ruins, crates, chests, graves, tents, campfires, braziers, crystals, the five shrines, the Nexus's townsfolk, and every **loot bag** (now a proper tied sack in its rarity's colour). Every arena prop built from them (obelisks, pylons, gold pillars, the Raid Table, the Abyss chest...) got the new look too
 • Also redrawn: the Starforge's anvil, banners, nests, totems and the war drum, the Quest Board, signposts and skulls
 • The **Treasure Goblin** has art of its own again (a grinning goblin hauling a sack of gold, coins spilling out), and so do **Gorehorn's warriors** (bone armour, a horned skull helm, a bone blade): both had come out in the wrong colours
 • The beach's **snakes** coil on the ground with their heads reared to strike (they were a thin squiggle), and **slimes** are glossy domes with a glowing heart and a grumpy little face (the Slime God too)
-• **Every skin and dye still works**, and its light and shadow follow its colours (a Frost Mage's robe is icy blue in its highlights too)
 • New art for the **Kraken tentacles** (a curling tentacle with suckers, rising from the foam), the **Pearlmaw's clams** (a giant open clam with a glowing pearl), **spiderlings** and the storm raid's **Cloud Serpents** (a blue sky dragon with a gold belly, horns and whiskers, rising out of a cloud)
 • Named rings now take the colours of their names: an **Ember Ring** burns orange, an **Icicle Ring** is icy, the **Peppermint Ring** is red and white, the **Candy Corn Ring** orange and gold (the gem still shows the stat)
 • The Godly **Everwinter Heart** and **All Hallows' Eye** now show their own colours (ice blue and pumpkin orange) instead of plain gold

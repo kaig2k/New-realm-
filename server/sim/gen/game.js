@@ -6387,8 +6387,9 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
-			{id: "2026-11-alchemy", title: "Potion Alchemy, and stronger wands",
-				lines: ["<b>Wands hit harder</b>: Priests and Chronomancers dealt about a fifth of a Wizard's damage, too little to finish a fight alone. Tiered wands now deal <b>about 35% more</b> at the top tiers (T7: 110 to 150 a second), and named and Starforged wands rise with them. Wands you own are updated. They're still the support classes' weapon: staves, bows and swords hit harder.",
+			{id: "2026-11-alchemy", title: "Potion Alchemy, stronger wands and a smarter loot filter",
+				lines: ["<b>New loot filter</b> (Menu > Settings): <b>Upgrades and rares only</b> shows a bag only when it holds gear your class can use that beats what you're wearing, or anything rare, a stat potion, a key or the like. Once you're in T7 the junk stays out of sight.",
+					"<b>Wands hit harder</b>: Priests and Chronomancers dealt about a fifth of a Wizard's damage, too little to finish a fight alone. Tiered wands now deal <b>about 35% more</b> at the top tiers (T7: 110 to 150 a second), and named and Starforged wands rise with them. Wands you own are updated. They're still the support classes' weapon: staves, bows and swords hit harder.",
 					"<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
 					"It uses potions of stats your hero has already maxed first, then the ones you have most of, and never touches locked items. Maxing that last stubborn stat no longer means waiting for the right drop."]},
 			{id: "2026-11-events", title: "Realm events you can finish, and fairer Mimics",

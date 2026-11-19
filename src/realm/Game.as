@@ -2702,6 +2702,13 @@ package realm {
 			enemies.length--;
 		}
 
+		/** Gear your class can use that beats what you wear in that slot (a higher tier, or the slot is empty): the loot filter's "upgrades". */
+		private function isUpgrade(it:Object):Boolean {
+			if (!Data.canUse(it, player.cls.id)) return false;
+			var worn:Object = player[it.kind];
+			return !worn || int(it.tier) > int(worn.tier);
+		}
+
 		private function updateBags(dt:Number):void {
 			nearBag = null;
 			var best:Number = 1.6;
@@ -2716,7 +2723,7 @@ package realm {
 					continue;
 				}
 				// (the loot filter hides bags too poor to bother with)
-				if (!b.shown(lootFilter)) continue;
+				if (!b.shown(lootFilter, isUpgrade)) continue;
 				var dx:Number = b.x - player.x, dy:Number = b.y - player.y;
 				var d:Number = Math.sqrt(dx * dx + dy * dy);
 				// loot bags open when you stand on them; vault chests from a step away
@@ -7363,7 +7370,7 @@ package realm {
 			var lf:int = int(Save.data.lootFilter || 0);
 			for each (var b:LootBag in bags) {
 				if (b.life < 8 && int(b.life * 4) % 2 == 0) continue;
-				if (!b.shown(lf)) continue;
+				if (!b.shown(lf, isUpgrade)) continue;
 				var bx:Number = scrX(b.x, b.y), by:Number = scrY(b.x, b.y);
 				// rare bags glow; new bags bounce as they land
 				if (!b.vault && b.spr != "bag_brown") drawAura(bx, by + TS * 0.4, BAG_GLOW[b.spr] || 0xffffff, 0.45);

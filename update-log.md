@@ -6,6 +6,11 @@
 • Wands you already own are **updated automatically**
 • They're still the support classes' weapon: staves, bows and swords hit harder
 
+**🎒 Smarter loot filter**
+• New setting (Menu > Settings > Loot filter): **Upgrades and rares only**
+• A bag shows only if it holds **gear your class can use that beats what you're wearing**, or anything rare, a stat potion, a key or the like
+• Once you're in T7, the junk stays out of sight
+
 **🧪 No more wasted stat potions**
 • At the **Marketplace** (Shop tab), **Potion Alchemy** turns any **3 stat potions** into **1 of the stat you choose**
 • It uses potions of stats your hero has already **maxed** first, then the ones you have most of

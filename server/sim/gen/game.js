@@ -310,6 +310,23 @@ class Data {
 			var rd = Bosses.RAIDS[raid];
 			return {kind: "key", sub: rd.id, tier: 0, name: rd.name + " Key", color: rd.color};
 		}
+	static brewPick(inv, want, maxed) {
+			var have = [], count = {};
+			for (var i = __int(0); i < inv.length; i++) {
+				var it = inv[i];
+				if (!it || it.kind != "stat" || it.sub == want || it.locked || it.run) continue;
+				have.push(i);
+				count[it.sub] = (count[it.sub] || 0) + 1;
+			}
+			if (have.length < Data.BREW_COST) return null;
+			have.sort((a, b) => { a = __int(a); b = __int(b);
+				var ma = __int(maxed(inv[a].sub) ? 1 : 0), mb = __int(maxed(inv[b].sub) ? 1 : 0);
+				if (ma != mb) return __int(mb - ma);
+				var ca = __int(count[inv[a].sub]), cb = __int(count[inv[b].sub]);
+				return __int(ca != cb ? cb - ca : a - b);
+			});
+			return have.slice(0, Data.BREW_COST);
+		}
 	static makeDungeonKey(idx) { idx = __int(idx);
 			var d = Data.DUNGEONS[idx];
 			return {kind: "key", sub: "dg_" + d.id, tier: 0, name: d.name + " Key", color: d.color};
@@ -5863,6 +5880,7 @@ Data.SHOP = [
 			{id: "ut", name: "Mystery T7 item", price: 2500},
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
+Data.BREW_COST = __int(3);
 Data.CURSES = {
 			bloodbound: {name: "Bloodbound", boon: {att: 16, mgt: 14}, bane: {def: -10}, desc: "hits like a storm, guards like paper"},
 			hexed: {name: "Hexed", boon: {wis: 16, mp: 60}, bane: {hp: -50}, desc: "a well of magic that drinks your life"},
@@ -6366,8 +6384,12 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
-			{id: "2026-11-events", title: "Realm events you can finish",
-				lines: ["<b>Realm events are built for any crowd now</b>, including just you. On your own an event boss has <b>about half the health</b> it had, and each hero who joins adds three quarters of that again, so a big group still brings it down faster.",
+			{id: "2026-11-alchemy", title: "Potion Alchemy",
+				lines: ["<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
+					"It uses potions of stats your hero has already maxed first, then the ones you have most of, and never touches locked items. Maxing that last stubborn stat no longer means waiting for the right drop."]},
+			{id: "2026-11-events", title: "Realm events you can finish, and fairer Mimics",
+				lines: ["<b>Mimics grow with the land</b>: one hiding in a lowland crate has 800 health and hits a third as hard as before, so it's a fight a new hero can win (it used to kill them outright). Highland and Godlands Mimics are as tough as ever.",
+					"<b>Realm events are built for any crowd now</b>, including just you. On your own an event boss has <b>about half the health</b> it had, and each hero who joins adds three quarters of that again, so a big group still brings it down faster.",
 					"Event bosses hit a little softer (their extra damage went from +45% to +25%), and <b>Pyraxis</b> and <b>the Obsidian Colossus</b> fire thinner spirals in their last phase: they were far deadlier than the others.",
 					"Standing still is still a bad idea: every event punishes heroes who don't dodge."]},
 			{id: "2026-12-winter", title: "Winter: Grimsnow the Snow Tyrant",

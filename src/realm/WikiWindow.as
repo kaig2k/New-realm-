@@ -62,7 +62,8 @@ package realm {
 			"<font size='15' color='#ffd75e'><b>Stats and potions</b></font>\n" +
 			"Stat potions raise a stat by 1 (HP and MP by 5) up to your class's maximum. The stats tab shows how much each stat " +
 			"has <b>left to max</b>. You can drink a potion straight from a loot bag: shift+click it (a plain click works when your " +
-			"inventory is full).\n\n" +
+			"inventory is full). Potions of stats you've maxed aren't wasted: at the Marketplace, <b>Potion Alchemy</b> turns any " +
+			"three stat potions into one of the stat you choose.\n\n" +
 			"<font size='15' color='#ffd75e'><b>Skill points</b></font>\n" +
 			"One per level up to 20 (press T for the tree). After that you keep earning them with XP: the first takes 1,000 XP and each " +
 			"one after takes 300 XP more than the last.\n\n" +

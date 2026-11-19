@@ -1,3 +1,13 @@
+**📜 ELDMERE UPDATE: Potion Alchemy**
+
+**🧪 No more wasted stat potions**
+• At the **Marketplace** (Shop tab), **Potion Alchemy** turns any **3 stat potions** into **1 of the stat you choose**
+• It uses potions of stats your hero has already **maxed** first, then the ones you have most of
+• Locked items are never touched
+• Maxing that last stubborn stat no longer means waiting for the right drop (an Archer used to need around 750 potions to see 68 Might ones)
+
+---
+
 **📜 ELDMERE UPDATE: Realm Events for Everyone**
 
 **⚔️ Events you can finish, alone or in a crowd**

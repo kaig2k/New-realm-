@@ -2089,6 +2089,31 @@ const handlers = {
     shopDone(c, sv, ch, { bought: item.name });
   },
 
+  /**
+   * Potion Alchemy (the Marketplace's Shop tab): three stat potions from the inventory become one of the
+   * stat you choose (m.stat). It takes potions of stats this hero has maxed first, then the ones you have
+   * most of, never the stat you asked for.
+   */
+  brew(c, m) {
+    if (m.data && !applySave(c, m.data, m.cid)) return c.send({ t: 'shopFail', msg: 'Your progress could not be saved, so nothing was brewed.' });
+    const sv = onlineSave(c.key), ch = serverChar(c);
+    if (!ch || !Array.isArray(ch.inv)) return c.send({ t: 'shopFail', msg: 'Your character has not been saved yet. Try again in a moment.' });
+    const want = str(m.stat, 4);
+    if (Data.STATS.indexOf(want) < 0) return;
+    const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+    const st = ch.stats || {};
+    if ((Number(st[want]) || 0) >= cls.max[want]) return c.send({ t: 'shopFail', msg: Data.STAT_NAMES[want] + ' is already maxed on this hero.' });
+    const pick = Data.brewPick(ch.inv, want, (s) => (Number(st[s]) || 0) >= cls.max[s]);
+    if (!pick) return c.send({ t: 'shopFail', msg: 'Alchemy takes ' + Data.BREW_COST + ' stat potions of other stats from your inventory.' });
+    const l = sv._ledger || {};
+    let slot = -1;
+    for (const i of pick) { if (ch.inv[i].sid) delete l[ch.inv[i].sid]; ch.inv[i] = null; if (slot < 0) slot = i; }
+    const item = items.issue(sv, Data.makePotion('stat', want));
+    ch.inv[slot] = item;
+    log(c.name + ' brewed ' + item.name);
+    shopDone(c, sv, ch, { bought: item.name, brewed: want });
+  },
+
   /** The Abyss Shop: Abyss Points (earned clearing waves) buy keys, stones, Aether, a title and the Abyss's Legendaries (no stat potions). */
   abyssBuy(c, m) {
     if (isTester(c)) return c.send({ t: 'shopFail', msg: testerBlock(c, 'buy from the Abyss Shop') });

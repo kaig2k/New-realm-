@@ -2568,6 +2568,50 @@ async function run() {
     G2.s.destroy();
   }
 
+  console.log('potion alchemy through the server');
+  {
+    const nm = 'Al' + n;
+    const P = await login(nm, { password: 'pass1234', register: true });
+    const { Data: AD } = require('./sim/gen/game');
+    const ah = { id: 'ah1', cls: 'wizard', name: 'Brewer', level: 1, stats: clone(AD.CLASSES.wizard.base), inv: [null, null, null, null, null, null, null, null] };
+    P.send({ t: 'save', data: { gold: 0, fame: 0, chars: [ah] } });
+    await wait(400);
+    P.send({ t: 'enter', key: 'nexus', cid: 'ah1', x: 100, y: 100 });
+    const bz4 = await login('TestBoss', { password: 'pass1234' });
+    bz4.send({ t: 'cmd', text: '/give ' + nm + ' 10000 gold' });
+    await wait(300);
+    const gv = P.find((m) => m.t === 'given');
+    let seqP = gv ? gv.seq : 0, goldP = gv ? gv.gold : 0;
+    const dataP = () => ({ gold: goldP, fame: 0, chars: [clone(ah)], tradeSeq: seqP });
+    for (let k = 0; k < 4; k++) {
+      P.clear();
+      P.send({ t: 'buy', what: 'stat', data: dataP(), cid: 'ah1' });
+      await wait(300);
+      const r = P.find((m) => m.t === 'shopDone');
+      if (r) { seqP = r.seq; goldP = r.gold; ah.inv = r.inv; }
+    }
+    const pots = ah.inv.filter((it) => it && it.kind === 'stat');
+    // a stat that at most one of them is: three others make it
+    const want = AD.STATS.find((s) => pots.filter((it) => it.sub === s).length <= 1 && AD.CLASSES.wizard.base[s] < AD.CLASSES.wizard.max[s]);
+    P.clear();
+    P.send({ t: 'brew', stat: want, data: dataP(), cid: 'ah1' });
+    await wait(400);
+    const br = P.find((m) => m.t === 'shopDone');
+    const after = br ? br.inv.filter((it) => it && it.kind === 'stat') : [];
+    const made = after.find((it) => it.sub === want && !pots.some((o) => o.sid === it.sid));
+    check('Potion Alchemy: three stat potions become one of the stat you choose, a new item from the server (and the gold is untouched)',
+      pots.length === 4 && br && br.brewed === want && after.length === 2 && made && made.sid && br.gold === goldP, JSON.stringify(br || P.find((m) => m.t === 'shopFail')));
+    if (br) { seqP = br.seq; ah.inv = br.inv; }
+    P.clear();
+    P.send({ t: 'save', data: dataP() });
+    await wait(450);
+    check('...a save with the brewed potion is accepted', !P.find((m) => m.t === 'saveRejected'), JSON.stringify(P.find((m) => m.t === 'saveRejected')));
+    P.clear();
+    P.send({ t: 'brew', stat: want, data: dataP(), cid: 'ah1' });
+    await wait(400);
+    check('...and with too few potions left it\'s refused', /takes 3 stat potions/.test((P.find((m) => m.t === 'shopFail') || {}).msg || ''), JSON.stringify(P.msgs.slice(-2)));
+  }
+
   console.log('backpacks and pet feeds through the server');
   {
     const nm = 'Tf' + n;

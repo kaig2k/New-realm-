@@ -517,7 +517,8 @@ like Realm of the Mad God, but its names, systems and pixel art are New Realm's 
 - Nexus stations: the Pet Yard (pets heal you and shoot monsters), the Fame Store, the **Starforge** (a Runed, Bonded
   or Eldritch item + a Star Shard + 100 Aether = a Starforged item; its Reroll tab gives a weapon a new
   prefix for 400 gold, or special-rarity gear new bonus stats for 60 Aether) and the **Marketplace** (buy
-  potions, stat potions, Star Shards, mystery Runed items and a **Backpack**, and shift+click items to sell them). A
+  potions, stat potions, Star Shards, mystery Runed items and a **Backpack**, shift+click items to sell them, and
+  **Potion Alchemy**: any 3 stat potions make 1 of the stat you choose). A
   backpack gives that character 8 more inventory slots. Switch pages with the button by
   the sidebar tabs; keys 1-8 use the page you're on.
 - **Fame Store** (Nexus, north-west): spend account fame on skins, two per class, such as

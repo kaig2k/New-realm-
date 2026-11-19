@@ -700,6 +700,31 @@ package realm {
 			{id: "backpack", name: "Backpack (+8 slots)", price: 3000}
 		];
 
+		/** Potion Alchemy (the Marketplace): this many stat potions of other stats make one of your choice. */
+		public static const BREW_COST:int = 3;
+
+		/**
+		 * Which inventory slots Potion Alchemy takes to make a potion of `want`: stat potions of other stats,
+		 * those maxed on this hero (maxed(stat) says) first, then the ones you have most of. Null if too few.
+		 */
+		public static function brewPick(inv:Array, want:String, maxed:Function):Array {
+			var have:Array = [], count:Object = {};
+			for (var i:int = 0; i < inv.length; i++) {
+				var it:Object = inv[i];
+				if (!it || it.kind != "stat" || it.sub == want || it.locked || it.run) continue;
+				have.push(i);
+				count[it.sub] = (count[it.sub] || 0) + 1;
+			}
+			if (have.length < BREW_COST) return null;
+			have.sort(function(a:int, b:int):int {
+				var ma:int = maxed(inv[a].sub) ? 1 : 0, mb:int = maxed(inv[b].sub) ? 1 : 0;
+				if (ma != mb) return mb - ma;
+				var ca:int = count[inv[a].sub], cb:int = count[inv[b].sub];
+				return ca != cb ? cb - ca : a - b;
+			});
+			return have.slice(0, BREW_COST);
+		}
+
 		/** A dungeon key (Key Merchant): opens a portal to that dungeon. */
 		public static function makeDungeonKey(idx:int):Object {
 			var d:Object = DUNGEONS[idx];
@@ -1633,6 +1658,9 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-11-alchemy", title: "Potion Alchemy",
+				lines: ["<b>No more wasted stat potions</b>: at the Marketplace (Shop tab), <b>Potion Alchemy</b> turns any <b>three stat potions</b> in your inventory into <b>one of the stat you choose</b>.",
+					"It uses potions of stats your hero has already maxed first, then the ones you have most of, and never touches locked items. Maxing that last stubborn stat no longer means waiting for the right drop."]},
 			{id: "2026-11-events", title: "Realm events you can finish, and fairer Mimics",
 				lines: ["<b>Mimics grow with the land</b>: one hiding in a lowland crate has 800 health and hits a third as hard as before, so it's a fight a new hero can win (it used to kill them outright). Highland and Godlands Mimics are as tough as ever.",
 					"<b>Realm events are built for any crowd now</b>, including just you. On your own an event boss has <b>about half the health</b> it had, and each hero who joins adds three quarters of that again, so a big group still brings it down faster.",

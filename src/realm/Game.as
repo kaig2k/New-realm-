@@ -4285,6 +4285,7 @@ package realm {
 					sp.addChild(b);
 				}
 				y += int((Data.SHOP.length + 1) / 2) * 36 + 4;
+				if (openStation.kind == "market") y = buildAlchemy(sp, y, w);
 			}
 			Ui.panel(sp.graphics, 0, 0, w, y + 6, 0x222222, 0x6a6a6a, 0.95);
 			sp.x = (VIEW_W - w) / 2;
@@ -6694,6 +6695,62 @@ package realm {
 			return function():void { buy(e); };
 		}
 
+		// ------------------------------------------------------------ Potion Alchemy (the Marketplace)
+		/** Stat potions in the inventory that alchemy could use for `want` (any other stat). */
+		private function brewable(want:String):int {
+			var n:int = 0;
+			for each (var it:Object in player.inv) if (it && it.kind == "stat" && it.sub != want && !it.locked && !it.run) n++;
+			return n;
+		}
+
+		/** Under the Shop: a button per stat; three stat potions of other stats make one of that stat. */
+		private function buildAlchemy(sp:Sprite, y:int, w:int):int {
+			var head:TextField = Ui.text(12, 0xd8d8d8, false, "left", w - 24);
+			head.htmlText = "<b><font color='#c8a8ff'>Potion Alchemy</font></b>: any " + Data.BREW_COST + " stat potions become one of your choice. " +
+				"Potions of stats this hero has maxed go first.  <font color='#a0a0a0'>(You have " + brewable("") + ")</font>";
+			head.x = 12; head.y = y;
+			sp.addChild(head);
+			y += head.height + 4;
+			for (var i:int = 0; i < Data.STATS.length; i++) {
+				var s:String = Data.STATS[i];
+				var maxed:Boolean = player.stats[s] >= player.cls.max[s];
+				var ok:Boolean = !maxed && brewable(s) >= Data.BREW_COST;
+				var b:Sprite = Ui.button(Data.STAT_NAMES[s] + (maxed ? " (max)" : ""), 100, 24, brewFn(s), 11);
+				b.x = 12 + (i % 4) * 104;
+				b.y = y + int(i / 4) * 28;
+				b.alpha = ok ? 1 : 0.4;
+				sp.addChild(b);
+			}
+			return y + int((Data.STATS.length + 3) / 4) * 28 + 4;
+		}
+
+		private function brewFn(s:String):Function {
+			return function():void { brew(s); };
+		}
+
+		private function brew(want:String):void {
+			if (shopWaiting) return;
+			if (player.stats[want] >= player.cls.max[want]) { msg(Data.STAT_NAMES[want] + " is already maxed on this hero.", Ui.GOLD); return; }
+			var cls:Object = player.cls, st:Object = player.stats;
+			var pick:Array = Data.brewPick(player.inv, want, function(k:String):Boolean { return st[k] >= cls.max[k]; });
+			if (!pick) { msg("Alchemy takes " + Data.BREW_COST + " stat potions of other stats from your inventory.", 0xff8080); return; }
+			// online the server does it (and keeps its ledger of every item straight)
+			if (net.shopRequest({t: "brew", stat: want})) { shopWaiting = true; return; }
+			var slot:int = -1;
+			for each (var i:int in pick) { player.inv[i] = null; if (slot < 0) slot = i; }
+			player.inv[slot] = Data.makePotion("stat", want);
+			brewed(want);
+			saveCharacter();
+			Save.flush();
+			refreshStation();
+		}
+
+		private function brewed(want:String):void {
+			msg("The potions bubble together... a " + Data.makePotion("stat", want).name + "!", Data.STAT_COLORS[want]);
+			burst(player.x, player.y, Data.STAT_COLORS[want], 20);
+			Sfx.play("rare");
+		}
+
 		/** Starforge: a Legendary + Star Shard + Aether -> its Starforged self. */
 		private function forge(slot:int):void {
 			var item:Object = player.inv[slot];
@@ -6798,6 +6855,8 @@ package realm {
 			} else if (m.stabled) {
 				if (m.pet) { Save.data.pet = m.pet; petX = player.x - 1; petY = player.y + 0.5; } else delete Save.data.pet;
 				msg(m.stabled == "store" ? "Your pet went to the Stable." : m.stabled == "release" ? "The pet returned to the wild." : (m.pet ? Data.petTitle(m.pet) : "Your pet") + " is with you now.", 0xc8a8ff);
+			} else if (m.brewed) {
+				brewed(String(m.brewed));
 			} else if (m.backpack) {
 				msg("You bought a backpack! Switch inventory pages with the button by the tabs.", Ui.GOLD);
 				Sfx.play("coin");

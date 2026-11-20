@@ -539,6 +539,32 @@ package realm {
 			if (d) DEFS[name] = [d[0], d[1], scale];
 		}
 
+		/** A sprite's drawing scale (screen pixels per art pixel), or 0 if there's no such sprite. */
+		public static function scaleOf(name:String):int { var d:Array = DEFS[name]; return d ? int(d[2] || SCALE) : 0; }
+
+		/** How many rows of a sprite's drawing hold anything (over all its frames), in art pixels. */
+		public static function drawnRows(name:String):int {
+			var d:Array = DEFS[name];
+			if (!d) return 0;
+			var top:int = 9999, bot:int = -1;
+			for each (var f:Array in d[0]) {
+				for (var y:int = 0; y < f.length; y++) {
+					if (!/[^.]/.test(String(f[y]))) continue;
+					if (y < top) top = y;
+					if (y > bot) bot = y;
+				}
+			}
+			return bot < 0 ? 0 : bot - top + 1;
+		}
+
+		/** Draws a sprite at another scale (its cached bitmaps go). */
+		public static function rescale(name:String, scale:int):void {
+			var d:Array = DEFS[name];
+			if (!d) return;
+			DEFS[name] = [d[0], d[1], scale];
+			for (var k:String in cache) if (k.indexOf(name + ":") == 0) delete cache[k];
+		}
+
 		/** Puts a finished design in place: [frames], palette and scale (BossArt's bosses); replaces any older copy. */
 		public static function define(name:String, frames:Array, pal:Object, scale:int):void {
 			DEFS[name] = [frames, pal, scale];

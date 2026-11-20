@@ -32,7 +32,7 @@ SKIP = {
               'natural', 'noiseField', 'NZ', 'ramp', 'ph', 'realmTexture', 'builtTexture', 'upscale', 'classicTexture', 'grade',
               'P_GRASS', 'P_FOREST', 'P_HIGH', 'P_SAND', 'P_GOD', 'P_DEEP', 'P_SHALLOW'},
     'Enemy': {'sprite'},
-    'Bosses': {'art', 'skins'},
+    'Bosses': {'art', 'skins', 'fitSizes'},
     'SetPieces': {'art'},
 }
 # calls inside converted code that the server doesn't do (they become no-ops)
@@ -41,7 +41,7 @@ STATEMENT_DROPS = {
               # openGate: the minimap and drawn ground chunks are the client's
               'if (minimap) minimap.setPixel(x, y, MINI_COL[c.t]);',
               'for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) dropChunk(__int((x + dx) / this.ck), __int((y + dy) / this.ck));'],
-    'Bosses': ['art();', 'skins();'],
+    'Bosses': ['art();', 'skins();', 'fitSizes();'],
 }
 
 KEYWORDS = set('''break case catch class const continue default delete do else extends false finally for function if

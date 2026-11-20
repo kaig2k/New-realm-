@@ -135,6 +135,35 @@ package realm {
 			Uniques.assign();
 			Godly.init();
 			skins();
+			fitSizes();
+		}
+
+		/**
+		 * How tall each monster stands, in tiles of drawing (a hero is about one): ordinary monsters and set-piece
+		 * props about one and a half, dungeon, lair and realm bosses about three, raid and world bosses about four.
+		 * The detailed drawings came out far bigger than that at their own scales, so each is drawn at the largest
+		 * whole scale that fits (never bigger than it was, never under two), its animations along with it.
+		 */
+		private static function fitSizes():void {
+			var want:Object = {};
+			for (var id:String in Data.ENEMIES) {
+				var d:Object = Data.ENEMIES[id];
+				if (!d.spr) continue;
+				var tiles:Number = d.raid || d.final || d.finale || d.world || d.siege || id == "abyss_herald" || id == "pumpkin_king" || id == "snow_tyrant" ? 4.2
+					: d.ai == "boss" ? 3.1 : 1.5;
+				// (a drawing several monsters share fits the biggest of them: a boss's echo stays boss-sized)
+				if (!(want[d.spr] >= tiles)) want[d.spr] = tiles;
+			}
+			var all:Array = Sprites.names();
+			for (var spr:String in want) {
+				var rows:int = Sprites.drawnRows(spr), sc:int = Sprites.scaleOf(spr);
+				if (!rows || !sc) continue;
+				var fit:int = Math.max(2, Math.floor(want[spr] * Game.TS / rows));
+				if (fit >= sc) continue;
+				Sprites.rescale(spr, fit);
+				// its animations (name_cast, name_death, name_ridle...) drawn at the same scale
+				for each (var n:String in all) if (n.indexOf(spr + "_") == 0 && Sprites.scaleOf(n) == sc && !want[n]) Sprites.rescale(n, fit);
+			}
 		}
 
 		/**

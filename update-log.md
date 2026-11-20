@@ -8,6 +8,7 @@
 • Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**
 • Trees, rocks, ruins, tents and graves toned to match, and the event bosses' arenas fitted into the new ground
 • It draws no slower than the old ground, so walking around stays smooth
+• **Monsters and bosses resized** to sit in the world: ordinary monsters stand about one and a half heroes tall (goblins, orcs and minotaurs were over twice your height), dungeon, lair and realm bosses about three tiles (most were four to five), and the biggest raid bosses about four and a half (they were over nine, half the screen)
 
 **👹 Three bosses at once**
 • Up to **three realm event bosses** can be alive at the same time, each in its own arena well apart from the others

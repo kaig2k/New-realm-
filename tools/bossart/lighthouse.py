@@ -230,6 +230,65 @@ def drowned_keeper(t):
     return m, M
 
 
+# ---------------------------------------------------------------- Morrow the Wrecker (the realm event)
+def wrecker(t):
+    """A hulking wrecker of the coast: a heavy tarred coat and hood, a rag tied over his face, a rope
+    coiled over one shoulder; one arm holds his false lantern high on a pole, the other a gaff hook."""
+    M = {'coat': g([0x080a0a, 0x141a1a, 0x22302e, 0x324642, 0x465e58]), 'rag': g([0x2a0c08, 0x4a1810, 0x6e2a1a, 0x8e4028]),
+         'rope': g([0x3a2a12, 0x6a5228, 0x9a7c44, 0xc0a060]), 'pole': POLE, 'iron': IRON, 'brass': BRASS, 'flame': FLAME,
+         'skin': g([0x3a2418, 0x6a4430, 0x8e6248]), 'eye': glow(0xff8010, 0xffd060, 0xffffff, base=0.45), 'void': VOID,
+         'boot': g([0x060504, 0x120e0a, 0x221a12]), 'weed': WEED}
+    m = Model(60, 66)
+    cx = 28
+    legs(m, cx, 42, 64, 4.4, 3.8, 'boot')
+    robe(m, cx, 26, 54, 9, 13, 'coat', tatter=True, seed=53)
+    chest(m, cx, 20, 42, 12, 10, 4, 'coat', bevel=3.4)
+    m.capsule((cx - 1, 22, 10), (cx + 1, 50, 11), 0.5, 0.6, 'boot')              # the coat's seam
+    m.capsule((cx - 11, 38, 9.6), (cx + 11, 38, 9.6), 1.0, 1.0, 'boot')          # a wide belt, a brass buckle
+    m.sphere((cx, 38, 10.8), 1.5, 'brass', 1.2, 1, 0.6)
+    # a coil of rope over the left shoulder, across the chest
+    for k in range(3):
+        m.capsule((cx - 11 + k, 19 + k, 8 + k * 0.3), (cx + 8 + k, 36 + k, 10 + k * 0.3), 1.0, 1.0, 'rope')
+    for x, y in ((cx - 12, 22), (cx - 10, 27)):
+        m.sphere((x, y, 7), 2.8, 'rope', 1, 0.9, 0.7)
+    # right arm: raised high, the false lantern on a pole above him
+    arm(m, (cx + 10, 22, 3), (cx + 16, 14, 5), (cx + 17, 7, 7), 3.0, 'coat', 'skin', 2.4)
+    held(m, 'R')
+    staff(m, cx + 17.5, 0, 30, 'pole', z=8, r=0.9)
+    m.capsule((cx + 17.5, 1, 8), (cx + 22, 1, 8), 0.6, 0.6, 'iron')
+    m.capsule((cx + 22, 1, 8), (cx + 22, 4, 8), 0.3, 0.3, 'iron')
+    m.capsule((cx + 22, 5, 8), (cx + 22, 11, 8), 2.6, 2.6, 'brass', cut=12)
+    m.sphere((cx + 22, 8, 10.5), 2.0 + t * 0.4, 'flame', 0.8, 1.1, 1)
+    for k in range(3):
+        m.capsule((cx + 19.8 + k * 2.2, 5, 10.6), (cx + 19.8 + k * 2.2, 11, 10.6), 0.3, 0.3, 'iron')
+    m.sphere((cx + 22, 4.6, 8.5), 2.8, 'brass', 1, 0.4, 1)
+    m.anchor('cast', (cx + 22, 8))
+    m.part(None)
+    # left arm: down, a long gaff hook
+    arm(m, (cx - 10, 22, 3), (cx - 15, 31, 5), (cx - 15, 39, 8), 3.0, 'coat', 'skin', 2.4)
+    held(m, 'L')
+    m.capsule((cx - 15, 46, 9), (cx - 15, 30, 9), 0.8, 0.8, 'pole')
+    m.chain([(cx - 15, 46, 9), (cx - 15, 51, 9.5), (cx - 18.5, 53, 9.5), (cx - 20.5, 50, 9.5)], [0.9, 0.9, 0.7, 0.4], 'iron')
+    m.anchor('strike', (cx - 20, 50))
+    m.part(None)
+    # head: a heavy hood, a rag over the face, eyes catching the lantern light
+    m.part('head', (cx, 14))
+    m.capsule((cx - 9, 21, 3), (cx + 9, 21, 3), 4.0, 4.0, 'coat')              # the hood's cowl over his shoulders
+    m.sphere((cx, 13, 3), 7.0, 'coat', 0.95, 1.2, 1.0, rough(0.05))
+    m.capsule((cx, 6, 2), (cx + 3, 1, 1), 3.4, 0.8, 'coat')                     # its peak, slumped to one side
+    m.sphere((cx, 14.5, 7), 4.4, 'void', 0.95, 1.25, 0.55)
+    m.sphere((cx, 17.4, 9.2), 3.2, 'rag', 1.15, 0.55, 0.55)
+    eyes(m, cx, 13.2, 1.5, 9.6, 'eye', 0.5)
+    m.part(None)
+
+    def sea(x, y, h):
+        if h[2] != 'coat':
+            return None
+        return 'weed' if vnoise(x * 0.4, y * 0.4, 61) < 0.08 else None
+    m.paint(sea)
+    return m, M
+
+
 # ---------------------------------------------------------------- storm lanterns
 def lantern(lit):
     def fn(t):
@@ -254,7 +313,7 @@ def lantern(lit):
 
 MODELS = [('lamplighter', lamplighter), ('tide_ebb', tide('tide_ebb', 0x0a2a6a, 0x1a58b8, 0x50a0f0, 0xb8e4ff)),
           ('tide_flow', tide('tide_flow', 0x0a4a48, 0x188a7c, 0x40d0b4, 0xb8fff0)), ('bulwark', bulwark), ('drowned_keeper', drowned_keeper),
-          ('storm_lantern', lantern(False)), ('storm_lantern_lit', lantern(True))]
+          ('wrecker', wrecker), ('storm_lantern', lantern(False)), ('storm_lantern_lit', lantern(True))]
 
 
 def all_designs():

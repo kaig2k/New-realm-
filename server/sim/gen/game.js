@@ -1796,6 +1796,8 @@ class Bosses {
 	static setPieces() {
 			var still = {ai: "still", spd: 0, r: 0.6, aggro: 13, range: 12, drop: 0, xp: 90, keep: 0, prop: true};
 			
+			Bosses.mob("false_beacon", Bosses.o(Bosses.o({}, still), {name: "False Beacon", spr: "storm_lantern_lit", hp: 2300, def: 14, col: 0xffc860, ward: true, light: 4,
+				attacks: [Bosses.aim(2, 12, 7, 50, 1.4, 0xffc860, {motion: "home", name: "lure light"})]}));
 			Bosses.mob("cube_pylon", Bosses.o(Bosses.o({}, still), {name: "Cube Pylon", spr: "cube_pylon", hp: 2400, def: 14, col: 0xff60ff, ward: true,
 				attacks: [Bosses.ring(6, 30, 4, 45, 1.6, 0xff60ff, {shape: "star"})]}));
 			Bosses.mob("royal_effigy", Bosses.o(Bosses.o({}, still), {name: "Royal Effigy", spr: "royal_effigy", hp: 2400, def: 16, col: 0xffd060, ward: true,
@@ -2115,7 +2117,24 @@ class Bosses {
 				Bosses.P(0.3, {say: "*the Kraken thrashes*", banner: "The Kraken is enraged!", move: "wander",
 					attacks: [Bosses.spiral(5, 11, 6, 70, 0.13, 0xff6080), Bosses.wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
 			]}, ["krakens_grasp", "abyssal_mail"]);
-			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"])) Data.EVENTS.push(ev);
+			
+			Bosses.boss("ev_wrecker", {name: "Morrow the Wrecker", spr: "wrecker", hp: 13000, def: 22, spd: 1.2, xp: 1900, col: 0xffc860,
+				gold: 500, onrane: 5, r: 1.0, light: 5, phases: [
+				Bosses.P(1, {say: "Another ship for the rocks.", move: "wander",
+					attacks: [Bosses.aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), Bosses.ring(12, 15, 4.5, 60, 1.6, 0x406080, {name: "undertow"}),
+						Bosses.nova(2.2, 2.4, 140, 11, 0x60c8ff, {reach: 0.01, burst: 48, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
+				Bosses.P(0.6, {say: "Follow the light, little ships...", banner: "The false lights blaze!", shield: 2.5, summon: [{what: "pirate_brawler", n: 3}], move: "still",
+					attacks: [Bosses.spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), Bosses.rain(4, 4, 90, 2.4, 0x406080, {burst: 6}),
+						Bosses.nova(2.2, 2.2, 150, 9, 0x60c8ff, {reach: 0.01, burst: 56, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
+				Bosses.P(0.3, {say: "THE SEA TAKES EVERYTHING!", banner: "The wreck floods!", move: "chase", speed: 1.3,
+					attacks: [Bosses.aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), Bosses.wall(15, 5, 80, 2.2, 0x406080, {hole: 3, motion: "wave"}),
+						Bosses.nova(2.2, 2.0, 160, 8, 0x60c8ff, {reach: 0.01, burst: 64, bspd: 4.6, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]})
+			]});
+
+			for (var ev of __vals( ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken", "ev_wrecker"])) Data.EVENTS.push(ev);
 		}
 	static vSwing(dmg, cd, n = 7) { dmg = __int(dmg); n = __int(n);
 			
@@ -4708,6 +4727,8 @@ class Enemy {
 		this.eggT = 0;
 		this.mech = null;
 		this.noLoot = false;
+		this.eventBoss = false;
+		this.owner = null;
 		this.playerHit = false;
 		this.id = __int(0);
 		this.remote = false;
@@ -6595,8 +6616,11 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-11-wrecker", title: "Three realm bosses at once, and Morrow the Wrecker",
+				lines: ["<b>Up to three realm event bosses</b> can now be alive at once, each in its own arena well apart from the others. Split up and take them on your own, or go together.",
+					"<b>Morrow the Wrecker</b>, a new realm boss: he lit false lights to drown ships. His three <b>false beacons</b> ward him (smash them), and when he <b>calls the tide in</b>, take cover behind the shipwreck's broken hull. He drops <b>Wrecker's Hook</b> and <b>The False Light</b> ring, and always leaves the portal to the Drowned Lighthouse."]},
 			{id: "2026-11-lighthouse", title: "New dungeon: the Drowned Lighthouse",
-				lines: ["<b>The Drowned Lighthouse</b> (key at the Marketplace, 5,000 gold): a dark hard dungeon where every fight is about the room, not just the boss.",
+				lines: ["<b>The Drowned Lighthouse</b> (Morrow the Wrecker's portal): a dark hard dungeon where every fight is about the room, not just the boss.",
 					"<b>The Lamplighter</b> can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but if it lingers by one it puts it out.",
 					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together.",
 					"<b>The Bulwark</b> turns its tower shield toward whoever is closest. Hit it from behind or the side: in a group, one of you holds its attention.",
@@ -6822,7 +6846,7 @@ Data.TITLES = [
 Data.SLAYER = {
 			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
 			ev_regent: "Regent's Bane", ev_sphinx: "Riddle Breaker", ev_lord: "Tidebreaker", ev_hermit: "Hermit Hunter", ev_shrine: "Shrine Breaker",
-			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
+			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer", ev_wrecker: "Wreck Breaker"
 		};
 Data.ORACLE_TITLES = [[5, "oracle5"], [0, "oracleall"]];
 Data.ASC_PERKS = [
@@ -6907,6 +6931,8 @@ Data.SITES = [
 		];
 Data.EVENTS = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
 Data.EVENTS_PER_REALM = __int(8);
+Data.MAX_EVENTS = __int(3);
+Data.EVENT_GAP = __int(45);
 Data.OVERLORD = "Azrakor the Dark Elder";
 Data.ELDER_CRYSTALS = [[-8, -5], [8, -5], [-8, 5], [8, 5]];
 Data.DUNGEONS = [
@@ -7236,6 +7262,10 @@ Uniques.ALL = {
 Uniques.FIXED = {
 			
 			
+			wreckers_hook: {n: "Wrecker's Hook", k: "weapon", s: "sword", r: "ut", st: {att: 4, spd: 3}, d: [70, 96], sh: 1, rt: 1, col: 0xc0c8d0,
+				txt: "A heavy hooked blade.", lore: "It has pulled more than one sailor off a sinking deck."},
+			false_light: {n: "The False Light", k: "ring", s: "wis", r: "ut", st: {wis: 6, mp: 60, luc: 3}, txt: "The mana ring, with a little luck.", lore: "Hold it up on a stormy night and the ships come to you."},
+			
 			keepers_lamp: {n: "The Keeper's Lamp", k: "weapon", s: "staff", r: "lg", st: {att: 5, wis: 5}, d: [80, 110], sh: 2, rt: 1, pc: true, col: 0xfff0a0,
 				txt: "Two piercing beams of lighthouse light.", lore: "It turned for three hundred years. It turns for you now."},
 			tidewarden_plate: {n: "Tidewarden Plate", k: "armor", s: "heavy", r: "lg", df: 34, st: {vit: 8, hp: 80}, txt: "Defense armor that keeps you standing.",
@@ -7344,6 +7374,7 @@ Uniques.FIXED = {
 Uniques.DROPS = {
 			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
 			snow_tyrant: ["peppermint_ring", "grimsnows_crown", "longest_night_staff", "snowglobe_hourglass", "frostwoven_robe", "everwinter_heart"],
+			ev_wrecker: ["wreckers_hook", "false_light"],
 			drowned_keeper: ["keepers_lamp", "tidewarden_plate", "ebb_and_flow"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
@@ -7555,6 +7586,7 @@ Bosses.SETPIECES = {
 			ev_colossus: {style: "obsidian", prop: "obsidian_spire", n: 4, r: 6, hint: "Obsidian spires fire on anyone near the Colossus. Shatter them to make room."},
 			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
+			ev_wrecker: {style: "wreck", prop: "false_beacon", n: 3, r: 6, ward: true, hint: "Morrow's false beacons shield him: smash all three! When he calls the tide in, duck behind the wreck's broken hull."},
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
 			
 			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
@@ -7742,6 +7774,8 @@ SetPieces.STYLES = {
 			fire: {floor: World.ASH, alt: World.BRICK, trim: World.LAVA, hz: World.LAVA, a: 7, b: 6, c: 7},
 			hex: {floor: World.HEXSTONE, alt: World.DARK, trim: World.HEXSTONE, hz: World.HEXSTONE, a: 32, b: 6, c: 33},
 			reef: {floor: World.REEF, alt: World.SAND, trim: World.SAND, hz: World.WATER, a: 27, b: 27, c: 4},
+			
+			wreck: {floor: World.SAND, alt: World.RUIN, trim: World.REEF, hz: World.WATER, a: 3, b: 27, c: 8},
 			star: {floor: World.SPECTRAL, alt: World.OBSIDIAN, trim: World.GOLD, hz: World.LAVA, a: 23, b: 7, c: 23},
 			
 			siege: {floor: World.ASH, alt: World.ROAD, trim: World.BRICK, hz: World.LAVA, a: 7, b: 10, c: 19},
@@ -8038,6 +8072,28 @@ SetPieces.LAYOUTS = {
 				"   ~-.....b.....-~   ",
 				"    ~~-.......-~~    ",
 				"      ~~~~~~~~~      "],
+			wreck: [
+				"     ~~~~~~~~~~~     ",
+				"   ~~~-.......-~~~   ",
+				"  ~~-...a...a...-~~  ",
+				" ~~-.....,P,.....-~~ ",
+				" ~-..##.,,,,,.##..-~ ",
+				"~~-..#..,,,,,..#..-~~",
+				"~-.......,,,.......-~",
+				"~-.b.............b.-~",
+				"~-...##.......##...-~",
+				"~-...#.........#...-~",
+				"~-.,,,....B....,,,.-~",
+				"~-...#.........#...-~",
+				"~-...##.......##...-~",
+				"~-.b.............b.-~",
+				"~-..P....:::....P..-~",
+				"~~-..#..:::::..#..-~~",
+				" ~-..##.......##..-~ ",
+				" ~~-.....c.c.....-~~ ",
+				"  ~~-...........-~~  ",
+				"   ~~~-.......-~~~   ",
+				"     ~~~~~~~~~~~     "],
 			shell: [
 				"      ---------      ",
 				"    --,,,,,,,,,--    ",
@@ -8226,6 +8282,8 @@ SetPieces.PHASES = {
 				msg: "The temple pillars topple! Scorpions swarm from the rubble!"}],
 			sunken: [{when: "low", sel: "ring", a: 6.5, b: 99, to: "water", col: 0x40d0c0,
 				msg: "The Lord calls the sea home! The water floods in from every side!"}],
+			wreck: [{when: "low", sel: "ring", a: 8, b: 99, to: "water", col: 0x40a0d0,
+				msg: "The tide pours over the sandbar! Only the wreck's heart stays dry."}],
 			shell: [{when: "low", sel: "char", ch: ",", to: "water", col: 0x60c0ff,
 				msg: "The tide comes in! The reef sinks under the waves."}],
 			skull: [{when: "broken", sel: "walls", to: "floor", spawn: "bone_thrall", n: 4, col: 0xb060ff,
@@ -8333,7 +8391,7 @@ Lairs.DUNGEONS = [
 				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
 				trio: ["crone_bramble", "crone_bog", "crone_ash"],
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
-			{id: "drowned_lighthouse", wall: "mossy", name: "The Drowned Lighthouse", color: 0x60c8ff, layout: "lighthouse", dark: true, floor: 18, accent: 23, tier: 4, hard: 1.5, lair: {
+			{id: "drowned_lighthouse", wall: "mossy", by: "ev_wrecker", name: "The Drowned Lighthouse", color: 0x60c8ff, layout: "lighthouse", dark: true, floor: 18, accent: 23, tier: 4, hard: 1.5, lair: {
 				boss: "drowned_keeper", intro: "The Keeper of the Drowned Lighthouse is sealed in its lamp room. Its three wardens hold the keys: each fights by the room's own rules."},
 				guardians: ["lamplighter", "tide_ebb", "bulwark"],
 				mobs: ["tide_spawn", "pirate_brawler", "crab", "shade"]},

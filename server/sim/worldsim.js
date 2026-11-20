@@ -167,7 +167,7 @@ class WorldSim {
 
   entry(e) {
     return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, Math.ceil(e.hp), Math.ceil(e.maxHp), r2(e.dmgMult), this.flags(e),
-      this.w.boss === e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite || '', e.spMask || 0];
+      this.w.boss === e || e.eventBoss ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite || '', e.spMask || 0];
   }
 
   flags(e) { return (e.immune ? 1 : 0) | (e.stunT > 0 ? 2 : 0) | (e.phaseCode << 2); }
@@ -288,7 +288,8 @@ class WorldSim {
     if (d.hx && c.caps && c.caps.hex) e.hexUntil = Date.now() + 3000;
     if (dmg > 0 && e.hexUntil > Date.now()) dmg = Math.round(dmg * 1.1);
     // an event's clock (for the fastest-kill records) starts at the first hit on the boss or its set piece
-    if (dmg > 0 && this.kind === 'realm' && this.w.boss && !this.w.boss.firstHit && (e === this.w.boss || e.def.prop)) this.w.boss.firstHit = Date.now();
+    const evb = e.eventBoss ? e : e.def.prop && e.owner && e.owner.eventBoss ? e.owner : null;
+    if (dmg > 0 && this.kind === 'realm' && evb && !evb.firstHit) evb.firstHit = Date.now();
     // (the Godlands Spires are taken in battle: server.js territoryTick reads where you last fought)
     if (dmg > 0 && !e.def.prop) { c.fightAt = Date.now(); c.fightX = e.x; c.fightY = e.y; }
     if (dmg > 0 && !e.immune) {
@@ -626,16 +627,21 @@ class WorldSim {
     // a restart is close: no new event bosses that nobody could finish
     if (WorldSim.restartSoon) return;
     // (the Realm Siege holds the realm's events back; the Pumpkin King doesn't)
-    if (this.closeT > 0 || w.closed || (this.siege && this.siege.e.defId === 'siege_warlord') || w.eventsDone >= Data.EVENTS_PER_REALM || (w.boss && !w.boss.dead)) return;
+    if (this.closeT > 0 || w.closed || (this.siege && this.siege.e.defId === 'siege_warlord') || w.eventsDone >= Data.EVENTS_PER_REALM) return;
+    // up to three at once; the next comes after the timer, while there's room and kills left to make
+    const live = this.liveEvents();
+    if (live.length >= Data.MAX_EVENTS || w.eventsDone + live.length >= Data.EVENTS_PER_REALM) return;
     w.eventT -= dt;
     if (w.eventT > 0) return;
     if (!w.recentEvents) w.recentEvents = [];
     let id;
-    do id = Data.EVENTS[Math.floor(Math.random() * Data.EVENTS.length)]; while (w.recentEvents.indexOf(id) >= 0);
+    do id = Data.EVENTS[Math.floor(Math.random() * Data.EVENTS.length)]; while (w.recentEvents.indexOf(id) >= 0 || live.some((b) => b.defId === id));
     for (let tries = 0; tries < 500; tries++) {
       // the boss stands in the middle of a tile, at the centre of its set piece
       const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5;
       const z = w.zoneAt(x, y);
+      // (well apart from the others, so arenas never overlap and each is its own fight)
+      if (live.some((b) => (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) < Data.EVENT_GAP * Data.EVENT_GAP)) continue;
       if (z >= World.MID_ZONE && z <= World.GOD_ZONE && w.canStand(x, y, 0.6, true) && SetPieces.fits(id, w, Math.floor(x), Math.floor(y))) {
         w.nextEvent++;
         w.recentEvents.push(id);
@@ -643,16 +649,20 @@ class WorldSim {
         // its arena: the structure goes down first, so the boss and its pieces stand on it
         const cells = SetPieces.plan(id, w, Math.floor(x), Math.floor(y));
         SetPieces.apply(w, cells);
-        w.boss = new Enemy(id, x, y, z);
-        w.boss.arena = cells;
-        this.add(w.boss);
+        const b = new Enemy(id, x, y, z);
+        b.eventBoss = true;
+        b.arena = cells;
+        if (!w.boss || w.boss.dead) w.boss = b;
+        this.add(b);
         this.unstick(cells);
         // and its wards, menders or hazards
-        w.boss.props = [];
+        b.props = [];
         for (const sp of Bosses.setPieceSpots(id, x, y, w)) {
           const pr = this.spawn(sp.what, sp.x, sp.y, z, true);
-          if (pr) w.boss.props.push(pr);
+          if (pr) { pr.owner = b; b.props.push(pr); }
         }
+        // (the next one doesn't come at once)
+        w.eventT = 25 + Math.random() * 20;
         return;
       }
     }
@@ -665,9 +675,17 @@ class WorldSim {
    * then the tiles change and any reinforcements come out.
    */
   updateArena(dt) {
-    this.arenaFor(this.w.boss, dt);
+    // (up to Data.MAX_EVENTS realm events at once, each in its own arena)
+    const evs = this.liveEvents();
+    for (const b of evs) this.arenaFor(b, dt);
+    if (this.w.boss && evs.indexOf(this.w.boss) < 0) this.arenaFor(this.w.boss, dt);
     // (the Siege's Warlord has a war camp of his own, besides any realm event)
-    if (this.siege && this.siege.e !== this.w.boss) this.arenaFor(this.siege.e, dt);
+    if (this.siege && this.siege.e !== this.w.boss && evs.indexOf(this.siege.e) < 0) this.arenaFor(this.siege.e, dt);
+  }
+
+  /** The realm's event bosses still alive. */
+  liveEvents() {
+    return this.enemies.filter((e) => e.eventBoss && !e.dead);
   }
 
   arenaFor(b, dt) {
@@ -764,7 +782,7 @@ class WorldSim {
       n = Math.max(1, Math.min(20, n));
       const d = e.def, endgame = d.raid || d.finale || d.final || d.siege || d.dtier >= 5;
       // (realm events start lower for a lone hero, Bosses.harden, and grow more with each hero who joins)
-      const realmEvent = this.kind === 'realm' && d.setpiece && e === this.w.boss;
+      const realmEvent = this.kind === 'realm' && d.setpiece && (e.eventBoss || e === this.w.boss);
       // (a seasonal world boss, d.world, comes to whoever is about: small for one hero, a whole share for each who joins)
       const mult = 1 + (d.world ? 1 : endgame || realmEvent ? 0.75 : 0.5) * (n - 1);
       if (mult <= e.scaleMult + 0.01) continue;
@@ -885,7 +903,7 @@ class WorldSim {
     if (e.def.crystal && w.boss && w.boss.invuln && !this.enemies.some((o) => !o.dead && o.def.crystal)) w.boss.invuln = false;
     if (e.site) { e.site.cleared = true; e.site.active = false; if (this.kind === 'realm') w.eventT -= 8; }
     if (e.isBoss) {
-      if (w.boss === e) w.boss = null;
+      if (w.boss === e) w.boss = this.kind === 'realm' ? this.liveEvents().find((o) => o !== e) || null : null;
       // the boss's arena goes with it
       if (e.props) for (const pr of e.props) if (!pr.dead) { pr.dead = true; this.all({ t: 'edel', id: pr.id }); }
       if (e.arena) { SetPieces.undo(w, e.arena); e.arena = null; }
@@ -901,7 +919,7 @@ class WorldSim {
           const team = [...(e.hitters || [])].filter((h) => h[1] > 0).sort((a, b) => b[1] - a[1]).map((h) => this.players.get(h[0])).filter(Boolean);
           if (team.length) this.onEventKill(e.defId, Date.now() - e.firstHit, team);
         }
-        w.eventT = 20 + Math.random() * 10;
+        w.eventT = Math.min(w.eventT > 0 ? w.eventT : 1e9, 20 + Math.random() * 10);
         // its own lair (Lairs.as); a boss without one leaves one of the old event dungeons
         const li = e.def.lair ? Data.dungeonIndex(e.def.lair) : -1;
         if (li >= 0) this.portal(e.x + 1.5, e.y, 'dungeon', li, Data.DUNGEONS[li].color, e.x, e.y);
@@ -916,7 +934,7 @@ class WorldSim {
           if (this.onPortal) this.onPortal(this.finaleKey());
         }
       }
-    } else if (this.kind === 'realm' && !(w.boss && !w.boss.dead) && e.def.drop > 0) {
+    } else if (this.kind === 'realm' && this.liveEvents().length < Data.MAX_EVENTS && e.def.drop > 0) {
       w.eventT -= 1.2;
     }
     if (this.kind === 'realm' && e.def.portal && Math.random() < e.def.portalChance) {

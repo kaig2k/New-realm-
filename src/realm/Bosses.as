@@ -395,6 +395,7 @@ package realm {
 			ev_colossus: {style: "obsidian", prop: "obsidian_spire", n: 4, r: 6, hint: "Obsidian spires fire on anyone near the Colossus. Shatter them to make room."},
 			ev_phoenix: {style: "fire", prop: "ember_nest", n: 3, r: 5.5, hint: "Ember nests rekindle Pyraxis. Smother them before the flames heal it whole!"},
 			ev_witch: {style: "hex", prop: "hex_cauldron", n: 4, r: 5.5, ward: true, hint: "Mother Hexis brews her protection in four cauldrons. Smash them all!"},
+			ev_wrecker: {style: "wreck", prop: "false_beacon", n: 3, r: 6, ward: true, hint: "Morrow's false beacons shield him: smash all three! When he calls the tide in, duck behind the wreck's broken hull."},
 			ev_kraken: {style: "reef", prop: "kraken_tentacle", n: 4, r: 5.5, hint: "The Kraken's tentacles lash out from the reef. Sever them to calm the waters."},
 			// the Realm Siege: Vorgath's war camp, raised in the Godlands
 			siege_warlord: {style: "siege", prop: "siege_ballista", n: 4, r: 6.5, hint: "Vorgath's war camp rises around him! Four siege ballistas guard it: break them and his guard storms out of the tents. Stay out of the trenches, and off the outer camp when it burns!"},
@@ -414,6 +415,8 @@ package realm {
 		private static function setPieces():void {
 			var still:Object = {ai: "still", spd: 0, r: 0.6, aggro: 13, range: 12, drop: 0, xp: 90, keep: 0, prop: true};
 			// wards: the boss is immune while one stands
+			mob("false_beacon", o(o({}, still), {name: "False Beacon", spr: "storm_lantern_lit", hp: 2300, def: 14, col: 0xffc860, ward: true, light: 4,
+				attacks: [aim(2, 12, 7, 50, 1.4, 0xffc860, {motion: "home", name: "lure light"})]}));
 			mob("cube_pylon", o(o({}, still), {name: "Cube Pylon", spr: "cube_pylon", hp: 2400, def: 14, col: 0xff60ff, ward: true,
 				attacks: [ring(6, 30, 4, 45, 1.6, 0xff60ff, {shape: "star"})]}));
 			mob("royal_effigy", o(o({}, still), {name: "Royal Effigy", spr: "royal_effigy", hp: 2400, def: 16, col: 0xffd060, ward: true,
@@ -799,7 +802,24 @@ package realm {
 				P(0.3, {say: "*the Kraken thrashes*", banner: "The Kraken is enraged!", move: "wander",
 					attacks: [spiral(5, 11, 6, 70, 0.13, 0xff6080), wall(17, 5, 80, 2, 0x6a3a8a, {hole: 3, motion: "wave"})]})
 			]}, ["krakens_grasp", "abyssal_mail"]);
-			for each (var ev:String in ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken"]) Data.EVENTS.push(ev);
+			// Morrow the Wrecker: lit false lights to drown ships, and opens the way to the Drowned Lighthouse
+			boss("ev_wrecker", {name: "Morrow the Wrecker", spr: "wrecker", hp: 13000, def: 22, spd: 1.2, xp: 1900, col: 0xffc860,
+				gold: 500, onrane: 5, r: 1.0, light: 5, phases: [
+				P(1, {say: "Another ship for the rocks.", move: "wander",
+					attacks: [aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), ring(12, 15, 4.5, 60, 1.6, 0x406080, {name: "undertow"}),
+						nova(2.2, 2.4, 140, 11, 0x60c8ff, {reach: 0.01, burst: 48, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
+				P(0.6, {say: "Follow the light, little ships...", banner: "The false lights blaze!", shield: 2.5, summon: [{what: "pirate_brawler", n: 3}], move: "still",
+					attacks: [spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), rain(4, 4, 90, 2.4, 0x406080, {burst: 6}),
+						nova(2.2, 2.2, 150, 9, 0x60c8ff, {reach: 0.01, burst: 56, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
+				P(0.3, {say: "THE SEA TAKES EVERYTHING!", banner: "The wreck floods!", move: "chase", speed: 1.3,
+					attacks: [aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), wall(15, 5, 80, 2.2, 0x406080, {hole: 3, motion: "wave"}),
+						nova(2.2, 2.0, 160, 8, 0x60c8ff, {reach: 0.01, burst: 64, bspd: 4.6, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]})
+			]});
+
+			for each (var ev:String in ["ev_colossus", "ev_phoenix", "ev_witch", "ev_kraken", "ev_wrecker"]) Data.EVENTS.push(ev);
 		}
 
 		// ---- Vorgath's attacks, after his design sheet (each with its own animation)

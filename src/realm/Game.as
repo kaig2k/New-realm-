@@ -1963,40 +1963,54 @@ package realm {
 		// ------------------------------------------------------------ realm events
 		private function updateEvents(dt:Number):void {
 			if (world.closeT > 0 || world.closed || world.eventsDone >= Data.EVENTS_PER_REALM) return;
-			if (world.boss) return;
+			var live:Array = liveEvents();
+			if (live.length >= Data.MAX_EVENTS || world.eventsDone + live.length >= Data.EVENTS_PER_REALM) return;
+			if (world.boss && !world.boss.eventBoss) return;
 			// a restart is close: no new event bosses nobody could finish
 			if (Online.restartAt && Online.restartAt - getTimer() < 120000) return;
 			world.eventT -= dt;
 			if (world.eventT <= 0) spawnEvent();
 		}
 
+		private static function liveHas(live:Array, id:String):Boolean {
+			for each (var e:Enemy in live) if (e.defId == id) return true;
+			return false;
+		}
+
 		/** realm event: the overlord announces a boss somewhere inland. */
 		private function spawnEvent():void {
 			// a random event, avoiding the last few seen in this realm
 			if (!world.recentEvents) world.recentEvents = [];
-			var id:String;
-			do id = Data.EVENTS[int(Math.random() * Data.EVENTS.length)]; while (world.recentEvents.indexOf(id) >= 0);
+			var id:String, live:Array = liveEvents(), lb:Enemy;
+			do id = Data.EVENTS[int(Math.random() * Data.EVENTS.length)]; while (world.recentEvents.indexOf(id) >= 0 || liveHas(live, id));
 			for (var tries:int = 0; tries < 500; tries++) {
 				// the boss stands in the middle of a tile, at the centre of its set piece
 				var x:Number = int(world.N / 2 + (Math.random() - 0.5) * world.N * 0.6) + 0.5;
 				var y:Number = int(world.N / 2 + (Math.random() - 0.5) * world.N * 0.6) + 0.5;
 				var z:int = world.zoneAt(x, y);
+				// (well apart from the others, so each is its own fight)
+				var near:Boolean = false;
+				for each (lb in live) if ((lb.x - x) * (lb.x - x) + (lb.y - y) * (lb.y - y) < Data.EVENT_GAP * Data.EVENT_GAP) near = true;
+				if (near) continue;
 				if (z >= World.MID_ZONE && z <= World.GOD_ZONE && world.canStand(x, y, 0.6, true) && SetPieces.fits(id, world, int(x), int(y))) {
 					world.nextEvent++;
 					world.recentEvents.push(id);
 					if (world.recentEvents.length > 4) world.recentEvents.shift();
-					world.boss = new Enemy(id, x, y, z);
-					enemies.push(world.boss);
+					var eb:Enemy = new Enemy(id, x, y, z);
+					eb.eventBoss = true;
+					if (!world.boss || world.boss.dead) world.boss = eb;
+					enemies.push(eb);
 					// its arena: wards, menders or hazards around it
-					world.boss.props = [];
+					eb.props = [];
 					for each (var sp:Object in Bosses.setPieceSpots(id, x, y, world)) {
 						var pr:Enemy = spawnEnemy(sp.what, sp.x, sp.y, z);
-						if (pr) world.boss.props.push(pr);
+						if (pr) { pr.owner = eb; eb.props.push(pr); }
 					}
+					world.eventT = 25 + Math.random() * 20;
 					player.bossDmg = 0;
-					var nm:String = world.boss.def.name;
+					var nm:String = eb.def.name;
 					showBanner(nm + " has appeared!", 0xff70ff, 3.5);
-					if (world.boss.def.setpiece) msg(world.boss.def.setpiece.hint, 0xffb0ff);
+					if (eb.def.setpiece) msg(eb.def.setpiece.hint, 0xffb0ff);
 					Sfx.play("boss");
 					say(SOVEREIGN, "I summon " + nm + " to crush you, mortal!");
 					msg("Event boss on the minimap (magenta marker). [" + world.eventsDone + "/" + Data.EVENTS_PER_REALM + "]", 0xff70ff);
@@ -2457,7 +2471,7 @@ package realm {
 		public function dropEnemy(e:Enemy):void {
 			var i:int = enemies.indexOf(e);
 			if (i >= 0) { enemies[i] = enemies[enemies.length - 1]; enemies.length--; }
-			if (world.boss == e) world.boss = null;
+			if (world.boss == e) world.boss = otherEvent(e);
 		}
 
 		/** remote: the kill came from the world host, so it doesn't roll shared things (portals) again. */
@@ -2543,7 +2557,7 @@ package realm {
 			if (e.isBoss) {
 				shake(0.7, 10);
 				p.bossKills++;
-				if (world.boss == e) world.boss = null;
+				if (world.boss == e) world.boss = otherEvent(e);
 				// the boss's arena goes with it
 				if (e.props) for each (var pr:Enemy in e.props) if (!pr.dead) { pr.dead = true; sync.removed(pr); dropEnemy(pr); }
 				if (e.def.guardian) {
@@ -2585,7 +2599,7 @@ package realm {
 					addPortal(world, e.x, e.y + 2, "nexus", 0, 0xffffff, 0, 0, true, e.x, e.y);
 				} else {
 					world.eventsDone++;
-					world.eventT = 20 + Math.random() * 10;
+					world.eventT = Math.min(world.eventT > 0 ? world.eventT : 1e9, 20 + Math.random() * 10);
 					// events often leave a dungeon portal behind
 					// its own lair (Lairs.as); a boss without one leaves one of the old event dungeons
 					var li:int = e.def.lair ? Data.dungeonIndex(e.def.lair) : -1;
@@ -2603,7 +2617,7 @@ package realm {
 						world.closeT = 15;
 					}
 				}
-			} else if (world.kind == "realm" && !world.boss && e.def.drop > 0) {
+			} else if (world.kind == "realm" && liveEvents().length < Data.MAX_EVENTS && e.def.drop > 0) {
 				world.eventT -= 1.2; // killing speeds up the next event
 			}
 			// RotMG-style: some monsters drop a portal to their own dungeon
@@ -3580,6 +3594,20 @@ package realm {
 		}
 
 
+		/** The realm's event bosses still alive (up to Data.MAX_EVENTS at once). */
+		public function liveEvents():Array {
+			var out:Array = [];
+			if (world.kind != "realm") return out;
+			for each (var e:Enemy in enemies) if (e.eventBoss && !e.dead) out.push(e);
+			return out;
+		}
+
+		/** Another live event boss to take the boss slot when one falls (null if none). */
+		private function otherEvent(gone:Enemy):Enemy {
+			for each (var e:Enemy in liveEvents()) if (e != gone) return e;
+			return null;
+		}
+
 		/** The boss the health panel and quest arrow follow: the nearest living boss, else the area boss. */
 		private function focusBoss():Enemy {
 			var best:Enemy = null, bestD:Number = 26 * 26;
@@ -3618,6 +3646,18 @@ package realm {
 		private function aliveBosses():int {
 			var n:int = 0;
 			for each (var e:Enemy in enemies) if (!e.dead && e.isBoss) n++;
+			return n;
+		}
+
+		/** The wards still standing round one boss (its own set piece; any, if it has none of its own). */
+		private function wardsLeft(b:Enemy):int {
+			var n:int = 0, pr:Enemy;
+			if (b.props && b.props.length) {
+				for each (pr in b.props) if (!pr.dead && pr.def.ward) n++;
+				return n;
+			}
+			// (online the server keeps that list: count the wards in its arena)
+			for each (pr in enemies) if (!pr.dead && pr.def.ward && (pr.x - b.x) * (pr.x - b.x) + (pr.y - b.y) * (pr.y - b.y) < 15 * 15) n++;
 			return n;
 		}
 
@@ -7168,7 +7208,7 @@ package realm {
 				dg.drawRoundRect(0, 0, Math.max(6, (BOSS_W - 40) * pct / 100), 15, 5, 5);
 				dg.endFill();
 				dmgTf.htmlText = player.name + "<font color='#dddddd'>   " + Ui.commas(player.bossDmg) + " (" + pct.toFixed(2) + "%)</font>";
-				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + aliveWith("ward") + " " + Data.ENEMIES[b.def.setpiece.prop].name + (aliveWith("ward") == 1 ? "" : "s") + " left" : b.def.lairBoss || (world.theme && world.theme.lair) ? lairShieldText() : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
+				bossInfo.text = b.surviving ? "SURVIVE! He can't be hurt: dodge" + (b.surviveT > 0 ? " (" + Math.ceil(b.surviveT) + "s)" : "") : b.scalePlayers > 1 && !b.immune ? "HP: " + (frac * 100).toFixed(1) + "%  (" + Math.round(b.scalePlayers * 10) / 10 + " players)" : b.shieldT > 0 && !b.invuln ? "SHIELDED" : b.invuln ? (b.def.sealed ? "SEALED: " + aliveWith("guardian") + " guardians left" : b.def.setpiece ? "WARDED: " + wardsLeft(b) + " " + Data.ENEMIES[b.def.setpiece.prop].name + (wardsLeft(b) == 1 ? "" : "s") + " left" : b.def.lairBoss || (world.theme && world.theme.lair) ? lairShieldText() : "IMMUNE: " + crystalsLeft() + " crystals left") : "Boss HP: " + (frac * 100).toFixed(1) + "%";
 				var met:Boolean = pct >= LG_THRESHOLD;
 				thresholdTf.text = "Loot: " + LG_THRESHOLD + "% " + (met ? "met" : "not met");
 				thresholdTf.textColor = met ? 0x7fd07f : 0xe05050;
@@ -7271,6 +7311,12 @@ package realm {
 			}
 			var b:Enemy = world.boss;
 			var e:Enemy, best:Enemy = null, bestD:Number = 1e9, d:Number;
+			// several realm events: head for the nearest
+			for each (e in liveEvents()) {
+				d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
+				if (d < bestD) { bestD = d; b = e; }
+			}
+			bestD = 1e9;
 			// a Realm Siege: everyone to the Warlord
 			if (siegePanel && siegePanel.active && world.kind == "realm") {
 				var sw:Enemy = world.eById[siegePanel.bossId];

@@ -72,6 +72,9 @@ package realm {
 		public var mech:Object = null;
 		/** Drops nothing when it dies (a twin brought back by its partner: its loot was had the first time). */
 		public var noLoot:Boolean = false;
+		/** A realm event boss (up to Data.MAX_EVENTS alive at once); owner: the boss a set-piece prop belongs to. */
+		public var eventBoss:Boolean = false;
+		public var owner:Enemy = null;
 		/** You hit it at least once (you only get loot from monsters you fought). */
 		public var playerHit:Boolean = false;
 		/** Network id (online: shared by every player in the world). */

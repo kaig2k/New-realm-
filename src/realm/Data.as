@@ -1660,8 +1660,11 @@ package realm {
 
 		// ---- news: shown once per account after an update (newest first) ---------
 		public static const NEWS:Array = [
+			{id: "2026-11-wrecker", title: "Three realm bosses at once, and Morrow the Wrecker",
+				lines: ["<b>Up to three realm event bosses</b> can now be alive at once, each in its own arena well apart from the others. Split up and take them on your own, or go together.",
+					"<b>Morrow the Wrecker</b>, a new realm boss: he lit false lights to drown ships. His three <b>false beacons</b> ward him (smash them), and when he <b>calls the tide in</b>, take cover behind the shipwreck's broken hull. He drops <b>Wrecker's Hook</b> and <b>The False Light</b> ring, and always leaves the portal to the Drowned Lighthouse."]},
 			{id: "2026-11-lighthouse", title: "New dungeon: the Drowned Lighthouse",
-				lines: ["<b>The Drowned Lighthouse</b> (key at the Marketplace, 5,000 gold): a dark hard dungeon where every fight is about the room, not just the boss.",
+				lines: ["<b>The Drowned Lighthouse</b> (Morrow the Wrecker's portal): a dark hard dungeon where every fight is about the room, not just the boss.",
 					"<b>The Lamplighter</b> can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but if it lingers by one it puts it out.",
 					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together.",
 					"<b>The Bulwark</b> turns its tower shield toward whoever is closest. Hit it from behind or the side: in a group, one of you holds its attention.",
@@ -1995,7 +1998,7 @@ package realm {
 		public static const SLAYER:Object = {
 			ev_cube: "Cube Crusher", ev_titan: "Titanslayer", ev_wyrm: "Wyrmslayer", ev_king: "Kingslayer", ev_behemoth: "Behemoth Hunter",
 			ev_regent: "Regent's Bane", ev_sphinx: "Riddle Breaker", ev_lord: "Tidebreaker", ev_hermit: "Hermit Hunter", ev_shrine: "Shrine Breaker",
-			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer"
+			ev_colossus: "Colossus Toppler", ev_phoenix: "Phoenix Slayer", ev_witch: "Witch Hunter", ev_kraken: "Kraken Slayer", ev_wrecker: "Wreck Breaker"
 		};
 		// ---- Oracle collections: every unique a boss drops, found -> a title and +1 to a stat for every hero
 		/** The unique items that make up a boss's collection (the zealot pair share one). */
@@ -2243,6 +2246,9 @@ package realm {
 		/** Realm events; each realm needs EVENTS_PER_REALM of them killed. */
 		public static const EVENTS:Array = ["ev_cube", "ev_titan", "ev_wyrm", "ev_king", "ev_behemoth", "ev_regent", "ev_sphinx", "ev_lord", "ev_hermit", "ev_shrine"];
 		public static const EVENTS_PER_REALM:int = 8;
+		/** How many realm event bosses can be alive at once, and how far apart (tiles) they appear. */
+		public static const MAX_EVENTS:int = 3;
+		public static const EVENT_GAP:int = 45;
 		public static const OVERLORD:String = "Azrakor the Dark Elder";
 		/** Where the Dark Elder's four crystals rise in his third phase (from his home, plus 7 tiles down). */
 		public static const ELDER_CRYSTALS:Array = [[-8, -5], [8, -5], [-8, 5], [8, 5]];

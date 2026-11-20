@@ -85,7 +85,7 @@ package realm {
 				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
 				trio: ["crone_bramble", "crone_bog", "crone_ash"],
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
-			{id: "drowned_lighthouse", wall: "mossy", name: "The Drowned Lighthouse", color: 0x60c8ff, layout: "lighthouse", dark: true, floor: 18, accent: 23, tier: 4, hard: 1.5, lair: {
+			{id: "drowned_lighthouse", wall: "mossy", by: "ev_wrecker", name: "The Drowned Lighthouse", color: 0x60c8ff, layout: "lighthouse", dark: true, floor: 18, accent: 23, tier: 4, hard: 1.5, lair: {
 				boss: "drowned_keeper", intro: "The Keeper of the Drowned Lighthouse is sealed in its lamp room. Its three wardens hold the keys: each fights by the room's own rules."},
 				guardians: ["lamplighter", "tide_ebb", "bulwark"],
 				mobs: ["tide_spawn", "pirate_brawler", "crab", "shade"]},

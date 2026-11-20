@@ -1,3 +1,16 @@
+**📜 ELDMERE UPDATE: Three Bosses at Once, and Morrow the Wrecker**
+
+**👹 Busier realms**
+• Up to **three realm event bosses** can be alive at once (it was one). Each gets its own arena, well apart from the others, and every one is on the minimap
+• The quest arrow points to the nearest one, and the boss panel follows whichever you're fighting
+• A new one turns up 25 to 45 seconds after the last, until there are three. Killing them still counts toward the 8 that close the realm
+
+**🏮 Morrow the Wrecker (new realm boss)**
+• He lit false lights to wreck ships, and now he's in the realm. He stands on a shipwreck on a sandbar in the shallows
+• Three **false beacons** ward him: smash them all to hurt him
+• When he **calls the tide in**, a ring of water bursts out of him: get behind the wreck's broken hull. Low on health, the tide floods the edge of the sandbar
+• He drops **Wrecker's Hook** and **The False Light** ring, and always leaves the portal to **the Drowned Lighthouse**, which now opens only from him (no more key in the shop)
+
 **📜 ELDMERE UPDATE: The Drowned Lighthouse**
 
 **🏮 A new dungeon where the room fights back**

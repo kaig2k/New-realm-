@@ -32,6 +32,7 @@ package realm {
 			sand: {part: 0xf0d8a0, move: "drift", beam: 0xffe080, dust: 0xd8b478},
 			sunken: {part: 0xa0fff0, move: "rise", beam: 0x40d0c0, dust: 0x6ac0b4},
 			shell: {part: 0xd0f0ff, move: "drift", beam: 0x60c0ff, dust: 0xe8d8a8},
+			wreck: {part: 0xffe0a0, move: "drift", beam: 0xffc860, dust: 0xc8b488},
 			skull: {part: 0xc080ff, move: "rise", beam: 0xb060ff, dust: 0xece4cc},
 			obsidian: {part: 0xff9050, move: "rise", beam: 0xff7030, dust: 0x34283e},
 			fire: {part: 0xffb040, move: "rise", beam: 0xffa040, dust: 0xff7a28},

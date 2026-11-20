@@ -177,6 +177,10 @@ package realm {
 		 */
 		public static const FIXED:Object = {
 			// ---- early dungeons (UT, T4-T5)
+			// Morrow the Wrecker's
+			wreckers_hook: {n: "Wrecker's Hook", k: "weapon", s: "sword", r: "ut", st: {att: 4, spd: 3}, d: [70, 96], sh: 1, rt: 1, col: 0xc0c8d0,
+				txt: "A heavy hooked blade.", lore: "It has pulled more than one sailor off a sinking deck."},
+			false_light: {n: "The False Light", k: "ring", s: "wis", r: "ut", st: {wis: 6, mp: 60, luc: 3}, txt: "The mana ring, with a little luck.", lore: "Hold it up on a stormy night and the ships come to you."},
 			// the Drowned Lighthouse's Keeper
 			keepers_lamp: {n: "The Keeper's Lamp", k: "weapon", s: "staff", r: "lg", st: {att: 5, wis: 5}, d: [80, 110], sh: 2, rt: 1, pc: true, col: 0xfff0a0,
 				txt: "Two piercing beams of lighthouse light.", lore: "It turned for three hundred years. It turns for you now."},
@@ -288,6 +292,7 @@ package realm {
 		public static const DROPS:Object = {
 			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
 			snow_tyrant: ["peppermint_ring", "grimsnows_crown", "longest_night_staff", "snowglobe_hourglass", "frostwoven_robe", "everwinter_heart"],
+			ev_wrecker: ["wreckers_hook", "false_light"],
 			drowned_keeper: ["keepers_lamp", "tidewarden_plate", "ebb_and_flow"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],

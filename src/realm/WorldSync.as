@@ -49,7 +49,7 @@ package realm {
 		}
 
 		private function entry(e:Enemy, w:World):Array {
-			return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, int(e.hp), int(e.maxHp), r2(e.dmgMult), flags(e), w.boss == e ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite, e.spMask];
+			return [e.id, e.defId, r2(e.x), r2(e.y), e.zone, int(e.hp), int(e.maxHp), r2(e.dmgMult), flags(e), w.boss == e || e.eventBoss ? 1 : 0, r2(e.homeX), r2(e.homeY), e.elite, e.spMask];
 		}
 
 		// ------------------------------------------------------------ host side
@@ -197,7 +197,8 @@ package realm {
 						w.eById[e.id] = e;
 						w.enemies.push(e);
 						if (en[9]) {
-							w.boss = e;
+							if (w.kind == "realm") e.eventBoss = true;
+							if (!w.boss || w.boss.dead || !e.eventBoss) w.boss = e;
 							if (d.n && w.kind == "realm") g.eventAppeared(e);
 						}
 					}

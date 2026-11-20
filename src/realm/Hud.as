@@ -951,9 +951,11 @@ package realm {
 				arrow(gr, rx, ry, rp.heading, 4.5, g.net.inParty(rp) ? 0x7fd8ff : g.net.inGuild(rp) ? 0x60ff60 : 0xffe040);
 				marks.push({rp: rp, x: rx, y: ry});
 			}
-			if (g.boss) {
-				var bx:Number = Math.max(4, Math.min(mw - 4, ox + g.boss.x * z));
-				var by:Number = Math.max(4, Math.min(mh - 4, oy + g.boss.y * z));
+			var bossMarks:Array = g.liveEvents();
+			if (g.boss && bossMarks.indexOf(g.boss) < 0) bossMarks.push(g.boss);
+			for each (var bm:Enemy in bossMarks) {
+				var bx:Number = Math.max(4, Math.min(mw - 4, ox + bm.x * z));
+				var by:Number = Math.max(4, Math.min(mh - 4, oy + bm.y * z));
 				gr.lineStyle(1, 0x000000);
 				gr.beginFill(0xff40ff);
 				gr.drawRect(bx - 4, by - 4, 8, 8);

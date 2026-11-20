@@ -960,6 +960,56 @@ async function run() {
     check('reaching level 20 takes a real climb (' + total + ' XP)', total > 15000 && PD.SHOP.find((x) => x.id === 'stat').price >= 1200);
   }
 
+  console.log('three realm events at once');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: ED, World: EW, SetPieces: ESP } = require('./sim/gen/game');
+    const ws = new WorldSim('realm:Eventtest:5151'), w = ws.w, msgs = [];
+    ws.join({ id: 90, name: 'E', x: 10, y: 10, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => msgs.push(m) });
+    const live = () => ws.enemies.filter((e) => e.eventBoss && !e.dead);
+    for (let k = 0; k < 10; k++) { w.eventT = 0; ws.updateEvents(0.1); }
+    const evs = live();
+    let apart = true;
+    for (const a of evs) for (const b of evs) if (a !== b && Math.hypot(a.x - b.x, a.y - b.y) < ED.EVENT_GAP) apart = false;
+    check('up to three event bosses at once, never a fourth, all different and far apart', evs.length === ED.MAX_EVENTS && apart &&
+      new Set(evs.map((e) => e.defId)).size === evs.length && evs.every((e) => e.arena && e.arena.length), evs.map((e) => e.defId).join(','));
+    check('...each with its own set piece', evs.every((e) => (e.props || []).every((p) => p.owner === e)));
+    const first = w.boss;
+    first.hitters.set(90, 1);
+    ws.kill(first);
+    check('one falls: the count goes up, the others carry on and the next is on its way', w.eventsDone === 1 && live().length === 2 && w.boss && !w.boss.dead &&
+      w.boss !== first && w.eventT > 0 && w.eventT <= 30);
+    w.eventT = 0; ws.updateEvents(0.1);
+    check('...and a new one takes its place', live().length === 3);
+    // the realm only holds as many as it still needs to close
+    w.eventsDone = ED.EVENTS_PER_REALM - 3;
+    for (const e of live()) { e.hitters.set(90, 1); ws.kill(e); }
+    w.eventT = 0; ws.updateEvents(0.1);
+    check('...never more than the realm still needs before it closes', live().length === 0 && w.eventsDone === ED.EVENTS_PER_REALM);
+    // Morrow the Wrecker: his shipwreck, three false beacons, and the portal to the Drowned Lighthouse
+    const ws2 = new WorldSim('realm:Wrecktest:6161'), w2 = ws2.w, sent = [];
+    ws2.join({ id: 91, name: 'W', x: 10, y: 10, maxDps: 1e9, profile: { cls: 'wizard', lk: 0 }, send: (m) => sent.push(m) });
+    let placed = null;
+    for (let tries = 0; tries < 4000 && !placed; tries++) {
+      const x = Math.floor(w2.N / 2 + (Math.random() - 0.5) * w2.N * 0.6), y = Math.floor(w2.N / 2 + (Math.random() - 0.5) * w2.N * 0.6);
+      if (w2.zoneAt(x + 0.5, y + 0.5) >= EW.MID_ZONE && ESP.fits('ev_wrecker', w2, x, y)) placed = [x, y];
+    }
+    check('Morrow\'s shipwreck fits in the realm', !!placed);
+    const cells = ESP.plan('ev_wrecker', w2, placed[0], placed[1]);
+    ESP.apply(w2, cells);
+    const m = ws2.spawn('ev_wrecker', placed[0] + 0.5, placed[1] + 0.5, w2.zoneAt(placed[0] + 0.5, placed[1] + 0.5), true);
+    m.eventBoss = true; m.arena = cells; m.props = [];
+    for (const sp of require('./sim/gen/game').Bosses.setPieceSpots('ev_wrecker', m.x, m.y, w2)) {
+      const pr = ws2.spawn(sp.what, sp.x, sp.y, m.zone, true); if (pr) { pr.owner = m; m.props.push(pr); }
+    }
+    check('...with cover (the broken hull) and three false beacons', cells.some((k) => k.ch === '#' && w2.tiles[k.i] === EW.WALL) &&
+      m.props.filter((p) => p.defId === 'false_beacon').length === 3);
+    m.hitters.set(91, 1);
+    ws2.kill(m);
+    const port = sent.find((x) => x.d && x.d.t === 'portal' && x.d.k === 'dungeon' && x.d.i === ED.dungeonIndex('drowned_lighthouse'));
+    check('...and he leaves the portal to the Drowned Lighthouse', !!port);
+  }
+
   console.log('realm siege');
   {
     const { WorldSim } = require('./sim/worldsim');
@@ -3319,8 +3369,11 @@ async function run() {
     // splitting, eggs, trios), with the cleared message every game uses to open the way home
     const { WorldSim } = require('./sim/worldsim');
     const { Data: LD, Lairs } = require('./sim/gen/game');
-    for (const th of Lairs.DUNGEONS.filter((t) => t.by)) {
+    for (const th of Lairs.DUNGEONS) {
       check(th.name + ' is ' + (LD.ENEMIES[th.by] && LD.ENEMIES[th.by].name) + '\'s lair', LD.ENEMIES[th.by] && LD.ENEMIES[th.by].lair === th.id);
+      check('  ' + th.name + ' has no key for sale', LD.keyPrice(LD.dungeonIndex(th.id)) < 0);
+      // (the Drowned Lighthouse's wardens have rules of their own: its own section below)
+      if (th.guardians) continue;
       const ws = new WorldSim('dg:' + LD.dungeonIndex(th.id) + ':4242'), w = ws.w, last = w.rooms[w.rooms.length - 1], L = th.lair;
       const msgs = [];
       const pl = { id: 1, x: last.x + 0.5, y: last.y + 3.5, maxDps: 1e9, send: (m) => msgs.push(m) };
@@ -3340,7 +3393,6 @@ async function run() {
         if (masters.length) ws.kill(masters[0]);
       }
       const cleared = !!(w.lair && w.lair.done) && msgs.some((m) => m.d && m.d.lairDone);
-      check('  ' + th.name + ' has no key for sale', LD.keyPrice(LD.dungeonIndex(th.id)) < 0);
       check('  ' + th.name + ': its rules hold and it can be cleared', cleared && (!L.shield || shielded) && (!(L.shield && L.shield.regrow) || regrew) &&
         (!L.waves || w.lair.wave === L.waves.n) && (!(L.rebirth && L.rebirth.egg) || egg), JSON.stringify({ cleared, shielded, regrew, egg, wave: w.lair && w.lair.wave }));
     }
@@ -3352,7 +3404,7 @@ async function run() {
     const { WorldSim } = require('./sim/worldsim');
     const { Data: LD } = require('./sim/gen/game');
     const di = LD.dungeonIndex('drowned_lighthouse');
-    check('it has a key for sale', LD.keyPrice(di) > 0);
+    check('Morrow the Wrecker opens it (no key)', LD.ENEMIES.ev_wrecker.lair === 'drowned_lighthouse' && LD.EVENTS.indexOf('ev_wrecker') >= 0 && LD.keyPrice(di) < 0);
     const ws = new WorldSim('dg:' + di + ':4242'), w = ws.w, msgs = [];
     const live = () => ws.enemies.filter((e) => !e.dead), find = (id) => live().find((e) => e.defId === id);
     const g = find('lamplighter'), k = find('drowned_keeper');

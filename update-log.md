@@ -1,38 +1,33 @@
-**📜 ELDMERE UPDATE: The Realm's Makeover**
-
-**🌲 A realm that matches its monsters**
-• The realm's ground is drawn at **twice the detail** in calmer, natural colours, so the shaded monsters and bosses look like they belong there (the old ground was bright, flat and blocky next to them)
-• Grass with tufts, a darker forest floor with leaf litter, dry highland stalks, rippled sand, and the Godlands' cracked rock with violet fissures
-• Where two kinds of ground meet, the border now **wanders naturally** instead of following the square grid
-• **Water** gets deeper away from the shore, with foam where it meets land and darker wet sand beside it
-• Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**, all sunk into the ground instead of outlined in white
-• Trees, pines, palms, rocks, boulders, ruin walls, pillars, tents and graves toned to match
-• Event bosses' arenas are graded to sit into the new ground (the Hollow King's hall, the Sphinx's temple and the rest)
-• The new ground costs no more to draw than the old did, so walking around stays smooth
-
-**📜 ELDMERE UPDATE: Three Bosses at Once, and Morrow the Wrecker**
-
-**👹 Busier realms**
-• Up to **three realm event bosses** can be alive at once (it was one). Each gets its own arena, well apart from the others, and every one is on the minimap
-• The quest arrow points to the nearest one, and the boss panel follows whichever you're fighting
-• A new one turns up 25 to 45 seconds after the last, until there are three. Killing them still counts toward the 8 that close the realm
-
-**🏮 Morrow the Wrecker (new realm boss)**
-• He lit false lights to wreck ships, and now he's in the realm. He stands on a shipwreck on a sandbar in the shallows
-• Three **false beacons** ward him: smash them all to hurt him
-• When he **calls the tide in**, a ring of water bursts out of him: get behind the wreck's broken hull. Low on health, the tide floods the edge of the sandbar
-• He drops **Wrecker's Hook** and **The False Light** ring, and always leaves the portal to **the Drowned Lighthouse**, which now opens only from him (no more key in the shop)
-
 **📜 ELDMERE UPDATE: The Drowned Lighthouse**
 
-**🏮 A new dungeon where the room fights back**
-• **The Drowned Lighthouse**: a dark hard dungeon, key at the Marketplace for 5,000 gold. Four fights, each with a rule you have to play around
-• **The Lamplighter** can't be hurt in the dark. Shoot its four storm lanterns to light them, then lure it into their glow. If it lingers beside a lantern it snuffs it, so keep it moving between the lights
-• **Ebb and Flow**, twin water spirits: side by side, neither can be hurt, so pull them apart. Kill one and the other raises it at 60% health after 10 seconds (and fights harder meanwhile), so bring them down together
-• **The Bulwark** turns its great tower shield toward whoever is closest, and can only be hurt from behind or the side. Circle it, or in a group have one hero hold its attention
-• **The Drowned Keeper** is sealed in its lamp room until all three wardens fall. When it **raises the tide**, a ring of water too thick to dodge floods the hall: get behind one of the six stone pillars. Meanwhile the lighthouse beam sweeps round the room
-• Lanterns and the Keeper's lamp now **light up the dark** around them in any dark dungeon
-• New uniques from the Keeper: **The Keeper's Lamp** (a staff of two piercing beams), **Tidewarden Plate** and the **Ebb and Flow** ring
+**🌲 The realm's makeover**
+• The realm's ground is drawn at **twice the detail** in calmer, natural colours, so the monsters and bosses finally look like they belong there
+• Grass with tufts, a darker forest floor with leaf litter, dry highland stalks, rippled sand, and the Godlands' cracked rock with violet fissures
+• Where two kinds of ground meet, the border **wanders naturally** instead of following a square grid
+• **Water** gets deeper away from the shore, with foam where it meets the land and wet sand beside it
+• Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**
+• Trees, rocks, ruins, tents and graves toned to match, and the event bosses' arenas fitted into the new ground
+• It draws no slower than the old ground, so walking around stays smooth
+
+**👹 Three bosses at once**
+• Up to **three realm event bosses** can be alive at the same time, each in its own arena well apart from the others
+• All of them show on the minimap, the quest arrow points to the nearest, and the boss panel follows whichever you're fighting
+• Split up and take one each, or go together. They still count toward the 8 that close the realm
+
+**🏮 New realm boss: Morrow the Wrecker**
+• A wrecker who lit false lights to drown ships, waiting on a shipwreck in the shallows
+• Three **false beacons** shield him: smash them all to hurt him
+• When he **calls the tide in**, a ring of water bursts out of him: take cover behind the wreck's broken hull
+• Drops **Wrecker's Hook** and **The False Light** ring, and always leaves the portal to **the Drowned Lighthouse**
+
+**🗼 New dungeon: the Drowned Lighthouse**
+• A dark hard dungeon, reached only through Morrow's portal. Four fights where the room matters as much as the boss
+• **The Lamplighter** can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but it snuffs any lantern it lingers beside
+• **Ebb and Flow** can't be hurt while side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together
+• **The Bulwark** turns its tower shield toward whoever is closest: hit it from behind or the side, or have a friend hold its attention
+• **The Drowned Keeper** is sealed until all three fall. When it **raises the tide**, a wave too thick to dodge floods the hall: get behind a stone pillar. Its lighthouse beam sweeps the room the whole time
+• Lanterns and the Keeper's lamp **light up the dark** around them
+• New uniques: **The Keeper's Lamp** (a staff of two piercing beams), **Tidewarden Plate** and the **Ebb and Flow** ring
 
 **📜 ELDMERE UPDATE: Bosses Tuned**
 

@@ -2764,7 +2764,7 @@ class Bosses {
 				Bosses.P(0.2, {say: "*it cracks open, glowing*", move: "chase", speed: 1.3,
 					attacks: [Bosses.flower(24, 10, 6, 85, 0.9, 0xc0a0ff), Bosses.nova(4.2, 1.1, 150, 2.2, 0x9060ff, {reach: 0.01, marker: "rune", radius: 4.2, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", land: "slam", name: "heartquake"})]})
 			]});
-			Bosses.lairBoss("obsidian_shard", {name: "Obsidian Shard", spr: "golem", hp: 8000, spd: 1.8, r: 0.8, col: 0x9060ff, xp: 900, gold: 250, onrane: 3,
+			Bosses.lairBoss("obsidian_shard", {name: "Obsidian Shard", spr: "golem_big", hp: 8000, spd: 1.8, r: 0.8, col: 0x9060ff, xp: 900, gold: 250, onrane: 3,
 				phases: [Bosses.P(1, {move: "chase", attacks: [Bosses.aim(3, 24, 9, 75, 1.1, 0xc0a0ff), Bosses.nova(2.4, 1.0, 100, 2.8, 0x9060ff, {burst: 8})]})]});
 
 			
@@ -6628,7 +6628,9 @@ Data.NEWS = [
 					"Grass, forest floor, dry highlands, sand and the Godlands' cracked rock each have their own texture, and where they meet the border wanders like a real one instead of a square grid.",
 					"Water gets deeper away from the shore, with foam where it laps the land and wet sand beside it. Paths are cobbled, ruins flagstoned, lava crusts over and glows through its cracks.",
 					"Trees, rocks, ruins and tents are toned to match, and the event bosses' arenas sit into the new ground.",
-					"<b>Monsters and bosses resized</b> to fit the world: ordinary monsters about one and a half heroes tall, most bosses about three tiles, the biggest raid bosses about four and a half (some were half the screen)."]},
+					"<b>Bosses resized</b> to fit the world: most about three tiles tall, the biggest raid bosses about four and a half (some were half the screen).",
+					"<b>Monsters in the heroes' style</b>: the regular monsters are chunky pixel art again, shaded like your heroes and about your height. Bosses keep their detailed art.",
+					"<b>No more glow when you shoot.</b>"]},
 			{id: "2026-11-wrecker", title: "Three realm bosses at once, and Morrow the Wrecker",
 				lines: ["<b>Up to three realm event bosses</b> can now be alive at once, each in its own arena well apart from the others. Split up and take them on your own, or go together.",
 					"<b>Morrow the Wrecker</b>, a new realm boss: he lit false lights to drown ships. His three <b>false beacons</b> ward him (smash them), and when he <b>calls the tide in</b>, take cover behind the shipwreck's broken hull. He drops <b>Wrecker's Hook</b> and <b>The False Light</b> ring, and always leaves the portal to the Drowned Lighthouse."]},

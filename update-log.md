@@ -8,7 +8,13 @@
 • Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**
 • Trees, rocks, ruins, tents and graves toned to match, and the event bosses' arenas fitted into the new ground
 • It draws no slower than the old ground, so walking around stays smooth
-• **Monsters and bosses resized** to sit in the world: ordinary monsters stand about one and a half heroes tall (goblins, orcs and minotaurs were over twice your height), dungeon, lair and realm bosses about three tiles (most were four to five), and the biggest raid bosses about four and a half (they were over nine, half the screen)
+• **Bosses resized** to sit in the world: dungeon, lair and realm bosses about three tiles tall (most were four to five), the biggest raid bosses about four and a half (they were over nine, half the screen)
+
+**👾 Monsters in the heroes' style**
+• The realm's regular monsters are back to **chunky pixel art, like your heroes**, shaded with light and shade, and about your height (the detailed ones looked out of place next to you, and most were twice your size)
+• New chunky drawings for the monsters that never had one: scorpions, crabs, wolves, harpies, medusas, djinns, ents, cubelets, mothlings, the Siege's soldiers, spiderlings, kraken tentacles and clam cannons
+• Bosses keep their detailed art
+• **No more glow when you shoot**: the burst of light at your weapon and the flash on your hero are gone
 
 **👹 Three bosses at once**
 • Up to **three realm event bosses** can be alive at the same time, each in its own arena well apart from the others

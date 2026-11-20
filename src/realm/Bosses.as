@@ -1564,7 +1564,7 @@ package realm {
 				P(0.2, {say: "*it cracks open, glowing*", move: "chase", speed: 1.3,
 					attacks: [flower(24, 10, 6, 85, 0.9, 0xc0a0ff), nova(4.2, 1.1, 150, 2.2, 0x9060ff, {reach: 0.01, marker: "rune", radius: 4.2, burst: 18, bspd: 5.5, blife: 1.4, fx: "spikes", land: "slam", name: "heartquake"})]})
 			]});
-			lairBoss("obsidian_shard", {name: "Obsidian Shard", spr: "golem", hp: 8000, spd: 1.8, r: 0.8, col: 0x9060ff, xp: 900, gold: 250, onrane: 3,
+			lairBoss("obsidian_shard", {name: "Obsidian Shard", spr: "golem_big", hp: 8000, spd: 1.8, r: 0.8, col: 0x9060ff, xp: 900, gold: 250, onrane: 3,
 				phases: [P(1, {move: "chase", attacks: [aim(3, 24, 9, 75, 1.1, 0xc0a0ff), nova(2.4, 1.0, 100, 2.8, 0x9060ff, {burst: 8})]})]});
 
 			// --- the Ashen Aerie (Pyraxis's): Ignaria and her egg

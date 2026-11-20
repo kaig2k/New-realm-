@@ -17,6 +17,11 @@ _monsters = monster_shaded.all_designs()
 # the pets (pets_shaded.py), drawn smaller than the monsters
 import pets_shaded
 _monsters += pets_shaded.all_designs()
+# ...but the regular monsters are chunky, in the heroes' style (chunky_monsters.py); a boss sharing one keeps
+# the detailed drawing under its own name
+import chunky_monsters
+_monsters = [d for d in _monsters if d[0] not in chunky_monsters.NAMES] + [('golem_big',) + tuple(d[1:]) for d in _monsters if d[0] == 'golem']
+DESIGNS = DESIGNS + chunky_monsters.NEW
 _mnames = {d[0] for d in _monsters}
 _names = {d[0] for d in _shaded}
 # (bosses that reuse an old drawing with a colour swap keep it, as name_flat, until they get shaded art of their own)

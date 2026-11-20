@@ -12,7 +12,7 @@ barnacles and weed, a lantern for a head with the great light burning inside, a 
 """
 import math
 from sdfart import Model, rough, folds, vnoise
-from shaded_kit import g, glow, robe, torso, arm, held, legs, head, eyes, staff, designs, sheet, chest, plate, pauldron
+from shaded_kit import g, glow, robe, torso, arm, held, legs, head, eyes, staff, designs, sheet, chest, plate, pauldron, spike
 
 VOID = g([0x040306, 0x0a080e])
 OIL = g([0x3a3008, 0x5e4e10, 0x8a7418, 0xb89c2a, 0xdcc048], spec=0.6)      # a yellow oilskin
@@ -29,167 +29,203 @@ GLASS = glow(0x3a6878, 0x80c8d8, 0xd0f4ff, base=0.25)
 
 # ---------------------------------------------------------------- the Lamplighter
 def lamplighter(t):
-    M = {'oil': OIL, 'oild': OIL_D, 'pole': POLE, 'iron': IRON, 'brass': BRASS, 'flame': FLAME, 'ember': EMBER, 'void': VOID,
-         'smoke': g([0x2a3038, 0x48505c, 0x6c7680])}
-    m = Model(48, 56)
+    """A drowned lamplighter: tall and gaunt in a sodden, tattered coat and hood, a pale drowned face
+    with burning eyes, a long hooked pole with its lamp hung from the hook."""
+    M = {'coat': g([0x060a0c, 0x0e1a1e, 0x182c30, 0x244044, 0x34585a]), 'coatd': g([0x040607, 0x0a1214, 0x121e22]),
+         'pole': POLE, 'iron': IRON, 'brass': BRASS, 'flame': FLAME, 'ember': glow(0xff5010, 0xffc040, 0xfff4c0, base=0.4),
+         'face': g([0x2a3a38, 0x4a605c, 0x6e8a84, 0x9ab4ac]), 'void': VOID, 'weed': WEED}
+    m = Model(50, 60)
     cx = 22
-    legs(m, cx, 38, 54, 3.4, 2.4, 'oild')
-    robe(m, cx, 26, 48, 6, 10, 'oil', tatter=True, seed=31)                     # the long oilskin, torn at the hem
-    torso(m, cx, 18, 34, 6.2, 'oil', folds(0.14, 3.0, 9))
-    m.capsule((cx - 1, 20, 8), (cx + 1, 44, 9.5), 0.5, 0.6, 'oild')             # the coat's seam
-    for k in range(3):
-        m.sphere((cx + 1.8, 24 + k * 6, 9), 0.8, 'brass')
-    # right arm: the long lighting pole, a hook and a wick at its tip
-    arm(m, (cx + 6, 20, 3), (cx + 10, 27, 5), (cx + 12, 32, 8), 2.0, 'oil', 'oild', 1.5)
+    robe(m, cx, 24, 56, 5.5, 11, 'coat', tatter=True, seed=37)                   # the long coat, torn to ribbons at the hem
+    torso(m, cx, 17, 34, 5.6, 'coat', folds(0.16, 2.6, 9))
+    m.capsule((cx - 6, 18, 2), (cx + 6, 18, 2), 3.2, 3.2, 'coat')                # stooped, bony shoulders
+    for k in range(4):                                                           # weed hanging off it, dripping
+        x = cx - 7 + k * 4.5
+        m.capsule((x, 30 + k % 2 * 6, 8), (x + 0.5, 37 + k % 2 * 8, 8), 0.6, 0.3, 'weed')
+    # right arm: long and thin, gripping the pole high
+    arm(m, (cx + 5, 19, 3), (cx + 10, 22, 5), (cx + 13, 16, 8), 1.6, 'coat', 'face', 1.3)
     held(m, 'R')
-    staff(m, cx + 13, 2, 50, 'pole', z=8, r=0.7)
-    m.chain([(cx + 13, 3, 8), (cx + 15.5, 0.8, 8.5), (cx + 17.5, 2.4, 8.5), (cx + 17, 5, 8.5)], [0.7, 0.7, 0.6, 0.5], 'iron')
-    m.sphere((cx + 13, 2, 9), 1.1 + t * 0.4, 'flame')
-    m.anchor('strike', (cx + 13, 2))
-    m.part(None)
-    # left arm: the lamp, smoking
-    arm(m, (cx - 6, 20, 3), (cx - 10, 28, 5), (cx - 11, 34, 8), 2.0, 'oil', 'oild', 1.5)
-    held(m, 'L')
-    m.capsule((cx - 11, 35, 8), (cx - 11, 37, 8), 0.4, 0.4, 'iron')
-    m.capsule((cx - 11, 38, 7), (cx - 11, 44, 7), 2.6, 2.6, 'brass', cut=45)
-    m.sphere((cx - 11, 41, 9.5), 1.8 + t * 0.3, 'flame', 0.8, 1.1, 1)
+    staff(m, cx + 13.5, 2, 58, 'pole', z=8, r=0.75)
+    m.chain([(cx + 13.5, 3, 8), (cx + 16, 0.6, 8.5), (cx + 19.5, 1.5, 8.5), (cx + 20.5, 5, 8.5)], [0.75, 0.7, 0.6, 0.5], 'iron')
+    # the lamp hung from the hook, swinging
+    sw = (t - 0.5) * 1.6
+    m.capsule((cx + 20.5, 5, 8.5), (cx + 20.5 + sw, 9, 8.5), 0.3, 0.3, 'iron')
+    m.capsule((cx + 20.5 + sw, 10, 8), (cx + 20.5 + sw, 15, 8), 2.4, 2.4, 'brass', cut=16)
+    m.sphere((cx + 20.5 + sw, 12.5, 10.5), 1.8 + t * 0.3, 'flame', 0.8, 1.1, 1)
     for k in range(3):
-        m.capsule((cx - 13.6 + k * 2.6, 38, 9.6), (cx - 13.6 + k * 2.6, 44, 9.6), 0.3, 0.3, 'iron')
-    m.sphere((cx - 12 - t, 31 - t, 4), 1.6, 'smoke')
-    m.sphere((cx - 13 - t, 27.5 - t, 3), 1.2, 'smoke')
-    m.anchor('cast', (cx - 11, 41))
+        m.capsule((cx + 18.4 + sw + k * 2.1, 10, 10.4), (cx + 18.4 + sw + k * 2.1, 15, 10.4), 0.3, 0.3, 'iron')
+    m.sphere((cx + 20.5 + sw, 9.4, 8.5), 2.6, 'brass', 1.0, 0.4, 1.0)
+    m.anchor('strike', (cx + 20.5, 12))
     m.part(None)
-    # head: lost in a sou'wester, two embers for eyes
-    head(m, cx, 13, 4.2, 'void')
-    m.sphere((cx, 10, 3), 7.8, 'oil', 1.1, 0.42, 0.9)                         # the brim, wide at the back
-    m.sphere((cx, 8, 3), 4.8, 'oil', 1.0, 0.8, 0.9)
-    m.capsule((cx - 4, 12, 7.6), (cx + 4, 12, 7.6), 0.3, 0.3, 'oild')
-    eyes(m, cx, 13.5, 1.6, 8, 'ember', 0.55)
+    # left arm: hanging long, claw-fingered
+    arm(m, (cx - 5, 19, 3), (cx - 9, 28, 5), (cx - 10, 36, 7), 1.6, 'coat', 'face', 1.2)
+    for k in range(3):
+        m.capsule((cx - 10 + (k - 1) * 0.9, 37, 7), (cx - 10 + (k - 1) * 1.6, 40.5, 7), 0.4, 0.25, 'face')
+    m.anchor('cast', (cx - 10, 38))
+    # the head: a deep hood, a pale drowned face sunk in it, eyes like coals
+    m.part('head', (cx, 13))
+    m.sphere((cx, 11, 3), 6.6, 'coat', 0.95, 1.15, 1.0)
+    m.capsule((cx, 4, 2), (cx - 2, 0.5, 1), 2.6, 0.6, 'coat')                     # the hood's limp peak
+    m.sphere((cx, 12.5, 6.6), 3.6, 'void', 1.0, 1.15, 0.55)
+    m.sphere((cx, 13.5, 7.2), 2.5, 'face', 0.9, 1.15, 0.7)
+    m.sphere((cx - 1.1, 12.6, 9.2), 0.75, 'void'); m.sphere((cx + 1.1, 12.6, 9.2), 0.75, 'void')
+    eyes(m, cx, 12.6, 1.1, 9.8, 'ember', 0.45)
+    m.capsule((cx - 0.8, 15.6, 9), (cx + 0.8, 15.6, 9), 0.3, 0.3, 'void')
     m.part(None)
     return m, M
 
 
 # ---------------------------------------------------------------- Ebb and Flow
 def tide(name, deep, mid, light, foam):
+    """A water wraith rising out of a breaking wave: the wave curls round its base, a hunched body of
+    dark water, long clawed arms dragging down, a hollow face and hair of streaming foam."""
     def fn(t):
-        M = {'water': g([deep, mid, light, foam], spec=0.8), 'foam': g([light, foam, 0xffffff], spec=0.6),
-             'mask': g([0x8a9aa4, 0xb8c8d0, 0xe8f4f8], spec=0.5), 'eye': glow(deep, foam, 0xffffff), 'void': VOID}
-        m = Model(40, 46)
-        cx = 20
-        # a swirl of wave rising into a body: rings that narrow upward and lean with the tide
-        sway = 1.2 if name == 'tide_ebb' else -1.2
-        for k in range(6):
-            y = 42 - k * 4.4
-            w = 9.5 - k * 0.9
-            off = math.sin(k * 0.9 + t * 1.6) * sway
-            m.sphere((cx + off, y, k * 0.6), w, 'water', 1.0, 0.42, 0.8)
-        for k in range(5):                                                   # foam curling off the crest of each ring
-            a = k * 1.3 + t
-            m.capsule((cx + math.cos(a) * 8, 40 - k * 4.4, 6), (cx + math.cos(a) * 10, 38 - k * 4.4, 6.5), 0.9, 0.3, 'foam')
-        torso(m, cx, 14, 24, 5.4, 'water')
-        for s in (-1, 1):                                                    # arms of water, ending in curling waves
-            m.chain([(cx + s * 5, 16, 4), (cx + s * 10, 20, 5), (cx + s * 13, 16 - t, 6), (cx + s * 12, 12 - t, 6.5)],
-                    [2.0, 1.7, 1.3, 0.8], 'water')
-            m.sphere((cx + s * 12, 12 - t, 7), 1.2, 'foam')
-        m.anchor('cast', (cx + 12, 12))
-        head(m, cx, 9, 4.4, 'water')
-        m.sphere((cx, 9.5, 6.8), 3.4, 'mask', 0.95, 1.15, 0.6)                # a pale mask
-        eyes(m, cx, 9, 1.5, 8.5, 'eye', 0.6)
-        m.capsule((cx - 1.2, 12.4, 8.6), (cx + 1.2, 12.4, 8.6), 0.3, 0.3, 'void')
-        for k in range(5):                                                   # hair streaming back like spray
-            a = math.pi + (k - 2) * 0.35
-            m.capsule((cx, 6, 3), (cx + math.cos(a) * 2 + sway * 2, 1 + abs(k - 2) * 0.8, 2), 1.2, 0.4, 'foam' if k % 2 else 'water')
+        M = {'water': g([deep, mid, light, foam], spec=0.8), 'dark': g([0x020408, deep, mid]), 'foam': g([light, foam, 0xffffff], spec=0.6),
+             'eye': glow(foam, 0xffffff, base=0.5), 'void': VOID}
+        m = Model(48, 50)
+        s = 1 if name == 'tide_ebb' else -1
+        cx = 24
+        # the wave it rises from: a wide swell, its crest curling over on one side
+        m.sphere((cx, 44, 1), 13, 'water', 1.0, 0.36, 0.8)
+        m.capsule((cx - 4 * s, 36, 2), (cx - 12 * s, 40, 3), 4.0, 2.0, 'water')
+        m.chain([(cx - 12 * s, 40, 3), (cx - 16 * s, 36, 5), (cx - 14 * s, 32.5, 7), (cx - 11 * s, 34, 8)], [2.2, 1.8, 1.4, 1.0], 'foam')
+        for k in range(5):
+            m.sphere((cx - 10 + k * 5, 40.5 + (k % 2), 7.5), 1.1, 'foam')
+        # the body: a column of water narrowing as it rises, leaning forward
+        m.capsule((cx, 40, 3), (cx + s * 1.2, 16, 5), 7.0, 5.0, 'water')
+        m.capsule((cx + s * 1.2, 19, 6), (cx + s * 1.5, 12, 6), 5.4, 4.4, 'water')
+        for k in range(3):                                                    # ribs of dark water
+            y = 20 + k * 3
+            m.capsule((cx - 3.8 + s, y, 10.4), (cx + 3.8 + s, y + 0.6, 10.4), 0.4, 0.4, 'dark')
+        # long arms dragging down, hands of three long claws
+        for sd in (-1, 1):
+            hy = 32 + (t if sd == s else -t)
+            hx = cx + sd * 15
+            m.chain([(cx + sd * 6, 14, 5), (cx + sd * 12, 20, 6), (hx, hy, 8)], [2.6, 2.1, 1.7], 'water')
+            for c in range(3):
+                m.capsule((hx, hy + 1, 8.5), (hx + (c - 1) * 1.8 + sd * 1.2, hy + 6, 9), 0.7, 0.2, 'foam')
+        m.anchor('cast', (cx + 15, 32))
+        # the head: hunched low between the shoulders, a hollow face
+        hx = cx + s * 2
+        m.sphere((hx, 9, 6), 4.6, 'water', 0.95, 1.05, 1.0)
+        m.sphere((hx, 10, 9.2), 3.0, 'dark', 1.0, 1.15, 0.5)
+        eyes(m, hx, 9.2, 1.4, 10.6, 'eye', 0.55)
+        m.capsule((hx - 1, 12.8, 10.2), (hx + 1, 13.4, 10.2), 0.4, 0.5, 'void')
+        for k in range(6):                                                    # foam hair streaming back
+            a = -math.pi / 2 - s * (0.5 + k * 0.32)
+            L = 7 + k * 1.1 + t
+            m.capsule((hx, 6, 3), (hx + math.cos(a) * L, 6 + math.sin(a) * L * 0.45 + k * 1.1, 2), 1.6 - k * 0.15, 0.35, 'foam' if k % 2 else 'water')
         return m, M
     return fn
 
 
 # ---------------------------------------------------------------- the Bulwark
 def bulwark(t):
-    M = {'brass': BRASS, 'iron': IRON, 'glass': GLASS, 'barn': BARN, 'weed': WEED, 'eye': glow(0x30a0ff, 0xa0e0ff, 0xffffff),
-         'suit': g([0x1a2228, 0x2c3a44, 0x445866, 0x5e7888]), 'shield': g([0x1c242c, 0x34424e, 0x506270, 0x748a9a], spec=0.6)}
-    m = Model(56, 58)
-    cx = 26
-    legs(m, cx, 38, 56, 4.4, 4.0, 'suit')
-    for s in (-1, 1):
-        m.sphere((cx + s * 4.4, 54, 7), 3.6, 'iron', 1.1, 0.6, 1.2)            # lead boots
-    chest(m, cx, 18, 40, 11, 9, 4, 'suit', bevel=3.0)
-    plate(m, (cx, 20), (cx, 36), 7.5, 6, 8, 'brass', bevel=1.8)              # the breastplate
-    for k in range(4):
-        for s in (-1, 1):
-            m.sphere((cx + s * 6.2, 22 + k * 4, 10.2), 0.6, 'iron')           # its rivets
-    for s in (-1, 1):
-        pauldron(m, cx + s * 11, 20, 6, 4.4, 6, 'brass', s)
-    arm(m, (cx - 10, 21, 4), (cx - 14, 29, 5), (cx - 12, 35, 8), 3.0, 'suit', 'iron', 2.2)
-    m.anchor('cast', (cx - 12, 35))
+    """A drowned knight of the harbour wall: rusted iron diving plate, a narrow-slitted helm with a
+    cold light behind it, a huge tower shield bearing an anchor."""
+    M = {'iron': g([0x0c0e10, 0x1c2024, 0x30363c, 0x4a525a, 0x6a747c], spec=0.6), 'rust': g([0x2a1006, 0x4a2210, 0x6e3818, 0x8e5228]),
+         'brass': g([0x3a2608, 0x6a4a14, 0x9a7024, 0xc89a40], spec=0.8), 'eye': glow(0x2080ff, 0x90e0ff, 0xffffff, base=0.45),
+         'void': VOID, 'barn': BARN, 'weed': WEED, 'shield': g([0x0a0c0e, 0x181c20, 0x2a3036, 0x404a52, 0x5a666e], spec=0.5)}
+    m = Model(58, 60)
+    cx = 25
+    legs(m, cx, 38, 57, 4.6, 4.4, 'iron')
+    for sd in (-1, 1):
+        m.sphere((cx + sd * 4.6, 55, 7), 3.8, 'iron', 1.15, 0.6, 1.2)
+    chest(m, cx, 17, 40, 12.5, 9, 4, 'iron', bevel=3.2)
+    plate(m, (cx, 19), (cx, 37), 8.5, 6, 8, 'iron', bevel=2.0)
+    m.capsule((cx - 9, 27, 10.4), (cx + 9, 27, 10.4), 0.6, 0.6, 'brass')          # brass bands round the plate
+    m.capsule((cx - 8, 34, 10.4), (cx + 8, 34, 10.4), 0.6, 0.6, 'brass')
+    for sd in (-1, 1):
+        pauldron(m, cx + sd * 12, 19, 7, 5, 6, 'iron', sd)
+        for k in range(3):
+            spike(m, (cx + sd * (9 + k * 3), 15.5), (cx + sd * (9.6 + k * 3.4), 10.5 - k), 1.0, 7, 'iron')
+    arm(m, (cx - 11, 21, 4), (cx - 15, 29, 5), (cx - 13, 36, 8), 3.2, 'iron', 'iron', 2.6)
+    m.anchor('cast', (cx - 13, 36))
 
-    def growth(x, y, h):
-        if h[2] not in ('suit', 'brass'):
+    def decay(x, y, h):
+        if h[2] not in ('iron',):
             return None
-        v = vnoise(x * 0.45, y * 0.45, 17)
-        return 'barn' if v > 0.86 else 'weed' if v < 0.1 else None
-    m.paint(growth)
-    # the diving helmet: a brass dome with a round glass port, the light of its eyes behind it
-    m.part('head', (cx, 14))
-    m.sphere((cx, 11, 4), 8.0, 'brass', 1.0, 0.95, 1.0)
-    m.sphere((cx, 12, 10.5), 4.2, 'glass', 1.0, 1.0, 0.4)
-    m.capsule((cx - 4.6, 12, 11.4), (cx + 4.6, 12, 11.4), 0.45, 0.45, 'iron')
-    m.capsule((cx, 7.4, 11.4), (cx, 16.6, 11.4), 0.45, 0.45, 'iron')
-    eyes(m, cx, 12, 1.6, 12, 'eye', 0.5)
-    for s in (-1, 1):
-        m.sphere((cx + s * 7.4, 12, 6), 1.8, 'brass')
+        v = vnoise(x * 0.4, y * 0.4, 17)
+        return 'rust' if 0.55 < v < 0.68 else 'barn' if v > 0.9 else 'weed' if v < 0.08 else None
+    m.paint(decay)
+    # the helm: a heavy iron dome sunk between the shoulders, one narrow lit slit
+    m.part('head', (cx, 13))
+    m.sphere((cx, 11, 4), 7.0, 'iron', 1.0, 1.05, 1.0, rough(0.06))
+    m.capsule((cx - 4.2, 11.5, 10.6), (cx + 4.2, 11.5, 10.6), 1.0, 1.0, 'void')
+    m.capsule((cx - 3.2, 11.5, 11.2), (cx + 3.2, 11.5, 11.2), 0.45, 0.45, 'eye')
+    m.capsule((cx, 4.5, 9), (cx, 17, 10.5), 0.7, 0.9, 'brass')                    # a crest down the middle
+    for sd in (-1, 1):
+        m.sphere((cx + sd * 6.6, 13, 7), 1.4, 'brass')
     m.part(None)
-    # the tower shield, held before it in the right hand
+    # the tower shield: taller than it is, an anchor wrought on it, its rim spiked
     m.part('armR', (cx + 10, 21))
-    m.block(cx + 6, 18, cx + 20, 50, 13, 2.0, 'shield')
-    m.capsule((cx + 13, 19, 15.5), (cx + 13, 49, 15.5), 0.8, 0.8, 'brass')
-    m.capsule((cx + 6.5, 30, 15.5), (cx + 19.5, 30, 15.5), 0.8, 0.8, 'brass')
-    for y in (21, 47):
-        for x in (8, 18):
-            m.sphere((cx + x, y, 15.2), 0.7, 'iron')
-    m.anchor('strike', (cx + 13, 18))
+    m.block(cx + 7, 14, cx + 23, 54, 13, 2.2, 'shield')
+    m.capsule((cx + 7.4, 14.5, 15.6), (cx + 22.6, 14.5, 15.6), 0.7, 0.7, 'brass')
+    m.capsule((cx + 7.4, 53.5, 15.6), (cx + 22.6, 53.5, 15.6), 0.7, 0.7, 'brass')
+    ax = cx + 15
+    m.capsule((ax, 22, 16.4), (ax, 44, 16.4), 1.0, 1.0, 'rust')                  # the anchor
+    m.capsule((ax - 4, 25, 16.4), (ax + 4, 25, 16.4), 0.8, 0.8, 'rust')
+    m.sphere((ax, 20.5, 16.4), 1.6, 'rust', 1, 1, 0.5)
+    m.chain([(ax - 5.5, 40, 16.4), (ax - 3.5, 44, 16.4), (ax, 45.5, 16.4), (ax + 3.5, 44, 16.4), (ax + 5.5, 40, 16.4)], [0.8] * 5, 'rust')
+    for y in (20, 34, 48):
+        spike(m, (cx + 23, y), (cx + 26, y - 1), 0.9, 13, 'iron')
+    m.anchor('strike', (ax, 14))
     m.part(None)
     return m, M
 
 
 # ---------------------------------------------------------------- the Drowned Keeper
 def drowned_keeper(t):
-    M = {'robe': g([0x0a1a24, 0x12283a, 0x1c3e56, 0x2a5876, 0x3c7896]), 'weed': WEED, 'barn': BARN, 'iron': IRON, 'brass': BRASS,
-         'glass': g([0x1a3440, 0x2c5868, 0x4a8496, 0x7ab4c4], spec=0.9), 'light': glow(0xffa020, 0xffe070, 0xffffff, base=0.45), 'beam': glow(0xffd860, 0xfff4b0, base=0.5),
-         'skin': g([0x2a4a48, 0x48706a, 0x6e968e]), 'void': VOID}
-    m = Model(66, 66)
-    cx = 33
-    robe(m, cx, 28, 62, 9, 16, 'robe', tatter=True, seed=41)
-    torso(m, cx, 22, 40, 9.5, 'robe', folds(0.12, 3.4, 13))
+    """The keeper grown into his light: a hunched giant in a sodden cloak, anchor chains hanging off
+    him, and for a head an iron lamp cage, its great lens burning inside."""
+    M = {'robe': g([0x04080c, 0x0a1620, 0x122636, 0x1c3a50, 0x2a5270]), 'weed': WEED, 'barn': BARN,
+         'iron': g([0x0a0c0e, 0x181c20, 0x2c3238, 0x464e56, 0x646e78], spec=0.6), 'brass': g([0x3a2608, 0x6a4a14, 0x9a7024, 0xd0a448], spec=0.8),
+         'light': glow(0x803000, 0xe07010, 0xffb030, 0xffe890, base=0.35), 
+         'skin': g([0x1a2a2a, 0x2e4644, 0x4a6662, 0x6e8c86]), 'void': VOID}
+    m = Model(68, 70)
+    cx = 34
+    robe(m, cx, 30, 66, 10, 18, 'robe', tatter=True, seed=41)
+    torso(m, cx, 22, 42, 11, 'robe', folds(0.12, 3.4, 13))
+    m.capsule((cx - 11, 24, 2), (cx + 11, 24, 2), 5, 5, 'robe')                    # a great hunched back of shoulders
 
     def crust(x, y, h):
-        """Barnacles and long weed where the sea has had it for three hundred years."""
         if h[2] != 'robe':
             return None
         v = vnoise(x * 0.35, y * 0.35, 43)
-        if v > 0.8:
+        if v > 0.9:
             return 'barn'
-        return 'weed' if (v < 0.22 and (x + y * 0.2) % 4 < 2) else None
+        return 'weed' if (v < 0.2 and (x + y * 0.2) % 4 < 2) else None
     m.paint(crust)
-    for s in (-1, 1):                                                        # great arms, hands of grey-green skin
-        arm(m, (cx + s * 9, 24, 3), (cx + s * 16, 34, 5), (cx + s * 15, 42, 9), 3.2, 'robe', 'skin', 2.6)
-        for k in range(3):
-            m.capsule((cx + s * (12 + k * 1.6), 30 + k * 3, 7), (cx + s * (12.5 + k * 1.6), 37 + k * 3, 7), 0.5, 0.3, 'weed')
-    m.anchor('cast', (cx - 15, 42))
-    m.anchor('strike', (cx + 15, 42))
-    # the head: a lighthouse lantern, iron cage and brass cap, the great light inside
+    # anchor chains slung over it and trailing to the floor
+    for sd in (-1, 1):
+        pts = [(cx + sd * (6 + k * 1.6), 24 + k * 5, 10.5 + k * 0.2) for k in range(8)]
+        m.chain(pts, [0.9] * 8, 'iron')
+        for x, y, z in pts[1::2]:
+            m.sphere((x, y, z + 0.4), 1.2, 'iron', 1, 0.7, 0.6)
+    # long arms, huge drowned hands with claws
+    for sd in (-1, 1):
+        hy = 46 + (t if sd > 0 else -t)
+        arm(m, (cx + sd * 11, 25, 3), (cx + sd * 18, 36, 5), (cx + sd * 17, hy, 9), 3.4, 'robe', 'skin', 3.0)
+        for c in range(4):
+            m.capsule((cx + sd * 17 + (c - 1.5) * 1.4, hy + 2, 10), (cx + sd * 17 + (c - 1.5) * 2.0, hy + 6, 10), 0.6, 0.2, 'skin')
+    m.anchor('cast', (cx - 17, 46))
+    m.anchor('strike', (cx + 17, 46))
+    # the head: an iron lamp cage, its lens burning
     m.part('head', (cx, 18))
-    m.capsule((cx, 21, 4), (cx, 23, 4), 6.5, 7.5, 'iron', cut=24)             # the gallery round its neck
-    m.capsule((cx - 8, 21, 8), (cx + 8, 21, 8), 0.6, 0.6, 'brass')
-    m.capsule((cx, 8, 4), (cx, 19, 4), 5.6, 5.6, 'glass')                      # the lamp room's windows
-    m.sphere((cx, 13.5, 9), 3.6 + t * 0.5, 'light')
-    for k in range(5):
-        x = cx - 5 + k * 2.5
-        m.capsule((x, 8, 9.4), (x, 19, 9.6), 0.45, 0.45, 'iron')
-    m.sphere((cx, 7, 4), 6.2, 'brass', 1.0, 0.5, 0.9)                         # the cap
-    m.capsule((cx, 3, 6), (cx, 0.5, 6), 1.0, 0.4, 'brass')
-    # a beam of light swinging out of the lamp room (to the right, then the left)
-    side = 1 if t == 0 else -1
-    m.capsule((cx + side * 6, 13.5, 10), (cx + side * 18, 10 + t * 3, 10), 1.2, 3.8, 'beam')
+    m.capsule((cx, 22, 4), (cx, 24, 4), 7, 8, 'iron', cut=25)                      # the gallery rail round its neck
+    for k in range(7):
+        x = cx - 7 + k * 2.33
+        m.capsule((x, 20, 9), (x, 23.5, 9), 0.35, 0.35, 'iron')
+    m.capsule((cx - 8, 20, 9), (cx + 8, 20, 9), 0.45, 0.45, 'iron')
+    m.capsule((cx, 8, 3), (cx, 19, 3), 5.8, 5.8, 'void')                           # the lamp room, dark but for the lens
+    m.sphere((cx, 13.5, 8.6), 3.6 + t * 0.4, 'light', 1.0, 1.25, 0.6)
+    for k in range(3):
+        x = cx - 5 + k * 5
+        m.capsule((x, 7.5, 12), (x, 19.5, 12), 0.7, 0.7, 'iron')
+    m.sphere((cx, 7, 4), 7.0, 'iron', 1.0, 0.5, 0.9)                              # the cap, a vane on top
+    m.sphere((cx, 5, 4), 3.4, 'brass', 1.0, 0.7, 0.9)
+    m.capsule((cx, 3, 6), (cx, -2, 6), 0.7, 0.3, 'brass')
+    m.capsule((cx, -1, 6), (cx + 4, -1.5, 6), 0.5, 0.3, 'brass')
     m.part(None)
     return m, M
 

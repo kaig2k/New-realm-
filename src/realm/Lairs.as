@@ -19,6 +19,15 @@ package realm {
 	 *   ascend: {ids, at, n, text}       at each fraction of its health in `at` the master rises out of reach,
 	 *                                   and n of these appear out in the dungeon's rooms to drag it back down
 	 *   quiet: true                      a finale: its master's own death opens the ways out (Game), not the lair
+	 * And a boss can carry fight rules of its own (def.mech, run by mechanics() wherever it stands):
+	 *   lamp:  {id, lit, n, r, near, burn, snuff}  it's immune in the dark: n unlit lanterns stand round it; shooting
+	 *          one lights it (`lit`) for `burn` seconds, and it can be hurt only within `near` of a lit one; lingering
+	 *          `snuff` seconds by a lit lantern, it puts it out
+	 *   twin:  {partner, r, revive, rage}  it brings its partner along; while the two are within r of each other
+	 *          neither can be hurt, and when one dies the other raises it again after `revive` seconds unless it
+	 *          dies first (fighting `rage` times faster meanwhile)
+	 *   guard: {arc, turn}               a shield that turns (turn degrees a second) to face whoever is nearest:
+	 *          it can be hurt only while someone stands outside the `arc` (degrees either side) it covers
 	 *   (and on the master's def: splitInto {what, n}: it breaks into lesser copies that must all fall)
 	 * Trios (th.trio) share the last hall as in the other dungeons.
 	 */
@@ -76,6 +85,10 @@ package realm {
 				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
 				trio: ["crone_bramble", "crone_bog", "crone_ash"],
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
+			{id: "drowned_lighthouse", wall: "mossy", name: "The Drowned Lighthouse", color: 0x60c8ff, layout: "lighthouse", dark: true, floor: 18, accent: 23, tier: 4, hard: 1.5, lair: {
+				boss: "drowned_keeper", intro: "The Keeper of the Drowned Lighthouse is sealed in its lamp room. Its three wardens hold the keys: each fights by the room's own rules."},
+				guardians: ["lamplighter", "tide_ebb", "bulwark"],
+				mobs: ["tide_spawn", "pirate_brawler", "crab", "shade"]},
 			{id: "krakens_maw", wall: "coral_deep", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
 				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 45, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},
@@ -131,6 +144,8 @@ package realm {
 		private static function master(w:World, id:String, x:Number, y:Number, zone:int, api:Object):Enemy {
 			var e:Enemy = api.spawn(id, x, y, zone, true);
 			if (e) w.boss = e;
+			// (sealed until the dungeon's guardians fall: Game.guardianDown / WorldSim.guardianDown)
+			if (e && e.def.sealed) e.invuln = true;
 			return e;
 		}
 
@@ -148,6 +163,7 @@ package realm {
 		public static function update(w:World, dt:Number, api:Object):void {
 			var th:Object = w.theme, L:Object = th && th.lair, st:Object = w.lair;
 			if (!L || !st || st.done) return;
+			mechanics(w, dt, api);
 			var last:Object = w.rooms[w.rooms.length - 1];
 			var e:Enemy;
 			// waves: when someone steps into the master's hall
@@ -264,10 +280,146 @@ package realm {
 			}
 		}
 
+		// ------------------------------------------------------------ bosses' own fight rules (def.mech)
+		private static function nearest(e:Enemy, api:Object):Object {
+			var best:Object = null, bd:Number = 1e9;
+			for each (var p:Object in api.players) {
+				var d:Number = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y);
+				if (d < bd) { bd = d; best = p; }
+			}
+			return best;
+		}
+
+		/** Every boss in the lair with rules of its own (the lighthouse's: lamps, twins, a turning shield). */
+		public static function mechanics(w:World, dt:Number, api:Object):void {
+			var list:Array = [];
+			for each (var e0:Enemy in w.enemies) if (e0.def.mech && !e0.dead) list.push(e0);
+			for each (var e:Enemy in list) {
+				if (e.dead || !e.def.mech) continue;
+				var M:Object = e.def.mech;
+				// (a sealed master isn't fighting yet, and a guardian only wakes once someone comes near)
+				var p:Object = nearest(e, api);
+				if (!p || (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) > 18 * 18) continue;
+				if (!e.mech) e.mech = {init: false, faceA: 0, nearT: 0, reviveT: 0, revive: null};
+				var m:Object = e.mech;
+				if (M.lamp) lampRules(w, e, M.lamp, m, dt, api);
+				if (M.twin) twinRules(w, e, M.twin, m, dt, api);
+				if (M.guard) guardRules(e, M.guard, m, dt, api);
+			}
+		}
+
+		private static function lampRules(w:World, e:Enemy, L:Object, m:Object, dt:Number, api:Object):void {
+			var l:Enemy;
+			if (!m.init) {
+				m.init = true;
+				for (var k:int = 0; k < L.n; k++) {
+					var a:Number = k * Math.PI * 2 / L.n + Math.PI / L.n;
+					l = api.spawn(L.id, e.homeX + Math.cos(a) * L.r, e.homeY + Math.sin(a) * L.r * 0.6, e.zone, true);
+					if (l) l.mech = {owner: e.id, x: l.x, y: l.y};
+				}
+				api.say(e.def.name + " cannot be hurt in the dark! Light the lanterns and lure it into their glow.", w.theme.color, true);
+			}
+			// lit lanterns burn down; one it lingers beside, it puts out
+			var lit:Boolean = false;
+			for each (l in w.enemies.slice()) {
+				if (l.dead || l.defId != L.lit) continue;
+				l.mech.burnT -= dt;
+				var d:Number = Math.sqrt((l.x - e.x) * (l.x - e.x) + (l.y - e.y) * (l.y - e.y));
+				if (d < L.near) {
+					lit = true;
+					l.mech.nearT += dt;
+					if (l.mech.nearT > L.snuff) l.mech.burnT = 0;
+				} else l.mech.nearT = Math.max(0, l.mech.nearT - dt);
+				if (l.mech.burnT <= 0) {
+					api.remove(l);
+					var u:Enemy = api.spawn(L.id, l.x, l.y, e.zone, true);
+					if (u) u.mech = {owner: e.id, x: l.x, y: l.y};
+				}
+			}
+			e.invuln = !lit;
+		}
+
+		/** A lantern was shot out of the dark: it lights. */
+		private static function lampLit(w:World, l:Enemy, api:Object):void {
+			for each (var b:Enemy in w.enemies) {
+				if (b.dead || !b.def.mech || !b.def.mech.lamp || b.def.mech.lamp.id != l.defId) continue;
+				var L:Object = b.def.mech.lamp;
+				var lit:Enemy = api.spawn(L.lit, l.x, l.y, l.zone, true);
+				if (lit) { lit.mech = {owner: b.id, burnT: L.burn, nearT: 0}; lit.invuln = true; }
+				return;
+			}
+		}
+
+		private static function twinRules(w:World, e:Enemy, T:Object, m:Object, dt:Number, api:Object):void {
+			var o:Enemy, mate:Enemy = null;
+			for each (o in w.enemies) if (!o.dead && o != e && o.defId == T.partner) { mate = o; break; }
+			if (!m.init) {
+				m.init = true;
+				// (the first of the pair to be seen brings the other)
+				if (!mate && !e.mech.raised) {
+					mate = api.spawn(T.partner, e.x + 4, e.y, e.zone, true);
+					if (mate) mate.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
+					api.say("Ebb and Flow rise together! Drag them apart: side by side, neither can be hurt.", w.theme.color, true);
+				}
+			}
+			// side by side, the tide holds them both
+			e.invuln = mate != null && Math.sqrt((mate.x - e.x) * (mate.x - e.x) + (mate.y - e.y) * (mate.y - e.y)) < T.r;
+			// its partner fell: it calls them back unless it falls too
+			if (m.revive) {
+				m.reviveT -= dt;
+				if (m.reviveT <= 0) {
+					var back:Enemy = api.spawn(m.revive, m.rx, m.ry, e.zone, true);
+					if (back) {
+						back.hp = back.maxHp * 0.6;
+						back.noLoot = true;
+						back.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
+						api.say(back.def.name + " is raised again by the tide!", w.theme.color, true);
+					}
+					m.revive = null;
+					e.rateMult /= T.rage;
+				}
+			}
+		}
+
+		private static function guardRules(e:Enemy, G:Object, m:Object, dt:Number, api:Object):void {
+			var p:Object = nearest(e, api);
+			if (!p) return;
+			// the shield turns toward the nearest hero, but no faster than it can
+			var want:Number = Math.atan2(p.y - e.y, p.x - e.x);
+			var diff:Number = want - m.faceA;
+			while (diff > Math.PI) diff -= Math.PI * 2;
+			while (diff < -Math.PI) diff += Math.PI * 2;
+			var step:Number = G.turn * Math.PI / 180 * dt;
+			m.faceA += Math.max(-step, Math.min(step, diff));
+			// it can be hurt while anyone stands outside the shield's arc
+			var open:Boolean = false;
+			for each (var q:Object in api.players) {
+				var qa:Number = Math.atan2(q.y - e.y, q.x - e.x) - m.faceA;
+				while (qa > Math.PI) qa -= Math.PI * 2;
+				while (qa < -Math.PI) qa += Math.PI * 2;
+				if (Math.abs(qa) > G.arc * Math.PI / 180) { open = true; break; }
+			}
+			e.invuln = !open;
+		}
+
 		/** One of the lair's monsters died (call before deciding whether the lair is cleared). */
 		public static function killed(w:World, e:Enemy, api:Object):void {
 			var th:Object = w.theme, L:Object = th && th.lair, st:Object = w.lair;
 			if (!L || !st) return;
+			// a lantern shot out of the dark lights up
+			if (e.def.lantern) lampLit(w, e, api);
+			// a twin fell: the other calls it back unless it falls in time
+			var tw:Object = e.def.mech && e.def.mech.twin;
+			if (tw) {
+				for each (var mate:Enemy in w.enemies) {
+					if (mate.dead || mate == e || mate.defId != tw.partner) continue;
+					if (!mate.mech) mate.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
+					if (mate.mech.revive) continue;
+					mate.mech.revive = e.defId; mate.mech.reviveT = tw.revive; mate.mech.rx = e.x; mate.mech.ry = e.y;
+					mate.rateMult *= tw.rage;
+					api.say(mate.def.name + " calls the tide back for " + e.def.name + "! Bring it down within " + tw.revive + " seconds!", th.color, true);
+				}
+			}
 			if (L.shield && e.lairShield && L.shield.text && !L.shield.regrow) api.say(L.shield.text, th.color, false);
 			// a piece of a shield in turn: the next one lights, and the master runs hotter
 			if (e.lairShield && st.order.length && L.shield.overclock && w.boss && !w.boss.dead) w.boss.rateMult *= 1 + L.shield.overclock;

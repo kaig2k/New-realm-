@@ -177,6 +177,12 @@ package realm {
 		 */
 		public static const FIXED:Object = {
 			// ---- early dungeons (UT, T4-T5)
+			// the Drowned Lighthouse's Keeper
+			keepers_lamp: {n: "The Keeper's Lamp", k: "weapon", s: "staff", r: "lg", st: {att: 5, wis: 5}, d: [80, 110], sh: 2, rt: 1, pc: true, col: 0xfff0a0,
+				txt: "Two piercing beams of lighthouse light.", lore: "It turned for three hundred years. It turns for you now."},
+			tidewarden_plate: {n: "Tidewarden Plate", k: "armor", s: "heavy", r: "lg", df: 34, st: {vit: 8, hp: 80}, txt: "Defense armor that keeps you standing.",
+				lore: "The Bulwark's own, barnacled and unbroken."},
+			ebb_and_flow: {n: "Ebb and Flow", k: "ring", s: "dex", r: "lg", st: {dex: 6, spd: 6, mp: 40}, txt: "Two bands that never touch.", lore: "Pull them apart and they want to come back."},
 			saltbeard_cutlass: {n: "Saltbeard's Cutlass", k: "weapon", s: "sword", r: "ut", st: {dex: 2}, d: [36, 50], sh: 3, rt: 1, arc: 26, txt: "Three blades in a wide fan: good against groups."},
 			swashbuckler_tunic: {n: "Swashbuckler's Tunic", k: "armor", s: "leather", r: "ut", df: 14, st: {spd: 4, dex: 4}, txt: "T4 defense with agility on top.", lore: "Cut for boarding actions."},
 			// the Pumpkin King's (the Halloween world boss)
@@ -282,6 +288,7 @@ package realm {
 		public static const DROPS:Object = {
 			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
 			snow_tyrant: ["peppermint_ring", "grimsnows_crown", "longest_night_staff", "snowglobe_hourglass", "frostwoven_robe", "everwinter_heart"],
+			drowned_keeper: ["keepers_lamp", "tidewarden_plate", "ebb_and_flow"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],

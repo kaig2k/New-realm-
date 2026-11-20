@@ -1,3 +1,14 @@
+**📜 ELDMERE UPDATE: The Drowned Lighthouse**
+
+**🏮 A new dungeon where the room fights back**
+• **The Drowned Lighthouse**: a dark hard dungeon, key at the Marketplace for 5,000 gold. Four fights, each with a rule you have to play around
+• **The Lamplighter** can't be hurt in the dark. Shoot its four storm lanterns to light them, then lure it into their glow. If it lingers beside a lantern it snuffs it, so keep it moving between the lights
+• **Ebb and Flow**, twin water spirits: side by side, neither can be hurt, so pull them apart. Kill one and the other raises it at 60% health after 10 seconds (and fights harder meanwhile), so bring them down together
+• **The Bulwark** turns its great tower shield toward whoever is closest, and can only be hurt from behind or the side. Circle it, or in a group have one hero hold its attention
+• **The Drowned Keeper** is sealed in its lamp room until all three wardens fall. When it **raises the tide**, a ring of water too thick to dodge floods the hall: get behind one of the six stone pillars. Meanwhile the lighthouse beam sweeps round the room
+• Lanterns and the Keeper's lamp now **light up the dark** around them in any dark dungeon
+• New uniques from the Keeper: **The Keeper's Lamp** (a staff of two piercing beams), **Tidewarden Plate** and the **Ebb and Flow** ring
+
 **📜 ELDMERE UPDATE: Bosses Tuned**
 
 **☃️ World bosses for whoever is about**

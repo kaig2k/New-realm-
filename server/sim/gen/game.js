@@ -2648,6 +2648,52 @@ class Bosses {
 				attacks: [Bosses.ring(6, 20, 4.5, 55, 1.6, 0xffc040, {name: "jar's curse"})]});
 
 			
+			
+			Bosses.lairBoss("lamplighter", {name: "The Lamplighter", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+				light: 3, mech: {lamp: {id: "storm_lantern", lit: "storm_lantern_lit", n: 4, r: 8, near: 4.5, burn: 16, snuff: 4}}, phases: [
+				Bosses.P(1, {say: "Who let the lights go out?", move: "chase",
+					attacks: [Bosses.aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), Bosses.ring(10, 18, 4.5, 60, 2.2, 0x6080a0, {name: "smoke ring"})]}),
+				Bosses.P(0.5, {say: "Darkness suits me better.", move: "chase", speed: 1.2,
+					attacks: [Bosses.aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), Bosses.spiral(3, 16, 5, 60, 0.22, 0x6080a0, {name: "smoke coil"}),
+						Bosses.nova(2, 1.0, 110, 4.0, 0xffa030, {reach: 7, burst: 8, name: "lamp oil"})]})
+			]});
+			Bosses.lairProp("storm_lantern", {name: "Storm Lantern (unlit)", spr: "storm_lantern", hp: 900, col: 0x8090a0, lantern: true, xp: 20, attacks: []});
+			Bosses.lairProp("storm_lantern_lit", {name: "Storm Lantern", spr: "storm_lantern_lit", hp: 900, col: 0xffd060, xp: 0, light: 5, attacks: []});
+			
+			for (var tide of __vals( [["tide_ebb", "Ebb", 0x3090ff, "tide_flow"], ["tide_flow", "Flow", 0x40e8d0, "tide_ebb"]])) {
+				Bosses.lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 4800, spd: 2.0, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
+					mech: {twin: {partner: tide[3], r: 5, revive: 10, rage: 1.4}}, phases: [
+					Bosses.P(1, {move: "chase", attacks: [Bosses.aim(3, 22, 8, 70, 1.1, tide[2]), Bosses.wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
+					Bosses.P(0.4, {move: "orbit", attacks: [Bosses.aim(4, 30, 8.5, 70, 0.9, tide[2]), Bosses.ring(12, 15, 4.5, 60, 1.8, tide[2], {name: "undertow"})]})
+				]});
+			}
+			
+			Bosses.lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0x80a0b0, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+				mech: {guard: {arc: 75, turn: 65}}, phases: [
+				Bosses.P(1, {say: "None pass the light.", move: "chase",
+					attacks: [Bosses.wall(11, 5, 80, 2.0, 0x80a0b0, {hole: 2, name: "shield bash"}), Bosses.aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
+						Bosses.ring(8, 0, 4, 60, 3.5, 0x6080a0, {name: "backwash"})]}),
+				Bosses.P(0.4, {say: "THE TIDE HOLDS THE LINE!", move: "chase", speed: 1.25,
+					attacks: [Bosses.wall(13, 5.5, 85, 1.6, 0x80a0b0, {hole: 2, name: "shield bash"}), Bosses.aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
+						Bosses.ring(12, 15, 4, 60, 2.6, 0x6080a0, {name: "backwash"})]})
+			]});
+			
+			Bosses.lairBoss("drowned_keeper", {name: "The Drowned Keeper", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [
+				Bosses.P(1, {say: "The light... must... turn.", move: "center",
+					attacks: [Bosses.nova(2.6, 2.6, 170, 12, 0x60c8ff, {reach: 0.01, burst: 72, bspd: 4.2, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
+						Bosses.spiral(2, 7, 7, 75, 0.09, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), Bosses.aim(3, 24, 8.5, 80, 1.4, 0x60c8ff)]}),
+				Bosses.P(0.6, {say: "THE SEA CLAIMS ALL WHO LINGER.", banner: "The lighthouse floods!", shield: 2, move: "center", summon: [{what: "tide_spawn", n: 4}],
+					attacks: [Bosses.nova(2.6, 2.4, 180, 10, 0x60c8ff, {reach: 0.01, burst: 84, bspd: 4.4, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
+						Bosses.spiral(3, 8, 7, 75, 0.08, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), Bosses.rain(5, 5, 100, 2.6, 0x60c8ff, {burst: 6, name: "storm surge"})]}),
+				Bosses.P(0.25, {say: "LET THE LIGHT GO OUT.", move: "center",
+					attacks: [Bosses.nova(2.6, 2.2, 190, 8.5, 0x60c8ff, {reach: 0.01, burst: 96, bspd: 4.6, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
+						Bosses.spiral(4, -9, 7.5, 80, 0.08, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), Bosses.aim(5, 40, 9, 80, 1.0, 0x60c8ff, {motion: "wave"})]})
+			]});
+
+			
 			Bosses.lairBoss("admiral_brine", {name: "Admiral Brine", spr: "admiral", hp: 20000, spd: 1.6, col: 0x50a0c0, phases: [
 				Bosses.P(1, {say: "All hands! Repel boarders!", move: "orbit",
 					attacks: [Bosses.aim(3, 18, 10, 85, 1.0, 0x50a0c0), Bosses.wall(17, 5, 80, 2.0, 0x40a0ff, {hole: 3, motion: "wave"}), Bosses.ring(14, 12, 4.5, 65, 1.5, 0x80d0ff)]}),
@@ -3508,6 +3554,7 @@ class World {
 				case "islands": this.layoutIslands(th, floor, accent); break;
 				case "ring": this.layoutRing(th, floor, accent); break;
 				case "maze": this.layoutMaze(th, floor, accent); break;
+				case "lighthouse": this.layoutLighthouse(th, floor, accent); break;
 				case "conclave": this.layoutConclave(th); break;
 				case "spire": this.layoutSpire(th); break;
 				case "starfall": this.layoutStarfall(th); break;
@@ -3569,6 +3616,32 @@ class World {
 				if (k == count - 2) { cy = __int(cy - (4)); }
 				if (cy < 25) cy = __int(25);
 			}
+		}
+	layoutLighthouse(th, floor, accent) { floor = __int(floor); accent = __int(accent);
+			var halls = [[100, 184, 11, 9], [100, 160, 25, 15], [100, 134, 27, 17], [100, 107, 21, 21]];
+			var prev = null, room = null;
+			for (var h of __vals( halls)) {
+				this.carve(h[0] - __int(h[2] / 2), h[1] - __int(h[3] / 2), h[2], h[3], floor);
+				if (prev) {
+					
+					this.carve(h[0] - 1, h[1] - __int(h[3] / 2) + 2, 3, h[3] - 4, accent);
+					this.corridor(prev.x, prev.y, h[0], h[1], floor);
+				}
+				room = {x: h[0], y: h[1], w: h[2], h: h[3]};
+				this.rooms.push(room);
+				prev = room;
+			}
+			
+			var kx = __int(100), ky = __int(76);
+			this.blob(kx, ky, 13, floor);
+			for (var a = __int(0); a < 6; a++) {
+				var ang = a * Math.PI / 3 + Math.PI / 6;
+				var px = __int(kx + __int(Math.round(Math.cos(ang) * 8))), py = __int(ky + __int(Math.round(Math.sin(ang) * 8)));
+				for (var dy = __int(0); dy < 2; dy++) for (var dx = __int(0); dx < 2; dx++) this.tiles[(py + dy) * this.N + px + dx] = World.WALL;
+			}
+			this.carve(kx - 2, ky - 2, 5, 5, accent);
+			this.corridor(prev.x, prev.y, kx, ky + 12, floor);
+			this.rooms.push({x: kx, y: ky, w: 24, h: 24});
 		}
 	layoutCave(th, floor, accent) { floor = __int(floor); accent = __int(accent);
 			var cx = __int(100), cy = __int(178);
@@ -4633,6 +4706,8 @@ class Enemy {
 		this.lairWave = false;
 		this.lairFeed = false;
 		this.eggT = 0;
+		this.mech = null;
+		this.noLoot = false;
 		this.playerHit = false;
 		this.id = __int(0);
 		this.remote = false;
@@ -5119,6 +5194,8 @@ class Enemy {
 			if (a.p == "summon") { this.startAnim(a); return; }
 			var waves = __int(a.waves || 1);
 			if (a.sfx) g.soundAt(this.x, this.y, a.sfx, 0.7, a.sfxGap || 0.15);
+			
+			if (a.shout) g.showBanner(a.shout, a.col, 2.2);
 			this.startAnim(a);
 			
 			var lead = a.lead || 0;
@@ -5438,6 +5515,8 @@ class Lairs {
 	static master(w, id, x, y, zone, api) { zone = __int(zone);
 			var e = api.spawn(id, x, y, zone, true);
 			if (e) w.boss = e;
+			
+			if (e && e.def.sealed) e.invuln = true;
 			return e;
 		}
 	static cleared(w) {
@@ -5451,6 +5530,7 @@ class Lairs {
 	static update(w, dt, api) {
 			var th = w.theme, L = th && th.lair, st = w.lair;
 			if (!L || !st || st.done) return;
+			Lairs.mechanics(w, dt, api);
 			var last = w.rooms[w.rooms.length - 1];
 			var e = null;
 			
@@ -5566,9 +5646,136 @@ class Lairs {
 				}
 			}
 		}
+	static nearest(e, api) {
+			var best = null, bd = 1e9;
+			for (var p of __vals( api.players)) {
+				var d = (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y);
+				if (d < bd) { bd = d; best = p; }
+			}
+			return best;
+		}
+	static mechanics(w, dt, api) {
+			var list = [];
+			for (var e0 of __vals( w.enemies)) if (e0.def.mech && !e0.dead) list.push(e0);
+			for (var e of __vals( list)) {
+				if (e.dead || !e.def.mech) continue;
+				var M = e.def.mech;
+				
+				var p = Lairs.nearest(e, api);
+				if (!p || (p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) > 18 * 18) continue;
+				if (!e.mech) e.mech = {init: false, faceA: 0, nearT: 0, reviveT: 0, revive: null};
+				var m = e.mech;
+				if (M.lamp) Lairs.lampRules(w, e, M.lamp, m, dt, api);
+				if (M.twin) Lairs.twinRules(w, e, M.twin, m, dt, api);
+				if (M.guard) Lairs.guardRules(e, M.guard, m, dt, api);
+			}
+		}
+	static lampRules(w, e, L, m, dt, api) {
+			var l = null;
+			if (!m.init) {
+				m.init = true;
+				for (var k = __int(0); k < L.n; k++) {
+					var a = k * Math.PI * 2 / L.n + Math.PI / L.n;
+					l = api.spawn(L.id, e.homeX + Math.cos(a) * L.r, e.homeY + Math.sin(a) * L.r * 0.6, e.zone, true);
+					if (l) l.mech = {owner: e.id, x: l.x, y: l.y};
+				}
+				api.say(e.def.name + " cannot be hurt in the dark! Light the lanterns and lure it into their glow.", w.theme.color, true);
+			}
+			
+			var lit = false;
+			for (l of __vals( w.enemies.slice())) {
+				if (l.dead || l.defId != L.lit) continue;
+				l.mech.burnT -= dt;
+				var d = Math.sqrt((l.x - e.x) * (l.x - e.x) + (l.y - e.y) * (l.y - e.y));
+				if (d < L.near) {
+					lit = true;
+					l.mech.nearT += dt;
+					if (l.mech.nearT > L.snuff) l.mech.burnT = 0;
+				} else l.mech.nearT = Math.max(0, l.mech.nearT - dt);
+				if (l.mech.burnT <= 0) {
+					api.remove(l);
+					var u = api.spawn(L.id, l.x, l.y, e.zone, true);
+					if (u) u.mech = {owner: e.id, x: l.x, y: l.y};
+				}
+			}
+			e.invuln = !lit;
+		}
+	static lampLit(w, l, api) {
+			for (var b of __vals( w.enemies)) {
+				if (b.dead || !b.def.mech || !b.def.mech.lamp || b.def.mech.lamp.id != l.defId) continue;
+				var L = b.def.mech.lamp;
+				var lit = api.spawn(L.lit, l.x, l.y, l.zone, true);
+				if (lit) { lit.mech = {owner: b.id, burnT: L.burn, nearT: 0}; lit.invuln = true; }
+				return;
+			}
+		}
+	static twinRules(w, e, T, m, dt, api) {
+			var o = null, mate = null;
+			for (o of __vals( w.enemies)) if (!o.dead && o != e && o.defId == T.partner) { mate = o; break; }
+			if (!m.init) {
+				m.init = true;
+				
+				if (!mate && !e.mech.raised) {
+					mate = api.spawn(T.partner, e.x + 4, e.y, e.zone, true);
+					if (mate) mate.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
+					api.say("Ebb and Flow rise together! Drag them apart: side by side, neither can be hurt.", w.theme.color, true);
+				}
+			}
+			
+			e.invuln = mate != null && Math.sqrt((mate.x - e.x) * (mate.x - e.x) + (mate.y - e.y) * (mate.y - e.y)) < T.r;
+			
+			if (m.revive) {
+				m.reviveT -= dt;
+				if (m.reviveT <= 0) {
+					var back = api.spawn(m.revive, m.rx, m.ry, e.zone, true);
+					if (back) {
+						back.hp = back.maxHp * 0.6;
+						back.noLoot = true;
+						back.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
+						api.say(back.def.name + " is raised again by the tide!", w.theme.color, true);
+					}
+					m.revive = null;
+					e.rateMult /= T.rage;
+				}
+			}
+		}
+	static guardRules(e, G, m, dt, api) {
+			var p = Lairs.nearest(e, api);
+			if (!p) return;
+			
+			var want = Math.atan2(p.y - e.y, p.x - e.x);
+			var diff = want - m.faceA;
+			while (diff > Math.PI) diff -= Math.PI * 2;
+			while (diff < -Math.PI) diff += Math.PI * 2;
+			var step = G.turn * Math.PI / 180 * dt;
+			m.faceA += Math.max(-step, Math.min(step, diff));
+			
+			var open = false;
+			for (var q of __vals( api.players)) {
+				var qa = Math.atan2(q.y - e.y, q.x - e.x) - m.faceA;
+				while (qa > Math.PI) qa -= Math.PI * 2;
+				while (qa < -Math.PI) qa += Math.PI * 2;
+				if (Math.abs(qa) > G.arc * Math.PI / 180) { open = true; break; }
+			}
+			e.invuln = !open;
+		}
 	static killed(w, e, api) {
 			var th = w.theme, L = th && th.lair, st = w.lair;
 			if (!L || !st) return;
+			
+			if (e.def.lantern) Lairs.lampLit(w, e, api);
+			
+			var tw = e.def.mech && e.def.mech.twin;
+			if (tw) {
+				for (var mate of __vals( w.enemies)) {
+					if (mate.dead || mate == e || mate.defId != tw.partner) continue;
+					if (!mate.mech) mate.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
+					if (mate.mech.revive) continue;
+					mate.mech.revive = e.defId; mate.mech.reviveT = tw.revive; mate.mech.rx = e.x; mate.mech.ry = e.y;
+					mate.rateMult *= tw.rage;
+					api.say(mate.def.name + " calls the tide back for " + e.def.name + "! Bring it down within " + tw.revive + " seconds!", th.color, true);
+				}
+			}
 			if (L.shield && e.lairShield && L.shield.text && !L.shield.regrow) api.say(L.shield.text, th.color, false);
 			
 			if (e.lairShield && st.order.length && L.shield.overclock && w.boss && !w.boss.dead) w.boss.rateMult *= 1 + L.shield.overclock;
@@ -6388,6 +6595,12 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-11-lighthouse", title: "New dungeon: the Drowned Lighthouse",
+				lines: ["<b>The Drowned Lighthouse</b> (key at the Marketplace, 5,000 gold): a dark hard dungeon where every fight is about the room, not just the boss.",
+					"<b>The Lamplighter</b> can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but if it lingers by one it puts it out.",
+					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together.",
+					"<b>The Bulwark</b> turns its tower shield toward whoever is closest. Hit it from behind or the side: in a group, one of you holds its attention.",
+					"<b>The Drowned Keeper</b> is sealed until all three fall. When it raises the tide a ring of water too thick to dodge floods the hall: <b>get behind a stone pillar</b>. Its uniques: the Keeper's Lamp, Tidewarden Plate and the Ebb and Flow ring."]},
 			{id: "2026-11-alchemy", title: "Potion Alchemy, stronger wands and a smarter loot filter",
 				lines: ["<b>New loot filter</b> (Menu > Settings): <b>Upgrades and rares only</b> shows a bag only when it holds gear your class can use that beats what you're wearing, or anything rare, a stat potion, a key or the like. Once you're in T7 the junk stays out of sight.",
 					"<b>Wands hit harder</b>: Priests and Chronomancers dealt about a fifth of a Wizard's damage, too little to finish a fight alone. Tiered wands now deal <b>about 35% more</b> at the top tiers (T7: 110 to 150 a second), and named and Starforged wands rise with them. Wands you own are updated. They're still the support classes' weapon: staves, bows and swords hit harder.",
@@ -7022,6 +7235,12 @@ Uniques.ALL = {
 		};
 Uniques.FIXED = {
 			
+			
+			keepers_lamp: {n: "The Keeper's Lamp", k: "weapon", s: "staff", r: "lg", st: {att: 5, wis: 5}, d: [80, 110], sh: 2, rt: 1, pc: true, col: 0xfff0a0,
+				txt: "Two piercing beams of lighthouse light.", lore: "It turned for three hundred years. It turns for you now."},
+			tidewarden_plate: {n: "Tidewarden Plate", k: "armor", s: "heavy", r: "lg", df: 34, st: {vit: 8, hp: 80}, txt: "Defense armor that keeps you standing.",
+				lore: "The Bulwark's own, barnacled and unbroken."},
+			ebb_and_flow: {n: "Ebb and Flow", k: "ring", s: "dex", r: "lg", st: {dex: 6, spd: 6, mp: 40}, txt: "Two bands that never touch.", lore: "Pull them apart and they want to come back."},
 			saltbeard_cutlass: {n: "Saltbeard's Cutlass", k: "weapon", s: "sword", r: "ut", st: {dex: 2}, d: [36, 50], sh: 3, rt: 1, arc: 26, txt: "Three blades in a wide fan: good against groups."},
 			swashbuckler_tunic: {n: "Swashbuckler's Tunic", k: "armor", s: "leather", r: "ut", df: 14, st: {spd: 4, dex: 4}, txt: "T4 defense with agility on top.", lore: "Cut for boarding actions."},
 			
@@ -7125,6 +7344,7 @@ Uniques.FIXED = {
 Uniques.DROPS = {
 			pumpkin_king: ["candy_corn_ring", "pumpkin_signet", "harvest_scythe", "scarecrow_shroud", "hollow_kings_coat", "all_hallows_eye"],
 			snow_tyrant: ["peppermint_ring", "grimsnows_crown", "longest_night_staff", "snowglobe_hourglass", "frostwoven_robe", "everwinter_heart"],
+			drowned_keeper: ["keepers_lamp", "tidewarden_plate", "ebb_and_flow"],
 			cove_boss: ["saltbeard_cutlass", "swashbuckler_tunic", "pirates_treasure"],
 			moth_boss: ["lantern_wand", "dustveil_robe", "mothwing_cloak"],
 			serpent_boss: ["fang_of_ssythra", "venomspit_staff", "venom_quiver"],
@@ -8113,6 +8333,10 @@ Lairs.DUNGEONS = [
 				intro: "Mother Hexis's three sisters hold court in the heart of the Hexwood. Each one that dies feeds the others."},
 				trio: ["crone_bramble", "crone_bog", "crone_ash"],
 				mobs: ["ent", "spider", "green_slime", "crimson_cultist"]},
+			{id: "drowned_lighthouse", wall: "mossy", name: "The Drowned Lighthouse", color: 0x60c8ff, layout: "lighthouse", dark: true, floor: 18, accent: 23, tier: 4, hard: 1.5, lair: {
+				boss: "drowned_keeper", intro: "The Keeper of the Drowned Lighthouse is sealed in its lamp room. Its three wardens hold the keys: each fights by the room's own rules."},
+				guardians: ["lamplighter", "tide_ebb", "bulwark"],
+				mobs: ["tide_spawn", "pirate_brawler", "crab", "shade"]},
 			{id: "krakens_maw", wall: "coral_deep", by: "ev_kraken", name: "The Kraken's Maw", color: 0x8040c0, layout: "islands", hazard: "water", floor: 23, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "leviathan", intro: "The Leviathan sleeps beneath its tentacles. Sever them all to drag it up, before they grow back.",
 				shield: {ids: ["maw_tentacle"], n: 4, where: "boss", r: 9, regrow: 45, text: "The tentacles grow back! The Leviathan sinks out of reach!"}},

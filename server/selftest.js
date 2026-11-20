@@ -3319,7 +3319,7 @@ async function run() {
     // splitting, eggs, trios), with the cleared message every game uses to open the way home
     const { WorldSim } = require('./sim/worldsim');
     const { Data: LD, Lairs } = require('./sim/gen/game');
-    for (const th of Lairs.DUNGEONS) {
+    for (const th of Lairs.DUNGEONS.filter((t) => t.by)) {
       check(th.name + ' is ' + (LD.ENEMIES[th.by] && LD.ENEMIES[th.by].name) + '\'s lair', LD.ENEMIES[th.by] && LD.ENEMIES[th.by].lair === th.id);
       const ws = new WorldSim('dg:' + LD.dungeonIndex(th.id) + ':4242'), w = ws.w, last = w.rooms[w.rooms.length - 1], L = th.lair;
       const msgs = [];
@@ -3344,6 +3344,58 @@ async function run() {
       check('  ' + th.name + ': its rules hold and it can be cleared', cleared && (!L.shield || shielded) && (!(L.shield && L.shield.regrow) || regrew) &&
         (!L.waves || w.lair.wave === L.waves.n) && (!(L.rebirth && L.rebirth.egg) || egg), JSON.stringify({ cleared, shielded, regrew, egg, wave: w.lair && w.lair.wave }));
     }
+  }
+
+  console.log('the Drowned Lighthouse');
+  {
+    // four fights where the room matters: lanterns, twins, a turning shield, and the Keeper sealed behind them
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: LD } = require('./sim/gen/game');
+    const di = LD.dungeonIndex('drowned_lighthouse');
+    check('it has a key for sale', LD.keyPrice(di) > 0);
+    const ws = new WorldSim('dg:' + di + ':4242'), w = ws.w, msgs = [];
+    const live = () => ws.enemies.filter((e) => !e.dead), find = (id) => live().find((e) => e.defId === id);
+    const g = find('lamplighter'), k = find('drowned_keeper');
+    check('three wardens and the Keeper, sealed', g && find('tide_ebb') && find('bulwark') && k && k.invuln);
+    const pl = { id: 1, x: g.x, y: g.y + 6, maxDps: 1e9, send: (m) => msgs.push(m) };
+    ws.join(pl);
+    for (let i = 0; i < 5; i++) ws.tick(0.1);
+    check('the Lamplighter: immune in the dark, with four unlit lanterns round it', g.invuln && live().filter((e) => e.defId === 'storm_lantern').length === 4);
+    ws.kill(find('storm_lantern')); ws.tick(0.1);
+    const lit = find('storm_lantern_lit');
+    g.x = lit.x + 1; g.y = lit.y; ws.tick(0.1);
+    check('...a lantern shot lights, and beside it the Lamplighter can be hurt', lit && lit.invuln && !g.invuln);
+    for (let i = 0; i < 50; i++) { g.x = lit.x + 1; g.y = lit.y; ws.tick(0.1); }
+    check('...but it snuffs a lantern it lingers by', lit.dead && live().filter((e) => e.defId === 'storm_lantern').length === 4 && g.invuln);
+    ws.kill(g); ws.tick(0.1);
+    const eb = find('tide_ebb');
+    pl.x = eb.x; pl.y = eb.y + 5;
+    for (let i = 0; i < 5; i++) ws.tick(0.1);
+    const fl = find('tide_flow');
+    check('Ebb brings Flow, and side by side neither can be hurt', fl && eb.invuln && fl.invuln);
+    fl.x = eb.x + 9; ws.tick(0.1);
+    check('...dragged apart, both can', !eb.invuln && !fl.invuln);
+    ws.kill(eb);
+    for (let i = 0; i < 105; i++) { fl.x = eb.x + 9; ws.tick(0.1); }
+    const eb2 = find('tide_ebb');
+    check('...one left alive too long raises the other (at 60%, with no second drop)', eb2 && eb2.noLoot && Math.abs(eb2.hp / eb2.maxHp - 0.6) < 0.01);
+    ws.kill(eb2); ws.kill(fl);
+    for (let i = 0; i < 120; i++) ws.tick(0.1);
+    check('...and both down together, they stay down', !find('tide_ebb') && !find('tide_flow'));
+    const bw = find('bulwark');
+    pl.x = bw.x + 6; pl.y = bw.y;
+    for (let i = 0; i < 40; i++) ws.tick(0.1);
+    const front = bw.invuln;
+    pl.x = bw.x - 6; ws.tick(0.1);
+    check('the Bulwark turns its shield to you: immune from the front, open from behind', front && !bw.invuln);
+    check('...the Keeper stays sealed while it stands', k.invuln);
+    ws.kill(bw); ws.tick(0.1);
+    check('the last warden falls and the Keeper wakes', !k.invuln && w.boss === k);
+    ws.kill(k);
+    for (let i = 0; i < 5; i++) ws.tick(0.1);
+    check('the Keeper falls and the lighthouse is cleared', w.lair.done && msgs.some((m) => m.d && m.d.lairDone));
+    const wave = LD.ENEMIES.drowned_keeper.phases[0].attacks[0];
+    check('the Great Wave is a ring too thick to dodge, with a warning', wave.burst >= 72 && wave.shout);
   }
 
   console.log('finales');

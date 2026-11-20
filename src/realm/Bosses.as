@@ -1418,6 +1418,52 @@ package realm {
 			lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 9000, col: 0xffc040, lairShield: true,
 				attacks: [ring(6, 20, 4.5, 55, 1.6, 0xffc040, {name: "jar's curse"})]});
 
+			// --- the Drowned Lighthouse: four fights where the room matters more than the boss (Lairs.mechanics)
+			// the Lamplighter: only hurt beside a lit storm lantern, and it snuffs any it lingers by
+			lairBoss("lamplighter", {name: "The Lamplighter", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+				light: 3, mech: {lamp: {id: "storm_lantern", lit: "storm_lantern_lit", n: 4, r: 8, near: 4.5, burn: 16, snuff: 4}}, phases: [
+				P(1, {say: "Who let the lights go out?", move: "chase",
+					attacks: [aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), ring(10, 18, 4.5, 60, 2.2, 0x6080a0, {name: "smoke ring"})]}),
+				P(0.5, {say: "Darkness suits me better.", move: "chase", speed: 1.2,
+					attacks: [aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), spiral(3, 16, 5, 60, 0.22, 0x6080a0, {name: "smoke coil"}),
+						nova(2, 1.0, 110, 4.0, 0xffa030, {reach: 7, burst: 8, name: "lamp oil"})]})
+			]});
+			lairProp("storm_lantern", {name: "Storm Lantern (unlit)", spr: "storm_lantern", hp: 900, col: 0x8090a0, lantern: true, xp: 20, attacks: []});
+			lairProp("storm_lantern_lit", {name: "Storm Lantern", spr: "storm_lantern_lit", hp: 900, col: 0xffd060, xp: 0, light: 5, attacks: []});
+			// Ebb and Flow: immune while together, and the one left alive calls the other back
+			for each (var tide:Array in [["tide_ebb", "Ebb", 0x3090ff, "tide_flow"], ["tide_flow", "Flow", 0x40e8d0, "tide_ebb"]]) {
+				lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 4800, spd: 2.0, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
+					mech: {twin: {partner: tide[3], r: 5, revive: 10, rage: 1.4}}, phases: [
+					P(1, {move: "chase", attacks: [aim(3, 22, 8, 70, 1.1, tide[2]), wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
+					P(0.4, {move: "orbit", attacks: [aim(4, 30, 8.5, 70, 0.9, tide[2]), ring(12, 15, 4.5, 60, 1.8, tide[2], {name: "undertow"})]})
+				]});
+			}
+			// the Bulwark: a wall of a shield, only hurt from behind or the side
+			lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0x80a0b0, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+				mech: {guard: {arc: 75, turn: 65}}, phases: [
+				P(1, {say: "None pass the light.", move: "chase",
+					attacks: [wall(11, 5, 80, 2.0, 0x80a0b0, {hole: 2, name: "shield bash"}), aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
+						ring(8, 0, 4, 60, 3.5, 0x6080a0, {name: "backwash"})]}),
+				P(0.4, {say: "THE TIDE HOLDS THE LINE!", move: "chase", speed: 1.25,
+					attacks: [wall(13, 5.5, 85, 1.6, 0x80a0b0, {hole: 2, name: "shield bash"}), aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
+						ring(12, 15, 4, 60, 2.6, 0x6080a0, {name: "backwash"})]})
+			]});
+			// the Drowned Keeper: sealed until all three fall; its Great Wave can only be hidden from behind the pillars
+			lairBoss("drowned_keeper", {name: "The Drowned Keeper", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [
+				P(1, {say: "The light... must... turn.", move: "center",
+					attacks: [nova(2.6, 2.6, 170, 12, 0x60c8ff, {reach: 0.01, burst: 72, bspd: 4.2, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
+						spiral(2, 7, 7, 75, 0.09, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), aim(3, 24, 8.5, 80, 1.4, 0x60c8ff)]}),
+				P(0.6, {say: "THE SEA CLAIMS ALL WHO LINGER.", banner: "The lighthouse floods!", shield: 2, move: "center", summon: [{what: "tide_spawn", n: 4}],
+					attacks: [nova(2.6, 2.4, 180, 10, 0x60c8ff, {reach: 0.01, burst: 84, bspd: 4.4, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
+						spiral(3, 8, 7, 75, 0.08, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), rain(5, 5, 100, 2.6, 0x60c8ff, {burst: 6, name: "storm surge"})]}),
+				P(0.25, {say: "LET THE LIGHT GO OUT.", move: "center",
+					attacks: [nova(2.6, 2.2, 190, 8.5, 0x60c8ff, {reach: 0.01, burst: 96, bspd: 4.6, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
+						spiral(4, -9, 7.5, 80, 0.08, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), aim(5, 40, 9, 80, 1.0, 0x60c8ff, {motion: "wave"})]})
+			]});
+
 			// --- the Drowned Keep (the Lord of the Sunken Lands'): Admiral Brine, twice
 			lairBoss("admiral_brine", {name: "Admiral Brine", spr: "admiral", hp: 20000, spd: 1.6, col: 0x50a0c0, phases: [
 				P(1, {say: "All hands! Repel boarders!", move: "orbit",

@@ -103,7 +103,7 @@ class WorldSim {
       spawnEnemy: (id, x, y, zone) => sim.spawn(id, x, y, zone),
       countAlive: (id) => sim.enemies.filter((e) => !e.dead && e.defId === id).length,
       burst() {}, later() {}, addMarker() {}, groundFx() {}, chainArc() {}, brand() {}, eclipse() {}, beam() {}, gravity() {}, supernova() {},
-      playersNear: (x, y, r) => [...sim.players.values()].filter((c) => (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y) < r * r), addWeb() {}, soundAt() {}, bossPhase: (ph, b) => sim.bossPhase(ph, b),
+      playersNear: (x, y, r) => [...sim.players.values()].filter((c) => (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y) < r * r), addWeb() {}, soundAt() {}, showBanner() {}, bossPhase: (ph, b) => sim.bossPhase(ph, b),
       addShot: (s) => sim.trackShot(s), areaHit: (x, y, r) => sim.expectArea(x, y, r),
       sync: { fired: (e, i, ang, spin, code, dist) => sim.fired(e, i, ang, spin, code, dist) }
     };
@@ -971,6 +971,8 @@ class WorldSim {
 
   /** Everyone who hurt the monster gets their own roll (sent only to them). */
   dropLoot(e) {
+    // (a twin raised again by its partner: its loot was had the first time)
+    if (e.noLoot) return;
     const zone = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
     const siteHoard = e.site && !e.site.cleared;
     // the Siege: loot follows your share of the fight (under 0.5%, nothing); the MVP rolls twice

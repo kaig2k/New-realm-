@@ -68,6 +68,10 @@ package realm {
 		public var dmgMult:Number = 1;
 		/** A lair's (Lairs.as): one of what shields its master, a monster of one of its waves, one drifting in to heal it, an egg's time left. */
 		public var lairShield:Boolean = false, lairWave:Boolean = false, lairFeed:Boolean = false, eggT:Number = 0;
+		/** A boss's own fight rules (def.mech, run by Lairs.mechanics): its state, set up the first time it's seen. */
+		public var mech:Object = null;
+		/** Drops nothing when it dies (a twin brought back by its partner: its loot was had the first time). */
+		public var noLoot:Boolean = false;
 		/** You hit it at least once (you only get loot from monsters you fought). */
 		public var playerHit:Boolean = false;
 		/** Network id (online: shared by every player in the world). */
@@ -629,6 +633,8 @@ package realm {
 			if (a.p == "summon") { startAnim(a); return; }
 			var waves:int = a.waves || 1;
 			if (a.sfx) g.soundAt(x, y, a.sfx, 0.7, a.sfxGap || 0.15);
+			// a warning to everyone fighting it ("The Keeper raises the tide!")
+			if (a.shout) g.showBanner(a.shout, a.col, 2.2);
 			startAnim(a);
 			// a lead: it plants its feet and the way it will fire is marked on the ground first (breath)
 			var lead:Number = a.lead || 0;

@@ -2619,7 +2619,7 @@ package realm {
 			}
 			var lootZone:int = Math.max(0, Math.min(World.GOD_ZONE, e.zone));
 			// online, the server rolls drops and sends each player theirs (see serverDrop)
-			var roll:Boolean = mine && !serverLoot;
+			var roll:Boolean = mine && !serverLoot && !e.noLoot;
 			var items:Array = roll ? Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + modeLuck) : [];
 			// elites drop twice; the treasure goblin spills its whole sack
 			if (roll && e.elite) items = items.concat(Data.rollLoot(e.def, lootZone, p.cls, p.frt + lootLuck() + modeLuck + 50));
@@ -7586,8 +7586,41 @@ package realm {
 			g.beginGradientFill("radial", [0xffa040, 0x000000, 0x000000, 0x000000], [0.07, 0, 0.55, 0.94], [0, 70, 140, 255], darkMtx);
 			g.drawRect(0, 0, vw, vh);
 			g.endFill();
-			canvas.draw(darkShape);
+			// lamps, lanterns and glowing bosses (def.light: its radius in tiles) cut their own pools out of the dark
+			var lights:int = 0;
+			for each (var le:Enemy in world.enemies) {
+				if (le.dead || !le.def.light) continue;
+				var lx:Number = scrX(le.x, le.y), ly:Number = scrY(le.x, le.y), lr:Number = TS * le.def.light * flick;
+				if (lx < -lr || ly < -lr || lx > vw + lr || ly > vh + lr) continue;
+				if (lights++ == 0) {
+					if (!darkBmp || darkBmp.width != vw || darkBmp.height != vh) { if (darkBmp) darkBmp.dispose(); darkBmp = new BitmapData(vw, vh, true, 0); }
+					darkBmp.fillRect(darkBmp.rect, 0);
+					darkBmp.draw(darkShape);
+					lightShape.graphics.clear();
+				}
+				darkMtx.createGradientBox(lr * 2, lr * 2, 0, lx - lr, ly - lr);
+				lightShape.graphics.beginGradientFill("radial", [0, 0, 0], [1, 0.8, 0], [0, 110, 255], darkMtx);
+				lightShape.graphics.drawCircle(lx, ly, lr);
+				lightShape.graphics.endFill();
+			}
+			if (!lights) { canvas.draw(darkShape); return; }
+			darkBmp.draw(lightShape, null, null, BlendMode.ERASE);
+			canvas.copyPixels(darkBmp, darkBmp.rect, new Point(0, 0), null, null, true);
+			// a warm glow over each pool
+			g.clear();
+			for each (le in world.enemies) {
+				if (le.dead || !le.def.light) continue;
+				lr = TS * le.def.light * 0.7 * flick;
+				lx = scrX(le.x, le.y); ly = scrY(le.x, le.y);
+				darkMtx.createGradientBox(lr * 2, lr * 2, 0, lx - lr, ly - lr);
+				g.beginGradientFill("radial", [le.def.col, le.def.col], [0.16, 0], [0, 255], darkMtx);
+				g.drawCircle(lx, ly, lr);
+				g.endFill();
+			}
+			canvas.draw(darkShape, null, null, BlendMode.ADD);
 		}
+		private var darkBmp:BitmapData;
+		private var lightShape:Shape = new Shape();
 
 		/** Reuses draw-list entries between frames instead of allocating new objects. */
 		private function drawItem(y:Number, o:int, x:int, e:Enemy, p:Boolean):Object {

@@ -646,6 +646,7 @@ package realm {
 				case "islands": layoutIslands(th, floor, accent); break;
 				case "ring": layoutRing(th, floor, accent); break;
 				case "maze": layoutMaze(th, floor, accent); break;
+				case "lighthouse": layoutLighthouse(th, floor, accent); break;
 				case "conclave": layoutConclave(th); break;
 				case "spire": layoutSpire(th); break;
 				case "starfall": layoutStarfall(th); break;
@@ -709,6 +710,39 @@ package realm {
 				if (k == count - 2) { cy -= 4; }
 				if (cy < 25) cy = 25;
 			}
+		}
+
+		/**
+		 * The Drowned Lighthouse: a straight climb north through the wreck, each guardian with a hall of
+		 * its own big enough to fight it in (the Lamplighter's long hall for luring it between lanterns,
+		 * the twins' wide hall for pulling them apart, the Bulwark's open square for circling it), and the
+		 * Keeper's round hall at the top, ringed with stone pillars: the only shelter from its great wave.
+		 */
+		private function layoutLighthouse(th:Object, floor:int, accent:int):void {
+			var halls:Array = [[100, 184, 11, 9], [100, 160, 25, 15], [100, 134, 27, 17], [100, 107, 21, 21]];
+			var prev:Object = null, room:Object;
+			for each (var h:Array in halls) {
+				carve(h[0] - int(h[2] / 2), h[1] - int(h[3] / 2), h[2], h[3], floor);
+				if (prev) {
+					// a reef-stone inlay down the middle of each hall
+					carve(h[0] - 1, h[1] - int(h[3] / 2) + 2, 3, h[3] - 4, accent);
+					corridor(prev.x, prev.y, h[0], h[1], floor);
+				}
+				room = {x: h[0], y: h[1], w: h[2], h: h[3]};
+				rooms.push(room);
+				prev = room;
+			}
+			// the Keeper's hall: round, with six stone pillars in a ring to hide behind
+			var kx:int = 100, ky:int = 76;
+			blob(kx, ky, 13, floor);
+			for (var a:int = 0; a < 6; a++) {
+				var ang:Number = a * Math.PI / 3 + Math.PI / 6;
+				var px:int = kx + int(Math.round(Math.cos(ang) * 8)), py:int = ky + int(Math.round(Math.sin(ang) * 8));
+				for (var dy:int = 0; dy < 2; dy++) for (var dx:int = 0; dx < 2; dx++) tiles[(py + dy) * N + px + dx] = WALL;
+			}
+			carve(kx - 2, ky - 2, 5, 5, accent);
+			corridor(prev.x, prev.y, kx, ky + 12, floor);
+			rooms.push({x: kx, y: ky, w: 24, h: 24});
 		}
 
 		/** Caverns: lumpy round chambers joined by winding tunnels. */

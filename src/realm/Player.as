@@ -573,13 +573,7 @@ package realm {
 			}
 			if (kindleN > 0) kindleN--;
 			g.net.shoot(ang);
-			// muzzle flash at the tip of the weapon
-			if (Game.opt("parts") && g.parts.length < 400) {
-				var mf:BitmapData = Sprites.glow(Sprites.tint(w.col, 0.5));
-				// (the better the weapon, the bigger its flash)
-				var flash:int = 2 + Math.max(0, tierFx) / 2;
-				for (k = 0; k < flash; k++) g.parts.push(new Particle(x + Math.cos(ang) * 0.45, y + Math.sin(ang) * 0.45, Math.cos(ang + (Math.random() - 0.5)) * (3 + k), Math.sin(ang + (Math.random() - 0.5)) * (3 + k), 0.1 + k * 0.015, mf));
-			}
+			// (no muzzle flash: the glow round the hero on every shot was more noise than help)
 			// Divine Wrath: every 6th volley of a Godly weapon (every 5th with the full set)
 			if (gcls && ++wrathN >= (activeSet == w.set ? Godly.WRATH_SET : Godly.EVERY)) {
 				wrathN = 0;

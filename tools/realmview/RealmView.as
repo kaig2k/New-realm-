@@ -18,9 +18,27 @@ package {
 
 		public function RealmView() { addEventListener(Event.ENTER_FRAME, tick); }
 
+		/** lineup=ids: those monsters side by side at their in-game size, each beside a hero for scale. */
+		private function lineup(ids:Array):void {
+			var bg:BitmapData = new BitmapData(960, 640, false, 0x34502a);
+			var hero:BitmapData = Sprites.get("wizard"), pt:Point = new Point();
+			var cols:int = 8, cw:int = 120, rh:int = 158;
+			for (var i:int = 0; i < ids.length; i++) {
+				if (!Data.ENEMIES[ids[i]]) continue;
+				var bd:BitmapData = Sprites.get(Data.ENEMIES[ids[i]].spr || ids[i]);
+				var cx:int = (i % cols) * cw + 70, base:int = int(i / cols) * rh + 120;
+				pt.x = cx - 52; pt.y = base - hero.height; bg.copyPixels(hero, hero.rect, pt, null, null, true);
+				pt.x = cx + 4 - bd.width / 2 + 20; pt.y = base - bd.height; bg.copyPixels(bd, bd.rect, pt, null, null, true);
+				var tf:TextField = new TextField(); tf.text = ids[i]; tf.textColor = 0xffffff; tf.width = cw;
+				var m:Matrix = new Matrix(); m.translate(cx - 56, base + 4); bg.draw(tf, m);
+			}
+			addChild(new Bitmap(bg));
+		}
+
 		private function tick(ev:Event):void {
 			var p:Object = loaderInfo.parameters;
 			if (step == 0) { Bosses.init(); step++; return; }
+			if (step == 1 && p.lineup) { lineup(String(p.lineup).split(",")); removeEventListener(Event.ENTER_FRAME, tick); return; }
 			if (step == 1) { w = new World("realm", "View", null, uint(p.seed || 1234)); step++; return; }
 			removeEventListener(Event.ENTER_FRAME, tick);
 			var zone:int = int(p.zone || 1);

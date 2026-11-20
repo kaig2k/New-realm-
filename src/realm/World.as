@@ -20,6 +20,11 @@ package realm {
 		private static const MAX_CHUNKS:int = 72;
 		public var N:int = DEFAULT_N;
 		public static const PX:int = 8;
+		/** This world's ground pixels per tile: the realm is drawn finer (REALM_PX), to sit with the shaded monsters. */
+		public var px:int = PX;
+		/** This world's ground chunks, in tiles (the realm's are smaller, so each costs about what a classic one did). */
+		public var ck:int = CHUNK;
+		public static const REALM_PX:int = 16;
 
 		public static const WATER:int = 0, SAND:int = 1, GRASS:int = 2, DARK:int = 3, GOD:int = 4, PLAZA:int = 5, BRICK:int = 6, LAVA:int = 7;
 		public static const VOID:int = 8, STONE:int = 9, WALL:int = 10, CARPET:int = 11, FOUNTAIN:int = 12, ARENA:int = 13, BLOODSTONE:int = 14;
@@ -226,6 +231,8 @@ package realm {
 			this.name = name;
 			this.theme = theme;
 			N = kind == "realm" ? REALM_N : DEFAULT_N;
+			px = kind == "realm" ? REALM_PX : PX;
+			ck = CHUNK * PX / px;
 			tiles = new Vector.<int>(N * N, true);
 			objs = new Vector.<int>(N * N, true);
 			zones = new Vector.<int>(N * N, true);
@@ -1236,7 +1243,7 @@ package realm {
 				zones[c.i] = DUNGEON_ZONE;
 				var x:int = c.i % N, y:int = int(c.i / N);
 				if (minimap) minimap.setPixel(x, y, MINI_COL[c.t]);
-				for (var dy:int = -1; dy <= 1; dy++) for (var dx:int = -1; dx <= 1; dx++) dropChunk(int((x + dx) / CHUNK), int((y + dy) / CHUNK));
+				for (var dy:int = -1; dy <= 1; dy++) for (var dx:int = -1; dx <= 1; dx++) dropChunk(int((x + dx) / ck), int((y + dy) / ck));
 			}
 			gates[k] = [];
 			return true;
@@ -1252,8 +1259,8 @@ package realm {
 				else if (objs[i] == 4 || objs[i] == 5) mc = 0x7a7a7a;
 				minimap.setPixel(x, y, mc);
 			}
-			for (var cy:int = int((y0 - 1) / CHUNK); cy <= int((y1 + 1) / CHUNK); cy++)
-				for (var cx:int = int((x0 - 1) / CHUNK); cx <= int((x1 + 1) / CHUNK); cx++) if (cx >= 0 && cy >= 0) dropChunk(cx, cy);
+			for (var cy:int = int((y0 - 1) / ck); cy <= int((y1 + 1) / ck); cy++)
+				for (var cx:int = int((x0 - 1) / ck); cx <= int((x1 + 1) / ck); cx++) if (cx >= 0 && cy >= 0) dropChunk(cx, cy);
 		}
 
 		/** Redraws the ground and minimap under just these tile indices (after a takeover wave). */
@@ -1270,7 +1277,9 @@ package realm {
 			for each (var i:int in idx) {
 				var x:int = i % N, y:int = int(i / N);
 				if (minimap) minimap.setPixel(x, y, miniCol(i));
-				for (var dy:int = -1; dy <= 1; dy++) for (var dx:int = -1; dx <= 1; dx++) {
+				// (the realm's soft borders and shallows reach two tiles)
+				var rr:int = px > PX ? 2 : 1;
+				for (var dy:int = -rr; dy <= rr; dy++) for (var dx:int = -rr; dx <= rr; dx++) {
 					var nx:int = x + dx, ny:int = y + dy;
 					if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
 					var j:int = ny * N + nx;
@@ -1279,20 +1288,20 @@ package realm {
 			}
 			// (in the order a chunk is first drawn, so edges overlap the same way)
 			list.sort(Array.NUMERIC);
-			var r:Rectangle = new Rectangle(0, 0, PX, PX);
+			var r:Rectangle = new Rectangle(0, 0, px, px);
 			var lastK:int = -1, bd:BitmapData = null;
 			for each (var t:int in list) {
 				var tx:int = t % N, ty:int = int(t / N);
-				var cx:int = int(tx / CHUNK), cy:int = int(ty / CHUNK), k:int = cy * 1024 + cx;
+				var cx:int = int(tx / ck), cy:int = int(ty / ck), k:int = cy * 1024 + cx;
 				if (k != lastK) {
 					if (bd) bd.unlock();
 					lastK = k;
 					bd = chunks[k];
-					if (bd) { bd.lock(); target = bd; offX = cx * CHUNK * PX; offY = cy * CHUNK * PX; }
+					if (bd) { bd.lock(); target = bd; offX = cx * ck * px; offY = cy * ck * px; }
 				}
 				if (!bd) continue;
-				r.x = tx * PX - offX;
-				r.y = ty * PX - offY;
+				r.x = tx * px - offX;
+				r.y = ty * px - offY;
 				bd.setVector(r, texture(tiles[t], tx, ty));
 				drawEdges(tx, ty, tiles[t]);
 			}
@@ -1611,6 +1620,33 @@ package realm {
 
 		// ------------------------------------------------------------ textures
 		private function texture(t:int, tx:int, ty:int):Vector.<uint> {
+			if (px > PX) return natural(t) ? realmTexture(t, tx, ty) : t == ROAD || t == RUIN || t == BRIDGE || t == LAVA || t == PLAZA || t == STONE || t == SANDSTONE ? builtTexture(t, tx, ty) : upscale(classicTexture(t, tx, ty), tx, ty);
+			return classicTexture(t, tx, ty);
+		}
+
+		/** A classic 8x8 tile drawn at this world's finer size (built ground: roads, ruins, set-piece floors). */
+		private function upscale(v8:Vector.<uint>, tx:int = 0, ty:int = 0):Vector.<uint> {
+			var s:int = px / PX, v:Vector.<uint> = new Vector.<uint>(px * px, true);
+			var nz:Vector.<Number> = noiseField();
+			for (var y:int = 0; y < px; y++) for (var x:int = 0; x < px; x++) {
+				var gx:int = tx * px + x, gy:int = ty * px + y;
+				// (fine wear over the chunky pattern, so it sits with the finely drawn realm)
+				var f:Number = 0.92 + nz[(((gy * 3) & 255) << 8) | ((gx * 3) & 255)] * 0.14 + ((ph(gx, gy) & 7) - 3.5) * 0.008;
+				v[y * px + x] = 0xff000000 | grade(v8[int(y / s) * PX + int(x / s)] & 0xffffff, f);
+			}
+			return v;
+		}
+
+		/** The realm's colour grade for built ground: the brightest tones softened and a little colour taken out. */
+		private static function grade(c:uint, f:Number = 1):uint {
+			var r:Number = (c >> 16) & 255, g:Number = (c >> 8) & 255, b:Number = c & 255;
+			var l:Number = r * 0.3 + g * 0.59 + b * 0.11;
+			var k:Number = (l > 140 ? 0.8 + 0.2 * 140 / l : 0.92) * f;
+			r = (l + (r - l) * 0.82) * k; g = (l + (g - l) * 0.82) * k; b = (l + (b - l) * 0.82) * k;
+			return (uint(r > 255 ? 255 : r) << 16) | (uint(g > 255 ? 255 : g) << 8) | uint(b > 255 ? 255 : b);
+		}
+
+		private function classicTexture(t:int, tx:int, ty:int):Vector.<uint> {
 			var v:Vector.<uint> = new Vector.<uint>(PX * PX, true);
 			var x:int, y:int, i:int, r:Number, c:uint;
 			var shal:Boolean = t == WATER && shallow(tx, ty);
@@ -1847,6 +1883,234 @@ package realm {
 			return v;
 		}
 
+		// ------------------------------------------------------------ the realm's ground, painted finely
+		/** The realm's natural ground (painted per pixel, with soft borders); everything else is built ground. */
+		private static function natural(t:int):Boolean {
+			return t == GRASS || t == DARK || t == HIGH || t == SAND || t == GOD || t == WATER;
+		}
+
+		/** A tileable field of smooth noise (256 x 256, 0..1), built once: what the realm's ground is painted from. */
+		private static var NZ:Vector.<Number>;
+		private static function noiseField():Vector.<Number> {
+			if (NZ) return NZ;
+			var v:Vector.<Number> = new Vector.<Number>(65536, true);
+			var periods:Array = [64, 32, 16, 8, 4], amps:Array = [0.38, 0.26, 0.17, 0.11, 0.08];
+			var h:uint = 2463534242;
+			for (var o:int = 0; o < periods.length; o++) {
+				var per:int = periods[o], g:int = 256 / per, a:Number = amps[o];
+				var grid:Vector.<Number> = new Vector.<Number>(g * g, true);
+				for (var k:int = 0; k < g * g; k++) { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; grid[k] = (h >>> 0) / 4294967296; }
+				for (var y:int = 0; y < 256; y++) {
+					var gy:int = int(y / per), fy:Number = (y - gy * per) / per;
+					fy = fy * fy * (3 - 2 * fy);
+					var y0:int = gy * g, y1:int = ((gy + 1) % g) * g;
+					for (var x:int = 0; x < 256; x++) {
+						var gx:int = int(x / per), fx:Number = (x - gx * per) / per;
+						fx = fx * fx * (3 - 2 * fx);
+						var x1:int = (gx + 1) % g;
+						var top:Number = grid[y0 + gx] + (grid[y0 + x1] - grid[y0 + gx]) * fx;
+						var bot:Number = grid[y1 + gx] + (grid[y1 + x1] - grid[y1 + gx]) * fx;
+						v[y * 256 + x] += (top + (bot - top) * fy) * a;
+					}
+				}
+			}
+			return NZ = v;
+		}
+
+		// the palettes, dark to light: muted and natural, so the shaded monsters stand out on them
+		private static const P_GRASS:Array = [0x2a461d, 0x315122, 0x385b27, 0x40662c, 0x497131, 0x537c37];
+		private static const P_FOREST:Array = [0x172a14, 0x1c3218, 0x223b1c, 0x284420, 0x2f4d25];
+		private static const P_HIGH:Array = [0x4a4729, 0x55522f, 0x605c35, 0x6b663b, 0x767042];
+		private static const P_SAND:Array = [0xa08456, 0xad905e, 0xb99c67, 0xc4a771, 0xceb27b];
+		private static const P_GOD:Array = [0x26242c, 0x2c2a33, 0x33303a, 0x3a3742, 0x423e4a];
+		private static const P_DEEP:Array = [0x16304f, 0x1a3758, 0x1e3e62, 0x22456b];
+		private static const P_SHALLOW:Array = [0x24516e, 0x285a78, 0x2d6482, 0x326e8b];
+
+		private static function ramp(p:Array, v:Number):uint {
+			var i:int = int(v * p.length);
+			return p[i < 0 ? 0 : i >= p.length ? p.length - 1 : i];
+		}
+
+		/** Per-pixel hash (0..255). */
+		private static function ph(x:int, y:int):int {
+			var h:int = x * 374761393 + y * 668265263;
+			h = (h ^ (h >>> 13)) * 1274126177;
+			return (h ^ (h >>> 16)) & 255;
+		}
+
+		/**
+		 * One realm tile, painted pixel by pixel from the noise field: each kind of ground in soft blotches of
+		 * light and shade with its own details (grass tufts, leaf litter, dry stalks, sand ripples, cracked rock,
+		 * waves), and where two kinds meet the border wanders like a real one, with foam and wet sand at the shore.
+		 */
+		private function realmTexture(t:int, tx:int, ty:int):Vector.<uint> {
+			var nz:Vector.<Number> = noiseField();
+			var v:Vector.<uint> = new Vector.<uint>(px * px, true);
+			// (a tile whose neighbours are all the same needs no wandering border)
+			var mixed:Boolean = false, nearWater:Boolean = false, coast:Boolean = false;
+			for (var dy:int = -2; dy <= 2; dy++) for (var dx:int = -2; dx <= 2; dx++) {
+				var nt:int = tileAtI(tx + dx, ty + dy);
+				if (t == WATER && nt != WATER) coast = true;
+				if (dx < -1 || dx > 1 || dy < -1 || dy > 1) continue;
+				if (nt != t && natural(nt)) mixed = true;
+				if (nt == WATER) nearWater = true;
+				else if (t == WATER) nearWater = true;
+			}
+			var hs:int = ((tx * 7349 + ty * 3613) ^ (tx * ty)) & 255;
+			for (var y:int = 0; y < px; y++) {
+				for (var x:int = 0; x < px; x++) {
+					var gx:int = tx * px + x, gy:int = ty * px + y;
+					var n1:Number = nz[((gy & 255) << 8) | (gx & 255)];
+					var n2:Number = nz[(((gy + 131) & 255) << 8) | ((gx + 97) & 255)];
+					var T:int = t;
+					var big:Number = nz[(((gy >> 2) & 255) << 8) | ((gx >> 2) & 255)];
+					var fine:Number = nz[(((gy * 3 + 57) & 255) << 8) | ((gx * 3 + 11) & 255)];
+					var fine2:Number = nz[(((gy * 3 + 190) & 255) << 8) | ((gx * 3 + 140) & 255)];
+					// the border wanders: which ground shows here is read a little way off, pushed by the noise
+					var wx:int = gx + int((n1 - 0.5) * 18 + (fine - 0.5) * 26), wy:int = gy + int((n2 - 0.5) * 18 + (fine2 - 0.5) * 26);
+					if (mixed) {
+						var wt:int = tileAtI(wx >> 4, wy >> 4);
+						if (natural(wt)) T = wt;
+					}
+					var h:int = ph(gx, gy);
+					var dither:Number = (h & 15) / 15 * 0.12 - 0.06;
+					var c:uint;
+					switch (T) {
+						case GRASS:
+							c = ramp(P_GRASS, big * 0.6 + fine * 0.55 - 0.1 + dither);
+							// tufts: little blades two or three pixels tall, lit on top
+							var bh:int = ph(gx, int(gy / 3));
+							if ((bh & 31) == 0) c = gy % 3 == 0 ? 0x6a9446 : gy % 3 == 1 ? 0x58823a : 0x223c18;
+							else if ((bh & 63) == 7 && gy % 3 != 2) c = 0x253f1a;
+							break;
+						case DARK:
+							c = ramp(P_FOREST, big * 0.5 + fine * 0.6 - 0.05 + dither);
+							// leaf litter and moss
+							if ((h & 63) == 0) c = 0x4a3c22;
+							else if ((h & 63) == 1) c = 0x3a5a2a;
+							break;
+						case HIGH:
+							c = ramp(P_HIGH, big * 0.6 + fine * 0.5 - 0.08 + dither);
+							var sh:int = ph(gx, int(gy / 4));
+							if ((sh & 31) == 0) c = gy % 4 == 0 ? 0x8c8550 : gy % 4 == 3 ? 0x3a3820 : 0x7c7646;
+							break;
+						case SAND:
+							c = ramp(P_SAND, big * 0.55 + fine * 0.5 - 0.05 + dither);
+							// wind ripples, and the odd pebble
+							if ((gx + gy * 2 + int(n1 * 40)) % 11 == 0) c = Sprites.shade(c, 1.07);
+							else if ((gx + gy * 2 + int(n1 * 40)) % 11 == 1) c = Sprites.shade(c, 0.93);
+							if ((h & 127) == 3) c = 0x7a6a50;
+							break;
+						case GOD:
+							c = ramp(P_GOD, big * 0.55 + fine * 0.55 - 0.05 + dither);
+							// cracks along the noise's contours; a few glow with the Godlands' violet
+							var cr:Number = fine - 0.5;
+							if (cr > -0.012 && cr < 0.012) c = big > 0.62 ? 0x7a3ab0 : 0x18161c;
+							else if ((h & 127) == 5) c = 0x55505e;
+							break;
+						default: // WATER
+							// deeper away from the shore, smoothly
+							var depth:int = 2;
+							if (coast) {
+								for (var ring:int = 1; ring <= 2 && depth == 2; ring++) {
+									var rr:int = ring * 14;
+									if (tileAtI((wx + rr) >> 4, wy >> 4) != WATER || tileAtI((wx - rr) >> 4, wy >> 4) != WATER ||
+										tileAtI(wx >> 4, (wy + rr) >> 4) != WATER || tileAtI(wx >> 4, (wy - rr) >> 4) != WATER) depth = ring - 1;
+								}
+							}
+							var deep:Boolean = depth == 2;
+							c = depth == 0 ? ramp(P_SHALLOW, big * 0.5 + fine * 0.5 + 0.1 + dither * 0.5) : depth == 1 ? ramp(P_SHALLOW, big * 0.5 + fine * 0.5 - 0.35 + dither * 0.5)
+								: ramp(P_DEEP, big * 0.6 + fine * 0.5 - 0.05 + dither * 0.5);
+							// waves: short bright crests along the noise's contours
+							var wv:Number = nz[(((gy * 2 + 40) & 255) << 8) | ((gx + 200) & 255)] - 0.5;
+							if (wv > 0.0 && wv < 0.018 && (gx & 3) != 0) c = deep ? 0x3a6694 : 0x4f8aa8;
+							break;
+					}
+					// the shore: foam on the water's edge, darker wet ground on the land's
+					if (nearWater) {
+						var bx:int = mixed ? wx : gx, by:int = mixed ? wy : gy;
+						var land:int = 0, wet:int = 0;
+						if (tileAtI((bx + 5) >> 4, by >> 4) == WATER) wet++; else land++;
+						if (tileAtI((bx - 5) >> 4, by >> 4) == WATER) wet++; else land++;
+						if (tileAtI(bx >> 4, (by + 5) >> 4) == WATER) wet++; else land++;
+						if (tileAtI(bx >> 4, (by - 5) >> 4) == WATER) wet++; else land++;
+						if (T == WATER && land > 0) c = land > 1 && (h & 3) != 0 ? 0xc4dcdf : Sprites.shade(c, 1.35);
+						else if (T != WATER && wet > 0) c = Sprites.shade(c, wet > 1 ? 0.72 : 0.84);
+					}
+					v[y * px + x] = 0xff000000 | c;
+				}
+			}
+			// the odd flower or mushroom, as before
+			if (!mixed && (t == GRASS || t == HIGH || t == DARK) && hs % 14 == 0) {
+				var fx:int = 3 + ((hs >> 4) % 9), fy:int = 3 + ((hs >> 2) % 9);
+				var petal:uint = t == HIGH ? 0xc8a050 : t == DARK ? 0xa83020 : [0xd8d8d0, 0xd88ab0, 0x8ab0d8, 0xd8c050][(hs >> 5) & 3];
+				v[fy * px + fx] = 0xff000000 | (t == DARK ? 0xe8e0c8 : 0xe8c040);
+				v[(fy - 1) * px + fx] = v[(fy + 1) * px + fx] = v[fy * px + fx - 1] = v[fy * px + fx + 1] = 0xff000000 | petal;
+			}
+			return v;
+		}
+
+		/**
+		 * The realm's built ground, finely: cobbled paths, an old ruin's flagstones, bridge planks. Muted, with
+		 * dark joints, and sunk into the ground round them (a shadowed rim) instead of outlined in white.
+		 */
+		private function builtTexture(t:int, tx:int, ty:int):Vector.<uint> {
+			var nz:Vector.<Number> = noiseField();
+			var v:Vector.<uint> = new Vector.<uint>(px * px, true);
+			var same:Function = function(nt:int):Boolean { return t == LAVA || nt == LAVA ? nt == t || nt == RUIN || t == RUIN : t == BRIDGE || nt == BRIDGE ? nt == t || (t == ROAD || nt == ROAD) : nt == t; };
+			var up:Boolean = !same(tileAtI(tx, ty - 1)), dn:Boolean = !same(tileAtI(tx, ty + 1));
+			var lf:Boolean = !same(tileAtI(tx - 1, ty)), rt:Boolean = !same(tileAtI(tx + 1, ty));
+			for (var y:int = 0; y < px; y++) {
+				for (var x:int = 0; x < px; x++) {
+					var gx:int = tx * px + x, gy:int = ty * px + y;
+					var big:Number = nz[(((gy >> 1) & 255) << 8) | ((gx >> 1) & 255)];
+					var h:int = ph(gx, gy);
+					var c:uint;
+					if (t == LAVA) {
+						// molten rock: glowing flow under drifting black crust, bright veins where it cracks
+						var fl:Number = nz[(((gy * 2 + 30) & 255) << 8) | ((gx * 2 + 70) & 255)];
+						var crust:Number = big * 0.6 + fl * 0.6;
+						c = crust > 0.72 ? (crust > 0.78 ? 0x1e0a06 : 0x3a140a) : ramp([0x8a1c08, 0xb02a0c, 0xd04010, 0xe86018, 0xffa030], 1.2 - crust * 1.3 + ((h & 7) - 3.5) * 0.02);
+						if (fl - 0.5 > 0 && fl - 0.5 < 0.012 && crust <= 0.72) c = 0xffd060;
+						v[y * px + x] = 0xff000000 | c;
+						continue;
+					}
+					if (t == BRIDGE) {
+						// planks across, dark gaps between, nail heads and grain
+						var pl:int = gy % 5;
+						c = pl == 4 ? 0x24160c : ramp([0x4a3019, 0x55381e, 0x604024, 0x6b4829], big * 0.7 + ((ph(0, int(gy / 5)) & 15) / 15) * 0.4 - 0.1);
+						if (pl != 4 && (h & 31) == 0) c = 0x3a2412;
+						if (pl == 2 && (gx % px == 2 || gx % px == px - 3)) c = 0x8a8478;
+					} else {
+						// stones in offset rows: cobbles (5 x 4) on a path, broad slabs (8 x 6) in a ruin
+						var sw:int = t == ROAD ? 5 : t == STONE ? 6 : 8, shh:int = t == ROAD ? 4 : t == STONE ? 5 : t == SANDSTONE ? 4 : 8;
+						var row:int = int(gy / shh), sx:int = gx + (row & 1) * (sw >> 1);
+						var col:int = int(sx / sw), ix:int = sx - col * sw, iy:int = gy - row * shh;
+						var stone:int = ph(col * 7 + 3, row * 13 + 1);
+						var joint:Boolean = ix == sw - 1 || iy == shh - 1;
+						// (worn: the odd corner missing)
+						if (!joint && t == ROAD && ((ix == 0 && iy == 0) || (ix == sw - 2 && iy == shh - 2)) && (stone & 3) == 0) joint = true;
+						if (joint) c = t == ROAD ? 0x2e2a24 : t == PLAZA ? 0x66666c : t == STONE ? 0x26262c : t == SANDSTONE ? 0x6a5030 : 0x404046;
+						else {
+							var tone:Number = (stone & 15) / 15 * 0.55 + big * 0.5 - 0.05 + ((h & 7) - 3.5) * 0.02;
+							c = ramp(t == ROAD ? [0x55504a, 0x5e5850, 0x686157, 0x726a5e, 0x7b7365] : t == PLAZA ? [0x88888c, 0x929296, 0x9c9ca0, 0xa6a6aa, 0xb0b0b4]
+								: t == STONE ? [0x44444a, 0x4c4c52, 0x54545a, 0x5c5c62, 0x646469] : t == SANDSTONE ? [0x9a7a4a, 0xa68452, 0xb28e5a, 0xbc9862, 0xc6a26a]
+								: [0x4c4c52, 0x55555b, 0x5f5f65, 0x69696f, 0x737379], tone);
+							// lit on the top edge of each stone, shaded at its foot
+							if (iy == 0) c = Sprites.shade(c, 1.12); else if (iy == shh - 2) c = Sprites.shade(c, 0.88);
+							// moss in the cracks of the old ruins, and the odd crack
+							if (t == RUIN && (h & 63) == 0) c = 0x3e5a2c;
+							else if ((h & 127) == 1) c = Sprites.shade(c, 0.7);
+						}
+					}
+					// sunk into the ground round it: a shadowed rim where it meets something else
+					if ((up && y < 2) || (lf && x < 2) || (rt && x >= px - 2) || (dn && y >= px - 2)) c = Sprites.shade(c, (up && y == 0) || (lf && x == 0) || (rt && x == px - 1) || (dn && y == px - 1) ? 0.55 : 0.75);
+					v[y * px + x] = 0xff000000 | c;
+				}
+			}
+			return v;
+		}
+
 		/** A gentle brightness change across the land (0.92 to 1.07), smooth over a few tiles. */
 		private function wash(gx:int, gy:int):Number {
 			var cell:int = 28;
@@ -1960,18 +2224,18 @@ package realm {
 				BitmapData(chunks[old]).dispose();
 				delete chunks[old];
 			}
-			bd = new BitmapData(CHUNK * PX, CHUNK * PX, false, 0);
+			bd = new BitmapData(ck * px, ck * px, false, 0);
 			target = bd;
-			offX = cx * CHUNK * PX;
-			offY = cy * CHUNK * PX;
-			var r:Rectangle = new Rectangle(0, 0, PX, PX);
+			offX = cx * ck * px;
+			offY = cy * ck * px;
+			var r:Rectangle = new Rectangle(0, 0, px, px);
 			bd.lock();
-			var x1:int = Math.min(N, (cx + 1) * CHUNK), y1:int = Math.min(N, (cy + 1) * CHUNK);
-			for (var y:int = cy * CHUNK; y < y1; y++) {
-				for (var x:int = cx * CHUNK; x < x1; x++) {
+			var x1:int = Math.min(N, (cx + 1) * ck), y1:int = Math.min(N, (cy + 1) * ck);
+			for (var y:int = cy * ck; y < y1; y++) {
+				for (var x:int = cx * ck; x < x1; x++) {
 					var t:int = tiles[y * N + x];
-					r.x = x * PX - offX;
-					r.y = y * PX - offY;
+					r.x = x * px - offX;
+					r.y = y * px - offY;
 					bd.setVector(r, texture(t, x, y));
 					drawEdges(x, y, t);
 				}
@@ -1988,14 +2252,14 @@ package realm {
 		 * ground pixels (8 per tile) to the screen, rotation and zoom included.
 		 */
 		public function drawGround(out:BitmapData, mtx:Matrix, vx:Number, vy:Number, reach:Number):void {
-			var c0:int = Math.max(0, int((vx - reach) / CHUNK)), c1:int = Math.min(int((N - 1) / CHUNK), int((vx + reach) / CHUNK));
-			var r0:int = Math.max(0, int((vy - reach) / CHUNK)), r1:int = Math.min(int((N - 1) / CHUNK), int((vy + reach) / CHUNK));
+			var c0:int = Math.max(0, int((vx - reach) / ck)), c1:int = Math.min(int((N - 1) / ck), int((vx + reach) / ck));
+			var r0:int = Math.max(0, int((vy - reach) / ck)), r1:int = Math.min(int((N - 1) / ck), int((vy + reach) / ck));
 			// ground not drawn yet (after a teleport, a new world): only a couple of chunks a frame,
 			// nearest first, so the game never stalls; the rest show the map's colours meanwhile
 			var missing:Array = [];
 			for (var cy:int = r0; cy <= r1; cy++) for (var cx:int = c0; cx <= c1; cx++) if (!chunks[cy * 1024 + cx]) missing.push(cy * 1024 + cx);
 			if (missing.length > CHUNKS_PER_FRAME) {
-				var ccx:Number = vx / CHUNK - 0.5, ccy:Number = vy / CHUNK - 0.5;
+				var ccx:Number = vx / ck - 0.5, ccy:Number = vy / ck - 0.5;
 				missing.sort(function(a:int, b:int):Number {
 					var ax:Number = a % 1024 - ccx, ay:Number = int(a / 1024) - ccy, bx:Number = b % 1024 - ccx, by:Number = int(b / 1024) - ccy;
 					return (ax * ax + ay * ay) - (bx * bx + by * by);
@@ -2008,14 +2272,14 @@ package realm {
 					drawMtx.identity();
 					if (later[cy * 1024 + cx]) {
 						var stand:BitmapData = standIn(cx, cy);
-						drawMtx.scale(PX, PX);
-						drawMtx.translate(cx * CHUNK * PX, cy * CHUNK * PX);
+						drawMtx.scale(px, px);
+						drawMtx.translate(cx * ck * px, cy * ck * px);
 						drawMtx.concat(mtx);
 						out.draw(stand, drawMtx, null, null, null, false);
 						stand.dispose();
 						continue;
 					}
-					drawMtx.translate(cx * CHUNK * PX, cy * CHUNK * PX);
+					drawMtx.translate(cx * ck * px, cy * ck * px);
 					drawMtx.concat(mtx);
 					out.draw(chunk(cx, cy), drawMtx, null, null, null, false);
 				}
@@ -2026,8 +2290,8 @@ package realm {
 		private static const CHUNKS_PER_FRAME:int = 1;
 		/** A chunk's tiles in their map colours, one pixel each: shown for the frame or two until it's drawn. */
 		private function standIn(cx:int, cy:int):BitmapData {
-			var bd:BitmapData = new BitmapData(CHUNK, CHUNK, false, 0x202020);
-			if (minimap) bd.copyPixels(minimap, new Rectangle(cx * CHUNK, cy * CHUNK, CHUNK, CHUNK), new Point(0, 0));
+			var bd:BitmapData = new BitmapData(ck, ck, false, 0x202020);
+			if (minimap) bd.copyPixels(minimap, new Rectangle(cx * ck, cy * ck, ck, ck), new Point(0, 0));
 			return bd;
 		}
 
@@ -2060,19 +2324,22 @@ package realm {
 			else if (t == MARBLE) { col = 0xd8d0ee; dark = 0x6a6290; }
 			else if (t == RUNNER) { col = 0xd8a830; dark = 0x8a6a18; }
 			else return;
-			var px:int = x * PX - offX, py:int = y * PX - offY;
+			if (px > PX && (natural(t) || t == ROAD || t == RUIN || t == BRIDGE || t == LAVA || t == PLAZA || t == STONE || t == SANDSTONE)) return;
+			var s:int = px / PX;
+			if (px > PX) { col = grade(col, 0.9); dark = grade(dark, 0.9); }
+			var qx:int = x * px - offX, qy:int = y * px - offY;
 			var bitmap:BitmapData = target;
 			var same:Function = function(nt:int):Boolean {
 				if (t == BRICK || t == LAVA || t == RUIN) return nt == BRICK || nt == LAVA || nt == RUIN;
 				if (t == ROAD || t == BRIDGE) return nt == ROAD || nt == BRIDGE;
 				return nt == t;
 			};
-			if (!same(tileAtI(x, y - 1))) bitmap.fillRect(new Rectangle(px, py, PX, 1), col);
-			if (!same(tileAtI(x - 1, y))) bitmap.fillRect(new Rectangle(px, py, 1, PX), col);
-			if (!same(tileAtI(x + 1, y))) bitmap.fillRect(new Rectangle(px + PX - 1, py, 1, PX), col);
+			if (!same(tileAtI(x, y - 1))) bitmap.fillRect(new Rectangle(qx, qy, px, s), col);
+			if (!same(tileAtI(x - 1, y))) bitmap.fillRect(new Rectangle(qx, qy, s, px), col);
+			if (!same(tileAtI(x + 1, y))) bitmap.fillRect(new Rectangle(qx + px - s, qy, s, px), col);
 			if (!same(tileAtI(x, y + 1))) {
-				bitmap.fillRect(new Rectangle(px, py + PX - 1, PX, 1), col);
-				if (t != WATER) bitmap.fillRect(new Rectangle(px, py + PX - 2, PX, 1), Sprites.shade(col, 0.8));
+				bitmap.fillRect(new Rectangle(qx, qy + px - s, px, s), col);
+				if (t != WATER) bitmap.fillRect(new Rectangle(qx, qy + px - 2 * s, px, s), Sprites.shade(col, 0.8));
 			}
 		}
 

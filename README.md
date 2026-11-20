@@ -706,3 +706,13 @@ tools/spritesheet/SpriteSheet.as`) and open it in Flash Player or Ruffle with th
 
 To add a monster, add an entry to `Data.ENEMIES` (and optionally a sprite to
 `Sprites.DEFS`), then list it in `Data.ZONE_SPAWNS`.
+
+### Previewing the realm's look
+
+`tools/realmview/RealmView.as` draws a patch of the realm with the game's own code (ground, objects, a few
+monsters and an event boss), so the art can be checked without logging in:
+
+    mxmlc -source-path=src -source-path+=tools/realmview -output=realm.swf tools/realmview/RealmView.as
+
+Flashvars: `zone` (0 beach .. 4 Godlands), `seed`, `boss` (an enemy id), `arena=1` (lay the boss's set piece),
+`mobs` (comma-separated ids), `classic=1` (the old 8-pixel ground), `time=1` (ms to draw a ground chunk).

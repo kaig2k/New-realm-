@@ -3138,6 +3138,8 @@ class Bosses {
 class World {
 	constructor(kind = "realm", name = "", theme = null, seed = 0) { seed = __uint(seed);
 		this.N = __int(World.DEFAULT_N);
+		this.px = __int(World.PX);
+		this.ck = __int(World.CHUNK);
 		this.tiles = null;
 		this.objs = null;
 		this.zones = null;
@@ -3198,6 +3200,8 @@ class World {
 			this.name = name;
 			this.theme = theme;
 			this.N = __int(kind == "realm" ? World.REALM_N : World.DEFAULT_N);
+			this.px = __int(kind == "realm" ? World.REALM_PX : World.PX);
+			this.ck = __int(World.CHUNK * World.PX / this.px);
 			this.tiles = __vec(this.N * this.N, true);
 			this.objs = __vec(this.N * this.N, true);
 			this.zones = __vec(this.N * this.N, true);
@@ -4094,7 +4098,9 @@ class World {
 			for (var i of __vals( idx)) {
 				var x = __int(i % this.N), y = __int(__int(i / this.N));
 				if (minimap) minimap.setPixel(x, y, this.miniCol(i));
-				for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) {
+				
+				var rr = __int(this.px > World.PX ? 2 : 1);
+				for (var dy = __int(-rr); dy <= rr; dy++) for (var dx = __int(-rr); dx <= rr; dx++) {
 					var nx = __int(x + dx), ny = __int(y + dy);
 					if (nx < 0 || ny < 0 || nx >= this.N || ny >= this.N) continue;
 					var j = __int(ny * this.N + nx);
@@ -4103,20 +4109,20 @@ class World {
 			}
 			
 			list.sort(Array.NUMERIC);
-			var r = new Rectangle(0, 0, World.PX, World.PX);
+			var r = new Rectangle(0, 0, this.px, this.px);
 			var lastK = __int(-1), bd = null;
 			for (var t of __vals( list)) {
 				var tx = __int(t % this.N), ty = __int(__int(t / this.N));
-				var cx = __int(__int(tx / World.CHUNK)), cy = __int(__int(ty / World.CHUNK)), k = __int(cy * 1024 + cx);
+				var cx = __int(__int(tx / this.ck)), cy = __int(__int(ty / this.ck)), k = __int(cy * 1024 + cx);
 				if (k != lastK) {
 					if (bd) bd.unlock();
 					lastK = __int(k);
 					bd = chunks[k];
-					if (bd) { bd.lock(); target = bd; offX = cx * World.CHUNK * World.PX; offY = cy * World.CHUNK * World.PX; }
+					if (bd) { bd.lock(); target = bd; offX = cx * this.ck * this.px; offY = cy * this.ck * this.px; }
 				}
 				if (!bd) continue;
-				r.x = tx * World.PX - offX;
-				r.y = ty * World.PX - offY;
+				r.x = tx * this.px - offX;
+				r.y = ty * this.px - offY;
 				bd.setVector(r, texture(this.tiles[t], tx, ty));
 				drawEdges(tx, ty, this.tiles[t]);
 			}
@@ -4375,7 +4381,7 @@ class World {
 		}
 	standIn(cx, cy) { cx = __int(cx); cy = __int(cy);
 
-			if (minimap) bd.copyPixels(minimap, new Rectangle(cx * World.CHUNK, cy * World.CHUNK, World.CHUNK, World.CHUNK), new Point(0, 0));
+			if (minimap) bd.copyPixels(minimap, new Rectangle(cx * this.ck, cy * this.ck, this.ck, this.ck), new Point(0, 0));
 			return bd;
 		}
 	tileAtI(x, y) { x = __int(x); y = __int(y);
@@ -6616,6 +6622,11 @@ Data.DYE_KEYS = {
 			bard: ["V", "v"], alchemist: ["A", "a"], chronomancer: ["T", "t"]
 		};
 Data.NEWS = [
+			{id: "2026-11-realm-makeover", title: "The realm's makeover",
+				lines: ["<b>The realm has a new look</b>, so its monsters and bosses belong in it: the ground is drawn at twice the detail in calmer, natural colours.",
+					"Grass, forest floor, dry highlands, sand and the Godlands' cracked rock each have their own texture, and where they meet the border wanders like a real one instead of a square grid.",
+					"Water gets deeper away from the shore, with foam where it laps the land and wet sand beside it. Paths are cobbled, ruins flagstoned, lava crusts over and glows through its cracks.",
+					"Trees, rocks, ruins and tents are toned to match, and the event bosses' arenas sit into the new ground."]},
 			{id: "2026-11-wrecker", title: "Three realm bosses at once, and Morrow the Wrecker",
 				lines: ["<b>Up to three realm event bosses</b> can now be alive at once, each in its own arena well apart from the others. Split up and take them on your own, or go together.",
 					"<b>Morrow the Wrecker</b>, a new realm boss: he lit false lights to drown ships. His three <b>false beacons</b> ward him (smash them), and when he <b>calls the tide in</b>, take cover behind the shipwreck's broken hull. He drops <b>Wrecker's Hook</b> and <b>The False Light</b> ring, and always leaves the portal to the Drowned Lighthouse."]},
@@ -7657,6 +7668,7 @@ World.DEFAULT_N = __int(200);
 World.REALM_N = __int(512);
 World.CHUNK = __int(32);
 World.PX = __int(8);
+World.REALM_PX = __int(16);
 World.WATER = __int(0);
 World.SAND = __int(1);
 World.GRASS = __int(2);

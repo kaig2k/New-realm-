@@ -1,3 +1,15 @@
+**📜 ELDMERE UPDATE: The Realm's Makeover**
+
+**🌲 A realm that matches its monsters**
+• The realm's ground is drawn at **twice the detail** in calmer, natural colours, so the shaded monsters and bosses look like they belong there (the old ground was bright, flat and blocky next to them)
+• Grass with tufts, a darker forest floor with leaf litter, dry highland stalks, rippled sand, and the Godlands' cracked rock with violet fissures
+• Where two kinds of ground meet, the border now **wanders naturally** instead of following the square grid
+• **Water** gets deeper away from the shore, with foam where it meets land and darker wet sand beside it
+• Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**, all sunk into the ground instead of outlined in white
+• Trees, pines, palms, rocks, boulders, ruin walls, pillars, tents and graves toned to match
+• Event bosses' arenas are graded to sit into the new ground (the Hollow King's hall, the Sphinx's temple and the rest)
+• The new ground costs no more to draw than the old did, so walking around stays smooth
+
 **📜 ELDMERE UPDATE: Three Bosses at Once, and Morrow the Wrecker**
 
 **👹 Busier realms**

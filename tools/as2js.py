@@ -28,7 +28,9 @@ CLASSES = ['Data', 'Uniques', 'Godly', 'Bosses', 'World', 'SetPieces', 'Enemy', 
 SKIP = {
     'World': {'texture', 'mark', 'blade', 'shallow', 'render', 'chunk', 'drawGround', 'releaseGround', 'drawEdges',
               'reveal', 'minimap', 'seen', 'chunks', 'chunkOrder', 'drawMtx', 'target', 'offX', 'offY', 'trng',
-              'MINI_COL', 'dropChunk', 'redrawArea', 'redrawTiles', 'wash', 'cellNoise', 'decal', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS'},
+              'MINI_COL', 'dropChunk', 'redrawArea', 'redrawTiles', 'wash', 'cellNoise', 'decal', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS',
+              'natural', 'noiseField', 'NZ', 'ramp', 'ph', 'realmTexture', 'builtTexture', 'upscale', 'classicTexture', 'grade',
+              'P_GRASS', 'P_FOREST', 'P_HIGH', 'P_SAND', 'P_GOD', 'P_DEEP', 'P_SHALLOW'},
     'Enemy': {'sprite'},
     'Bosses': {'art', 'skins'},
     'SetPieces': {'art'},
@@ -38,7 +40,7 @@ STATEMENT_DROPS = {
     'World': ['render();', 'seen = new BitmapData(N, N, true, 0);',
               # openGate: the minimap and drawn ground chunks are the client's
               'if (minimap) minimap.setPixel(x, y, MINI_COL[c.t]);',
-              'for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) dropChunk(__int((x + dx) / World.CHUNK), __int((y + dy) / World.CHUNK));'],
+              'for (var dy = __int(-1); dy <= 1; dy++) for (var dx = __int(-1); dx <= 1; dx++) dropChunk(__int((x + dx) / this.ck), __int((y + dy) / this.ck));'],
     'Bosses': ['art();', 'skins();'],
 }
 

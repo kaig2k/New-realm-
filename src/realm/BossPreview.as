@@ -137,7 +137,7 @@ package realm {
 			var cx:Number = world.mapX + m.w / 2, cy:Number = world.mapY + m.h / 2;
 			if (ground) ground.dispose();
 			ground = new BitmapData(W, H, false, 0xff0b0a10);
-			var mtx:Matrix = new Matrix(scale / World.PX, 0, 0, scale / World.PX, W / 2 - cx * scale, H / 2 - cy * scale);
+			var mtx:Matrix = new Matrix(scale / world.px, 0, 0, scale / world.px, W / 2 - cx * scale, H / 2 - cy * scale);
 			// (the world builds only a couple of its ground chunks a call: enough calls for the whole arena)
 			for (var pass:int = 0; pass < 24; pass++) world.drawGround(ground, mtx, cx, cy, Math.sqrt(W * W + H * H) / 2 / scale + 2);
 			// the arena's objects (pillars, braziers, trees...)

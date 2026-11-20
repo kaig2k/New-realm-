@@ -37,7 +37,7 @@ package realm {
 
 		private function draw():void {
 			bg.lock();
-			mtx.a = mtx.d = Game.TS / World.PX;
+			mtx.a = mtx.d = Game.TS / world.px;
 			mtx.tx = Math.round(Ui.W / 2 - camX * Game.TS);
 			mtx.ty = Math.round(Ui.H / 2 - camY * Game.TS);
 			world.drawGround(bg, mtx, camX, camY, Math.sqrt(Ui.W * Ui.W + Ui.H * Ui.H) / 2 / Game.TS + 1);

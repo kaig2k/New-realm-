@@ -7403,7 +7403,7 @@ package realm {
 			canvas.lock();
 			canvas.fillRect(canvas.rect, 0xff101820);
 			mtx.identity();
-			mtx.scale(TS / World.PX, TS / World.PX);
+			mtx.scale(TS / world.px, TS / world.px);
 			mtx.translate(-viewX * TS, -viewY * TS);
 			if (camAngle != 0) mtx.rotate(-camAngle);
 			mtx.translate(cx + shx, cy + shy);

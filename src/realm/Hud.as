@@ -13,10 +13,11 @@ package realm {
 
 	/** The right-hand sidebar, laid out like RotMG. */
 	public class Hud extends Sprite {
-		public static const W:int = 240;
-		private static const MINI_H:int = 176;
+		/** The HUD's own column (none: it lies over the world). */
+		public static const W:int = 0;
 		private static const ZOOMS:Array = [1, 2, 4];
-		private static const MINI_X:int = 9, MINI_Y:int = 7, MINI_W:int = W - 16;
+		private static const MINI_W:int = 150;
+		private static const MINI_X:int = Ui.W - MINI_W - 14, MINI_Y:int = 12, MINI_H:int = MINI_W;
 		public static const BG_TOP:uint = 0x1c1530;
 		public static const BG_BOT:uint = 0x0d0a16;
 		public static const GOLD:uint = 0xb8913e;
@@ -86,34 +87,35 @@ package realm {
 		private var lastStats:String = "";
 		private var lastBag:LootBag;
 
+		// the see-through layout: no sidebar; a strip along the bottom, the minimap round in the top-right corner
+		public static const STRIP_W:int = 842, STRIP_H:int = 58;
+		public static const STRIP_X:int = (Ui.W - STRIP_W) / 2, STRIP_Y:int = Ui.H - STRIP_H - 8;
+		private static const SLOT_SC:Number = 0.85, SLOT_STEP:int = 44;
+
+		/** A see-through panel: dark glass you can see the world through, with a faint gold edge. */
+		public static function veil(g:*, x:Number, y:Number, w:Number, h:Number, r:Number = 12, alpha:Number = 0.5):void {
+			g.lineStyle(1, 0x05030a, 0.6);
+			g.beginFill(0x0e0a18, alpha);
+			g.drawRoundRect(x, y, w, h, r * 2, r * 2);
+			g.endFill();
+			g.lineStyle(1, GOLD, 0.45);
+			g.drawRoundRect(x + 1, y + 1, w - 2, h - 2, r * 2 - 2, r * 2 - 2);
+			g.lineStyle();
+		}
+
 		public function Hud(g:Game) {
 			this.g = g;
-			// deep violet, darker toward the bottom, with a gold seam on the left
-			var bm:Matrix = new Matrix();
-			bm.createGradientBox(W, Ui.H, Math.PI / 2);
-			graphics.beginGradientFill("linear", [BG_TOP, BG_BOT], [1, 1], [0, 255], bm);
-			graphics.drawRect(0, 0, W, Ui.H);
-			graphics.endFill();
-			// a faint diamond lattice
-			graphics.lineStyle(1, 0x8a70c0, 0.05);
-			for (var dl:int = -Ui.H; dl < W; dl += 24) {
-				graphics.moveTo(dl, 0); graphics.lineTo(dl + Ui.H, Ui.H);
-				graphics.moveTo(dl + Ui.H, 0); graphics.lineTo(dl, Ui.H);
-			}
-			graphics.lineStyle();
-			graphics.beginFill(0x000000);
-			graphics.drawRect(0, 0, 2, Ui.H);
-			graphics.endFill();
-			graphics.beginFill(GOLD, 0.7);
-			graphics.drawRect(2, 0, 1, Ui.H);
-			graphics.endFill();
+			var i:int, s:Slot;
+			var cxm:Number = MINI_X + MINI_W / 2, cym:Number = MINI_Y + MINI_W / 2;
 
-			// --- minimap, set in a gold frame
-			mini = new BitmapData(MINI_W, MINI_H - 14, false, 0);
+			// --- minimap: a round window on the world in the top-right corner
+			mini = new BitmapData(MINI_W, MINI_W, false, 0);
+			var miniHolder:Sprite = new Sprite();
+			miniHolder.mouseEnabled = miniHolder.mouseChildren = false;
 			var miniBmp:Bitmap = new Bitmap(mini);
 			miniBmp.x = MINI_X; miniBmp.y = MINI_Y;
-			addChild(miniBmp);
-			// unexplored ground: violet fog with a faint lattice (copied under the map each draw)
+			miniBmp.alpha = 0.88;
+			miniHolder.addChild(miniBmp);
 			fog = new BitmapData(mini.width, mini.height, false, 0x100c1a);
 			var fs:Shape = new Shape();
 			fs.graphics.lineStyle(1, 0x231b38);
@@ -122,34 +124,40 @@ package realm {
 				fs.graphics.moveTo(fl + mini.height, 0); fs.graphics.lineTo(fl, mini.height);
 			}
 			fog.draw(fs);
-			// darker toward the edges
-			var vig:Shape = new Shape();
-			var vm:Matrix = new Matrix();
-			vm.createGradientBox(mini.width * 1.3, mini.height * 1.3, 0, -mini.width * 0.15, -mini.height * 0.15);
-			vig.graphics.beginGradientFill("radial", [0x05030a, 0x05030a], [0, 0.7], [140, 255], vm);
-			vig.graphics.drawRect(0, 0, mini.width, mini.height);
-			vig.graphics.endFill();
-			vig.x = MINI_X; vig.y = MINI_Y;
-			addChild(vig);
 			miniDots = new Shape();
 			miniDots.x = MINI_X; miniDots.y = MINI_Y;
-			addChild(miniDots);
+			miniHolder.addChild(miniDots);
+			var vig:Shape = new Shape();
+			var vm:Matrix = new Matrix();
+			vm.createGradientBox(MINI_W, MINI_W, 0, MINI_X, MINI_Y);
+			vig.graphics.beginGradientFill("radial", [0x05030a, 0x05030a], [0, 0.65], [150, 255], vm);
+			vig.graphics.drawCircle(cxm, cym, MINI_W / 2);
+			vig.graphics.endFill();
+			miniHolder.addChild(vig);
+			var miniMask:Shape = new Shape();
+			miniMask.graphics.beginFill(0);
+			miniMask.graphics.drawCircle(cxm, cym, MINI_W / 2);
+			miniMask.graphics.endFill();
+			addChild(miniMask);
+			miniHolder.mask = miniMask;
+			addChild(miniHolder);
 			var mf:Shape = new Shape();
-			frame(mf.graphics, MINI_X - 1, MINI_Y - 1, MINI_W + 2, mini.height + 2);
-			// the place name on a dark ribbon along the bottom
-			mf.graphics.beginFill(0x000000, 0.55);
-			mf.graphics.drawRect(MINI_X, MINI_Y + mini.height - 17, MINI_W, 17);
-			mf.graphics.endFill();
+			mf.graphics.lineStyle(3, 0x05030a, 0.8);
+			mf.graphics.drawCircle(cxm, cym, MINI_W / 2 + 1);
+			mf.graphics.lineStyle(1, GOLD, 0.9);
+			mf.graphics.drawCircle(cxm, cym, MINI_W / 2);
+			mf.graphics.lineStyle();
+			for each (var da:Number in [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) diamond(mf.graphics, cxm + Math.cos(da) * MINI_W / 2, cym + Math.sin(da) * MINI_W / 2, 4);
 			addChild(mf);
-			zoneTf = Ui.text(11, GOLD_HI, true, "left", 0, true);
-			zoneTf.x = MINI_X + 4; zoneTf.y = MINI_Y + mini.height - 17;
+			zoneTf = Ui.text(11, GOLD_HI, true, "center", MINI_W + 40, true);
+			zoneTf.x = MINI_X - 20; zoneTf.y = MINI_Y + MINI_W + 4;
 			addChild(zoneTf);
-			onlineTf = Ui.text(11, 0xb8a8e0, true, "right", 90, true);
-			onlineTf.x = MINI_X + MINI_W - 94; onlineTf.y = zoneTf.y;
+			onlineTf = Ui.text(10, 0xb8a8e0, true, "center", MINI_W + 40, true);
+			onlineTf.x = MINI_X - 20; onlineTf.y = MINI_Y + MINI_W + 18;
 			addChild(onlineTf);
 			miniHit = new Sprite();
 			miniHit.graphics.beginFill(0, 0);
-			miniHit.graphics.drawRect(0, 0, MINI_W, mini.height);
+			miniHit.graphics.drawCircle(MINI_W / 2, MINI_W / 2, MINI_W / 2);
 			miniHit.graphics.endFill();
 			miniHit.x = MINI_X; miniHit.y = MINI_Y;
 			miniHit.addEventListener(MouseEvent.MOUSE_MOVE, function(e:MouseEvent):void { miniHover(e.localX, e.localY); });
@@ -168,82 +176,76 @@ package realm {
 			miniLabel.visible = false;
 			miniLabel.mouseEnabled = false;
 			addChild(miniLabel);
-			addChild(zoomButton("+", MINI_X + MINI_W - 22, MINI_Y + 4, 1));
-			addChild(zoomButton("-", MINI_X + MINI_W - 22, MINI_Y + 26, -1));
-			setChildIndex(miniLabel, numChildren - 1);
+			addChild(zoomButton("+", MINI_X - 14, MINI_Y + 2, 1));
+			addChild(zoomButton("-", MINI_X - 14, MINI_Y + 24, -1));
+			// Wiki, Friends & Guild and the Nexus under it
+			var by:int = MINI_Y + MINI_W + 46;
+			addChild(iconButton(I_BOOK, cxm - 34, by, "Wiki", function():void { g.toggleWiki(); }));
+			addChild(iconButton(I_PEOPLE, cxm, by, "Friends & Guild", function():void { g.toggleSocial(); }));
+			addChild(iconButton(I_TEMPLE, cxm + 34, by, "Nexus", function():void { g.nexus(); }));
 
-			// --- name row: portrait medallion (its ring fills with XP), name and class, buttons
-			var y:int = MINI_H + 4;
-			medal = new Shape();
-			medal.x = 25; medal.y = y + 19;
-			addChild(medal);
-			portrait = new Bitmap(Sprites.get(g.player.spriteId));
-			portrait.scaleX = portrait.scaleY = 0.62;
-			portrait.x = medal.x - portrait.width / 2;
-			portrait.y = medal.y - portrait.height / 2;
-			addChild(portrait);
-			medalFx = new Shape();
-			medalFx.x = medal.x; medalFx.y = medal.y;
-			lvlBadge = Ui.text(10, 0xffffff, true, "center", 20, true);
-			lvlBadge.x = medal.x + 6; lvlBadge.y = medal.y + 8;
-			addChild(lvlBadge);
-			nameTf = Ui.text(20, 0xffffff, true, "left", 0, true);
-			nameTf.x = 50;
-			nameTf.y = y - 2;
-			addChild(nameTf);
-			subTf = Ui.text(11, 0xb8a8e0, true, "left", 0, true);
-			subTf.x = 51;
-			subTf.y = y + 23;
+			// --- the strip along the bottom: bars, gear, bag, potions, and the stats and skills buttons
+			var strip:Shape = new Shape();
+			veil(strip.graphics, STRIP_X, STRIP_Y, STRIP_W, STRIP_H, 12, 0.48);
+			addChild(strip);
+			// who you are, just above it
+			medal = new Shape(); medal.visible = false; addChild(medal);
+			portrait = new Bitmap(Sprites.get(g.player.spriteId)); portrait.visible = false; addChild(portrait);
+			lvlBadge = Ui.text(10, 0xffffff, true, "center", 20, true); lvlBadge.visible = false; addChild(lvlBadge);
+			nameTf = Ui.text(13, 0xffffff, true, "left", 0, true); nameTf.visible = false; addChild(nameTf);
+			subTf = Ui.text(12, 0xe8e0f8, true, "left", 0, true);
+			subTf.x = STRIP_X + 8; subTf.y = STRIP_Y - 22;
+			subTf.filters = [new GlowFilter(0x000000, 0.9, 3, 3, 4)];
 			addChild(subTf);
-			addChild(iconButton(I_TEMPLE, W - 20, y + 9, "Nexus", function():void { g.nexus(); }));
-			addChild(iconButton(I_PEOPLE, W - 50, y + 9, "Friends & Guild", function():void { g.toggleSocial(); }));
-			addChild(iconButton(I_BOOK, W - 80, y + 9, "Wiki", function():void { g.toggleWiki(); }));
-			addChild(medalFx);
-
-			// --- bars: a thin XP line, then HP and MP, then Ward and Fervor
-			y = MINI_H + 46;
-			lvlBar = new Bar(228, 10, 0x9a6ae0, 0, 9, "", "center");
-			lvlBar.x = 8; lvlBar.y = y;
+			medalFx = new Shape();
+			medalFx.x = STRIP_X + 24; medalFx.y = STRIP_Y - 12;
+			// XP: a thin line along the strip's top edge
+			lvlBar = new Bar(STRIP_W - 24, 7, 0x9a6ae0, 0, 7, "", "center");
+			lvlBar.x = STRIP_X + 12; lvlBar.y = STRIP_Y - 3;
 			addChild(lvlBar);
-			hpBar = new Bar(228, 23, 0xe0303e, 0, 14, "HP");
-			hpBar.x = 8; hpBar.y = y + 14;
+			var x:int = STRIP_X + 10;
+			hpBar = new Bar(160, 16, 0xe0303e, 0, 11, "HP");
+			hpBar.x = x; hpBar.y = STRIP_Y + 8;
 			addChild(hpBar);
-			mpBar = new Bar(228, 23, 0x3a64f0, 0, 14, "MP");
-			mpBar.x = 8; mpBar.y = y + 41;
+			mpBar = new Bar(160, 16, 0x3a64f0, 0, 11, "MP");
+			mpBar.x = x; mpBar.y = STRIP_Y + 26;
 			addChild(mpBar);
 			hpBar.trail = mpBar.trail = true;
-			// Ward (WD, from Warding) and Fervor (FV) bars
-			ptBar = new Bar(112, 15, 0xdcdcf4, 0, 10, "WD", "left");
-			ptBar.x = 8; ptBar.y = y + 68;
+			ptBar = new Bar(78, 9, 0xdcdcf4, 0, 7, "WD", "left");
+			ptBar.x = x; ptBar.y = STRIP_Y + 44;
 			addChild(ptBar);
-			sgBar = new Bar(112, 15, 0xe0b030, 0, 10, "FV", "left");
-			sgBar.x = 124; sgBar.y = y + 68;
+			sgBar = new Bar(78, 9, 0xe0b030, 0, 7, "FV", "left");
+			sgBar.x = x + 82; sgBar.y = STRIP_Y + 44;
 			addChild(sgBar);
-
-			// --- equipment
-			y = MINI_H + 138;
-			var eq:Shape = new Shape();
-			glass(eq.graphics, 4, y, 232, 58);
-			addChild(eq);
-			addChild(legend("EQUIPMENT", y));
+			// gear
+			x = STRIP_X + 180;
 			var kinds:Array = ["weapon", "ability", "armor", "ring"];
-			for (var i:int = 0; i < 4; i++) {
-				equip.push(makeSlot(kinds[i], i, 10 + i * 56, y + 6, false));
+			for (i = 0; i < 4; i++) {
+				equip.push(makeSlot(kinds[i], i, x + i * SLOT_STEP, STRIP_Y + 8, false));
+				equip[i].scaleX = equip[i].scaleY = SLOT_SC;
 				addChild(equip[i]);
 			}
-
-			// --- tabs (icon buttons)
-			y += 62;
-			tabs.push(makeTab(I_PACK, 8, y, 0));
-			tabs.push(makeTab(I_CHART, 46, y, 1));
-			tabs.push(makeTab(I_STAR, 84, y, 2));
-			// backpack page toggle
+			var div:Shape = new Shape();
+			div.graphics.beginFill(GOLD, 0.45);
+			div.graphics.drawRect(x + 4 * SLOT_STEP + 1, STRIP_Y + 10, 1, STRIP_H - 20);
+			div.graphics.endFill();
+			addChild(div);
+			// the bag (and the backpack's second page)
+			x += 4 * SLOT_STEP + 8;
+			invPage = new Sprite();
+			addChild(invPage);
+			for (i = 0; i < 8; i++) {
+				s = makeSlot("inv", i, x + i * SLOT_STEP, STRIP_Y + 8, true);
+				s.scaleX = s.scaleY = SLOT_SC;
+				invPage.addChild(s);
+				invSlots.push(s);
+			}
 			packBtn = new Sprite();
-			glass(packBtn.graphics, 0, 0, 104, 24, GOLD, 8);
-			packTf = Ui.text(12, GOLD_HI, true, "center", 104, true);
-			packTf.y = 3;
+			veil(packBtn.graphics, 0, 0, 120, 20, 8, 0.7);
+			packTf = Ui.text(11, GOLD_HI, true, "center", 120, true);
+			packTf.y = 2;
 			packBtn.addChild(packTf);
-			packBtn.x = 128; packBtn.y = y;
+			packBtn.x = x + 4 * SLOT_STEP - 60; packBtn.y = STRIP_Y - 24;
 			packBtn.buttonMode = true;
 			packBtn.mouseChildren = false;
 			packBtn.visible = false;
@@ -251,39 +253,33 @@ package realm {
 				var pl:Player = g.player;
 				if (!pl.backpack) return;
 				pl.packPage = 1 - pl.packPage;
-				selectTab(0);
 				refresh();
 			});
 			addChild(packBtn);
-
-			// --- inventory page
-			y += 28;
-			invPage = new Sprite();
-			addChild(invPage);
-			var s:Slot;
-			for (i = 0; i < 8; i++) {
-				s = makeSlot("inv", i, 10 + (i % 4) * 56, y + int(i / 4) * 52, true);
-				invPage.addChild(s);
-				invSlots.push(s);
-			}
+			// potions, one above the other
+			x += 8 * SLOT_STEP + 4;
 			hpPot = new PotSlot(true);
-			hpPot.x = 10; hpPot.y = y + 104;
+			hpPot.scaleX = hpPot.scaleY = 0.66;
+			hpPot.x = x; hpPot.y = STRIP_Y + 7;
 			hpPot.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.slotClick("pot", 0, false); });
-			invPage.addChild(hpPot);
+			addChild(hpPot);
 			mpPot = new PotSlot(false);
-			mpPot.x = 122; mpPot.y = y + 104;
+			mpPot.scaleX = mpPot.scaleY = 0.66;
+			mpPot.x = x; mpPot.y = STRIP_Y + 31;
 			mpPot.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { g.slotClick("pot", 1, false); });
-			invPage.addChild(mpPot);
-
-			// --- stats page
+			addChild(mpPot);
+			// stats and skills: buttons that open a see-through panel above the strip (click again to close)
+			x += 76;
+			tabs.push(makeTab(I_CHART, x, STRIP_Y + 4, 1));
+			tabs.push(makeTab(I_STAR, x, STRIP_Y + 30, 2));
+			var px:int = STRIP_X + STRIP_W - 262, ph:int = 226, py:int = STRIP_Y - ph - 30;
 			statPage = new Sprite();
-			glass(statPage.graphics, 4, y - 2, 232, 140);
-			statTf = Ui.text(13, 0xdddddd, true, "left", 214);
-			statTf.x = 14; statTf.y = y + 2;
+			veil(statPage.graphics, px, py, 262, ph, 10, 0.72);
+			statTf = Ui.text(13, 0xdddddd, true, "left", 244);
+			statTf.x = px + 10; statTf.y = py + 6;
 			statPage.addChild(statTf);
 			statPage.visible = false;
 			addChild(statPage);
-			// hovering the LUCK line: where all your loot luck comes from
 			luckTip = new Sprite();
 			luckTip.mouseEnabled = luckTip.mouseChildren = false;
 			luckTipTf = Ui.text(12, 0xeeeeee, false, "left", 230, true);
@@ -291,65 +287,74 @@ package realm {
 			luckTip.addChild(luckTipTf);
 			luckTip.visible = false;
 			addChild(luckTip);
-			// (the text itself takes no mouse: the panel behind it does)
 			statPage.addEventListener(MouseEvent.MOUSE_MOVE, function(e:MouseEvent):void {
 				var line:int = statTf.getLineIndexAtPoint(statTf.mouseX, statTf.mouseY);
 				if (line == 5) showLuckTip(); else luckTip.visible = false;
 			});
 			statPage.addEventListener(MouseEvent.ROLL_OUT, function(e:MouseEvent):void { luckTip.visible = false; });
-
-			// --- skill tree page (Awakening)
+			// pet, the realm leaders and your loot luck: at the foot of the stats panel
+			statusBox = new Sprite();
+			statusBox.mouseEnabled = statusBox.mouseChildren = false;
+			var sy:int = py + 150;
+			statusBox.graphics.beginFill(EDGE, 0.6);
+			statusBox.graphics.drawRect(px + 10, sy - 4, 242, 1);
+			statusBox.graphics.endFill();
+			petPic = new Bitmap();
+			petPic.x = px + 10; petPic.y = sy;
+			statusBox.addChild(petPic);
+			petTf = Ui.text(12, 0xffffff, true, "left", 0, true);
+			petTf.x = px + 42; petTf.y = sy + 4;
+			statusBox.addChild(petTf);
+			blessTf = Ui.text(11, 0xb8a8e0, true, "left", 242, true);
+			blessTf.x = px + 10; blessTf.y = sy + 32;
+			statusBox.addChild(blessTf);
+			luckTf = Ui.text(11, 0xb8a8e0, true, "left", 242, true);
+			luckTf.x = px + 10; luckTf.y = sy + 50;
+			statusBox.addChild(luckTf);
+			statPage.addChild(statusBox);
 			skillPage = new Sprite();
-			glass(skillPage.graphics, 4, y - 2, 232, 140);
-			skillTf = Ui.text(12, 0x80e0ff, false, "left", 220);
-			skillTf.x = 10; skillTf.y = y;
+			veil(skillPage.graphics, px, STRIP_Y - 176, 262, 146, 10, 0.72);
+			skillTf = Ui.text(12, 0x80e0ff, false, "left", 244);
+			skillTf.x = px + 10; skillTf.y = STRIP_Y - 170;
 			skillPage.addChild(skillTf);
 			var openTree:Sprite = Ui.button("Open Skill Tree  [T]", 200, 26, function():void { g.toggleSkills(); }, 13);
-			openTree.x = 20; openTree.y = y + 104;
+			openTree.x = px + 31; openTree.y = STRIP_Y - 66;
 			skillPage.addChild(openTree);
 			skillPage.visible = false;
 			addChild(skillPage);
 
-			// --- loot bag grid (always shown, like the backpack area)
-			y += 142;
+			// --- a loot bag underfoot: its slots rise above the middle of the strip
 			bagBox = new Shape();
 			addChild(bagBox);
-			bagLegend = legend("LOOT", y);
+			bagLegend = legend("LOOT", Ui.W / 2, STRIP_Y - 76);
 			addChild(bagLegend);
-			statusLegend = legend("STATUS", y);
-			addChild(statusLegend);
-			statusBox = new Sprite();
-			statusBox.mouseEnabled = statusBox.mouseChildren = false;
-			petPic = new Bitmap();
-			petPic.x = 12; petPic.y = y + 8;
-			statusBox.addChild(petPic);
-			petTf = Ui.text(12, 0xffffff, true, "left", 0, true);
-			petTf.x = 44; petTf.y = y + 12;
-			statusBox.addChild(petTf);
-			blessTf = Ui.text(11, 0xb8a8e0, true, "left", 216, true);
-			blessTf.x = 12; blessTf.y = y + 40;
-			statusBox.addChild(blessTf);
-			luckTf = Ui.text(11, 0xb8a8e0, true, "left", 216, true);
-			luckTf.x = 12; luckTf.y = y + 60;
-			statusBox.addChild(luckTf);
-			addChild(statusBox);
+			statusLegend = new Sprite();
+			var bx:int = int((Ui.W - 8 * SLOT_STEP) / 2) + 2;
 			for (i = 0; i < 8; i++) {
-				s = makeSlot("bag", i, 12 + (i % 4) * 56, y + 4 + int(i / 4) * 44, false);
-				s.scaleX = s.scaleY = 0.84;
+				s = makeSlot("bag", i, bx + i * SLOT_STEP, STRIP_Y - 70, false);
+				s.scaleX = s.scaleY = SLOT_SC;
 				addChild(s);
 				bagSlots.push(s);
 			}
-			drawBagBox(false, y);
+			drawBagBox(false);
+			addChild(medalFx);
 
 			tip = new Tooltip();
 			addChild(tip);
-			// the panel's vector art drawn once into bitmaps: re-rasterised every frame, the gradients and
-			// lattice cost more than the whole game view (only what's redrawn often stays vector)
-			bake(this);
 			for (var ci:int = 0; ci < numChildren; ci++) {
 				var cs:Shape = getChildAt(ci) as Shape;
-				if (cs && cs != miniDots && cs != medalFx) cs.cacheAsBitmap = true;
+				if (cs && cs != miniDots && cs != medalFx && cs != bagBox && cs != miniMask) cs.cacheAsBitmap = true;
 			}
+		}
+
+		/** Whether a point on the stage is on the HUD (so clicking it doesn't shoot). */
+		public function overHud(sx:Number, sy:Number):Boolean {
+			if (sy >= STRIP_Y - 6 && sx >= STRIP_X && sx <= STRIP_X + STRIP_W) return true;
+			if (overMinimap(sx, sy)) return true;
+			if (sy >= MINI_Y + MINI_W && sy <= MINI_Y + MINI_W + 64 && sx >= MINI_X - 10) return true;
+			if ((statPage.visible || skillPage.visible) && statPage.hitTestPoint(sx, sy, true) || skillPage.visible && skillPage.hitTestPoint(sx, sy, true)) return true;
+			if (lastBag && sy >= STRIP_Y - 84 && sx >= int((Ui.W - 8 * SLOT_STEP) / 2) - 10 && sx <= int((Ui.W + 8 * SLOT_STEP) / 2) + 10) return true;
+			return packBtn.visible && packBtn.hitTestPoint(sx, sy, true);
 		}
 
 		/** Moves what's drawn on a sprite's own graphics into a child shape kept as a bitmap. */
@@ -364,19 +369,12 @@ package realm {
 		private var bagY:int;
 
 		private function drawBagBox(active:Boolean, y:int = -1):void {
-			if (y >= 0) bagY = y;
 			bagBox.graphics.clear();
-			glass(bagBox.graphics, 4, bagY, 232, Ui.H - bagY - 4, active ? GOLD : EDGE, 10, active ? 0x2c2014 : 0);
-			if (!active) {
-				// thin dividers between the status rows
-				for each (var dy:int in [34, 56]) {
-					bagBox.graphics.beginFill(EDGE, 0.5);
-					bagBox.graphics.drawRect(14, bagY + dy, 212, 1);
-					bagBox.graphics.endFill();
-				}
+			if (active) {
+				var bw:int = 8 * SLOT_STEP + 12;
+				veil(bagBox.graphics, int((Ui.W - bw) / 2), STRIP_Y - 76, bw, 54, 10, 0.62);
 			}
 			bagLegend.visible = active;
-			statusLegend.visible = statusBox.visible = !active;
 			for each (var s:Slot in bagSlots) s.visible = active;
 		}
 
@@ -414,16 +412,13 @@ package realm {
 		}
 
 		/** A small spaced-out gold caption sitting on a panel's top edge. */
-		private function legend(label:String, y:int):Sprite {
+		private function legend(label:String, cx:Number, y:int):Sprite {
 			var sp:Sprite = new Sprite();
 			sp.mouseEnabled = sp.mouseChildren = false;
 			var tf:TextField = Ui.text(9, GOLD_HI, true, "left", 0, true);
 			tf.text = label.split("").join(" ");
-			tf.x = (W - tf.width) / 2; tf.y = y - tf.height / 2;
+			tf.x = cx - tf.width / 2; tf.y = y - tf.height / 2;
 			var gr:* = sp.graphics;
-			gr.beginFill(BG_TOP);
-			gr.drawRect(tf.x - 6, y - 2, tf.width + 12, 4);
-			gr.endFill();
 			diamond(gr, tf.x - 8, y, 2.5);
 			diamond(gr, tf.x + tf.width + 8, y, 2.5);
 			sp.addChild(tf);
@@ -525,7 +520,7 @@ package realm {
 			t.x = x; t.y = y;
 			t.buttonMode = true;
 			t.mouseChildren = false;
-			t.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { selectTab(idx); });
+			t.addEventListener(MouseEvent.CLICK, function(e:MouseEvent):void { selectTab((idx == 1 && statPage.visible) || (idx == 2 && skillPage.visible) ? 0 : idx); });
 			addChild(t);
 			drawTab(t, idx == 0);
 			return t;
@@ -542,8 +537,8 @@ package realm {
 		}
 
 		private function selectTab(idx:int):void {
-			for (var i:int = 0; i < tabs.length; i++) drawTab(tabs[i], i == idx);
-			invPage.visible = idx == 0;
+			for (var i:int = 0; i < tabs.length; i++) drawTab(tabs[i], i + 1 == idx);
+			invPage.visible = true;
 			statPage.visible = idx == 1;
 			skillPage.visible = idx == 2;
 			lastSkills = "";
@@ -645,8 +640,8 @@ package realm {
 			if ((s.kind == "inv" || s.kind == "bag") && Data.isGear(s.item) && Data.canUse(s.item, g.player.cls.id)) worn = g.player[s.item.kind];
 			tip.show(s.item, hint, worn);
 			var lp:Point = globalToLocal(s.localToGlobal(new Point(0, 0)));
-			tip.x = lp.x - tip.width - 8;
-			tip.y = Math.max(4, Math.min(Ui.H - tip.height - 4, lp.y - 10));
+			tip.x = Math.max(4, Math.min(Ui.W - tip.width - 4, lp.x + 20 - tip.width / 2));
+			tip.y = Math.max(4, lp.y - tip.height - 8);
 			setChildIndex(tip, numChildren - 1);
 		}
 
@@ -673,7 +668,7 @@ package realm {
 			if (p.fame != lastFame) {
 				lastFame = p.fame;
 				// class, level and Fame on one line
-				subTf.htmlText = p.cls.name + " \u00b7 Lv " + p.level + "   <font color='#ffb060'>Fame " + Ui.commas(p.fame) + "</font>";
+				subTf.htmlText = "<b>" + Ui.esc(p.name) + "</b>   " + p.cls.name + " \u00b7 Lv " + p.level + "   <font color='#ffb060'>Fame " + Ui.commas(p.fame) + "</font>";
 			}
 			tickMedalFx(p);
 			var hb:int = p.bonus("hp"), mb:int = p.bonus("mp");
@@ -729,7 +724,7 @@ package realm {
 			for each (var es:Slot in equip) es.tick(now);
 			if (invPage.visible) for each (es in invSlots) es.tick(now);
 			if (bag) for each (es in bagSlots) es.tick(now);
-			else if (frameN % 15 == 0) refreshStatus(p);
+			if (statPage.visible && frameN % 15 == 0) refreshStatus(p);
 			if (++frameN % 4 == 0) drawMinimap();
 			if (frameN % 30 == 1) {
 				zoneTf.text = g.world.kind == "realm" ? g.world.name + " Realm" : g.world.name;
@@ -793,7 +788,7 @@ package realm {
 				petPic.bitmapData = null;
 				petTf.htmlText = "<font color='#6a5c90'>No pet</font>";
 			}
-			petTf.x = pet ? 44 : 12;
+			petTf.x = petPic.x + (pet ? 32 : 0);
 			// who leads the realms (the guild with the most realm bosses last week), and what it gives yours
 			var ld:Object = g.leaders;
 			blessTf.htmlText = !ld || !ld.name ? "<font color='#8a7cb0'>Realm Leaders: </font><font color='#6a5c90'>none yet</font>"
@@ -858,8 +853,8 @@ package realm {
 			var w:int = 250, h:int = int(luckTipTf.height) + 16;
 			luckTip.graphics.clear();
 			Ui.panel(luckTip.graphics, 0, 0, w, h, 0x1a1a1a, 0xf0c030);
-			luckTip.x = -w - 6;
-			luckTip.y = statPage.y + statTf.y + 70;
+			luckTip.x = statTf.x - w - 16;
+			luckTip.y = statTf.y + 40;
 			luckTip.visible = true;
 		}
 
@@ -1004,7 +999,7 @@ package realm {
 			var rp:RemotePlayer = m.rp;
 			var lv:String = rp.profile && rp.profile.level ? " (" + rp.profile.level + ")" : "";
 			miniLabel.htmlText = " " + rp.name.replace(/</g, "&lt;") + lv + "  <font color='#9a7cff'>click to teleport</font> ";
-			miniLabel.x = Math.max(2, Math.min(W - miniLabel.width - 2, miniHit.x + m.x - miniLabel.width / 2));
+			miniLabel.x = Math.max(2, Math.min(Ui.W - miniLabel.width - 2, miniHit.x + m.x - miniLabel.width / 2));
 			miniLabel.y = miniHit.y + (m.y > mini.height - 24 ? m.y - 24 : m.y + 8);
 			miniLabel.visible = true;
 		}

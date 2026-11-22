@@ -10,6 +10,18 @@
 • It draws no slower than the old ground, so walking around stays smooth
 • **Bosses resized** to sit in the world: dungeon, lair and realm bosses about three tiles tall (most were four to five), the biggest raid bosses about four and a half (they were over nine, half the screen)
 
+**🖥️ A new see-through HUD**
+• **The sidebar is gone**: the game now uses the whole window, about a third more room to see what's coming
+• A slim see-through **strip along the bottom** holds your health, mana, Ward and Fervor, your gear, your 8 bag slots, potions, and the XP line along its top
+• **Health and mana ring at your hero's feet**: red fills one side, blue the other, so you never have to look away from the fight. A gold pip lights up when your ability is ready
+• **Arrows at the edge of the screen** point to the realm's event bosses that are off screen, with how far away they are
+• A **round minimap** in the top-right corner, with the Wiki, Friends and Nexus buttons and your currencies under it
+• **Quests** are plain text in the top-left corner, no box
+• The **boss panel** appears at the top only while you're fighting one
+• Standing on a **loot bag**, its items rise above the middle of the strip
+• **Stats and Skills** open as see-through panels above the strip (the two buttons at its right end; click again to close). Your pet, the realm leaders and your loot luck are in the stats panel now
+• Chat sits just above the strip
+
 **👾 Monsters in the heroes' style**
 • The realm's regular monsters are back to **chunky pixel art, like your heroes**, shaded with light and shade, and about your height (the detailed ones looked out of place next to you, and most were twice your size)
 • New chunky drawings for the monsters that never had one: scorpions, crabs, wolves, harpies, medusas, djinns, ents, cubelets, mothlings, the Siege's soldiers, spiderlings, kraken tentacles and clam cannons

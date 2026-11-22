@@ -284,14 +284,16 @@ package realm {
 
 			buildCounters();
 			netTf = Ui.text(12, 0x9ad0ff, true, "right", 300, true);
-			netTf.x = VIEW_W - 312; netTf.y = 50;
+			netTf.x = VIEW_W - 312; netTf.y = 284;
 			netTf.mouseEnabled = false;
 			restartTf = Ui.text(16, 0xffd75e, true, "center", 500, true);
 			restartTf.x = (VIEW_W - 500) / 2; restartTf.y = 6;
 			restartTf.mouseEnabled = false;
 			restartTf.filters = [new GlowFilter(0x000000, 0.95, 4, 4, 5)];
-			trackerTf = Ui.text(12, 0xe8e0c8, true, "right", 400, true);
-			trackerTf.x = VIEW_W - 416; trackerTf.y = 80;
+			// quests: plain text in the top-left corner, no box (a dark outline keeps it readable)
+			trackerTf = Ui.text(12, 0xe8e0c8, true, "left", 400, true);
+			trackerTf.x = 12; trackerTf.y = 10;
+			trackerTf.filters = [new GlowFilter(0x000000, 0.9, 3, 3, 4)];
 			trackerTf.mouseEnabled = false;
 			trackerBg = new Shape();
 			trackerBg.cacheAsBitmap = true;
@@ -308,7 +310,7 @@ package realm {
 			net.enterWorld(world);
 
 			hud = new Hud(this);
-			hud.x = VIEW_W;
+			hud.x = 0;
 			addChild(hud);
 			Cursor.modeFn = cursorMode;
 
@@ -332,7 +334,7 @@ package realm {
 			chatInput.borderColor = Hud.GOLD;
 			chatInput.maxChars = 80;
 			chatInput.x = 8;
-			chatInput.y = VIEW_H - 30;
+			chatInput.y = VIEW_H - 30 - (Hud.STRIP_H + 34);
 			chatInput.visible = false;
 			chatInput.addEventListener(KeyboardEvent.KEY_DOWN, onChatKey);
 			addChild(chatInput);
@@ -600,7 +602,7 @@ package realm {
 				tf.defaultTextFormat = f;
 				tf.setTextFormat(f);
 			}
-			if (chatInput) { chatInput.height = size + 9; chatInput.y = VIEW_H - chatInput.height - 6; }
+			if (chatInput) { chatInput.height = size + 9; chatInput.y = VIEW_H - chatInput.height - 6 - (Hud.STRIP_H + 34); }
 			refreshChat();
 		}
 
@@ -760,7 +762,7 @@ package realm {
 			addChild(pills);
 			for (var i:int = 0; i < 4; i++) {
 				var col:int = i % 2, row:int = int(i / 2);
-				var px:int = VIEW_W - 252 + col * 124, py:int = 5 + row * 25;
+				var px:int = VIEW_W - 252 + col * 124, py:int = 232 + row * 25;
 				Hud.glass(pills.graphics, px, py, 118, 22, Hud.EDGE, 11);
 				pills.graphics.lineStyle(1, Hud.GOLD, 0.9);
 				pills.graphics.beginFill(0x0d0a16);
@@ -807,7 +809,8 @@ package realm {
 			thresholdTf = Ui.text(10, 0x7fd07f, true, "right", 100, true);
 			thresholdTf.x = BOSS_W - 110; thresholdTf.y = 55;
 			bossPanel.addChild(thresholdTf);
-			bossPanel.x = 10; bossPanel.y = 10;
+			// (top centre, and only while you're fighting a boss)
+			bossPanel.x = int((VIEW_W - BOSS_W) / 2); bossPanel.y = 30;
 			bossPanel.visible = false;
 			bossPanel.mouseEnabled = bossPanel.mouseChildren = false;
 			addChild(bossPanel);
@@ -1156,6 +1159,8 @@ package realm {
 		public function uiCaptured():Boolean {
 			var mx:Number = stage.mouseX, my:Number = stage.mouseY;
 			if (paused && pauseLayer.hitTestPoint(mx, my, true)) return true;
+			// (the HUD lies over the world: clicking it doesn't shoot)
+			if (hud && hud.overHud(mx, my)) return true;
 			for each (var w:Sprite in [playerMenu, tradeWin, inspectWin, flagsWin, marketWin, oracleWin, ascWin, abyssWin, boonPicker, petWin, bugsWin, requestPopup, social, wiki, skillWin]) if (w && w.hitTestPoint(mx, my, true)) return true;
 			return admin != null && admin.visible && admin.hitTestPoint(mx, my, true);
 		}
@@ -2661,7 +2666,7 @@ package realm {
 				for (var sb:int = 0; spill.length && sb < 3; sb++) bags.push(new LootBag(x + 0.9 * (sb + 1), y + 0.4 * (sb % 2), spill.splice(0, LootBag.MAX)));
 				var bag:LootBag = new LootBag(x, y, items);
 				bags.push(bag);
-				tip("bag", "Walk over a loot bag and click its items in the sidebar to take them.");
+				tip("bag", "Walk over a loot bag and click its items (they rise above your bag) to take them.");
 				// rare drop alerts
 				for each (var ki:Object in items) if (ki.kind == "key") {
 					showBanner(ki.name + " dropped!", ki.color, 4);
@@ -3839,7 +3844,7 @@ package realm {
 				Save.flush();
 				notice("Welcome to Eldmere!",
 					"Eldmere is a bullet-hell adventure: dodge everything, loot the bosses, and try not to die (heroes that fall are gone, but your account keeps its gold, fame, vault and unlocks).\n\n" +
-					"<b>Start here:</b> the <font color='#ffd75e'>Getting Started</font> list (top right) walks you through your first steps.\n" +
+					"<b>Start here:</b> the <font color='#ffd75e'>Getting Started</font> list (top left) walks you through your first steps.\n" +
 					"<b>Find your way:</b> the signposts by the entrance point to everything in the Nexus.\n" +
 					"<b>Controls:</b> WASD to move, the mouse to aim and shoot, SPACE for your ability, F and G for potions, R to come back here.\n" +
 					"<b>Stuck?</b> Press K for the Wiki: bosses, loot and a guide to how everything works.", 0x80ff80);
@@ -6060,12 +6065,10 @@ package realm {
 			// a glass panel fitted to the text, with a gold rule down its right edge
 			var tg:* = trackerBg.graphics;
 			tg.clear();
+			// (no panel behind it: just a thin gold rule down its left edge)
 			if (lines.length) {
-				var tw:Number = trackerTf.textWidth + 22, th:Number = trackerTf.textHeight + 10;
-				var tx:Number = trackerTf.x + 400 - tw + 6;
-				Hud.glass(tg, tx, trackerTf.y - 4, tw, th, Hud.EDGE, 8);
-				tg.beginFill(Hud.GOLD);
-				tg.drawRect(tx + tw - 3, trackerTf.y + 2, 2, th - 12);
+				tg.beginFill(Hud.GOLD, 0.7);
+				tg.drawRect(trackerTf.x - 5, trackerTf.y + 3, 2, trackerTf.textHeight);
 				tg.endFill();
 			}
 		}
@@ -7030,7 +7033,8 @@ package realm {
 			chat.visible = show.length > 0;
 			chat.alpha = 1;
 			chatFadeAt = open ? 0 : oldest + CHAT_SECS;
-			chat.y = VIEW_H - chat.height - (open ? chatInput.height + 12 : 6);
+			// (above the HUD's strip)
+			chat.y = VIEW_H - chat.height - (open ? chatInput.height + 12 : 6) - (Hud.STRIP_H + 34);
 			if (!chatBg) {
 				chatBg = new Shape();
 				chatBg.cacheAsBitmap = true;
@@ -7565,6 +7569,7 @@ package realm {
 				}
 			}
 
+			drawBossArrows();
 			// (the eclipse falls over the world and its people, but shots and telegraphs still show)
 			if (eclipseT > 0) { drawEclipse(); if (eclipseDark() > 0) drawMarkers(); }
 			// (Settings: other players' shots can be hidden, and your own drawn see-through)
@@ -8666,6 +8671,7 @@ package realm {
 			var p:Player = player;
 			var cx:Number = scrX(p.x, p.y), cy:Number = scrY(p.x, p.y);
 			if (p.asc > 0 && p.hp > 0) drawAscAura(cx, cy, p.asc, p.x, p.y);
+			if (dyingT <= 0 && p.hp > 0) heroRing(cx, cy, p);
 			if (dyingT > 0 || p.hp <= 0) drawEntity(Sprites.get("grave"), cx, cy, 0);
 			else if (!(p.invulnT > 0 && int(time * 12) % 2 == 0)) drawEntity(p.sprite, cx, cy, p.moving ? 0 : int(time * 1.6) % 2, world.inWater(p.x, p.y));
 			tagText(nameTag, p.name, 0xffe36e, p.title, p.mode);
@@ -8673,6 +8679,81 @@ package realm {
 			nameTag.y = int(cy + TS * 0.4 + 1);
 			if (net && net.guild && net.guild.banner) tagFlag(nameTag, net.guild.banner);
 			hpBar(cx - 20, cy + TS * 0.4 + (p.title ? 35 : 21), 40, p.hp / p.maxHp);
+		}
+
+		/**
+		 * Your health and mana as a ring at your hero's feet, so you never have to look away from the fight:
+		 * health fills the left half from the bottom up (red, throbbing when low), mana the right (blue), and a
+		 * gold pip at the front lights up when your ability is ready.
+		 */
+		private function heroRing(cx:Number, cy:Number, p:Player):void {
+			var g:* = auraShape.graphics;
+			g.clear();
+			var rx:Number = TS * 0.6, ry:Number = TS * 0.24;
+			var hf:Number = Math.max(0, Math.min(1, p.hp / p.maxHp)), mf:Number = Math.max(0, Math.min(1, p.mp / p.maxMp));
+			ringArc(g, rx, ry, Math.PI * 0.5, Math.PI * 1.5, 0x000000, 0.5, 5);
+			ringArc(g, rx, ry, -Math.PI * 0.5, Math.PI * 0.5, 0x000000, 0.5, 5);
+			var low:Boolean = hf < 0.3;
+			if (hf > 0) ringArc(g, rx, ry, Math.PI * 0.5, Math.PI * (0.5 + hf), low ? 0xff3040 : 0xe0303e, low ? 0.6 + 0.4 * Math.sin(time * 10) : 0.95, 3);
+			if (mf > 0) ringArc(g, rx, ry, Math.PI * (0.5 - mf), Math.PI * 0.5, 0x4a78ff, 0.95, 3);
+			var ready:Boolean = p.abilityT <= 0 && p.ability != null;
+			g.lineStyle(1, 0x000000, 0.8);
+			g.beginFill(ready ? 0xffd75e : 0x5a5060, ready ? 1 : 0.8);
+			g.drawCircle(0, ry, ready ? 3.5 : 2.5);
+			g.endFill();
+			g.lineStyle();
+			auraMtx.tx = cx; auraMtx.ty = cy + TS * 0.42;
+			canvas.draw(auraShape, auraMtx);
+		}
+
+		private static function ringArc(g:*, rx:Number, ry:Number, a0:Number, a1:Number, col:uint, alpha:Number, w:Number):void {
+			g.lineStyle(w, col, alpha, false, "normal", "none");
+			var n:int = 18;
+			for (var i:int = 0; i <= n; i++) {
+				var a:Number = a0 + (a1 - a0) * i / n;
+				if (i == 0) g.moveTo(Math.cos(a) * rx, Math.sin(a) * ry); else g.lineTo(Math.cos(a) * rx, Math.sin(a) * ry);
+			}
+			g.lineStyle();
+		}
+
+		/** The realm's event bosses off screen: an arrow at the edge of the view pointing to each, with its distance. */
+		private var arrowTf:TextField;
+		private var arrowMtx:Matrix = new Matrix();
+		private function drawBossArrows():void {
+			if (!world || world.kind != "realm") return;
+			var evs:Array = liveEvents();
+			if (!evs.length) return;
+			if (!arrowTf) { arrowTf = Ui.text(11, 0xffffff, true, "left", 0, true); arrowTf.autoSize = "left"; arrowTf.filters = [new GlowFilter(0x000000, 1, 3, 3, 5)]; }
+			var pcx:Number = scrX(player.x, player.y), pcy:Number = scrY(player.x, player.y);
+			var top:Number = 34, bot:Number = vh - (Hud.STRIP_H + 40) / zoom, lft:Number = 30, rgt:Number = vw - 30;
+			for each (var b:Enemy in evs) {
+				var sx:Number = scrX(b.x, b.y), sy:Number = scrY(b.x, b.y);
+				if (sx > 0 && sx < vw && sy > 0 && sy < vh) continue;
+				var dx:Number = sx - pcx, dy:Number = sy - pcy;
+				// along the line from you to it, as far as the edge of the view
+				var t:Number = 1e9;
+				if (dx > 0) t = Math.min(t, (rgt - pcx) / dx); else if (dx < 0) t = Math.min(t, (lft - pcx) / dx);
+				if (dy > 0) t = Math.min(t, (bot - pcy) / dy); else if (dy < 0) t = Math.min(t, (top - pcy) / dy);
+				var ax:Number = pcx + dx * t, ay:Number = pcy + dy * t, ang:Number = Math.atan2(dy, dx);
+				var col:uint = uint(b.def.col) || 0xff40ff;
+				var g:* = auraShape.graphics;
+				g.clear();
+				g.lineStyle(2, 0x000000, 0.9);
+				g.beginFill(col, 0.95);
+				g.moveTo(Math.cos(ang) * 13, Math.sin(ang) * 13);
+				g.lineTo(Math.cos(ang + 2.4) * 10, Math.sin(ang + 2.4) * 10);
+				g.lineTo(Math.cos(ang) * -3, Math.sin(ang) * -3);
+				g.lineTo(Math.cos(ang - 2.4) * 10, Math.sin(ang - 2.4) * 10);
+				g.endFill();
+				g.lineStyle();
+				auraMtx.tx = ax; auraMtx.ty = ay;
+				canvas.draw(auraShape, auraMtx);
+				var dist:int = int(Math.sqrt((b.x - player.x) * (b.x - player.x) + (b.y - player.y) * (b.y - player.y)));
+				arrowTf.htmlText = "<font color='" + Ui.hex(col) + "'>" + b.def.name + "</font>  " + dist;
+				arrowMtx.tx = Math.max(4, Math.min(vw - arrowTf.width - 4, ax - Math.cos(ang) * 22 - arrowTf.width / 2));
+				arrowMtx.ty = Math.max(4, Math.min(vh - 20, ay - Math.sin(ang) * 22 - arrowTf.height / 2));
+				canvas.draw(arrowTf, arrowMtx);
+			}
 		}
 
 		private function statusPip(cx:Number, y:Number, color:uint):void {

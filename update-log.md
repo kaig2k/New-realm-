@@ -28,6 +28,11 @@
 • **Walls redrawn** in each dungeon's own colours: a lit top edge, a worn face laid in brick courses (or its own rivets, veins, ice, bone or coral) and a shadowed foot
 • Bright floors are toned down to match, so the monsters stand out
 
+**🎯 Easier to read in a fight**
+• **Bullets too dark to see are brightened**: any enemy shot in grey, black, deep blue or violet (the Pirate Captain's and Saltbeard's near-black shots, Morrow's undertow, the Lamplighter's smoke rings, the Kraken's ink, the Sorcerer's and Tempestus's deep blues and more) is lightened, keeping its colour, so it shows against any ground. Bright reds were already fine and are unchanged
+• **Long announcements fit on screen**: a long banner, like the Lamplighter's "cannot be hurt in the dark" warning, is drawn smaller instead of running off both edges
+• A stray red circle that throbbed around your name when you were low on health is gone (the health bar and the ring at your feet still warn you)
+
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them
 

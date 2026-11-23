@@ -747,8 +747,10 @@ package realm {
 			var low:Boolean = p.hp > 0 && p.hp < p.maxHp * 0.3;
 			var throb:Number = low ? 0.5 + 0.5 * Math.sin(getTimer() / 120) : 0;
 			hpBar.setPulse(throb);
-			if (!low && lvlFlash <= 0 && !sparks.length && !medalDrawn) return;
-			medalDrawn = low || lvlFlash > 0 || sparks.length > 0;
+			// (low health throbs on the bar and the ring at your feet; the medallion that also did is gone)
+			low = false;
+			if (lvlFlash <= 0 && !sparks.length && !medalDrawn) return;
+			medalDrawn = lvlFlash > 0 || sparks.length > 0;
 			var gr:* = medalFx.graphics;
 			gr.clear();
 			if (low) {

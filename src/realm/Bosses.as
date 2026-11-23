@@ -136,6 +136,33 @@ package realm {
 			Godly.init();
 			skins();
 			fitSizes();
+			readableShots();
+		}
+
+		/**
+		 * Bullets have to stand out against any ground: an attack colour too dark to see (grey, black, deep blue
+		 * or violet) is lightened toward white, keeping its hue, until it reads. Saturated reds read already.
+		 */
+		private static function readableShots():void {
+			for (var id:String in Data.ENEMIES) {
+				var d:Object = Data.ENEMIES[id];
+				var all:Array = [];
+				for each (var a:Object in d.attacks || []) all.push(a);
+				for each (var ph:Object in d.phases || []) {
+					if (ph is Array) { for each (a in ph) all.push(a); continue; }
+					for each (a in ph.attacks || []) all.push(a);
+					for each (var cy:Array in ph.cycle || []) for each (a in cy) all.push(a);
+				}
+				for each (a in all) if (a && a.col !== undefined && a.p != "summon") a.col = readable(uint(a.col));
+			}
+		}
+
+		public static function readable(c:uint):uint {
+			var r:Number = (c >> 16) & 255, g:Number = (c >> 8) & 255, b:Number = c & 255;
+			var lum:Number = r * 0.3 + g * 0.59 + b * 0.11;
+			if (lum >= 110 || (r > 180 && r > g * 2.5 && r > b * 2.5)) return c;
+			var t:Number = Math.min(0.8, (135 - lum) / Math.max(1, 255 - lum));
+			return (uint(r + (255 - r) * t) << 16) | (uint(g + (255 - g) * t) << 8) | uint(b + (255 - b) * t);
 		}
 
 		/**
@@ -835,15 +862,15 @@ package realm {
 			boss("ev_wrecker", {name: "Morrow the Wrecker", spr: "wrecker", hp: 13000, def: 22, spd: 1.2, xp: 1900, col: 0xffc860,
 				gold: 500, onrane: 5, r: 1.0, light: 5, phases: [
 				P(1, {say: "Another ship for the rocks.", move: "wander",
-					attacks: [aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), ring(12, 15, 4.5, 60, 1.6, 0x406080, {name: "undertow"}),
+					attacks: [aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), ring(12, 15, 4.5, 60, 1.6, 0x6ec8ff, {name: "undertow"}),
 						nova(2.2, 2.4, 140, 11, 0x60c8ff, {reach: 0.01, burst: 48, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
 				P(0.6, {say: "Follow the light, little ships...", banner: "The false lights blaze!", shield: 2.5, summon: [{what: "pirate_brawler", n: 3}], move: "still",
-					attacks: [spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), rain(4, 4, 90, 2.4, 0x406080, {burst: 6}),
+					attacks: [spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), rain(4, 4, 90, 2.4, 0x6ec8ff, {burst: 6}),
 						nova(2.2, 2.2, 150, 9, 0x60c8ff, {reach: 0.01, burst: 56, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
 				P(0.3, {say: "THE SEA TAKES EVERYTHING!", banner: "The wreck floods!", move: "chase", speed: 1.3,
-					attacks: [aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), wall(15, 5, 80, 2.2, 0x406080, {hole: 3, motion: "wave"}),
+					attacks: [aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), wall(15, 5, 80, 2.2, 0x6ec8ff, {hole: 3, motion: "wave"}),
 						nova(2.2, 2.0, 160, 8, 0x60c8ff, {reach: 0.01, burst: 64, bspd: 4.6, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]})
 			]});
@@ -1472,9 +1499,9 @@ package realm {
 			lairBoss("lamplighter", {name: "The Lamplighter", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				light: 3, mech: {lamp: {id: "storm_lantern", lit: "storm_lantern_lit", n: 4, r: 8, near: 4.5, burn: 16, snuff: 4}}, phases: [
 				P(1, {say: "Who let the lights go out?", move: "chase",
-					attacks: [aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), ring(10, 18, 4.5, 60, 2.2, 0x6080a0, {name: "smoke ring"})]}),
+					attacks: [aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), ring(10, 18, 4.5, 60, 2.2, 0xa8c8f0, {name: "smoke ring"})]}),
 				P(0.5, {say: "Darkness suits me better.", move: "chase", speed: 1.2,
-					attacks: [aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), spiral(3, 16, 5, 60, 0.22, 0x6080a0, {name: "smoke coil"}),
+					attacks: [aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), spiral(3, 16, 5, 60, 0.22, 0xa8c8f0, {name: "smoke coil"}),
 						nova(2, 1.0, 110, 4.0, 0xffa030, {reach: 7, burst: 8, name: "lamp oil"})]})
 			]});
 			lairProp("storm_lantern", {name: "Storm Lantern (unlit)", spr: "storm_lantern", hp: 900, col: 0x8090a0, lantern: true, xp: 20, attacks: []});
@@ -1488,14 +1515,14 @@ package realm {
 				]});
 			}
 			// the Bulwark: a wall of a shield, only hurt from behind or the side
-			lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0x80a0b0, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+			lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				mech: {guard: {arc: 75, turn: 65}}, phases: [
 				P(1, {say: "None pass the light.", move: "chase",
-					attacks: [wall(11, 5, 80, 2.0, 0x80a0b0, {hole: 2, name: "shield bash"}), aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
-						ring(8, 0, 4, 60, 3.5, 0x6080a0, {name: "backwash"})]}),
+					attacks: [wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
+						ring(8, 0, 4, 60, 3.5, 0xa8c8f0, {name: "backwash"})]}),
 				P(0.4, {say: "THE TIDE HOLDS THE LINE!", move: "chase", speed: 1.25,
-					attacks: [wall(13, 5.5, 85, 1.6, 0x80a0b0, {hole: 2, name: "shield bash"}), aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
-						ring(12, 15, 4, 60, 2.6, 0x6080a0, {name: "backwash"})]})
+					attacks: [wall(13, 5.5, 85, 1.6, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
+						ring(12, 15, 4, 60, 2.6, 0xa8c8f0, {name: "backwash"})]})
 			]});
 			// the Drowned Keeper: sealed until all three fall; its Great Wave can only be hidden from behind the pillars
 			lairBoss("drowned_keeper", {name: "The Drowned Keeper", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [

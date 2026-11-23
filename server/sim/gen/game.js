@@ -1651,6 +1651,27 @@ class Bosses {
 			Godly.init();
 			
 			
+			Bosses.readableShots();
+		}
+	static readableShots() {
+			for (var id in Data.ENEMIES) {
+				var d = Data.ENEMIES[id];
+				var all = [];
+				for (var a of __vals( d.attacks || [])) all.push(a);
+				for (var ph of __vals( d.phases || [])) {
+					if (ph  instanceof Array) { for (a of __vals( ph)) all.push(a); continue; }
+					for (a of __vals( ph.attacks || [])) all.push(a);
+					for (var cy of __vals( ph.cycle || [])) for (a of __vals( cy)) all.push(a);
+				}
+				for (a of __vals( all)) if (a && a.col !== undefined && a.p != "summon") a.col = Bosses.readable(__uint(a.col));
+			}
+		}
+	static readable(c) { c = __uint(c);
+			var r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
+			var lum = r * 0.3 + g * 0.59 + b * 0.11;
+			if (lum >= 110 || (r > 180 && r > g * 2.5 && r > b * 2.5)) return __uint(c);
+			var t = Math.min(0.8, (135 - lum) / Math.max(1, 255 - lum));
+			return __uint((__uint(r + (255 - r) * t) << 16) | (__uint(g + (255 - g) * t) << 8) | __uint(b + (255 - b) * t));
 		}
 	static posed() {
 			var want = {};
@@ -2122,15 +2143,15 @@ class Bosses {
 			Bosses.boss("ev_wrecker", {name: "Morrow the Wrecker", spr: "wrecker", hp: 13000, def: 22, spd: 1.2, xp: 1900, col: 0xffc860,
 				gold: 500, onrane: 5, r: 1.0, light: 5, phases: [
 				Bosses.P(1, {say: "Another ship for the rocks.", move: "wander",
-					attacks: [Bosses.aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), Bosses.ring(12, 15, 4.5, 60, 1.6, 0x406080, {name: "undertow"}),
+					attacks: [Bosses.aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), Bosses.ring(12, 15, 4.5, 60, 1.6, 0x6ec8ff, {name: "undertow"}),
 						Bosses.nova(2.2, 2.4, 140, 11, 0x60c8ff, {reach: 0.01, burst: 48, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
 				Bosses.P(0.6, {say: "Follow the light, little ships...", banner: "The false lights blaze!", shield: 2.5, summon: [{what: "pirate_brawler", n: 3}], move: "still",
-					attacks: [Bosses.spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), Bosses.rain(4, 4, 90, 2.4, 0x406080, {burst: 6}),
+					attacks: [Bosses.spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), Bosses.rain(4, 4, 90, 2.4, 0x6ec8ff, {burst: 6}),
 						Bosses.nova(2.2, 2.2, 150, 9, 0x60c8ff, {reach: 0.01, burst: 56, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
 				Bosses.P(0.3, {say: "THE SEA TAKES EVERYTHING!", banner: "The wreck floods!", move: "chase", speed: 1.3,
-					attacks: [Bosses.aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), Bosses.wall(15, 5, 80, 2.2, 0x406080, {hole: 3, motion: "wave"}),
+					attacks: [Bosses.aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), Bosses.wall(15, 5, 80, 2.2, 0x6ec8ff, {hole: 3, motion: "wave"}),
 						Bosses.nova(2.2, 2.0, 160, 8, 0x60c8ff, {reach: 0.01, burst: 64, bspd: 4.6, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]})
 			]});
@@ -2672,9 +2693,9 @@ class Bosses {
 			Bosses.lairBoss("lamplighter", {name: "The Lamplighter", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				light: 3, mech: {lamp: {id: "storm_lantern", lit: "storm_lantern_lit", n: 4, r: 8, near: 4.5, burn: 16, snuff: 4}}, phases: [
 				Bosses.P(1, {say: "Who let the lights go out?", move: "chase",
-					attacks: [Bosses.aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), Bosses.ring(10, 18, 4.5, 60, 2.2, 0x6080a0, {name: "smoke ring"})]}),
+					attacks: [Bosses.aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), Bosses.ring(10, 18, 4.5, 60, 2.2, 0xa8c8f0, {name: "smoke ring"})]}),
 				Bosses.P(0.5, {say: "Darkness suits me better.", move: "chase", speed: 1.2,
-					attacks: [Bosses.aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), Bosses.spiral(3, 16, 5, 60, 0.22, 0x6080a0, {name: "smoke coil"}),
+					attacks: [Bosses.aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), Bosses.spiral(3, 16, 5, 60, 0.22, 0xa8c8f0, {name: "smoke coil"}),
 						Bosses.nova(2, 1.0, 110, 4.0, 0xffa030, {reach: 7, burst: 8, name: "lamp oil"})]})
 			]});
 			Bosses.lairProp("storm_lantern", {name: "Storm Lantern (unlit)", spr: "storm_lantern", hp: 900, col: 0x8090a0, lantern: true, xp: 20, attacks: []});
@@ -2688,14 +2709,14 @@ class Bosses {
 				]});
 			}
 			
-			Bosses.lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0x80a0b0, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+			Bosses.lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				mech: {guard: {arc: 75, turn: 65}}, phases: [
 				Bosses.P(1, {say: "None pass the light.", move: "chase",
-					attacks: [Bosses.wall(11, 5, 80, 2.0, 0x80a0b0, {hole: 2, name: "shield bash"}), Bosses.aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
-						Bosses.ring(8, 0, 4, 60, 3.5, 0x6080a0, {name: "backwash"})]}),
+					attacks: [Bosses.wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), Bosses.aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
+						Bosses.ring(8, 0, 4, 60, 3.5, 0xa8c8f0, {name: "backwash"})]}),
 				Bosses.P(0.4, {say: "THE TIDE HOLDS THE LINE!", move: "chase", speed: 1.25,
-					attacks: [Bosses.wall(13, 5.5, 85, 1.6, 0x80a0b0, {hole: 2, name: "shield bash"}), Bosses.aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
-						Bosses.ring(12, 15, 4, 60, 2.6, 0x6080a0, {name: "backwash"})]})
+					attacks: [Bosses.wall(13, 5.5, 85, 1.6, 0xb8d8e8, {hole: 2, name: "shield bash"}), Bosses.aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
+						Bosses.ring(12, 15, 4, 60, 2.6, 0xa8c8f0, {name: "backwash"})]})
 			]});
 			
 			Bosses.lairBoss("drowned_keeper", {name: "The Drowned Keeper", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [
@@ -6633,7 +6654,8 @@ Data.NEWS = [
 					"<b>Monsters in the heroes' style</b>: the regular monsters are chunky pixel art again, shaded like your heroes and about your height. Bosses keep their detailed art.",
 					"<b>No more glow when you shoot.</b>",
 					"<b>A new see-through HUD</b>: no more sidebar, the game uses the whole window. Health and mana ring your hero's feet, your gear, bag and potions sit in a slim strip along the bottom, the minimap is round in the top-right corner, and arrows at the edge of the screen point to bosses off screen.",
-					"<b>The Nexus</b> has a new floor: polished lilac-grey marble instead of the glaring white tiles."]},
+					"<b>The Nexus</b> has a new floor: polished lilac-grey marble instead of the glaring white tiles.",
+					"<b>Every dungeon redrawn</b> at the realm's finer detail: softer floors, and walls in each dungeon's own colours with brick courses, a lit top and a shadowed foot."]},
 			{id: "2026-11-wrecker", title: "Three realm bosses at once, and Morrow the Wrecker",
 				lines: ["<b>Up to three realm event bosses</b> can now be alive at once, each in its own arena well apart from the others. Split up and take them on your own, or go together.",
 					"<b>Morrow the Wrecker</b>, a new realm boss: he lit false lights to drown ships. His three <b>false beacons</b> ward him (smash them), and when he <b>calls the tide in</b>, take cover behind the shipwreck's broken hull. He drops <b>Wrecker's Hook</b> and <b>The False Light</b> ring, and always leaves the portal to the Drowned Lighthouse."]},

@@ -716,3 +716,10 @@ monsters and an event boss), so the art can be checked without logging in:
 
 Flashvars: `zone` (0 beach .. 4 Godlands), `seed`, `boss` (an enemy id), `arena=1` (lay the boss's set piece),
 `mobs` (comma-separated ids), `classic=1` (the old 8-pixel ground), `time=1` (ms to draw a ground chunk).
+
+### Admin test commands
+
+Typed in chat by a server admin (config.json `admins`), for testing: `/maxhero` (level 20, stats maxed),
+`/aevent` (the realm's next event boss now, up to three alive), `/aspawn id` (a monster or boss in front of you;
+`/aspawn id far` 25 tiles off), `/akill` (everything in this world dies, loot to you), and
+`/adungeon id` (a portal to any dungeon or lair beside you, e.g. `/adungeon drowned_lighthouse`).

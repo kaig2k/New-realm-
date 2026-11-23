@@ -90,7 +90,11 @@ package realm {
 		/** Show text in colour col for secs seconds. */
 		public function show(text:String, col:uint, secs:Number):void {
 			var so:Array = [];
-			var b:Bitmap = lit(text, 32, col, 1, so);
+			// (a long line is drawn smaller so it always fits across the view, never smaller than half size)
+			var size:int = 32, plain:TextField = Ui.text(32, 0xffffff, true, "left", 0, false);
+			plain.text = text;
+			if (plain.textWidth > w - 80) size = Math.max(16, int(32 * (w - 80) / plain.textWidth));
+			var b:Bitmap = lit(text, size, col, 1, so);
 			var shape:BitmapData = so[0];
 			var tw:int = b.bitmapData.width, th:int = b.bitmapData.height;
 			if (words.bitmapData) words.bitmapData.dispose();

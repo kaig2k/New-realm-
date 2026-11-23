@@ -2502,6 +2502,16 @@ const handlers = {
         log(c.name + ' killed ' + n + ' monsters in ' + c.world);
         return c.note('Killed ' + n + ' monsters.', 0x80ff80);
       }
+      case '/adungeon': {
+        // (admins, for testing: a portal to any dungeon or lair, at your feet)
+        const sm = sims && sims.get(c.world);
+        const di = Data.dungeonIndex(String(parts[1] || ''));
+        if (di < 0) return c.note('Usage: /adungeon id (e.g. drowned_lighthouse, crypt, tomb)');
+        if (!sm) return c.note('Open it from a realm or the Nexus.');
+        sm.portal(c.x + 1.5, c.y, 'dungeon', di, Data.DUNGEONS[di].color, c.x, c.y);
+        log(c.name + ' opened a portal to ' + Data.DUNGEONS[di].id);
+        return c.note('A portal to ' + Data.DUNGEONS[di].name + ' opened beside you.', 0x80ff80);
+      }
       case '/aevent': {
         // (admins: the realm's next event now)
         const sm = sims && sims.get(c.world);

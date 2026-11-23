@@ -2506,7 +2506,7 @@ const handlers = {
         // (admins: the realm's next event now)
         const sm = sims && sims.get(c.world);
         if (!sm || sm.kind !== 'realm') return c.note('Only works inside a realm.');
-        if (sm.w.boss && !sm.w.boss.dead) return c.note('A boss is already alive here.');
+        if (sm.liveEvents().length >= Data.MAX_EVENTS) return c.note('This realm already has ' + Data.MAX_EVENTS + ' event bosses alive.');
         sm.w.eventT = 0;
         return c.note('An event is on its way.', 0x80ff80);
       }

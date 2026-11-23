@@ -438,7 +438,10 @@ package realm {
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
 				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/halloween": case "/winter": case "/spires": case "/leaders": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
+				case "/aevent": case "/akill": case "/aspawn":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }
+					// (/aspawn id with no place: a couple of steps in front of you)
+					if (cmd == "/aspawn" && t.split(" ").length == 2) t += " " + (Math.round((player.x + 2.5) * 100) / 100) + " " + (Math.round(player.y * 100) / 100);
 					net.serverCommand(t);
 					break;
 				case "/bug":
@@ -8723,10 +8726,13 @@ package realm {
 			if (!world || world.kind != "realm") return;
 			var evs:Array = liveEvents();
 			if (!evs.length) return;
-			if (!arrowTf) { arrowTf = Ui.text(11, 0xffffff, true, "left", 0, true); arrowTf.autoSize = "left"; arrowTf.filters = [new GlowFilter(0x000000, 1, 3, 3, 5)]; }
+			if (!arrowTf) { arrowTf = Ui.text(13, 0xffffff, true, "left", 0, true); arrowTf.autoSize = "left"; arrowTf.filters = [new GlowFilter(0x000000, 1, 3, 3, 5)]; }
 			var pcx:Number = scrX(player.x, player.y), pcy:Number = scrY(player.x, player.y);
 			var top:Number = 34, bot:Number = vh - (Hud.STRIP_H + 40) / zoom, lft:Number = 30, rgt:Number = vw - 30;
+			var placed:Array = [];
 			for each (var b:Enemy in evs) {
+				// (the one your quest arrow already points at doesn't need a second)
+				if (b == questTarget) continue;
 				var sx:Number = scrX(b.x, b.y), sy:Number = scrY(b.x, b.y);
 				if (sx > 0 && sx < vw && sy > 0 && sy < vh) continue;
 				var dx:Number = sx - pcx, dy:Number = sy - pcy;
@@ -8735,6 +8741,16 @@ package realm {
 				if (dx > 0) t = Math.min(t, (rgt - pcx) / dx); else if (dx < 0) t = Math.min(t, (lft - pcx) / dx);
 				if (dy > 0) t = Math.min(t, (bot - pcy) / dy); else if (dy < 0) t = Math.min(t, (top - pcy) / dy);
 				var ax:Number = pcx + dx * t, ay:Number = pcy + dy * t, ang:Number = Math.atan2(dy, dx);
+				// (two bosses the same way: the second arrow steps along the edge, so neither hides the other)
+				var onSide:Boolean = ax <= lft + 1 || ax >= rgt - 1;
+				var stepX:Number = ax < vw / 2 ? 210 : -210;
+				for (var tries:int = 0; tries < 4; tries++) {
+					var clash:Boolean = false;
+					for each (var pp:Array in placed) if (Math.abs(pp[0] - ax) < 34 && Math.abs(pp[1] - ay) < 34) clash = true;
+					if (!clash) break;
+					if (onSide) ay += 38; else ax += stepX;
+				}
+				placed.push([ax, ay]);
 				var col:uint = uint(b.def.col) || 0xff40ff;
 				var g:* = auraShape.graphics;
 				g.clear();
@@ -8749,7 +8765,7 @@ package realm {
 				auraMtx.tx = ax; auraMtx.ty = ay;
 				canvas.draw(auraShape, auraMtx);
 				var dist:int = int(Math.sqrt((b.x - player.x) * (b.x - player.x) + (b.y - player.y) * (b.y - player.y)));
-				arrowTf.htmlText = "<font color='" + Ui.hex(col) + "'>" + b.def.name + "</font>  " + dist;
+				arrowTf.htmlText = b.def.name + "  <font color='#ffd75e'>" + dist + "</font>";
 				arrowMtx.tx = Math.max(4, Math.min(vw - arrowTf.width - 4, ax - Math.cos(ang) * 22 - arrowTf.width / 2));
 				arrowMtx.ty = Math.max(4, Math.min(vh - 20, ay - Math.sin(ang) * 22 - arrowTf.height / 2));
 				canvas.draw(arrowTf, arrowMtx);

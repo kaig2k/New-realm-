@@ -232,7 +232,7 @@ package realm {
 			this.theme = theme;
 			N = kind == "realm" ? REALM_N : DEFAULT_N;
 			// (the realm and the Nexus are drawn finely; dungeons keep the classic ground for now)
-			px = kind == "realm" || kind == "nexus" ? REALM_PX : PX;
+			px = kind == "realm" || kind == "nexus" || kind == "dungeon" ? REALM_PX : PX;
 			ck = CHUNK * PX / px;
 			tiles = new Vector.<int>(N * N, true);
 			objs = new Vector.<int>(N * N, true);
@@ -1621,7 +1621,7 @@ package realm {
 
 		// ------------------------------------------------------------ textures
 		private function texture(t:int, tx:int, ty:int):Vector.<uint> {
-			if (px > PX) return natural(t) && kind == "realm" ? realmTexture(t, tx, ty) : fineBuilt(t) ? builtTexture(t, tx, ty) : upscale(classicTexture(t, tx, ty), tx, ty);
+			if (px > PX) return natural(t) && kind != "nexus" ? realmTexture(t, tx, ty) : t == WALL ? wallTexture(tx, ty) : fineBuilt(t) ? builtTexture(t, tx, ty) : upscale(classicTexture(t, tx, ty), tx, ty);
 			return classicTexture(t, tx, ty);
 		}
 
@@ -1640,7 +1640,7 @@ package realm {
 				var f:Number = 0.92 + nz[(((gy * 3) & 255) << 8) | ((gx * 3) & 255)] * 0.14 + ((ph(gx, gy) & 7) - 3.5) * 0.008;
 				// (the realm's colours are graded to its calmer palette; the Nexus keeps its own violet and gold)
 				var c8:uint = v8[int(y / s) * PX + int(x / s)] & 0xffffff;
-				v[y * px + x] = 0xff000000 | (kind == "realm" ? grade(c8, f) : shadeBy(c8, 0.97 + (f - 0.99) * 0.6));
+				v[y * px + x] = 0xff000000 | (kind != "nexus" ? grade(c8, f) : shadeBy(c8, 0.97 + (f - 0.99) * 0.6));
 			}
 			return v;
 		}
@@ -2110,14 +2110,14 @@ package realm {
 						}
 					} else {
 						// stones in offset rows: cobbles (5 x 4) on a path, broad slabs (8 x 6) in a ruin
-						var sw:int = t == ROAD ? 5 : t == STONE ? 6 : 8, shh:int = t == ROAD ? 4 : t == STONE ? 5 : t == SANDSTONE ? 4 : 8;
+						var sw:int = t == ROAD ? 5 : t == STONE ? 6 : t == RUIN ? 14 : 8, shh:int = t == ROAD ? 4 : t == STONE ? 5 : t == SANDSTONE ? 4 : t == RUIN ? 10 : 8;
 						var row:int = int(gy / shh), sx:int = gx + (row & 1) * (sw >> 1);
 						var col:int = int(sx / sw), ix:int = sx - col * sw, iy:int = gy - row * shh;
 						var stone:int = ph(col * 7 + 3, row * 13 + 1);
 						var joint:Boolean = ix == sw - 1 || iy == shh - 1;
 						// (worn: the odd corner missing)
 						if (!joint && t == ROAD && ((ix == 0 && iy == 0) || (ix == sw - 2 && iy == shh - 2)) && (stone & 3) == 0) joint = true;
-						if (joint) c = t == ROAD ? 0x2e2a24 : t == PLAZA ? 0x66666c : t == STONE ? 0x26262c : t == SANDSTONE ? 0x6a5030 : 0x404046;
+						if (joint) c = t == ROAD ? 0x2e2a24 : t == PLAZA ? 0x66666c : t == STONE ? 0x26262c : t == SANDSTONE ? 0x6a5030 : 0x46464c;
 						else {
 							var tone:Number = (stone & 15) / 15 * 0.55 + big * 0.5 - 0.05 + ((h & 7) - 3.5) * 0.02;
 							c = ramp(t == ROAD ? [0x55504a, 0x5e5850, 0x686157, 0x726a5e, 0x7b7365] : t == PLAZA ? [0x88888c, 0x929296, 0x9c9ca0, 0xa6a6aa, 0xb0b0b4]
@@ -2133,6 +2133,48 @@ package realm {
 					// sunk into the ground round it: a shadowed rim where it meets something else
 					if ((up && y < 2) || (lf && x < 2) || (rt && x >= px - 2) || (dn && y >= px - 2)) c = Sprites.shade(c, (up && y == 0) || (lf && x == 0) || (rt && x == px - 1) || (dn && y == px - 1) ? 0.55 : 0.75);
 					v[y * px + x] = 0xff000000 | c;
+				}
+			}
+			return v;
+		}
+
+		/**
+		 * A wall, finely: its lit top edge, a worn face (laid in brick courses, or carrying its form's own marks:
+		 * rivets, glowing veins, ice shine, hollows, growths) and a shadowed foot, in its dungeon's colours.
+		 */
+		private function wallTexture(tx:int, ty:int):Vector.<uint> {
+			var nz:Vector.<Number> = noiseField();
+			var v:Vector.<uint> = new Vector.<uint>(px * px, true);
+			var form:Array, pal:Object;
+			if (kind == "nexus") { form = WALL_FORMS.blocks; pal = {L: 0xd8b048, T: 0x4a4068, d: 0x342c4c, F: 0x221c34, f: 0x14101e}; }
+			else if (theme && theme.wall && WALL_STYLES[theme.wall]) { var wst:Array = WALL_STYLES[theme.wall]; form = WALL_FORMS[wst[0]]; pal = wst[1]; }
+			else { form = WALL_FORMS.blocks; pal = {L: 0x9a9aa2, T: 0x74747c, d: 0x4c4c54, F: 0x38383e, f: 0x24242a}; }
+			var courses:Boolean = form == WALL_FORMS.blocks || form == WALL_FORMS.plates;
+			// (only a wall with open ground below it shows its foot; one inside a mass of wall is all face)
+			var foot:Boolean = tileAtI(tx, ty + 1) != WALL;
+			var lit:Boolean = tileAtI(tx, ty - 1) != WALL;
+			for (var y:int = 0; y < px; y++) {
+				for (var x:int = 0; x < px; x++) {
+					var gx:int = tx * px + x, gy:int = ty * px + y;
+					var h:int = ph(gx, gy);
+					var n:Number = nz[(((gy * 3) & 255) << 8) | ((gx * 3 + 77) & 255)];
+					var c:uint;
+					if (lit && y < 2) c = y == 0 ? pal.L : shadeBy(pal.L, 0.85);
+					else if (foot && y >= px - 3) c = y == px - 1 ? pal.f : pal.F;
+					else {
+						var ch:String = String(form[y >> 1]).charAt(x >> 1);
+						if (courses) {
+							// brick courses four pixels high, staggered, with dark seams
+							var row:int = gy >> 2, bx:int = (gx + (row & 1) * 4) & 7;
+							c = (gy & 3) == 3 || bx == 7 ? pal.d : shadeBy(pal.T, 0.9 + n * 0.2 + ((ph(gx + (row & 1) * 4 >> 3, row) & 7) - 3.5) * 0.02);
+							if ((gy & 3) == 0 && bx != 7) c = shadeBy(c, 1.08);
+							if (ch == "r" && (x & 1) == 0 && (y & 1) == 0) c = pal.r != undefined ? pal.r : shadeBy(pal.T, 1.3);
+						} else if (ch == "T" || ch == "L" || ch == "F" || ch == "f") c = shadeBy(pal.T, 0.88 + n * 0.24 + ((h & 7) - 3.5) * 0.012);
+						else c = pal[ch] != undefined ? pal[ch] : pal.T;
+					}
+					// a little grime and wear on any wall
+					if ((h & 127) == 3) c = shadeBy(c, 0.8);
+					v[y * px + x] = 0xff000000 | (kind != "nexus" ? grade(c, 1) : c);
 				}
 			}
 			return v;
@@ -2351,7 +2393,7 @@ package realm {
 			else if (t == MARBLE) { col = 0xd8d0ee; dark = 0x6a6290; }
 			else if (t == RUNNER) { col = 0xd8a830; dark = 0x8a6a18; }
 			else return;
-			if (px > PX && ((natural(t) && kind == "realm") || fineBuilt(t))) return;
+			if (px > PX && ((natural(t) && kind != "nexus") || fineBuilt(t) || t == WALL)) return;
 			var s:int = px / PX;
 			if (px > PX) { col = grade(col, 0.9); dark = grade(dark, 0.9); }
 			var qx:int = x * px - offX, qy:int = y * px - offY;

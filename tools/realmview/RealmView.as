@@ -35,10 +35,48 @@ package {
 			addChild(new Bitmap(bg));
 		}
 
+		private function dungeonView(room:String):void {
+			var rm:Object = w.rooms[Math.min(w.rooms.length - 1, int(room))];
+			var vx:Number = rm.x + 0.5, vy:Number = rm.y + 0.5;
+			canvas = new BitmapData(960, 640, false, 0);
+			var mtx:Matrix = new Matrix();
+			mtx.scale(TS / w.px, TS / w.px);
+			mtx.translate(-vx * TS + 480, -vy * TS + 320);
+			for (var k:int = 0; k < 12; k++) w.drawGround(canvas, mtx, vx, vy, 20);
+			var list:Array = [], pt:Point = new Point();
+			for (var y:int = int(vy - 9); y <= int(vy + 9); y++) for (var x:int = int(vx - 13); x <= int(vx + 13); x++) {
+				var o:int = w.objs[y * w.N + x];
+				if (o) list.push({y: y + 0.5, o: o, x: x});
+			}
+			var mobs:Array = w.theme.mobs || [];
+			for (var m:int = 0; m < 6 && mobs.length; m++) {
+				var ex:Number = vx + (m - 3) * 2.2, ey:Number = vy + (m % 2 ? 2 : -2);
+				list.push({y: ey, e: new Enemy(mobs[m % mobs.length], ex, ey, 1), x: ex});
+			}
+			list.push({y: vy, hero: true, x: vx});
+			list.sortOn("y", Array.NUMERIC);
+			for each (var d:Object in list) {
+				var bd:BitmapData = d.hero ? Sprites.get("wizard") : d.e ? d.e.sprite : Sprites.get(World.OBJ_NAMES[d.o]);
+				var sx:Number = (d.e || d.hero ? d.x : d.x + 0.5) * TS - vx * TS + 480, base:Number = d.y * TS - vy * TS + 320 + TS / 2;
+				pt.x = int(sx - bd.width / 2); pt.y = int(base - bd.height);
+				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
+			}
+			addChild(new Bitmap(canvas));
+		}
+
 		private function tick(ev:Event):void {
 			var p:Object = loaderInfo.parameters;
 			if (step == 0) { Bosses.init(); step++; return; }
 			if (step == 1 && p.lineup) { lineup(String(p.lineup).split(",")); removeEventListener(Event.ENTER_FRAME, tick); return; }
+			if (step == 1 && p.dg) {
+				// dg=id: a dungeon of that theme instead, looked at in its second room
+				var th:Object = Data.DUNGEONS[Data.dungeonIndex(String(p.dg))];
+				w = new World("dungeon", th.name, th, uint(p.seed || 1234));
+				if (p.classic == "1") w.px = World.PX;
+				dungeonView(String(p.room || "1"));
+				removeEventListener(Event.ENTER_FRAME, tick);
+				return;
+			}
 			if (step == 1) { w = new World("realm", "View", null, uint(p.seed || 1234)); step++; return; }
 			removeEventListener(Event.ENTER_FRAME, tick);
 			var zone:int = int(p.zone || 1);
@@ -58,7 +96,7 @@ package {
 				var score:int = Math.min(n, 14) + kinds * 4;
 				if (score > best) { best = score; vx = x + 0.5; vy = y + 0.5; }
 			}
-			if (p.classic) w.px = World.PX;
+			if (p.classic == "1") w.px = World.PX;
 			// (arena=1: lay the boss's set piece round it, as when a realm event appears)
 			if (p.arena && Bosses.SETPIECES[String(p.boss || "ev_wrecker")]) {
 				var bx:int = int(vx + 3), by:int = int(vy + 1.5);

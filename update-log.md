@@ -23,6 +23,11 @@
 • Chat sits just above the strip
 • **Boss arrows** never hide each other when two bosses are the same way, and the boss your gold quest arrow already points at doesn't get a second one
 
+**🗝️ Every dungeon redrawn**
+• Dungeons are drawn at the **same finer detail as the realm**: grass, sand, water and rock floors get the realm's soft, natural look, and stone, marble, cobbles, sandstone, planks and lava their fine drawings
+• **Walls redrawn** in each dungeon's own colours: a lit top edge, a worn face laid in brick courses (or its own rivets, veins, ice, bone or coral) and a shadowed foot
+• Bright floors are toned down to match, so the monsters stand out
+
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them
 

@@ -3202,7 +3202,7 @@ class World {
 			this.theme = theme;
 			this.N = __int(kind == "realm" ? World.REALM_N : World.DEFAULT_N);
 			
-			this.px = __int(kind == "realm" || kind == "nexus" ? World.REALM_PX : World.PX);
+			this.px = __int(kind == "realm" || kind == "nexus" || kind == "dungeon" ? World.REALM_PX : World.PX);
 			this.ck = __int(World.CHUNK * World.PX / this.px);
 			this.tiles = __vec(this.N * this.N, true);
 			this.objs = __vec(this.N * this.N, true);
@@ -6632,7 +6632,8 @@ Data.NEWS = [
 					"<b>Bosses resized</b> to fit the world: most about three tiles tall, the biggest raid bosses about four and a half (some were half the screen).",
 					"<b>Monsters in the heroes' style</b>: the regular monsters are chunky pixel art again, shaded like your heroes and about your height. Bosses keep their detailed art.",
 					"<b>No more glow when you shoot.</b>",
-					"<b>A new see-through HUD</b>: no more sidebar, the game uses the whole window. Health and mana ring your hero's feet, your gear, bag and potions sit in a slim strip along the bottom, the minimap is round in the top-right corner, and arrows at the edge of the screen point to bosses off screen."]},
+					"<b>A new see-through HUD</b>: no more sidebar, the game uses the whole window. Health and mana ring your hero's feet, your gear, bag and potions sit in a slim strip along the bottom, the minimap is round in the top-right corner, and arrows at the edge of the screen point to bosses off screen.",
+					"<b>The Nexus</b> has a new floor: polished lilac-grey marble instead of the glaring white tiles."]},
 			{id: "2026-11-wrecker", title: "Three realm bosses at once, and Morrow the Wrecker",
 				lines: ["<b>Up to three realm event bosses</b> can now be alive at once, each in its own arena well apart from the others. Split up and take them on your own, or go together.",
 					"<b>Morrow the Wrecker</b>, a new realm boss: he lit false lights to drown ships. His three <b>false beacons</b> ward him (smash them), and when he <b>calls the tide in</b>, take cover behind the shipwreck's broken hull. He drops <b>Wrecker's Hook</b> and <b>The False Light</b> ring, and always leaves the portal to the Drowned Lighthouse."]},

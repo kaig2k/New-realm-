@@ -29,7 +29,7 @@ SKIP = {
     'World': {'texture', 'mark', 'blade', 'shallow', 'render', 'chunk', 'drawGround', 'releaseGround', 'drawEdges',
               'reveal', 'minimap', 'seen', 'chunks', 'chunkOrder', 'drawMtx', 'target', 'offX', 'offY', 'trng',
               'MINI_COL', 'dropChunk', 'redrawArea', 'redrawTiles', 'wash', 'cellNoise', 'decal', 'STONE_PAT', 'WALL_PAT', 'PLAZA_PAT', 'BRICK_PAT', 'MAX_CHUNKS',
-              'natural', 'noiseField', 'NZ', 'ramp', 'ph', 'realmTexture', 'builtTexture', 'upscale', 'classicTexture', 'grade', 'shadeBy', 'fineBuilt',
+              'natural', 'noiseField', 'NZ', 'ramp', 'ph', 'realmTexture', 'builtTexture', 'upscale', 'classicTexture', 'grade', 'shadeBy', 'fineBuilt', 'wallTexture',
               'P_GRASS', 'P_FOREST', 'P_HIGH', 'P_SAND', 'P_GOD', 'P_DEEP', 'P_SHALLOW'},
     'Enemy': {'sprite'},
     'Bosses': {'art', 'skins', 'fitSizes'},

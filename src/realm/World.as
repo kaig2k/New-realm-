@@ -231,7 +231,8 @@ package realm {
 			this.name = name;
 			this.theme = theme;
 			N = kind == "realm" ? REALM_N : DEFAULT_N;
-			px = kind == "realm" ? REALM_PX : PX;
+			// (the realm and the Nexus are drawn finely; dungeons keep the classic ground for now)
+			px = kind == "realm" || kind == "nexus" ? REALM_PX : PX;
 			ck = CHUNK * PX / px;
 			tiles = new Vector.<int>(N * N, true);
 			objs = new Vector.<int>(N * N, true);
@@ -1620,8 +1621,13 @@ package realm {
 
 		// ------------------------------------------------------------ textures
 		private function texture(t:int, tx:int, ty:int):Vector.<uint> {
-			if (px > PX) return natural(t) ? realmTexture(t, tx, ty) : t == ROAD || t == RUIN || t == BRIDGE || t == LAVA || t == PLAZA || t == STONE || t == SANDSTONE ? builtTexture(t, tx, ty) : upscale(classicTexture(t, tx, ty), tx, ty);
+			if (px > PX) return natural(t) && kind == "realm" ? realmTexture(t, tx, ty) : fineBuilt(t) ? builtTexture(t, tx, ty) : upscale(classicTexture(t, tx, ty), tx, ty);
 			return classicTexture(t, tx, ty);
+		}
+
+		/** Built ground with a fine drawing of its own (builtTexture); the rest is the classic tile, drawn finer. */
+		private static function fineBuilt(t:int):Boolean {
+			return t == ROAD || t == RUIN || t == BRIDGE || t == LAVA || t == PLAZA || t == STONE || t == SANDSTONE || t == MARBLE;
 		}
 
 		/** A classic 8x8 tile drawn at this world's finer size (built ground: roads, ruins, set-piece floors). */
@@ -1632,9 +1638,16 @@ package realm {
 				var gx:int = tx * px + x, gy:int = ty * px + y;
 				// (fine wear over the chunky pattern, so it sits with the finely drawn realm)
 				var f:Number = 0.92 + nz[(((gy * 3) & 255) << 8) | ((gx * 3) & 255)] * 0.14 + ((ph(gx, gy) & 7) - 3.5) * 0.008;
-				v[y * px + x] = 0xff000000 | grade(v8[int(y / s) * PX + int(x / s)] & 0xffffff, f);
+				// (the realm's colours are graded to its calmer palette; the Nexus keeps its own violet and gold)
+				var c8:uint = v8[int(y / s) * PX + int(x / s)] & 0xffffff;
+				v[y * px + x] = 0xff000000 | (kind == "realm" ? grade(c8, f) : shadeBy(c8, 0.97 + (f - 0.99) * 0.6));
 			}
 			return v;
+		}
+
+		private static function shadeBy(c:uint, f:Number):uint {
+			var r:Number = ((c >> 16) & 255) * f, g:Number = ((c >> 8) & 255) * f, b:Number = (c & 255) * f;
+			return (uint(r > 255 ? 255 : r) << 16) | (uint(g > 255 ? 255 : g) << 8) | uint(b > 255 ? 255 : b);
 		}
 
 		/** The realm's colour grade for built ground: the brightest tones softened and a little colour taken out. */
@@ -2081,6 +2094,20 @@ package realm {
 						c = pl == 4 ? 0x24160c : ramp([0x4a3019, 0x55381e, 0x604024, 0x6b4829], big * 0.7 + ((ph(0, int(gy / 5)) & 15) / 15) * 0.4 - 0.1);
 						if (pl != 4 && (h & 31) == 0) c = 0x3a2412;
 						if (pl == 2 && (gx % px == 2 || gx % px == px - 3)) c = 0x8a8478;
+					} else if (t == MARBLE || (t == PLAZA && kind == "nexus")) {
+						// polished marble: a slab a tile across, a thin dark joint, soft veins wandering over it
+						// (long slabs, two tiles by one, laid in staggered rows)
+						var srow:int = gy >> 4, sgx:int = gx + (srow & 1) * 16;
+						var mx:int = sgx & 31, my:int = gy & 15;
+						if (mx == 31 || my == 15) c = 0x3c3650;
+						else {
+							var slab:int = ph(sgx >> 5, srow);
+							c = ramp([0x5e5874, 0x67617e, 0x706a88, 0x797392, 0x827c9c], big * 0.55 + (slab & 15) / 15 * 0.35 + ((h & 7) - 3.5) * 0.015);
+							var vein:Number = nz[(((gy * 2 + slab) & 255) << 8) | ((gx * 2 + 31) & 255)] - 0.5;
+							if (vein > -0.006 && vein < 0.006) c = 0x928cae;
+							if (mx == 0 || my == 0) c = Sprites.shade(c, 1.1);
+							if ((h & 1023) == 7) c = 0xd8ccff;
+						}
 					} else {
 						// stones in offset rows: cobbles (5 x 4) on a path, broad slabs (8 x 6) in a ruin
 						var sw:int = t == ROAD ? 5 : t == STONE ? 6 : 8, shh:int = t == ROAD ? 4 : t == STONE ? 5 : t == SANDSTONE ? 4 : 8;
@@ -2324,7 +2351,7 @@ package realm {
 			else if (t == MARBLE) { col = 0xd8d0ee; dark = 0x6a6290; }
 			else if (t == RUNNER) { col = 0xd8a830; dark = 0x8a6a18; }
 			else return;
-			if (px > PX && (natural(t) || t == ROAD || t == RUIN || t == BRIDGE || t == LAVA || t == PLAZA || t == STONE || t == SANDSTONE)) return;
+			if (px > PX && ((natural(t) && kind == "realm") || fineBuilt(t))) return;
 			var s:int = px / PX;
 			if (px > PX) { col = grade(col, 0.9); dark = grade(dark, 0.9); }
 			var qx:int = x * px - offX, qy:int = y * px - offY;

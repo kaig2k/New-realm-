@@ -33,6 +33,10 @@
 • **Long announcements fit on screen**: a long banner, like the Lamplighter's "cannot be hurt in the dark" warning, is drawn smaller instead of running off both edges
 • A stray red circle that throbbed around your name when you were low on health is gone (the health bar and the ring at your feet still warn you)
 
+**🏮 The Drowned Lighthouse, tuned**
+• **The Lamplighter** hit far harder than any other hard dungeon's guardian (three times the damage of the Frost Warden): it fired a volley every second while chasing you to point-blank. Its volleys now come about every 1.6 seconds with fewer shots, putting it in line with the Frost Warden and the Hex Queen
+• Its smoke rings and the Bulwark's shots are lighter, easier to see in the dark
+
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them
 

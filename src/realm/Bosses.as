@@ -1499,9 +1499,9 @@ package realm {
 			lairBoss("lamplighter", {name: "The Lamplighter", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				light: 3, mech: {lamp: {id: "storm_lantern", lit: "storm_lantern_lit", n: 4, r: 8, near: 4.5, burn: 16, snuff: 4}}, phases: [
 				P(1, {say: "Who let the lights go out?", move: "chase",
-					attacks: [aim(3, 26, 8, 75, 1.0, 0xffc860, {name: "wick flick"}), ring(10, 18, 4.5, 60, 2.2, 0xa8c8f0, {name: "smoke ring"})]}),
+					attacks: [aim(2, 20, 8, 65, 1.7, 0xffc860, {name: "wick flick"}), ring(10, 18, 4.5, 60, 2.2, 0xa8c8f0, {name: "smoke ring"})]}),
 				P(0.5, {say: "Darkness suits me better.", move: "chase", speed: 1.2,
-					attacks: [aim(5, 40, 8.5, 75, 0.9, 0xffc860, {name: "wick flick"}), spiral(3, 16, 5, 60, 0.22, 0xa8c8f0, {name: "smoke coil"}),
+					attacks: [aim(3, 30, 8.5, 65, 1.5, 0xffc860, {name: "wick flick"}), spiral(2, 16, 5, 55, 0.3, 0xa8c8f0, {name: "smoke coil"}),
 						nova(2, 1.0, 110, 4.0, 0xffa030, {reach: 7, burst: 8, name: "lamp oil"})]})
 			]});
 			lairProp("storm_lantern", {name: "Storm Lantern (unlit)", spr: "storm_lantern", hp: 900, col: 0x8090a0, lantern: true, xp: 20, attacks: []});

@@ -2550,6 +2550,24 @@ const handlers = {
         if (tc !== c) c.note('Maxed ' + tc.name + '\'s ' + (ch.name || 'hero') + '.', 0x80ff80);
         return tc.send({ t: 'saveRejected', reason: 'OK: ' + (ch.name || 'Your hero') + ' is level 20 with every stat maxed.', data: publicSave(sv) });
       }
+      case '/gear': {
+        // (admins, for testing: the hero being played gets top-tier gear of its class, worn, and a stack of potions)
+        const tc = parts[1] ? target : c;
+        if (!tc) return c.note('Nobody called ' + parts[1] + ' is online.');
+        const sv = onlineSave(tc.key), ch = serverChar(tc);
+        if (!sv || !ch) return c.note('Pick a hero and enter the game first.');
+        const cls = Data.CLASSES[ch.cls] || Data.CLASSES.wizard;
+        ch.weapon = items.issue(sv, Data.makeWeapon(cls.weapon, 7));
+        ch.ability = items.issue(sv, Data.makeAbility(cls.abilityType, 6));
+        ch.armor = items.issue(sv, Data.makeArmor(cls.armor, 7));
+        ch.ring = items.issue(sv, Data.makeRing('def', 5));
+        ch.hpPots = Math.max(Number(ch.hpPots) || 0, 6); ch.mpPots = Math.max(Number(ch.mpPots) || 0, 6);
+        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        store.putSave(tc.key, sv);
+        setCaps(tc);
+        log(c.name + ' used /gear on ' + tc.name);
+        return tc.send({ t: 'saveRejected', reason: 'OK: ' + (ch.name || 'Your hero') + ' is wearing top-tier gear.', data: publicSave(sv) });
+      }
       case '/maxtree': {
         // (admins, for testing: every skill in the hero's tree at its top rank; yours or /maxtree name's)
         const tc = parts[1] ? target : c;

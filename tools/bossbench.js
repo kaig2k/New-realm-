@@ -149,6 +149,8 @@ function setup(id) {
     const lairs = (e) => e.def.lairBoss || e.def.trio || e.def.prop || e.lairShield || e.def.lairShield || e.lairWave || e.lairFeed || e.defId === th.lair.boss || (th.lair.rebirth && e.defId === th.lair.rebirth.into);
     for (const e of sim.enemies) if (!lairs(e)) e.dead = true;
     sim.enemies.splice(0, sim.enemies.length, ...sim.enemies.filter((e) => !e.dead));
+    // (a master sealed behind its dungeon's guardians: they're benched on their own, so it starts unsealed)
+    for (const e of sim.enemies) if (e.def.sealed) e.invuln = false;
     // (between waves, or before its master comes, the bots hold its hall)
     const hall = sim.w.rooms[sim.w.rooms.length - 1];
     const wait = { id: -99, dead: false, immune: true, x: hall.x + 0.5, y: hall.y + 0.5, hp: 1, def: {} };

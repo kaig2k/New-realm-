@@ -723,3 +723,4 @@ Typed in chat by a server admin (config.json `admins`), for testing: `/maxhero` 
 `/aevent` (the realm's next event boss now, up to three alive), `/aspawn id` (a monster or boss in front of you;
 `/aspawn id far` 25 tiles off), `/akill` (everything in this world dies, loot to you), and
 `/adungeon id` (a portal to any dungeon or lair beside you, e.g. `/adungeon drowned_lighthouse`).
+`/gear` puts top-tier gear of the hero's class on it (T7 weapon and armour, T6 ability, T5 ring) and six of each potion.

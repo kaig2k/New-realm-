@@ -436,7 +436,7 @@ package realm {
 					break;
 				case "/report": case "/kick": case "/ban": case "/unban": case "/mute": case "/unmute": case "/announce":
 				case "/restart": case "/unadmin": case "/admins": case "/give": case "/discord":
-				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/maxtree": case "/maxasc": case "/siege": case "/halloween": case "/winter": case "/spires": case "/leaders": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
+				case "/group": case "/gim": case "/l20": case "/backpack": case "/maxhero": case "/gear": case "/maxtree": case "/maxasc": case "/siege": case "/halloween": case "/winter": case "/spires": case "/leaders": case "/mod": case "/unmod": case "/mods": case "/tester": case "/untester": case "/testers": case "/gimremove": case "/vip": case "/unvip": case "/vips":
 				case "/flags": case "/bugs": case "/realms": case "/whois": case "/graves": case "/revive": case "/setpassword": case "/rename": case "/heroname":
 				case "/aevent": case "/akill": case "/aspawn": case "/adungeon":
 					if (!net.online) { msg(cmd + " works when you're playing online.", 0xff8080); break; }

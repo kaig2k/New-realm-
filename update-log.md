@@ -57,6 +57,7 @@
 • The realm's regular monsters are back to **chunky pixel art, like your heroes**, shaded with light and shade, and about your height (the detailed ones looked out of place next to you, and most were twice your size)
 • New chunky drawings for the monsters that never had one: scorpions, crabs, wolves, harpies, medusas, djinns, ents, cubelets, mothlings, the Siege's soldiers, spiderlings, kraken tentacles and clam cannons
 • Bosses keep their detailed art
+• The **White Demon** is now the **Crimson Demon**, a horned red demon (the pale one looked like a goat), and the **Cubelet** is a proper little cube with a glowing eye (it looked like a gem)
 • **No more glow when you shoot**: the burst of light at your weapon and the flash on your hero are gone
 
 **👹 Three bosses at once**

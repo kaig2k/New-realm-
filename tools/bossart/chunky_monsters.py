@@ -174,17 +174,19 @@ ENT_PAL = {'L': 0x3a7a2a, 'l': 0x6aaa44, 'g': 0x1e4a16, 'W': 0x6a4a2a, 'w': 0x9a
 # ----------------------------------------------------------------- Cubelet
 def cubelet(t):
     c = Canvas(16, 16)
-    y = 3 - t
-    # a little hovering cube, seen from above a corner
-    c.poly([(8, y), (13, y + 3), (8, y + 6), (3, y + 3)], 'T')
-    c.poly([(3, y + 3), (8, y + 6), (8, y + 11), (3, y + 8)], 'L')
-    c.poly([(8, y + 6), (13, y + 3), (13, y + 8), (8, y + 11)], 'D')
-    c.put(5, y + 6, 'E'); c.put(6, y + 7, 'E')
-    c.ellipse(8, 14.5, 3, 0.8, 'S')
+    y = 2 - t
+    # a cube, square on: a light top face, a front face, a dark side face, bright edges
+    c.poly([(4, y + 3), (7, y), (14, y), (11, y + 3)], 'T')
+    c.rect(4, y + 3, 10, y + 10, 'L')
+    c.poly([(11, y + 3), (14, y), (14, y + 7), (11, y + 10)], 'D')
+    c.line(4, y + 3, 11, y + 3, 'H'); c.line(11, y + 3, 11, y + 10, 'H'); c.line(11, y + 3, 14, y, 'H')
+    # one glowing eye
+    c.rect(6, y + 5, 8, y + 7, 'K'); c.put(7, y + 6, 'E')
+    c.ellipse(9, 14.5, 4, 0.8, 'S')
     return c
 
 
-CUBELET_PAL = {'T': 0xe090ff, 'L': 0xb050e0, 'D': 0x6a20a0, 'E': 0xffffff, 'S': 0x2a1a30}
+CUBELET_PAL = {'T': 0xd088ff, 'L': 0x9040d0, 'D': 0x4a1880, 'H': 0xf8d8ff, 'E': 0x60ffff, 'K': 0x1a0a30, 'S': 0x1a1020}
 
 
 # ----------------------------------------------------------------- Mothling
@@ -275,7 +277,13 @@ def clam_cannon(t):
 CLAM_CANNON_PAL = {'S': 0xd88aa0, 's': 0xf8c0d0, 'd': 0x8a4a5a, 'K': 0x2a1418, 'P': 0xf8f8ff}
 
 
-NEW = [('scorpion', scorpion, SCORPION_PAL, 3), ('crab', crab, CRAB_PAL, 3), ('wolf', wolf, WOLF_PAL, 3),
+# ----------------------------------------------------------------- Demon (monsters_c's drawing, in reds: it read as a white goat)
+from monsters_c import demon
+DEMON_PAL = {'W': 0xa0201c, 'w': 0xe04a30, 'v': 0x4a0a0a, 'R': 0xffb030, 'r': 0x6a2a08, 'E': 0xffe040,
+             'K': 0x140606, 'F': 0xf0e0c0}
+
+
+NEW = [('demon', demon, DEMON_PAL, 3), ('scorpion', scorpion, SCORPION_PAL, 3), ('crab', crab, CRAB_PAL, 3), ('wolf', wolf, WOLF_PAL, 3),
        ('harpy', harpy, HARPY_PAL, 3), ('medusa', medusa, MEDUSA_PAL, 3), ('djinn', djinn, DJINN_PAL, 3),
        ('ent', ent, ENT_PAL, 3), ('cubelet', cubelet, CUBELET_PAL, 3), ('mothling', mothling, MOTHLING_PAL, 3),
        ('siege_soldier', siege_soldier, SIEGE_SOLDIER_PAL, 3), ('spiderling', spiderling, SPIDERLING_PAL, 3),

@@ -167,7 +167,9 @@ function setup(id) {
     const th = Data.DUNGEONS[di];
     sim = new WorldSim('dg:' + di + ':4242');
     const trio = (th.trio || []).indexOf(id) >= 0;
-    const keep = (e) => trio ? th.trio.indexOf(e.defId) >= 0 : e.defId === id;
+    // (twins are one fight: Ebb and Flow)
+    const mate = d.mech && d.mech.twin ? d.mech.twin.partner : null;
+    const keep = (e) => trio ? th.trio.indexOf(e.defId) >= 0 : e.defId === id || e.defId === mate;
     for (const e of sim.enemies) if (!keep(e)) e.dead = true;
     sim.enemies.splice(0, sim.enemies.length, ...sim.enemies.filter((e) => !e.dead));
     for (const e of sim.enemies) e.invuln = false;
@@ -320,6 +322,9 @@ function fight(id, opts) {
         if (m.follow === b) { for (const o of bots) if (o !== b && Math.hypot(px - o.x, py - o.y) < m.r + 1) danger += 20; }
         else if (d < m.r + 0.6) danger += 30 * (1 - m.t);
       }
+      // a fight's own rules (the Drowned Lighthouse's): where a player who knows it would stand
+      const an = tactic(b, tg);
+      if (an) danger += Math.hypot(b.x + mx * 0.35 - an.x, b.y + my * 0.35 - an.y) * an.w;
       // keep to the weapon's range, and out of the boss's reach
       if (tg) {
         const d = Math.hypot(b.x + mx * 0.35 - tg.x, b.y + my * 0.35 - tg.y), want = Math.max(2.5, H.range * 0.75);
@@ -332,6 +337,47 @@ function fight(id, opts) {
       const nx = b.x + best[0] * dt, ny = b.y + best[1] * dt;
       if (w.canStand(nx, ny, 0.3, false)) { b.x = nx; b.y = ny; }
     }
+  }
+  /**
+   * What a player who knows the fight does: by a lit lantern so the Lamplighter follows it into the light; each of
+   * two heroes dragging one twin to its own end of the hall; behind the Bulwark's shield. {x, y, w} or null.
+   */
+  function tactic(b, tg) {
+    const live = sim.enemies.filter((e) => !e.dead);
+    const lamp = live.find((e) => e.def.mech && e.def.mech.lamp);
+    if (lamp) {
+      let lit = null, ld = 1e9;
+      for (const e of live) if (e.defId === lamp.def.mech.lamp.lit) { const d = (e.x - b.x) ** 2 + (e.y - b.y) ** 2; if (d < ld) { ld = d; lit = e; } }
+      // (beside the light, on the far side from the boss: it walks in after you)
+      if (lit) { const a = Math.atan2(lit.y - lamp.y, lit.x - lamp.x); return { x: lit.x + Math.cos(a) * 1.5, y: lit.y + Math.sin(a) * 1.5, w: 4 }; }
+    }
+    const twin = live.filter((e) => e.def.mech && e.def.mech.twin);
+    if (twin.length === 2 && bots.length === 1) {
+      // alone: kite away from the slow one, so the quick one follows you and they come apart
+      const slow = twin[0].def.spd <= twin[1].def.spd ? twin[0] : twin[1];
+      // (round the hall, keeping well off the slow one: circling, never backed into a corner)
+      const hall = w.rooms.reduce((best, rm) => (Math.hypot(rm.x - slow.x, rm.y - slow.y) < Math.hypot(best.x - slow.x, best.y - slow.y) ? rm : best), w.rooms[0]);
+      const a = Math.atan2(b.y - hall.y, b.x - hall.x) + 0.7, rx = hall.w / 2 - 2.5, ry = hall.h / 2 - 2.5;
+      return { x: hall.x + 0.5 + Math.cos(a) * rx, y: hall.y + 0.5 + Math.sin(a) * ry, w: 2 };
+    }
+    if (twin.length === 2 && bots.length > 1) {
+      const k = bots.indexOf(b) % 2, me = twin[k];
+      const room = w.rooms.reduce((best, r) => (Math.hypot(r.x - me.x, r.y - me.y) < Math.hypot(best.x - me.x, best.y - me.y) ? r : best), w.rooms[0]);
+      return { x: room.x + 0.5 + (k ? 1 : -1) * (room.w / 2 - 2), y: room.y + 0.5, w: 3 };
+    }
+    const guard = live.find((e) => e.def.mech && e.def.mech.guard);
+    if (guard && guard.mech) {
+      // (round behind it: a little further round than where its shield faces now)
+      const back = guard.mech.faceA + Math.PI, mine = Math.atan2(b.y - guard.y, b.x - guard.x);
+      let diff = back - mine; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
+      const a = mine + Math.max(-0.9, Math.min(0.9, diff)), r = Math.max(3, H.range * 0.6);
+      // (inside its hall: round it, not up a corridor where it can't be got round)
+      const hall = w.rooms.reduce((best, rm) => (Math.hypot(rm.x - guard.x, rm.y - guard.y) < Math.hypot(best.x - guard.x, best.y - guard.y) ? rm : best), w.rooms[0]);
+      const cx = Math.max(hall.x - hall.w / 2 + 2, Math.min(hall.x + hall.w / 2 - 2, guard.x + Math.cos(a) * r));
+      const cy = Math.max(hall.y - hall.h / 2 + 2, Math.min(hall.y + hall.h / 2 - 2, guard.y + Math.sin(a) * r));
+      return { x: cx, y: cy, w: 3 };
+    }
+    return null;
   }
   function pick(b) {
     const list = targets();
@@ -348,7 +394,11 @@ function fight(id, opts) {
     const open = list.filter((e) => !e.immune && !e.invuln);
     const pool = open.length ? open : list;
     const props = pool.filter((e) => (e.def.prop && !e.def.invuln) || e.def.stageFoe || e.defId === 'elder_crystal');
-    const from = props.length ? props : pool;
+    let from = props.length ? props : pool;
+    const tw = from.filter((e) => e.def.mech && e.def.mech.twin);
+    if (tw.length === 2 && bots.length > 1) from = [tw[bots.indexOf(b) % 2]];
+    // (alone: the quick one first, it's the one that comes to you)
+    else if (tw.length === 2) from = [tw[0].def.spd > tw[1].def.spd ? tw[0] : tw[1]];
     let best = null, bd = 1e9;
     for (const e of from) { const d = (e.x - b.x) ** 2 + (e.y - b.y) ** 2; if (d < bd) { bd = d; best = e; } }
     return best;

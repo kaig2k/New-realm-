@@ -2702,15 +2702,16 @@ class Bosses {
 			Bosses.lairProp("storm_lantern_lit", {name: "Storm Lantern", spr: "storm_lantern_lit", hp: 900, col: 0xffd060, xp: 0, light: 5, attacks: []});
 			
 			for (var tide of __vals( [["tide_ebb", "Ebb", 0x3090ff, "tide_flow"], ["tide_flow", "Flow", 0x40e8d0, "tide_ebb"]])) {
-				Bosses.lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 4800, spd: 2.0, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
-					mech: {twin: {partner: tide[3], r: 5, revive: 10, rage: 1.4}}, phases: [
-					Bosses.P(1, {move: "chase", attacks: [Bosses.aim(3, 22, 8, 70, 1.1, tide[2]), Bosses.wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
+				
+				Bosses.lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 3600, spd: tide[0] == "tide_flow" ? 2.7 : 1.3, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
+					mech: {twin: {partner: tide[3], r: 3, revive: 10, rage: 1.4}}, phases: [
+					Bosses.P(1, {move: tide[0] == "tide_ebb" ? "orbit" : "chase", attacks: [Bosses.aim(3, 22, 8, 70, 1.1, tide[2]), Bosses.wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
 					Bosses.P(0.4, {move: "orbit", attacks: [Bosses.aim(4, 30, 8.5, 70, 0.9, tide[2]), Bosses.ring(12, 15, 4.5, 60, 1.8, tide[2], {name: "undertow"})]})
 				]});
 			}
 			
 			Bosses.lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
-				mech: {guard: {arc: 75, turn: 65}}, phases: [
+				mech: {guard: {arc: 70, turn: 40}}, phases: [
 				Bosses.P(1, {say: "None pass the light.", move: "chase",
 					attacks: [Bosses.wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), Bosses.aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
 						Bosses.ring(8, 0, 4, 60, 3.5, 0xa8c8f0, {name: "backwash"})]}),
@@ -5579,8 +5580,10 @@ class Lairs {
 		}
 	static update(w, dt, api) {
 			var th = w.theme, L = th && th.lair, st = w.lair;
-			if (!L || !st || st.done) return;
+			if (!L || !st) return;
+			
 			Lairs.mechanics(w, dt, api);
+			if (st.done) return;
 			var last = w.rooms[w.rooms.length - 1];
 			var e = null;
 			
@@ -5766,7 +5769,7 @@ class Lairs {
 				m.init = true;
 				
 				if (!mate && !e.mech.raised) {
-					mate = api.spawn(T.partner, e.x + 4, e.y, e.zone, true);
+					mate = api.spawn(T.partner, e.x + 2, e.y, e.zone, true);
 					if (mate) mate.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
 					api.say("Ebb and Flow rise together! Drag them apart: side by side, neither can be hurt.", w.theme.color, true);
 				}
@@ -5814,6 +5817,11 @@ class Lairs {
 			if (!L || !st) return;
 			
 			if (e.def.lantern) Lairs.lampLit(w, e, api);
+			
+			if (e.def.mech && e.def.mech.lamp) {
+				var LL = e.def.mech.lamp;
+				for (var ln of __vals( w.enemies.slice())) if (!ln.dead && (ln.defId == LL.id || ln.defId == LL.lit)) api.remove(ln);
+			}
 			
 			var tw = e.def.mech && e.def.mech.twin;
 			if (tw) {
@@ -6662,7 +6670,7 @@ Data.NEWS = [
 			{id: "2026-11-lighthouse", title: "New dungeon: the Drowned Lighthouse",
 				lines: ["<b>The Drowned Lighthouse</b> (Morrow the Wrecker's portal): a dark hard dungeon where every fight is about the room, not just the boss.",
 					"<b>The Lamplighter</b> can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but if it lingers by one it puts it out.",
-					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together.",
+					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart (quick Flow chases you, slow Ebb circles). Kill one and the other raises it within 10 seconds, so bring them down together.",
 					"<b>The Bulwark</b> turns its tower shield toward whoever is closest. Hit it from behind or the side: in a group, one of you holds its attention.",
 					"<b>The Drowned Keeper</b> is sealed until all three fall. When it raises the tide a ring of water too thick to dodge floods the hall: <b>get behind a stone pillar</b>. Its uniques: the Keeper's Lamp, Tidewarden Plate and the Ebb and Flow ring."]},
 			{id: "2026-11-alchemy", title: "Potion Alchemy, stronger wands and a smarter loot filter",

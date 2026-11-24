@@ -1677,7 +1677,7 @@ package realm {
 			{id: "2026-11-lighthouse", title: "New dungeon: the Drowned Lighthouse",
 				lines: ["<b>The Drowned Lighthouse</b> (Morrow the Wrecker's portal): a dark hard dungeon where every fight is about the room, not just the boss.",
 					"<b>The Lamplighter</b> can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but if it lingers by one it puts it out.",
-					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together.",
+					"<b>Ebb and Flow</b> can't be hurt side by side: pull them apart (quick Flow chases you, slow Ebb circles). Kill one and the other raises it within 10 seconds, so bring them down together.",
 					"<b>The Bulwark</b> turns its tower shield toward whoever is closest. Hit it from behind or the side: in a group, one of you holds its attention.",
 					"<b>The Drowned Keeper</b> is sealed until all three fall. When it raises the tide a ring of water too thick to dodge floods the hall: <b>get behind a stone pillar</b>. Its uniques: the Keeper's Lamp, Tidewarden Plate and the Ebb and Flow ring."]},
 			{id: "2026-11-alchemy", title: "Potion Alchemy, stronger wands and a smarter loot filter",

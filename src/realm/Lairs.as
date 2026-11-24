@@ -162,8 +162,10 @@ package realm {
 		/** Every tick, where the lair's monsters run. */
 		public static function update(w:World, dt:Number, api:Object):void {
 			var th:Object = w.theme, L:Object = th && th.lair, st:Object = w.lair;
-			if (!L || !st || st.done) return;
+			if (!L || !st) return;
+			// (a warden's own rules hold while it lives, whatever became of the lair's master)
 			mechanics(w, dt, api);
+			if (st.done) return;
 			var last:Object = w.rooms[w.rooms.length - 1];
 			var e:Enemy;
 			// waves: when someone steps into the master's hall
@@ -357,7 +359,7 @@ package realm {
 				m.init = true;
 				// (the first of the pair to be seen brings the other)
 				if (!mate && !e.mech.raised) {
-					mate = api.spawn(T.partner, e.x + 4, e.y, e.zone, true);
+					mate = api.spawn(T.partner, e.x + 2, e.y, e.zone, true);
 					if (mate) mate.mech = {init: true, faceA: 0, nearT: 0, reviveT: 0, revive: null, raised: true};
 					api.say("Ebb and Flow rise together! Drag them apart: side by side, neither can be hurt.", w.theme.color, true);
 				}
@@ -408,6 +410,11 @@ package realm {
 			if (!L || !st) return;
 			// a lantern shot out of the dark lights up
 			if (e.def.lantern) lampLit(w, e, api);
+			// the Lamplighter falls: its lanterns go out with it
+			if (e.def.mech && e.def.mech.lamp) {
+				var LL:Object = e.def.mech.lamp;
+				for each (var ln:Enemy in w.enemies.slice()) if (!ln.dead && (ln.defId == LL.id || ln.defId == LL.lit)) api.remove(ln);
+			}
 			// a twin fell: the other calls it back unless it falls in time
 			var tw:Object = e.def.mech && e.def.mech.twin;
 			if (tw) {

@@ -1508,15 +1508,16 @@ package realm {
 			lairProp("storm_lantern_lit", {name: "Storm Lantern", spr: "storm_lantern_lit", hp: 900, col: 0xffd060, xp: 0, light: 5, attacks: []});
 			// Ebb and Flow: immune while together, and the one left alive calls the other back
 			for each (var tide:Array in [["tide_ebb", "Ebb", 0x3090ff, "tide_flow"], ["tide_flow", "Flow", 0x40e8d0, "tide_ebb"]]) {
-				lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 4800, spd: 2.0, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
-					mech: {twin: {partner: tide[3], r: 5, revive: 10, rage: 1.4}}, phases: [
-					P(1, {move: "chase", attacks: [aim(3, 22, 8, 70, 1.1, tide[2]), wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
+				// (Flow is quick and Ebb slow: kite them and they come apart, so one hero alone can win)
+				lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 3600, spd: tide[0] == "tide_flow" ? 2.7 : 1.3, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
+					mech: {twin: {partner: tide[3], r: 3, revive: 10, rage: 1.4}}, phases: [
+					P(1, {move: tide[0] == "tide_ebb" ? "orbit" : "chase", attacks: [aim(3, 22, 8, 70, 1.1, tide[2]), wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
 					P(0.4, {move: "orbit", attacks: [aim(4, 30, 8.5, 70, 0.9, tide[2]), ring(12, 15, 4.5, 60, 1.8, tide[2], {name: "undertow"})]})
 				]});
 			}
 			// the Bulwark: a wall of a shield, only hurt from behind or the side
 			lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
-				mech: {guard: {arc: 75, turn: 65}}, phases: [
+				mech: {guard: {arc: 70, turn: 40}}, phases: [
 				P(1, {say: "None pass the light.", move: "chase",
 					attacks: [wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
 						ring(8, 0, 4, 60, 3.5, 0xa8c8f0, {name: "backwash"})]}),

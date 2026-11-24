@@ -36,6 +36,9 @@
 **🏮 The Drowned Lighthouse, tuned**
 • **The Lamplighter** hit far harder than any other hard dungeon's guardian (three times the damage of the Frost Warden): it fired a volley every second while chasing you to point-blank. Its volleys now come about every 1.6 seconds with fewer shots, putting it in line with the Frost Warden and the Hex Queen
 • Its smoke rings and the Bulwark's shots are lighter, easier to see in the dark
+• **Ebb and Flow can be beaten alone**: they both chased you at the same speed, so they never came apart and a lone hero could never hurt them. Now quick Flow chases you and slow Ebb circles, so kiting pulls them apart; they shield each other within 3 tiles (was 5), and each has a quarter less health since there are two of them
+• **The Bulwark's shield turns slower** (40° a second, was 65°): below 40% health it chases faster, and getting round behind it alone needed a sprint nobody could keep up while dodging
+• The Lamplighter's lanterns go out when it falls (they used to stay standing)
 
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them

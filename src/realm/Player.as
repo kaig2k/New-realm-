@@ -479,6 +479,8 @@ package realm {
 				g.msg("Auto-fire " + (autoFire ? "enabled" : "disabled"), 0xaaaaaa);
 			}
 			var wantShoot:Boolean = autoFire || (inp.mouseDown && inp.mx < Game.VIEW_W && !g.uiCaptured());
+			// (a hero trying to shoot on safe ground: say why nothing happens, once, in the realm's landing spot)
+			if (wantShoot && w.isSafe(x, y) && w.kind != "nexus" && inp.mouseDown) g.tip("safezone", "You can't shoot on safe ground (the stone square where you arrive). Step off it to fight.");
 			if (wantShoot && !w.isSafe(x, y)) {
 				facingLeft = inp.mx / g.zoom < g.scrX(x, y);
 				attackT = 0.25;

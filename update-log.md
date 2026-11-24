@@ -46,6 +46,8 @@
 • The **daily quests** ("Slay 30 Godlands monsters", "Defeat Morrow") stay out of the way until level 5, so a new hero's list shows only its first steps. They still count from the start
 • The place name under the minimap updates the moment you arrive
 • Boss arrows along the top of the screen keep their names apart
+• Trying to shoot on the safe stone square where you arrive now tells you why nothing happens (once): step off it to fight
+• The gold arrow never points across the map at a boss when no monsters are near; it waits for the next ones to show up
 
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them

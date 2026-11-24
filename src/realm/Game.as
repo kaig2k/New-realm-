@@ -7360,7 +7360,8 @@ package realm {
 			var want:int = Math.min(World.GOD_ZONE, int(player.level / 4));
 			var bestZone:int = -1;
 			for each (e in enemies) {
-				if (e.dead || e.def.drop <= 0) continue;
+				// (just monsters here: bosses are handled above, and a new hero isn't sent to one)
+				if (e.dead || e.def.drop <= 0 || e.isBoss || e.def.prop) continue;
 				var z:int = Math.min(e.zone, want);
 				d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
 				if (z > bestZone || (z == bestZone && d < bestD)) { bestZone = z; bestD = d; best = e; }

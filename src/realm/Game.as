@@ -6058,7 +6058,10 @@ package realm {
 				lines.push("<font color='#80e0ff' size='11'>G E T T I N G   S T A R T E D   " + (gk + 1) + "/" + GUIDE.length + "</font>");
 				lines.push(gs[1] + (gs[2] > 1 ? "  <font color='#b8b8c0'>" + int(Save.data.guideN || 0) + "/" + gs[2] + "</font>" : ""));
 			}
-			for each (var qe:Object in questList()) {
+			// (a new hero sees only the guide until level 5: the day's quests are for the realm's middle and beyond)
+			var early:Boolean = gk < GUIDE.length && gk <= 3;
+			if (early) lines.push("<font color='#9a90b0' size='11'>Daily quests show up at level 5 (they count already).</font>");
+			for each (var qe:Object in early ? [] : questList()) {
 				if (qe.claimed) continue;
 				var tag:String = qe.weekly ? "<font color='#d090ff'>Weekly: </font>" : "";
 				if (qe.p >= qe.goal) lines.push(tag + "<font color='#9cff7a'>" + qe.text + " - done! Claim it in the Nexus</font>");
@@ -7320,8 +7323,11 @@ package realm {
 			}
 			var b:Enemy = world.boss;
 			var e:Enemy, best:Enemy = null, bestD:Number = 1e9, d:Number;
+			// (a new hero in the realm isn't sent off to its event bosses: to monsters its own level, below)
+			var green:Boolean = world.kind == "realm" && player.level < 10;
+			if (green) b = null;
 			// several realm events: head for the nearest
-			for each (e in liveEvents()) {
+			for each (e in green ? [] : liveEvents()) {
 				d = (e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y);
 				if (d < bestD) { bestD = d; b = e; }
 			}
@@ -7331,7 +7337,7 @@ package realm {
 				var sw:Enemy = world.eById[siegePanel.bossId];
 				if (sw && !sw.dead) return sw;
 			}
-			if (!b || b.dead) {
+			if ((!b || b.dead) && !green) {
 				// multi-boss dungeons: head for the nearest boss
 				for each (e in enemies) {
 					if (e.dead || !e.isBoss) continue;
@@ -7368,16 +7374,18 @@ package realm {
 				questT = 0.5;
 				questTarget = pickQuest();
 			}
-			var q:Enemy = questTarget;
-			questArrow.visible = questTf.visible = q != null && !q.dead;
+			// (a new hero in the Nexus, on the guide's first step: the arrow points to the realm portals)
+			var q:Object = questTarget && !questTarget.dead ? questTarget : guidePoint();
+			questArrow.visible = questTf.visible = q != null;
 			if (!questArrow.visible) return;
+			var qName:String = q is Enemy ? Enemy(q).def.name : q.name;
 			var sx:Number = scrX(q.x, q.y), sy:Number = scrY(q.x, q.y);
 			var m:Number = 34;
 			if (sx > m && sx < vw - m && sy > m + 40 && sy < vh - m) {
 				// on screen: bob above the target, pointing down
 				questArrow.rotation = 90;
 				questArrow.x = sx;
-				questArrow.y = sy - TS * (q.isBoss ? 2.2 : 1.4) - 4 + Math.sin(time * 6) * 4;
+				questArrow.y = sy - TS * (q is Enemy ? (Enemy(q).isBoss ? 2.2 : 1.4) : 1.8) - 4 + Math.sin(time * 6) * 4;
 				questTf.visible = false;
 				return;
 			}
@@ -7391,9 +7399,21 @@ package realm {
 			questArrow.y = cy + dy * k;
 			questArrow.rotation = ang * 180 / Math.PI;
 			var dist:int = Math.sqrt((q.x - player.x) * (q.x - player.x) + (q.y - player.y) * (q.y - player.y));
-			questTf.text = q.def.name + "  " + dist + "m";
+			questTf.text = qName + "  " + dist + "m";
 			questTf.x = Math.max(4, Math.min(vw - 164, questArrow.x - 80));
 			questTf.y = questArrow.y + (dy > 0 ? -34 : 14);
+		}
+
+		/** Where the guide's first step wants a new hero to go: the nearest realm portal in the Nexus (or null). */
+		private function guidePoint():Object {
+			if (!inNexus || !world || world.kind != "nexus" || guideStep != 0) return null;
+			var best:Object = null, bd:Number = 1e9;
+			for each (var p:Object in world.portals) {
+				if (p.kind != "realm") continue;
+				var d:Number = (p.x - player.x) * (p.x - player.x) + (p.y - player.y) * (p.y - player.y);
+				if (d < bd) { bd = d; best = p; }
+			}
+			return best ? {x: best.x, y: best.y, portal: true, isBoss: false, name: "Realm portal"} : null;
 		}
 
 		private function render():void {
@@ -8725,7 +8745,8 @@ package realm {
 		private var arrowTf:TextField;
 		private var arrowMtx:Matrix = new Matrix();
 		private function drawBossArrows():void {
-			if (!world || world.kind != "realm") return;
+			// (a brand-new hero isn't shown the way to bosses it can't yet survive)
+			if (!world || world.kind != "realm" || player.level < 5) return;
 			var evs:Array = liveEvents();
 			if (!evs.length) return;
 			if (!arrowTf) { arrowTf = Ui.text(13, 0xffffff, true, "left", 0, true); arrowTf.autoSize = "left"; arrowTf.filters = [new GlowFilter(0x000000, 1, 3, 3, 5)]; }
@@ -8748,7 +8769,8 @@ package realm {
 				var stepX:Number = ax < vw / 2 ? 210 : -210;
 				for (var tries:int = 0; tries < 4; tries++) {
 					var clash:Boolean = false;
-					for each (var pp:Array in placed) if (Math.abs(pp[0] - ax) < 34 && Math.abs(pp[1] - ay) < 34) clash = true;
+					// (names run sideways: along the top or bottom they need a label's width apart)
+					for each (var pp:Array in placed) if (Math.abs(pp[0] - ax) < (onSide ? 34 : 190) && Math.abs(pp[1] - ay) < 34) clash = true;
 					if (!clash) break;
 					if (onSide) ay += 38; else ax += stepX;
 				}

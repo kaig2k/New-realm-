@@ -86,6 +86,7 @@ package realm {
 		private var downX:Number, downY:Number;
 		private var lastStats:String = "";
 		private var lastBag:LootBag;
+		private var lastWorld:World;
 
 		// the see-through layout: no sidebar; a strip along the bottom, the minimap round in the top-right corner
 		public static const STRIP_W:int = 842, STRIP_H:int = 58;
@@ -726,7 +727,9 @@ package realm {
 			if (bag) for each (es in bagSlots) es.tick(now);
 			if (statPage.visible && frameN % 15 == 0) refreshStatus(p);
 			if (++frameN % 4 == 0) drawMinimap();
-			if (frameN % 30 == 1) {
+			// (the place's name as soon as you arrive; the head count every so often)
+			if (frameN % 30 == 1 || g.world != lastWorld) {
+				lastWorld = g.world;
 				zoneTf.text = g.world.kind == "realm" ? g.world.name + " Realm" : g.world.name;
 				onlineTf.htmlText = "<font color='#5ee08a'>\u25cf</font> " + (g.net.players.length + 1) + " here";
 			}

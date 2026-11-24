@@ -40,6 +40,13 @@
 • **The Bulwark's shield turns slower** (40° a second, was 65°): below 40% health it chases faster, and getting round behind it alone needed a sprint nobody could keep up while dodging
 • The Lamplighter's lanterns go out when it falls (they used to stay standing)
 
+**🌱 A smoother start for new heroes**
+• A new hero's gold arrow now **points to the realm portals** in the Nexus, so the first step of Getting Started shows you where to go
+• In the realm, a hero under level 10 is pointed at **monsters its own level**, not across the map to event bosses that would kill it. Event-boss arrows appear from level 5
+• The **daily quests** ("Slay 30 Godlands monsters", "Defeat Morrow") stay out of the way until level 5, so a new hero's list shows only its first steps. They still count from the start
+• The place name under the minimap updates the moment you arrive
+• Boss arrows along the top of the screen keep their names apart
+
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them
 

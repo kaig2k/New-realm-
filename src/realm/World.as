@@ -1997,7 +1997,8 @@ package realm {
 							else if ((bh & 63) == 7 && gy % 3 != 2) c = 0x253f1a;
 							break;
 						case DARK:
-							c = ramp(P_FOREST, big * 0.5 + fine * 0.6 - 0.05 + dither);
+							// (a dungeon's forest floor is lit a little: monsters there have to show against it)
+							c = kind == "dungeon" ? ramp(P_GRASS, big * 0.5 + fine * 0.55 - 0.3 + dither) : ramp(P_FOREST, big * 0.5 + fine * 0.6 - 0.05 + dither);
 							// leaf litter and moss
 							if ((h & 63) == 0) c = 0x4a3c22;
 							else if ((h & 63) == 1) c = 0x3a5a2a;

@@ -27,6 +27,7 @@
 • Dungeons are drawn at the **same finer detail as the realm**: grass, sand, water and rock floors get the realm's soft, natural look, and stone, marble, cobbles, sandstone, planks and lava their fine drawings
 • **Walls redrawn** in each dungeon's own colours: a lit top edge, a worn face laid in brick courses (or its own rivets, veins, ice, bone or coral) and a shadowed foot
 • Bright floors are toned down to match, so the monsters stand out
+• Forest dungeons (the Forest Maze, Spider Den and others) have a lighter forest floor, so their dark spiders and shades stand out
 
 **🎯 Easier to read in a fight**
 • **Bullets too dark to see are brightened**: any enemy shot in grey, black, deep blue or violet (the Pirate Captain's and Saltbeard's near-black shots, Morrow's undertow, the Lamplighter's smoke rings, the Kraken's ink, the Sorcerer's and Tempestus's deep blues and more) is lightened, keeping its colour, so it shows against any ground. Bright reds were already fine and are unchanged

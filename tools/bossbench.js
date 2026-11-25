@@ -354,13 +354,15 @@ function fight(id, opts) {
       if (lit) { const a = Math.atan2(lit.y - lamp.y, lit.x - lamp.x); return { x: lit.x + Math.cos(a) * 1.5, y: lit.y + Math.sin(a) * 1.5, w: 4 }; }
     }
     // the Drowned Keeper's Great Wave: once its warning is on the ground, hide behind the pillar nearest you
-    const keeper = live.find((e) => e.defId === 'drowned_keeper');
+    // (any boss with a take-cover wave: an attack that shouts a warning and bursts from the boss itself)
+    const waveOf = (e) => (e.phases || e.def.phases || []).some((ph) => !Array.isArray(ph) && (ph.attacks || []).some((a) => a.shout && a.p === 'nova'));
+    const keeper = live.find((e) => e.isBoss && waveOf(e));
     if (keeper && !opt('nocover') && marks.some((m) => !m.follow && Math.hypot(m.x - keeper.x, m.y - keeper.y) < 1.5)) {
       if (!pillars) {
         pillars = [];
         for (let y = Math.floor(keeper.homeY) - 11; y <= keeper.homeY + 11; y++) for (let x = Math.floor(keeper.homeX) - 11; x <= keeper.homeX + 11; x++) {
           const d = Math.hypot(x + 0.5 - keeper.homeX, y + 0.5 - keeper.homeY);
-          if (d > 5 && d < 10 && w.tileAt(x + 0.5, y + 0.5) === World.WALL) pillars.push([x + 0.5, y + 0.5]);
+          if (d > 2.5 && d < 10 && w.tileAt(x + 0.5, y + 0.5) === World.WALL) pillars.push([x + 0.5, y + 0.5]);
         }
         // (each pillar once, by its middle: the tiles of a 2 x 2 block together)
         const mids = [];

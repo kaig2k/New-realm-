@@ -863,15 +863,15 @@ package realm {
 				gold: 500, onrane: 5, r: 1.0, light: 5, phases: [
 				P(1, {say: "Another ship for the rocks.", move: "wander",
 					attacks: [aim(3, 18, 9, 80, 1.0, 0xffc860, {name: "hook throw"}), ring(12, 15, 4.5, 60, 1.6, 0x6ec8ff, {name: "undertow"}),
-						nova(2.2, 2.4, 140, 11, 0x60c8ff, {reach: 0.01, burst: 48, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+						nova(2.2, 2.4, 140, 11, 0x60c8ff, {reach: 0.01, burst: 90, shard: 1.5, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
 				P(0.6, {say: "Follow the light, little ships...", banner: "The false lights blaze!", shield: 2.5, summon: [{what: "pirate_brawler", n: 3}], move: "still",
-					attacks: [spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), rain(4, 4, 90, 2.4, 0x6ec8ff, {burst: 6}),
-						nova(2.2, 2.2, 150, 9, 0x60c8ff, {reach: 0.01, burst: 56, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+					attacks: [spiral(3, 12, 6, 65, 0.14, 0xffc860, {name: "lure light"}), rain(4, 4, 90, 2.4, 0x6ec8ff, {burst: 6, name: "falling wreckage"}),
+						nova(2.2, 2.2, 150, 9, 0x60c8ff, {reach: 0.01, burst: 100, shard: 1.5, bspd: 4.4, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]}),
 				P(0.3, {say: "THE SEA TAKES EVERYTHING!", banner: "The wreck floods!", move: "chase", speed: 1.3,
 					attacks: [aim(5, 40, 9, 80, 0.9, 0xffc860, {name: "hook throw"}), wall(15, 5, 80, 2.2, 0x6ec8ff, {hole: 3, motion: "wave"}),
-						nova(2.2, 2.0, 160, 8, 0x60c8ff, {reach: 0.01, burst: 64, bspd: 4.6, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
+						nova(2.2, 2.0, 160, 8, 0x60c8ff, {reach: 0.01, burst: 110, shard: 1.5, bspd: 4.6, blife: 2.6, marker: "rune", fx: "spikes", land: "slam",
 							shout: "Morrow calls the tide in! Take cover behind the wreck!", name: "wrecking tide"})]})
 			]});
 

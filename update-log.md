@@ -1,14 +1,24 @@
 **📜 ELDMERE UPDATE: The Drowned Lighthouse**
 
-**🌲 The realm's makeover**
-• The realm's ground is drawn at **twice the detail** in calmer, natural colours, so the monsters and bosses finally look like they belong there
-• Grass with tufts, a darker forest floor with leaf litter, dry highland stalks, rippled sand, and the Godlands' cracked rock with violet fissures
-• Where two kinds of ground meet, the border **wanders naturally** instead of following a square grid
-• **Water** gets deeper away from the shore, with foam where it meets the land and wet sand beside it
-• Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**
-• Trees, rocks, ruins, tents and graves toned to match, and the event bosses' arenas fitted into the new ground
-• It draws no slower than the old ground, so walking around stays smooth
-• **Bosses resized** to sit in the world: dungeon, lair and realm bosses about three tiles tall (most were four to five), the biggest raid bosses about four and a half (they were over nine, half the screen)
+**🗼 New dungeon: the Drowned Lighthouse**
+• A dark hard dungeon, reached only through Morrow's portal. Four fights where the room matters as much as the boss
+• **The Lamplighter** can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but it snuffs any lantern it lingers beside
+• **Ebb and Flow** can't be hurt while side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together
+• **The Bulwark** turns its tower shield toward whoever is closest: hit it from behind or the side, or have a friend hold its attention
+• **The Drowned Keeper** is sealed until all three fall. When it **raises the tide**, a wave too thick to dodge floods the hall: get behind a stone pillar. Its lighthouse beam sweeps the room the whole time
+• Lanterns and the Keeper's lamp **light up the dark** around them
+• New uniques: **The Keeper's Lamp** (a staff of two piercing beams), **Tidewarden Plate** and the **Ebb and Flow** ring
+
+**🏮 New realm boss: Morrow the Wrecker**
+• A wrecker who lit false lights to drown ships, waiting on a shipwreck in the shallows
+• Three **false beacons** shield him: smash them all to hurt him
+• When he **calls the tide in**, a ring of water bursts out of him: take cover behind the wreck's broken hull
+• Drops **Wrecker's Hook** and **The False Light** ring, and always leaves the portal to **the Drowned Lighthouse**
+
+**👹 Three bosses at once**
+• Up to **three realm event bosses** can be alive at the same time, each in its own arena well apart from the others
+• All of them show on the minimap, the quest arrow points to the nearest, and the boss panel follows whichever you're fighting
+• Split up and take one each, or go together. They still count toward the 8 that close the realm
 
 **🖥️ A new see-through HUD**
 • **The sidebar is gone**: the game now uses the whole window, about a third more room to see what's coming
@@ -24,46 +34,22 @@
 • Standing on a loot bag, the chat moves up out of the way of its items (long lines used to run across them)
 • **Boss arrows** never hide each other when two bosses are the same way, and the boss your gold quest arrow already points at doesn't get a second one
 
+**🌲 The realm's makeover**
+• The realm's ground is drawn at **twice the detail** in calmer, natural colours, so the monsters and bosses finally look like they belong there
+• Grass with tufts, a darker forest floor with leaf litter, dry highland stalks, rippled sand, and the Godlands' cracked rock with violet fissures
+• Where two kinds of ground meet, the border **wanders naturally** instead of following a square grid
+• **Water** gets deeper away from the shore, with foam where it meets the land and wet sand beside it
+• Cobbled paths, flagstoned ruins, plank bridges and crusted, glowing **lava**
+• Trees, rocks, ruins, tents and graves toned to match, and the event bosses' arenas fitted into the new ground
+• It draws no slower than the old ground, so walking around stays smooth
+• **Bosses resized** to sit in the world: dungeon, lair and realm bosses about three tiles tall (most were four to five), the biggest raid bosses about four and a half (they were over nine, half the screen)
+
 **🗝️ Every dungeon redrawn**
 • Dungeons are drawn at the **same finer detail as the realm**: grass, sand, water and rock floors get the realm's soft, natural look, and stone, marble, cobbles, sandstone, planks and lava their fine drawings
 • **Walls redrawn** in each dungeon's own colours: a lit top edge, a worn face laid in brick courses (or its own rivets, veins, ice, bone or coral) and a shadowed foot
 • Bright floors are toned down to match, so the monsters stand out
-• **The vault, the guild hall and the arena** get the same finer floors and walls: the vault in its grey stone, the guild hall's floor a warm cream flagstone beside its red carpet
+• **The vault, the guild hall, the arena and the Endless Abyss** get the same finer floors and walls: the vault in its grey stone, the guild hall's floor a warm cream flagstone beside its red carpet
 • Forest dungeons (the Forest Maze, Spider Den and others) have a lighter forest floor, so their dark spiders and shades stand out
-
-**🎯 Easier to read in a fight**
-• **Bullets too dark to see are brightened**: any enemy shot in grey, black, deep blue or violet (the Pirate Captain's and Saltbeard's near-black shots, Morrow's undertow, the Lamplighter's smoke rings, the Kraken's ink, the Sorcerer's and Tempestus's deep blues and more) is lightened, keeping its colour, so it shows against any ground. Bright reds were already fine and are unchanged
-• **Long announcements fit on screen**: a long banner, like the Lamplighter's "cannot be hurt in the dark" warning, is drawn smaller instead of running off both edges
-• A stray red circle that throbbed around your name when you were low on health is gone (the health bar and the ring at your feet still warn you)
-
-**🏮 The Drowned Lighthouse, tuned**
-• **The Lamplighter** hit far harder than any other hard dungeon's guardian (three times the damage of the Frost Warden): it fired a volley every second while chasing you to point-blank. Its volleys now come about every 1.6 seconds with fewer shots, putting it in line with the Frost Warden and the Hex Queen
-• Its smoke rings and the Bulwark's shots are lighter, easier to see in the dark
-• **Ebb and Flow can be beaten alone**: they both chased you at the same speed, so they never came apart and a lone hero could never hurt them. Now quick Flow chases you and slow Ebb circles, so kiting pulls them apart; they shield each other within 3 tiles (was 5), and each has a quarter less health since there are two of them
-• **The Bulwark's shield turns slower** (40° a second, was 65°): below 40% health it chases faster, and getting round behind it alone needed a sprint nobody could keep up while dodging
-• The Lamplighter's lanterns go out when it falls (they used to stay standing)
-• **The Bulwark stays in its hall**: it used to chase you up the corridors, where there's no way round its shield. Its harpoon volleys are thinner too (it hit harder than any other warden)
-• **The Keeper's Great Wave means it now**: you could take it on the chin, since a ring of bullets only ever hits you once. Its ring is thicker and each of its bullets hits far harder, so hiding behind a pillar is the answer, not dodging. Fought from cover, the fight is as hard as before
-• **Morrow's wrecking tide** works the same way, a little lighter (it's a realm boss for crowds): a thicker ring of heavier water, so the wreck's broken hull is worth hiding behind. He was one of the easiest event bosses; he's now in the middle of the pack
-• The death recap names the attack whose bullets burst out of a blast (the Great Wave, a storm surge...) instead of calling them all "blast shards"
-
-**🌱 A smoother start for new heroes**
-• A new hero's gold arrow now **points to the realm portals** in the Nexus, so the first step of Getting Started shows you where to go
-• In the realm, a hero under level 10 is pointed at **monsters its own level**, not across the map to event bosses that would kill it. Event-boss arrows appear from level 5
-• The **daily quests** ("Slay 30 Godlands monsters", "Defeat Morrow") stay out of the way until level 5, so a new hero's list shows only its first steps. They still count from the start
-• The place name under the minimap updates the moment you arrive
-• Boss arrows along the top of the screen keep their names apart
-• Trying to shoot on the safe stone square where you arrive now tells you why nothing happens (once): step off it to fight
-• The gold arrow never points across the map at a boss when no monsters are near; it waits for the next ones to show up
-
-**⚖️ Two lairs eased**
-• **The Phantom Court** was the hardest lair: the Mirror Regent's echoes (up to seven at once) each fired a fast spiral. Their spirals are slower and thinner, and the last phase calls three echoes, not four. It's now mid-pack
-• **The Drowned Keep**: Admiral Brine's cannon fire and the Drowned Admiral's tide burst into fewer shards, and both forms' sabre volleys come a little slower. It's still one of the harder lairs, level with the Wyrm Cradle
-
-**📖 The Wiki**
-• **Every lair master is in the Wiki now** (Hard Dgns tab): the Tesseract, Glacia, Ankhamun, the Leviathan, the Drowned Keeper and the rest were missing. Each says whose lair it is
-• The Drowned Lighthouse's four fights each have a one-line hint ("only hurt beside a lit lantern", "hit it from behind or the side"...)
-• Bosses with no uniques of their own show what they do give: two tier 7 items and three stat potions
 
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them
@@ -75,25 +61,39 @@
 • The **White Demon** is now the **Crimson Demon**, a horned red demon (the pale one looked like a goat), and the **Cubelet** is a proper little cube with a glowing eye (it looked like a gem)
 • **No more glow when you shoot**: the burst of light at your weapon and the flash on your hero are gone
 
-**👹 Three bosses at once**
-• Up to **three realm event bosses** can be alive at the same time, each in its own arena well apart from the others
-• All of them show on the minimap, the quest arrow points to the nearest, and the boss panel follows whichever you're fighting
-• Split up and take one each, or go together. They still count toward the 8 that close the realm
+**🌱 A smoother start for new heroes**
+• A new hero's gold arrow now **points to the realm portals** in the Nexus, so the first step of Getting Started shows you where to go
+• In the realm, a hero under level 10 is pointed at **monsters its own level**, not across the map to event bosses that would kill it. Event-boss arrows appear from level 5
+• The **daily quests** ("Slay 30 Godlands monsters", "Defeat Morrow") stay out of the way until level 5, so a new hero's list shows only its first steps. They still count from the start
+• The place name under the minimap updates the moment you arrive
+• Boss arrows along the top of the screen keep their names apart
+• Trying to shoot on the safe stone square where you arrive now tells you why nothing happens (once): step off it to fight
+• The gold arrow never points across the map at a boss when no monsters are near; it waits for the next ones to show up
 
-**🏮 New realm boss: Morrow the Wrecker**
-• A wrecker who lit false lights to drown ships, waiting on a shipwreck in the shallows
-• Three **false beacons** shield him: smash them all to hurt him
-• When he **calls the tide in**, a ring of water bursts out of him: take cover behind the wreck's broken hull
-• Drops **Wrecker's Hook** and **The False Light** ring, and always leaves the portal to **the Drowned Lighthouse**
+**🎯 Easier to read in a fight**
+• **Bullets too dark to see are brightened**: any enemy shot in grey, black, deep blue or violet (the Pirate Captain's and Saltbeard's near-black shots, Morrow's undertow, the Lamplighter's smoke rings, the Kraken's ink, the Sorcerer's and Tempestus's deep blues and more) is lightened, keeping its colour, so it shows against any ground. Bright reds were already fine and are unchanged
+• **Long announcements fit on screen**: a long banner, like the Lamplighter's "cannot be hurt in the dark" warning, is drawn smaller instead of running off both edges
+• A stray red circle that throbbed around your name when you were low on health is gone (the health bar and the ring at your feet still warn you)
 
-**🗼 New dungeon: the Drowned Lighthouse**
-• A dark hard dungeon, reached only through Morrow's portal. Four fights where the room matters as much as the boss
-• **The Lamplighter** can't be hurt in the dark. Shoot its storm lanterns to light them and lure it into their glow, but it snuffs any lantern it lingers beside
-• **Ebb and Flow** can't be hurt while side by side: pull them apart. Kill one and the other raises it within 10 seconds, so bring them down together
-• **The Bulwark** turns its tower shield toward whoever is closest: hit it from behind or the side, or have a friend hold its attention
-• **The Drowned Keeper** is sealed until all three fall. When it **raises the tide**, a wave too thick to dodge floods the hall: get behind a stone pillar. Its lighthouse beam sweeps the room the whole time
-• Lanterns and the Keeper's lamp **light up the dark** around them
-• New uniques: **The Keeper's Lamp** (a staff of two piercing beams), **Tidewarden Plate** and the **Ebb and Flow** ring
+**📖 The Wiki**
+• **Every lair master is in the Wiki now** (Hard Dgns tab): the Tesseract, Glacia, Ankhamun, the Leviathan, the Drowned Keeper and the rest were missing. Each says whose lair it is
+• The Drowned Lighthouse's four fights each have a one-line hint ("only hurt beside a lit lantern", "hit it from behind or the side"...)
+• Bosses with no uniques of their own show what they do give: two tier 7 items and three stat potions
+
+**🏮 Drowned Lighthouse fixes (since it opened)**
+• **The Lamplighter** hit far harder than any other hard dungeon's guardian (three times the damage of the Frost Warden): it fired a volley every second while chasing you to point-blank. Its volleys now come about every 1.6 seconds with fewer shots, putting it in line with the Frost Warden and the Hex Queen
+• Its smoke rings and the Bulwark's shots are lighter, easier to see in the dark
+• **Ebb and Flow can be beaten alone**: they both chased you at the same speed, so they never came apart and a lone hero could never hurt them. Now quick Flow chases you and slow Ebb circles, so kiting pulls them apart; they shield each other within 3 tiles (was 5), and each has a quarter less health since there are two of them
+• **The Bulwark's shield turns slower** (40° a second, was 65°): below 40% health it chases faster, and getting round behind it alone needed a sprint nobody could keep up while dodging
+• The Lamplighter's lanterns go out when it falls (they used to stay standing)
+• **The Bulwark stays in its hall**: it used to chase you up the corridors, where there's no way round its shield. Its harpoon volleys are thinner too (it hit harder than any other warden)
+• **The Keeper's Great Wave means it now**: you could take it on the chin, since a ring of bullets only ever hits you once. Its ring is thicker and each of its bullets hits far harder, so hiding behind a pillar is the answer, not dodging. Fought from cover, the fight is as hard as before
+• **Morrow's wrecking tide** works the same way, a little lighter (it's a realm boss for crowds): a thicker ring of heavier water, so the wreck's broken hull is worth hiding behind. He was one of the easiest event bosses; he's now in the middle of the pack
+• The death recap names the attack whose bullets burst out of a blast (the Great Wave, a storm surge...) instead of calling them all "blast shards"
+
+**⚖️ Two lairs eased**
+• **The Phantom Court** was the hardest lair: the Mirror Regent's echoes (up to seven at once) each fired a fast spiral. Their spirals are slower and thinner, and the last phase calls three echoes, not four. It's now mid-pack
+• **The Drowned Keep**: Admiral Brine's cannon fire and the Drowned Admiral's tide burst into fewer shards, and both forms' sabre volleys come a little slower. It's still one of the harder lairs, level with the Wyrm Cradle
 
 **📜 ELDMERE UPDATE: Bosses Tuned**
 

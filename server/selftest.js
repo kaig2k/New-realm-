@@ -2287,7 +2287,9 @@ async function run() {
         stored = next;
       };
       let n = 0;
-      for (let run = 0; run < 14 && h.ascXp < 1500; run++) {
+      // (it plays on until it has the skill points the check below spends and expects: random elites and loot
+      // left it one short now and then, a failure that was the test's, not the server's)
+      for (let run = 0; run < 30 && (h.ascXp < 1500 || h.skillPoints < 22); run++) {
         const ws = new WorldSim('dg:6:' + (4300 + run));
         const me = { id: 7, x: 100, y: 100, maxDps: 1e9, send: () => {} };
         ws.join(me);

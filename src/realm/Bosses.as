@@ -1528,15 +1528,15 @@ package realm {
 			// the Drowned Keeper: sealed until all three fall; its Great Wave can only be hidden from behind the pillars
 			lairBoss("drowned_keeper", {name: "The Drowned Keeper", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [
 				P(1, {say: "The light... must... turn.", move: "center",
-					attacks: [nova(2.6, 2.6, 170, 12, 0x60c8ff, {reach: 0.01, burst: 72, bspd: 4.2, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+					attacks: [nova(2.6, 2.6, 170, 12, 0x60c8ff, {reach: 0.01, burst: 120, shard: 2.4, bspd: 4.2, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
 							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
 						spiral(2, 7, 7, 75, 0.09, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), aim(3, 24, 8.5, 80, 1.4, 0x60c8ff)]}),
 				P(0.6, {say: "THE SEA CLAIMS ALL WHO LINGER.", banner: "The lighthouse floods!", shield: 2, move: "center", summon: [{what: "tide_spawn", n: 4}],
-					attacks: [nova(2.6, 2.4, 180, 10, 0x60c8ff, {reach: 0.01, burst: 84, bspd: 4.4, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+					attacks: [nova(2.6, 2.4, 180, 10, 0x60c8ff, {reach: 0.01, burst: 140, shard: 2.4, bspd: 4.4, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
 							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
 						spiral(3, 8, 7, 75, 0.08, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), rain(5, 5, 100, 2.6, 0x60c8ff, {burst: 6, name: "storm surge"})]}),
 				P(0.25, {say: "LET THE LIGHT GO OUT.", move: "center",
-					attacks: [nova(2.6, 2.2, 190, 8.5, 0x60c8ff, {reach: 0.01, burst: 96, bspd: 4.6, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
+					attacks: [nova(2.6, 2.2, 190, 8.5, 0x60c8ff, {reach: 0.01, burst: 160, shard: 2.4, bspd: 4.6, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
 							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),
 						spiral(4, -9, 7.5, 80, 0.08, 0xfff0a0, {r: 0.26, name: "lighthouse beam"}), aim(5, 40, 9, 80, 1.0, 0x60c8ff, {motion: "wave"})]})
 			]});

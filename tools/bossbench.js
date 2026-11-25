@@ -310,6 +310,8 @@ function fight(id, opts) {
         for (let t = 0.05; t <= 0.6; t += 0.11) {
           const px = b.x + mx * Math.min(t, 0.35), py = b.y + my * Math.min(t, 0.35);
           const [sx, sy] = ahead(s, t, px, py);
+          // (a wall in the way stops it: a player sees that)
+          if (!s.passWalls && w.blocksShot((s.x + sx) / 2, (s.y + sy) / 2)) break;
           const rr = (s.r || 0.3) + 0.3 + 0.15;
           const d2 = (sx - px) ** 2 + (sy - py) ** 2;
           if (d2 < rr * rr * 2.2) danger += (1 - t) * 4 / (0.05 + d2);
@@ -351,6 +353,27 @@ function fight(id, opts) {
       // (beside the light, on the far side from the boss: it walks in after you)
       if (lit) { const a = Math.atan2(lit.y - lamp.y, lit.x - lamp.x); return { x: lit.x + Math.cos(a) * 1.5, y: lit.y + Math.sin(a) * 1.5, w: 4 }; }
     }
+    // the Drowned Keeper's Great Wave: once its warning is on the ground, hide behind the pillar nearest you
+    const keeper = live.find((e) => e.defId === 'drowned_keeper');
+    if (keeper && !opt('nocover') && marks.some((m) => !m.follow && Math.hypot(m.x - keeper.x, m.y - keeper.y) < 1.5)) {
+      if (!pillars) {
+        pillars = [];
+        for (let y = Math.floor(keeper.homeY) - 11; y <= keeper.homeY + 11; y++) for (let x = Math.floor(keeper.homeX) - 11; x <= keeper.homeX + 11; x++) {
+          const d = Math.hypot(x + 0.5 - keeper.homeX, y + 0.5 - keeper.homeY);
+          if (d > 5 && d < 10 && w.tileAt(x + 0.5, y + 0.5) === World.WALL) pillars.push([x + 0.5, y + 0.5]);
+        }
+        // (each pillar once, by its middle: the tiles of a 2 x 2 block together)
+        const mids = [];
+        for (const p of pillars) {
+          const m = mids.find((q) => Math.abs(q[0] / q[2] - p[0]) < 1.6 && Math.abs(q[1] / q[2] - p[1]) < 1.6);
+          if (m) { m[0] += p[0]; m[1] += p[1]; m[2]++; } else mids.push([p[0], p[1], 1]);
+        }
+        pillars = mids.map((m) => [m[0] / m[2], m[1] / m[2]]);
+      }
+      let best = null, bd = 1e9;
+      for (const p of pillars) { const d = Math.hypot(p[0] - b.x, p[1] - b.y); if (d < bd) { bd = d; best = p; } }
+      if (best) { const a = Math.atan2(best[1] - keeper.y, best[0] - keeper.x); return { x: best[0] + Math.cos(a) * 2.0, y: best[1] + Math.sin(a) * 2.0, w: 25 }; }
+    }
     const twin = live.filter((e) => e.def.mech && e.def.mech.twin);
     if (twin.length === 2 && bots.length === 1) {
       // alone: kite away from the slow one, so the quick one follows you and they come apart
@@ -379,6 +402,7 @@ function fight(id, opts) {
     }
     return null;
   }
+  let pillars = null;
   function pick(b) {
     const list = targets();
     if (!list.length) return null;

@@ -42,6 +42,7 @@
 • **Ebb and Flow can be beaten alone**: they both chased you at the same speed, so they never came apart and a lone hero could never hurt them. Now quick Flow chases you and slow Ebb circles, so kiting pulls them apart; they shield each other within 3 tiles (was 5), and each has a quarter less health since there are two of them
 • **The Bulwark's shield turns slower** (40° a second, was 65°): below 40% health it chases faster, and getting round behind it alone needed a sprint nobody could keep up while dodging
 • The Lamplighter's lanterns go out when it falls (they used to stay standing)
+• **The Bulwark stays in its hall**: it used to chase you up the corridors, where there's no way round its shield. Its harpoon volleys are thinner too (it hit harder than any other warden)
 • **The Keeper's Great Wave means it now**: you could take it on the chin, since a ring of bullets only ever hits you once. Its ring is thicker and each of its bullets hits far harder, so hiding behind a pillar is the answer, not dodging. Fought from cover, the fight is as hard as before
 • **Morrow's wrecking tide** works the same way, a little lighter (it's a realm boss for crowds): a thicker ring of heavier water, so the wreck's broken hull is worth hiding behind. He was one of the easiest event bosses; he's now in the middle of the pack
 • The death recap names the attack whose bullets burst out of a blast (the Great Wave, a storm surge...) instead of calling them all "blast shards"

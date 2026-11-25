@@ -306,7 +306,7 @@ package realm {
 				var m:Object = e.mech;
 				if (M.lamp) lampRules(w, e, M.lamp, m, dt, api);
 				if (M.twin) twinRules(w, e, M.twin, m, dt, api);
-				if (M.guard) guardRules(e, M.guard, m, dt, api);
+				if (M.guard) { guardRules(e, M.guard, m, dt, api); keepInHall(w, e); }
 			}
 		}
 
@@ -381,6 +381,20 @@ package realm {
 					e.rateMult /= T.rage;
 				}
 			}
+		}
+
+		/** A warden that must be got round (the Bulwark) never leaves its hall: a corridor would leave no way round it. */
+		private static function keepInHall(w:World, e:Enemy):void {
+			var hall:Object = null, bd:Number = 1e9;
+			for each (var r:Object in w.rooms) {
+				var d:Number = (r.x - e.homeX) * (r.x - e.homeX) + (r.y - e.homeY) * (r.y - e.homeY);
+				if (d < bd) { bd = d; hall = r; }
+			}
+			if (!hall) return;
+			var x0:Number = hall.x + 0.5 - hall.w / 2 + 2.5, x1:Number = hall.x + 0.5 + hall.w / 2 - 2.5;
+			var y0:Number = hall.y + 0.5 - hall.h / 2 + 2.5, y1:Number = hall.y + 0.5 + hall.h / 2 - 2.5;
+			if (e.x < x0) e.x = x0; else if (e.x > x1) e.x = x1;
+			if (e.y < y0) e.y = y0; else if (e.y > y1) e.y = y1;
 		}
 
 		private static function guardRules(e:Enemy, G:Object, m:Object, dt:Number, api:Object):void {

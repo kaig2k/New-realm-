@@ -292,6 +292,9 @@ function fight(id, opts) {
         b.farT = 0; return;
       }
     }
+    // (stuck facing a shield it can't get round for seconds on end: a player walks round to where the fight wants it)
+    if (tg && tg.immune && tg.def && tg.def.mech && tg.def.mech.guard) b.blockT = (b.blockT || 0) + dt; else b.blockT = 0;
+    if (b.blockT > 4 && !b.stand) { const an = tactic(b, tg); if (an) place(b, an.x, an.y); b.blockT = 0; return; }
     if (b.stand) {
       // no dodging: it only walks into range
       if (tg) {

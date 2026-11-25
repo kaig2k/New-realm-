@@ -1519,10 +1519,10 @@ package realm {
 			lairBoss("bulwark", {name: "The Bulwark", wiki: "Drowned Lighthouse: hit it from behind or the side", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				mech: {guard: {arc: 70, turn: 40}}, phases: [
 				P(1, {say: "None pass the light.", move: "chase",
-					attacks: [wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
+					attacks: [wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(4, 40, 8, 65, 1.6, 0xc0d8e8, {name: "harpoon volley"}),
 						ring(8, 0, 4, 60, 3.5, 0xa8c8f0, {name: "backwash"})]}),
 				P(0.4, {say: "THE TIDE HOLDS THE LINE!", move: "chase", speed: 1.25,
-					attacks: [wall(13, 5.5, 85, 1.6, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(7, 60, 8.5, 70, 1.0, 0xc0d8e8, {name: "harpoon volley"}),
+					attacks: [wall(13, 5.5, 85, 1.6, 0xb8d8e8, {hole: 2, name: "shield bash"}), aim(5, 50, 8.5, 65, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
 						ring(12, 15, 4, 60, 2.6, 0xa8c8f0, {name: "backwash"})]})
 			]});
 			// the Drowned Keeper: sealed until all three fall; its Great Wave can only be hidden from behind the pillars

@@ -54,6 +54,10 @@
 • Trying to shoot on the safe stone square where you arrive now tells you why nothing happens (once): step off it to fight
 • The gold arrow never points across the map at a boss when no monsters are near; it waits for the next ones to show up
 
+**⚖️ Two lairs eased**
+• **The Phantom Court** was the hardest lair: the Mirror Regent's echoes (up to seven at once) each fired a fast spiral. Their spirals are slower and thinner, and the last phase calls three echoes, not four. It's now mid-pack
+• **The Drowned Keep**: Admiral Brine's cannon fire and the Drowned Admiral's tide burst into fewer shards, and both forms' sabre volleys come a little slower. It's still one of the harder lairs, level with the Wyrm Cradle
+
 **📖 The Wiki**
 • **Every lair master is in the Wiki now** (Hard Dgns tab): the Tesseract, Glacia, Ankhamun, the Leviathan, the Drowned Keeper and the rest were missing. Each says whose lair it is
 • The Drowned Lighthouse's four fights each have a one-line hint ("only hurt beside a lit lantern", "hit it from behind or the side"...)

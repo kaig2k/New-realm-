@@ -1476,11 +1476,11 @@ package realm {
 					attacks: [spiral(6, 8, 5, 60, 0.14, 0xc090ff), aim(1, 0, 11, 90, 0.9, 0xffffff, {eff: "confused"}), ring(14, 12, 4.5, 65, 1.4, 0x8040c0, {motion: "return"})]}),
 				P(0.66, {say: "We are legion, and we are one.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "orbit",
 					attacks: [aim(3, 40, 6, 70, 1.3, 0x8040c0, {motion: "home"}), wall(17, 5, 80, 2.0, 0xff60c0, {eff: "slowed"}), spiral(4, -12, 6, 65, 0.12, 0xe0b0ff)]}),
-				P(0.33, {say: "Shatter us all, then.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 4}], move: "teleport",
+				P(0.33, {say: "Shatter us all, then.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "teleport",
 					attacks: [flower(24, 10, 6, 80, 0.9, 0xc090ff), aim(5, 60, 9, 85, 1.0, 0xffffff, {eff: "confused"}), rain(5, 5, 110, 2.0, 0x8040c0, {burst: 8})]})
 			]});
 			mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 7000, def: 18, spd: 2.2, xp: 400, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff, lairShield: true,
-				attacks: [spiral(4, 10, 5, 55, 0.2, 0xc090ff), aim(1, 0, 9, 70, 1.4, 0xffffff, {eff: "confused"})]});
+				attacks: [spiral(3, 10, 5, 50, 0.28, 0xc090ff), aim(1, 0, 9, 70, 1.6, 0xffffff, {eff: "confused"})]});
 
 			// --- the Tomb of Riddles (the Sphinx's): Ankhamun, whose heart is in four jars
 			lairBoss("pharaoh", {name: "Ankhamun the Undying", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
@@ -1544,15 +1544,15 @@ package realm {
 			// --- the Drowned Keep (the Lord of the Sunken Lands'): Admiral Brine, twice
 			lairBoss("admiral_brine", {name: "Admiral Brine", spr: "admiral", hp: 20000, spd: 1.6, col: 0x50a0c0, phases: [
 				P(1, {say: "All hands! Repel boarders!", move: "orbit",
-					attacks: [aim(3, 18, 10, 85, 1.0, 0x50a0c0), wall(17, 5, 80, 2.0, 0x40a0ff, {hole: 3, motion: "wave"}), ring(14, 12, 4.5, 65, 1.5, 0x80d0ff)]}),
+					attacks: [aim(3, 18, 9, 80, 1.35, 0x50a0c0), wall(17, 5, 80, 2.0, 0x40a0ff, {hole: 3, motion: "wave"}), ring(14, 12, 4.5, 65, 1.5, 0x80d0ff)]}),
 				P(0.5, {say: "Fire the guns!", banner: "Brine opens fire!", shield: 2, summon: [{what: "pirate_brawler", n: 4}], move: "center",
-					attacks: [rain(6, 6, 100, 2.2, 0x50a0c0, {burst: 8}), aim(5, 40, 9, 80, 1.1, 0x40a0ff), spiral(4, 14, 6, 65, 0.12, 0x80d0ff)]})
+					attacks: [rain(6, 6, 100, 2.2, 0x50a0c0, {burst: 5, name: "cannon fire"}), aim(5, 40, 9, 80, 1.1, 0x40a0ff), spiral(4, 14, 6, 65, 0.12, 0x80d0ff)]})
 			]});
 			lairBoss("admiral_drowned", {name: "Brine, the Drowned Admiral", spr: "admiral", hp: 16000, spd: 2.0, col: 0x30e0c0, rageAt: 0, phases: [
 				P(1, {say: "The sea... gives me back...", banner: "Brine rises from the deep!", move: "chase",
-					attacks: [aim(5, 50, 9, 85, 1.0, 0x30e0c0, {motion: "wave"}), flower(24, 10, 6, 80, 0.9, 0x40a0ff), aim(1, 0, 6, 100, 1.8, 0xd0ffff, {motion: "home", r: 0.32})]}),
+					attacks: [aim(4, 45, 9, 85, 1.2, 0x30e0c0, {motion: "wave"}), flower(24, 10, 6, 80, 0.9, 0x40a0ff), aim(1, 0, 6, 100, 1.8, 0xd0ffff, {motion: "home", r: 0.32})]}),
 				P(0.4, {say: "DROWN WITH ME!", move: "charge", speed: 1.3,
-					attacks: [wall(21, 5, 95, 1.5, 0x30e0c0, {hole: 2, waves: 2, gap: 0.5}), rain(6, 5, 120, 2.0, 0x40a0ff, {burst: 10}), aim(7, 70, 9, 85, 1.0, 0x30e0c0)]})
+					attacks: [wall(21, 5, 95, 1.5, 0x30e0c0, {hole: 2, waves: 2, gap: 0.5}), rain(6, 5, 120, 2.0, 0x40a0ff, {burst: 6, name: "drowning tide"}), aim(5, 60, 9, 85, 1.2, 0x30e0c0)]})
 			]});
 
 			// --- the Coral Grotto (the Tide Hermit's): Pearlmaw and its giant clams

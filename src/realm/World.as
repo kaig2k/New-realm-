@@ -232,7 +232,7 @@ package realm {
 			this.theme = theme;
 			N = kind == "realm" ? REALM_N : DEFAULT_N;
 			// (the realm and the Nexus are drawn finely; dungeons keep the classic ground for now)
-			px = kind == "realm" || kind == "nexus" || kind == "dungeon" ? REALM_PX : PX;
+			px = kind == "realm" || kind == "nexus" || kind == "dungeon" || kind == "vault" || kind == "guildhall" || kind == "arena" ? REALM_PX : PX;
 			ck = CHUNK * PX / px;
 			tiles = new Vector.<int>(N * N, true);
 			objs = new Vector.<int>(N * N, true);
@@ -2121,8 +2121,10 @@ package realm {
 						if (joint) c = t == ROAD ? 0x2e2a24 : t == PLAZA ? 0x66666c : t == STONE ? 0x26262c : t == SANDSTONE ? 0x6a5030 : 0x46464c;
 						else {
 							var tone:Number = (stone & 15) / 15 * 0.55 + big * 0.5 - 0.05 + ((h & 7) - 3.5) * 0.02;
-							c = ramp(t == ROAD ? [0x55504a, 0x5e5850, 0x686157, 0x726a5e, 0x7b7365] : t == PLAZA ? [0x88888c, 0x929296, 0x9c9ca0, 0xa6a6aa, 0xb0b0b4]
-								: t == STONE ? [0x44444a, 0x4c4c52, 0x54545a, 0x5c5c62, 0x646469] : t == SANDSTONE ? [0x9a7a4a, 0xa68452, 0xb28e5a, 0xbc9862, 0xc6a26a]
+							// (indoors, the vault's and guild hall's stone is lit brighter than the dungeons')
+							var lit:Boolean = kind == "vault" || kind == "guildhall";
+							c = ramp(t == ROAD ? [0x55504a, 0x5e5850, 0x686157, 0x726a5e, 0x7b7365] : t == PLAZA ? (lit ? [0xb4b0a8, 0xbebab2, 0xc8c4bc, 0xd0ccc4, 0xd8d4cc] : [0x88888c, 0x929296, 0x9c9ca0, 0xa6a6aa, 0xb0b0b4])
+								: t == STONE ? (lit ? [0x5e5e66, 0x66666e, 0x6e6e76, 0x76767e, 0x7e7e86] : [0x44444a, 0x4c4c52, 0x54545a, 0x5c5c62, 0x646469]) : t == SANDSTONE ? [0x9a7a4a, 0xa68452, 0xb28e5a, 0xbc9862, 0xc6a26a]
 								: [0x4c4c52, 0x55555b, 0x5f5f65, 0x69696f, 0x737379], tone);
 							// lit on the top edge of each stone, shaded at its foot
 							if (iy == 0) c = Sprites.shade(c, 1.12); else if (iy == shh - 2) c = Sprites.shade(c, 0.88);

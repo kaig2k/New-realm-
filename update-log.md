@@ -28,6 +28,7 @@
 • Dungeons are drawn at the **same finer detail as the realm**: grass, sand, water and rock floors get the realm's soft, natural look, and stone, marble, cobbles, sandstone, planks and lava their fine drawings
 • **Walls redrawn** in each dungeon's own colours: a lit top edge, a worn face laid in brick courses (or its own rivets, veins, ice, bone or coral) and a shadowed foot
 • Bright floors are toned down to match, so the monsters stand out
+• **The vault, the guild hall and the arena** get the same finer floors and walls: the vault in its grey stone, the guild hall's floor a warm cream flagstone beside its red carpet
 • Forest dungeons (the Forest Maze, Spider Den and others) have a lighter forest floor, so their dark spiders and shades stand out
 
 **🎯 Easier to read in a fight**

@@ -48,7 +48,7 @@ package {
 				var o:int = w.objs[y * w.N + x];
 				if (o) list.push({y: y + 0.5, o: o, x: x});
 			}
-			var mobs:Array = w.theme.mobs || [];
+			var mobs:Array = w.theme && w.theme.mobs ? w.theme.mobs : [];
 			for (var m:int = 0; m < 6 && mobs.length; m++) {
 				var ex:Number = vx + (m - 3) * 2.2, ey:Number = vy + (m % 2 ? 2 : -2);
 				list.push({y: ey, e: new Enemy(mobs[m % mobs.length], ex, ey, 1), x: ex});
@@ -68,6 +68,15 @@ package {
 			var p:Object = loaderInfo.parameters;
 			if (step == 0) { Bosses.init(); step++; return; }
 			if (step == 1 && p.lineup) { lineup(String(p.lineup).split(",")); removeEventListener(Event.ENTER_FRAME, tick); return; }
+			if (step == 1 && p.place) {
+				// place=vault|guildhall|arena: one of the game's other worlds, around its spawn
+				w = new World(String(p.place), String(p.place), null, uint(p.seed || 1234));
+				if (p.classic == "1") w.px = World.PX;
+				w.rooms = [{x: int(w.spawnX), y: int(w.spawnY), w: 10, h: 10}];
+				dungeonView("0");
+				removeEventListener(Event.ENTER_FRAME, tick);
+				return;
+			}
 			if (step == 1 && p.dg) {
 				// dg=id: a dungeon of that theme instead, looked at in its second room
 				var th:Object = Data.DUNGEONS[Data.dungeonIndex(String(p.dg))];

@@ -53,6 +53,11 @@
 • Trying to shoot on the safe stone square where you arrive now tells you why nothing happens (once): step off it to fight
 • The gold arrow never points across the map at a boss when no monsters are near; it waits for the next ones to show up
 
+**📖 The Wiki**
+• **Every lair master is in the Wiki now** (Hard Dgns tab): the Tesseract, Glacia, Ankhamun, the Leviathan, the Drowned Keeper and the rest were missing. Each says whose lair it is
+• The Drowned Lighthouse's four fights each have a one-line hint ("only hurt beside a lit lantern", "hit it from behind or the side"...)
+• Bosses with no uniques of their own show what they do give: two tier 7 items and three stat potions
+
 **🏛️ The Nexus**
 • The Nexus's glaring white floor is now **polished lilac-grey marble** in long staggered slabs with faint veins, drawn at the same finer detail as the realm, so it sits with the purple carpet and gold trim instead of shining over them
 

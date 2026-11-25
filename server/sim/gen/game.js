@@ -2690,7 +2690,7 @@ class Bosses {
 
 			
 			
-			Bosses.lairBoss("lamplighter", {name: "The Lamplighter", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+			Bosses.lairBoss("lamplighter", {name: "The Lamplighter", wiki: "Drowned Lighthouse: only hurt beside a lit lantern", spr: "lamplighter", hp: 5200, spd: 1.5, r: 0.95, col: 0xffc860, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				light: 3, mech: {lamp: {id: "storm_lantern", lit: "storm_lantern_lit", n: 4, r: 8, near: 4.5, burn: 16, snuff: 4}}, phases: [
 				Bosses.P(1, {say: "Who let the lights go out?", move: "chase",
 					attacks: [Bosses.aim(2, 20, 8, 65, 1.7, 0xffc860, {name: "wick flick"}), Bosses.ring(10, 18, 4.5, 60, 2.2, 0xa8c8f0, {name: "smoke ring"})]}),
@@ -2703,14 +2703,14 @@ class Bosses {
 			
 			for (var tide of __vals( [["tide_ebb", "Ebb", 0x3090ff, "tide_flow"], ["tide_flow", "Flow", 0x40e8d0, "tide_ebb"]])) {
 				
-				Bosses.lairBoss(tide[0], {name: tide[1], spr: tide[0], hp: 3600, spd: tide[0] == "tide_flow" ? 2.7 : 1.3, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
+				Bosses.lairBoss(tide[0], {name: tide[1], wiki: "Drowned Lighthouse: pull Ebb and Flow apart", spr: tide[0], hp: 3600, spd: tide[0] == "tide_flow" ? 2.7 : 1.3, r: 0.85, col: tide[2], guardian: true, lairBoss: false, xp: 900, gold: 220, onrane: 3,
 					mech: {twin: {partner: tide[3], r: 3, revive: 10, rage: 1.4}}, phases: [
 					Bosses.P(1, {move: tide[0] == "tide_ebb" ? "orbit" : "chase", attacks: [Bosses.aim(3, 22, 8, 70, 1.1, tide[2]), Bosses.wall(9, 4.5, 65, 3.2, tide[2], {hole: 2, motion: "wave", name: "riptide"})]}),
 					Bosses.P(0.4, {move: "orbit", attacks: [Bosses.aim(4, 30, 8.5, 70, 0.9, tide[2]), Bosses.ring(12, 15, 4.5, 60, 1.8, tide[2], {name: "undertow"})]})
 				]});
 			}
 			
-			Bosses.lairBoss("bulwark", {name: "The Bulwark", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
+			Bosses.lairBoss("bulwark", {name: "The Bulwark", wiki: "Drowned Lighthouse: hit it from behind or the side", spr: "bulwark", hp: 8000, spd: 1.1, r: 1.05, col: 0xb8d8e8, guardian: true, lairBoss: false, xp: 1600, gold: 420, onrane: 5,
 				mech: {guard: {arc: 70, turn: 40}}, phases: [
 				Bosses.P(1, {say: "None pass the light.", move: "chase",
 					attacks: [Bosses.wall(11, 5, 80, 2.0, 0xb8d8e8, {hole: 2, name: "shield bash"}), Bosses.aim(5, 50, 8, 70, 1.3, 0xc0d8e8, {name: "harpoon volley"}),
@@ -2720,7 +2720,7 @@ class Bosses {
 						Bosses.ring(12, 15, 4, 60, 2.6, 0xa8c8f0, {name: "backwash"})]})
 			]});
 			
-			Bosses.lairBoss("drowned_keeper", {name: "The Drowned Keeper", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [
+			Bosses.lairBoss("drowned_keeper", {name: "The Drowned Keeper", wiki: "Drowned Lighthouse: hide from its wave", spr: "drowned_keeper", hp: 25000, spd: 1.2, r: 1.2, col: 0x60c8ff, sealed: true, light: 6, phases: [
 				Bosses.P(1, {say: "The light... must... turn.", move: "center",
 					attacks: [Bosses.nova(2.6, 2.6, 170, 12, 0x60c8ff, {reach: 0.01, burst: 120, shard: 2.4, bspd: 4.2, blife: 3.8, marker: "rune", fx: "spikes", land: "slam",
 							shout: "The Keeper raises the tide! Get behind a pillar!", name: "the Great Wave"}),

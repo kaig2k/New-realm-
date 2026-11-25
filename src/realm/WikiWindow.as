@@ -146,9 +146,12 @@ package realm {
 				var finale:Boolean = Bosses.FINALES.indexOf(d.id) >= 0;
 				var list:Array = finale ? finales : d.hard ? hard : dungeons;
 				var where:String = d.name + (finale ? " (when a realm closes)" : "");
-				for each (var gid:String in d.guardians || []) add(list, gid, where + ", guardian");
+				// (a realm boss's lair says whose it is; a boss with a rule of its own says that instead)
+				if (d.by && Data.ENEMIES[d.by]) where = d.name + " (" + Data.ENEMIES[d.by].name + "'s lair)";
+				for each (var gid:String in d.guardians || []) add(list, gid, Data.ENEMIES[gid] && Data.ENEMIES[gid].wiki ? Data.ENEMIES[gid].wiki : where + ", guardian");
 				for each (var tid:String in d.trio || []) add(list, tid, where);
 				if (d.boss) add(list, d.boss, where);
+				if (d.lair && d.lair.boss) add(list, d.lair.boss, Data.ENEMIES[d.lair.boss] && Data.ENEMIES[d.lair.boss].wiki ? Data.ENEMIES[d.lair.boss].wiki : where);
 				if (d.toElder) add(finales, "elder", "Dark Elder's Chamber (after any realm finale)");
 			}
 			for each (var r:Object in Bosses.RAIDS) {
@@ -429,7 +432,8 @@ package realm {
 			if (d.shard) drops.push(Data.makeSor());
 			if (!drops.length) {
 				var none:TextField = Ui.text(11, 0x707078, true, "right", 200, true);
-				none.text = "No unique drops";
+				// (a hard dungeon's boss with no uniques of its own still gives the best tiered loot)
+				none.text = d.dungeon && d.dtier >= 5 ? "Two T7 items, 3 stat potions" : "No unique drops";
 				none.x = W - 216; none.y = y + 22;
 				body.addChild(none);
 			}

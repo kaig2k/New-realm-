@@ -2753,6 +2753,8 @@ package realm {
 				// loot bags open when you stand on them; vault chests from a step away
 				if (d < best && d < (b.vault ? 1.6 : 1.0)) { best = d; nearBag = b; }
 			}
+			// (the chat moves up out of the way of the bag's slots, and back down when you step off)
+			if ((nearBag != null) != chatOverBag) { chatOverBag = nearBag != null; refreshChat(); }
 			// Settings: drink stat potions you still need straight from the bag you stand on
 			autoPotT -= dt;
 			if (Save.data.autoPots && nearBag && !nearBag.vault && autoPotT <= 0 && !tradeWin) {
@@ -7022,6 +7024,7 @@ package realm {
 			refreshChat();
 		}
 
+		private var chatOverBag:Boolean = false;
 		private function refreshChat():void {
 			var now:Number = getTimer() / 1000;
 			var open:Boolean = chatInput && chatInput.visible;
@@ -7042,7 +7045,7 @@ package realm {
 			chat.alpha = 1;
 			chatFadeAt = open ? 0 : oldest + CHAT_SECS;
 			// (above the HUD's strip)
-			chat.y = VIEW_H - chat.height - (open ? chatInput.height + 12 : 6) - (Hud.STRIP_H + 34);
+			chat.y = VIEW_H - chat.height - (open ? chatInput.height + 12 : 6) - (Hud.STRIP_H + 34) - (chatOverBag ? 72 : 0);
 			if (!chatBg) {
 				chatBg = new Shape();
 				chatBg.cacheAsBitmap = true;

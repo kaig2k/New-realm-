@@ -21,6 +21,7 @@
 • Standing on a **loot bag**, its items rise above the middle of the strip
 • **Stats and Skills** open as see-through panels above the strip (the two buttons at its right end; click again to close). Your pet, the realm leaders and your loot luck are in the stats panel now
 • Chat sits just above the strip
+• Standing on a loot bag, the chat moves up out of the way of its items (long lines used to run across them)
 • **Boss arrows** never hide each other when two bosses are the same way, and the boss your gold quest arrow already points at doesn't get a second one
 
 **🗝️ Every dungeon redrawn**

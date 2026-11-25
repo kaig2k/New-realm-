@@ -285,7 +285,12 @@ function fight(id, opts) {
       const far = Math.hypot(tg.x - b.x, tg.y - b.y);
       // (out of reach: far off, or out of range behind a maze wall for a few seconds: it walks round, which we skip)
       b.farT = far > Math.max(12, H.range * 1.6) ? (b.farT || 0) + dt : far > H.range + (tg.r || 0.5) ? (b.farT || 0) + dt / 3 : 0;
-      if (b.farT > 2) { place(b, tg.x + (b.x - tg.x) / far * H.range * 0.7, tg.y + (b.y - tg.y) / far * H.range * 0.7); b.farT = 0; return; }
+      if (b.farT > 2) {
+        // (it walks round: to where the fight wants it, if it has a place, else back toward the target)
+        const an = tactic(b, tg);
+        if (an) place(b, an.x, an.y); else place(b, tg.x + (b.x - tg.x) / far * H.range * 0.7, tg.y + (b.y - tg.y) / far * H.range * 0.7);
+        b.farT = 0; return;
+      }
     }
     if (b.stand) {
       // no dodging: it only walks into range

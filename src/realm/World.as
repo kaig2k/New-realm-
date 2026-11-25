@@ -231,8 +231,8 @@ package realm {
 			this.name = name;
 			this.theme = theme;
 			N = kind == "realm" ? REALM_N : DEFAULT_N;
-			// (the realm and the Nexus are drawn finely; dungeons keep the classic ground for now)
-			px = kind == "realm" || kind == "nexus" || kind == "dungeon" || kind == "vault" || kind == "guildhall" || kind == "arena" ? REALM_PX : PX;
+			// (every world is drawn finely: 16 ground pixels a tile)
+			px = kind == "realm" || kind == "nexus" || kind == "dungeon" || kind == "vault" || kind == "guildhall" || kind == "arena" || kind == "abyss" || kind == "custom" ? REALM_PX : PX;
 			ck = CHUNK * PX / px;
 			tiles = new Vector.<int>(N * N, true);
 			objs = new Vector.<int>(N * N, true);

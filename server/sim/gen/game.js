@@ -3224,7 +3224,7 @@ class World {
 			this.theme = theme;
 			this.N = __int(kind == "realm" ? World.REALM_N : World.DEFAULT_N);
 			
-			this.px = __int(kind == "realm" || kind == "nexus" || kind == "dungeon" || kind == "vault" || kind == "guildhall" || kind == "arena" ? World.REALM_PX : World.PX);
+			this.px = __int(kind == "realm" || kind == "nexus" || kind == "dungeon" || kind == "vault" || kind == "guildhall" || kind == "arena" || kind == "abyss" || kind == "custom" ? World.REALM_PX : World.PX);
 			this.ck = __int(World.CHUNK * World.PX / this.px);
 			this.tiles = __vec(this.N * this.N, true);
 			this.objs = __vec(this.N * this.N, true);

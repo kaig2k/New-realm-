@@ -28,6 +28,8 @@ package realm {
 	 *          dies first (fighting `rage` times faster meanwhile)
 	 *   guard: {arc, turn}               a shield that turns (turn degrees a second) to face whoever is nearest:
 	 *          it can be hurt only while someone stands outside the `arc` (degrees either side) it covers
+	 *   mirror: {echo, n, r, swap, reform, rage}  n echoes like it stand round it; every `swap` seconds it trades places
+	 *          with one; an echo shot down makes it fight `rage` times faster until it reforms `reform` seconds on
 	 *   (and on the master's def: splitInto {what, n}: it breaks into lesser copies that must all fall)
 	 * Trios (th.trio) share the last hall as in the other dungeons.
 	 */
@@ -55,12 +57,11 @@ package realm {
 				waves: {mobs: ["gore_spawn", "gore_spawn", "blood_hound", "minotaur"], n: 3, size: 7}},
 				mobs: ["gore_spawn", "blood_hound", "ogre", "minotaur"]},
 			{id: "phantom_court", wall: "spectral", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.2, lair: {
-				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections. Shatter the echoes and the true Regent is laid bare.",
-				shield: {ids: ["regent_echo"], n: 3, where: "boss", r: 7, text: "An echo shatters into mist!"}},
+				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections, and trades places with them. Keep your eyes on the true one: shooting its echoes only angers it."},
 				mobs: ["shade", "ghost", "void_wisp", "grave_wraith"]},
 			{id: "tomb_of_riddles", wall: "sandstone", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.2, lair: {
-				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze. While one is whole, he cannot die.",
-				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", text: "A canopic jar breaks! Ankhamun howls in his tomb."}},
+				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze, and the riddle says they break in turn: only the glowing jar can be broken. While one is whole, he cannot die.",
+				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", order: true, text: "A canopic jar breaks! Ankhamun howls in his tomb. The next jar glows."}},
 				mobs: ["temple_scorpion", "scorpion", "great_snake", "medusa"]},
 			{id: "drowned_keep", wall: "mossy", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "admiral_brine", intro: "Admiral Brine drowned with his keep, and the sea will not let him stay dead.",
@@ -307,6 +308,7 @@ package realm {
 				if (M.lamp) lampRules(w, e, M.lamp, m, dt, api);
 				if (M.twin) twinRules(w, e, M.twin, m, dt, api);
 				if (M.guard) { guardRules(e, M.guard, m, dt, api); keepInHall(w, e); }
+				if (M.mirror) mirrorRules(w, e, M.mirror, m, dt, api);
 			}
 		}
 
@@ -383,6 +385,45 @@ package realm {
 			}
 		}
 
+		/**
+		 * The Mirror Regent: echoes just like it stand round it, and every few seconds it trades places with one.
+		 * Only the real one (the boss's aura is at its feet) can be hurt to any purpose: an echo shot down shatters,
+		 * and while it's gone the Regent fights faster; it reforms after a while.
+		 */
+		private static function mirrorRules(w:World, e:Enemy, R:Object, m:Object, dt:Number, api:Object):void {
+			var o:Enemy, live:Array = [];
+			for each (o in w.enemies) if (!o.dead && o.defId == R.echo && o.mech && o.mech.owner == e.id) live.push(o);
+			if (!m.init) {
+				m.init = true; m.swapT = R.swap; m.reformT = 0;
+				for (var k:int = 0; k < R.n; k++) mirrorEcho(e, R, k, api);
+				api.say(e.def.name + " hides among its reflections! Only the real one is worth your shots: the aura is at its feet.", w.theme.color, true);
+				return;
+			}
+			// a shattered echo reforms in time, and the Regent calms again
+			if (live.length < R.n) {
+				m.reformT -= dt;
+				if (m.reformT <= 0) {
+					m.reformT = R.reform;
+					mirrorEcho(e, R, live.length, api);
+					e.rateMult = Math.max(1, e.rateMult / R.rage);
+				}
+			} else m.reformT = R.reform;
+			// it trades places with one of its echoes
+			m.swapT -= dt;
+			if (m.swapT <= 0 && live.length) {
+				m.swapT = R.swap;
+				o = live[int(Math.random() * live.length)];
+				var x:Number = e.x, y:Number = e.y;
+				e.x = o.x; e.y = o.y; o.x = x; o.y = y;
+			}
+		}
+
+		private static function mirrorEcho(e:Enemy, R:Object, k:int, api:Object):void {
+			var a:Number = k * Math.PI * 2 / R.n + Math.random() * 0.6;
+			var o:Enemy = api.spawn(R.echo, e.x + Math.cos(a) * R.r, e.y + Math.sin(a) * R.r, e.zone, true);
+			if (o) o.mech = {owner: e.id};
+		}
+
 		/** A warden that must be got round (the Bulwark) never leaves its hall: a corridor would leave no way round it. */
 		private static function keepInHall(w:World, e:Enemy):void {
 			var hall:Object = null, bd:Number = 1e9;
@@ -424,6 +465,12 @@ package realm {
 			if (!L || !st) return;
 			// a lantern shot out of the dark lights up
 			if (e.def.lantern) lampLit(w, e, api);
+			// an echo shot down: the Regent it belonged to fights faster until it reforms
+			if (e.mech && e.mech.owner) for each (var ow:Enemy in w.enemies) {
+				if (ow.dead || ow.id != e.mech.owner || !ow.def.mech || !ow.def.mech.mirror) continue;
+				ow.rateMult *= ow.def.mech.mirror.rage;
+				api.say("An echo shatters, and " + ow.def.name + " grows faster!", th.color, false);
+			}
 			// the Lamplighter falls: its lanterns go out with it
 			if (e.def.mech && e.def.mech.lamp) {
 				var LL:Object = e.def.mech.lamp;

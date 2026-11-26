@@ -1471,19 +1471,20 @@ package realm {
 			]});
 
 			// --- the Phantom Court (the Phantom Regent's): the Mirror Regent and its echoes (it looks just like them)
-			lairBoss("mirror_regent", {name: "The Mirror Regent", spr: "regent", hp: 22000, spd: 2.4, col: 0xc090ff, phases: [
+			lairBoss("mirror_regent", {name: "The Mirror Regent", wiki: "Phantom Court: shoot the real one, not its echoes", spr: "regent", hp: 22000, spd: 2.4, col: 0xc090ff,
+				mech: {mirror: {echo: "regent_echo", n: 3, r: 5, swap: 5, reform: 9, rage: 1.25}}, phases: [
 				P(1, {say: "Which of us is real?", move: "teleport",
 					attacks: [spiral(6, 8, 5, 60, 0.14, 0xc090ff), aim(1, 0, 11, 90, 0.9, 0xffffff, {eff: "confused"}), ring(14, 12, 4.5, 65, 1.4, 0x8040c0, {motion: "return"})]}),
-				P(0.66, {say: "We are legion, and we are one.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "orbit",
+				P(0.66, {say: "We are legion, and we are one.", banner: "The reflections thicken!", move: "orbit",
 					attacks: [aim(3, 40, 6, 70, 1.3, 0x8040c0, {motion: "home"}), wall(17, 5, 80, 2.0, 0xff60c0, {eff: "slowed"}), spiral(4, -12, 6, 65, 0.12, 0xe0b0ff)]}),
-				P(0.33, {say: "Shatter us all, then.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "teleport",
+				P(0.33, {say: "Which of us will you trust now?", banner: "The mirrors spin!", move: "teleport",
 					attacks: [flower(24, 10, 6, 80, 0.9, 0xc090ff), aim(5, 60, 9, 85, 1.0, 0xffffff, {eff: "confused"}), rain(5, 5, 110, 2.0, 0x8040c0, {burst: 8})]})
 			]});
-			mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 7000, def: 18, spd: 2.2, xp: 400, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff, lairShield: true,
-				attacks: [spiral(3, 10, 5, 50, 0.28, 0xc090ff), aim(1, 0, 9, 70, 1.6, 0xffffff, {eff: "confused"})]});
+			mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 3000, def: 18, spd: 2.2, xp: 60, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff,
+				attacks: [spiral(2, 10, 5, 45, 0.45, 0xc090ff), aim(1, 0, 9, 60, 2.4, 0xffffff, {eff: "confused"})]});
 
 			// --- the Tomb of Riddles (the Sphinx's): Ankhamun, whose heart is in four jars
-			lairBoss("pharaoh", {name: "Ankhamun the Undying", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
+			lairBoss("pharaoh", {name: "Ankhamun the Undying", wiki: "Tomb of Riddles: break the glowing jar, then the next", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
 				P(1, {say: "Who disturbs the eternal sleep?", move: "center",
 					attacks: [wall(19, 5, 85, 1.8, 0xe8c070, {hole: 3, motion: "wave"}), aim(3, 30, 9, 80, 1.0, 0x40e0ff), spiral(3, 15, 6, 65, 0.14, 0xffc040)]}),
 				P(0.6, {say: "My servants never rest.", banner: "The tomb's servants rise!", shield: 2, summon: [{what: "temple_scorpion", n: 4}], move: "orbit",
@@ -1491,7 +1492,7 @@ package realm {
 				P(0.25, {say: "The sands will swallow you!", move: "teleport",
 					attacks: [flower(28, 9, 6, 80, 0.9, 0xffc040), wall(21, 5, 95, 1.5, 0xe8c070, {hole: 2, waves: 2, gap: 0.5}), nova(3, 1.2, 140, 2.4, 0x40e0ff, {burst: 14, eff: "armorbroken"})]})
 			]});
-			lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 9000, col: 0xffc040, lairShield: true,
+			lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 6000, col: 0xffc040, lairShield: true,
 				attacks: [ring(6, 20, 4.5, 55, 1.6, 0xffc040, {name: "jar's curse"})]});
 
 			// --- the Drowned Lighthouse: four fights where the room matters more than the boss (Lairs.mechanics)

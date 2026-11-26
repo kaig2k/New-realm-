@@ -3400,6 +3400,33 @@ async function run() {
     }
   }
 
+  console.log('lair rules: the mirror and the riddle');
+  {
+    const { WorldSim } = require('./sim/worldsim');
+    const { Data: MD } = require('./sim/gen/game');
+    let ws = new WorldSim('dg:' + MD.dungeonIndex('phantom_court') + ':4242');
+    const R = ws.enemies.find((e) => e.defId === 'mirror_regent');
+    ws.join({ id: 1, x: R.x, y: R.y + 5, maxDps: 1e9, send() {} });
+    for (let i = 0; i < 5; i++) ws.tick(0.1);
+    const echoes = () => ws.enemies.filter((e) => !e.dead && e.defId === 'regent_echo');
+    check('the Mirror Regent stands among three echoes and can be hurt', echoes().length === 3 && !R.invuln);
+    const p0 = [R.x, R.y];
+    for (let i = 0; i < 60; i++) ws.tick(0.1);
+    check('...it trades places with them', p0[0] !== R.x || p0[1] !== R.y);
+    const ec = echoes()[0]; ec.hitters.set(1, 1); ws.kill(ec); ws.tick(0.1);
+    const angry = R.rateMult;
+    for (let i = 0; i < 100; i++) ws.tick(0.1);
+    check('...an echo shot down angers it until it reforms', angry > 1.2 && echoes().length === 3 && R.rateMult === 1, angry + ' ' + R.rateMult);
+    ws = new WorldSim('dg:' + MD.dungeonIndex('tomb_of_riddles') + ':4242');
+    const A = ws.enemies.find((e) => e.defId === 'pharaoh');
+    ws.join({ id: 1, x: A.x, y: A.y + 5, maxDps: 1e9, send() {} });
+    for (let i = 0; i < 5; i++) ws.tick(0.1);
+    const jars = () => ws.enemies.filter((e) => !e.dead && e.defId === 'canopic_jar');
+    check('the Tomb of Riddles: four jars, and only one can be broken at a time', jars().length === 4 && jars().filter((j) => !j.invuln).length === 1);
+    const lit = jars().find((j) => !j.invuln); lit.hitters.set(1, 1); ws.kill(lit); ws.tick(0.1);
+    check('...each that breaks lights the next, and Ankhamun stays warded', jars().length === 3 && jars().filter((j) => !j.invuln).length === 1 && A.invuln);
+  }
+
   console.log('the Drowned Lighthouse');
   {
     // four fights where the room matters: lanterns, twins, a turning shield, and the Keeper sealed behind them

@@ -419,7 +419,8 @@ function fight(id, opts) {
     // adds the boss called up, when they're on top of you, go first (as players do)
     let add = null, ad = 25;
     for (const e of sim.enemies) {
-      if (e.dead || e.isBoss || e.def.prop || e.def.stageFoe || list.indexOf(e) >= 0 || e.immune) continue;
+      // (a mirror's echoes are left alone: shooting them only angers their master)
+      if (e.dead || e.isBoss || e.def.prop || e.def.stageFoe || list.indexOf(e) >= 0 || e.immune || (e.mech && e.mech.owner)) continue;
       const d = (e.x - b.x) ** 2 + (e.y - b.y) ** 2;
       if (d < ad) { ad = d; add = e; }
     }

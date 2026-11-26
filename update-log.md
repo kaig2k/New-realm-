@@ -91,8 +91,9 @@
 • **Morrow's wrecking tide** works the same way, a little lighter (it's a realm boss for crowds): a thicker ring of heavier water, so the wreck's broken hull is worth hiding behind. He was one of the easiest event bosses; he's now in the middle of the pack
 • The death recap names the attack whose bullets burst out of a blast (the Great Wave, a storm surge...) instead of calling them all "blast shards"
 
-**⚖️ Two lairs eased**
-• **The Phantom Court** was the hardest lair: the Mirror Regent's echoes (up to seven at once) each fired a fast spiral. Their spirals are slower and thinner, and the last phase calls three echoes, not four. It's now mid-pack
+**⚖️ Lairs with rules of their own**
+• **The Phantom Court**: the Mirror Regent now hides among three echoes that look just like it, and every few seconds it trades places with one. The real one has the boss's aura at its feet. Shooting an echo shatters it, but the Regent fights faster until the echo reforms, so keep your eyes on the real one
+• **The Tomb of Riddles**: Ankhamun's canopic jars must be broken in turn. Only the glowing jar can be broken; each one that falls lights the next, somewhere else in the maze. The jars break faster than before to make up for the hunt
 • **The Drowned Keep**: Admiral Brine's cannon fire and the Drowned Admiral's tide burst into fewer shards, and both forms' sabre volleys come a little slower. It's still one of the harder lairs, level with the Wyrm Cradle
 
 **📜 ELDMERE UPDATE: Bosses Tuned**

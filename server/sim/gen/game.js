@@ -2665,19 +2665,20 @@ class Bosses {
 			]});
 
 			
-			Bosses.lairBoss("mirror_regent", {name: "The Mirror Regent", spr: "regent", hp: 22000, spd: 2.4, col: 0xc090ff, phases: [
+			Bosses.lairBoss("mirror_regent", {name: "The Mirror Regent", wiki: "Phantom Court: shoot the real one, not its echoes", spr: "regent", hp: 22000, spd: 2.4, col: 0xc090ff,
+				mech: {mirror: {echo: "regent_echo", n: 3, r: 5, swap: 5, reform: 9, rage: 1.25}}, phases: [
 				Bosses.P(1, {say: "Which of us is real?", move: "teleport",
 					attacks: [Bosses.spiral(6, 8, 5, 60, 0.14, 0xc090ff), Bosses.aim(1, 0, 11, 90, 0.9, 0xffffff, {eff: "confused"}), Bosses.ring(14, 12, 4.5, 65, 1.4, 0x8040c0, {motion: "return"})]}),
-				Bosses.P(0.66, {say: "We are legion, and we are one.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "orbit",
+				Bosses.P(0.66, {say: "We are legion, and we are one.", banner: "The reflections thicken!", move: "orbit",
 					attacks: [Bosses.aim(3, 40, 6, 70, 1.3, 0x8040c0, {motion: "home"}), Bosses.wall(17, 5, 80, 2.0, 0xff60c0, {eff: "slowed"}), Bosses.spiral(4, -12, 6, 65, 0.12, 0xe0b0ff)]}),
-				Bosses.P(0.33, {say: "Shatter us all, then.", banner: "The echoes return!", summon: [{what: "regent_echo", n: 3}], move: "teleport",
+				Bosses.P(0.33, {say: "Which of us will you trust now?", banner: "The mirrors spin!", move: "teleport",
 					attacks: [Bosses.flower(24, 10, 6, 80, 0.9, 0xc090ff), Bosses.aim(5, 60, 9, 85, 1.0, 0xffffff, {eff: "confused"}), Bosses.rain(5, 5, 110, 2.0, 0x8040c0, {burst: 8})]})
 			]});
-			Bosses.mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 7000, def: 18, spd: 2.2, xp: 400, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff, lairShield: true,
-				attacks: [Bosses.spiral(3, 10, 5, 50, 0.28, 0xc090ff), Bosses.aim(1, 0, 9, 70, 1.6, 0xffffff, {eff: "confused"})]});
+			Bosses.mob("regent_echo", {name: "Regent Echo", spr: "regent", hp: 3000, def: 18, spd: 2.2, xp: 60, r: 0.9, keep: 4, ai: "orbit", aggro: 16, range: 12, col: 0xc090ff,
+				attacks: [Bosses.spiral(2, 10, 5, 45, 0.45, 0xc090ff), Bosses.aim(1, 0, 9, 60, 2.4, 0xffffff, {eff: "confused"})]});
 
 			
-			Bosses.lairBoss("pharaoh", {name: "Ankhamun the Undying", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
+			Bosses.lairBoss("pharaoh", {name: "Ankhamun the Undying", wiki: "Tomb of Riddles: break the glowing jar, then the next", spr: "pharaoh", hp: 24000, spd: 1.4, col: 0xffc040, phases: [
 				Bosses.P(1, {say: "Who disturbs the eternal sleep?", move: "center",
 					attacks: [Bosses.wall(19, 5, 85, 1.8, 0xe8c070, {hole: 3, motion: "wave"}), Bosses.aim(3, 30, 9, 80, 1.0, 0x40e0ff), Bosses.spiral(3, 15, 6, 65, 0.14, 0xffc040)]}),
 				Bosses.P(0.6, {say: "My servants never rest.", banner: "The tomb's servants rise!", shield: 2, summon: [{what: "temple_scorpion", n: 4}], move: "orbit",
@@ -2685,7 +2686,7 @@ class Bosses {
 				Bosses.P(0.25, {say: "The sands will swallow you!", move: "teleport",
 					attacks: [Bosses.flower(28, 9, 6, 80, 0.9, 0xffc040), Bosses.wall(21, 5, 95, 1.5, 0xe8c070, {hole: 2, waves: 2, gap: 0.5}), Bosses.nova(3, 1.2, 140, 2.4, 0x40e0ff, {burst: 14, eff: "armorbroken"})]})
 			]});
-			Bosses.lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 9000, col: 0xffc040, lairShield: true,
+			Bosses.lairProp("canopic_jar", {name: "Canopic Jar", spr: "canopic_jar", hp: 6000, col: 0xffc040, lairShield: true,
 				attacks: [Bosses.ring(6, 20, 4.5, 55, 1.6, 0xffc040, {name: "jar's curse"})]});
 
 			
@@ -5722,6 +5723,7 @@ class Lairs {
 				if (M.lamp) Lairs.lampRules(w, e, M.lamp, m, dt, api);
 				if (M.twin) Lairs.twinRules(w, e, M.twin, m, dt, api);
 				if (M.guard) { Lairs.guardRules(e, M.guard, m, dt, api); Lairs.keepInHall(w, e); }
+				if (M.mirror) Lairs.mirrorRules(w, e, M.mirror, m, dt, api);
 			}
 		}
 	static lampRules(w, e, L, m, dt, api) {
@@ -5793,6 +5795,38 @@ class Lairs {
 				}
 			}
 		}
+	static mirrorRules(w, e, R, m, dt, api) {
+			var o = null, live = [];
+			for (o of __vals( w.enemies)) if (!o.dead && o.defId == R.echo && o.mech && o.mech.owner == e.id) live.push(o);
+			if (!m.init) {
+				m.init = true; m.swapT = R.swap; m.reformT = 0;
+				for (var k = __int(0); k < R.n; k++) Lairs.mirrorEcho(e, R, k, api);
+				api.say(e.def.name + " hides among its reflections! Only the real one is worth your shots: the aura is at its feet.", w.theme.color, true);
+				return;
+			}
+			
+			if (live.length < R.n) {
+				m.reformT -= dt;
+				if (m.reformT <= 0) {
+					m.reformT = R.reform;
+					Lairs.mirrorEcho(e, R, live.length, api);
+					e.rateMult = Math.max(1, e.rateMult / R.rage);
+				}
+			} else m.reformT = R.reform;
+			
+			m.swapT -= dt;
+			if (m.swapT <= 0 && live.length) {
+				m.swapT = R.swap;
+				o = live[__int(Math.random() * live.length)];
+				var x = e.x, y = e.y;
+				e.x = o.x; e.y = o.y; o.x = x; o.y = y;
+			}
+		}
+	static mirrorEcho(e, R, k, api) { k = __int(k);
+			var a = k * Math.PI * 2 / R.n + Math.random() * 0.6;
+			var o = api.spawn(R.echo, e.x + Math.cos(a) * R.r, e.y + Math.sin(a) * R.r, e.zone, true);
+			if (o) o.mech = {owner: e.id};
+		}
 	static keepInHall(w, e) {
 			var hall = null, bd = 1e9;
 			for (var r of __vals( w.rooms)) {
@@ -5830,6 +5864,12 @@ class Lairs {
 			if (!L || !st) return;
 			
 			if (e.def.lantern) Lairs.lampLit(w, e, api);
+			
+			if (e.mech && e.mech.owner) for (var ow of __vals( w.enemies)) {
+				if (ow.dead || ow.id != e.mech.owner || !ow.def.mech || !ow.def.mech.mirror) continue;
+				ow.rateMult *= ow.def.mech.mirror.rage;
+				api.say("An echo shatters, and " + ow.def.name + " grows faster!", th.color, false);
+			}
 			
 			if (e.def.mech && e.def.mech.lamp) {
 				var LL = e.def.mech.lamp;
@@ -8423,12 +8463,11 @@ Lairs.DUNGEONS = [
 				waves: {mobs: ["gore_spawn", "gore_spawn", "blood_hound", "minotaur"], n: 3, size: 7}},
 				mobs: ["gore_spawn", "blood_hound", "ogre", "minotaur"]},
 			{id: "phantom_court", wall: "spectral", by: "ev_regent", name: "The Phantom Court", color: 0xc090ff, layout: "islands", dark: true, floor: 28, accent: 8, tier: 4, hard: 1.2, lair: {
-				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections. Shatter the echoes and the true Regent is laid bare.",
-				shield: {ids: ["regent_echo"], n: 3, where: "boss", r: 7, text: "An echo shatters into mist!"}},
+				boss: "mirror_regent", intro: "The Mirror Regent hides among its own reflections, and trades places with them. Keep your eyes on the true one: shooting its echoes only angers it."},
 				mobs: ["shade", "ghost", "void_wisp", "grave_wraith"]},
 			{id: "tomb_of_riddles", wall: "sandstone", by: "ev_sphinx", name: "The Tomb of Riddles", color: 0xffc040, layout: "maze", floor: 21, accent: 26, tier: 4, hard: 1.2, lair: {
-				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze. While one is whole, he cannot die.",
-				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", text: "A canopic jar breaks! Ankhamun howls in his tomb."}},
+				boss: "pharaoh", intro: "Ankhamun's heart lies in four canopic jars hidden in the maze, and the riddle says they break in turn: only the glowing jar can be broken. While one is whole, he cannot die.",
+				shield: {ids: ["canopic_jar"], n: 4, where: "rooms", order: true, text: "A canopic jar breaks! Ankhamun howls in his tomb. The next jar glows."}},
 				mobs: ["temple_scorpion", "scorpion", "great_snake", "medusa"]},
 			{id: "drowned_keep", wall: "mossy", by: "ev_lord", name: "The Drowned Keep", color: 0x50a0c0, layout: "rooms", hazard: "water", floor: 18, accent: 0, tier: 4, hard: 1.2, lair: {
 				boss: "admiral_brine", intro: "Admiral Brine drowned with his keep, and the sea will not let him stay dead.",

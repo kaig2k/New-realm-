@@ -384,7 +384,7 @@ package realm {
 			var cmd:String = t.split(" ")[0].toLowerCase();
 			switch (cmd) {
 				case "/help":
-					msg("Commands: /nexus  /realm  /glands  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /abyss  /ascend  /leaders  /bug what happened", 0x8fd0ff);
+					msg("Commands: /nexus  /realm  /glands  /guide off  /stats  /quests  /achievements  /who  /trade name  /inspect name  /oracle (O)  /pet (J)  /abyss  /ascend  /leaders  /bug what happened", 0x8fd0ff);
 					msg("Keys: X interact with portals, V go to a realm, H jump to the Godlands, O the Oracle. Right-click an item to lock it. Mouse wheel scrolls the chat while it's open. (Change keys under Menu > Controls.)", 0x8fd0ff);
 					msg("Social: /party  /p msg  /guild  /guild create Name  /g msg  /tp name  /join name  (L opens the party & guild window)  Group Ironman: /group", 0x8fd0ff);
 					var myRole:String = net.online && Online.welcome ? String(Online.welcome.role || "") : "";
@@ -488,6 +488,15 @@ package realm {
 					break;
 				case "/nexus": case "/n":
 					nexus();
+					break;
+				case "/guide":
+					// (an old hand on a new account doesn't need the Getting Started list: /guide off, /guide on)
+					var gon:Boolean = String(t.split(" ")[1] || "").toLowerCase() == "on";
+					Save.data.guide = gon ? 0 : GUIDE.length;
+					Save.data.guideN = 0;
+					Save.flush();
+					refreshTracker();
+					msg(gon ? "The Getting Started list is back (top left)." : "Getting Started list hidden. /guide on brings it back.", 0xaaaaaa);
 					break;
 				case "/realm":
 					// a realm that's open (the server may run just one)
@@ -1695,12 +1704,16 @@ package realm {
 		}
 
 		// ------------------------------------------------------------------ loop
+		private var maxDt:Number = -1;
 		private function tick(e:Event):void {
 			var now:int = getTimer();
 			var dt:Number = (now - lastT) / 1000;
 			lastT = now;
 			if (dt > 0) fpsAvg = fpsAvg * 0.95 + Math.min(300, 1 / dt) * 0.05;
-			if (dt > 0.05) dt = 0.05;
+			// (a frame never steps more than 0.05s; a slow test player taking screenshots can raise it with the
+			// maxdt flashvar, so the world keeps to real time with the server and bullets don't pile up)
+			if (maxDt < 0) maxDt = stage && stage.loaderInfo && Number(stage.loaderInfo.parameters.maxdt) > 0 ? Math.min(0.5, Number(stage.loaderInfo.parameters.maxdt)) : 0.05;
+			if (dt > maxDt) dt = maxDt;
 			frameDt = dt;
 
 			if (input.pressed(Keys.k("mute"))) {

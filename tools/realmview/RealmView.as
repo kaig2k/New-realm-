@@ -18,6 +18,26 @@ package {
 
 		public function RealmView() { addEventListener(Event.ENTER_FRAME, tick); }
 
+		/** roster=page: every boss's sprite (one per drawing), on a flat backdrop, 12 a page, to cut out for the promo cards. */
+		private function roster(page:int):void {
+			var bg:BitmapData = new BitmapData(960, 640, false, 0xff00ff);
+			var seen:Object = {}, ids:Array = [];
+			for (var id:String in Data.ENEMIES) {
+				var d:Object = Data.ENEMIES[id];
+				if (d.ai != "boss" || !d.spr || d.prop || d.stageFoe || seen[d.spr]) continue;
+				seen[d.spr] = true; ids.push(id);
+			}
+			ids.sort();
+			var pt:Point = new Point();
+			for (var i:int = 0; i < 12 && page * 12 + i < ids.length; i++) {
+				var bd:BitmapData = Sprites.get(Data.ENEMIES[ids[page * 12 + i]].spr);
+				var cx:int = (i % 4) * 240 + 120, base:int = int(i / 4) * 213 + 205;
+				pt.x = cx - bd.width / 2; pt.y = base - bd.height;
+				bg.copyPixels(bd, bd.rect, pt, null, null, true);
+			}
+			addChild(new Bitmap(bg));
+		}
+
 		/** lineup=ids: those monsters side by side at their in-game size, each beside a hero for scale. */
 		private function lineup(ids:Array):void {
 			var bg:BitmapData = new BitmapData(960, 640, false, 0x34502a);
@@ -48,16 +68,31 @@ package {
 				var o:int = w.objs[y * w.N + x];
 				if (o) list.push({y: y + 0.5, o: o, x: x});
 			}
-			var mobs:Array = w.theme && w.theme.mobs ? w.theme.mobs : [];
-			for (var m:int = 0; m < 6 && mobs.length; m++) {
-				var ex:Number = vx + (m - 3) * 2.2, ey:Number = vy + (m % 2 ? 2 : -2);
-				list.push({y: ey, e: new Enemy(mobs[m % mobs.length], ex, ey, 1), x: ex});
+			var P:Object = loaderInfo.parameters;
+			// ens=id@dx,dy;id@dx,dy: exactly these, placed off the room's middle (else a few of its monsters)
+			if (P.ens) {
+				for each (var spec:String in String(P.ens).split(";")) {
+					var at:Array = spec.split("@"), dd:Array = String(at[1] || "0,0").split(",");
+					if (!Data.ENEMIES[at[0]]) continue;
+					var qx:Number = vx + Number(dd[0]), qy:Number = vy + Number(dd[1]);
+					list.push({y: qy, e: new Enemy(at[0], qx, qy, 1), x: qx});
+				}
+			} else {
+				var mobs:Array = w.theme && w.theme.mobs ? w.theme.mobs : [];
+				for (var m:int = 0; m < 6 && mobs.length; m++) {
+					var ex:Number = vx + (m - 3) * 2.2, ey:Number = vy + (m % 2 ? 2 : -2);
+					list.push({y: ey, e: new Enemy(mobs[m % mobs.length], ex, ey, 1), x: ex});
+				}
 			}
-			list.push({y: vy, hero: true, x: vx});
+			// (hero=dx,dy moves the hero; hero=none leaves it out)
+			if (P.hero != "none") { var hd:Array = String(P.hero || "0,0").split(","); list.push({y: vy + Number(hd[1]), hero: true, x: vx + Number(hd[0])}); }
 			list.sortOn("y", Array.NUMERIC);
 			for each (var d:Object in list) {
 				var bd:BitmapData = d.hero ? Sprites.get("wizard") : d.e ? d.e.sprite : Sprites.get(World.OBJ_NAMES[d.o]);
 				var sx:Number = (d.e || d.hero ? d.x : d.x + 0.5) * TS - vx * TS + 480, base:Number = d.y * TS - vy * TS + 320 + TS / 2;
+				var shd:BitmapData = Sprites.shadow(TS);
+				pt.x = int(sx - TS / 2); pt.y = int(base - shd.height * 0.7);
+				if (!d.o) canvas.copyPixels(shd, shd.rect, pt, null, null, true);
 				pt.x = int(sx - bd.width / 2); pt.y = int(base - bd.height);
 				canvas.copyPixels(bd, bd.rect, pt, null, null, true);
 			}
@@ -67,6 +102,7 @@ package {
 		private function tick(ev:Event):void {
 			var p:Object = loaderInfo.parameters;
 			if (step == 0) { Bosses.init(); step++; return; }
+			if (step == 1 && p.roster) { roster(int(p.roster)); removeEventListener(Event.ENTER_FRAME, tick); return; }
 			if (step == 1 && p.lineup) { lineup(String(p.lineup).split(",")); removeEventListener(Event.ENTER_FRAME, tick); return; }
 			if (step == 1 && p.place) {
 				// place=vault|guildhall|arena: one of the game's other worlds, around its spawn

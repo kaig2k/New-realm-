@@ -642,7 +642,8 @@ class WorldSim {
     for (let tries = 0; tries < 500; tries++) {
       // the boss stands in the middle of a tile, at the centre of its set piece
       let x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5;
-      if (want) { const a = Math.random() * Math.PI * 2, r = 11 + tries * 0.05; x = Math.floor(want.x + Math.cos(a) * r) + 0.5; y = Math.floor(want.y + Math.sin(a) * r) + 0.5; }
+      // (straight north of them first, where they can see it; then anywhere round them that fits)
+      if (want) { const a = tries < 3 ? -Math.PI / 2 : Math.random() * Math.PI * 2, r = (tries < 3 ? 6 : 9) + tries * 0.05; x = Math.floor(want.x + Math.cos(a) * r) + 0.5; y = Math.floor(want.y + Math.sin(a) * r) + 0.5; }
       const z = w.zoneAt(x, y);
       // (well apart from the others, so arenas never overlap and each is its own fight)
       if (live.some((b) => (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) < Data.EVENT_GAP * Data.EVENT_GAP)) continue;

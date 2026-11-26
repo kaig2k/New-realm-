@@ -44,7 +44,7 @@ const FEATURES = [
 ];
 
 /** Which promo images to show, in order (those that exist). */
-const SHOTS = [['eldmere_bosses_fight.png', 'Every boss fights differently'], ['eldmere_events.png', 'Realm events'],
+const SHOTS = [['eldmere_bosses_fight.png', 'Every boss fights differently'], ['eldmere_lighthouse.png', 'Bosses you beat with the room'], ['eldmere_events.png', 'Realm events'],
   ['eldmere_bosses.png', '%BOSSES% bosses'], ['eldmere_guilds.png', 'Guild Halls'], ['eldmere_classes.png', '11 classes']];
 
 /** info: {name, online, season: {name, leader}, discord, launcher} */

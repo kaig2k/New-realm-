@@ -1,7 +1,8 @@
 import sys, os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-SP = '/tmp/claude-0/-home-user-New-realm-/9f4eb93a-970c-51e9-8f3f-c0f53d438025/scratchpad'
-R = SP + '/ruf/'
+# the screenshots the cards are made from (promo/shots: taken in the real game at 1100 x 640, the roster from
+# tools/realmview's roster mode; see promo/shots/README)
+R = os.path.join(os.path.dirname(__file__), '..', '..', 'promo', 'shots') + '/'
 OUT = '/home/user/New-realm-/promo/'
 os.makedirs(OUT, exist_ok=True)
 FB = '/home/user/New-realm-/assets/fonts/SourceSansPro-Bold.ttf'
@@ -38,11 +39,11 @@ def wrap(d, text, f, width):
     if line: out.append(line)
     return out
 
-def shot(name, box=(0, 0, 860, 640)):
+def shot(name, box=(0, 0, 1100, 640)):
     return Image.open(R + name).convert('RGBA').crop(box)
 
 def framed(img, scale):
-    im = img.resize((int(img.width * scale), int(img.height * scale)), Image.NEAREST)
+    im = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
     f = Image.new('RGBA', (im.width + 12, im.height + 12), (0, 0, 0, 0))
     d = ImageDraw.Draw(f)
     d.rectangle((0, 0, f.width - 1, f.height - 1), fill=(255, 77, 255, 255))
@@ -82,13 +83,13 @@ def side_card(path, img, scale, head, body, bullets=None):
     bg.convert('RGB').save(OUT + path, quality=95)
 
 def hero_card(path, img, head, sub):
-    bg = img.resize((W, int(img.height * W / img.width)), Image.NEAREST).crop((0, 0, W, H))
+    bg = img.resize((W, int(img.height * W / img.width)), Image.LANCZOS).crop((0, 0, W, H))
     bg = bg.convert('RGBA')
     shade = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(shade)
-    for i in range(420):
-        a = int(230 * (i / 420) ** 1.4)
-        d.line((0, H - 420 + i, W, H - 420 + i), fill=(10, 6, 18, a))
+    for i in range(520):
+        a = int(255 * min(1, (i / 380)) ** 1.2)
+        d.line((0, H - 520 + i, W, H - 520 + i), fill=(10, 6, 18, a))
     bg.alpha_composite(shade)
     lg = logo(532)
     bg.alpha_composite(lg, (70, H - lg.height - 60))
@@ -102,39 +103,38 @@ def hero_card(path, img, head, sub):
     bg.convert('RGB').save(OUT + path, quality=95)
 
 def roster_card(path):
-    sys.path.insert(0, '/home/user/New-realm-/tools/bossart')
-    from designs import DESIGNS
-    from animate import frames as animate
-    def render(rows, pal, scale):
-        h, w = len(rows), len(rows[0])
-        img = Image.new('RGBA', (w * scale + 10, h * scale + 10), (0, 0, 0, 0))
-        px = img.load()
-        for y, row in enumerate(rows):
-            for x, ch in enumerate(row):
-                if ch == '.' or ch not in pal: continue
-                c = pal[ch]
-                for yy in range(scale):
-                    for xx in range(scale):
-                        px[5 + x * scale + xx, 5 + y * scale + yy] = ((c >> 16) & 255, (c >> 8) & 255, c & 255, 255)
-        a = img.split()[3].filter(ImageFilter.MaxFilter(5))
-        out = Image.new('RGBA', img.size, (0, 0, 0, 0))
-        out.paste((8, 6, 12, 255), mask=a)
-        out.alpha_composite(img)
-        return out
+    """Every boss's sprite as the game draws it (tools/realmview roster pages: 12 a page on a magenta backdrop)."""
+    import glob
+    sprites = []
+    for f in sorted(glob.glob(R + 'roster_*.png')):
+        pg = Image.open(f).convert('RGBA')
+        px = pg.load()
+        for y in range(pg.height):
+            for x in range(pg.width):
+                r, g, b, a = px[x, y]
+                if r > 240 and g < 20 and b > 240: px[x, y] = (0, 0, 0, 0)
+        for k in range(12):
+            cell = pg.crop(((k % 4) * 240, (k // 4) * 213, (k % 4) * 240 + 240, (k // 4) * 213 + 213))
+            bb = cell.getbbox()
+            if bb: sprites.append(cell.crop(bb))
     bg = background()
     d = ImageDraw.Draw(bg)
     lg = logo(266)
     bg.alpha_composite(lg, (60, 40))
     fh, fs = font(FB, 76), font(FS, 36)
-    shadowed(d, (420, 70), str(len(DESIGNS)) + ' bosses. Every one drawn by hand.', fh, GOLD, off=4)
-    d.text((424, 170), 'Each with its own attacks, phases, arena and loot, and animations for every move.', font=fs, fill=CREAM)
-    sprites = [render(animate(fn, pal)[0][0], animate(fn, pal)[1], 4) for name, fn, pal, s in DESIGNS]
-    cols, top = 10, 270
-    cw, ch = (W - 80) // cols, (H - top - 30) // 5
+    # (how many bosses the game has, as the website counts them: some share a drawing)
+    import subprocess
+    n = int(subprocess.run(['node', '-e', "const { Data } = require('./server/sim/gen/game'); require('./server/sim/worldsim'); console.log(Object.values(Data.ENEMIES).filter((d) => d.ai === 'boss' && d.spr && !d.prop && !d.stageFoe).length)"],
+                           cwd=os.path.join(os.path.dirname(__file__), '..', '..'), capture_output=True, text=True).stdout.strip() or 80)
+    shadowed(d, (420, 70), str(n // 5 * 5) + '+ bosses, drawn by hand.', fh, GOLD, off=4)
+    d.text((424, 170), str(len(sprites)) + ' designs, each with its own attacks, phases, arena and loot.', font=fs, fill=CREAM)
+    cols, top = 12, 260
+    rows = (len(sprites) + cols - 1) // cols
+    cw, ch = (W - 80) // cols, (H - top - 30) // rows
     for i, s in enumerate(sprites):
-        k = min(1.0, (cw - 8) / s.width, (ch - 8) / s.height)
-        if k < 1: s = s.resize((int(s.width * k), int(s.height * k)), Image.NEAREST)
-        bg.alpha_composite(s, (40 + (i % cols) * cw + (cw - s.width) // 2, top + (i // cols) * ch + (ch - s.height) // 2))
+        k = min(1.4, (cw - 6) / s.width, (ch - 6) / s.height)
+        s = s.resize((max(1, int(s.width * k)), max(1, int(s.height * k))), Image.NEAREST)
+        bg.alpha_composite(s, (40 + (i % cols) * cw + (cw - s.width) // 2, top + (i // cols) * ch + (ch - s.height)))
     bg.convert('RGB').save(OUT + path, quality=95)
 
 
@@ -147,7 +147,7 @@ def collage(path, names, head, sub):
     d.text((364, 140), sub, font=font(FS, 34), fill=CREAM)
     cw, chh = 900, 400
     for i, n in enumerate(names):
-        im = shot(n, (0, 48, 860, 48 + int(860 * (chh - 12) / (cw - 12)))).resize((cw - 12, chh - 12), Image.NEAREST)
+        im = shot(n, (0, 0, 1100, int(1100 * (chh - 12) / (cw - 12)))).resize((cw - 12, chh - 12), Image.LANCZOS)
         f = Image.new('RGBA', (cw, chh), (255, 77, 255, 255))
         f.alpha_composite(im, (6, 6))
         bg.alpha_composite(f, (40 + (i % 2) * (cw + 40), 250 + (i // 2) * (chh + 20)))
@@ -155,21 +155,18 @@ def collage(path, names, head, sub):
 
 def run_all():
     roster_card('eldmere_bosses.png')
-    hero_card('eldmere_hero.png', shot('pr_ev_titan_4.png', (0, 50, 860, 534)), 'Dodge. Loot. Survive.',
-              'A bullet-hell MMO inspired by Realm of the Mad God: 47 hand-drawn bosses, raids, guilds and monthly seasons.')
-    side_card('eldmere_events.png', shot('pr_ev_kraken_4.png'), 1.5, 'Realm events that reshape the world',
-              'When an event boss rises, the land around it turns into its arena, and it changes again as the fight goes on.',
+    hero_card('eldmere_hero.png', shot('fight_titan_0.png', (0, 0, 1100, 619)), 'Dodge. Loot. Survive.',
+              'A bullet-hell MMO inspired by Realm of the Mad God: 80+ hand-drawn bosses, raids, guilds and monthly seasons.')
+    side_card('eldmere_events.png', shot('fight_kraken_2.png'), 1.15, 'Realm events that reshape the world',
+              'When an event boss rises, the land around it turns into its arena. Up to three rise at once.',
               ['Wards that shield the boss, menders that heal it', 'Phases with new attacks and arena shifts',
                'Fastest kills go on the Records board'])
-    side_card('eldmere_classes.png', shot('md_menu.png', (20, 150, 1090, 530)), 1.18, '11 classes. 3 found only here.',
-              'Bard, Alchemist and Chronomancer join the classic eight, each with three abilities to choose from.',
-              ['Ironman and Hardcore modes for more luck', 'Skill trees, pets and cosmetics',
-               'Godly sets, uniques and Starforged gear'])
-    side_card('eldmere_guilds.png', shot('gh_maker.png'), 1.5, 'Build your guild a home',
-              'Every guild gets its own Guild Hall in the Nexus: a shared bank, weekly goals, and banners you design yourselves.',
-              ['Banner Maker: patterns, emblems, colours', 'Weekly guild goals and a guild ranking',
-               'Your banner flies by every member\'s name'])
-    collage('eldmere_bosses_fight.png', ['pr_ev_titan_1.png', 'pr_ev_wyrm_0.png', 'pr_ev_phoenix_4.png', 'pr_ev_behemoth_4.png'],
-            'Every boss fights differently', 'Telegraphed blasts, bullet storms, summons and enrage phases. Learn them, or fall.')
+    side_card('eldmere_lighthouse.png', shot('lighthouse.png'), 1.15, 'Some bosses you beat with the room',
+              'In the Drowned Lighthouse, every fight has a rule of its own.',
+              ['The Lamplighter can only be hurt in lantern light', 'Ebb and Flow shield each other: pull them apart',
+               'Get behind the Bulwark\'s shield; hide from the Keeper\'s wave'])
+    collage('eldmere_bosses_fight.png', ['fight_witch_0.png', 'fight_phoenix_2.png', 'fight_sphinx_2.png', 'fight_wrecker_0.png'],
+            'Every boss fights differently', 'Telegraphed blasts, bullet storms, summons and arenas of their own. Learn them, or fall.')
 
-run_all()
+if __name__ == '__main__':
+    run_all()

@@ -426,8 +426,16 @@ package realm {
 			for (var k:int = 0; k < Data.SITES.length; k++) {
 				var def:Object = Data.SITES[k];
 				var placed:int = 0;
-				for (var tries:int = 0; tries < 400 && placed < per; tries++) {
+				// (the beach rings the island and every new hero starts on it: half as many again of its camps)
+				var want:int = def.zone == SHORE_ZONE ? per + int(per / 2) : per;
+				for (var tries:int = 0; tries < 600 && placed < want; tries++) {
 					var x:int = 16 + int(rnd() * (N - 32)), y:int = 16 + int(rnd() * (N - 32));
+					// (a new hero's first camp: the beach's first is a short walk from the landing, 42 to 70 tiles)
+					if (def.zone == SHORE_ZONE && placed == 0 && tries < 300) {
+						var la:Number = rnd() * Math.PI * 2, lr:Number = 42 + rnd() * 28;
+						x = int(hx + Math.cos(la) * lr); y = int(hy + Math.sin(la) * lr);
+						if (x < 16 || y < 16 || x >= N - 16 || y >= N - 16) continue;
+					}
 					var i:int = y * N + x;
 					if (zones[i] != def.zone || tiles[i] == WATER) continue;
 					if ((x - hx) * (x - hx) + (y - hy) * (y - hy) < 40 * 40) continue;

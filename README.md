@@ -725,3 +725,4 @@ Typed in chat by a server admin (config.json `admins`), for testing: `/maxhero` 
 `/adungeon id` (a portal to any dungeon or lair beside you, e.g. `/adungeon drowned_lighthouse`).
 `/gear` puts top-tier gear of the hero's class on it (T7 weapon and armour, T6 ability, T5 ring) and six of each potion.
 RealmView also draws the other worlds: `place=vault`, `place=guildhall` or `place=arena`.
+`/guide off` hides the Getting Started list (`/guide on` brings it back). `/aspawn id` finds dry ground round you.

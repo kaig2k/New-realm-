@@ -443,7 +443,15 @@ package realm {
 					// (/aspawn id with no place: a couple of steps in front of you)
 					// (/aspawn id far: 25 tiles off, out of its reach)
 					var asp:Array = t.split(" ");
-					if (cmd == "/aspawn" && (asp.length == 2 || asp[2] == "far")) t = asp[0] + " " + asp[1] + " " + (Math.round((player.x + (asp[2] == "far" ? 25 : 2.5)) * 100) / 100) + " " + (Math.round(player.y * 100) / 100);
+					if (cmd == "/aspawn" && (asp.length == 2 || asp[2] == "far")) {
+						// (the first spot round you a monster can stand on: east, then on round)
+						var sd:Number = asp[2] == "far" ? 25 : 2.5, sx:Number = player.x + sd, sy:Number = player.y;
+						for (var sa:int = 0; sa < 8; sa++) {
+							var tx:Number = player.x + Math.cos(sa * Math.PI / 4) * sd, ty:Number = player.y + Math.sin(sa * Math.PI / 4) * sd;
+							if (world.canStand(tx, ty, 0.4, true) && !world.isSafe(tx, ty)) { sx = tx; sy = ty; break; }
+						}
+						t = asp[0] + " " + asp[1] + " " + (Math.round(sx * 100) / 100) + " " + (Math.round(sy * 100) / 100);
+					}
 					net.serverCommand(t);
 					break;
 				case "/bug":
@@ -3600,6 +3608,7 @@ package realm {
 				var done:int = 0;
 				for each (var o:Object in world.sites) if (o.cleared) done++;
 				showBanner(s.name + " cleared!", s.color, 3);
+				if ((player.x - s.x) * (player.x - s.x) + (player.y - s.y) * (player.y - s.y) < (s.r + 20) * (s.r + 20)) guideEvent("landmark");
 				msg(s.name + " cleared! [" + done + "/" + world.sites.length + " landmarks in " + world.name + "]", s.color);
 				ring(s.x, s.y, s.color, 30);
 				// the leader's hoard: an extra roll of loot and some gold for whoever helped
@@ -6020,6 +6029,7 @@ package realm {
 		private static const GUIDE:Array = [
 			["realm", "Step into a realm portal in the Nexus", 1],
 			["kills", "Slay monsters", 15],
+			["landmark", "Clear a landmark (follow the gold arrow)", 1],
 			["loot", "Take an item from a loot bag", 1],
 			["level5", "Reach level 5 (head inland for stronger foes)", 1],
 			["events", "Defeat a realm event boss (magenta on the minimap)", 1],
@@ -6034,8 +6044,16 @@ package realm {
 				var veteran:Boolean = int(Save.data.deaths || 0) > 0;
 				for (var c:String in Save.data.bestLevel || {}) if (int(Save.data.bestLevel[c]) >= 10) veteran = true;
 				Save.data.guide = veteran ? GUIDE.length : 0;
+				Save.data.guideV = 2;
 			}
+			// (the landmark step came in as the third: anyone already past the second moves along one)
+			if (int(Save.data.guideV) < 2) { if (int(Save.data.guide) >= 2) Save.data.guide = int(Save.data.guide) + 1; Save.data.guideV = 2; }
 			return int(Save.data.guide);
+		}
+
+		private static function guideIndex(id:String):int {
+			for (var k:int = 0; k < GUIDE.length; k++) if (GUIDE[k][0] == id) return k;
+			return -1;
 		}
 
 		/** Something happened that a getting-started step might be waiting for. */
@@ -6074,7 +6092,7 @@ package realm {
 				lines.push(gs[1] + (gs[2] > 1 ? "  <font color='#b8b8c0'>" + int(Save.data.guideN || 0) + "/" + gs[2] + "</font>" : ""));
 			}
 			// (a new hero sees only the guide until level 5: the day's quests are for the realm's middle and beyond)
-			var early:Boolean = gk < GUIDE.length && gk <= 3;
+			var early:Boolean = gk < GUIDE.length && gk <= guideIndex("level5");
 			if (early) lines.push("<font color='#9a90b0' size='11'>Daily quests show up at level 5 (they count already).</font>");
 			for each (var qe:Object in early ? [] : questList()) {
 				if (qe.claimed) continue;
@@ -7392,7 +7410,8 @@ package realm {
 				questTarget = pickQuest();
 			}
 			// (a new hero in the Nexus, on the guide's first step: the arrow points to the realm portals)
-			var q:Object = questTarget && !questTarget.dead ? questTarget : guidePoint();
+			var lm:Object = guideLandmark();
+			var q:Object = lm ? lm : questTarget && !questTarget.dead ? questTarget : guidePoint();
 			questArrow.visible = questTf.visible = q != null;
 			if (!questArrow.visible) return;
 			var qName:String = q is Enemy ? Enemy(q).def.name : q.name;
@@ -7419,6 +7438,23 @@ package realm {
 			questTf.text = qName + "  " + dist + "m";
 			questTf.x = Math.max(4, Math.min(vw - 164, questArrow.x - 80));
 			questTf.y = questArrow.y + (dy > 0 ? -34 : 14);
+		}
+
+		/**
+		 * On the guide's landmark step, out in the realm: the nearest uncleared landmark for your level (a new hero's is
+		 * on the beach), until you're at its edge, where the arrow goes back to the monsters (its band and leader).
+		 */
+		private function guideLandmark():Object {
+			if (!world || world.kind != "realm" || guideStep >= GUIDE.length || GUIDE[guideStep][0] != "landmark") return null;
+			var want:int = Math.min(World.GOD_ZONE, int(player.level / 4));
+			var best:Object = null, bd:Number = 1e9;
+			for each (var s:Object in world.sites) {
+				if (s.cleared || s.zone > want) continue;
+				var d:Number = (s.x - player.x) * (s.x - player.x) + (s.y - player.y) * (s.y - player.y);
+				if (d < bd) { bd = d; best = s; }
+			}
+			if (!best || bd < (best.r + 3) * (best.r + 3)) return null;
+			return {x: best.x, y: best.y, portal: true, isBoss: false, name: best.name};
 		}
 
 		/** Where the guide's first step wants a new hero to go: the nearest realm portal in the Nexus (or null). */

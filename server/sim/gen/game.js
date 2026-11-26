@@ -3411,8 +3411,16 @@ class World {
 			for (var k = __int(0); k < Data.SITES.length; k++) {
 				var def = Data.SITES[k];
 				var placed = __int(0);
-				for (var tries = __int(0); tries < 400 && placed < per; tries++) {
+				
+				var want = __int(def.zone == World.SHORE_ZONE ? per + __int(per / 2) : per);
+				for (var tries = __int(0); tries < 600 && placed < want; tries++) {
 					var x = __int(16 + __int(this.rnd() * (this.N - 32))), y = __int(16 + __int(this.rnd() * (this.N - 32)));
+					
+					if (def.zone == World.SHORE_ZONE && placed == 0 && tries < 300) {
+						var la = this.rnd() * Math.PI * 2, lr = 42 + this.rnd() * 28;
+						x = __int(__int(hx + Math.cos(la) * lr)); y = __int(__int(hy + Math.sin(la) * lr));
+						if (x < 16 || y < 16 || x >= this.N - 16 || y >= this.N - 16) continue;
+					}
 					var i = __int(y * this.N + x);
 					if (this.zones[i] != def.zone || this.tiles[i] == World.WATER) continue;
 					if ((x - hx) * (x - hx) + (y - hy) * (y - hy) < 40 * 40) continue;

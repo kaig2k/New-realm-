@@ -62,6 +62,7 @@
 • **No more glow when you shoot**: the burst of light at your weapon and the flash on your hero are gone
 
 **🌱 A smoother start for new heroes**
+• **A first goal for new heroes**: Getting Started now sends you to clear a landmark right after your first kills, and the gold arrow leads you there. Every realm has a **Smugglers' Cove** a short walk from where you arrive (and half as many again round the beach), with a pirate captain and his crew guarding a hoard of loot and gold
 • A new hero's gold arrow now **points to the realm portals** in the Nexus, so the first step of Getting Started shows you where to go
 • In the realm, a hero under level 10 is pointed at **monsters its own level**, not across the map to event bosses that would kill it. Event-boss arrows appear from level 5
 • The **daily quests** ("Slay 30 Godlands monsters", "Defeat Morrow") stay out of the way until level 5, so a new hero's list shows only its first steps. They still count from the start

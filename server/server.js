@@ -957,6 +957,17 @@ function friends(a, b) {
  * account gets an empty save here on its first visit, and nothing from a
  * player's PC is ever imported.
  */
+/**
+ * The server changed a save itself (a trade, a purchase, an admin's /gear...): its sequence goes up, so any save
+ * the game sent from before is refused. One already on its way when it happened isn't cheating: it's let off the
+ * anti-cheat log for a few seconds (still refused, and the game gets the server's copy).
+ */
+const seqBumped = new WeakMap();
+function bumpSeq(sv) {
+  sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+  seqBumped.set(sv, Date.now());
+}
+
 function onlineSave(key) {
   let s = store.getSave(key);
   if (!s) { s = {}; store.putSave(key, s); }
@@ -1008,7 +1019,9 @@ function applySave(c, data, cid) {
   if (why) {
     log('refused save from ' + c.name + ': ' + why);
     counters.savesRefused++;
-    flag(c, 'save refused', why);
+    // (a save that crossed paths with a change the server just made: refused, but no flag)
+    const crossed = /^stale save/.test(why) && Date.now() - (seqBumped.get(prev) || 0) < 5000;
+    if (!crossed) flag(c, 'save refused', why);
     c.send({ t: 'saveRejected', reason: why, data: publicSave(prev) });
     return false;
   }
@@ -1136,7 +1149,7 @@ function setCaps(c) {
 
 /** A purchase or forge went through: the player's game takes the server's inventory and currencies. */
 function shopDone(c, sv, ch, extra) {
-  sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+  bumpSeq(sv);
   store.putSave(c.key, sv);
   c.send(Object.assign({ t: 'shopDone', inv: ch.inv, gold: sv.gold || 0, onrane: sv.onrane || 0, seq: sv.tradeSeq }, extra));
 }
@@ -1830,7 +1843,7 @@ const handlers = {
     ch.asc = (Number(ch.asc) || 0) + 1;
     const a = sv.asc && typeof sv.asc === 'object' ? sv.asc : (sv.asc = { pts: 0, r: {}, n: 0 });
     a.pts = (a.pts || 0) + 1; a.n = (a.n || 0) + 1;
-    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    bumpSeq(sv);
     store.putSave(c.key, sv);
     setCaps(c);
     log(c.name + '\'s ' + (ch.name || 'hero') + ' ascended (' + ch.asc + ')');
@@ -1850,7 +1863,7 @@ const handlers = {
     if ((a.r[p.id] || 0) >= p.max) return c.send({ t: 'shopFail', msg: p.name + ' is already at its highest rank.' });
     a.r[p.id] = (a.r[p.id] || 0) + 1;
     a.pts--;
-    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    bumpSeq(sv);
     store.putSave(c.key, sv);
     setCaps(c);
     c.send({ t: 'asc', asc: a, seq: sv.tradeSeq });
@@ -2285,7 +2298,7 @@ const handlers = {
     const sv = onlineSave(c.key);
     const got = quests.claim(sv, !!m.w, num(m.i) | 0);
     if (typeof got === 'string') return c.send({ t: 'shopFail', msg: got });
-    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    bumpSeq(sv);
     store.putSave(c.key, sv);
     c.send({ t: 'questDone', gold: sv.gold || 0, onrane: sv.onrane || 0, seq: sv.tradeSeq, got, q: quests.view(sv) });
     if (sv._quests.wk >= 4) grantTitle(c.key, 'questor');
@@ -2545,7 +2558,7 @@ const handlers = {
         ch.stats = Object.assign({}, cls.max);
         ch.skillPoints = (Number(ch.skillPoints) || 0) + Math.max(0, 20 - (Number(ch.level) || 1));
         ch.level = 20; ch.xp = 0; ch.xpNext = progress.xpFor(20); ch.ascXp = 0;
-        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        bumpSeq(sv);
         store.putSave(tc.key, sv);
         setCaps(tc);
         log(c.name + ' used /maxhero on ' + tc.name + '\'s ' + (ch.name || ch.id));
@@ -2564,7 +2577,7 @@ const handlers = {
         ch.armor = items.issue(sv, Data.makeArmor(cls.armor, 7));
         ch.ring = items.issue(sv, Data.makeRing('def', 5));
         ch.hpPots = Math.max(Number(ch.hpPots) || 0, 6); ch.mpPots = Math.max(Number(ch.mpPots) || 0, 6);
-        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        bumpSeq(sv);
         store.putSave(tc.key, sv);
         setCaps(tc);
         log(c.name + ' used /gear on ' + tc.name);
@@ -2579,7 +2592,7 @@ const handlers = {
         ch.skills = {};
         for (const sk of Data.SKILLS) ch.skills[sk.id] = sk.max;
         ch.tree2 = true;
-        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        bumpSeq(sv);
         store.putSave(tc.key, sv);
         setCaps(tc);
         log(c.name + ' used /maxtree on ' + tc.name + '\'s ' + (ch.name || ch.id));
@@ -2595,7 +2608,7 @@ const handlers = {
         const a = sv.asc && typeof sv.asc === 'object' ? sv.asc : (sv.asc = { pts: 0, r: {}, n: 0 });
         if (!a.r || typeof a.r !== 'object') a.r = {};
         for (const pk of Data.ASC_PERKS) a.r[pk.id] = pk.max;
-        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        bumpSeq(sv);
         store.putSave(tc.key, sv);
         setCaps(tc);
         log(c.name + ' used /maxasc on ' + tc.name);
@@ -2646,7 +2659,7 @@ const handlers = {
           p.xp = (Number(p.xp) || 0) + amount;
           while (p.level < max && p.xp >= Data.petXpNeeded(p.level)) { p.xp -= Data.petXpNeeded(p.level); p.level++; }
           if (p.level >= max) p.xp = 0;
-          sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+          bumpSeq(sv);
           store.putSave(who, sv);
           log(c.name + ' gave ' + accounts[who].name + '\'s pet ' + amount + ' XP');
           if (target) { const ch = serverChar(target); if (ch) shopDone(target, sv, ch, { pet: p, petxp: amount }); }
@@ -2687,7 +2700,7 @@ const handlers = {
         const sv = onlineSave(who);
         sv[what] = Math.max(0, (sv[what] || 0) + amount);
         // (newer than any save the game has in flight, so the gift can't be overwritten)
-        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        bumpSeq(sv);
         store.putSave(who, sv);
         const label = what === 'onrane' ? 'Aether' : what;
         log(c.name + ' gave ' + accounts[who].name + ' ' + amount + ' ' + label);
@@ -2721,7 +2734,7 @@ const handlers = {
         const was = h.name;
         h.name = nn;
         // (newer than any save the game has in flight, so the old name can't come back)
-        sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+        bumpSeq(sv);
         store.putSave(who, sv);
         if (target) { target.send({ t: 'kicked', msg: 'An admin renamed your hero ' + was + ' to ' + nn + '. Log in again to carry on.' }); target.close(true); }
         log(c.name + ' renamed ' + accountTag(who) + '\'s hero ' + was + ' to ' + nn);
@@ -2980,7 +2993,7 @@ function vipPerk(c, cmd) {
   ch.totalXp = (Number(ch.totalXp) || 0) + Math.max(0, xp);
   ch.level = 20; ch.xp = 0; ch.xpNext = progress.xpFor(20); ch.ascXp = 0;
   ch.skillPoints = (Number(ch.skillPoints) || 0) + lv;
-  sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+  bumpSeq(sv);
   store.putSave(c.key, sv);
   setCaps(c);
   log(c.name + ' used VIP /l20 on ' + (ch.name || ch.id) + ' (was level ' + L + ')');
@@ -3225,7 +3238,7 @@ function finishTrade(t) {
   for (const it of gb) items.transfer(svB, svA, it);
   for (const [cl, ch, gave] of [[a, ca, ga], [b, cb, gb]]) {
     const sv = store.getSave(cl.key);
-    sv.tradeSeq = (sv.tradeSeq || 0) + 1;
+    bumpSeq(sv);
     // what left this account may not reappear in its next save (a client that ignores the swap)
     const meta = accountMeta.get(cl.key);
     if (meta) {

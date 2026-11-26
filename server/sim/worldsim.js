@@ -636,9 +636,13 @@ class WorldSim {
     if (!w.recentEvents) w.recentEvents = [];
     let id;
     do id = Data.EVENTS[Math.floor(Math.random() * Data.EVENTS.length)]; while (w.recentEvents.indexOf(id) >= 0 || live.some((b) => b.defId === id));
+    // (an admin's /aevent id: that one, near them)
+    const want = this.wantEvent; this.wantEvent = null;
+    if (want && Data.EVENTS.indexOf(want.id) >= 0) id = want.id;
     for (let tries = 0; tries < 500; tries++) {
       // the boss stands in the middle of a tile, at the centre of its set piece
-      const x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5;
+      let x = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5, y = Math.floor(w.N / 2 + (Math.random() - 0.5) * w.N * 0.6) + 0.5;
+      if (want) { const a = Math.random() * Math.PI * 2, r = 11 + tries * 0.05; x = Math.floor(want.x + Math.cos(a) * r) + 0.5; y = Math.floor(want.y + Math.sin(a) * r) + 0.5; }
       const z = w.zoneAt(x, y);
       // (well apart from the others, so arenas never overlap and each is its own fight)
       if (live.some((b) => (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) < Data.EVENT_GAP * Data.EVENT_GAP)) continue;

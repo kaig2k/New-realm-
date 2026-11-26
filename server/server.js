@@ -2517,6 +2517,8 @@ const handlers = {
         const sm = sims && sims.get(c.world);
         if (!sm || sm.kind !== 'realm') return c.note('Only works inside a realm.');
         if (sm.liveEvents().length >= Data.MAX_EVENTS) return c.note('This realm already has ' + Data.MAX_EVENTS + ' event bosses alive.');
+        // (/aevent id: that event boss, about 11 tiles from you, arena and all)
+        if (parts[1]) { if (Data.EVENTS.indexOf(parts[1]) < 0) return c.note('Events: ' + Data.EVENTS.join(' ')); sm.wantEvent = { id: parts[1], x: c.x, y: c.y }; }
         sm.w.eventT = 0;
         return c.note('An event is on its way.', 0x80ff80);
       }

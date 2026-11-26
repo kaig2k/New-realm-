@@ -23,30 +23,40 @@ const RUFFLE = 'https://unpkg.com/@ruffle-rs/ruffle@0.6.0/ruffle.js';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+/** How many bosses the game has (every boss with a drawing, not the props it fights beside), rounded down: "80+". */
+function bosses() {
+  try {
+    const { Data } = require('./sim/gen/game');
+    const n = Object.values(Data.ENEMIES).filter((d) => d.ai === 'boss' && d.spr && !d.prop && !d.stageFoe).length;
+    return Math.floor(n / 5) * 5 + '+';
+  } catch (e) { return '80+'; }
+}
+
 const FEATURES = [
-  ['47 hand-drawn bosses', 'Each with its own attacks, phases, arena and loot, and animations for every move.'],
-  ['Realm events that reshape the world', 'The land turns into the boss\'s arena, and changes again as the fight goes on.'],
+  ['%BOSSES% hand-drawn bosses', 'Each with its own attacks, phases, arena and loot. Some you only beat by using the room: light, cover, a way round a shield.'],
+  ['Realm events that reshape the world', 'Up to three bosses rise at once, each turning the land around it into its arena.'],
   ['11 classes', 'Including the Bard, Alchemist and Chronomancer, found only in Eldmere.'],
   ['Guild Halls', 'Your guild\'s own hall: a shared bank, weekly goals, and banners you design yourselves.'],
   ['Monthly seasons', 'A ladder every month, with titles and dyes for the top ten.'],
   ['Ironman and Hardcore', 'No trading, more luck. Hardcore makes you climb the gear tiers one at a time.'],
-  ['Dungeons and raids', 'From early dungeons to multi-stage raids, and a Starfall Vault that changes every week.'],
+  ['Dungeons, lairs and raids', 'Over thirty dungeons and lairs (every realm boss has one), multi-stage raids, and a Starfall Vault that changes every week.'],
   ['Fair play', 'The server runs the monsters and the loot: nobody can cheat their way to the top.']
 ];
 
 /** Which promo images to show, in order (those that exist). */
 const SHOTS = [['eldmere_bosses_fight.png', 'Every boss fights differently'], ['eldmere_events.png', 'Realm events'],
-  ['eldmere_bosses.png', '47 bosses'], ['eldmere_guilds.png', 'Guild Halls'], ['eldmere_classes.png', '11 classes']];
+  ['eldmere_bosses.png', '%BOSSES% bosses'], ['eldmere_guilds.png', 'Guild Halls'], ['eldmere_classes.png', '11 classes']];
 
 /** info: {name, online, season: {name, leader}, discord, launcher} */
-function landing(info) {
+function landing(info) { return landingPage(info).replace(/%BOSSES%/g, bosses()); }
+function landingPage(info) {
   const shots = SHOTS.filter(([f]) => fs.existsSync(path.join(PROMO, f)));
   const hero = fs.existsSync(path.join(PROMO, 'eldmere_hero.png')) ? '/promo/eldmere_hero.png' : '';
   const video = fs.existsSync(path.join(PROMO, 'eldmere_gameplay.mp4'));
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(info.name)}: a bullet-hell MMO</title>
-<meta name="description" content="A pixel-art bullet-hell MMO inspired by Realm of the Mad God: 47 hand-drawn bosses, raids, guilds and monthly seasons.">
+<meta name="description" content="A pixel-art bullet-hell MMO inspired by Realm of the Mad God: %BOSSES% hand-drawn bosses, raids, guilds and monthly seasons.">
 <meta property="og:title" content="${esc(info.name)}"><meta property="og:description" content="Dodge. Loot. Survive. A bullet-hell MMO where every boss fights differently.">
 ${hero ? '<meta property="og:image" content="' + hero + '">' : ''}
 <link rel="icon" href="/logo.png">
@@ -73,7 +83,7 @@ footer{color:var(--muted);text-align:center;padding:40px 0 60px;font-size:14px}
 <header><div class="wrap">
 <img src="/logo.png" alt="${esc(info.name)}">
 <div class="tag">Dodge. Loot. Survive.</div>
-<p class="sub">A pixel-art bullet-hell MMO inspired by Realm of the Mad God. Team up in shared realms, battle 47 hand-drawn bosses, raid the Starfall Vault, and build your guild a home.</p>
+<p class="sub">A pixel-art bullet-hell MMO inspired by Realm of the Mad God. Team up in shared realms, battle %BOSSES% hand-drawn bosses, raid the Starfall Vault, and build your guild a home.</p>
 <div class="live"><span class="pill"><span class="dot"></span><b>${info.online}</b> playing now</span>
 ${info.season ? '<span class="pill">' + esc(info.season.name) + (info.season.leader ? ': led by <b>' + esc(info.season.leader) + '</b>' : '') + '</span>' : ''}</div>
 <div class="cta"><a class="btn main" href="/play">Play in your browser</a>

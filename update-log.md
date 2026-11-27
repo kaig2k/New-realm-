@@ -1,3 +1,13 @@
+**📜 ELDMERE UPDATE: The Gilded Heroes**
+
+**✨ Every class redrawn**
+• All 11 heroes have a new look: deep jewel colours, gold trim, and a hat or helm that tells you the class at a glance
+• Your skins and dyes still work on the new designs
+
+**🦉 New skins: Beast Masks**
+• One mask for every class: Owl (Wizard), Fox (Archer), Wolf (Knight), Stag (Priest), Cat (Rogue), Bear (Warrior), Raven (Necromancer), Lynx (Huntress), Songbird (Bard), Toad (Alchemist) and Moth (Chronomancer)
+• 1200 fame each, in the skin shop, and they take dyes too
+
 **📜 ELDMERE UPDATE: The Drowned Lighthouse**
 
 **🗼 New dungeon: the Drowned Lighthouse**

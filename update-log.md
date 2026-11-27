@@ -1,3 +1,7 @@
+**👹 Every regular monster redrawn**
+• All 60 of the realm's regular monsters are redrawn in the heroes' gilded style: the same chunky pixel, jewel colours, gold trim and glowing eyes
+• No more bright flash or glow when they attack: they crouch, then lunge
+
 **🛠️ Fix:** enemies no longer flash bright just before they shoot
 
 **📜 ELDMERE UPDATE: The Gilded Heroes**

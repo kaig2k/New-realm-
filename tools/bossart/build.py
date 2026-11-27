@@ -19,9 +19,10 @@ import pets_shaded
 _monsters += pets_shaded.all_designs()
 # ...but the regular monsters are chunky, in the heroes' style (chunky_monsters.py); a boss sharing one keeps
 # the detailed drawing under its own name
-import chunky_monsters
+# (and now gilded, on the heroes' own pixel, gilded_monsters.py: no glow on their attack)
+import chunky_monsters, gilded_monsters
 _monsters = [d for d in _monsters if d[0] not in chunky_monsters.NAMES] + [('golem_big',) + tuple(d[1:]) for d in _monsters if d[0] == 'golem']
-DESIGNS = DESIGNS + chunky_monsters.NEW
+DESIGNS = [d for d in DESIGNS if d[0] not in gilded_monsters.NAMES] + gilded_monsters.designs()
 _mnames = {d[0] for d in _monsters}
 _names = {d[0] for d in _shaded}
 # (bosses that reuse an old drawing with a colour swap keep it, as name_flat, until they get shaded art of their own)
@@ -140,9 +141,9 @@ src = '''package realm {
 		public static function register():void {
 			for (var name:String in ART) Sprites.define(name, ART[name][3] ? unpack(ART[name][0]) : ART[name][0], ART[name][1], ART[name][2]);
 			// smaller copies: the little slimes that big ones split into
-			Sprites.define("slimelet", ART.slime[0], ART.slime[1], 2);
-			Sprites.define("green_slimelet", ART.green_slime[0], ART.green_slime[1], 2);
-			Sprites.define("ooze", ART.slime_god[0], ART.slime_god[1], 2);
+			Sprites.define("slimelet", ART.slime[0], ART.slime[1], 3);
+			Sprites.define("green_slimelet", ART.green_slime[0], ART.green_slime[1], 3);
+			Sprites.define("ooze", ART.slime_god[0], ART.slime_god[1], 4);
 			for (var rc:String in RECOLORS) Sprites.recolor(rc, RECOLORS[rc][0], RECOLORS[rc][1]);
 		}
 

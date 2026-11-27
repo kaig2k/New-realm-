@@ -626,9 +626,8 @@ package realm {
 				bd.draw(src, new Matrix(-1, 0, 0, 1, src.width, 0));
 			} else if (frame >= 10) {
 				var af:Array = animFrame(frames, frame - 10);
-				// (a monster's attack flashes; a hero's doesn't: it read as a glow on every shot)
-				var hero:Boolean = HERO_TONES[name] != undefined || name.indexOf("~") > 0 || Data.findSkin(name) != null;
-				bd = build(af[0], af[1] && !hero ? brighter(d[1]) : d[1], d[2] || SCALE, 2);
+				// (no flash on an attack: the squash and stretch is the tell; a bright blink read as a glow on every shot)
+				bd = build(af[0], d[1], d[2] || SCALE, 2);
 			} else {
 				bd = build(frames[frame], d[1], d[2] || SCALE, 2);
 			}

@@ -1,3 +1,5 @@
+**🛠️ Fix:** enemies no longer flash bright just before they shoot
+
 **📜 ELDMERE UPDATE: The Gilded Heroes**
 
 **✨ Every class redrawn**
